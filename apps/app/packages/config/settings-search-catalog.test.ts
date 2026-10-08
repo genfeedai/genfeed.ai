@@ -54,14 +54,6 @@ describe('buildSettingsSearchCatalog', () => {
     expect(
       catalog.find(
         (item) =>
-          item.id === `personal-section:${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
-      )?.href,
-    ).toBe(
-      `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
-    );
-    expect(
-      catalog.find(
-        (item) =>
           item.id ===
           `personal-section:${PERSONAL_SETTINGS_ANCHOR.EMAIL_NOTIFICATIONS}`,
       )?.href,

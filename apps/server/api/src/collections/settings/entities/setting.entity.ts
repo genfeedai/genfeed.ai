@@ -11,7 +11,6 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly isMenuCollapsed: Setting['isMenuCollapsed'];
   declare readonly isSidebarProgressVisible: Setting['isSidebarProgressVisible'];
   declare readonly isSidebarProgressCollapsed: Setting['isSidebarProgressCollapsed'];
-  declare readonly isAdvancedMode: Setting['isAdvancedMode'];
   declare readonly isTrendNotificationsInApp: Setting['isTrendNotificationsInApp'];
   declare readonly isTrendNotificationsTelegram: Setting['isTrendNotificationsTelegram'];
   declare readonly isTrendNotificationsEmail: Setting['isTrendNotificationsEmail'];

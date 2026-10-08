@@ -449,7 +449,7 @@ describe('UsersController', () => {
           id: targetUserId,
           settings: { id: settingsId },
         });
-        const saved = { id: settingsId, isAdvancedMode: false };
+        const saved = { id: settingsId, isMenuCollapsed: false };
         settingsService.patch.mockResolvedValue(saved);
         settingsService.patchWithFavoriteWorkflowIds.mockResolvedValue(saved);
 
@@ -463,7 +463,7 @@ describe('UsersController', () => {
               isSuperAdmin: true,
             } as never,
             targetUserId,
-            { isAdvancedMode: false } as never,
+            { isMenuCollapsed: false } as never,
           );
         } else {
           await relationshipsController.updateMeSettings(
@@ -471,7 +471,7 @@ describe('UsersController', () => {
             mockUser,
             (route === 'favorites'
               ? { favoriteWorkflowIds: [] }
-              : { isAdvancedMode: false }) as never,
+              : { isMenuCollapsed: false }) as never,
           );
         }
 
@@ -496,7 +496,7 @@ describe('UsersController', () => {
 
       await expect(
         relationshipsController.updateMeSettings(mockRequest, mockUser, {
-          isAdvancedMode: false,
+          isMenuCollapsed: false,
         } as never),
       ).rejects.toThrow('write failed');
 

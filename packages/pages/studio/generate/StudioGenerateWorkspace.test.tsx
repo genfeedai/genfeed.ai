@@ -1656,6 +1656,60 @@ describe('StudioGenerateWorkspace', () => {
     expect(screen.getByText('Original handoff')).toBeVisible();
   });
 
+  it.each([
+    {
+      expected: true,
+      label: 'falls back to Auto when a saved model left the loaded catalog',
+      models: {
+        isLoadingModels: false,
+        isModelCatalogReady: true,
+        models: [{ key: 'provider/live' }],
+      },
+      modelKey: 'provider/retired',
+    },
+    {
+      expected: false,
+      label: 'keeps a saved model while the catalog has not loaded',
+      models: { isLoadingModels: true, isModelCatalogReady: false, models: [] },
+      modelKey: 'provider/retired',
+    },
+    {
+      expected: false,
+      label: 'keeps a saved model the catalog still offers',
+      models: {
+        isLoadingModels: false,
+        isModelCatalogReady: true,
+        models: [{ key: 'provider/live' }],
+      },
+      modelKey: 'provider/live',
+    },
+  ])('$label', async ({ expected, models, modelKey }) => {
+    mocks.models.value = models;
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioGenerateWorkspace />);
+    await act(async () => {});
+
+    if (expected) {
+      expect(mocks.updateSettings).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'Your saved model is no longer available — Studio switched to Auto.',
+      );
+    } else {
+      expect(mocks.updateSettings).not.toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    }
+  });
+
   it('does not request references after unmount while acquiring the service', async () => {
     const token = Promise.withResolvers<string>();
     mocks.getToken.mockReturnValue(token.promise);

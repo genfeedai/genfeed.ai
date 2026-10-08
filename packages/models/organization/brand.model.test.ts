@@ -98,7 +98,6 @@ const createBaseEntity = <T extends { id: string }>(
 const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
   ...createBaseEntity<ISetting>(partial),
   contentPreferences: [],
-  isAdvancedMode: false,
   isFirstLogin: false,
   isMenuCollapsed: false,
   isTrendNotificationsEmail: false,
@@ -127,7 +126,6 @@ const createOrganizationSetting = (
 ): IOrganizationSetting => ({
   ...createBaseEntity<IOrganizationSetting>(partial),
   brandsLimit: 1,
-  isAdvancedMode: false,
   isAutoEvaluateEnabled: false,
   isFleetNsfwVisible: false,
   isGenerateArticlesEnabled: true,

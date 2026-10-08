@@ -6,7 +6,6 @@ import {
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   IngredientCategory,
   IngredientFormat,
@@ -177,7 +176,6 @@ export function usePromptBarState({
   const { openUpload } = useUploadModal();
   const { brandId, organizationId, selectedBrand, settings } = useBrand();
   const { activeGenerations } = useAssetSelection();
-  const { currentUser } = useCurrentUser();
   const { subscribe } = useSocketManager();
   const getPromptsService = useAuthedService((token: string) =>
     PromptsService.getInstance(token),
@@ -186,8 +184,7 @@ export function usePromptBarState({
   const [selectedPreset, setSelectedPreset] = useState('');
   const [selectedProfile, setSelectedProfile] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(isCollapsible);
-  const isAdvancedMode = currentUser?.settings?.isAdvancedMode ?? true;
-  const [isAutoMode, setIsAutoMode] = useState(!isAdvancedMode);
+  const [isAutoMode, setIsAutoMode] = useState(false);
   const isAdvancedControlsEnabled = !isAutoMode;
 
   const currentConfig = useMemo(() => {
@@ -712,20 +709,6 @@ export function usePromptBarState({
     }
   }, [brandId, form]);
 
-  // Simple mode has no model selector: the backend auto-selects the model
-  // from prompt + quality, so the form must opt into auto-select or generate
-  // would stay blocked on the (hidden) model requirement.
-  const hasSelectedModels = normalizedWatchedModels.length > 0;
-  useEffect(() => {
-    if (isAdvancedMode || hasSelectedModels) {
-      return;
-    }
-    if (form.getValues('autoSelectModel') !== true) {
-      form.setValue('autoSelectModel', true, { shouldValidate: true });
-      triggerConfigChange();
-    }
-  }, [isAdvancedMode, hasSelectedModels, form, triggerConfigChange]);
-
   useEffect(() => {
     if (!isCollapsible || hasExpandedRef.current) {
       return;
@@ -1059,7 +1042,6 @@ export function usePromptBarState({
     hasDragDrop,
     iconButtonClass,
     isAdvancedControlsEnabled,
-    isAdvancedMode,
     extraExtensions,
     isAutoMode,
     isCollapsed,

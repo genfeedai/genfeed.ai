@@ -43,8 +43,6 @@ export interface MenuItemConfig {
   isDynamic?: boolean;
   /** Associated credential ID for dynamic items */
   credentialId?: string;
-  /** When true, this item is only visible when isAdvancedMode is enabled */
-  advancedOnly?: boolean;
 }
 
 export interface MenuConfig {

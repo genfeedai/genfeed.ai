@@ -1154,6 +1154,7 @@ export function useAgentChatInput({
   return {
     actionFeedback,
     canSendMessage,
+    canUseVoiceInput,
     contentLibraryItems,
     editor,
     handlePasteImages,

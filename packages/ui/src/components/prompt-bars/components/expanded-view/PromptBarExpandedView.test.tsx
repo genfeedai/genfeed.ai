@@ -70,7 +70,6 @@ function createMockContext(
     hasSpeechValue: false,
     iconButtonClass: '',
     isAdvancedControlsEnabled: false,
-    isAdvancedMode: false,
     isAutoMode: false,
     isCollapsed: false,
     isDisabledState: false,

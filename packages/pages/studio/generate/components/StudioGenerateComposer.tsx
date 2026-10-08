@@ -24,7 +24,10 @@ import type {
   GenerationSetupFieldKey,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type {
+  StudioGenerateReferenceRole,
+  StudioGenerationCostEstimate,
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   getDefaultVideoResolution,
@@ -35,11 +38,13 @@ import {
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,
 } from '@genfeedai/pricing';
+import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import StudioGenerationSummary from '@pages/studio/generate/components/StudioGenerationSummary';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
+import StudioTypeDropdown from '@pages/studio/generate/components/StudioTypeDropdown';
 import {
   crunFieldOptions,
   useCrunInputControls,
@@ -140,7 +145,7 @@ export default function StudioGenerateComposer({
   prompt,
   previousPrompt = null,
   settings,
-  shouldShowVoiceInput,
+  isVoiceInputAvailable,
   type,
 }: StudioGenerateComposerProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
@@ -516,111 +521,88 @@ export default function StudioGenerateComposer({
     .filter(Boolean)
     .join(' · ');
 
-  const referenceControls = (
-    <>
-      {capabilities.hasReferences && type === 'image' ? (
-        <PromptBarReferenceControls
-          density="compact"
-          accept="image/*"
-          isAttachmentDisabled={isGenerating || isUploading}
-          isLibraryDisabled={isGenerating}
-          onAddFiles={(files) => onAddFiles(files, 'reference')}
-          onOpenLibrary={() => onOpenLibrary('reference')}
-        />
-      ) : null}
+  const isAttachmentBusy = isGenerating || isUploading;
+  const referenceSources: PromptBarReferenceSource[] = [];
+  const addReferenceSource = (
+    role: StudioGenerateReferenceRole,
+    label: string,
+    accept: string,
+    isFull = false,
+  ): void => {
+    referenceSources.push({
+      accept,
+      id: role,
+      isAttachmentDisabled: isAttachmentBusy || isFull,
+      isLibraryDisabled: isGenerating || isFull,
+      label,
+      onAddFiles: (files) => onAddFiles(files, role),
+      onOpenLibrary: () => onOpenLibrary(role),
+    });
+  };
+  if (capabilities.hasReferences && type === 'image') {
+    addReferenceSource('reference', translateAssets('reference'), 'image/*');
+  }
+  if (type === 'image-edit') {
+    addReferenceSource(
+      'editSource',
+      translate('editImage.sourceImages'),
+      'image/*',
+      editSources.length >= editSourceLimit,
+    );
+    if (!isFlux) {
+      addReferenceSource(
+        'editMask',
+        translate('editImage.maskOptional'),
+        'image/*',
+      );
+    }
+  }
+  if (
+    type === 'video' &&
+    (inputControls?.mediaKind !== 'video' ||
+      inputControls.videoRules?.referenceMode === 'start-end')
+  ) {
+    addReferenceSource('startFrame', translateAssets('startFrame'), 'image/*');
+    if (
+      !isAutoMode &&
+      (inputControls?.mediaKind === 'video'
+        ? inputControls.videoRules?.referenceMode === 'start-end'
+        : hasEndFrame(settings.modelKey))
+    ) {
+      addReferenceSource('endFrame', translateAssets('endFrame'), 'image/*');
+    }
+    if (
+      !isAutoMode &&
+      inputControls?.mediaKind !== 'video' &&
+      hasVideoReferences(settings.modelKey)
+    ) {
+      addReferenceSource(
+        'videoReference',
+        translateAssets('videoReference'),
+        'video/*',
+      );
+    }
+  }
 
-      {type === 'image-edit' ? (
-        <>
-          <PromptBarReferenceControls
-            density="compact"
-            accept="image/*"
-            label={translate('editImage.sourceImages')}
-            isAttachmentDisabled={
-              isGenerating ||
-              isUploading ||
-              editSources.length >= editSourceLimit
-            }
-            isLibraryDisabled={
-              isGenerating || editSources.length >= editSourceLimit
-            }
-            onAddFiles={(files) => onAddFiles(files, 'editSource')}
-            onOpenLibrary={() => onOpenLibrary('editSource')}
-          />
-          {!isFlux ? (
-            <PromptBarReferenceControls
-              density="compact"
-              accept="image/*"
-              label={translate('editImage.maskOptional')}
-              isAttachmentDisabled={isGenerating || isUploading}
-              isLibraryDisabled={isGenerating}
-              onAddFiles={(files) => onAddFiles(files, 'editMask')}
-              onOpenLibrary={() => onOpenLibrary('editMask')}
-            />
-          ) : null}
-        </>
-      ) : null}
-      {type === 'video' &&
-      (inputControls?.mediaKind !== 'video' ||
-        inputControls.videoRules?.referenceMode === 'start-end') ? (
-        <>
-          <PromptBarReferenceControls
-            density="compact"
-            accept="image/*"
-            isAttachmentDisabled={isGenerating || isUploading}
-            isLibraryDisabled={isGenerating}
-            label={translate('startFrame')}
-            onAddFiles={(files) => onAddFiles(files, 'startFrame')}
-            onOpenLibrary={() => onOpenLibrary('startFrame')}
-          />
-          {!isAutoMode &&
-          (inputControls?.mediaKind === 'video'
-            ? inputControls.videoRules?.referenceMode === 'start-end'
-            : hasEndFrame(settings.modelKey)) ? (
-            <PromptBarReferenceControls
-              density="compact"
-              accept="image/*"
-              isAttachmentDisabled={isGenerating || isUploading}
-              isLibraryDisabled={isGenerating}
-              label={translate('endFrame')}
-              onAddFiles={(files) => onAddFiles(files, 'endFrame')}
-              onOpenLibrary={() => onOpenLibrary('endFrame')}
-            />
-          ) : null}
-          {!isAutoMode &&
-          inputControls?.mediaKind !== 'video' &&
-          hasVideoReferences(settings.modelKey) ? (
-            <PromptBarReferenceControls
-              density="compact"
-              accept="video/*"
-              isAttachmentDisabled={isGenerating || isUploading}
-              isLibraryDisabled={isGenerating}
-              label={translate('videoReference')}
-              onAddFiles={(files) => onAddFiles(files, 'videoReference')}
-              onOpenLibrary={() => onOpenLibrary('videoReference')}
-            />
-          ) : null}
-        </>
-      ) : null}
-    </>
-  );
+  // Mic owns the send slot while there is nothing to submit; once there is,
+  // it steps aside as a plain icon so dictation can keep appending.
+  const isVoiceSlot =
+    isListening ||
+    isTranscribing ||
+    (isVoiceInputAvailable && isPromptEmpty && !isGenerating);
+  const isInlineVoiceVisible = isVoiceInputAvailable && !isVoiceSlot;
 
   return (
     <PromptBarComposer
       beforeBody={
-        attachedAssets.length > 0 ||
-        type === 'image' ||
-        type === 'image-edit' ||
-        type === 'video' ? (
+        attachedAssets.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 px-3 pb-1 pt-3">
-            {attachedAssets.length > 0 ? (
-              <PromptBarAttachedAssetsTray
-                assets={attachedAssets}
-                translate={translateAssets}
-                isDisabled={isGenerating}
-                onRemoveAttachedAsset={onRemoveAttachedAsset}
-              />
-            ) : null}
-            {referenceControls}
+            <PromptBarAttachedAssetsTray
+              assets={attachedAssets}
+              translate={translateAssets}
+              isDisabled={isGenerating}
+              onRemoveAttachedAsset={onRemoveAttachedAsset}
+            />
           </div>
         ) : null
       }
@@ -833,8 +815,19 @@ export default function StudioGenerateComposer({
         <div
           role="group"
           aria-label={translateSetup('promptTools')}
-          className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-1"
         >
+          {referenceSources.length > 0 ? (
+            <PromptBarReferenceControls
+              density="compact"
+              sources={referenceSources}
+            />
+          ) : null}
+          <StudioTypeDropdown
+            isDisabled={isGenerating}
+            onChange={onTypeChange}
+            type={type}
+          />
           {inputControls?.mediaKind === 'image' ? (
             <PromptBarCrunControls
               controls={inputControls}
@@ -957,39 +950,6 @@ export default function StudioGenerateComposer({
               variant={ButtonVariant.GHOST}
             />
           ) : null}
-          {onEnhancePrompt && type !== 'image-edit' ? (
-            <Button
-              ariaLabel={
-                isEnhancingPrompt
-                  ? translate('cancelEnhancingPrompt')
-                  : translate('enhancePrompt')
-              }
-              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
-              icon={
-                isEnhancingPrompt ? (
-                  <Spinner className="size-4" />
-                ) : (
-                  <WandSparkles className={SHELL_ICON_CLASS} />
-                )
-              }
-              // The composer stays usable during enhancement: while pending,
-              // the button switches to Cancel instead of disabling (#4676).
-              isDisabled={isGenerating || (!isEnhancingPrompt && isPromptEmpty)}
-              onClick={
-                isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
-              }
-              tooltip={
-                isEnhancingPrompt
-                  ? translate('cancelEnhancingPrompt')
-                  : translate('enhancePrompt')
-              }
-              textTransform="none"
-              tooltipPosition="top"
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          ) : null}
         </div>
 
         <div
@@ -1032,7 +992,53 @@ export default function StudioGenerateComposer({
             typeOptions={typeOptions}
           />
 
-          {isListening || isTranscribing || shouldShowVoiceInput ? (
+          {onEnhancePrompt && type !== 'image-edit' ? (
+            <Button
+              ariaLabel={
+                isEnhancingPrompt
+                  ? translate('cancelEnhancingPrompt')
+                  : translate('enhancePrompt')
+              }
+              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
+              icon={
+                isEnhancingPrompt ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <WandSparkles className={SHELL_ICON_CLASS} />
+                )
+              }
+              // The composer stays usable during enhancement: while pending,
+              // the button switches to Cancel instead of disabling (#4676).
+              isDisabled={isGenerating || (!isEnhancingPrompt && isPromptEmpty)}
+              onClick={
+                isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
+              }
+              tooltip={
+                isEnhancingPrompt
+                  ? translate('cancelEnhancingPrompt')
+                  : translate('enhancePrompt')
+              }
+              textTransform="none"
+              tooltipPosition="top"
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          ) : null}
+
+          {isInlineVoiceVisible ? (
+            <PromptBarVoiceControl
+              density="compact"
+              isDisabled={isGenerating}
+              isListening={false}
+              isPrimary={false}
+              isTranscribing={false}
+              onStartListening={onStartListening}
+              onStopListening={onStopListening}
+            />
+          ) : null}
+
+          {isVoiceSlot ? (
             <PromptBarVoiceControl
               density="compact"
               isDisabled={isGenerating}

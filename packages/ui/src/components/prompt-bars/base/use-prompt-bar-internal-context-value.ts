@@ -64,7 +64,6 @@ type UsePromptBarInternalContextValueParams = {
   isGenerateBlocked: boolean;
   controlClass: string;
   iconButtonClass: string;
-  isAdvancedMode: boolean;
   isAdvancedControlsEnabled: boolean;
   isAutoMode: boolean;
   setIsAutoMode: Dispatch<SetStateAction<boolean>>;
@@ -182,7 +181,6 @@ export function usePromptBarInternalContextValue(
       isGenerateBlocked: p.isGenerateBlocked,
       controlClass: p.controlClass,
       iconButtonClass: p.iconButtonClass,
-      isAdvancedMode: p.isAdvancedMode,
       isAdvancedControlsEnabled: p.isAdvancedControlsEnabled,
       isAutoMode: p.isAutoMode,
       setIsAutoMode: p.setIsAutoMode,
@@ -298,7 +296,6 @@ export function usePromptBarInternalContextValue(
       p.isGenerateBlocked,
       p.controlClass,
       p.iconButtonClass,
-      p.isAdvancedMode,
       p.isAdvancedControlsEnabled,
       p.isAutoMode,
       p.setIsAutoMode,

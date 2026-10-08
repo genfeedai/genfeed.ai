@@ -103,14 +103,6 @@ export class CreateSettingDto {
   })
   readonly isSidebarProgressCollapsed?: boolean;
 
-  @IsBoolean()
-  @ApiProperty({
-    default: true,
-    description: 'Whether the user is in advanced mode',
-    required: true,
-  })
-  readonly isAdvancedMode!: boolean;
-
   // Trend notification preferences
   @IsBoolean()
   @IsOptional()

@@ -33,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Switch } from '@ui/primitives/switch';
 
 type ExtendedSettingPatch = Partial<ISetting>;
 
@@ -146,7 +145,6 @@ export default function SettingsProfilePage() {
     );
   }
 
-  const isAdvancedMode = currentUser?.settings?.isAdvancedMode ?? true;
   const agentMode = currentUser?.settings?.agentMode ?? AgentThreadMode.MANUAL;
   // A stored locale that is not selectable here (the pseudo-locale in a
   // production build) would leave the trigger blank, so the picker shows the
@@ -243,20 +241,6 @@ export default function SettingsProfilePage() {
             ))}
           </SelectContent>
         </Select>
-      </Card>
-
-      <Card
-        id={PERSONAL_SETTINGS_ANCHOR.FEATURES}
-        label="Features"
-        bodyClassName="gap-3 p-4"
-      >
-        <Switch
-          label="Advanced Mode"
-          description="Show studio, workflow editor, automation tools, and individual generation pages. Recommended for power users."
-          isChecked={isAdvancedMode}
-          isDisabled={isSaving}
-          onChange={(e) => patchSettings({ isAdvancedMode: e.target.checked })}
-        />
       </Card>
 
       <Card

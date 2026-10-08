@@ -122,7 +122,6 @@ describe('PromptBarModelControls', () => {
     getDefaultVideoResolution: vi.fn().mockReturnValue(undefined),
     getModelDefaultDuration: vi.fn().mockReturnValue(undefined),
     hasModelButton: true,
-    isAdvancedMode: true,
     isModelNotSet: false,
     modelDropdownRef: createRef<HTMLButtonElement>(),
     models: [model],

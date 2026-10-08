@@ -25,7 +25,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: vi.fn(() => ({
     settings: {
-      isAdvancedMode: false,
       isFleetNsfwVisible: false,
     },
     updateSettings: vi.fn(),

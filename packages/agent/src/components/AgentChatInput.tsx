@@ -154,6 +154,7 @@ export function AgentChatInput({
     setIsContentPickerOpen,
     shouldShowSendButton,
     shouldShowVoiceInput,
+    canUseVoiceInput,
     startListening,
     stopListening,
   } = useAgentChatInput({
@@ -265,6 +266,7 @@ export function AgentChatInput({
         <AgentChatInputToolbar
           agentMode={agentMode}
           canSendMessage={canSendMessage}
+          canUseVoiceInput={canUseVoiceInput}
           disabled={disabled}
           hasEditor={Boolean(editor)}
           isListening={isListening}

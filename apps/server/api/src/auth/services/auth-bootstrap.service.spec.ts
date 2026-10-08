@@ -370,7 +370,6 @@ describe('AuthBootstrapService', () => {
   it('loads saved personal settings instead of restoring defaults on reload', async () => {
     const settings = {
       agentMode: 'auto',
-      isAdvancedMode: false,
       theme: 'light',
     };
     usersService.findOne.mockImplementation(async (_params, populate) => ({

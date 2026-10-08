@@ -71,7 +71,6 @@ export * from './automation/content-delivery-workflow.interface';
 export * from './automation/featured-workflow.interface';
 export * from './automation/metadata.interface';
 export * from './automation/setting.interface';
-export * from './automation/setting-option.interface';
 export * from './automation/smart-scheduler.interface';
 export * from './automation/sort.interface';
 export * from './automation/stale-pending-workflow-execution.interface';

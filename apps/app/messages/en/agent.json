@@ -200,6 +200,7 @@
     "enhancement": "Prompt enhancement",
     "generationControls": "Generation controls",
     "generationType": "Generation type",
+    "generationTypeTrigger": "Generation type: {type}",
     "instrumental": "Instrumental",
     "loadingPresets": "Loading presets\u2026",
     "look": "Look",

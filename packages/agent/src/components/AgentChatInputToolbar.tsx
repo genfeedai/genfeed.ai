@@ -18,6 +18,8 @@ import { memo, type ReactElement, useEffect } from 'react';
 export interface AgentChatInputToolbarProps {
   agentMode: AgentThreadMode;
   canSendMessage: boolean;
+  /** Voice Control is on and the browser can record, regardless of field state. */
+  canUseVoiceInput?: boolean;
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
@@ -45,6 +47,7 @@ export interface AgentChatInputToolbarProps {
 function AgentChatInputToolbarInner({
   agentMode,
   canSendMessage,
+  canUseVoiceInput = false,
   disabled,
   hasEditor,
   isListening,
@@ -136,28 +139,46 @@ function AgentChatInputToolbarInner({
         />
       );
     } else if (shouldShowSendButton) {
+      // Mic steps aside once there is text, but stays so dictation can append.
+      const inlineVoice =
+        canUseVoiceInput && !showStop ? (
+          <PromptBarVoiceControl
+            density={density}
+            isDisabled={disabled}
+            isListening={false}
+            isPrimary={false}
+            isTranscribing={false}
+            onStartListening={onStartListening}
+            onStopListening={onStopListening}
+          />
+        ) : null;
       actionButton = (
-        <Button
-          ariaLabel={
-            willQueueFollowUp
-              ? 'Queue follow-up'
-              : generationMode === AgentGenerationMode.IMAGE
-                ? 'Generate image'
-                : generationMode === AgentGenerationMode.VIDEO
-                  ? 'Generate video'
-                  : 'Send message'
-          }
-          className={trailingControlClass}
-          icon={<ArrowUp className="size-4" />}
-          isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
-          onClick={onSend}
-          size={ButtonSize.ICON}
-          tooltip={
-            willQueueFollowUp ? 'Queue follow-up (Enter)' : 'Send (Enter)'
-          }
-          variant={ButtonVariant.DEFAULT}
-          withWrapper={false}
-        />
+        <>
+          {inlineVoice}
+          <Button
+            ariaLabel={
+              willQueueFollowUp
+                ? 'Queue follow-up'
+                : generationMode === AgentGenerationMode.IMAGE
+                  ? 'Generate image'
+                  : generationMode === AgentGenerationMode.VIDEO
+                    ? 'Generate video'
+                    : 'Send message'
+            }
+            className={trailingControlClass}
+            icon={<ArrowUp className="size-4" />}
+            isDisabled={
+              disabled || !hasEditor || !canSendMessage || isUploading
+            }
+            onClick={onSend}
+            size={ButtonSize.ICON}
+            tooltip={
+              willQueueFollowUp ? 'Queue follow-up (Enter)' : 'Send (Enter)'
+            }
+            variant={ButtonVariant.DEFAULT}
+            withWrapper={false}
+          />
+        </>
       );
     }
 

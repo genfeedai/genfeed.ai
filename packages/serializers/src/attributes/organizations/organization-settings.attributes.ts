@@ -31,7 +31,6 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'quotaInstagram',
   'defaultLocale',
   'enabledModelIds',
-  'isAdvancedMode',
   'agentReplyStyle',
   'isByokEnabled',
   'defaultAvatarPhotoUrl',

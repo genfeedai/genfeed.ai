@@ -9,7 +9,6 @@ export const settingAttributes = createEntityAttributes([
   'isMenuCollapsed',
   'isSidebarProgressVisible',
   'isSidebarProgressCollapsed',
-  'isAdvancedMode',
   'contentPreferences',
   'favoriteModelKeys',
   'favoriteWorkflowIds',

@@ -215,7 +215,6 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
       isGenerateBlocked={ctx.isGenerateBlocked}
       controlClass={ctx.controlClass}
       iconButtonClass={ctx.iconButtonClass}
-      isAdvancedMode={ctx.isAdvancedMode}
       isAdvancedControlsEnabled={ctx.isAdvancedControlsEnabled}
       isAutoMode={ctx.isAutoMode}
       setIsAutoMode={ctx.setIsAutoMode}

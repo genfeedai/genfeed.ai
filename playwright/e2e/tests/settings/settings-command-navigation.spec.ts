@@ -4,7 +4,6 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
 const DESTINATIONS = [
   { anchor: 'appearance', label: 'Appearance' },
   { anchor: 'language', label: 'Language' },
-  { anchor: 'features', label: 'Advanced Mode' },
 ];
 
 const HOSTS = [

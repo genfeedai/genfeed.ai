@@ -18,7 +18,6 @@ import { Cpu } from 'lucide-react';
 import { memo } from 'react';
 
 const PromptBarModelControls = memo(function PromptBarModelControls({
-  isAdvancedMode,
   hasModelButton,
   models,
   trainingIds,
@@ -35,7 +34,7 @@ const PromptBarModelControls = memo(function PromptBarModelControls({
 }: PromptBarModelControlsProps) {
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
-  if (!isAdvancedMode || !hasModelButton || models.length === 0) {
+  if (!hasModelButton || models.length === 0) {
     return null;
   }
 
