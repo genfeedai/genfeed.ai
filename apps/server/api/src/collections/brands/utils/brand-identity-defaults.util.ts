@@ -1,8 +1,9 @@
 import type { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
+import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import type { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 
 export async function normalizeBrandIdentityDefaults(
-  config: UpdateBrandAgentConfigDto,
+  config: BrandAgentConfig | UpdateBrandAgentConfigDto,
   organizationId: string,
   identities: HeyGenIdentityService,
   clearNativeForPhoto: boolean,
