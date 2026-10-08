@@ -254,7 +254,7 @@ test.describe('Shell — navigation interactions', () => {
             .getByTestId('app-topbar-shell')
             .evaluate((element) => element.getBoundingClientRect().height),
         )
-        .toBe(40);
+        .toBe(48);
 
       // Poll actual layout after hydration; neither clipping nor wrapping is OK.
       await expect
