@@ -158,7 +158,7 @@ export class PostDraftGenerationService {
   private async generateBrandedDraft(
     dto: PostDraftGenerationInput,
     identity: GenerationMetadata,
-    context: AccountPublishingContext,
+    context: Pick<AccountPublishingContext, 'brand' | 'constraints'>,
     limit: number,
     resolveApiKey?: TextDispatchKeyResolver,
   ): Promise<PostDraftGenerationResult> {
