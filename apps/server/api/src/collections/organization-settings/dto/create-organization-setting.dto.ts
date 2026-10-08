@@ -3,6 +3,7 @@ import {
   type AgentPolicyQualityTier,
 } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/contracts';
 import {
@@ -544,6 +545,12 @@ export class CreateOrganizationSettingDto {
     type: DefaultVoiceRefDto,
   })
   readonly defaultVoiceRef?: DefaultVoiceRefDto;
+
+  @ValidateNested()
+  @Type(() => DefaultAvatarRefDto)
+  @IsOptional()
+  @ApiProperty({ type: DefaultAvatarRefDto, required: false, nullable: true })
+  readonly defaultAvatarRef?: DefaultAvatarRefDto | null;
 
   @IsString()
   @IsOptional()

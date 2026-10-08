@@ -1,3 +1,5 @@
+import type { HeyGenAvatarRef } from '../integrations/heygen.interface';
+import type { IBrandAgentConfig } from '../organization/brand.interface';
 import type { SupportedAvatarVideoProviderName } from './avatar-video-provider.interface';
 import type {
   ClipSourceArtifact,
@@ -39,6 +41,8 @@ export interface ClipGenerationReference {
 }
 
 export interface ClipFactoryWorkflowInput {
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId?: string;
   avatarProvider?: SupportedAvatarVideoProviderName;
   language: string;

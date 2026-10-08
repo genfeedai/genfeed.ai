@@ -62,6 +62,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
+import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
@@ -140,6 +141,7 @@ export class BrandsService extends BaseService<
     private readonly defaultRecurringContentService: DefaultRecurringContentService,
     private readonly skillsService: SkillsService,
     private readonly brandLifecycleService: BrandLifecycleService,
+    private readonly heygenIdentityService: HeyGenIdentityService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -156,12 +158,31 @@ export class BrandsService extends BaseService<
       throw new BadRequestException('Organization context is required');
     }
 
-    const agentConfig = await resolveCreateAgentConfig(
+    const resolvedAgentConfig = await resolveCreateAgentConfig(
       this.prisma,
       this.skillsService,
       resolvedOrganizationId,
       initialAgentConfig,
     );
+    const agentConfig: Record<string, unknown> | undefined = resolvedAgentConfig
+      ? { ...resolvedAgentConfig }
+      : undefined;
+    if (agentConfig && resolvedAgentConfig?.defaultAvatarRef) {
+      agentConfig.defaultAvatarRef =
+        await this.heygenIdentityService.avatarDefault(
+          resolvedAgentConfig.defaultAvatarRef,
+          resolvedOrganizationId,
+        );
+      agentConfig.defaultAvatarPhotoUrl = null;
+      agentConfig.defaultAvatarIngredientId = null;
+      agentConfig.heygenAvatarId = null;
+    }
+    if (agentConfig && resolvedAgentConfig?.defaultVoiceRef)
+      agentConfig.defaultVoiceRef =
+        await this.heygenIdentityService.voiceDefault(
+          resolvedAgentConfig.defaultVoiceRef,
+          resolvedOrganizationId,
+        );
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
@@ -652,6 +673,30 @@ export class BrandsService extends BaseService<
       return null;
     }
 
+    const normalizedConfig: Record<string, unknown> = { ...agentConfig };
+    if (agentConfig.defaultAvatarRef) {
+      normalizedConfig.defaultAvatarRef =
+        await this.heygenIdentityService.avatarDefault(
+          agentConfig.defaultAvatarRef,
+          orgId,
+        );
+      normalizedConfig.defaultAvatarPhotoUrl = null;
+      normalizedConfig.defaultAvatarIngredientId = null;
+      normalizedConfig.heygenAvatarId = null;
+    } else if (
+      agentConfig.defaultAvatarPhotoUrl ||
+      agentConfig.defaultAvatarIngredientId
+    ) {
+      normalizedConfig.defaultAvatarRef = null;
+    }
+    if (agentConfig.defaultVoiceRef) {
+      normalizedConfig.defaultVoiceRef =
+        await this.heygenIdentityService.voiceDefault(
+          agentConfig.defaultVoiceRef,
+          orgId,
+        );
+    }
+
     const storedConfig = (existing as Record<string, unknown>).agentConfig;
     const currentConfig = isMergeableRecord(storedConfig) ? storedConfig : {};
     const updatedConfig = { ...currentConfig };
@@ -665,7 +710,7 @@ export class BrandsService extends BaseService<
         ),
     );
 
-    for (const [key, value] of Object.entries(agentConfig)) {
+    for (const [key, value] of Object.entries(normalizedConfig)) {
       if (value === undefined) {
         continue;
       }

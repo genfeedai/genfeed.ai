@@ -144,6 +144,8 @@ export class TasksController extends BaseCRUDController<
             brandId,
             elevenlabsVoiceId: extended.elevenlabsVoiceId,
             heygenAvatarId: extended.heygenAvatarId,
+            avatarRef: extended.avatarRef,
+            voiceRef: extended.voiceRef,
             organizationId,
             outputType: extended.outputType,
             platforms: extended.platforms,

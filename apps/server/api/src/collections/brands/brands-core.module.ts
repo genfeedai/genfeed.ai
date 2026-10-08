@@ -17,6 +17,7 @@ import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
 import { CommonModule } from '@api/common/common.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { Module } from '@nestjs/common';
 
@@ -40,6 +41,7 @@ import { Module } from '@nestjs/common';
     BrandFontAssetsService,
   ],
   imports: [
+    HeyGenModule,
     CommonModule,
     BrandScraperModule,
     FilesClientModule,

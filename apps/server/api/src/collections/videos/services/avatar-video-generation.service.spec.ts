@@ -51,7 +51,11 @@ describe('AvatarVideoGenerationService', () => {
     };
     const byokService = {
       resolveApiKey: vi.fn().mockResolvedValue(null),
+      lookupApiKey: vi.fn(),
     };
+    byokService.lookupApiKey.mockImplementation((org, provider) =>
+      byokService.resolveApiKey(org, provider),
+    );
     const creditsUtilsService = {
       bindReservationOutput: vi
         .fn()
@@ -85,9 +89,30 @@ describe('AvatarVideoGenerationService', () => {
     };
     const heygenService = {
       generatePhotoAvatarVideo: vi.fn().mockResolvedValue('heygen-job-1'),
+      generateNativeAvatarVideo: vi.fn().mockResolvedValue('heygen-native-job'),
+      resolveAvatarSelection: vi.fn(),
+      validateVoiceSelection: vi
+        .fn()
+        .mockResolvedValue({ voiceId: 'voice-1', ownership: 'public' }),
+      resolveOrganizationConnection: vi.fn(async (org) => {
+        const credential = await byokService.resolveApiKey(
+          org,
+          ByokProvider.HEYGEN,
+        );
+        return {
+          apiKey: credential?.apiKey ?? 'platform-key',
+          binding: {
+            provider: 'heygen',
+            kind: credential ? 'byok' : 'platform',
+            organizationId: org,
+            credentialVersionId: 'version-1',
+          },
+        };
+      }),
       getAvatars: vi.fn().mockResolvedValue([]),
     };
     const ingredientsService = {
+      findOne: vi.fn(),
       findAvatarImageById: vi.fn().mockResolvedValue({
         cdnUrl: 'https://cdn.example.com/avatar.png',
         id: 'avatar-1',
@@ -110,7 +135,10 @@ describe('AvatarVideoGenerationService', () => {
         metadataData: { id: 'avatar-metadata-1' },
       }),
     };
-    const videosService = { patch: vi.fn() };
+    const videosService = {
+      patch: vi.fn(),
+      prisma: { ingredient: { update: vi.fn().mockResolvedValue({}) } },
+    };
     const voicesService = {
       findOne: vi.fn(),
     };
@@ -177,14 +205,13 @@ describe('AvatarVideoGenerationService', () => {
         configService as never,
         ingredientsService as never,
         mediaIssuer as never,
-        byokService as never,
-        heygenService as never,
         personas,
       ),
     );
 
     return {
       personas,
+      videosService,
       configService,
       mediaIssuer,
       brandsService,
@@ -297,7 +324,14 @@ describe('AvatarVideoGenerationService', () => {
             : null,
       );
       await expect(
-        service.quoteCredits({ text: 'Speech', ...voice }, context),
+        service.quoteCredits(
+          {
+            text: 'Speech',
+            photoUrl: 'https://cdn.example.com/photo.png',
+            ...voice,
+          },
+          context,
+        ),
       ).resolves.toEqual({
         billingMode: cost === 0 ? 'byok' : 'platform',
         credits: cost,
@@ -1518,5 +1552,144 @@ describe('AvatarVideoGenerationService', () => {
       undefined,
     );
     expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalled();
+  });
+  const savedNative = (lookId = 'brand-look') => ({
+    version: 1 as const,
+    source: 'heygen-look' as const,
+    provider: 'heygen' as const,
+    lookId,
+    groupId: null,
+    ownership: 'private' as const,
+    label: 'My trained look',
+    preview: 'https://cdn.example.com/preview.jpg',
+    avatarType: 'digital_twin',
+    supportedEngines: ['avatar_iv'],
+    readiness: {
+      usable: true,
+      reason: null,
+      lookStatus: 'completed',
+      groupStatus: null,
+      consentStatus: null,
+    },
+    connection: {
+      provider: 'heygen' as const,
+      kind: 'byok' as const,
+      organizationId: context.organizationId,
+      credentialVersionId: 'saved-version',
+    },
+  });
+
+  it('uses the brand native look ahead of the organization look and never renders the preview', async () => {
+    const h = createService();
+    const ref = savedNative();
+    h.brandsService.findOne.mockResolvedValue({
+      id: 'brand-1',
+      agentConfig: { defaultAvatarRef: ref },
+    });
+    h.orgSettingsService.findOne.mockResolvedValue({
+      defaultAvatarRef: savedNative('organization-look'),
+    });
+    const connection = {
+      apiKey: 'current-key',
+      binding: { ...ref.connection, credentialVersionId: 'current-version' },
+    };
+    h.heygenService.resolveAvatarSelection.mockResolvedValue({
+      avatarRef: { ...ref, connection: connection.binding },
+      connection,
+    });
+    await h.service.generateAvatarVideo(
+      { text: 'Hello', useIdentity: true, heygenVoiceId: 'voice-1' },
+      context,
+    );
+    expect(h.heygenService.resolveAvatarSelection).toHaveBeenCalledWith(
+      ref,
+      context.organizationId,
+    );
+    expect(h.heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
+      'avatar-ingredient-1',
+      'brand-look',
+      { inputText: 'Hello', voiceId: 'voice-1' },
+      'current-key',
+      '9:16',
+    );
+    expect(h.heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+    expect(h.videosService.prisma.ingredient.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          generationProvider: expect.objectContaining({
+            connection: connection.binding,
+          }),
+        }),
+      }),
+    );
+    expect(
+      h.videosService.prisma.ingredient.update.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      h.heygenService.generateNativeAvatarVideo.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('rejects failed native admission before credit holds, placeholders, and dispatch', async () => {
+    const h = createService();
+    h.brandsService.findOne.mockResolvedValue({
+      id: 'brand-1',
+      agentConfig: {},
+    });
+    h.heygenService.resolveAvatarSelection.mockRejectedValue(
+      new HttpException('Consent is pending', HttpStatus.BAD_REQUEST),
+    );
+    await expect(
+      h.service.generateAvatarVideo(
+        { text: 'Hello', avatarRef: savedNative(), heygenVoiceId: 'voice-1' },
+        context,
+      ),
+    ).rejects.toThrow('Consent is pending');
+    expect(h.creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(h.sharedService.createMediaDocumentsInternal).not.toHaveBeenCalled();
+    expect(h.heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
+  });
+
+  it('rejects cross-tenant narration before reserving credits', async () => {
+    const h = createService();
+    h.brandsService.findOne.mockResolvedValue({
+      id: 'brand-1',
+      agentConfig: {},
+    });
+    h.ingredientsService.findOne.mockResolvedValue(null);
+    await expect(
+      h.service.generateAvatarVideo(
+        {
+          text: '',
+          avatarRef: savedNative(),
+          audioIngredientId: 'foreign-audio',
+        },
+        context,
+      ),
+    ).rejects.toThrow('playable audio asset');
+    expect(h.ingredientsService.findOne).toHaveBeenCalledWith({
+      id: 'foreign-audio',
+      organizationId: context.organizationId,
+      isDeleted: false,
+    });
+    expect(h.creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+  });
+
+  it('quotes readiness without generating speech or reserving credits', async () => {
+    const h = createService();
+    h.brandsService.findOne.mockResolvedValue({
+      id: 'brand-1',
+      agentConfig: {},
+    });
+    h.heygenService.resolveAvatarSelection.mockRejectedValue(
+      new HttpException('Training is incomplete', HttpStatus.BAD_REQUEST),
+    );
+    await expect(
+      h.service.quoteCredits(
+        { text: 'Hello', avatarRef: savedNative(), heygenVoiceId: 'voice-1' },
+        context,
+      ),
+    ).rejects.toThrow('Training is incomplete');
+    expect(h.creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(h.elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();
   });
 });

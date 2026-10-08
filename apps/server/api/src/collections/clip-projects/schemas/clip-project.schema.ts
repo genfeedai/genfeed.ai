@@ -1,4 +1,8 @@
-import type { SupportedAvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
+import type {
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
+  SupportedAvatarVideoProviderName,
+} from '@genfeedai/contracts/interfaces';
 import {
   CLIP_PROJECT_STATUSES,
   type ClipProcessingFlow,
@@ -41,6 +45,8 @@ export interface ClipProjectSettings {
   minDuration?: number;
   mode?: ClipResultMode;
   flow?: ClipProcessingFlow;
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId?: string;
   avatarProvider?: SupportedAvatarVideoProviderName;
   language?: string;

@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import type { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import type { AvatarVideoJobResult } from '@api/services/avatar-video/avatar-video-provider.interface';
 import type { ByokService } from '@api/services/byok/byok.service';
+import { heyGenGenerationProviderSchema } from '@api/services/integrations/heygen/heygen-identity.schema';
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
@@ -30,14 +32,60 @@ export async function readHeygenVideoStatus(
   httpService: HttpService,
   logger: LoggerService,
   timeoutMs = 15_000,
+  frozenProvider?: unknown,
 ): Promise<AvatarVideoJobResult> {
   try {
-    const byokKey = await byokService.resolveApiKey(
-      organizationId,
-      ByokProvider.HEYGEN,
-    );
-    const apiKey =
-      byokKey?.apiKey ?? apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
+    let apiKey: string;
+    if (frozenProvider != null) {
+      const parsed = heyGenGenerationProviderSchema.safeParse(frozenProvider);
+      if (
+        !parsed.success ||
+        parsed.data.organizationId !== organizationId ||
+        parsed.data.connection.organizationId !== organizationId
+      )
+        return {
+          jobId,
+          providerName: 'heygen',
+          status: 'unknown',
+          error: 'The submitting HeyGen connection could not be verified.',
+        };
+      const binding = parsed.data.connection;
+      if (binding.kind === 'byok') {
+        const key = await byokService.lookupApiKeyWithIdentity(
+          organizationId,
+          ByokProvider.HEYGEN,
+        );
+        if (!key || key.credentialId !== binding.credentialVersionId)
+          return {
+            jobId,
+            providerName: 'heygen',
+            status: 'unknown',
+            error:
+              'Restore the submitting HeyGen connection to recover this video.',
+          };
+        apiKey = key.apiKey;
+      } else {
+        apiKey = apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
+        const fingerprint = createHash('sha256')
+          .update('heygen-platform-credential:v1\0')
+          .update(apiKey ?? '')
+          .digest('hex');
+        if (!apiKey || fingerprint !== binding.credentialVersionId)
+          return {
+            jobId,
+            providerName: 'heygen',
+            status: 'unknown',
+            error: 'The submitting public HeyGen connection is unavailable.',
+          };
+      }
+    } else {
+      const byokKey = await byokService.resolveApiKey(
+        organizationId,
+        ByokProvider.HEYGEN,
+      );
+      apiKey =
+        byokKey?.apiKey ?? apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
+    }
 
     if (!apiKey) {
       logger.error(
@@ -89,7 +137,10 @@ export async function readHeygenVideoStatus(
 
     return { jobId, providerName: 'heygen', status: 'processing' };
   } catch (error: unknown) {
-    logger.error('HeygenVideoStatus getStatus failed', error);
+    logger.error('HeygenVideoStatus getStatus failed', {
+      organizationId,
+      errorType: error instanceof Error ? error.name : 'Unknown',
+    });
     return { jobId, providerName: 'heygen', status: 'unknown' };
   }
 }

@@ -52,6 +52,8 @@ export class AgentStudioHandoffIdentityService {
     );
     const identity = await this.resolveBrandIdentity(scope, payload.brandId);
     const {
+      avatarRef: _clientAvatarRef,
+      voiceRef: _clientVoiceRef,
       avatarPhotoUrl: _clientAvatarPhotoUrl,
       voiceId: _clientVoiceId,
       ...rest
@@ -97,7 +99,25 @@ export class AgentStudioHandoffIdentityService {
       this.resolveVoiceId(defaults, scope.organizationId, brandId),
     ]);
 
-    return pickStudioHandoffIdentityFields({ avatarPhotoUrl, voiceId });
+    const avatarRef =
+      defaults.defaultAvatarRef?.connection.organizationId ===
+      scope.organizationId
+        ? defaults.defaultAvatarRef
+        : undefined;
+    const voiceRef = defaults.defaultVoiceRef;
+    const scopedVoice =
+      !voiceRef?.connection ||
+      voiceRef.connection.organizationId === scope.organizationId
+        ? voiceRef
+        : undefined;
+    return {
+      ...pickStudioHandoffIdentityFields({
+        avatarPhotoUrl: avatarRef ? undefined : avatarPhotoUrl,
+        voiceId,
+      }),
+      ...(avatarRef ? { avatarRef } : {}),
+      ...(scopedVoice ? { voiceRef: scopedVoice } : {}),
+    };
   }
 
   private async resolveAvatarPhotoUrl(

@@ -7,8 +7,12 @@ import type {
 import { ByokService } from '@api/services/byok/byok.service';
 import { readHeygenVideoStatus } from '@api/services/integrations/heygen/heygen-video-status';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { ByokProvider } from '@genfeedai/contracts';
-import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type {
+  AvatarVideoProviderName,
+  HeyGenGenerationProvider,
+} from '@genfeedai/contracts/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -24,6 +28,7 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
     private readonly httpService: HttpService,
     private readonly logger: LoggerService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async generateVideo(
@@ -34,32 +39,77 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
       scriptLength: input.script.length,
     });
 
-    const byokKey = await this.byokService.resolveApiKey(
-      input.organizationId,
-      ByokProvider.HEYGEN,
-    );
-
     try {
+      if (
+        input.voiceRef?.connection &&
+        input.voiceRef.connection.organizationId !== input.organizationId
+      )
+        throw new Error('This voice belongs to another organization.');
+      const selected =
+        input.avatarRef ??
+        (!input.referenceImageUrl
+          ? (await this.heygenService.getAvatars(input.organizationId)).find(
+              (item) => item.avatarId === input.avatarId,
+            )?.avatarRef
+          : undefined);
+      if (!input.referenceImageUrl && !selected)
+        throw new Error('Select an available trained avatar.');
+      const native = selected
+        ? await this.heygenService.resolveAvatarSelection(
+            selected,
+            input.organizationId,
+          )
+        : undefined;
+      const connection =
+        native?.connection ??
+        (await this.heygenService.resolveOrganizationConnection(
+          input.organizationId,
+          input.voiceRef?.connection?.kind,
+        ));
+      const voice = await this.heygenService.validateVoiceSelection(
+        input.voiceRef?.externalVoiceId ?? input.voiceId,
+        connection,
+      );
+      if (
+        input.voiceRef?.ownership === 'private' &&
+        connection.binding.kind !== 'byok'
+      )
+        throw new Error(
+          'Select the personal connection for this private voice.',
+        );
+      const receipt: HeyGenGenerationProvider = {
+        version: 1,
+        provider: 'heygen',
+        organizationId: input.organizationId,
+        connection: connection.binding,
+        avatar: native?.avatarRef ?? { source: 'photo' },
+        speech: { provider: 'heygen', externalVoiceId: voice.voiceId },
+        submissionId: input.callbackId,
+      };
+      const persisted = await this.prisma.clipResult.updateMany({
+        where: {
+          id: input.callbackId,
+          organizationId: input.organizationId,
+          isDeleted: false,
+        },
+        data: { generationProvider: toPrismaJson(receipt) },
+      });
+      if (persisted.count !== 1)
+        throw new Error('Could not freeze avatar submission provenance.');
       const jobId = input.referenceImageUrl
         ? await this.heygenService.generatePhotoAvatarVideo(
             input.callbackId,
             input.referenceImageUrl,
-            {
-              inputText: input.script,
-              voiceId: input.voiceId,
-            },
+            { inputText: input.script, voiceId: voice.voiceId },
             input.organizationId,
             input.userId,
-            byokKey?.apiKey,
+            connection.apiKey,
           )
-        : await this.heygenService.generateAvatarVideo(
+        : await this.heygenService.generateNativeAvatarVideo(
             input.callbackId,
-            input.avatarId,
-            input.voiceId,
-            input.script,
-            input.organizationId,
-            input.userId,
-            byokKey?.apiKey,
+            native?.avatarRef.lookId ?? '',
+            { inputText: input.script, voiceId: voice.voiceId },
+            connection.apiKey,
           );
 
       return {
@@ -85,6 +135,26 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
     jobId: string,
     organizationId: string,
   ): Promise<AvatarVideoJobResult> {
+    let receipt: unknown;
+    try {
+      const ingredient = await this.prisma.ingredient.findFirst({
+        where: {
+          organizationId,
+          isDeleted: false,
+          metadata: { externalId: jobId, externalProvider: 'heygen' },
+        },
+        select: { generationProvider: true },
+      });
+      const clip = !ingredient
+        ? await this.prisma.clipResult.findFirst({
+            where: { providerJobId: jobId, organizationId, isDeleted: false },
+            select: { generationProvider: true },
+          })
+        : null;
+      receipt = ingredient?.generationProvider ?? clip?.generationProvider;
+    } catch {
+      return { jobId, providerName: 'heygen', status: 'unknown' };
+    }
     return readHeygenVideoStatus(
       jobId,
       organizationId,
@@ -92,6 +162,8 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
       this.apiKeyHelperService,
       this.httpService,
       this.logger,
+      15_000,
+      receipt,
     );
   }
 }

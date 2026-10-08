@@ -1,6 +1,7 @@
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -10,11 +11,18 @@ import { HeygenAvatarProvider } from './heygen-avatar.provider';
 
 describe('HeygenAvatarProvider', () => {
   let provider: HeygenAvatarProvider;
-  let byokService: { resolveApiKey: ReturnType<typeof vi.fn> };
+  let byokService: {
+    resolveApiKey: ReturnType<typeof vi.fn>;
+    lookupApiKeyWithIdentity: ReturnType<typeof vi.fn>;
+  };
   let apiKeyHelperService: { getApiKey: ReturnType<typeof vi.fn> };
   let httpService: { get: ReturnType<typeof vi.fn> };
   let heygenService: {
-    generateAvatarVideo: ReturnType<typeof vi.fn>;
+    generateNativeAvatarVideo: ReturnType<typeof vi.fn>;
+    resolveOrganizationConnection: ReturnType<typeof vi.fn>;
+    resolveAvatarSelection: ReturnType<typeof vi.fn>;
+    validateVoiceSelection: ReturnType<typeof vi.fn>;
+    getAvatars: ReturnType<typeof vi.fn>;
     generatePhotoAvatarVideo: ReturnType<typeof vi.fn>;
   };
   let loggerService: {
@@ -22,12 +30,57 @@ describe('HeygenAvatarProvider', () => {
     error: ReturnType<typeof vi.fn>;
   };
 
+  const connection = {
+    apiKey: 'byok-xyz',
+    binding: {
+      provider: 'heygen' as const,
+      kind: 'byok' as const,
+      organizationId: 'org-1',
+      credentialVersionId: 'original',
+    },
+  };
+  const avatarRef = {
+    version: 1 as const,
+    source: 'heygen-look' as const,
+    provider: 'heygen' as const,
+    lookId: 'avatar-1',
+    groupId: null,
+    ownership: 'private' as const,
+    label: 'Saved',
+    preview: 'https://cdn/preview.jpg',
+    avatarType: 'digital_twin',
+    supportedEngines: ['avatar_iv'],
+    readiness: {
+      usable: true,
+      lookStatus: 'completed',
+      groupStatus: null,
+      consentStatus: null,
+      reason: null,
+    },
+    connection: connection.binding,
+  };
+  const prisma = {
+    ingredient: { findFirst: vi.fn() },
+    clipResult: { updateMany: vi.fn(), findFirst: vi.fn() },
+  };
+
   beforeEach(async () => {
-    byokService = { resolveApiKey: vi.fn() };
+    prisma.ingredient.findFirst.mockResolvedValue(null);
+    prisma.clipResult.findFirst.mockResolvedValue(null);
+    prisma.clipResult.updateMany.mockResolvedValue({ count: 1 });
+    byokService = { resolveApiKey: vi.fn(), lookupApiKeyWithIdentity: vi.fn() };
     apiKeyHelperService = { getApiKey: vi.fn() };
     httpService = { get: vi.fn() };
     heygenService = {
-      generateAvatarVideo: vi.fn().mockResolvedValue('avatar-job-1'),
+      generateNativeAvatarVideo: vi.fn().mockResolvedValue('avatar-job-1'),
+      resolveOrganizationConnection: vi.fn().mockResolvedValue(connection),
+      resolveAvatarSelection: vi
+        .fn()
+        .mockResolvedValue({ avatarRef, connection }),
+      validateVoiceSelection: vi.fn().mockResolvedValue({ voiceId: 'voice-1' }),
+      getAvatars: vi
+        .fn()
+        .mockResolvedValue([{ avatarId: 'avatar-1', avatarRef }]),
       generatePhotoAvatarVideo: vi.fn().mockResolvedValue('photo-job-1'),
     };
     loggerService = { error: vi.fn(), log: vi.fn() };
@@ -35,6 +88,7 @@ describe('HeygenAvatarProvider', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HeygenAvatarProvider,
+        { provide: PrismaService, useValue: prisma },
         { provide: HeyGenService, useValue: heygenService },
         { provide: ByokService, useValue: byokService },
         { provide: HttpService, useValue: httpService },
@@ -64,48 +118,56 @@ describe('HeygenAvatarProvider', () => {
       voiceId: 'voice-1',
     };
 
-    it('preserves avatar generation when no reference was selected', async () => {
-      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-xyz' });
-
+    it('freezes the clip receipt before dispatching its native look', async () => {
       await provider.generateVideo(input);
-
-      expect(heygenService.generateAvatarVideo).toHaveBeenCalledWith(
+      expect(prisma.clipResult.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'clip-result-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+        data: {
+          generationProvider: expect.objectContaining({
+            connection: connection.binding,
+            avatar: avatarRef,
+          }),
+        },
+      });
+      expect(
+        prisma.clipResult.updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        heygenService.generateNativeAvatarVideo.mock.invocationCallOrder[0],
+      );
+      expect(heygenService.generateNativeAvatarVideo).toHaveBeenCalledWith(
         'clip-result-1',
         'avatar-1',
-        'voice-1',
-        'Create this clip',
-        'org-1',
-        'user-1',
+        { voiceId: 'voice-1', inputText: 'Create this clip' },
         'byok-xyz',
       );
       expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     });
 
-    it('maps an authorized reference through HeyGen photo_url generation', async () => {
-      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-xyz' });
-
+    it('keeps an authorized image on the image route', async () => {
       const result = await provider.generateVideo({
         ...input,
         referenceImageUrl: 'https://cdn.example.com/reference.jpg',
       });
-
       expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
         'clip-result-1',
         'https://cdn.example.com/reference.jpg',
-        {
-          inputText: 'Create this clip',
-          voiceId: 'voice-1',
-        },
+        { voiceId: 'voice-1', inputText: 'Create this clip' },
         'org-1',
         'user-1',
         'byok-xyz',
       );
-      expect(heygenService.generateAvatarVideo).not.toHaveBeenCalled();
-      expect(result).toEqual({
-        jobId: 'photo-job-1',
-        providerName: 'heygen',
-        status: 'processing',
-      });
+      expect(heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
+      expect(result.status).toBe('processing');
+    });
+
+    it('does not submit without a durable provenance receipt', async () => {
+      prisma.clipResult.updateMany.mockResolvedValueOnce({ count: 0 });
+      expect((await provider.generateVideo(input)).status).toBe('failed');
+      expect(heygenService.generateNativeAvatarVideo).not.toHaveBeenCalled();
     });
   });
 
@@ -214,5 +276,57 @@ describe('HeygenAvatarProvider', () => {
       expect(config.headers['X-Api-Key']).not.toBe('');
       expect(config.headers['X-Api-Key']).toBeTruthy();
     });
+  });
+  it('does not poll a new account after the submitting key changes', async () => {
+    const receipt = {
+      version: 1,
+      provider: 'heygen',
+      organizationId: 'org-1',
+      connection: connection.binding,
+      avatar: avatarRef,
+      speech: { provider: 'heygen', externalVoiceId: 'voice-1' },
+      submissionId: 'clip-result-1',
+    };
+    prisma.clipResult.findFirst.mockResolvedValueOnce({
+      generationProvider: receipt,
+    });
+    byokService.lookupApiKeyWithIdentity.mockResolvedValue({
+      apiKey: 'new-account-key',
+      credentialId: 'changed',
+    });
+    const result = await provider.getStatus('job', 'org-1');
+    expect(result.status).toBe('unknown');
+    expect(result.error).toContain('Restore');
+    expect(httpService.get).not.toHaveBeenCalled();
+    expect(byokService.resolveApiKey).not.toHaveBeenCalled();
+    expect(apiKeyHelperService.getApiKey).not.toHaveBeenCalled();
+  });
+
+  it('polls frozen provenance only with the original matching credential', async () => {
+    prisma.ingredient.findFirst.mockResolvedValueOnce({
+      generationProvider: {
+        version: 1,
+        provider: 'heygen',
+        organizationId: 'org-1',
+        connection: connection.binding,
+        avatar: avatarRef,
+        speech: { provider: 'heygen' },
+        submissionId: 'ingredient',
+      },
+    });
+    byokService.lookupApiKeyWithIdentity.mockResolvedValue({
+      apiKey: 'original-key',
+      credentialId: 'original',
+    });
+    httpService.get.mockReturnValue(
+      of({ data: { data: { status: 'processing' } } }),
+    );
+    expect((await provider.getStatus('job', 'org-1')).status).toBe(
+      'processing',
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ headers: { 'X-Api-Key': 'original-key' } }),
+    );
   });
 });

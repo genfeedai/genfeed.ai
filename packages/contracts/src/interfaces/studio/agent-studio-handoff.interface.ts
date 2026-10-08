@@ -1,3 +1,5 @@
+import type { HeyGenAvatarRef } from '../integrations/heygen.interface';
+import type { IBrandAgentConfig } from '../organization/brand.interface';
 import type { StudioGenerateType } from './studio-generate.interface';
 
 /**
@@ -15,6 +17,8 @@ export interface AgentStudioHandoffPayload {
   aspectRatio?: string;
   /** Public URL of the brand identity's portrait, for an avatar handoff. */
   avatarPhotoUrl?: string;
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   brandId: string;
   duration?: number;
   /** Concrete model key the router resolved — never the literal `"auto"`. */

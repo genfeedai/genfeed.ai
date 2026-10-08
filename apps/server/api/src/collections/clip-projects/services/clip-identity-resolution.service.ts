@@ -1,9 +1,11 @@
 import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { VoiceProvider } from '@genfeedai/contracts';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ResolveClipIdentityParams {
   avatarId?: string;
@@ -16,7 +18,10 @@ export interface ResolveClipIdentityParams {
 
 @Injectable()
 export class ClipIdentityResolutionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly identities: HeyGenIdentityService,
+  ) {}
 
   async resolve(
     params: ResolveClipIdentityParams,
@@ -33,6 +38,7 @@ export class ClipIdentityResolutionService {
         : Promise.resolve(null),
       this.prisma.organizationSetting.findUnique({
         select: {
+          defaultAvatarRef: true,
           defaultVoiceId: true,
           defaultVoiceProvider: true,
           defaultVoiceRef: true,
@@ -47,7 +53,7 @@ export class ClipIdentityResolutionService {
       throw new NotFoundException('Brand', params.brandId);
     }
 
-    return resolveClipIdentity({
+    const identity = resolveClipIdentity({
       avatarId: params.avatarId,
       avatarProvider: params.avatarProvider,
       brand,
@@ -55,5 +61,19 @@ export class ClipIdentityResolutionService {
       voiceId: params.voiceId,
       voiceProvider: params.voiceProvider,
     });
+    if (identity.avatarRef)
+      identity.avatarRef = await this.identities.avatarDefault(
+        identity.avatarRef,
+        params.organizationId,
+      );
+    if (identity.voiceRef?.provider === 'heygen') {
+      if (!identity.voiceRef.connection)
+        throw new BadRequestException('Reselect the saved HeyGen voice.');
+      identity.voiceRef = await this.identities.voiceDefault(
+        { ...identity.voiceRef, provider: VoiceProvider.HEYGEN },
+        params.organizationId,
+      );
+    }
+    return identity;
   }
 }

@@ -91,15 +91,14 @@ describe('HeygenService', () => {
 
     const result = await service.generate({
       avatarId: 'avatar-1',
-      audioUrl: 'https://cdn.example.com/audio.mp3',
       text: 'Create a launch video',
       voiceId: 'voice-1',
+      voiceProvider: 'elevenlabs',
     });
 
     expect(mockPost).toHaveBeenCalledWith(
       'https://api.test.com/v1/videos/avatar',
       {
-        audioUrl: 'https://cdn.example.com/audio.mp3',
         avatarId: 'avatar-1',
         elevenlabsVoiceId: 'voice-1',
         text: 'Create a launch video',

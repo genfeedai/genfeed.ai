@@ -18,6 +18,7 @@ import {
   normalizeAgentAutonomyMode,
   RouterPriority,
 } from '@genfeedai/contracts';
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 
 import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
 
@@ -33,6 +34,7 @@ type OrganizationSettingsSource =
   | Pick<
       OrganizationSetting,
       | 'agentPolicy'
+      | 'defaultAvatarRef'
       | 'defaultAvatarIngredientId'
       | 'defaultAvatarPhotoUrl'
       | 'defaultModel'
@@ -48,6 +50,7 @@ type PlatformOverride = Pick<
 >;
 
 export interface AgentIdentityDefaults {
+  defaultAvatarRef?: HeyGenAvatarRef;
   defaultAvatarIngredientId?: string;
   defaultAvatarPhotoUrl?: string;
   defaultVoiceId?: string;
@@ -123,6 +126,7 @@ const resolveIdentityDefaults = (
   source:
     | Pick<
         BrandAgentConfig,
+        | 'defaultAvatarRef'
         | 'defaultAvatarIngredientId'
         | 'defaultAvatarPhotoUrl'
         | 'defaultVoiceId'
@@ -130,6 +134,7 @@ const resolveIdentityDefaults = (
       >
     | OrganizationSettingsSource,
 ): AgentIdentityDefaults => ({
+  defaultAvatarRef: source?.defaultAvatarRef ?? undefined,
   defaultAvatarIngredientId: asOptionalString(
     source?.defaultAvatarIngredientId,
   ),
@@ -146,18 +151,27 @@ const resolveIdentityDefaults = (
 const mergeIdentityDefaults = (
   organizationDefaults: AgentIdentityDefaults,
   brandDefaults: AgentIdentityDefaults,
-): AgentIdentityDefaults => ({
-  defaultAvatarIngredientId:
-    brandDefaults.defaultAvatarIngredientId ??
-    organizationDefaults.defaultAvatarIngredientId,
-  defaultAvatarPhotoUrl:
-    brandDefaults.defaultAvatarPhotoUrl ??
-    organizationDefaults.defaultAvatarPhotoUrl,
-  defaultVoiceId:
-    brandDefaults.defaultVoiceId ?? organizationDefaults.defaultVoiceId,
-  defaultVoiceRef:
-    brandDefaults.defaultVoiceRef ?? organizationDefaults.defaultVoiceRef,
-});
+): AgentIdentityDefaults => {
+  const avatar =
+    brandDefaults.defaultAvatarRef ||
+    brandDefaults.defaultAvatarIngredientId ||
+    brandDefaults.defaultAvatarPhotoUrl
+      ? brandDefaults
+      : organizationDefaults;
+  return {
+    defaultAvatarRef: avatar.defaultAvatarRef,
+    defaultAvatarIngredientId: avatar.defaultAvatarRef
+      ? undefined
+      : avatar.defaultAvatarIngredientId,
+    defaultAvatarPhotoUrl: avatar.defaultAvatarRef
+      ? undefined
+      : avatar.defaultAvatarPhotoUrl,
+    defaultVoiceId:
+      brandDefaults.defaultVoiceId ?? organizationDefaults.defaultVoiceId,
+    defaultVoiceRef:
+      brandDefaults.defaultVoiceRef ?? organizationDefaults.defaultVoiceRef,
+  };
+};
 
 const normalizeQualityTier = (value: unknown): AgentQualityTier =>
   AGENT_QUALITY_TIERS.find((tier) => tier === value) ?? 'balanced';

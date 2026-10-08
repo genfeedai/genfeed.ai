@@ -1,5 +1,11 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IHeyGen } from '@genfeedai/contracts/interfaces';
+import type {
+  HeyGenAvatarRef,
+  HeyGenCatalogAvatar,
+  HeyGenCatalogVoice,
+  IBrandAgentConfig,
+  IHeyGen,
+} from '@genfeedai/contracts/interfaces';
 import { HeyGen } from '@genfeedai/models/integrations/heygen.model';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -21,38 +27,52 @@ export class HeyGenService extends BaseService<IHeyGen> {
     return BaseService.getDataServiceInstance(HeyGenService, token);
   }
 
-  /**
-   * Generate avatar video
-   * The backend endpoint is POST /videos/avatar (AvatarVideoController),
-   * NOT POST /heygen. This service's baseURL is /heygen (for fetching avatars/voices),
-   * so we replace the base path for generation calls.
-   *
-   * Maps frontend voiceId → backend elevenlabsVoiceId
-   */
+  async fetchAvatars(signal?: AbortSignal): Promise<HeyGenCatalogAvatar[]> {
+    const response = await this.instance.get<{
+      data: { attributes: { avatars: HeyGenCatalogAvatar[] } };
+    }>(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/avatars`, {
+      signal,
+    });
+    return response.data.data.attributes.avatars;
+  }
+
+  async fetchVoices(signal?: AbortSignal): Promise<HeyGenCatalogVoice[]> {
+    const response = await this.instance.get<{
+      data: { attributes: { voices: HeyGenCatalogVoice[] } };
+    }>(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/voices`, {
+      signal,
+    });
+    return response.data.data.attributes.voices;
+  }
+
   async generate(payload: {
+    useIdentity?: boolean;
     voiceId?: string;
+    voiceProvider?: string;
+    voiceRef?: IBrandAgentConfig['defaultVoiceRef'];
     avatarId?: string;
+    avatarRef?: HeyGenAvatarRef;
     photoUrl?: string;
     text: string;
     audioUrl?: string;
+    audioIngredientId?: string;
+    elevenlabsVoiceId?: string;
+    heygenVoiceId?: string;
   }): Promise<IHeyGen> {
-    const { voiceId, ...rest } = payload;
-
-    // Map voiceId → elevenlabsVoiceId for backend compatibility
+    const { voiceId, voiceProvider, ...rest } = payload;
     const backendPayload: Record<string, unknown> = { ...rest };
-    if (voiceId) {
-      backendPayload.elevenlabsVoiceId = voiceId;
+    if (voiceId && !rest.voiceRef) {
+      if (voiceProvider === 'heygen') backendPayload.heygenVoiceId = voiceId;
+      else if (voiceProvider === 'elevenlabs')
+        backendPayload.elevenlabsVoiceId = voiceId;
+      else
+        throw new Error('Choose a voice with its provider before generating.');
     }
-
-    // Build absolute URL to bypass this.instance's /heygen baseURL
-    // Target: POST /videos/avatar (AvatarVideoController)
     const avatarUrl = `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.VIDEOS}/avatar`;
-
     const response = await this.instance.post<IHeyGen>(
       avatarUrl,
       backendPayload,
     );
-
     return response.data;
   }
 }

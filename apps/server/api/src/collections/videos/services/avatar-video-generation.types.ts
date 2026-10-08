@@ -1,7 +1,13 @@
 import type { GenerationBillingRequest } from '@api/collections/credits/services/generation-billing.service';
 import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import type { VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
+import type {
+  HeyGenAvatarCandidate,
+  ResolvedHeyGenConnection,
+} from '@api/services/integrations/heygen/heygen-identity.types';
+import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import type { VoiceProvider } from '@genfeedai/contracts';
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 
 export interface AvatarVideoGenerationContext {
   organizationId: string;
@@ -30,6 +36,9 @@ export interface AvatarVideoGenerationParams {
   elevenlabsVoiceId?: string;
   heygenVoiceId?: string;
   avatarId?: string;
+  avatarRef?: HeyGenAvatarCandidate;
+  voiceRef?: DefaultVoiceRef;
+  audioIngredientId?: string;
   voiceProvider?: string;
   aspectRatio?: AvatarVideoAspectRatio;
 }
@@ -51,6 +60,10 @@ export interface AvatarGenerationFunding extends AvatarGenerationPrice {
 }
 
 export interface ResolvedIdentity {
+  avatarRef?: HeyGenAvatarRef;
+  heygenConnection?: ResolvedHeyGenConnection;
+  voiceRef?: DefaultVoiceRef;
+  audioIngredientId?: string;
   audioUrl?: string;
   elevenlabsVoiceId?: string;
   heygenVoiceId?: string;

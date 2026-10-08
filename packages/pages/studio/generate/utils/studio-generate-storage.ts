@@ -3,6 +3,10 @@ import {
   isImageEditSize,
   normalizeMusicSettings,
 } from '@genfeedai/contracts/constants';
+import type {
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
+} from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   StudioGenerateSettings,
@@ -190,6 +194,19 @@ export function sanitizeStudioGenerateSettings(
       defaults.aspectRatio,
     ),
     avatarPhotoUrl: pickFreeText(avatarPhotoUrl),
+    avatarRef:
+      isRecord(value.avatarRef) &&
+      value.avatarRef.source === 'heygen-look' &&
+      typeof value.avatarRef.lookId === 'string' &&
+      isRecord(value.avatarRef.connection)
+        ? (value.avatarRef as unknown as HeyGenAvatarRef)
+        : undefined,
+    voiceRef:
+      isRecord(value.voiceRef) &&
+      ['catalog', 'cloned'].includes(String(value.voiceRef.source)) &&
+      typeof value.voiceRef.provider === 'string'
+        ? (value.voiceRef as NonNullable<IBrandAgentConfig['defaultVoiceRef']>)
+        : undefined,
     blacklist: pickStringList(blacklist),
     brandingMode: brandingMode === 'off' ? 'off' : 'brand',
     camera: pickFreeText(camera),

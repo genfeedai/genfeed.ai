@@ -1,6 +1,11 @@
-'use client';
+import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
 
-import type { IAvatar } from '@genfeedai/contracts/interfaces';
+('use client');
+
+import type {
+  HeyGenCatalogAvatar,
+  IAvatar,
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
 import {
@@ -14,6 +19,7 @@ import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 
 type BrandIdentityAvatarFieldProps = {
   avatars: IAvatar[];
+  providerAvatars?: HeyGenCatalogAvatar[];
   selectedAvatarId: string;
   selectedAvatar: IAvatar | null;
   isLoadingAvatars: boolean;
@@ -22,6 +28,7 @@ type BrandIdentityAvatarFieldProps = {
 
 export default function BrandIdentityAvatarField({
   avatars,
+  providerAvatars = [],
   selectedAvatarId,
   selectedAvatar,
   isLoadingAvatars,
@@ -55,6 +62,21 @@ export default function BrandIdentityAvatarField({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">Use organization fallback</SelectItem>
+          {providerAvatars.map((avatar) => (
+            <SelectItem
+              key={heyGenAvatarValue(avatar.avatarRef)}
+              value={heyGenAvatarValue(avatar.avatarRef)}
+              disabled={!avatar.avatarRef.readiness.usable}
+            >
+              {avatar.name} ·{' '}
+              {avatar.avatarRef.ownership === 'public'
+                ? 'Public preset'
+                : 'Personal HeyGen'}
+              {avatar.avatarRef.readiness.reason
+                ? ` · ${avatar.avatarRef.readiness.reason}`
+                : ''}
+            </SelectItem>
+          ))}
           {avatars.map((avatar) => (
             <SelectItem key={avatar.id} value={avatar.id}>
               {getIngredientDisplayLabel(avatar)}

@@ -4,11 +4,8 @@ import type {
   AvatarVideoGenerationContext,
   AvatarVideoGenerationParams,
 } from '@api/collections/videos/services/avatar-video-generation.types';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { ByokService } from '@api/services/byok/byok.service';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-import { ByokProvider } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -20,8 +17,6 @@ export class AvatarVideoReferenceService {
     private readonly configService: ConfigService,
     private readonly ingredientsService: IngredientsService,
     private readonly mediaIssuer: AuthorizedMediaUrlService,
-    private readonly byokService: ByokService,
-    private readonly heygenService: HeyGenService,
     private readonly personasService: PersonasService,
   ) {}
 
@@ -43,7 +38,7 @@ export class AvatarVideoReferenceService {
   }
 
   async resolvePhotoUrl(
-    params: AvatarVideoGenerationParams,
+    _params: AvatarVideoGenerationParams,
     context: AvatarVideoGenerationContext,
     resolvedPhotoIngredientId?: string,
     resolvedPhotoUrl?: string,
@@ -96,34 +91,50 @@ export class AvatarVideoReferenceService {
       return `${this.configService.ingredientsEndpoint}/avatars/${avatarIngredient.id}`;
     }
 
-    if (!params.avatarId) {
+    throw new HttpException(
+      'Choose an image or a trained HeyGen look.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  async resolveAudioIngredient(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<string> {
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+      organizationId,
+      isDeleted: false,
+    });
+    if (
+      !ingredient ||
+      ![
+        IngredientCategory.AUDIO,
+        IngredientCategory.VOICE,
+        IngredientCategory.MUSIC,
+      ].includes(ingredient.category as IngredientCategory) ||
+      ![
+        IngredientStatus.GENERATED,
+        IngredientStatus.VALIDATED,
+        IngredientStatus.UPLOADED,
+      ].includes(ingredient.status as IngredientStatus)
+    )
       throw new HttpException(
-        {
-          detail:
-            'Either photoUrl must be provided or identity defaults must resolve a default avatar image',
-          title: 'Validation failed',
-        },
+        'Choose a playable audio asset from this organization.',
         HttpStatus.BAD_REQUEST,
       );
-    }
-
-    const heygenByokKey = await this.byokService.resolveApiKey(
-      context.organizationId,
-      ByokProvider.HEYGEN,
-    );
-    const avatars = await this.heygenService.getAvatars(
-      context.organizationId,
-      undefined,
-      heygenByokKey?.apiKey,
-    );
-    const avatar = avatars.find(
-      (candidate) => candidate.avatarId === params.avatarId,
-    );
-
-    if (!avatar) {
-      throw new NotFoundException('Avatar', params.avatarId);
-    }
-
-    return avatar.preview;
+    const url = this.configService.isAuthorizedMediaDeliveryEnabled
+      ? (
+          await this.mediaIssuer.issueServerPublish(organizationId, [
+            ingredient.id,
+          ])
+        ).get(ingredient.id)
+      : readIngredientMediaUrl(ingredient);
+    if (!url)
+      throw new HttpException(
+        'The selected narration has no playable audio.',
+        HttpStatus.BAD_REQUEST,
+      );
+    return url;
   }
 }

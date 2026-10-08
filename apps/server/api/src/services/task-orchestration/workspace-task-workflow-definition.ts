@@ -3,6 +3,8 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import type { HeyGenAvatarCandidate } from '@api/services/integrations/heygen/heygen-identity.types';
+import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export type WorkspaceTaskWorkflowRequest = {
@@ -10,6 +12,8 @@ export type WorkspaceTaskWorkflowRequest = {
   brandName?: string;
   elevenlabsVoiceId?: string;
   heygenAvatarId?: string;
+  avatarRef?: HeyGenAvatarCandidate;
+  voiceRef?: DefaultVoiceRef;
   organizationId: string;
   outputType?: string;
   platforms?: string[];

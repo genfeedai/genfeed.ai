@@ -34,6 +34,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'isAdvancedMode',
   'agentReplyStyle',
   'isByokEnabled',
+  'defaultAvatarRef',
   'defaultAvatarPhotoUrl',
   'defaultAvatarIngredientId',
   'defaultVoiceId',

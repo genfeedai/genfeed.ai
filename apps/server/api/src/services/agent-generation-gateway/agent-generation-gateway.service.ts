@@ -252,16 +252,6 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
   ): Promise<JsonApiSingleResponse> {
     return this.invoker.invoke<CreateAvatarVideoDto, JsonApiSingleResponse>(
       {
-        creditsConfig: {
-          // #5294 mirrors AvatarVideoController.createAvatarVideo — that
-          // route opted in because AvatarVideoGenerationService
-          // independently resolves and passes the org's HeyGen key.
-          allowByokBypass: true,
-          description: 'Avatar video generation',
-          modelKey: MODEL_KEYS.HEYGEN_AVATAR,
-          settlement: 'completion',
-          source: ActivitySource.VIDEO_GENERATION,
-        },
         dto: CreateAvatarVideoDto,
         handle: async ({ dto, request, user }) => {
           const result =
@@ -270,6 +260,10 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
                 aspectRatio: dto.aspectRatio,
                 audioUrl: dto.audioUrl,
                 avatarId: dto.avatarId,
+                avatarRef: dto.avatarRef,
+                voiceRef: dto.voiceRef,
+                audioIngredientId: dto.audioIngredientId,
+                photoIngredientId: dto.photoIngredientId,
                 clonedVoiceId: dto.clonedVoiceId,
                 elevenlabsVoiceId: dto.elevenlabsVoiceId,
                 heygenVoiceId: dto.heygenVoiceId,
@@ -303,7 +297,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
           return serializeSingle(request, IngredientSerializer, ingredient);
         },
-        hasCreditsInterceptor: true,
+        hasCreditsInterceptor: false,
         hasRolesGuard: false,
         originalUrl: '/v1/videos/avatar',
       },

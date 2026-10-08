@@ -1,5 +1,9 @@
 'use client';
 
+import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
+
+('use client');
+
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioIdentityFieldsProps } from '@genfeedai/props/studio/studio-generate.props';
@@ -46,12 +50,21 @@ export default function StudioIdentityFields({
   const { avatarOptions, isLoadingIdentities, voiceOptions } =
     useStudioGenerateIdentities();
 
+  const avatarValue = settings.avatarRef
+    ? heyGenAvatarValue(settings.avatarRef)
+    : settings.avatarPhotoUrl;
+  const selectedVoiceOption = voiceOptions.find(
+    (option) =>
+      (option.voiceRef?.externalVoiceId ?? option.voiceRef?.internalVoiceId) ===
+        settings.voiceId &&
+      option.voiceRef?.provider === settings.voiceRef?.provider &&
+      (!settings.voiceRef?.ownership ||
+        option.voiceRef?.ownership === settings.voiceRef.ownership),
+  );
   const avatarLabel = avatarOptions.find(
-    (option) => option.value === settings.avatarPhotoUrl,
+    (option) => option.value === avatarValue,
   )?.label;
-  const voiceLabel = voiceOptions.find(
-    (option) => option.value === settings.voiceId,
-  )?.label;
+  const voiceLabel = selectedVoiceOption?.label;
   const summary = describeIdentitySettings(type, avatarLabel, voiceLabel);
 
   return (
@@ -79,10 +92,18 @@ export default function StudioIdentityFields({
               <OptionSelect
                 ariaLabel="Avatar"
                 isDisabled={isLoadingIdentities}
-                onChange={(value) => onChange({ avatarPhotoUrl: value })}
+                onChange={(value) => {
+                  const option = avatarOptions.find(
+                    (candidate) => candidate.value === value,
+                  );
+                  onChange({
+                    avatarRef: option?.avatarRef,
+                    avatarPhotoUrl: option?.avatarRef ? undefined : value,
+                  });
+                }}
                 options={avatarOptions}
-                placeholder="Choose avatar"
-                value={settings.avatarPhotoUrl}
+                placeholder="Use saved avatar default"
+                value={avatarValue}
               />
             </SettingRow>
           ) : null}
@@ -90,10 +111,22 @@ export default function StudioIdentityFields({
             <OptionSelect
               ariaLabel="Voice"
               isDisabled={isLoadingIdentities}
-              onChange={(value) => onChange({ voiceId: value })}
+              onChange={(value) => {
+                const option = voiceOptions.find(
+                  (candidate) => candidate.value === value,
+                );
+                onChange({
+                  voiceRef: option?.voiceRef,
+                  voiceId:
+                    option?.voiceRef?.externalVoiceId ??
+                    option?.voiceRef?.internalVoiceId,
+                });
+              }}
               options={voiceOptions}
-              placeholder="Choose voice"
-              value={settings.voiceId}
+              placeholder={
+                type === 'avatar' ? 'Use saved voice default' : 'Choose voice'
+              }
+              value={selectedVoiceOption?.value}
             />
           </SettingRow>
         </div>

@@ -6,11 +6,15 @@ import type {
   UseWorkspaceTaskComposerParams,
 } from '@genfeedai/props/workspace/workspace-task-composer.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import {
+  heyGenAvatarValue,
+  heyGenDefaultVoice,
+  heyGenVoiceValue,
+} from '@helpers/voice/heygen-identity.helper';
+import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { TasksService } from '@services/management/tasks.service';
@@ -45,13 +49,42 @@ export function useWorkspaceTaskComposer({
   const [taskRequest, setTaskRequest] = useState('');
   const [taskOutputType, setTaskOutputType] =
     useState<(typeof TASK_PRESETS)[number]['outputType']>('ingredient');
-  const [facecamAvatars, setFacecamAvatars] = useState<FacecamOption[]>([]);
-  const [facecamVoices, setFacecamVoices] = useState<FacecamOption[]>([]);
+  const heygen = useHeyGenCatalog();
+  const [clonedOptions, setClonedOptions] = useState<{
+    organizationId: string;
+    voices: FacecamOption[];
+  } | null>(null);
+  const facecamAvatars = useMemo<FacecamOption[]>(
+    () =>
+      heygen.avatars.map((avatar) => ({
+        id: heyGenAvatarValue(avatar.avatarRef),
+        label: `${avatar.name} (${avatar.avatarRef.ownership === 'public' ? 'Public preset' : 'Personal HeyGen'})${avatar.avatarRef.readiness.reason ? ` · ${avatar.avatarRef.readiness.reason}` : ''}`,
+        preview: avatar.preview,
+        provider: 'heygen',
+        avatarRef: avatar.avatarRef,
+        disabled: !avatar.avatarRef.readiness.usable,
+      })),
+    [heygen.avatars],
+  );
+  const facecamVoices = useMemo<FacecamOption[]>(
+    () => [
+      ...(clonedOptions?.organizationId === organizationId
+        ? clonedOptions.voices
+        : []),
+      ...heygen.voices.map((voice) => ({
+        id: heyGenVoiceValue(voice),
+        label: `${voice.name} (HeyGen · ${voice.ownership})`,
+        provider: 'heygen',
+        voiceRef: heyGenDefaultVoice(voice),
+      })),
+    ],
+    [clonedOptions, organizationId, heygen.voices],
+  );
   const [facecamAvatarId, setFacecamAvatarId] = useState<string>('');
   const [facecamVoiceId, setFacecamVoiceId] = useState<string>('');
   const [facecamVoiceProvider, setFacecamVoiceProvider] = useState<string>('');
-  const [facecamLoading, setFacecamLoading] = useState(false);
-  const [facecamError, setFacecamError] = useState<string | null>(null);
+  const facecamLoading = heygen.isLoading;
+  const facecamError = heygen.error;
   const [facecamSaveAsDefault, setFacecamSaveAsDefault] = useState(false);
   const [taskMode, setTaskMode] = useState<WorkspaceTaskMode>('standard');
   const [taskError, setTaskError] = useState<string | null>(null);
@@ -69,146 +102,41 @@ export function useWorkspaceTaskComposer({
   >(null);
 
   useEffect(() => {
-    const config = (
-      selectedBrand as { agentConfig?: Record<string, unknown> } | undefined
-    )?.agentConfig;
-    if (!config) return;
-    const storedAvatar = config.heygenAvatarId as string | undefined;
-    const storedVoice = config.heygenVoiceId as string | undefined;
-    if (storedAvatar && !facecamAvatarId) {
-      setFacecamAvatarId(storedAvatar);
-    }
-    if (storedVoice && !facecamVoiceId) {
-      setFacecamVoiceId(storedVoice);
-    }
-  }, [selectedBrand, facecamAvatarId, facecamVoiceId]);
+    setFacecamAvatarId(
+      selectedBrand?.agentConfig?.defaultAvatarRef
+        ? heyGenAvatarValue(selectedBrand.agentConfig.defaultAvatarRef)
+        : '',
+    );
+    const voice = selectedBrand?.agentConfig?.defaultVoiceRef;
+    setFacecamVoiceId(
+      voice?.provider === 'heygen' && voice.externalVoiceId && voice.ownership
+        ? `heygen:${voice.ownership}:${voice.externalVoiceId}`
+        : '',
+    );
+    setFacecamVoiceProvider(voice?.provider ?? '');
+  }, [selectedBrand]);
 
   useEffect(() => {
-    if (
-      taskOutputType !== 'facecam' ||
-      (facecamAvatars.length > 0 && facecamVoices.length > 0)
-    ) {
-      return;
-    }
-
     const controller = new AbortController();
-    setFacecamLoading(true);
-    setFacecamError(null);
-
-    const run = async () => {
-      try {
+    if (taskOutputType === 'facecam' && organizationId) {
+      void (async () => {
         const token = await resolveAuthToken(getToken);
-        if (!token) {
-          setFacecamError('Authentication token unavailable.');
-          return;
-        }
-
-        const apiEndpoint = EnvironmentService.apiEndpoint;
-        const headers = {
-          ...getRequestOrganizationHeaders(),
-          Authorization: `Bearer ${token}`,
-        };
-
-        if (controller.signal.aborted) return;
-
-        const [avatarsResponse, voicesResponse, clonedVoices] =
-          await Promise.all([
-            fetch(`${apiEndpoint}/heygen/avatars`, {
-              headers,
-              signal: controller.signal,
-            }),
-            fetch(`${apiEndpoint}/heygen/voices`, {
-              headers,
-              signal: controller.signal,
-            }),
-            VoiceCloneService.getInstance(token)
-              .getClonedVoices()
-              .catch(() => []),
-          ]);
-
-        if (!avatarsResponse.ok || !voicesResponse.ok) {
-          const detail =
-            !avatarsResponse.ok && avatarsResponse.status === 500
-              ? 'HeyGen API key missing or invalid. Add one in Settings -> API Keys, or set HEYGEN_KEY for self-hosted.'
-              : `Avatars: ${avatarsResponse.status}, Voices: ${voicesResponse.status}`;
-          setFacecamError(detail);
-          return;
-        }
-
-        const avatarsJson = (await avatarsResponse.json()) as {
-          data?: {
-            attributes?: {
-              avatars?: Array<{
-                avatarId: string;
-                name: string;
-                preview?: string | null;
-              }>;
-            };
-          };
-        };
-        const voicesJson = (await voicesResponse.json()) as {
-          data?: {
-            attributes?: {
-              voices?: Array<{ voiceId: string; name: string }>;
-            };
-          };
-        };
-
-        const avatars = (avatarsJson.data?.attributes?.avatars ?? []).map(
-          (avatar): FacecamOption => ({
-            id: avatar.avatarId,
-            label: avatar.name,
-            preview: avatar.preview ?? undefined,
-            provider: 'heygen',
-          }),
-        );
-
-        // Merge HeyGen catalog voices + org's cloned voices into one list
-        const heygenVoices = (voicesJson.data?.attributes?.voices ?? []).map(
-          (voice): FacecamOption => ({
-            id: voice.voiceId,
-            label: `[HeyGen] ${voice.name}`,
-            provider: 'heygen',
-          }),
-        );
-        const clonedOptions = (clonedVoices ?? []).map(
-          (voice): FacecamOption => {
-            const providerLabel =
-              (voice as { provider?: string }).provider === 'genfeed-ai'
-                ? 'Genfeed AI'
-                : (voice as { provider?: string }).provider === 'elevenlabs'
-                  ? 'ElevenLabs'
-                  : ((voice as { provider?: string }).provider ?? 'Cloned');
-            return {
+        if (!token || controller.signal.aborted) return;
+        const voices =
+          await VoiceCloneService.getInstance(token).getClonedVoices();
+        if (!controller.signal.aborted)
+          setClonedOptions({
+            organizationId,
+            voices: voices.map((voice) => ({
               id: voice.id,
-              label: `[${providerLabel}] ${voice.metadataLabel ?? 'Cloned Voice'}`,
-              provider:
-                (voice as { provider?: string }).provider ?? 'elevenlabs',
-            };
-          },
-        );
-        const voices = [...clonedOptions, ...heygenVoices];
-
-        if (controller.signal.aborted) return;
-        setFacecamAvatars(avatars);
-        setFacecamVoices(voices);
-      } catch (error: unknown) {
-        if (controller.signal.aborted) return;
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Failed to load HeyGen avatars/voices.';
-        setFacecamError(message);
-      } finally {
-        if (!controller.signal.aborted) {
-          setFacecamLoading(false);
-        }
-      }
-    };
-
-    void run();
+              label: `[${voice.provider ?? 'Cloned'}] ${voice.metadataLabel ?? 'Cloned voice'}`,
+              provider: voice.provider ?? 'elevenlabs',
+            })),
+          });
+      })().catch(() => {});
+    }
     return () => controller.abort();
-  }, [taskOutputType, facecamAvatars.length, facecamVoices.length, getToken]);
+  }, [getToken, organizationId, taskOutputType]);
 
   const availableBrandMentions = useMemo<WorkspaceBrandMentionItem[]>(
     () =>
@@ -448,8 +376,15 @@ export function useWorkspaceTaskComposer({
     if (taskOutputType === 'facecam') {
       return {
         ...base,
-        heygenAvatarId: facecamAvatarId || undefined,
-        voiceId: facecamVoiceId || undefined,
+        avatarRef: facecamAvatars.find(
+          (avatar) => avatar.id === facecamAvatarId,
+        )?.avatarRef,
+        voiceRef: facecamVoices.find((voice) => voice.id === facecamVoiceId)
+          ?.voiceRef,
+        voiceId: facecamVoices.find((voice) => voice.id === facecamVoiceId)
+          ?.voiceRef
+          ? undefined
+          : facecamVoiceId || undefined,
         voiceProvider:
           facecamVoiceProvider || (facecamVoiceId ? 'heygen' : undefined),
       };
@@ -459,6 +394,8 @@ export function useWorkspaceTaskComposer({
   }, [
     effectiveTaskBrandId,
     facecamAvatarId,
+    facecamAvatars,
+    facecamVoices,
     facecamVoiceId,
     facecamVoiceProvider,
     selectedTargetBrandLabel,
@@ -473,10 +410,16 @@ export function useWorkspaceTaskComposer({
       return;
     }
 
-    if (taskOutputType === 'facecam' && !facecamAvatarId && !facecamVoiceId) {
-      setTaskError(
-        'Select an avatar and voice, or configure brand identity defaults in Settings.',
-      );
+    if (
+      taskOutputType === 'facecam' &&
+      ((facecamAvatarId &&
+        !facecamAvatars.some(
+          (avatar) => avatar.id === facecamAvatarId && !avatar.disabled,
+        )) ||
+        (facecamVoiceId &&
+          !facecamVoices.some((voice) => voice.id === facecamVoiceId)))
+    ) {
+      setTaskError('Reselect an available avatar and voice.');
       return;
     }
 
@@ -503,8 +446,24 @@ export function useWorkspaceTaskComposer({
         try {
           const brandsService = BrandsService.getInstance(token);
           await brandsService.updateAgentConfig(effectiveTaskBrandId, {
-            heygenAvatarId: facecamAvatarId || null,
-            heygenVoiceId: facecamVoiceId || null,
+            ...(facecamAvatarId
+              ? {
+                  defaultAvatarRef: facecamAvatars.find(
+                    (avatar) => avatar.id === facecamAvatarId,
+                  )?.avatarRef,
+                }
+              : {}),
+            ...(facecamVoiceId
+              ? {
+                  defaultVoiceRef: facecamVoices.find(
+                    (voice) => voice.id === facecamVoiceId,
+                  )?.voiceRef ?? {
+                    source: 'cloned',
+                    provider: facecamVoiceProvider,
+                    internalVoiceId: facecamVoiceId,
+                  },
+                }
+              : {}),
           });
         } catch (brandError) {
           logger.error('Failed to persist brand voice defaults', brandError);

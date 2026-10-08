@@ -96,6 +96,8 @@ export class ClipGenerationDispatchService {
         settings: {
           ...project.settings,
           avatarId: identity?.avatarId,
+          ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+          ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
           avatarProvider: dto.avatarProvider ?? 'heygen',
           flow: 'review',
           mode,
@@ -109,6 +111,8 @@ export class ClipGenerationDispatchService {
 
     const result = await this.clipGenerationService.generateClips({
       avatarId: identity?.avatarId,
+      ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+      ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
       highlights: selectedEditedHighlights,
       hookApprovalRequired,
       mode,
@@ -267,6 +271,8 @@ export class ClipGenerationDispatchService {
     try {
       generated = await this.clipGenerationService.generateClips({
         avatarId: identity?.avatarId,
+        ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+        ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
         highlights,
         hookApprovalRequired: false,
         mode,
