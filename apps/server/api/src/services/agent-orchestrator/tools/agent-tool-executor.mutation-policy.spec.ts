@@ -1,4 +1,4 @@
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import {

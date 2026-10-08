@@ -1,5 +1,5 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Brand (fontFamily +
 // scope enum fields) via the light @genfeedai/prisma/testing subpath — no

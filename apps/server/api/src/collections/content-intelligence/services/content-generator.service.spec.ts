@@ -14,6 +14,7 @@ import type { AssembledBrandContext } from '@api/services/agent-context-assembly
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { getActionDefinition } from '@genfeedai/actions';
 import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
 import {
@@ -30,7 +31,6 @@ import { compileActionContract } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { vi } from 'vitest';
 
 function approvedOnboardingRevision(version: number): IBrandOsRevision {

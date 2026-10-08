@@ -13,6 +13,7 @@ import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-ge
 import { encodeBrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
 import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type {
   BrandArtifactValidationReportV1,
   BrandedGenerationInputV1,
@@ -20,7 +21,6 @@ import type {
   BrandedGenerationResolutionV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/prisma', async () => {

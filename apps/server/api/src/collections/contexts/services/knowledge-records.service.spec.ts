@@ -9,6 +9,7 @@ import {
 } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -22,7 +23,6 @@ import {
 import { PrismaClient } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { Request } from 'express';
 import { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

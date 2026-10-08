@@ -149,9 +149,16 @@ describe('Cloud bootstrap live brand policy across warmed caches', () => {
     f.member.role.key = MemberRole.OWNER;
     f.member.brands = [];
     await f.service.getBootstrap(request);
-    const keyRequest = {
+    const keyRequest: AuthBootstrapRequest = {
       ...request,
-      user: { ...request.user, isApiKey: true, scopes: ['read'] },
+      user: {
+        id: 'opaque-user',
+        userId: 'opaque-user',
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        isApiKey: true,
+        scopes: ['read'],
+      },
     };
     const key = await f.service.getBootstrap(keyRequest);
     expect(key.brands).toEqual([]);

@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { HttpStatus } from '@nestjs/common';
 
 import {
@@ -25,6 +26,7 @@ describe('verifyBrandAccess', () => {
 
   function createBrandsService() {
     return {
+      brandAccessService: brandAccessFixture(),
       findOne: vi.fn<BrandsService['findOne']>(),
     };
   }

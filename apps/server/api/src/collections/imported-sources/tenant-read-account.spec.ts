@@ -26,6 +26,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { MemberRole } from '@genfeedai/contracts';
 import type { ImportedSourceSnapshotInput } from '@genfeedai/contracts/api-types/contracts/imported-source.contract';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
@@ -35,7 +36,6 @@ import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { Observable } from 'rxjs';
 import { defer, firstValueFrom, of } from 'rxjs';
 

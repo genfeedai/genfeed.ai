@@ -1,6 +1,6 @@
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { Prisma } from '@genfeedai/prisma';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { describe, expect, it, vi } from 'vitest';
 
 const actor = { organizationId: 'org', brandId: 'brand', actorId: 'user' };

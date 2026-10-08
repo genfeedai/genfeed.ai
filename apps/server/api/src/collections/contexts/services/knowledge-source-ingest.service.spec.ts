@@ -1,5 +1,5 @@
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 
 vi.mock(
   '@api/collections/contexts/utils/extract-source-text.util',

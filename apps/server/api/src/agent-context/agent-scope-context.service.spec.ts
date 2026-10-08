@@ -1,4 +1,5 @@
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
@@ -6,7 +7,6 @@ import {
   ForbiddenException,
   HttpException,
 } from '@nestjs/common';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { AgentScopeContextService } from './agent-scope-context.service';
 
 type ThreadRow = {

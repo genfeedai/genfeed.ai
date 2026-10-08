@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { MemberRole } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import {
   afterAll,
   afterEach,

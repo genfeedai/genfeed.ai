@@ -1,9 +1,9 @@
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   KnowledgeMemoryScope,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 
 function buildService(memberships: Array<{ sourceId: string }> = []) {
   const findMany = vi.fn().mockResolvedValue(memberships);

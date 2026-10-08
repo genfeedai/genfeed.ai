@@ -23,12 +23,12 @@ import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-conte
 import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ExecutionContext } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { Request } from 'express';
 import { defer, firstValueFrom, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';

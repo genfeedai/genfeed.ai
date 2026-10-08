@@ -9,6 +9,10 @@ import {
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
+  brandAccessFixture,
+  snapshotInitiatingActor,
+} from '@api/shared/testing/brand-access.fixture';
+import {
   brandedGenerationResolutionV1Schema,
   brandLearningApplicationV1Schema,
 } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
@@ -28,10 +32,6 @@ import type { LearningGenerationReceipt } from '@genfeedai/contracts/interfaces/
 import type { ContentHarnessBrief } from '@genfeedai/harness';
 import { learningContribution } from '@genfeedai/harness';
 import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
-import {
-  brandAccessFixture,
-  snapshotInitiatingActor,
-} from '@test/helpers/brand-access.fixture';
 import { describe, expect, it, vi } from 'vitest';
 
 const BRAND = {

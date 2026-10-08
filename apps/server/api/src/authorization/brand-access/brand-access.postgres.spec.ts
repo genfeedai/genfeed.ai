@@ -276,6 +276,7 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
         .then((source) =>
           records.createVersion(actor, source.id, {
             observedAt: new Date().toISOString(),
+            provenance: {},
             contentHash: `sha256:${randomUUID()}`,
             payload: { text: 'Personal fixture' },
           }),

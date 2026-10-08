@@ -1,5 +1,5 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({

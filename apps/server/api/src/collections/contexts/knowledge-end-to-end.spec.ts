@@ -16,6 +16,7 @@ import {
   collectKnowledgeReceipts,
 } from '@api/services/harness/harness-context-sources.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -30,7 +31,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -159,7 +159,7 @@ async function runIngest(request: KnowledgeSourceIngestWorkflowInput) {
   const marked = await ingest.markSource(loaded);
   try {
     const extracted = await ingest.extractSource(marked);
-    const chunked = ingest.chunkSource(extracted);
+    const chunked = await ingest.chunkSource(extracted);
     const replaced = await ingest.replaceChunks(chunked);
     return ingest.finalizeSource(replaced);
   } catch (error) {
@@ -185,6 +185,7 @@ async function retrieve(
 ) {
   return knowledgeContentRetrieval.retrieveBrandContentMemory({
     brandId: actor.brandId ?? '',
+    userId: actor.userId,
     limit: 8,
     minRelevance: 0.05,
     organizationId: actor.organizationId,
@@ -424,9 +425,14 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       new Set([truth.source.id, inspiration.source.id]),
     );
 
-    const filters = await selection.resolve('org-a', 'brand-a', {
-      sourceIds: [truth.source.id],
-    });
+    const filters = await selection.resolve(
+      'org-a',
+      'brand-a',
+      {
+        sourceIds: [truth.source.id],
+      },
+      actorA,
+    );
     const selected = await retrieve(actorA, query, filters);
     expect(selected.map((hit) => hit.citation?.sourceId)).toEqual([
       truth.source.id,
@@ -438,9 +444,14 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       inspiration.source.id,
     ]);
     const inbox = await records.ensureInbox(actorA, KnowledgeMemoryScope.BRAND);
-    const bySpace = await selection.resolve('org-a', 'brand-a', {
-      spaceIds: [inbox.id],
-    });
+    const bySpace = await selection.resolve(
+      'org-a',
+      'brand-a',
+      {
+        spaceIds: [inbox.id],
+      },
+      actorA,
+    );
     expect(new Set(bySpace?.knowledgeSourceIds)).toEqual(
       new Set([truth.source.id, inspiration.source.id]),
     );

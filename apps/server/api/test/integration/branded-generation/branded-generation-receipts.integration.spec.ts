@@ -1,3 +1,4 @@
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -248,7 +249,9 @@ async function readPrivateCompiled(
   receipt: BrandedGenerationReceiptV1,
 ) {
   const store = new BrandedGenerationPromptStoreService(
-    new BrandedGenerationReceiptAccessService(),
+    new BrandedGenerationReceiptAccessService(
+      brandAccessFixture(clients[0] as unknown as PrismaService),
+    ),
   );
   return clients[0].$transaction((tx) =>
     store.readCompiled(tx, actor, receipt),
@@ -423,7 +426,9 @@ describe('branded receipt full-migration service and relocation acceptance', () 
         Array<{ database: string; schema: string }>
       >`SELECT current_database() AS database, current_schema() AS schema`;
       assertControllerOwnedMigrationIdentity(current[0], 'brand-acceptance');
-      const access = new BrandedGenerationReceiptAccessService();
+      const access = new BrandedGenerationReceiptAccessService(
+        brandAccessFixture(clients[0] as unknown as PrismaService),
+      );
       services.push(
         new BrandedGenerationReceiptsService(
           prisma as unknown as PrismaService,
@@ -469,7 +474,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     const s = await seed();
     const value = input(s.actor);
     const results = await Promise.all(
-      services.map((service) => service.create(value)),
+      services.map((service) =>
+        service.create(value, {
+          organizationId: value.organizationId,
+          brandId: value.brandId,
+          actorId: value.actorId,
+        }),
+      ),
     );
     expect(new Set(results.map((result) => result.receipt.id)).size).toBe(1);
     expect(
@@ -483,16 +494,49 @@ describe('branded receipt full-migration service and relocation acceptance', () 
       { model: 'changed' },
       { generationParameters: { seed: 2 } },
     ])
-      await expect(services[0].create({ ...value, ...patch })).rejects.toThrow(
-        'request_payload_conflict',
-      );
+      await expect(
+        services[0].create(
+          { ...value, ...patch },
+          {
+            organizationId: { ...value, ...patch }.organizationId,
+            brandId: { ...value, ...patch }.brandId,
+            actorId: { ...value, ...patch }.actorId,
+          },
+        ),
+      ).rejects.toThrow('request_payload_conflict');
     expect(await counts(s.actor)).toEqual([1, 1, 1]);
-    await services[0].create({ ...value, brandId: s.fallback });
-    await services[0].create({
-      ...value,
-      organizationId: s.destination,
-      brandId: s.destinationBrand,
-    });
+    await services[0].create(
+      { ...value, brandId: s.fallback },
+      {
+        organizationId: { ...value, brandId: s.fallback }.organizationId,
+        brandId: { ...value, brandId: s.fallback }.brandId,
+        actorId: { ...value, brandId: s.fallback }.actorId,
+      },
+    );
+    await services[0].create(
+      {
+        ...value,
+        organizationId: s.destination,
+        brandId: s.destinationBrand,
+      },
+      {
+        organizationId: {
+          ...value,
+          organizationId: s.destination,
+          brandId: s.destinationBrand,
+        }.organizationId,
+        brandId: {
+          ...value,
+          organizationId: s.destination,
+          brandId: s.destinationBrand,
+        }.brandId,
+        actorId: {
+          ...value,
+          organizationId: s.destination,
+          brandId: s.destinationBrand,
+        }.actorId,
+      },
+    );
     expect(await counts({ ...s.actor, brandId: s.fallback })).toEqual([
       1, 1, 1,
     ]);
@@ -510,6 +554,12 @@ describe('branded receipt full-migration service and relocation acceptance', () 
       const s = await seed();
       const result = await services[0].create(
         input({ ...s.actor, actorId: s.member }, text),
+        {
+          organizationId: input({ ...s.actor, actorId: s.member }, text)
+            .organizationId,
+          brandId: input({ ...s.actor, actorId: s.member }, text).brandId,
+          actorId: input({ ...s.actor, actorId: s.member }, text).actorId,
+        },
       );
       expect(result.receipt.actorId).toBe(s.member);
       for (const actorId of [s.member, s.owner])
@@ -568,7 +618,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
   );
   it('commits one competing revision and replays immutable event projections', async () => {
     const s = await seed();
-    const current = (await services[0].create(input(s.actor))).receipt;
+    const current = (
+      await services[0].create(input(s.actor), {
+        organizationId: input(s.actor).organizationId,
+        brandId: input(s.actor).brandId,
+        actorId: input(s.actor).actorId,
+      })
+    ).receipt;
     const attempts = await Promise.all(
       services.map((service, index) =>
         outcome(
@@ -626,16 +682,26 @@ describe('branded receipt full-migration service and relocation acceptance', () 
       `CREATE FUNCTION fixture_event_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."organizationId"='${s.source}' THEN RAISE EXCEPTION 'fixture_event_insert_failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER fixture_event_failure BEFORE INSERT ON branded_generation_receipt_events FOR EACH ROW EXECUTE FUNCTION fixture_event_failure()`,
     );
     try {
-      await expect(services[0].create(input(s.actor))).rejects.toThrow(
-        'fixture_event_insert_failure',
-      );
+      await expect(
+        services[0].create(input(s.actor), {
+          organizationId: input(s.actor).organizationId,
+          brandId: input(s.actor).brandId,
+          actorId: input(s.actor).actorId,
+        }),
+      ).rejects.toThrow('fixture_event_insert_failure');
       expect(await counts(s.actor)).toEqual([0, 0, 0]);
     } finally {
       await control.query(
         'DROP TRIGGER fixture_event_failure ON branded_generation_receipt_events; DROP FUNCTION fixture_event_failure()',
       );
     }
-    const current = (await services[0].create(input(s.actor))).receipt;
+    const current = (
+      await services[0].create(input(s.actor), {
+        organizationId: input(s.actor).organizationId,
+        brandId: input(s.actor).brandId,
+        actorId: input(s.actor).actorId,
+      })
+    ).receipt;
     await control.query(
       `CREATE FUNCTION fixture_event_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."organizationId"='${s.source}' THEN RAISE EXCEPTION 'fixture_event_insert_failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER fixture_event_failure BEFORE INSERT ON branded_generation_receipt_events FOR EACH ROW EXECUTE FUNCTION fixture_event_failure()`,
     );
@@ -659,7 +725,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
   }, 60000);
   it('enforces production constraints and immutable rows in explicit rollback transactions', async () => {
     const s = await seed();
-    const current = (await services[0].create(input(s.actor))).receipt;
+    const current = (
+      await services[0].create(input(s.actor), {
+        organizationId: input(s.actor).organizationId,
+        brandId: input(s.actor).brandId,
+        actorId: input(s.actor).actorId,
+      })
+    ).receipt;
     const before = await counts(s.actor);
     await rollbackFailure(
       () =>
@@ -791,7 +863,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
   it('purges payloads without erasing scoped uniqueness or immutable history', async () => {
     const s = await seed();
     const value = input(s.actor);
-    const current = (await services[0].create(value)).receipt;
+    const current = (
+      await services[0].create(value, {
+        organizationId: value.organizationId,
+        brandId: value.brandId,
+        actorId: value.actorId,
+      })
+    ).receipt;
     const resolved = (
       await services[0].recordResolution(
         s.actor,
@@ -834,7 +912,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     ])
       await expect(operation()).rejects.toThrow('receipt_not_found');
     expect((await services[0].list(s.actor, { limit: 10 })).items).toEqual([]);
-    await expect(services[0].create(value)).rejects.toThrow('receipt_deleted');
+    await expect(
+      services[0].create(value, {
+        organizationId: value.organizationId,
+        brandId: value.brandId,
+        actorId: value.actorId,
+      }),
+    ).rejects.toThrow('receipt_deleted');
     expect(await counts(s.actor)).toEqual([1, 3, 3]);
   }, 60000);
   it('retains a real compiled recipe once across concurrent operation owners and preserves legacy reads', async () => {
@@ -843,7 +927,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
       { ...s.actor, actorId: s.member },
       '  compiled Café 😀\r\n',
     );
-    const current = (await services[0].create(value)).receipt;
+    const current = (
+      await services[0].create(value, {
+        organizationId: value.organizationId,
+        brandId: value.brandId,
+        actorId: value.actorId,
+      })
+    ).receipt;
     const recipe = retainedRecipe(current);
     const compiled = retainedResolution(value, recipe);
     const mutation = { operationKey: 'compiled-recipe', expectedRevision: 0 };
@@ -948,7 +1038,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     ).rejects.toThrow('request_payload_conflict');
     expect(await counts(s.actor)).toEqual([1, 2, 2]);
     const legacyInput = input(s.actor);
-    const legacy = (await services[0].create(legacyInput)).receipt;
+    const legacy = (
+      await services[0].create(legacyInput, {
+        organizationId: legacyInput.organizationId,
+        brandId: legacyInput.brandId,
+        actorId: legacyInput.actorId,
+      })
+    ).receipt;
     const legacyResolved = (
       await services[0].recordResolution(
         s.actor,
@@ -968,7 +1064,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
   it('applies compiled-only linkage, foreign-scope rejection and unchanged immutability after full migrations', async () => {
     const s = await seed();
     const value = input(s.actor);
-    const current = (await services[0].create(value)).receipt;
+    const current = (
+      await services[0].create(value, {
+        organizationId: value.organizationId,
+        brandId: value.brandId,
+        actorId: value.actorId,
+      })
+    ).receipt;
     const recipe = retainedRecipe(current);
     const receipt = (
       await services[0].recordCompiledResolution(
@@ -1047,7 +1149,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     const s = await seed();
     for (const kind of ['input', 'recipe']) {
       const value = input(s.actor);
-      const current = (await services[0].create(value)).receipt;
+      const current = (
+        await services[0].create(value, {
+          organizationId: value.organizationId,
+          brandId: value.brandId,
+          actorId: value.actorId,
+        })
+      ).receipt;
       const recipe = retainedRecipe(current);
       const receipt = (
         await services[0].recordCompiledResolution(
@@ -1081,7 +1189,9 @@ describe('branded receipt full-migration service and relocation acceptance', () 
           `INSERT INTO generation_prompt_snapshots(id,"organizationId","brandId","userId",format,"contentHash",ciphertext,"brandedGenerationReceiptId","brandedGenerationReceiptRevision","brandedGenerationReceiptStage") SELECT $1,"organizationId","brandId","userId",format,"contentHash",$2,"brandedGenerationReceiptId",0,'compiled' FROM generation_prompt_snapshots WHERE id=$3`,
           [id, EncryptionUtil.encrypt(JSON.stringify(envelope)), original.id],
         );
-        const access = new BrandedGenerationReceiptAccessService();
+        const access = new BrandedGenerationReceiptAccessService(
+          brandAccessFixture(clients[0] as unknown as PrismaService),
+        );
         const store = new BrandedGenerationPromptStoreService(access);
         // Commit the scoped fixture row so the real Prisma read transaction can observe it.
         await control.query('COMMIT');
@@ -1119,7 +1229,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
   it('rolls compiled envelope, enhanced prompt, event and projection back on actual event failure', async () => {
     const s = await seed();
     const value = input(s.actor);
-    const current = (await services[0].create(value)).receipt;
+    const current = (
+      await services[0].create(value, {
+        organizationId: value.organizationId,
+        brandId: value.brandId,
+        actorId: value.actorId,
+      })
+    ).receipt;
     const recipe = retainedRecipe(current);
     await control.query(
       `CREATE FUNCTION fixture_compiled_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."organizationId"='${s.source}' THEN RAISE EXCEPTION 'fixture_compiled_event_failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER fixture_compiled_failure BEFORE INSERT ON branded_generation_receipt_events FOR EACH ROW EXECUTE FUNCTION fixture_compiled_failure()`,
@@ -1147,7 +1263,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
   it('purges both branded formats while preserving unrelated legacy payloads', async () => {
     const s = await seed();
     const value = input(s.actor);
-    const current = (await services[0].create(value)).receipt;
+    const current = (
+      await services[0].create(value, {
+        organizationId: value.organizationId,
+        brandId: value.brandId,
+        actorId: value.actorId,
+      })
+    ).receipt;
     const recipe = retainedRecipe(current);
     const receipt = (
       await services[0].recordCompiledResolution(
@@ -1224,7 +1346,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
         description: 'Completed fixture text',
       },
     });
-    const current = (await services[0].create(input(s.actor))).receipt;
+    const current = (
+      await services[0].create(input(s.actor), {
+        organizationId: input(s.actor).organizationId,
+        brandId: input(s.actor).brandId,
+        actorId: input(s.actor).actorId,
+      })
+    ).receipt;
     const resolved = (
       await services[0].recordResolution(
         s.actor,
@@ -1308,7 +1436,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
       validated.execution?.providerAttemptRef,
     );
     expect(stored.projection).toEqual(validated);
-    const second = (await services[0].create(input(s.actor))).receipt;
+    const second = (
+      await services[0].create(input(s.actor), {
+        organizationId: input(s.actor).organizationId,
+        brandId: input(s.actor).brandId,
+        actorId: input(s.actor).actorId,
+      })
+    ).receipt;
     const secondResolved = (
       await services[0].recordResolution(
         s.actor,
@@ -1349,7 +1483,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
   }, 60000);
   it('requires the active relocation history guard for live and tombstoned receipts', async () => {
     const s = await seed();
-    const current = (await services[0].create(input(s.actor))).receipt;
+    const current = (
+      await services[0].create(input(s.actor), {
+        organizationId: input(s.actor).organizationId,
+        brandId: input(s.actor).brandId,
+        actorId: input(s.actor).actorId,
+      })
+    ).receipt;
     for (const tombstoned of [false, true]) {
       if (tombstoned)
         await services[0].softDelete(s.actor, current.id, {
@@ -1415,7 +1555,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
       `CREATE FUNCTION fixture_receipt_barrier() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."brandId"='${s.brand}' THEN PERFORM pg_advisory_xact_lock(${key}::bigint); END IF; RETURN NEW; END $$; CREATE TRIGGER fixture_receipt_barrier BEFORE INSERT ON branded_generation_receipts FOR EACH ROW EXECUTE FUNCTION fixture_receipt_barrier()`,
     );
     const barrier = await holdBarrier(key);
-    const creating = outcome(services[0].create(input(s.actor)));
+    const creating = outcome(
+      services[0].create(input(s.actor), {
+        organizationId: input(s.actor).organizationId,
+        brandId: input(s.actor).brandId,
+        actorId: input(s.actor).actorId,
+      }),
+    );
     let moving: ReturnType<typeof outcome> | undefined;
     try {
       await waitAdvisory(applicationNames[0], key);
@@ -1474,7 +1620,13 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     let creating: ReturnType<typeof outcome> | undefined;
     try {
       await waitAdvisory(applicationNames[0], key);
-      creating = outcome(services[1].create(input(s.actor)));
+      creating = outcome(
+        services[1].create(input(s.actor), {
+          organizationId: input(s.actor).organizationId,
+          brandId: input(s.actor).brandId,
+          actorId: input(s.actor).actorId,
+        }),
+      );
       await waitBlocked(applicationNames[1], applicationNames[0]);
     } finally {
       await barrier.release();

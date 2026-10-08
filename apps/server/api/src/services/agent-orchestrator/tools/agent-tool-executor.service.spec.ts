@@ -3,6 +3,7 @@ import {
   agentPostPreviewPopulate,
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   type CuratedActionName,
   getActionDefinition,
@@ -12,7 +13,6 @@ import {
   type ActionContractJsonSchema,
   compileActionContract,
 } from '@genfeedai/workflows/engine';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 
 vi.mock(
   '@api/collections/outreach-campaigns/services/outreach-campaigns.service',

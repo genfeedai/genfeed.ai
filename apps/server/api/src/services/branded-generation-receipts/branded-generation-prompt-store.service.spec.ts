@@ -8,6 +8,7 @@ import { BrandedGenerationPromptStoreService } from '@api/services/branded-gener
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
 import { encodeBrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { brandedGenerationInputV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandedGenerationInputV1,
@@ -16,7 +17,6 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import * as credentialCipher from '@libs/crypto/credential-cipher';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const actor = { organizationId: 'org', brandId: 'brand', actorId: 'user' };

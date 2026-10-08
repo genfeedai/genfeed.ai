@@ -9,6 +9,7 @@ import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-asse
 import type { IAgentGenerationGateway } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { RouterPriority } from '@genfeedai/contracts';
 import { LOWEST_COST_IMAGE_MODEL_KEY } from '@genfeedai/contracts/constants';
 import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
@@ -24,7 +25,6 @@ import {
 import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function approvedOnboardingRevision(version: number): IBrandOsRevision {

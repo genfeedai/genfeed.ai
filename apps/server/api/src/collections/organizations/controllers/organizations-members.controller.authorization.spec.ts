@@ -8,6 +8,7 @@ import { OrganizationsMembersController } from '@api/collections/organizations/c
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -16,7 +17,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import type { INestApplication } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 

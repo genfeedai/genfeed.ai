@@ -1,10 +1,10 @@
 import { AgentScopeContextService } from '@api/index';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   ConflictException,
   ForbiddenException,
   HttpException,
 } from '@nestjs/common';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 
 const THREAD_ID = 'thread-1';
 const ORGANIZATION_ID = 'org-1';

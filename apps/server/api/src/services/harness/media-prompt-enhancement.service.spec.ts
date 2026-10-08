@@ -8,10 +8,10 @@ import {
   PromptEnhancementResponseError,
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup(enabled = true) {
