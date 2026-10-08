@@ -8,7 +8,11 @@ import {
 } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { getActionDefinition } from '@genfeedai/actions';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
@@ -60,6 +64,34 @@ describe('AnalyticsSyncWorkflowService', () => {
       workflowQueue as never,
       workflowRunner as never,
       outliers as never,
+    );
+  });
+
+  it('retains Facebook video identity through discovery and the collection action', async () => {
+    posts.findAll.mockResolvedValue({
+      docs: [
+        {
+          id: 'post-video',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          externalId: 'video-1',
+          platform: CredentialPlatform.FACEBOOK,
+          category: PostCategory.VIDEO,
+        },
+      ],
+    });
+    const discovered = await service.discoverPosts('org-1', {
+      platforms: ['facebook'],
+    });
+    expect(discovered.posts[0]).toMatchObject({ isVideo: true });
+    providerCollection.collectFacebook.mockResolvedValue({ context: account });
+    await service.collectFacebook({ item: discovered.posts[0] });
+    expect(providerCollection.collectFacebook).toHaveBeenCalledWith(
+      expect.objectContaining({
+        posts: [
+          expect.objectContaining({ externalId: 'video-1', isVideo: true }),
+        ],
+      }),
     );
   });
 

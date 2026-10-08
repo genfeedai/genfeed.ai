@@ -13,8 +13,6 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
-const GRAPH_URL = 'https://graph.facebook.com';
-const GRAPH_API_VERSION = 'v22.0';
 const PAGE_SIZE = 50;
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 500;
@@ -273,7 +271,7 @@ export class InstagramOfficialProvider implements SourceTimelineProvider {
   ): Promise<InstagramGraphMediaPage> {
     const response = await firstValueFrom(
       this.httpService.get<InstagramGraphMediaPage>(
-        `${GRAPH_URL}/${GRAPH_API_VERSION}/${igUserId}/media`,
+        `${this.instagramService.getGraphApiBaseUrl()}/${igUserId}/media`,
         {
           params: {
             access_token: accessToken,

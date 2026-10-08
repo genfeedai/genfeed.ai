@@ -16,7 +16,7 @@ describe('FacebookService', () => {
   let service: FacebookService;
 
   const facebookConfig: Record<string, string> = {
-    FACEBOOK_API_VERSION: 'v18.0',
+    FACEBOOK_API_VERSION: 'v26.0',
     FACEBOOK_APP_ID: 'test-app-id',
     FACEBOOK_GRAPH_URL: 'https://graph.facebook.com',
     FACEBOOK_REDIRECT_URI: 'https://genfeed.ai/auth/facebook/callback',
@@ -90,17 +90,28 @@ describe('FacebookService', () => {
           comments: { summary: { total_count: 2 } },
           shares: { count: 3 },
           insights: {
-            data: [{ name: 'post_impressions', values: [{ value: 100 }] }],
+            data: [{ name: 'post_media_view', values: [{ value: 100 }] }],
           },
         },
       }),
     );
     const result = await service.getPostAnalytics('post', 'token');
+    expect(mockHttpService.get).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        params: expect.objectContaining({
+          fields: expect.stringContaining('insights.metric(post_media_view)'),
+        }),
+      }),
+    );
+    expect(result.reach).toBeUndefined();
+    expect(result.impressions).toBeUndefined();
+    expect(result.views).toBe(100);
     expect(result.learningMetrics?.metrics).toEqual({
-      impressions: {
+      views: {
         value: 100,
         availability: 'observed',
-        source: 'post_impressions',
+        source: 'post_media_view',
       },
       likes: {
         value: 0,
@@ -188,16 +199,107 @@ describe('FacebookService', () => {
     expect(service).toBeDefined();
   });
 
+  it('stores the Page post ID returned by a published photo for downstream analytics', async () => {
+    mockHttpService.post.mockReturnValue(
+      of({ data: { id: 'photo-1', post_id: 'page_post-1' } }),
+    );
+    expect(
+      await service.uploadImage(
+        'page',
+        'page-token',
+        'https://cdn.example/photo.jpg',
+        'caption',
+      ),
+    ).toBe('page_post-1');
+    mockHttpService.post.mockReturnValue(of({ data: { id: 'photo-1' } }));
+    await expect(
+      service.uploadImage(
+        'page',
+        'page-token',
+        'https://cdn.example/photo.jpg',
+        'caption',
+      ),
+    ).rejects.toThrow('Facebook photo post ID');
+  });
+
+  it('collects video insights on the Video node without requesting Page post metrics', async () => {
+    mockHttpService.get.mockReturnValue(
+      of({
+        data: {
+          id: 'video-1',
+          likes: { summary: { total_count: 4 } },
+          comments: { summary: { total_count: 2 } },
+          video_insights: {
+            data: [{ name: 'total_video_views', values: [{ value: 100 }] }],
+          },
+        },
+      }),
+    );
+    const result = await service.getPostAnalytics(
+      'video-1',
+      'page-token',
+      undefined,
+      true,
+    );
+    expect(mockHttpService.get).toHaveBeenCalledWith(
+      'https://graph.facebook.com/v26.0/video-1',
+      {
+        params: {
+          access_token: 'page-token',
+          fields:
+            'likes.summary(true),comments.summary(true),video_insights.metric(total_video_views)',
+        },
+      },
+    );
+    expect(result).toMatchObject({ views: 100, likes: 4, comments: 2 });
+    expect(result.learningMetrics?.metrics.views).toEqual({
+      value: 100,
+      availability: 'observed',
+      source: 'total_video_views',
+    });
+    expect(result.learningMetrics?.metrics.shares?.availability).toBe(
+      'unavailable',
+    );
+  });
+
+  it('publishes a video by URL using the supplied Page token without an invalid chunk transfer', async () => {
+    mockHttpService.post.mockReturnValue(of({ data: { id: 'video-1' } }));
+    expect(
+      await service.uploadVideo(
+        'page',
+        'page-token',
+        'https://cdn.example/video.mp4',
+        'title',
+        'caption',
+      ),
+    ).toBe('video-1');
+    expect(mockHttpService.post).toHaveBeenCalledOnce();
+    expect(mockHttpService.post).toHaveBeenCalledWith(
+      'https://graph.facebook.com/v26.0/page/videos',
+      null,
+      {
+        params: {
+          access_token: 'page-token',
+          file_url: 'https://cdn.example/video.mp4',
+          title: 'title',
+          description: 'caption',
+        },
+      },
+    );
+  });
+
   describe('generateAuthUrl', () => {
     it('should generate Facebook OAuth URL', () => {
       const state = 'test-state-123';
       const url = service.generateAuthUrl(state);
 
-      expect(url).toContain('https://www.facebook.com/v18.0/dialog/oauth');
+      expect(url).toContain('https://www.facebook.com/v26.0/dialog/oauth');
       expect(url).toContain('client_id=test-app-id');
       expect(url).toContain('state=test-state-123');
       expect(url).toContain('scope=');
       expect(url).toContain('pages_manage_posts');
+      expect(url).toContain('pages_manage_engagement');
+      expect(url).toContain('read_insights');
     });
 
     it('uses v26.0 when no API version is configured', () => {
@@ -331,7 +433,7 @@ describe('FacebookService', () => {
 
       expect(result).toEqual(['ads_management', 'ads_read']);
       expect(mockHttpService.get).toHaveBeenCalledWith(
-        'https://graph.facebook.com/v18.0/me/permissions',
+        'https://graph.facebook.com/v26.0/me/permissions',
         { params: { access_token: 'valid-token' } },
       );
     });

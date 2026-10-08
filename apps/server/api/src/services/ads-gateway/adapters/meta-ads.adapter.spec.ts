@@ -257,7 +257,7 @@ describe('MetaAdsAdapter', () => {
       const input = {
         dailyBudget: 10000,
         name: 'New Campaign',
-        objective: 'CONVERSIONS',
+        objective: 'OUTCOME_SALES',
         status: 'PAUSED',
       };
 
@@ -283,7 +283,7 @@ describe('MetaAdsAdapter', () => {
 
       await adapter.createCampaign(mockCtx, {
         name: 'New Campaign',
-        objective: 'CONVERSIONS',
+        objective: 'OUTCOME_SALES',
       } as never);
 
       expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
@@ -299,7 +299,7 @@ describe('MetaAdsAdapter', () => {
         await expect(
           adapter.createCampaign(mockCtx, {
             name: 'Activating Campaign',
-            objective: 'CONVERSIONS',
+            objective: 'OUTCOME_SALES',
             status,
           } as never),
         ).rejects.toBeInstanceOf(BadRequestException);
