@@ -51,6 +51,7 @@ export class KnowledgeRecordsService {
       select: { role: { select: { key: true } } },
       where: {
         organization: { isDeleted: false },
+        role: { isDeleted: false },
         isActive: true,
         isDeleted: false,
         organizationId: actor.organizationId,

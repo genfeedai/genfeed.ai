@@ -41,7 +41,9 @@ const FIXTURE_SQL = `
   CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
   CREATE TABLE users (id text PRIMARY KEY);
   CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
-  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
+  CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
+  INSERT INTO roles(id,key) VALUES ('owner','owner');
+  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner' REFERENCES roles(id), "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE folders (id text PRIMARY KEY, "userId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text, "parentId" text, label text NOT NULL, description text, "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TYPE "BookmarkCategory" AS ENUM ('INSTAGRAM', 'TIKTOK', 'TWEET', 'URL', 'YOUTUBE');
   CREATE TYPE "BookmarkPlatform" AS ENUM ('INSTAGRAM', 'TIKTOK', 'TWITTER', 'WEB', 'YOUTUBE');
@@ -136,7 +138,7 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
   it('migrates every convertible legacy row exactly once and quarantines the rest', async () => {
     const report = await service.run({
       organizationId: 'org-a',
-      userId: 'user-a',
+      userId: 'member-a',
     });
 
     expect(report).toMatchObject({
@@ -173,7 +175,7 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
       kind: KnowledgeSourceKind.URL,
       purpose: KnowledgeSourcePurpose.INSPIRATION,
       scope: KnowledgeMemoryScope.BRAND,
-      userId: 'owner-a',
+      userId: 'member-a',
     });
     const pricingVersion = pricing.versions[0];
     expect(pricingVersion).toMatchObject({
@@ -248,11 +250,13 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
     expect(enqueueIngest).toHaveBeenCalledTimes(4);
     expect(enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
+      initiatingActor: { organizationId: 'org-a', userId: 'member-a' },
       sourceId: video.id,
       versionId: video.versions[0]?.id,
     });
     expect(enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
+      initiatingActor: { organizationId: 'org-a', userId: 'member-a' },
       sourceId: thread.id,
       versionId: thread.versions[0]?.id,
     });
@@ -275,7 +279,7 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
   it('is idempotent across repeated and partial runs', async () => {
     const first = await service.run({
       organizationId: 'org-a',
-      userId: 'user-a',
+      userId: 'member-a',
     });
     const countAfterFirst = await prisma.knowledgeSource.count({
       where: { organizationId: 'org-a' },
@@ -288,7 +292,7 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
     });
     const second = await service.run({
       organizationId: 'org-a',
-      userId: 'user-a',
+      userId: 'member-a',
     });
 
     expect(second.bookmarks).toEqual({

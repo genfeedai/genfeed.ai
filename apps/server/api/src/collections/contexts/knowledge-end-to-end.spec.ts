@@ -69,7 +69,9 @@ const FIXTURE_SQL = `
   CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
   CREATE TABLE users (id text PRIMARY KEY);
   CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
-  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
+  CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
+  INSERT INTO roles(id,key) VALUES ('owner','owner');
+  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner' REFERENCES roles(id), "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE context_bases (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, "organizationId" text NOT NULL REFERENCES organizations(id), "createdById" text, "sourceBrandId" text, data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE context_entries (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, "contextBaseId" text NOT NULL REFERENCES context_bases(id), "organizationId" text NOT NULL REFERENCES organizations(id), data jsonb NOT NULL DEFAULT '{}', embedding vector(${CONTEXT_EMBEDDING_DIMENSION}), "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE data_backfills (id text PRIMARY KEY, "completedAt" timestamptz NOT NULL DEFAULT now(), report jsonb NOT NULL);
