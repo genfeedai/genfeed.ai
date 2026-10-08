@@ -35,9 +35,11 @@ import {
 } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
 import {
   isMergeableRecord,
+  MERGEABLE_AGENT_CONFIG_KEYS,
   mergeDefinedKeys,
   omitUndefinedFields,
 } from '@api/collections/brands/utils/brand-config-merge.util';
+import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/brand-identity-defaults.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import {
@@ -62,6 +64,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
+import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
@@ -88,28 +91,6 @@ export type {
   BrandRelocationResult,
   BrandRelocationSummary,
 } from '@api/collections/brands/services/brand-relocation.service';
-
-/**
- * `agentConfig` sub-objects that `updateAgentConfig` merges key-by-key instead
- * of replacing wholesale.
- *
- * These are partial-patch targets: the app's brand cards each own a slice of
- * `voice`/`strategy` and send only their own keys, and fields no UI surfaces at
- * all (`voice.taglines`, `voice.hashtags` — written during brand-kit extraction
- * and read back by `buildBrandContext`) would otherwise be dropped by the first
- * inline field save.
- *
- * `platformOverrides` is deliberately absent. It is an authoritative map, not a
- * patch target: the agent profile card rebuilds it from form state and omits
- * overrides the user cleared, so merging would resurrect deleted overrides.
- */
-const MERGEABLE_AGENT_CONFIG_KEYS: ReadonlySet<string> = new Set([
-  'autoPublish',
-  'prompting',
-  'schedule',
-  'strategy',
-  'voice',
-]);
 
 type BrandCreateInput = CreateBrandDto & {
   agentConfig?: UpdateBrandAgentConfigDto & Record<string, unknown>;
@@ -140,6 +121,7 @@ export class BrandsService extends BaseService<
     private readonly defaultRecurringContentService: DefaultRecurringContentService,
     private readonly skillsService: SkillsService,
     private readonly brandLifecycleService: BrandLifecycleService,
+    private readonly heygenIdentityService: HeyGenIdentityService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -156,12 +138,20 @@ export class BrandsService extends BaseService<
       throw new BadRequestException('Organization context is required');
     }
 
-    const agentConfig = await resolveCreateAgentConfig(
+    const resolvedAgentConfig = await resolveCreateAgentConfig(
       this.prisma,
       this.skillsService,
       resolvedOrganizationId,
       initialAgentConfig,
     );
+    const agentConfig = resolvedAgentConfig
+      ? await normalizeBrandIdentityDefaults(
+          resolvedAgentConfig,
+          resolvedOrganizationId,
+          this.heygenIdentityService,
+          false,
+        )
+      : undefined;
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
@@ -652,6 +642,13 @@ export class BrandsService extends BaseService<
       return null;
     }
 
+    const normalizedConfig = await normalizeBrandIdentityDefaults(
+      agentConfig,
+      orgId,
+      this.heygenIdentityService,
+      true,
+    );
+
     const storedConfig = (existing as Record<string, unknown>).agentConfig;
     const currentConfig = isMergeableRecord(storedConfig) ? storedConfig : {};
     const updatedConfig = { ...currentConfig };
@@ -665,7 +662,7 @@ export class BrandsService extends BaseService<
         ),
     );
 
-    for (const [key, value] of Object.entries(agentConfig)) {
+    for (const [key, value] of Object.entries(normalizedConfig)) {
       if (value === undefined) {
         continue;
       }

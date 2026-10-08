@@ -1,3 +1,5 @@
+import type { HeyGenAvatarCandidate } from '@api/services/integrations/heygen/heygen-identity.types';
+import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import type { Task } from '@genfeedai/prisma';
 
 export type { Task } from '@genfeedai/prisma';
@@ -93,6 +95,8 @@ export interface TaskDocument
   failureReason?: string;
   identifier: string | null;
   heygenAvatarId?: string;
+  avatarRef?: HeyGenAvatarCandidate;
+  voiceRef?: DefaultVoiceRef;
   linkedApprovalIds: string[];
   linkedEntities: Array<{
     entityId: string;

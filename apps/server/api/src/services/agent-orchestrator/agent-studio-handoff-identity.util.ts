@@ -1,9 +1,13 @@
 import type {
   AgentStudioHandoffPayload,
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
   StudioGenerateType,
 } from '@genfeedai/contracts/interfaces';
 
 export interface StudioHandoffIdentityFields {
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarPhotoUrl?: string;
   voiceId?: string;
 }
@@ -51,6 +55,8 @@ export function omitUnattachedStudioHandoffIdentity(
   payload: AgentStudioHandoffPayload,
 ): AgentStudioHandoffPayload {
   const {
+    avatarRef: _avatarRef,
+    voiceRef: _voiceRef,
     avatarPhotoUrl: _avatarPhotoUrl,
     useIdentity: _useIdentity,
     voiceId: _voiceId,

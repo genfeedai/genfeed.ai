@@ -1,3 +1,4 @@
+import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 /**
  * ClipProjectsCoreModule
  *
@@ -68,6 +69,7 @@ import { Module } from '@nestjs/common';
     HttpModule,
     MetadataModule,
     AvatarVideoModule,
+    HeyGenModule,
     OpenRouterModule,
     PublicClipToolStoreModule,
     FileQueueModule,

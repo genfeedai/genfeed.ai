@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 'use client';
 
+import { VoiceProvider } from '@genfeedai/contracts';
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
@@ -18,6 +20,61 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import WorkspacePageContent from './workspace-page';
+
+const facecamAvatarRef: HeyGenAvatarRef = {
+  version: 1,
+  source: 'heygen-look',
+  provider: 'heygen',
+  lookId: 'avatar-42',
+  label: 'Default Avatar',
+  ownership: 'public',
+  groupId: null,
+  preview: null,
+  avatarType: 'avatar',
+  supportedEngines: ['AvatarIV'],
+  readiness: {
+    usable: true,
+    reason: null,
+    lookStatus: 'completed',
+    groupStatus: null,
+    consentStatus: null,
+  },
+  connection: { provider: 'heygen', kind: 'platform', organizationId: 'org-1' },
+};
+const facecamVoiceRef = {
+  source: 'catalog' as const,
+  provider: VoiceProvider.HEYGEN,
+  externalVoiceId: 'voice-99',
+  label: 'Default Voice',
+  preview: null,
+  ownership: 'public' as const,
+  connection: facecamAvatarRef.connection,
+};
+vi.mock('@hooks/data/integrations/use-heygen-catalog', () => ({
+  useHeyGenCatalog: () => ({
+    avatars: [
+      {
+        avatarId: 'avatar-42',
+        name: 'Default Avatar',
+        preview: '',
+        index: 0,
+        avatarRef: facecamAvatarRef,
+      },
+    ],
+    voices: [
+      {
+        voiceId: 'voice-99',
+        name: 'Default Voice',
+        preview: '',
+        index: 0,
+        ownership: 'public',
+        connection: facecamAvatarRef.connection,
+      },
+    ],
+    isLoading: false,
+    error: null,
+  }),
+}));
 
 vi.mock('@hooks/data/tasks/use-workspace-inbox-read', async () => {
   const { isUnreadWorkspaceInboxTask } = await import(
@@ -99,8 +156,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     organizationId: 'org-1',
     selectedBrand: {
       agentConfig: {
-        heygenAvatarId: 'avatar-42',
-        heygenVoiceId: 'voice-99',
+        defaultAvatarRef: facecamAvatarRef,
+        defaultVoiceRef: facecamVoiceRef,
       },
       id: 'brand-1',
       label: 'Moonrise Studio',
@@ -479,48 +536,7 @@ describe('WorkspacePageContent', () => {
     });
   });
 
-  it('includes heygenAvatarId/heygenVoiceId when the Facecam preset is selected', async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation((url: RequestInfo | URL) => {
-        const href = typeof url === 'string' ? url : url.toString();
-        if (href.endsWith('/heygen/avatars')) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                data: {
-                  attributes: {
-                    avatars: [
-                      {
-                        avatarId: 'avatar-42',
-                        name: 'Default Avatar',
-                        preview: null,
-                      },
-                    ],
-                  },
-                },
-              }),
-              { status: 200 },
-            ),
-          );
-        }
-        if (href.endsWith('/heygen/voices')) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                data: {
-                  attributes: {
-                    voices: [{ voiceId: 'voice-99', name: 'Default Voice' }],
-                  },
-                },
-              }),
-              { status: 200 },
-            ),
-          );
-        }
-        return Promise.resolve(new Response('{}', { status: 200 }));
-      });
-
+  it('includes saved native avatar and voice references when the Facecam preset is selected', async () => {
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {
@@ -541,27 +557,19 @@ describe('WorkspacePageContent', () => {
     // Select Facecam preset (uppercase label inside the toolbar button)
     fireEvent.click(screen.getByRole('button', { name: /^facecam$/i }));
 
-    // Wait for the picker fetch to populate
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled();
-    });
-
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 
     await waitFor(() => {
       expect(createTaskMock).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId: 'brand-1',
-          heygenAvatarId: 'avatar-42',
+          avatarRef: facecamAvatarRef,
           outputType: 'facecam',
           request: 'Hello from Genfeed, this is a facecam test.',
-          voiceId: 'voice-99',
-          voiceProvider: 'heygen',
+          voiceRef: facecamVoiceRef,
         }),
       );
     });
-
-    fetchMock.mockRestore();
   });
 
   it('opens the canonical planning conversation from the task inspector', async () => {

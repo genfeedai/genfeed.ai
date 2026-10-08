@@ -545,6 +545,10 @@ describe('useStudioGeneration avatar submits', () => {
       photoUrl: 'https://cdn.genfeed.test/portrait.png',
       text: 'Hello from Genfeed',
       voiceId: 'voice-1',
+      voiceRef: undefined,
+      voiceProvider: undefined,
+      avatarRef: undefined,
+      useIdentity: true,
     });
     expect(mockHeyGenGenerate.mock.calls[0]?.[0]).not.toHaveProperty(
       'avatarId',
@@ -577,7 +581,7 @@ describe('useStudioGeneration avatar submits', () => {
     expect(mockIngredientsFindOne).not.toHaveBeenCalled();
   });
 
-  it('refuses to submit without a chosen portrait', async () => {
+  it('lets the server resolve saved avatar defaults', async () => {
     const { result } = renderStudioGeneration({
       settings: { ...avatarSettings, avatarPhotoUrl: undefined },
       type: 'avatar',
@@ -587,9 +591,8 @@ describe('useStudioGeneration avatar submits', () => {
       await result.current.submit('Hello from Genfeed');
     });
 
-    expect(mockHeyGenGenerate).not.toHaveBeenCalled();
-    expect(mockNotificationsError).toHaveBeenCalledWith(
-      'Pick an avatar before generating',
+    expect(mockHeyGenGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ useIdentity: true, photoUrl: undefined }),
     );
   });
 });

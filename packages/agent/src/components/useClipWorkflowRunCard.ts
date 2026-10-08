@@ -47,6 +47,8 @@ function buildClipIdentityInputValues(
 
   return {
     avatarId: identity.avatarId,
+    avatarRef: identity.avatarRef,
+    voiceRef: identity.voiceRef,
     avatarProvider: identity.avatarProvider,
     heygenAvatarId:
       (identity.avatarProvider ?? 'heygen') === 'heygen'

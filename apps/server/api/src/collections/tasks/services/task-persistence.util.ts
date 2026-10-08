@@ -78,6 +78,8 @@ export const TASK_CONFIG_FIELDS = [
   'elevenlabsVoiceId',
   'executionPathUsed',
   'heygenAvatarId',
+  'avatarRef',
+  'voiceRef',
   'linkedApprovalIds',
   'linkedEntities',
   'linkedIssueId',

@@ -323,6 +323,7 @@ describe('OrganizationIdentityDefaultsCard', () => {
     await waitFor(() => {
       expect(mocks.patchSettings).toHaveBeenCalledWith('org-1', {
         defaultAvatarIngredientId: 'avatar-2',
+        defaultAvatarRef: null,
         defaultVoiceId: 'voice-2',
         defaultVoiceProvider: 'openai',
         defaultVoiceRef: { id: 'voice-2', provider: 'openai' },
@@ -348,6 +349,7 @@ describe('OrganizationIdentityDefaultsCard', () => {
     await waitFor(() => {
       expect(mocks.patchSettings).toHaveBeenCalledWith('org-1', {
         defaultAvatarIngredientId: null,
+        defaultAvatarRef: null,
         defaultVoiceId: null,
         defaultVoiceProvider: null,
         defaultVoiceRef: null,
@@ -402,4 +404,9 @@ describe('OrganizationIdentityDefaultsCard', () => {
       );
     });
   });
+});
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
 });

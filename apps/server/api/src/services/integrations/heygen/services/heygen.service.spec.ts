@@ -43,7 +43,10 @@ describe('HeyGenService', () => {
         HeyGenService,
         {
           provide: ByokService,
-          useValue: { resolveApiKey: vi.fn().mockResolvedValue(null) },
+          useValue: {
+            resolveApiKey: vi.fn().mockResolvedValue(null),
+            lookupApiKeyWithIdentity: vi.fn().mockResolvedValue(null),
+          },
         },
         { provide: LoggerService, useValue: loggerMock },
         { provide: ApiKeyHelperService, useValue: apiKeyHelperMock },
@@ -86,7 +89,13 @@ describe('HeyGenService', () => {
 
     const res = await service.getVoices();
     expect(res).toEqual([
-      { index: 0, name: 'n', preview: 'p', voiceId: 'voice-id' },
+      expect.objectContaining({
+        index: 0,
+        name: 'n',
+        preview: 'p',
+        voiceId: 'voice-id',
+        ownership: 'public',
+      }),
     ]);
     expect(httpServiceMock.get).toHaveBeenCalled();
   });
@@ -105,7 +114,12 @@ describe('HeyGenService', () => {
 
     const res = await service.getAvatars();
     expect(res).toEqual([
-      { avatarId: 'look-id', index: 0, name: 'n', preview: 'p' },
+      expect.objectContaining({
+        avatarId: 'look-id',
+        index: 0,
+        name: 'n',
+        preview: 'p',
+      }),
     ]);
     expect(httpServiceMock.get).toHaveBeenCalled();
   });

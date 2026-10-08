@@ -1,4 +1,5 @@
 import type { AgentAutonomyMode } from '@genfeedai/contracts';
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import type { OrganizationSetting as PrismaOrganizationSetting } from '@genfeedai/prisma';
 
 export interface AgentPolicyCreditGovernance {
@@ -20,8 +21,12 @@ export interface AgentPolicyConfig {
 }
 
 export interface OrganizationSettingDocument
-  extends Omit<PrismaOrganizationSetting, 'agentPolicy' | 'defaultVoiceRef'> {
+  extends Omit<
+    PrismaOrganizationSetting,
+    'agentPolicy' | 'defaultVoiceRef' | 'defaultAvatarRef'
+  > {
   agentPolicy?: AgentPolicyConfig;
+  defaultAvatarRef?: HeyGenAvatarRef | null;
   defaultAvatarIngredientId: string | null;
   defaultAvatarPhotoUrl: string | null;
   defaultModel: string | null;

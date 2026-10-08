@@ -165,6 +165,8 @@ export class ClipProjectIngestionService {
         addCaptions: true,
         aspectRatio: '9:16',
         avatarId: identity?.avatarId,
+        ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+        ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
         avatarProvider: provider,
         captionStyle: 'default',
         flow: 'quick',
@@ -195,6 +197,8 @@ export class ClipProjectIngestionService {
         );
         return await this.clipFactoryWorkflowQueue.enqueue({
           avatarId: identity?.avatarId,
+          ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+          ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
           avatarProvider: provider,
           language: dto.language ?? 'en',
           maxClips: estimatedClips,
@@ -694,6 +698,8 @@ export class ClipProjectIngestionService {
         );
         return await this.clipFactoryWorkflowQueue.enqueue({
           avatarId: identity?.avatarId,
+          ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+          ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
           avatarProvider: provider,
           language: settings.language ?? project.language ?? 'en',
           maxClips: estimatedClips,

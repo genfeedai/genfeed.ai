@@ -155,7 +155,7 @@ describe('resolveEffectiveBrandAgentConfig', () => {
     });
 
     expect(result.identityDefaults.effective).toMatchObject({
-      defaultAvatarIngredientId: testId('id', 1),
+      defaultAvatarIngredientId: undefined,
       defaultAvatarPhotoUrl: 'https://cdn.example.com/brand-avatar.png',
       defaultVoiceId: testId('id', 2),
     });

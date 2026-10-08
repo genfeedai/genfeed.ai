@@ -32,6 +32,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly assetLabel: Ingredient['assetLabel'];
   declare readonly generationSource: Ingredient['generationSource'];
   declare readonly generationBilling: Ingredient['generationBilling'];
+  declare readonly generationProvider: Ingredient['generationProvider'];
   declare readonly campaign: Ingredient['campaign'];
   declare readonly campaignWeek: Ingredient['campaignWeek'];
   declare readonly modelUsed: Ingredient['modelUsed'];

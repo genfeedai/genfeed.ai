@@ -53,7 +53,12 @@ export function buildStudioSettingsPatchFromHandoff(
   if (payload.resolution) {
     patch.resolution = payload.resolution;
   }
-  if (payload.avatarPhotoUrl) {
+  if (payload.avatarRef) {
+    patch.avatarRef = payload.avatarRef;
+    patch.avatarPhotoUrl = undefined;
+  }
+  if (payload.voiceRef) patch.voiceRef = payload.voiceRef;
+  if (payload.avatarPhotoUrl && !payload.avatarRef) {
     patch.avatarPhotoUrl = payload.avatarPhotoUrl;
   }
   if (payload.voiceId) {
@@ -204,7 +209,11 @@ export function resolveHandoffIdentityNotice(
   }
 
   const omitted: string[] = [];
-  if (payload.type !== 'voice' && !payload.avatarPhotoUrl) {
+  if (
+    payload.type !== 'voice' &&
+    !payload.avatarPhotoUrl &&
+    !payload.avatarRef
+  ) {
     omitted.push('avatar');
   }
   if (!payload.voiceId) {

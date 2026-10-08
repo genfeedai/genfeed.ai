@@ -41,7 +41,7 @@ export function OptionSelect({
   ariaLabel: string;
   isDisabled?: boolean;
   onChange: (value: string | undefined) => void;
-  options: ReadonlyArray<{ label: string; value: string }>;
+  options: ReadonlyArray<{ label: string; value: string; disabled?: boolean }>;
   placeholder: string;
   value: string | undefined;
 }): ReactElement {
@@ -60,7 +60,11 @@ export function OptionSelect({
       <SelectContent>
         <SelectItem value={NONE_VALUE}>{placeholder}</SelectItem>
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            disabled={option.disabled}
+          >
             {option.label}
           </SelectItem>
         ))}

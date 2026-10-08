@@ -592,15 +592,8 @@ export function useStudioGeneration({
         return false;
       }
 
-      if (
-        (type === 'avatar' && !settings.avatarPhotoUrl) ||
-        ((type === 'voice' || type === 'avatar') && !settings.voiceId)
-      ) {
-        notificationsService.error(
-          type === 'avatar' && !settings.avatarPhotoUrl
-            ? 'Pick an avatar before generating'
-            : 'Pick a voice before generating',
-        );
+      if (type === 'voice' && !settings.voiceId) {
+        notificationsService.error('Pick a voice before generating');
         return false;
       }
 
@@ -912,16 +905,17 @@ export function useStudioGeneration({
           }
 
           case 'avatar': {
-            if (!settings.avatarPhotoUrl) {
-              notificationsService.error('Pick an avatar before generating');
-              break;
-            }
-
             const service = await getHeyGenService();
             // `avatarId` on this endpoint means a HeyGen catalog id. Genfeed
             // portraits are our own ingredients, so they travel as `photoUrl`.
             const data = await service.generate({
-              photoUrl: settings.avatarPhotoUrl,
+              photoUrl: settings.avatarRef
+                ? undefined
+                : settings.avatarPhotoUrl,
+              avatarRef: settings.avatarRef,
+              useIdentity: true,
+              voiceRef: settings.voiceRef,
+              voiceProvider: settings.voiceRef?.provider,
               text: promptData.speech?.trim() || promptData.text?.trim() || '',
               voiceId: settings.voiceId,
             });

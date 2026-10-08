@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
+import { VoiceProvider } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -11,8 +12,14 @@ import {
   type DefaultVoiceRef,
   matchesDefaultVoice,
 } from '@helpers/voice/default-voice-ref.helper';
+import {
+  heyGenAvatarValue,
+  heyGenDefaultVoice,
+  heyGenVoiceValue,
+} from '@helpers/voice/heygen-identity.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
+import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
@@ -24,6 +31,7 @@ import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import BrandIdentityActions from './BrandIdentityActions';
 import BrandIdentityAvatarField from './BrandIdentityAvatarField';
@@ -38,6 +46,7 @@ export default function BrandDetailIdentityCard({
   brandId,
   onRefreshBrand,
 }: BrandDetailIdentityCardProps) {
+  const translate = useTranslations('pages.identityDefaults');
   const router = useRouter();
   const { orgSlug, orgHref } = useOrgUrl();
   const ownerOrgSlug = getBrandOrganizationSlug(brand) || orgSlug;
@@ -58,6 +67,7 @@ export default function BrandDetailIdentityCard({
     BrandsService.getInstance(token),
   );
 
+  const heygen = useHeyGenCatalog();
   const brandDefaultVoiceRef = brand.agentConfig?.defaultVoiceRef as
     | DefaultVoiceRef
     | null
@@ -73,8 +83,15 @@ export default function BrandDetailIdentityCard({
   const [isSavingIdentity, setIsSavingIdentity] = useState(false);
 
   useEffect(() => {
-    setSelectedAvatarId(brand.agentConfig?.defaultAvatarIngredientId ?? '');
-  }, [brand.agentConfig?.defaultAvatarIngredientId]);
+    setSelectedAvatarId(
+      brand.agentConfig?.defaultAvatarRef
+        ? heyGenAvatarValue(brand.agentConfig.defaultAvatarRef)
+        : (brand.agentConfig?.defaultAvatarIngredientId ?? ''),
+    );
+  }, [
+    brand.agentConfig?.defaultAvatarIngredientId,
+    brand.agentConfig?.defaultAvatarRef,
+  ]);
 
   useEffect(() => {
     const selectedVoice =
@@ -89,17 +106,29 @@ export default function BrandDetailIdentityCard({
       ) ?? null;
 
     setSelectedVoiceId(
-      selectedVoice?.id ?? brand.agentConfig?.defaultVoiceId ?? '',
+      brandDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
+        brandDefaultVoiceRef.externalVoiceId &&
+        brandDefaultVoiceRef.ownership
+        ? heyGenVoiceValue({
+            ownership: brandDefaultVoiceRef.ownership,
+            voiceId: brandDefaultVoiceRef.externalVoiceId,
+          })
+        : (selectedVoice?.id ?? brand.agentConfig?.defaultVoiceId ?? ''),
     );
   }, [brand.agentConfig?.defaultVoiceId, brandDefaultVoiceRef, catalog]);
 
   const catalogOptions = useMemo(
-    () =>
-      catalog.map((voice) => ({
+    () => [
+      ...catalog.map((voice) => ({
         label: `${getVoiceName(voice)} (${voice.provider})`,
         value: voice.id,
       })),
-    [catalog],
+      ...heygen.voices.map((voice) => ({
+        label: `${voice.name} (HeyGen · ${voice.ownership})`,
+        value: heyGenVoiceValue(voice),
+      })),
+    ],
+    [catalog, heygen.voices],
   );
 
   const selectedVoice = useMemo(
@@ -183,6 +212,9 @@ export default function BrandDetailIdentityCard({
   );
 
   const currentAvatarSummary = useMemo(() => {
+    const native =
+      brand.agentConfig?.defaultAvatarRef ?? orgSettings?.defaultAvatarRef;
+    if (native) return `${native.label} (HeyGen · ${native.ownership})`;
     const currentAvatar =
       avatars.find(
         (avatar) =>
@@ -203,6 +235,8 @@ export default function BrandDetailIdentityCard({
     avatars,
     brand.agentConfig?.defaultAvatarIngredientId,
     orgSettings?.defaultAvatarIngredientId,
+    brand.agentConfig?.defaultAvatarRef,
+    orgSettings?.defaultAvatarRef,
   ]);
 
   const isUsingOrgFallback = useMemo(
@@ -229,11 +263,24 @@ export default function BrandDetailIdentityCard({
           ? (catalog.find((voice) => voice.id === selectedVoiceId) ?? null)
           : null;
 
+      const native = heygen.avatars.find(
+        (avatar) => heyGenAvatarValue(avatar.avatarRef) === selectedAvatarId,
+      )?.avatarRef;
+      if (selectedAvatarId.startsWith('heygen:') && !native?.readiness.usable)
+        throw new Error('Reselect an available HeyGen look.');
+      const providerVoice = heygen.voices.find(
+        (voice) => heyGenVoiceValue(voice) === selectedVoiceId,
+      );
+      if (selectedVoiceId.startsWith('heygen:') && !providerVoice)
+        throw new Error('Reselect an available HeyGen voice.');
       const service = await getBrandsService();
       await service.updateAgentConfig(brandId, {
-        defaultAvatarIngredientId: selectedAvatarId || null,
-        defaultVoiceId: selectedVoice?.id ?? null,
-        defaultVoiceRef: buildDefaultVoiceRefFromVoice(selectedVoice),
+        defaultAvatarRef: native ?? null,
+        defaultAvatarIngredientId: native ? null : selectedAvatarId || null,
+        defaultVoiceId: providerVoice ? null : (selectedVoice?.id ?? null),
+        defaultVoiceRef: providerVoice
+          ? heyGenDefaultVoice(providerVoice)
+          : buildDefaultVoiceRefFromVoice(selectedVoice),
       });
       await refreshBrands();
       await onRefreshBrand();
@@ -248,6 +295,8 @@ export default function BrandDetailIdentityCard({
     brandId,
     catalog,
     getBrandsService,
+    heygen.avatars,
+    heygen.voices,
     notifications,
     onRefreshBrand,
     refreshBrands,
@@ -264,18 +313,36 @@ export default function BrandDetailIdentityCard({
   return (
     <Card
       data-testid="brand-identity-card"
-      label="Brand identity"
-      description="Avatar and speaking voice (TTS) defaults. Empty values inherit organization defaults. Writing tone lives under Brand voice."
+      label={translate('brandLabel')}
+      description={translate('brandDescription')}
     >
       <div className="flex flex-col gap-3">
         <BrandIdentityAvatarField
           avatars={avatars}
+          providerAvatars={heygen.avatars}
           selectedAvatarId={selectedAvatarId}
           selectedAvatar={selectedAvatar}
           isLoadingAvatars={isLoadingAvatars}
           onAvatarChange={setSelectedAvatarId}
         />
 
+        {heygen.error ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            {heygen.error}
+          </p>
+        ) : null}
+        {brand.agentConfig?.heygenAvatarId &&
+        !brand.agentConfig.defaultAvatarRef ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            {translate('reselectAvatar')}
+          </p>
+        ) : null}
+        {brandDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
+        !brandDefaultVoiceRef.connection ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            {translate('reselectVoice')}
+          </p>
+        ) : null}
         <BrandIdentityVoiceField
           catalogOptions={catalogOptions}
           selectedVoiceId={selectedVoiceId}

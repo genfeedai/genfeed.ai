@@ -1,4 +1,5 @@
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import type { Brand as PrismaBrand } from '@genfeedai/prisma';
 
 export type { Brand as PrismaBrand } from '@genfeedai/prisma';
@@ -76,6 +77,7 @@ export interface BrandAgentPlatformOverride {
 export interface BrandAgentConfig {
   autoPublish?: BrandAgentAutoPublish;
   defaultAvatarIngredientId?: string;
+  defaultAvatarRef?: HeyGenAvatarRef | null;
   defaultAvatarPhotoUrl?: string;
   defaultModel?: string;
   defaultVoiceId?: string;

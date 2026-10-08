@@ -1,8 +1,15 @@
+import type {
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
+} from '@genfeedai/contracts/interfaces';
 export interface FacecamOption {
   id: string;
   label: string;
   preview?: string;
   provider?: string;
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
+  disabled?: boolean;
 }
 
 export interface WorkspaceTaskFacecamPanelProps {

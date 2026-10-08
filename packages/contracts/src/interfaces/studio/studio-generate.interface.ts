@@ -8,7 +8,9 @@ import type {
 import type { ImageEditSize } from '../../constants/image-edit-models.constant';
 import type { AgentGenerationQuoteUnavailableReason } from '../ai/agent-generation-quote.interface';
 import type { IBaseEntity, IIngredient, IQueryParams } from '../index';
+import type { HeyGenAvatarRef } from '../integrations/heygen.interface';
 import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
+import type { IBrandAgentConfig } from '../organization/brand.interface';
 import type { ImageEditingRecipe } from './image-editing.interface';
 
 export type StudioLookAssetType = 'image' | 'video';
@@ -175,6 +177,8 @@ export interface StudioGenerateSettings {
   aspectRatio: string;
   /** Public URL of the chosen portrait, posted as `photoUrl`. */
   avatarPhotoUrl?: string;
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   blacklist: string[];
   brandingMode: 'brand' | 'off';
   camera?: string;

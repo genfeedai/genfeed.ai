@@ -6,8 +6,18 @@ import { UpdateOrganizationSettingDto } from '@api/collections/organization-sett
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heygen.tokens';
+import {
+  heyGenAvatarCandidateSchema,
+  savedVoiceRefSchema,
+} from '@api/services/integrations/heygen/heygen-identity.schema';
+import type { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type {
+  PopulateInput,
+  PrismaUpdate,
+} from '@api/shared/services/base/base-query-normalization.adapter';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
@@ -26,7 +36,8 @@ import {
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
@@ -44,6 +55,52 @@ export class OrganizationSettingsService extends BaseService<
     private readonly configService: ConfigService,
   ) {
     super(prisma, 'organizationSetting', logger);
+  }
+
+  async patch(
+    id: string,
+    updateDto: Partial<UpdateOrganizationSettingDto> | PrismaUpdate,
+    populate: PopulateInput = [],
+  ): Promise<OrganizationSettingDocument> {
+    const data: PrismaUpdate = { ...updateDto };
+    if (data.defaultAvatarRef || data.defaultVoiceRef) {
+      const organizationId = getTenantContext()?.organizationId;
+      const existing = await this.findOne({
+        id,
+        ...(organizationId ? { organizationId } : {}),
+      });
+      if (!existing) throw new NotFoundException('Organization settings', id);
+      const identities = this.moduleRef.get<HeyGenIdentityService>(
+        HEYGEN_IDENTITY_SERVICE,
+        {
+          strict: false,
+        },
+      );
+      if (data.defaultAvatarRef) {
+        const candidate = data.defaultAvatarRef;
+        const parsed = heyGenAvatarCandidateSchema.safeParse(candidate);
+        if (!parsed.success)
+          throw new BadRequestException('Invalid avatar reference');
+        data.defaultAvatarRef = await identities.avatarDefault(
+          parsed.data,
+          existing.organizationId,
+        );
+        data.defaultAvatarPhotoUrl = null;
+        data.defaultAvatarIngredientId = null;
+      }
+      if (data.defaultVoiceRef) {
+        const voice = data.defaultVoiceRef;
+        const parsed = savedVoiceRefSchema.safeParse(voice);
+        if (!parsed.success)
+          throw new BadRequestException('Invalid voice reference');
+        data.defaultVoiceRef = await identities.voiceDefault(
+          parsed.data,
+          existing.organizationId,
+        );
+      }
+    } else if (data.defaultAvatarPhotoUrl || data.defaultAvatarIngredientId)
+      data.defaultAvatarRef = null;
+    return super.patch(id, data, populate);
   }
 
   private getModelsService(): ModelsService {
@@ -84,7 +141,32 @@ export class OrganizationSettingsService extends BaseService<
       >['create']
     >[1],
   ): Promise<OrganizationSettingDocument> {
-    return super.create(createDto, populate ?? []);
+    const data: PrismaUpdate = { ...createDto };
+    if (createDto.defaultAvatarRef || createDto.defaultVoiceRef) {
+      const identities = this.moduleRef.get<HeyGenIdentityService>(
+        HEYGEN_IDENTITY_SERVICE,
+        {
+          strict: false,
+        },
+      );
+      if (createDto.defaultAvatarRef) {
+        data.defaultAvatarRef = await identities.avatarDefault(
+          createDto.defaultAvatarRef,
+          createDto.organizationId,
+        );
+        data.defaultAvatarPhotoUrl = null;
+        data.defaultAvatarIngredientId = null;
+      }
+      if (createDto.defaultVoiceRef)
+        data.defaultVoiceRef = await identities.voiceDefault(
+          createDto.defaultVoiceRef,
+          createDto.organizationId,
+        );
+    }
+    return super.create(
+      data as unknown as CreateOrganizationSettingDto,
+      populate ?? [],
+    );
   }
 
   /**

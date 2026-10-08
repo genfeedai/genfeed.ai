@@ -181,6 +181,10 @@ describe('BrandsService', () => {
       defaultRecurringContentService as unknown as DefaultRecurringContentService,
       skillsService as unknown as SkillsService,
       brandLifecycleService as unknown as BrandLifecycleService,
+      {
+        avatarDefault: vi.fn(),
+        voiceDefault: vi.fn(async (ref) => ref),
+      } as never,
     );
   });
 

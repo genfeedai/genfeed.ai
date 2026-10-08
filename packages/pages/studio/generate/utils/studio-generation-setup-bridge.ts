@@ -79,6 +79,8 @@ export const STUDIO_RESIDUAL_SETTINGS_KEYS = [
   'editSeed',
   'editPrimaryId',
   'avatarPhotoUrl',
+  'avatarRef',
+  'voiceRef',
   'crunControls',
   'blacklist',
   'folder',

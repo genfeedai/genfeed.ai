@@ -165,6 +165,8 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
     const { data, highlights } = highlighted;
     return {
       avatarId: data.avatarId,
+      avatarRef: data.avatarRef,
+      voiceRef: data.voiceRef,
       highlights,
       mode: data.mode ?? DEFAULT_CLIP_RESULT_MODE,
       orgId: data.orgId,

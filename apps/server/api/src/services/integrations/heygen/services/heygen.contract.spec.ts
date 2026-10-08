@@ -13,7 +13,7 @@ import { of, throwError } from 'rxjs';
 describe('HeyGen v3 contracts', () => {
   let service: HeyGenService;
   const http = { get: vi.fn(), post: vi.fn() };
-  const byok = { resolveApiKey: vi.fn() };
+  const byok = { resolveApiKey: vi.fn(), lookupApiKeyWithIdentity: vi.fn() };
   const keys = { getApiKey: vi.fn() };
   const logger = { error: vi.fn(), log: vi.fn() };
   const accepted = () =>
@@ -23,6 +23,7 @@ describe('HeyGen v3 contracts', () => {
     vi.resetAllMocks();
     keys.getApiKey.mockReturnValue('platform-key');
     byok.resolveApiKey.mockResolvedValue(null);
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(null);
     http.post.mockReturnValue(accepted());
     const module = await Test.createTestingModule({
       providers: [
@@ -162,90 +163,180 @@ describe('HeyGen v3 contracts', () => {
     expect(http.post).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches every catalog page using the owning organization key and real look ids', async () => {
-    byok.resolveApiKey.mockResolvedValue({ apiKey: 'tenant-key' });
-    http.get.mockReturnValueOnce(
-      of({
-        status: 200,
-        data: {
-          data: [
-            {
-              id: 'look1',
-              name: 'First',
-              preview_image_url: 'https://cdn/one.jpg',
-            },
-          ],
-          has_more: true,
-          next_token: 'cursor/2',
-        },
-      }),
-    );
-    http.get.mockReturnValueOnce(
-      of({
-        status: 200,
-        data: {
-          data: [{ id: 'look2', name: 'Second', preview_image_url: null }],
-          has_more: false,
-          next_token: null,
-        },
-      }),
-    );
-    await expect(service.getAvatars('org')).resolves.toEqual([
-      {
-        avatarId: 'look1',
-        name: 'First',
-        index: 0,
-        preview: 'https://cdn/one.jpg',
-      },
-      { avatarId: 'look2', name: 'Second', index: 1, preview: '' },
+  const page = (data: unknown[], next_token: string | null = null) =>
+    of({
+      status: 200,
+      data: { data, has_more: next_token !== null, next_token },
+    });
+  const look = (patch: Record<string, unknown> = {}) => ({
+    id: 'look',
+    name: 'Saved look',
+    avatar_type: 'digital_twin',
+    group_id: null,
+    supported_api_engines: ['avatar_iv'],
+    status: 'completed',
+    preview_image_url: 'https://cdn/preview.jpg',
+    ...patch,
+  });
+  const credential = { apiKey: 'tenant-key', credentialId: 'version-2' };
+
+  it('paginates public presets with the platform key and preserves renderable look ids', async () => {
+    http.get
+      .mockReturnValueOnce(page([look({ id: 'look1' })], 'cursor/2'))
+      .mockReturnValueOnce(page([look({ id: 'look2' })]));
+    const avatars = await service.getAvatars('org');
+    expect(avatars.map((avatar) => avatar.avatarId)).toEqual([
+      'look1',
+      'look2',
     ]);
-    expect(byok.resolveApiKey).toHaveBeenCalledWith('org', 'heygen');
-    expect(keys.getApiKey).not.toHaveBeenCalled();
+    expect(avatars[0].avatarRef).toMatchObject({
+      source: 'heygen-look',
+      lookId: 'look1',
+      ownership: 'public',
+      connection: { kind: 'platform', organizationId: 'org' },
+      readiness: { usable: true },
+    });
     expect(http.get).toHaveBeenNthCalledWith(
       2,
       'https://api.heygen.com/v3/avatars/looks',
       expect.objectContaining({
-        headers: expect.objectContaining({ 'X-Api-Key': 'tenant-key' }),
-        params: { limit: 50, token: 'cursor/2' },
+        headers: expect.objectContaining({ 'X-Api-Key': 'platform-key' }),
+        params: { ownership: 'public', limit: 50, token: 'cursor/2' },
       }),
     );
   });
 
-  it('maps public and private v3 voices and their audio previews without leaking private voices into the platform catalog', async () => {
-    const page = (voice: string) =>
-      of({
-        status: 200,
-        data: {
-          data: [
-            {
-              voice_id: voice,
-              name: voice,
-              preview_audio_url: 'https://cdn/voice.mp3',
-            },
-          ],
-          has_more: false,
-          next_token: null,
-        },
-      });
-    http.get.mockReturnValue(page('public'));
-    await expect(service.getVoices()).resolves.toEqual([
+  it('retains accessible saved private looks after key rotation, with the current binding', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+    http.get.mockReturnValue(page([look()]));
+    const result = await service.resolveAvatarSelection(
       {
-        voiceId: 'public',
-        name: 'public',
-        preview: 'https://cdn/voice.mp3',
-        index: 0,
+        lookId: 'look',
+        ownership: 'private',
+        connection: {
+          provider: 'heygen',
+          kind: 'byok',
+          organizationId: 'org',
+          credentialVersionId: 'old-version',
+        },
       },
-    ]);
-    expect(http.get).toHaveBeenCalledTimes(1);
-    byok.resolveApiKey.mockResolvedValue({ apiKey: 'tenant-key' });
-    http.get
-      .mockReturnValueOnce(page('public'))
-      .mockReturnValueOnce(page('private'));
-    await expect(service.getVoices('org')).resolves.toHaveLength(2);
-    expect(http.get).toHaveBeenLastCalledWith(
-      'https://api.heygen.com/v3/voices',
-      expect.objectContaining({ params: { type: 'private', limit: 100 } }),
+      'org',
     );
+    expect(result.avatarRef.connection.credentialVersionId).toBe('version-2');
+    expect(result.connection.apiKey).toBe('tenant-key');
+    expect(http.get).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Api-Key': 'tenant-key' }),
+        params: { ownership: 'private', limit: 50 },
+      }),
+    );
+    expect(keys.getApiKey).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['training', look({ status: 'processing' }), null],
+    ['engine', look({ supported_api_engines: ['avatar_v'] }), null],
+    ['type', look({ avatar_type: 'unknown' }), null],
+    [
+      'group training',
+      look({ group_id: 'group' }),
+      { id: 'group', status: 'processing', consent_status: 'accepted' },
+    ],
+    [
+      'consent',
+      look({ group_id: 'group' }),
+      { id: 'group', status: 'completed', consent_status: 'pending' },
+    ],
+    [
+      'unknown consent',
+      look({ group_id: 'group' }),
+      { id: 'group', status: 'completed' },
+    ],
+  ])(
+    'rejects unusable private %s before submission',
+    async (_name, selected, group) => {
+      byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+      http.get.mockImplementation((url: string) =>
+        url.endsWith('/looks')
+          ? page([selected])
+          : of({ data: { data: group }, status: 200 }),
+      );
+      await expect(
+        service.resolveAvatarSelection(
+          { lookId: 'look', ownership: 'private' },
+          'org',
+        ),
+      ).rejects.toThrow();
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it('accepts documented null consent and deduplicates shared group reads', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+    http.get.mockImplementation((url: string) =>
+      url.endsWith('/looks')
+        ? page([
+            look({ group_id: 'group' }),
+            look({ id: 'second', group_id: 'group' }),
+          ])
+        : of({
+            status: 200,
+            data: {
+              data: { id: 'group', status: 'completed', consent_status: null },
+            },
+          }),
+    );
+    const result = await service.resolveAvatarSelection(
+      { lookId: 'look', ownership: 'private' },
+      'org',
+    );
+    expect(result.avatarRef.readiness.usable).toBe(true);
+    expect(http.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects foreign refs and missing private connections without public fallback', async () => {
+    await expect(
+      service.resolveAvatarSelection(
+        {
+          lookId: 'look',
+          ownership: 'private',
+          connection: {
+            provider: 'heygen',
+            kind: 'byok',
+            organizationId: 'foreign',
+          },
+        },
+        'org',
+      ),
+    ).rejects.toThrow('another organization');
+    await expect(
+      service.resolveAvatarSelection(
+        { lookId: 'look', ownership: 'private' },
+        'org',
+      ),
+    ).rejects.toThrow('Reconnect');
+    expect(http.get).not.toHaveBeenCalled();
+    expect(keys.getApiKey).not.toHaveBeenCalled();
+  });
+
+  it('keeps public voices on the platform connection and private voices on BYOK', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+    http.get.mockImplementation((_url, config) =>
+      page([{ voice_id: config.params.type, name: config.params.type }]),
+    );
+    const voices = await service.getVoices('org');
+    expect(
+      voices.map((voice) => [voice.ownership, voice.connection.kind]),
+    ).toEqual([
+      ['public', 'platform'],
+      ['private', 'byok'],
+    ]);
+    expect(voices[1].connection.credentialVersionId).toBe('version-2');
+    http.get.mockClear();
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(null);
+    expect(await service.getVoices('other')).toHaveLength(1);
+    expect(http.get).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -258,44 +349,42 @@ describe('HeyGen v3 contracts', () => {
     expect(http.get.mock.calls.length).toBeLessThanOrEqual(2);
   });
 
-  it('never falls back to the platform credential after a tenant key is rejected', async () => {
-    byok.resolveApiKey.mockResolvedValue({ apiKey: 'tenant-key' });
+  it('never substitutes a platform key when a private account is rejected', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
     http.get.mockReturnValue(throwError(() => new Error('unauthorized')));
-    await expect(service.getAvatars('org')).rejects.toThrow('unauthorized');
+    await expect(
+      service.resolveAvatarSelection(
+        { lookId: 'look', ownership: 'private' },
+        'org',
+      ),
+    ).rejects.toThrow('unauthorized');
     expect(keys.getApiKey).not.toHaveBeenCalled();
     expect(http.get).toHaveBeenCalledTimes(1);
   });
-  it('keeps platform-owned private catalogs out of an unconnected organization', async () => {
-    http.get.mockReturnValue(
-      of({
-        status: 200,
-        data: { data: [], has_more: false, next_token: null },
-      }),
-    );
-    await service.getAvatars('unconnected');
-    expect(http.get).toHaveBeenLastCalledWith(
-      'https://api.heygen.com/v3/avatars/looks',
-      expect.objectContaining({ params: { limit: 50, ownership: 'public' } }),
-    );
-    await service.getVoices('unconnected');
-    expect(http.get).toHaveBeenCalledTimes(2);
-    expect(http.get).toHaveBeenLastCalledWith(
-      'https://api.heygen.com/v3/voices',
-      expect.objectContaining({ params: { limit: 100, type: 'public' } }),
-    );
+
+  it('reports the personal account as disconnected when only platform presets exist', async () => {
+    await expect(service.getConnectionStatus('org')).resolves.toEqual({
+      hasCustomKey: false,
+      isConnected: false,
+      state: 'disconnected',
+    });
+    expect(http.get).not.toHaveBeenCalled();
   });
 
-  it('probes v3 account status without inventing a custom key from the organization id', async () => {
-    http.get.mockReturnValue(of({ status: 200, data: { data: {} } }));
-    await expect(service.getConnectionStatus('unconnected')).resolves.toEqual({
-      hasCustomKey: false,
-      isConnected: true,
-    });
-    expect(http.get).toHaveBeenLastCalledWith(
-      'https://api.heygen.com/v3/users/me',
-      expect.objectContaining({
-        headers: expect.objectContaining({ 'X-Api-Key': 'platform-key' }),
-      }),
+  it('renders a native look with audio without converting its preview to an image', async () => {
+    await service.generateNativeAvatarVideo(
+      'meta',
+      'look',
+      { audioUrl: 'https://cdn/narration.mp3' },
+      'tenant-key',
     );
+    expect(http.post.mock.calls[0][1]).toEqual({
+      type: 'avatar',
+      avatar_id: 'look',
+      audio_url: 'https://cdn/narration.mp3',
+      aspect_ratio: '9:16',
+      resolution: '720p',
+      callback_id: 'meta',
+    });
   });
 });

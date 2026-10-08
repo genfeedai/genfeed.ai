@@ -7,6 +7,10 @@ import {
   throwProviderCatalogError,
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import type {
+  HeyGenCatalogAvatar,
+  HeyGenCatalogVoice,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get } from '@nestjs/common';
@@ -14,12 +18,7 @@ import { Controller, Get } from '@nestjs/common';
 type HeygenVoicesResponse = ProviderCatalogResponse<
   'voices',
   {
-    voices: Array<{
-      voiceId: string;
-      name: string;
-      preview: string | null;
-      index: number;
-    }>;
+    voices: HeyGenCatalogVoice[];
     provider: 'heygen';
     count: number;
   }
@@ -28,12 +27,7 @@ type HeygenVoicesResponse = ProviderCatalogResponse<
 type HeygenAvatarsResponse = ProviderCatalogResponse<
   'avatars',
   {
-    avatars: Array<{
-      avatarId: string;
-      name: string;
-      preview: string | null;
-      index: number;
-    }>;
+    avatars: HeyGenCatalogAvatar[];
     provider: 'heygen';
     count: number;
   }
@@ -45,6 +39,7 @@ type HeygenStatusResponse = ProviderCatalogResponse<
     provider: 'heygen';
     isConnected: boolean;
     hasCustomKey: boolean;
+    state: 'disconnected' | 'connected' | 'invalid';
   }
 >;
 
@@ -70,12 +65,7 @@ export class HeyGenController {
         attributes: {
           count: voices.length,
           provider: 'heygen',
-          voices: voices.map((v) => ({
-            index: v.index,
-            name: v.name,
-            preview: v.preview,
-            voiceId: v.voiceId,
-          })),
+          voices,
         },
         type: 'voices',
       });
@@ -95,12 +85,7 @@ export class HeyGenController {
 
       return serializeProviderCatalog({
         attributes: {
-          avatars: avatars.map((a) => ({
-            avatarId: a.avatarId,
-            index: a.index,
-            name: a.name,
-            preview: a.preview,
-          })),
+          avatars,
           count: avatars.length,
           provider: 'heygen',
         },
@@ -118,12 +103,13 @@ export class HeyGenController {
     this.loggerService.log(url);
 
     try {
-      const { hasCustomKey, isConnected } =
+      const { hasCustomKey, isConnected, state } =
         await this.heygenService.getConnectionStatus(user.organizationId);
 
       return serializeProviderCatalog({
         attributes: {
           hasCustomKey,
+          state,
           isConnected,
           provider: 'heygen',
         },

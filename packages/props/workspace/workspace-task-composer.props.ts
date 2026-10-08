@@ -1,3 +1,5 @@
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
+import type { DefaultVoiceRef } from '@helpers/voice/default-voice-ref.helper';
 import type { Task } from '@services/management/tasks.service';
 
 export type WorkspaceTaskMode = 'standard' | 'research' | 'trends';
@@ -13,6 +15,9 @@ export interface FacecamOption {
   label: string;
   preview?: string;
   provider?: string;
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: DefaultVoiceRef;
+  disabled?: boolean;
 }
 
 export type UseWorkspaceTaskComposerParams = Pick<

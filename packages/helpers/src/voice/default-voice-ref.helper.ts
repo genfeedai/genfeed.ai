@@ -1,4 +1,5 @@
 import { VoiceProvider } from '@genfeedai/contracts';
+import type { HeyGenConnectionRef } from '@genfeedai/contracts/interfaces';
 
 export type DefaultVoiceRefSource = 'catalog' | 'cloned';
 
@@ -14,6 +15,8 @@ export interface DefaultVoiceCandidate {
 }
 
 export interface DefaultVoiceRef {
+  ownership?: 'private' | 'public';
+  connection?: HeyGenConnectionRef;
   source: DefaultVoiceRefSource;
   provider?: VoiceProvider;
   internalVoiceId?: string;
