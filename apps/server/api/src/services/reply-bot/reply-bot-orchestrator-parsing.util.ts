@@ -23,3 +23,7 @@ export function mergeReplyContext(
     [botContext, candidateContext].filter(Boolean).join('\n\n') || undefined
   );
 }
+
+export function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}

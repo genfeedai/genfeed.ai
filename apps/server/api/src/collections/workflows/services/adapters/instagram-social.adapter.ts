@@ -91,7 +91,7 @@ export class InstagramSocialAdapter {
         recipientId,
       });
 
-      const messageId = await this.instagramService.sendCommentReplyDm(
+      const messageId = await this.instagramService.sendDirectMessage(
         organizationId,
         brandId,
         recipientId,
@@ -99,7 +99,8 @@ export class InstagramSocialAdapter {
         credentialId,
       );
 
-      return { messageId: messageId ?? `ig_dm_${Date.now()}` };
+      if (!messageId) throw new Error('Instagram did not return a message_id.');
+      return { messageId };
     };
   }
 }

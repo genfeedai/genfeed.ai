@@ -105,7 +105,7 @@ describe('InstagramController', () => {
   };
 
   const instagramConfig: Record<string, string> = {
-    INSTAGRAM_API_VERSION: 'v18.0',
+    INSTAGRAM_API_VERSION: 'v26.0',
     INSTAGRAM_APP_ID: 'test_app_id',
     INSTAGRAM_APP_SECRET: 'test_app_secret',
     INSTAGRAM_GRAPH_URL: 'https://graph.facebook.com',
@@ -568,7 +568,7 @@ describe('InstagramController', () => {
       await controller.verify(mockRequest, { code: 'auth-code', state });
       expect(httpGetMock).toHaveBeenNthCalledWith(
         2,
-        'https://graph.facebook.com/v18.0/me/permissions',
+        'https://graph.facebook.com/v26.0/me/permissions',
         {
           params: { access_token: 'long-lived-token' },
           timeout: 10_000,

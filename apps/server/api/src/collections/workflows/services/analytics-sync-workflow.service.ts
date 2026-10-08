@@ -32,7 +32,11 @@ import type { WorkflowDefinitionInput } from '@api/collections/workflows/workflo
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { scopedWhere } from '@api/index';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -55,6 +59,7 @@ type AnalyticsDiscovery = {
     credentialId?: string;
     externalId: string;
     id: string;
+    isVideo?: boolean;
     organizationId: string;
     platform: CredentialPlatform;
   }>;
@@ -250,6 +255,14 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
             ...(credentialId ? { credentialId } : {}),
             externalId,
             id,
+            ...(post.platform === CredentialPlatform.FACEBOOK &&
+            [
+              PostCategory.VIDEO,
+              PostCategory.REEL,
+              PostCategory.STORY,
+            ].includes(post.category)
+              ? { isVideo: true }
+              : {}),
             organizationId,
             platform: post.platform,
           },
@@ -684,6 +697,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         : {}),
       externalId: this.requiredString(item.externalId, 'externalId'),
       id: this.requiredString(item.id, 'id'),
+      ...(item.isVideo === true ? { isVideo: true } : {}),
       organizationId: this.requiredString(
         item.organizationId,
         'organizationId',
@@ -703,6 +717,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
           ...(post.credentialId ? { credentialId: post.credentialId } : {}),
           externalId: post.externalId,
           id: post.id,
+          ...(post.isVideo ? { isVideo: true } : {}),
           organizationId: post.organizationId,
           platform: post.platform,
         },

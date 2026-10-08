@@ -246,6 +246,7 @@ export class BotActionExecutorService {
     credential: IReplyBotCredentialData,
     recipientUserId: string,
     message: string,
+    commentId?: string,
   ): Promise<IReplyBotDmResult> {
     const platformInput = credential.platform ?? ReplyBotPlatform.TWITTER;
     const platform = normalizeReplyBotPlatform(platformInput);
@@ -254,7 +255,12 @@ export class BotActionExecutorService {
       case ReplyBotPlatform.TWITTER:
         return this.sendTwitterDm(credential, recipientUserId, message);
       case ReplyBotPlatform.INSTAGRAM:
-        return this.sendInstagramDm(credential, recipientUserId, message);
+        return this.sendInstagramDm(
+          credential,
+          recipientUserId,
+          message,
+          commentId,
+        );
       default:
         return Promise.resolve({
           error: unsupportedReplyBotPlatformMessage(platformInput),
@@ -322,13 +328,22 @@ export class BotActionExecutorService {
         throw new Error('organizationId and brandId required for Instagram');
       }
 
-      const result = await this.instagramService.postComment(
-        credential.organizationId,
-        credential.brandId,
-        targetContent.id,
-        replyText,
-        credential.id,
-      );
+      const result =
+        targetContent.parentContentId || targetContent.inReplyToId
+          ? await this.instagramService.replyToComment(
+              credential.organizationId,
+              credential.brandId,
+              targetContent.id,
+              replyText,
+              credential.id,
+            )
+          : await this.instagramService.postComment(
+              credential.organizationId,
+              credential.brandId,
+              targetContent.id,
+              replyText,
+              credential.id,
+            );
 
       this.loggerService.log(`${url} success`, {
         commentId: result.commentId,
@@ -476,6 +491,7 @@ export class BotActionExecutorService {
     credential: IReplyBotCredentialData,
     recipientUserId: string,
     message: string,
+    commentId?: string,
   ): Promise<IReplyBotDmResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -484,13 +500,22 @@ export class BotActionExecutorService {
         throw new Error('organizationId and brandId required for Instagram');
       }
 
-      const contentId = await this.instagramService.sendCommentReplyDm(
-        credential.organizationId,
-        credential.brandId,
-        recipientUserId,
-        message,
-        credential.id,
-      );
+      const contentId = commentId
+        ? await this.instagramService.sendPrivateReply(
+            credential.organizationId,
+            credential.brandId,
+            commentId,
+            message,
+            credential.id,
+          )
+        : await this.instagramService.sendDirectMessage(
+            credential.organizationId,
+            credential.brandId,
+            recipientUserId,
+            message,
+            credential.id,
+          );
+      if (!contentId) throw new Error('Instagram did not return a message_id.');
 
       this.loggerService.log(`${url} success`, {
         messageLength: message.length,
@@ -498,7 +523,7 @@ export class BotActionExecutorService {
         recipientUserId,
       });
 
-      return { contentId: contentId ?? undefined, success: true };
+      return { contentId, success: true };
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message || 'Unknown error';
 

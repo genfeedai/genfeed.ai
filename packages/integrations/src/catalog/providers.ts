@@ -1,4 +1,5 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { META_GRAPH_API_VERSION, META_GRAPH_URL } from '../constants';
 
 import type {
   IntegrationProviderCapability,
@@ -248,14 +249,14 @@ export const INTEGRATION_PROVIDER_DEFINITIONS = [
     displayName: 'Meta Ads',
     docsUrl: 'https://developers.facebook.com/docs/marketing-apis/',
     endpoints: {
-      apiBaseUrl: 'https://graph.facebook.com',
+      apiBaseUrl: META_GRAPH_URL,
       appBaseUrl: 'https://business.facebook.com',
     },
     key: 'meta_ads',
     oauth: {
-      authorizationUrl: 'https://www.facebook.com/v26.0/dialog/oauth',
+      authorizationUrl: `https://www.facebook.com/${META_GRAPH_API_VERSION}/dialog/oauth`,
       scopes: ['ads_management', 'ads_read'],
-      tokenUrl: 'https://graph.facebook.com/v26.0/oauth/access_token',
+      tokenUrl: `${META_GRAPH_URL}/${META_GRAPH_API_VERSION}/oauth/access_token`,
     },
     platform: CredentialPlatform.FACEBOOK,
     retry: DEFAULT_RETRY,
