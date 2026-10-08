@@ -47,6 +47,17 @@ import { assertIsolatedDatabaseUrl } from '../../../scripts/assert-isolated-db-u
  * builds the production services with `new` on a client scoped to a unique
  * schema that is dropped on close.
  */
+type LifecyclePrisma = ConstructorParameters<typeof PostLifecycleService>[0];
+type LifecycleLogger = ConstructorParameters<typeof PostLifecycleService>[1];
+type SchedulerLogger = ConstructorParameters<
+  typeof SchedulerPublishStateService
+>[1];
+type ApprovalsPrisma = ConstructorParameters<typeof PublishApprovalsService>[0];
+type ArtifactReferencePrisma = ConstructorParameters<
+  typeof AgentArtifactReferenceService
+>[0];
+type SourcePrisma = Parameters<typeof resolveLearningPublicationSourceV1>[0];
+
 const OBJECTIVE = 'awareness' as const;
 const OBSERVATION_AGE_MS = (48 * 60 + 10) * 60000;
 
@@ -114,7 +125,7 @@ export async function openLearningLoopDatabase() {
     log: () => undefined,
     warn: () => undefined,
   };
-  const dependencies = new LearningDependencyService();
+  const dependencies = new LearningDependencyService(db);
   const operations = new LearningOperationService(db);
   const scopes = new LearningScopeStateService(db, dependencies);
   const policies = new LearningPolicyService(db, dependencies, scopes);
@@ -126,7 +137,10 @@ export async function openLearningLoopDatabase() {
     policies,
   );
   const checkpoints = new LearningCheckpointService(db, accounts, dependencies);
-  const lifecycle = new PostLifecycleService(prisma as never, logger as never);
+  const lifecycle = new PostLifecycleService(
+    prisma as unknown as LifecyclePrisma,
+    logger as unknown as LifecycleLogger,
+  );
   const services = {
     dependencies,
     operations,
@@ -144,10 +158,16 @@ export async function openLearningLoopDatabase() {
     ),
     rewards: new LearningRewardService(db, dependencies),
     materializer: new LearningBaselineMaterializationService(db, dependencies),
-    scheduler: new SchedulerPublishStateService(db, logger as never, lifecycle),
+    scheduler: new SchedulerPublishStateService(
+      db,
+      logger as unknown as SchedulerLogger,
+      lifecycle,
+    ),
     approvals: new PublishApprovalsService(
-      prisma as never,
-      new AgentArtifactReferenceService(prisma as never),
+      prisma as unknown as ApprovalsPrisma,
+      new AgentArtifactReferenceService(
+        prisma as unknown as ArtifactReferencePrisma,
+      ),
     ),
   };
   return {
@@ -362,7 +382,7 @@ export async function publishLearningLoopPost(
     isSuccessful: true,
   });
   const source = await resolveLearningPublicationSourceV1(
-    prisma as never,
+    prisma as unknown as SourcePrisma,
     target.organizationId,
     id,
   );
