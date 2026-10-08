@@ -313,11 +313,19 @@ describe('AgentPanel', () => {
       <AgentPanel apiService={createCreditsInfoApiService() as never} />,
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('Runtime')).toBeInTheDocument();
+    const trigger = await screen.findByRole('button', {
+      name: 'Run with Default',
     });
+    fireEvent.pointerDown(trigger);
 
-    expect(screen.getByText('cloud')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'Default' }),
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Cloud')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('menuitemradio').map((item) => item.textContent),
+    ).toEqual(['Default', 'Genfeed', 'OpenRouter', 'Replicate']);
+    expect(screen.queryByText('This computer')).toBeNull();
   });
 
   it('offers local CLI runtimes when Genfeed Desktop detects them', async () => {
