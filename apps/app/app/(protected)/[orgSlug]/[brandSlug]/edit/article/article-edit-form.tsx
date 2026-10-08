@@ -51,6 +51,7 @@ export default function ArticleEditForm({
           <FormControl label="Category">
             <FormDropdown
               name="articleCategory"
+              label="Category"
               value={form.category}
               options={ARTICLE_CATEGORY_OPTIONS}
               onChange={(e: ChangeEvent<HTMLSelectElement>) =>
