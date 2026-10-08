@@ -66,7 +66,7 @@ CREATE TABLE "_member_brands" ("A" text NOT NULL REFERENCES brands(id), "B" text
 CREATE TABLE context_entries (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean NOT NULL DEFAULT false, "updatedAt" timestamptz NOT NULL DEFAULT now(), "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz);
 INSERT INTO organizations(id,"isDeleted") VALUES ('org-a',false),('org-b',false),('deleted-org',true);
 INSERT INTO users(id) VALUES ('opaque-a'),('opaque-b'),('admin-a'),('admin-b'),('owner-a'),('foreign-user'),('deleted-user');
-INSERT INTO roles(id,key) VALUES ('ordinary','USER'),('admin','ADMIN'),('owner','OWNER');
+INSERT INTO roles(id,key) VALUES ('ordinary','user'),('admin','admin'),('owner','owner');
 INSERT INTO brands(id,"organizationId","isDeleted") VALUES ('brand-a','org-a',false),('brand-b','org-a',false),('deleted-brand','org-a',true),('foreign-brand','org-b',false),('deleted-org-brand','deleted-org',false);
 INSERT INTO members(id,"organizationId","userId","roleId","roleKey","currentBrandId") VALUES ('member-a','org-a','opaque-a','ordinary','OWNER','brand-a'),('member-b','org-a','opaque-b','ordinary','ADMIN','brand-b'),('admin-a','org-a','admin-a','admin',null,'brand-a'),('admin-b','org-a','admin-b','admin',null,'brand-a'),('owner-a','org-a','owner-a','owner',null,'brand-a'),('foreign-member','org-b','foreign-user','owner',null,'foreign-brand'),('deleted-member','deleted-org','deleted-user','owner',null,'deleted-org-brand');
 INSERT INTO "_member_brands"("A","B") VALUES ('brand-a','member-a'),('brand-b','member-b'),('foreign-brand','member-a'),('deleted-brand','member-a');
@@ -218,6 +218,7 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
       purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
     });
     const version = await records.createVersion(actorA, source.id, {
+      observedAt: new Date().toISOString(),
       contentHash: `sha256:${randomUUID()}`,
       payload: { text: 'Fixture text' },
       provenance: { initiatingActor: { userId: 'forged-admin' } },
@@ -274,6 +275,7 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
         })
         .then((source) =>
           records.createVersion(actor, source.id, {
+            observedAt: new Date().toISOString(),
             contentHash: `sha256:${randomUUID()}`,
             payload: { text: 'Personal fixture' },
           }),
