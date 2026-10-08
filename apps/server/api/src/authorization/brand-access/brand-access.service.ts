@@ -37,9 +37,10 @@ export class BrandAccessService {
         isActive: true,
         isDeleted: false,
         organization: { isDeleted: false },
+        role: { isDeleted: false },
       },
-      include: {
-        role: true,
+      select: {
+        role: { select: { key: true } },
         brands: { where: base, select: { id: true } },
       },
     });
