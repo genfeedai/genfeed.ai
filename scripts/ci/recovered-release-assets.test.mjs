@@ -26,12 +26,13 @@ const RELEASE_TAG = 'v0.2.3';
 const IMAGE_TAG = '0.2.3';
 const REPOSITORY = 'genfeedai/genfeed.ai';
 const IMAGE = `ghcr.io/${REPOSITORY}:${IMAGE_TAG}`;
-const IMAGE_DIGEST = JSON.parse(
+const QUALIFICATIONS = JSON.parse(
   readFileSync(
     new URL('./release-recovery-qualifications.json', import.meta.url),
     'utf8',
   ),
-).qualifications[0].imageDigest;
+).qualifications;
+const IMAGE_DIGEST = QUALIFICATIONS[0].imageDigest;
 const REPLACEMENT_IMAGE_DIGEST = `sha256:${'cd'.repeat(32)}`;
 const DRAFT_BODY = 'frozen release notes\n';
 
@@ -142,6 +143,13 @@ function qualifiedRelease() {
     asset('genfeed-selfhosted.tar.gz', 616010182, archiveBytes),
     asset('genfeed-selfhosted.tar.gz.sha256', 616010185, checksumBytes),
   ];
+  for (const value of assets) {
+    const qualified = QUALIFICATIONS[0].assets.find(
+      (candidate) => candidate.name === value.name,
+    );
+    value.created_at = qualified.created_at;
+    value.updated_at = qualified.updated_at;
+  }
   const release = {
     assets,
     body: DRAFT_BODY,
@@ -871,5 +879,19 @@ test('direct invocation fails closed before any registry or release write', () =
     assert.match(linked.stderr, /current release controller SHA/);
   } finally {
     rmSync(tempDir, { force: true, recursive: true });
+  }
+});
+
+test('recovered assets reject original or post-download timestamp drift', () => {
+  for (const field of ['created_at', 'updated_at']) {
+    for (const snapshot of ['release', 'releaseAfter']) {
+      const fixture = qualifiedRelease(),
+        changed = structuredClone(fixture.release);
+      changed.assets[1][field] = '2026-10-08T13:37:31Z';
+      assert.throws(
+        () => verifyQualified({ [snapshot]: changed }),
+        /timestamps do not match the reviewed identity/,
+      );
+    }
   }
 });

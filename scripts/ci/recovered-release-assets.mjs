@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
+import { loadReleaseRecoveryQualifications } from './release-recovery-evidence.mjs';
 import { imageRevisions } from './resolve-server-image.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
@@ -405,6 +406,30 @@ function assertDraftFrozen(release, expected) {
   );
 }
 
+function assertReviewedAssetTimestamps(release, expected) {
+  const records = loadReleaseRecoveryQualifications().filter(
+    (record) =>
+      record.repository === expected.repository &&
+      record.releaseTag === expected.releaseTag &&
+      record.releaseSha === expected.releaseSha &&
+      record.draftId === expected.draftId,
+  );
+  if (records.length !== 1)
+    fail(
+      'Recovered assets require exactly one reviewed release qualification.',
+    );
+  for (const qualified of records[0].assets) {
+    const asset = findAsset(release, qualified.name);
+    if (
+      asset.created_at !== qualified.created_at ||
+      asset.updated_at !== qualified.updated_at
+    )
+      fail(
+        `Recovered draft asset ${qualified.name} timestamps do not match the reviewed identity.`,
+      );
+  }
+}
+
 export function assertRecoveredAssetIdentity(expected) {
   for (const [label, value, pattern] of [
     ['release tag', expected?.releaseTag, TAG_PATTERN],
@@ -468,6 +493,8 @@ export function verifyRecoveredReleaseAssets({
 
   assertDraftFrozen(release, expected);
   assertDraftFrozen(releaseAfter, expected);
+  assertReviewedAssetTimestamps(release, expected);
+  assertReviewedAssetTimestamps(releaseAfter, expected);
   assertBytes(
     changelogBytes,
     expected.changelogAssetSize,

@@ -20,6 +20,7 @@ const QUALIFICATION_RECORD_KEYS = [
   'draftId',
   'draftTitle',
   'imageDigest',
+  'jobProfile',
   'releaseSha',
   'releaseTag',
   'repository',
@@ -126,6 +127,69 @@ export const NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS = [
   PROMOTE_JOB_NAME,
   PUBLISH_RELEASE_JOB_NAME,
 ];
+
+export const NPM_SOURCE_NOOP_CURRENT_FULL_SUITE_JOBS = [
+  'Full Suite / Build & Boot Check / Build & Boot Check',
+  'Full Suite / Build & Boot Check / Server Bundle Boot Check',
+  'Full Suite / Build & Boot Check / Server Image / Build & Push Server Image',
+  'Full Suite / Build & Boot Check / Server Image / Resolve server image inputs',
+  'Full Suite / CI Gate / Build',
+  'Full Suite / CI Gate / Cloud Tenant Guard Sweep',
+  'Full Suite / CI Gate / Plan',
+  'Full Suite / CI Gate / Spec Typecheck (pool-1)',
+  'Full Suite / CI Gate / Spec Typecheck (pool-2)',
+  'Full Suite / CI Gate / Spec Typecheck (pool-3)',
+  'Full Suite / CI Gate / Static Checks',
+  'Full Suite / CI Gate / Test API (shard 1/4)',
+  'Full Suite / CI Gate / Test API (shard 2/4)',
+  'Full Suite / CI Gate / Test API (shard 3/4)',
+  'Full Suite / CI Gate / Test API (shard 4/4)',
+  'Full Suite / CI Gate / Test App (shard 1/4)',
+  'Full Suite / CI Gate / Test App (shard 2/4)',
+  'Full Suite / CI Gate / Test App (shard 3/4)',
+  'Full Suite / CI Gate / Test App (shard 4/4)',
+  'Full Suite / CI Gate / Test Workspaces (browser-extension)',
+  'Full Suite / CI Gate / Test Workspaces (packages-1/4)',
+  'Full Suite / CI Gate / Test Workspaces (packages-2/4)',
+  'Full Suite / CI Gate / Test Workspaces (packages-3/4)',
+  'Full Suite / CI Gate / Test Workspaces (packages-4/4)',
+  'Full Suite / CI Gate / Test Workspaces (server)',
+  'Full Suite / CI Gate / Test Workspaces (web)',
+  'Full Suite / Connected Visual Acceptance / Actual runsc rendering and isolation',
+  'Full Suite / Connected Visual Acceptance / Connected runsc rendering and Library acceptance',
+  'Full Suite / E2E Suite / API E2E Full',
+  'Full Suite / E2E Suite / API E2E Full Gate',
+  'Full Suite / E2E Suite / API E2E Tests',
+  'Full Suite / E2E Suite / BRAND Receipt and Relocation Acceptance',
+  'Full Suite / E2E Suite / E2E Gate (all shards)',
+  'Full Suite / E2E Suite / E2E Route Reference Inventory',
+  'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 1/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 2/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 3/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 4/4)',
+  'Full Suite / E2E Suite / Isolated Publish E2E',
+  'Full Suite / E2E Suite / Merge E2E Reports',
+  'Full Suite / E2E Suite / Proactive Production Turn Acceptance',
+  'Full Suite / E2E Suite / Serial Runtime Acceptance',
+  'Full Suite / Final Connected Acceptance',
+  'Full Suite / Master SHA Verdict',
+];
+
+const NPM_SOURCE_NOOP_JOB_PROFILES = Object.freeze({
+  'ci-packages-single-v1': Object.freeze({
+    fullSuiteJobs: Object.freeze([...NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS]),
+    skippedJobs: Object.freeze([...NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS]),
+  }),
+  'ci-packages-sharded-v1': Object.freeze({
+    fullSuiteJobs: Object.freeze([...NPM_SOURCE_NOOP_CURRENT_FULL_SUITE_JOBS]),
+    skippedJobs: Object.freeze([
+      ...NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS,
+      `Full Suite / CI Gate / Setup Benchmark (\${{ matrix.mode }})`,
+      'Verify recovered release assets',
+    ]),
+  }),
+});
 
 const NPM_PLAN_STEP_OUTCOMES = [
   ['Set up job', 'success'],
@@ -453,6 +517,12 @@ function validateQualificationRecord(record, index) {
     invalidQualification(`record ${index} has unexpected fields`);
   }
   if (
+    typeof record.jobProfile !== 'string' ||
+    !Object.hasOwn(NPM_SOURCE_NOOP_JOB_PROFILES, record.jobProfile)
+  ) {
+    invalidQualification(`record ${index} has an unknown job profile`);
+  }
+  if (
     !REPOSITORY_PATTERN.test(record.repository) ||
     !POSITIVE_INT_PATTERN.test(record.runId) ||
     !TAG_PATTERN.test(record.releaseTag) ||
@@ -499,11 +569,11 @@ export function loadReleaseRecoveryQualifications(
     typeof table !== 'object' ||
     Array.isArray(table) ||
     qualificationKeys(table) !== 'qualifications,version' ||
-    table.version !== 1 ||
+    table.version !== 2 ||
     !Array.isArray(table.qualifications) ||
     table.qualifications.length === 0
   ) {
-    invalidQualification('version 1 qualifications are required');
+    invalidQualification('version 2 qualifications are required');
   }
   const seen = new Set();
   table.qualifications.forEach((record, index) => {
@@ -541,13 +611,7 @@ function qualificationIdentity(record) {
   };
 }
 
-function requireReviewedNpmSourceNoopQualification({
-  release,
-  releaseSha,
-  requestedRepository,
-  requestedRunId,
-  requestedTag,
-}) {
+function reviewedQualificationForRun(requestedRunId) {
   const matches = RELEASE_RECOVERY_QUALIFICATIONS.filter(
     (record) => record.runId === requestedRunId,
   );
@@ -556,7 +620,17 @@ function requireReviewedNpmSourceNoopQualification({
       `npm-source-noop run ${requestedRunId} has no reviewed controller qualification.`,
     );
   }
-  const [record] = matches;
+  return matches[0];
+}
+
+function requireReviewedNpmSourceNoopQualification({
+  release,
+  releaseSha,
+  requestedRepository,
+  requestedRunId,
+  requestedTag,
+}) {
+  const record = reviewedQualificationForRun(requestedRunId);
   const draft = draftIdentity(release);
   const drifted = [];
   if (record.repository !== requestedRepository) {
@@ -779,10 +853,12 @@ function validateNpmSourceNoopEvidence({
   requestedTag,
   releaseSha,
 }) {
-  for (const jobName of NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS) {
+  const qualification = reviewedQualificationForRun(requestedRunId);
+  const profile = NPM_SOURCE_NOOP_JOB_PROFILES[qualification.jobProfile];
+  for (const jobName of profile.fullSuiteJobs) {
     requireUniqueJob(jobs, jobName, 'success', releaseSha);
   }
-  for (const jobName of NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS) {
+  for (const jobName of profile.skippedJobs) {
     requireUniqueJob(jobs, jobName, 'skipped', releaseSha);
   }
   for (const jobName of NPM_SOURCE_NOOP_SAAS_JOBS) {
