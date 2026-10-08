@@ -1,7 +1,8 @@
 # Brand artifact validation core
 
 This internal API leaf binds captured artifact bytes to canonical snapshot and
-artifact metadata. It registers no application caller.
+artifact metadata. Its only application caller is the branded text seam
+(`BrandedTextGenerationService`, direct post drafts).
 `BrandValidationReceiptService.validateReceipt(actor, receiptId)` (exported by
 `BrandValidationReceiptModule`) is the persisted completion adapter. The
 synthetic corpus is regression input, never provider qualification or production
