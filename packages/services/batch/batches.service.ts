@@ -11,6 +11,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 
 export interface BatchListQuery {
@@ -57,7 +58,12 @@ export class BatchesService extends HTTPBaseService {
       });
       return deserializeCollection<IBatchSummary>(response.data);
     } catch (error) {
-      logger.error('GET /batches failed', error);
+      const status = getJsonApiErrorMember(error)?.status;
+      if (status === 403) {
+        logger.warn('GET /batches denied', { status });
+      } else {
+        logger.error('GET /batches failed', error);
+      }
       throw error;
     }
   }

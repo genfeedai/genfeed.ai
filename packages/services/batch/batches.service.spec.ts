@@ -1,3 +1,4 @@
+import { logger } from '@services/core/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type BatchActionRequest,
@@ -55,7 +56,7 @@ vi.mock('@services/core/json-api', () => ({
 }));
 
 vi.mock('@services/core/logger.service', () => ({
-  logger: { error: vi.fn(), info: vi.fn() },
+  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
 const makeMockBatch = (id = 'batch-1') => ({
@@ -74,6 +75,7 @@ describe('BatchesService', () => {
   };
 
   beforeEach(() => {
+    vi.clearAllMocks();
     service = new BatchesService('test-token');
     mockInstance = (service as unknown as { instance: typeof mockInstance })
       .instance;
@@ -105,6 +107,28 @@ describe('BatchesService', () => {
     mockInstance.get.mockRejectedValue(new Error('network error'));
 
     await expect(service.getBatches()).rejects.toThrow('network error');
+  });
+
+  it('preserves a subscription denial without reporting an application error', async () => {
+    const error = {
+      errors: [{ status: '403', title: 'Active subscription required' }],
+    };
+    mockInstance.get.mockRejectedValue(error);
+    await expect(service.getBatches()).rejects.toBe(error);
+    expect(logger.warn).toHaveBeenCalledWith('GET /batches denied', {
+      status: 403,
+    });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('continues logging genuine batch API failures', async () => {
+    const error = {
+      errors: [{ status: '500', title: 'Internal Server Error' }],
+    };
+    mockInstance.get.mockRejectedValue(error);
+    await expect(service.getBatches()).rejects.toBe(error);
+    expect(logger.error).toHaveBeenCalledWith('GET /batches failed', error);
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('getBatch fetches a single batch by id', async () => {
