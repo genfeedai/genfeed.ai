@@ -51,7 +51,18 @@ interface PendingAnalyticsEvent {
   properties: AnalyticsEventProperties[AnalyticsEvent];
 }
 
-let client: PostHogInterface | null = null;
+type AnalyticsClient = Pick<
+  PostHogInterface,
+  | 'capture'
+  | 'get_property'
+  | 'getGroups'
+  | 'group'
+  | 'identify'
+  | 'reset'
+  | 'resetGroups'
+>;
+
+let client: AnalyticsClient | null = null;
 let hasInitStarted = false;
 let lastCapturedPageviewKey: string | null = null;
 let pendingIdentity: AnalyticsUserIdentity | null = null;
@@ -609,7 +620,7 @@ function applyPendingAnonymousState(): void {
  * reset/identify run before PostHog starts its request queue, and again after
  * `init()` so test doubles that skip `loaded` still apply pending state.
  */
-function bindClientAndApplyPending(posthog: PostHogInterface): void {
+function bindClientAndApplyPending(posthog: AnalyticsClient): void {
   client = posthog;
   applyPendingReset();
   applyPendingAnonymousState();
