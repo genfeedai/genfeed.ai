@@ -38,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   findAllSets: vi.fn(),
   getBrandsService: vi.fn(),
   getCredentialsService: vi.fn(),
+  getNotificationsService: vi.fn(),
   getPostingSetsService: vi.fn(),
   getPublishingContext: vi.fn(),
   loggerError: vi.fn(),
@@ -104,10 +105,7 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({
-      error: mocks.error,
-      success: mocks.success,
-    }),
+    getInstance: mocks.getNotificationsService,
   },
 }));
 
@@ -269,6 +267,10 @@ vi.mock('@ui/primitives/switch', () => ({
 describe('BrandSettingsPublishingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getNotificationsService.mockReturnValue({
+      error: mocks.error,
+      success: mocks.success,
+    });
     mocks.brandDetail = {
       brand: {
         agentConfig: {
