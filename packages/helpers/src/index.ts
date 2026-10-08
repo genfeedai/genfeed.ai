@@ -1,3 +1,4 @@
+export * from './analytics/breakout-baseline.helper';
 export * from './analytics/outlier-baseline.helper';
 export * from './aspect-ratio.helper';
 export * from './asset-scope.helper';

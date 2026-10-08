@@ -3,6 +3,7 @@ export * from './activity.interface';
 export * from './analytics.interface';
 export * from './analytics-collection-state.interface';
 export * from './analytics-query-reference.interface';
+export * from './breakout-evidence.interface';
 export * from './content-learning.interface';
 export * from './evaluation.interface';
 export * from './fleet-evaluation-policy.interface';

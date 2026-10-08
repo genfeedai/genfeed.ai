@@ -775,6 +775,7 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+  postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[]
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
@@ -1028,6 +1029,7 @@ model McpApproval {
 }
 
 model Brand {
+  postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_brand")
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
@@ -1887,6 +1889,8 @@ model PlatformSetting {
 // ═══════════════════════════════════════════════════════════════
 
 model Credential {
+  postExposureObservations PostExposureObservation[]
+  @@unique([id, organizationId, brandId], map: "credentials_id_exposure_scope_key")
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
 contentLearningEnrollments ContentLearningEnrollment[]
@@ -2741,6 +2745,8 @@ model LinkClick {
 // ═══════════════════════════════════════════════════════════════
 
 model Post {
+  exposureObservations PostExposureObservation[]
+  @@unique([id, organizationId, brandId], map: "posts_id_exposure_scope_key")
 learningDecisionId String? @unique
 learningDecision ContentLearningDecision? @relation(fields: [learningDecisionId], references: [id])
 learningCheckpoints ContentLearningCheckpoint[]
@@ -8277,6 +8283,44 @@ model OutlierConfiguration {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("outlier_configurations")
+}
+
+/// Immutable provider measurements collected prospectively. These observations
+/// carry evidence, never generation or publication authority.
+model PostExposureObservation {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  brandId String
+  brand Brand @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_brand_scope_fkey")
+  credentialId String
+  credential Credential @relation(fields: [credentialId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_credential_scope_fkey")
+  postId String
+  post Post @relation(fields: [postId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_post_scope_fkey")
+  platform String
+  format String
+  externalId String
+  logicalPostId String
+  publishedAt DateTime
+  contentDigest String
+  publicationFingerprint String
+  sourceAttemptId String
+  sourceFingerprint String
+  requestStartedAt DateTime
+  receivedAt DateTime
+  providerAsOf DateTime?
+  exposures Json
+  isPinned Boolean?
+  isPromoted Boolean?
+  isResponse Boolean
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, organizationId])
+  @@unique([organizationId, credentialId, platform, externalId, sourceAttemptId], map: "post_exposure_observations_attempt_key")
+  @@index([organizationId, brandId, credentialId, platform, format, isDeleted, publishedAt(sort: Desc)], map: "post_exposure_observations_baseline_idx")
+  @@index([organizationId, postId, isDeleted, receivedAt(sort: Desc)], map: "post_exposure_observations_post_idx")
+  @@map("post_exposure_observations")
 }
 
 model OutlierBaselineSnapshot {
