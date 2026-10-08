@@ -238,11 +238,8 @@ export async function ensureLearningLoopScope(
   database: LearningLoopDatabase,
   target: LearningLoopTarget,
 ) {
-  const descriptor = learningRegisteredProfiles(
-    'twitter',
-    'text',
-    OBJECTIVE,
-  ).find((profile) => profile.capability.mask === 'LCS')?.descriptor;
+  const [profile] = learningRegisteredProfiles('twitter', 'text', OBJECTIVE);
+  const descriptor = profile?.descriptor;
   ensure(descriptor, 'REGISTERED_PROFILE');
   const scope: LearningScope = {
     organizationId: target.organizationId,
