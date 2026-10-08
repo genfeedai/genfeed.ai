@@ -428,10 +428,15 @@ export default function PostDetail({
                 : 'grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
             }
           >
-            <section aria-label="Post composer" className="min-w-0">
+            <section
+              aria-label={translate('composerLabel')}
+              className="min-w-0"
+            >
               {isStandalonePage ? (
                 <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
-                  <h2 className="text-sm font-medium">Content</h2>
+                  <h2 className="text-sm font-medium">
+                    {translate('contentLabel')}
+                  </h2>
                   <Button
                     aria-controls={`post-composer-content-${post.id} post-composer-preview-${post.id}`}
                     aria-pressed={isComposerPreview}
@@ -539,7 +544,7 @@ export default function PostDetail({
                     })}
                     {!post.platform ? (
                       <p className="text-sm text-muted-foreground">
-                        Choose a platform to preview this post.
+                        {translate('choosePlatform')}
                       </p>
                     ) : null}
                     {!isPublished ? <EngagementPreview post={post} /> : null}

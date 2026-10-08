@@ -420,6 +420,7 @@ describe('Table', () => {
         <Table
           density="compact"
           enableDragScroll
+          scrollAriaLabel="Scroll table horizontally"
           isHeaderPinned
           selectable
           items={[{ id: 'a', name: 'First item' }]}

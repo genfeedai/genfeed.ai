@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -120,6 +121,7 @@ export function WorkflowSurfaceInspector({
   searchParams,
   threadId,
 }: WorkflowSurfaceInspectorProps) {
+  const translate = useTranslations('pages.workflows.surfaceInspector');
   const selection = useMemo(
     () => resolveWorkflowSurfaceRoute(pathname, searchParams),
     [pathname, searchParams],
@@ -362,10 +364,10 @@ export function WorkflowSurfaceInspector({
     return (
       <div className="gen-shell-empty-state p-4">
         <p className="text-sm font-medium text-foreground">
-          Execution Not Found
+          {translate('executionNotFound')}
         </p>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          The execution run you're looking for doesn't exist.
+          {translate('executionNotFoundDescription')}
         </p>
       </div>
     );
