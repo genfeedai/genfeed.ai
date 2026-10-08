@@ -10,6 +10,8 @@ export enum SocialSourcePlatform {
 
 export enum SocialSourceType {
   ACCOUNT = 'account',
+  /** A connected account's curated home feed, separate from its own uploads. */
+  TIMELINE = 'timeline',
   /** Container for single posts imported by URL — no sync cadence. */
   POST = 'post',
   /**
@@ -60,4 +62,25 @@ export enum SourcePostContentType {
   POST = 'post',
   REEL = 'reel',
   VIDEO = 'video',
+}
+
+/** Persisted snapshot sync states; kept separate from profile-history sync. */
+export enum ConnectedTimelineSyncStatus {
+  READY = 'ready',
+  EMPTY = 'empty',
+  NOT_SYNCED = 'not_synced',
+  UNSUPPORTED = 'unsupported',
+  RECONNECT = 'reconnect',
+  ACCESS_REQUIRED = 'access_required',
+  BUDGET_BLOCKED = 'budget_blocked',
+  RATE_LIMITED = 'rate_limited',
+  FAILED = 'failed',
+  REFRESHING = 'refreshing',
+}
+
+export enum SourcePostNativeActionStatus {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  UNCERTAIN = 'uncertain',
+  FAILED = 'failed',
 }

@@ -130,6 +130,7 @@ export const APP_ROUTES = {
     WORKFLOWS_NEW: '/automation/workflows/new',
   },
   DISCOVERY: {
+    FOLLOWING: '/discovery/following',
     ADS: '/discovery/ads',
     /**
      * Canonical Discovery home. Bare ROOT permanently redirects here so Overview

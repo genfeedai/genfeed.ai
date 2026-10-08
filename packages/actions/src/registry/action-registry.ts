@@ -2116,6 +2116,12 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Finalizes one watched-post workflow after its inbound children settle.',
   ),
   internalAction(
+    'social.timeline.native-action.execute',
+    'Execute Following Native Action',
+    'Reserves and confirms one tenant-scoped native Following action.',
+    { authorization: 'user' },
+  ),
+  internalAction(
     'social.inbox.outbound.reserve',
     'Reserve Social Inbox Outbound',
     'Validates and reserves one social inbox outbound operation.',

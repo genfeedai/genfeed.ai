@@ -58,6 +58,10 @@ export interface ITrendVideo {
   hashtags?: string[];
   soundId?: string;
   soundName?: string;
+  soundPlayUrl?: string;
+  soundCoverUrl?: string;
+  soundAuthorName?: string;
+  soundDuration?: number;
   hook?: string;
   isCurrent?: boolean;
   /**
@@ -87,6 +91,8 @@ export interface ITrendHashtag {
   platform: string;
   hashtag: string;
   postCount: number;
+  postCountScope?: 'observed' | 'platform';
+  growthMeasured?: boolean;
   viewCount: number;
   growthRate: number;
   viralityScore: number;
@@ -103,6 +109,8 @@ export interface ITrendSound {
   coverUrl?: string;
   playUrl?: string;
   usageCount: number;
+  usageCountScope?: 'observed';
+  examples?: TrendMediaExample[];
   growthRate: number;
   viralityScore: number;
   duration?: number;
@@ -166,6 +174,7 @@ export interface ITrendPreferences {
 }
 
 export interface IViralVideoOptions {
+  relevance?: 'market' | 'brand';
   brandId?: string;
   platform?: string;
   limit?: number;
@@ -207,4 +216,20 @@ export interface ISocialPlatformMetrics {
     interests?: string[];
     peakHours?: string[];
   };
+}
+
+export interface TrendMediaExample {
+  externalId: string;
+  platform: string;
+  title?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  creatorHandle: string;
+}
+
+export interface SocialMediaSource {
+  contentType: string;
+  mediaUrl?: string | null;
+  sourceUrl?: string | null;
+  thumbnailUrl?: string | null;
 }

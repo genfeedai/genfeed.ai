@@ -296,7 +296,7 @@
       "topics": {
         "description": "Click on a trend to see detailed analytics and cross-platform data.",
         "empty": "No trending topics available.",
-        "emptyDescription": "Connect your social accounts to see personalized trends."
+        "emptyDescription": "Try another publication window or check collection health for this market."
       },
       "detail": {
         "loadingTitle": "Loading trend…",

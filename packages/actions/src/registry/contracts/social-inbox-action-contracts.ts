@@ -180,6 +180,54 @@ const syncContract = (
 });
 
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
+  'social.timeline.native-action.execute': {
+    inputSchema: closedObjectSchema(
+      {
+        request: closedObjectSchema(
+          {
+            organizationId: STRING_SCHEMA,
+            brandId: STRING_SCHEMA,
+            userId: STRING_SCHEMA,
+            postId: STRING_SCHEMA,
+            credentialId: STRING_SCHEMA,
+            idempotencyKey: STRING_SCHEMA,
+            action: enumSchema([
+              'like',
+              'reply',
+              'repost',
+              'quote',
+              'comment',
+            ] as const),
+            text: STRING_SCHEMA,
+          },
+          [
+            'organizationId',
+            'brandId',
+            'userId',
+            'postId',
+            'credentialId',
+            'idempotencyKey',
+            'action',
+          ],
+        ),
+      },
+      ['request'],
+    ),
+    outputSchema: closedObjectSchema(
+      {
+        id: STRING_SCHEMA,
+        status: enumSchema([
+          'pending',
+          'completed',
+          'uncertain',
+          'failed',
+        ] as const),
+        externalId: { type: ['string', 'null'] },
+        message: { type: ['string', 'null'] },
+      },
+      ['id', 'status'],
+    ),
+  },
   'social.inbox.outbound.finalize': {
     inputSchema: outboundStateInput,
     outputSchema: OUTBOUND_STATE,

@@ -1,8 +1,10 @@
 import type {
+  ConnectedTimelineSyncStatus,
   SocialSourceHistoryImportStatus,
   SocialSourcePlatform,
   SocialSourceType,
   SourcePostActionType,
+  SourcePostNativeActionStatus,
 } from '../..';
 import type { IBaseEntity } from '../index';
 
@@ -194,4 +196,44 @@ export interface SourcePostDraftActionInput
 export interface SourcePostDraftActionResult {
   draftId: string;
   post: unknown;
+}
+
+export type NativeSocialAction =
+  | 'like'
+  | 'reply'
+  | 'repost'
+  | 'quote'
+  | 'comment';
+export type SocialTimelineStatus = `${ConnectedTimelineSyncStatus}`;
+
+export interface SocialTimelineAccount {
+  credentialId: string;
+  platform: string;
+  label: string;
+  avatarUrl?: string | null;
+  sourceId?: string;
+  kind: 'home' | 'subscriptions' | 'unsupported';
+  status: SocialTimelineStatus;
+  message?: string;
+  lastSyncedAt?: string | null;
+  actions: NativeSocialAction[];
+  posts: ISourcePost[];
+}
+
+export interface SocialTimelineResponse {
+  accounts: SocialTimelineAccount[];
+}
+
+export interface SourcePostNativeActionInput {
+  action: NativeSocialAction;
+  credentialId: string;
+  idempotencyKey: string;
+  text?: string;
+}
+
+export interface SourcePostNativeActionResult {
+  id: string;
+  status: `${SourcePostNativeActionStatus}`;
+  externalId?: string | null;
+  message?: string | null;
 }

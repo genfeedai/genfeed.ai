@@ -26,7 +26,6 @@ import type {
   ITikTokMediaAnalytics,
   ITikTokPublishResponse,
   ITikTokPublishStatusData,
-  ITikTokVideo,
 } from '@genfeedai/contracts/interfaces';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
@@ -470,88 +469,13 @@ export class TiktokService {
   }
 
   public async getTrends(
-    organizationId?: string,
-    brandId?: string,
+    _organizationId?: string,
+    _brandId?: string,
   ): Promise<ISocialTrend[]> {
-    const url = `${this.constructorName} getTrends organizationId: ${organizationId} brandId: ${brandId}`;
-    try {
-      const trendingHashtags: ISocialTrend[] = [];
-      if (!organizationId || !brandId) {
-        recordTrendProviderOutcome('native_empty', 'native_unavailable');
-        this.loggerService.warn(`${url} - TikTok trend provider unavailable`, {
-          reason: 'missing_organization_or_brand_scope',
-        });
-      } else {
-        let credential: CredentialDocument | null = null;
-        try {
-          credential = await this.getValidCredential(organizationId, brandId);
-          if (credential?.accessToken) {
-            // Decrypt the access token
-            const decryptedAccessToken = EncryptionUtil.decrypt(
-              credential.accessToken,
-            );
-            // Fetch user's trending content
-            const userTrends = await firstValueFrom(
-              this.httpService.get(`${this.endpoint}/video/list/`, {
-                headers: {
-                  Authorization: `Bearer ${decryptedAccessToken}`,
-                  'Content-Type': this.contentType,
-                },
-                params: {
-                  fields: 'id,title,create_time,statistics',
-                  max_count: 10,
-                },
-              }),
-            );
-            if (userTrends.data?.data?.videos) {
-              trendingHashtags.push(
-                ...userTrends.data.data.videos.map((video: ITikTokVideo) => ({
-                  growthRate: 0,
-                  mentions: video.statistics?.view_count || 0,
-                  metadata: {
-                    createdAt: video.create_time,
-                    videoId: video.id,
-                  },
-                  topic: `#${video.title}`,
-                })),
-              );
-            }
-          } else {
-            recordTrendProviderOutcome('native_empty', 'native_unavailable');
-            this.loggerService.warn(
-              `${url} - TikTok trend provider unavailable`,
-              {
-                brandId,
-                hasCredential: Boolean(credential),
-                organizationId,
-                reason: 'missing_tiktok_credential',
-              },
-            );
-          }
-        } catch (error: unknown) {
-          recordTrendProviderOutcome('native_failed', 'native_failed');
-          this.loggerService.warn(
-            `${url} - Could not fetch personalized trends`,
-            { error },
-          );
-
-          // If auth error, mark credential as disconnected
-          if (this.isAuthError(error) && credential) {
-            await this.handleAuthError(
-              credential.id,
-              this.getErrorCode(error),
-              url,
-            );
-          }
-        }
-      }
-
-      return trendingHashtags;
-    } catch (error: unknown) {
-      recordTrendProviderOutcome('native_failed', 'native_failed');
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+    // Display API /video/list is the account's own uploads, not a trend feed.
+    // Public trend collection belongs to the governed Apify fallback.
+    recordTrendProviderOutcome('native_empty', 'native_unavailable');
+    return [];
   }
 
   public async getTiktokInfo(

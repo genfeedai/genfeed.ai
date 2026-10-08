@@ -11,13 +11,20 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   GetTrendingHashtagsDto,
   GetTrendingSoundsDto,
   GetViralVideosDto,
 } from '@api/services/integrations/apify/dto/apify-trend.dto';
 import { Timeframe } from '@genfeedai/contracts';
-import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  Query,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 
 @AutoSwagger()
@@ -39,15 +46,32 @@ export class TrendsAnalyticsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const readScope = resolveTenantReadScope(user);
-    const videos = await this.trendsService.getBrandViralVideos(
-      readScope.organizationId,
-      (query.brandId || readScope.brandId) ?? '',
-      {
-        limit: query.limit,
-        platform: query.platform,
-        timeframe: query.timeframe,
-      },
-    );
+    const brandId = query.brandId || readScope.brandId;
+    if (
+      query.relevance !== 'market' &&
+      !getIsSuperAdmin(user) &&
+      (!user.brandId || brandId !== user.brandId)
+    ) {
+      throw new ForbiddenException(
+        'Select an authorized brand before reading its videos.',
+      );
+    }
+    const videos =
+      query.relevance === 'market'
+        ? await this.trendsService.getViralVideos({
+            limit: query.limit,
+            platform: query.platform,
+            timeframe: query.timeframe,
+          })
+        : await this.trendsService.getBrandViralVideos(
+            readScope.organizationId,
+            brandId ?? '',
+            {
+              limit: query.limit,
+              platform: query.platform,
+              timeframe: query.timeframe,
+            },
+          );
 
     return {
       summary: {

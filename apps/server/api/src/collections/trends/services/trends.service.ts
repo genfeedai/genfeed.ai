@@ -283,6 +283,7 @@ export class TrendsService {
     platform?: string,
     options: {
       allowFetchIfMissing?: boolean;
+      relevance?: 'market' | 'brand';
     } = {},
   ): Promise<{
     trends: TrendEntity[];
@@ -306,12 +307,17 @@ export class TrendsService {
     );
 
     // Get trends — never inject synthetic prelaunch/bootstrap rows.
-    let trends = await this.getTrends(organizationId, brandId, platform, {
-      allowFetchIfMissing: options.allowFetchIfMissing ?? false,
-    });
+    let trends = await this.getTrends(
+      options.relevance === 'market' ? undefined : organizationId,
+      options.relevance === 'market' ? undefined : brandId,
+      platform,
+      {
+        allowFetchIfMissing: options.allowFetchIfMissing ?? false,
+      },
+    );
 
     // Brand discovery never substitutes the global chart for a missing match.
-    if (brandId && organizationId) {
+    if (options.relevance !== 'market' && brandId && organizationId) {
       const [brand, preferences] = await Promise.all([
         this.brandsService.findOne({
           id: brandId,
@@ -338,7 +344,7 @@ export class TrendsService {
       if (platforms.length) {
         trends = trends.filter((trend) => platforms.includes(trend.platform));
       }
-    } else if (organizationId) {
+    } else if (options.relevance !== 'market' && organizationId) {
       const preferences = await this.trendPreferencesService.getPreferences(
         organizationId,
         brandId,
@@ -355,7 +361,8 @@ export class TrendsService {
       return new TrendEntity({
         ...trend,
         requiresAuth:
-          (trend.requiresAuth || !!organizationId) &&
+          (trend.requiresAuth ||
+            (options.relevance !== 'market' && !!organizationId)) &&
           !connectedPlatforms.includes(trend.platform),
       });
     });
@@ -371,6 +378,7 @@ export class TrendsService {
     organizationId?: string,
     brandId?: string,
     platform?: string,
+    relevance?: 'market' | 'brand',
   ): Promise<{
     trends: TrendDiscoveryItem[];
     connectedPlatforms: string[];
@@ -380,6 +388,7 @@ export class TrendsService {
       organizationId,
       brandId,
       platform,
+      { relevance },
     );
 
     const trends = await Promise.all(

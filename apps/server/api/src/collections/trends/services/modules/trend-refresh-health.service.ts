@@ -59,6 +59,10 @@ function readEvidence(output: unknown): TrendRefreshHealth | null {
       'native_failed',
       'native_unavailable',
       'provider_failed',
+      'authentication_required',
+      'access_required',
+      'budget_exhausted',
+      'rate_limited',
       'persistence_failed',
     ].find((value) => value === record.reason) ?? null;
   if (!outcome || !['global', 'scoped'].includes(String(record.scope)))

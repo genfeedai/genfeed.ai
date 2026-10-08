@@ -8,6 +8,7 @@ import type { TrendingVideoDocument } from '@api/collections/trends/schemas/tren
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import {
   captureTrendRefreshEvidence,
+  classifyTrendProviderError,
   getTrendNativeFailureReason,
   recordTrendProviderOutcome,
   recordTrendRefreshFailure,
@@ -19,7 +20,8 @@ import { ViralScoringUtil } from '@api/services/integrations/apify/utils/viral-s
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
+import type { TrendRefreshReason } from '@genfeedai/contracts/interfaces';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -88,7 +90,7 @@ export class TrendVideoService {
     const limit = options?.limit || 50;
     const platform = options?.platform;
     const minViralScore = options?.minViralScore;
-    const cacheKey = `${this.CACHE_PREFIX}:videos:v2:${platform || 'all'}:limit${limit}${minViralScore ? `:min${minViralScore}` : ''}`;
+    const cacheKey = `${this.CACHE_PREFIX}:videos:v3:${platform || 'all'}:limit${limit}${minViralScore ? `:min${minViralScore}` : ''}:time${options?.timeframe || 'all'}`;
 
     // Check cache first
     const cached =
@@ -105,6 +107,15 @@ export class TrendVideoService {
       where: { isDeleted: false },
     });
 
+    const hours =
+      options?.timeframe === Timeframe.H24
+        ? 24
+        : options?.timeframe === Timeframe.H72
+          ? 72
+          : options?.timeframe === Timeframe.D7
+            ? 168
+            : null;
+    const since = hours === null ? null : now.getTime() - hours * 3600000;
     const videos = docs
       .map((doc) => ({
         ...(doc.data as unknown as TrendingVideoDocument),
@@ -112,6 +123,13 @@ export class TrendVideoService {
       }))
       .filter((v) => {
         if (!v.isCurrent) return false;
+        if (
+          since !== null &&
+          (!v.publishedAt ||
+            !Number.isFinite(new Date(v.publishedAt).getTime()) ||
+            new Date(v.publishedAt).getTime() < since)
+        )
+          return false;
         if (v.expiresAt && new Date(v.expiresAt) <= now) return false;
         if (platform && v.platform !== platform) return false;
         if (minViralScore != null && (v.viralScore ?? 0) < minViralScore)
@@ -223,13 +241,13 @@ export class TrendVideoService {
 
                 if (matchId) {
                   await this.prisma.trendingVideo.update({
-                    data: { data: dataPayload as Prisma.InputJsonValue },
+                    data: { data: toPrismaJson(dataPayload) },
                     where: { id: matchId },
                   });
                 } else {
                   const created = await this.prisma.trendingVideo.create({
                     data: {
-                      data: dataPayload as Prisma.InputJsonValue,
+                      data: toPrismaJson(dataPayload),
                       isDeleted: false,
                     },
                   });
@@ -261,7 +279,9 @@ export class TrendVideoService {
             return videos.length;
           } catch (error: unknown) {
             recordTrendRefreshFailure(
-              isFetched ? 'persistence_failed' : 'provider_failed',
+              isFetched
+                ? 'persistence_failed'
+                : classifyTrendProviderError(error),
             );
             this.loggerService.error(
               `Failed to fetch viral videos for ${platform}`,
@@ -278,8 +298,7 @@ export class TrendVideoService {
   private async fetchYoutubeVideosNativeFirst(
     limit: number,
   ): Promise<Record<string, unknown>[]> {
-    let reason: 'native_empty' | 'native_failed' | 'native_unavailable' =
-      'native_empty';
+    let reason: TrendRefreshReason = 'native_empty';
     try {
       const nativeVideos = await this.youtubeService.getTrends('US', limit);
       if (nativeVideos.length > 0) {
@@ -350,7 +369,7 @@ export class TrendVideoService {
   }): Promise<TrendingHashtagDocument[]> {
     const limit = options?.limit || 50;
     const platform = options?.platform;
-    const cacheKey = `${this.CACHE_PREFIX}:hashtags:${platform || 'all'}`;
+    const cacheKey = `${this.CACHE_PREFIX}:hashtags:v3:${platform || 'all'}:limit${limit}`;
 
     // Check cache first
     const cached =
@@ -367,7 +386,16 @@ export class TrendVideoService {
     });
 
     const hashtags = docs
-      .map((doc) => doc.data as unknown as TrendingHashtagDocument)
+      .map((doc) => ({
+        ...(doc.data as unknown as TrendingHashtagDocument),
+        growthMeasured: false,
+        postCountScope:
+          (doc.data as unknown as TrendingHashtagDocument).platform ===
+          'instagram'
+            ? 'observed'
+            : 'platform',
+        id: doc.id,
+      }))
       .filter((h) => {
         if (!h.isCurrent) return false;
         if (h.expiresAt && new Date(h.expiresAt) <= now) return false;
@@ -466,13 +494,13 @@ export class TrendVideoService {
 
               if (matchId) {
                 await this.prisma.trendingHashtag.update({
-                  data: { data: dataPayload as Prisma.InputJsonValue },
+                  data: { data: toPrismaJson(dataPayload) },
                   where: { id: matchId },
                 });
               } else {
                 const created = await this.prisma.trendingHashtag.create({
                   data: {
-                    data: dataPayload as Prisma.InputJsonValue,
+                    data: toPrismaJson(dataPayload),
                     isDeleted: false,
                   },
                 });
@@ -489,7 +517,9 @@ export class TrendVideoService {
             return hashtags.length;
           } catch (error: unknown) {
             recordTrendRefreshFailure(
-              isFetched ? 'persistence_failed' : 'provider_failed',
+              isFetched
+                ? 'persistence_failed'
+                : classifyTrendProviderError(error),
             );
             this.loggerService.error(
               `Failed to fetch hashtags for ${platform}`,
@@ -512,7 +542,7 @@ export class TrendVideoService {
     limit?: number;
   }): Promise<TrendingSoundDocument[]> {
     const limit = options?.limit || 50;
-    const cacheKey = `${this.CACHE_PREFIX}:sounds`;
+    const cacheKey = `${this.CACHE_PREFIX}:sounds:v3:limit${limit}`;
 
     // Check cache first
     const cached =
@@ -529,7 +559,11 @@ export class TrendVideoService {
     });
 
     const sounds = docs
-      .map((doc) => doc.data as unknown as TrendingSoundDocument)
+      .map((doc) => ({
+        ...(doc.data as unknown as TrendingSoundDocument),
+        usageCountScope: 'observed',
+        id: doc.id,
+      }))
       .filter((s) => {
         if (!s.isCurrent) return false;
         if (s.expiresAt && new Date(s.expiresAt) <= now) return false;
@@ -610,13 +644,13 @@ export class TrendVideoService {
 
               if (matchId) {
                 await this.prisma.trendingSound.update({
-                  data: { data: dataPayload as Prisma.InputJsonValue },
+                  data: { data: toPrismaJson(dataPayload) },
                   where: { id: matchId },
                 });
               } else {
                 const created = await this.prisma.trendingSound.create({
                   data: {
-                    data: dataPayload as Prisma.InputJsonValue,
+                    data: toPrismaJson(dataPayload),
                     isDeleted: false,
                   },
                 });
@@ -631,7 +665,9 @@ export class TrendVideoService {
             return sounds.length;
           } catch (error: unknown) {
             recordTrendRefreshFailure(
-              isFetched ? 'persistence_failed' : 'provider_failed',
+              isFetched
+                ? 'persistence_failed'
+                : classifyTrendProviderError(error),
             );
             this.loggerService.error('Failed to fetch trending sounds', error);
             return 0;
@@ -682,7 +718,10 @@ export class TrendVideoService {
     });
 
     const videos = docs
-      .map((doc) => doc.data as unknown as TrendingVideoDocument)
+      .map((doc) => ({
+        ...(doc.data as unknown as TrendingVideoDocument),
+        id: doc.id,
+      }))
       .filter((v) => v.isCurrent)
       .sort(
         (a, b) =>

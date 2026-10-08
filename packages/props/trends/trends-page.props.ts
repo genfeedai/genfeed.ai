@@ -7,6 +7,7 @@ export interface TrendItem {
   growthRate: number;
   viralityScore: number;
   metadata?: {
+    growthMeasured?: boolean;
     hashtags?: string[];
     urls?: string[];
     sampleContent?: string;

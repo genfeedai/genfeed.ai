@@ -491,10 +491,12 @@ describe('ApifyService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
+        growthMeasured: false,
         growthRate: 2.5,
         hashtag: 'coding',
         platform: 'twitter',
         postCount: 1000,
+        postCountScope: 'platform',
         relatedHashtags: ['coding', 'dev'],
         viewCount: 50000,
         viralityScore: 0.8,

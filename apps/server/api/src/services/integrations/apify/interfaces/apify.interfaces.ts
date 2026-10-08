@@ -82,6 +82,10 @@ export interface ApifyTrendData {
  * TikTok-specific trend data from Apify
  */
 export interface ApifyTikTokTrend {
+  name?: string;
+  type?: 'hashtag' | 'video' | 'sound' | 'creator';
+  url?: string;
+  rank?: number;
   id?: string;
   title?: string;
   description?: string;
@@ -126,8 +130,13 @@ export interface ApifyTikTokVideo {
     musicAuthor?: string;
     playUrl?: string;
     coverUrl?: string;
+    coverMediumUrl?: string;
+    musicOriginal?: boolean;
+    duration?: number;
   };
   videoMeta?: {
+    coverUrl?: string;
+    originalCoverUrl?: string;
     width?: number;
     height?: number;
     duration?: number;
@@ -137,6 +146,7 @@ export interface ApifyTikTokVideo {
   playCount?: number;
   commentCount?: number;
   webVideoUrl?: string;
+  mediaUrls?: string[];
   hashtags?: Array<{ id?: string; name?: string }>;
 }
 
@@ -378,6 +388,10 @@ export interface ApifyVideoData {
   hashtags: string[];
   soundId?: string;
   soundName?: string;
+  soundPlayUrl?: string;
+  soundCoverUrl?: string;
+  soundAuthorName?: string;
+  soundDuration?: number;
   hook?: string;
 }
 
@@ -388,6 +402,8 @@ export interface ApifyHashtagData {
   platform: string;
   hashtag: string;
   postCount: number;
+  postCountScope?: 'observed' | 'platform';
+  growthMeasured?: boolean;
   viewCount: number;
   growthRate: number;
   viralityScore: number;
@@ -408,6 +424,8 @@ export interface ApifySoundData {
   growthRate: number;
   viralityScore: number;
   duration?: number;
+  usageCountScope?: 'observed';
+  examples?: ApifyVideoData[];
 }
 
 // ==================== Instagram Comment Interfaces ====================

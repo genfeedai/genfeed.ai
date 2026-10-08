@@ -76,5 +76,8 @@ vi.mock('next-intl', async () => {
   const { default: pages } = await import(
     '../../../../../../apps/app/messages/en/pages.json'
   );
-  return { useTranslations: createTranslateFromCatalog({ pages }) };
+  const { default: ui } = await import(
+    '../../../../../../apps/app/messages/en/ui.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ pages, ui }) };
 });

@@ -1,6 +1,10 @@
+import { getSafeExternalUrl } from '@genfeedai/helpers/media/social-media-source.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/trending-topics-section.props';
 import type { TrendItem } from '@props/trends/trends-page.props';
+import SocialMediaPlayer from '@ui/analytics/trends/social-media-player';
+import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Flame } from 'lucide-react';
@@ -33,7 +37,19 @@ export default function TrendingTopicsSection({
   getRowLink,
 }: Props) {
   const translate = useTranslations('pages.analytics.trends');
+  const discovery = useTranslations('ui.discovery');
 
+  const seen = new Set<string>();
+  const examples = trendingTopics
+    .flatMap((trend) =>
+      (trend.sourcePreview ?? []).flatMap((source) => {
+        const key = `${source.platform}:${source.sourceUrl}`;
+        if (seen.has(key) || !getSafeExternalUrl(source.sourceUrl)) return [];
+        seen.add(key);
+        return [{ source, topic: trend.topic }];
+      }),
+    )
+    .slice(0, 12);
   return (
     <>
       <p className="text-sm text-foreground/60">
@@ -113,8 +129,9 @@ export default function TrendingTopicsSection({
                 <span
                   className={`font-medium ${getGrowthRateClass(item.growthRate)}`}
                 >
-                  {item.growthRate > 0 ? '+' : ''}
-                  {item.growthRate}%
+                  {item.metadata?.growthMeasured === true
+                    ? `${item.growthRate > 0 ? '+' : ''}${item.growthRate}%`
+                    : discovery('notMeasured')}
                 </span>
               ),
             },
@@ -132,6 +149,48 @@ export default function TrendingTopicsSection({
           ]}
         />
       )}
+      {examples.length ? (
+        <CollectionGrid maxColumns={3}>
+          {examples.map(({ source, topic }) => (
+            <Card
+              key={`${source.platform}:${source.sourceUrl}`}
+              bodyClassName="space-y-3 p-4"
+            >
+              <p className="text-xs text-muted-foreground">
+                {topic} · {source.platform}
+              </p>
+              {source.contentType === 'video' ||
+              source.thumbnailUrl ||
+              source.mediaUrl ? (
+                <SocialMediaPlayer
+                  contentType={source.contentType}
+                  sourceUrl={source.sourceUrl}
+                  mediaUrl={source.mediaUrl}
+                  thumbnailUrl={source.thumbnailUrl}
+                  title={source.title || topic}
+                />
+              ) : (
+                <a
+                  href={getSafeExternalUrl(source.sourceUrl) ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs underline"
+                >
+                  {discovery('openSource')}
+                </a>
+              )}
+              <p className="line-clamp-6 whitespace-pre-wrap text-sm">
+                {source.text || source.title}
+              </p>
+              {source.authorHandle ? (
+                <p className="text-xs text-muted-foreground">
+                  @{source.authorHandle}
+                </p>
+              ) : null}
+            </Card>
+          ))}
+        </CollectionGrid>
+      ) : null}
     </>
   );
 }

@@ -129,12 +129,7 @@ export class TrendCorpusFreshnessService {
         sourcePreviewStaleAfterDays,
       ),
       ...refreshHealth
-        .filter(
-          (refresh) =>
-            refresh.outcome.endsWith('failed') ||
-            (refresh.outcome === 'native_empty' &&
-              refresh.reason === 'native_unavailable'),
-        )
+        .filter((refresh) => refresh.outcome.endsWith('failed'))
         .map(
           (refresh): TrendProviderFailureSummary => ({
             affectedTrendCount: 0,

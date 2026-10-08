@@ -39,3 +39,17 @@ export interface PlatformTrendsTabsProps {
   platforms?: string[];
   className?: string;
 }
+
+export interface SocialMediaPlayerProps {
+  contentType: string;
+  mediaUrl?: string | null;
+  sourceUrl?: string | null;
+  thumbnailUrl?: string | null;
+  title?: string;
+  className?: string;
+}
+
+export interface TrendVideoGalleryProps extends ViralVideoLeaderboardProps {
+  selectedHashtag?: string;
+  onClearHashtag?: () => void;
+}

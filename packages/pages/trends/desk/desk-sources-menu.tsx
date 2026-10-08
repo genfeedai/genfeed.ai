@@ -142,12 +142,15 @@ function SourceRow({
 export default function DeskSourcesMenu({
   brandId,
   onSourcesChanged,
-  sources,
+  sources: suppliedSources,
 }: {
   brandId: string;
   onSourcesChanged: () => Promise<void>;
   sources: ISocialSource[];
 }) {
+  const sources = suppliedSources.filter(
+    (source) => source.sourceType !== SocialSourceType.TIMELINE,
+  );
   const translateDesk = useTranslations('common.trends.desk');
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const [isFollowOpen, setIsFollowOpen] = useState(false);
