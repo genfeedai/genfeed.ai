@@ -144,6 +144,52 @@ describe('literal MCP instruction contract', () => {
       expect.objectContaining({ name: 'missing_action', surface: 'missing' }),
     ]);
   });
+  it.each(['```', '~~~~', '````'])(
+    'scans explicit Genfeed calls inside %s fences',
+    (marker) => {
+      expect(
+        checkReferenceSources(
+          catalog,
+          source(
+            [
+              'Genfeed call:',
+              `${marker}json`,
+              '{ "tool": "missing_action" }',
+              marker + marker[0],
+              'Call `rate_content`.',
+            ].join('\n'),
+          ),
+        ),
+      ).toEqual([
+        expect.objectContaining({ line: 3, name: 'missing_action' }),
+        expect.objectContaining({ line: 5, name: 'rate_content' }),
+      ]);
+    },
+  );
+  it.each(['````', '~~~~'])(
+    'keeps shorter and different-family markers inside %s data fences',
+    (marker) => {
+      const other = marker[0] === '`' ? '~~~~' : '````';
+      expect(
+        checkReferenceSources(
+          catalog,
+          source(
+            [
+              `${marker}json`,
+              '```',
+              'Call `schema_example`.',
+              other,
+              'Call `schema_label`.',
+              marker.slice(0, 3),
+              'Call `schema_id`.',
+              marker,
+              'Call `missing_action`.',
+            ].join('\n'),
+          ),
+        ),
+      ).toEqual([expect.objectContaining({ line: 9, name: 'missing_action' })]);
+    },
+  );
   it('fails when a referenced tool loses its MCP surface', () => {
     writeCatalog('agent');
     expect(() =>
@@ -187,6 +233,35 @@ describe('literal MCP instruction contract', () => {
       ),
     ).toEqual(['rate_content']);
   });
+  it.each([
+    'noise\n[]',
+    'null',
+    '{}',
+    '[null]',
+    '[{}]',
+    '[{"path": 42, "text": "Call missing_action"}]',
+    '[{"path": "prompt", "text": 42}]',
+  ])(
+    'rejects malformed adapter output at the adapter boundary: %s',
+    (output) => {
+      mkdirSync(join(root, 'apps/desktop/app'), { recursive: true });
+      writeFileSync(join(root, 'apps/desktop/app/tsconfig.json'), '{}');
+      mkdirSync(join(root, 'scripts/architecture'), { recursive: true });
+      writeFileSync(
+        join(root, 'scripts/architecture/desktop-mcp-prompt-adapter.ts'),
+        `console.log(${JSON.stringify(output)});`,
+      );
+      expect(() =>
+        runCheckMcpToolReferences({
+          repoRoot: root,
+          catalogPath: catalog,
+          noLocalSkills: true,
+        }),
+      ).toThrow(
+        /desktop-mcp-prompt-adapter\.ts: (?:malformed JSON output|expected an array)/u,
+      );
+    },
+  );
   it('checks every shipped Markdown surface in an explicit source checkout', () => {
     const skills = join(root, 'public-skills');
     mkdirSync(skills);

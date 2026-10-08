@@ -60,17 +60,32 @@ export function checkReferenceSources(
   const violations: McpReferenceViolation[] = [];
   for (const source of sources) {
     const lines = source.text.split('\n');
-    let fenced = false;
+    let fenceMarker: string | undefined;
+    const closesFence = (line: string): boolean => {
+      const marker = /^\s*(`+|~+)\s*$/u.exec(line)?.[1];
+      return Boolean(
+        marker &&
+          fenceMarker &&
+          marker[0] === fenceMarker[0] &&
+          marker.length >= fenceMarker.length,
+      );
+    };
     let toolColumn = -1;
     let genfeedExample = false;
     const fencedFields = new Map<number, string[]>();
     for (const [index, line] of lines.entries()) {
-      if (/^\s*```/u.test(line)) {
-        fenced = !fenced;
-        genfeedExample = fenced && /genfeed/iu.test(line);
-        if (fenced && !genfeedExample) {
+      const opener = /^\s*(`{3,}|~{3,})(.*)$/u.exec(line);
+      if (fenceMarker && closesFence(line)) {
+        fenceMarker = undefined;
+        genfeedExample = false;
+        continue;
+      }
+      if (!fenceMarker && opener) {
+        fenceMarker = opener[1];
+        genfeedExample = /genfeed/iu.test(opener[2] ?? '');
+        if (!genfeedExample) {
           const closing = lines.findIndex(
-            (next, nextIndex) => nextIndex > index && /^\s*```/u.test(next),
+            (next, nextIndex) => nextIndex > index && closesFence(next),
           );
           const example = lines
             .slice(index + 1, closing < 0 ? undefined : closing)
@@ -86,9 +101,9 @@ export function checkReferenceSources(
                 ?.trim() ?? '',
             );
         }
-        if (fenced && genfeedExample) {
+        if (genfeedExample) {
           const end = lines.findIndex(
-            (next, nextIndex) => nextIndex > index && /^\s*```/u.test(next),
+            (next, nextIndex) => nextIndex > index && closesFence(next),
           );
           const block = lines
             .slice(index + 1, end < 0 ? undefined : end)
@@ -111,7 +126,7 @@ export function checkReferenceSources(
         continue;
       }
       const candidates = new Set<string>();
-      if (!fenced && line.trim().startsWith('|')) {
+      if (!fenceMarker && line.trim().startsWith('|')) {
         const cells = line
           .split('|')
           .slice(1, -1)
@@ -125,8 +140,8 @@ export function checkReferenceSources(
           const name = token.replace(/^mcp__genfeed__/u, '');
           if (TOKEN.test(name)) candidates.add(name);
         }
-      } else if (!fenced) toolColumn = -1;
-      if (!fenced) {
+      } else if (!fenceMarker) toolColumn = -1;
+      if (!fenceMarker) {
         for (const match of line.matchAll(/`([^`]+)`/gu)) {
           const token = match[1] ?? '';
           const name = token.replace(/^mcp__genfeed__/u, '');
@@ -213,17 +228,41 @@ export function runCheckMcpToolReferences(
   if (options.skillsDir)
     sources.push(...trackedMarkdown(resolve(options.skillsDir)));
   if (!options.noDesktop) {
-    const promptSources: ReferenceSource[] = JSON.parse(
-      execFileSync(
-        'bun',
-        [
-          '--tsconfig-override',
-          join(root, 'apps/desktop/app/tsconfig.json'),
-          join(root, 'scripts/architecture/desktop-mcp-prompt-adapter.ts'),
-        ],
-        { encoding: 'utf8', cwd: root },
-      ),
+    const adapter = join(
+      root,
+      'scripts/architecture/desktop-mcp-prompt-adapter.ts',
     );
+    const output = execFileSync(
+      'bun',
+      [
+        '--tsconfig-override',
+        join(root, 'apps/desktop/app/tsconfig.json'),
+        adapter,
+      ],
+      { encoding: 'utf8', cwd: root },
+    );
+    let promptSources: unknown;
+    try {
+      promptSources = JSON.parse(output);
+    } catch {
+      throw new Error(`${adapter}: malformed JSON output`);
+    }
+    if (
+      !Array.isArray(promptSources) ||
+      !promptSources.every(
+        (source: unknown): source is ReferenceSource =>
+          typeof source === 'object' &&
+          source !== null &&
+          'path' in source &&
+          typeof source.path === 'string' &&
+          'text' in source &&
+          typeof source.text === 'string',
+      )
+    ) {
+      throw new Error(
+        `${adapter}: expected an array of objects with string path and text`,
+      );
+    }
     sources.push(...promptSources);
   }
   return checkReferenceSources(catalog, sources);
