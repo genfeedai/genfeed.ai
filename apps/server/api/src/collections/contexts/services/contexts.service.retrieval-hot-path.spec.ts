@@ -75,7 +75,7 @@ describe('ContextsService retrieval hot path', () => {
     const retrieval = new KnowledgeContentRetrievalService(
       prismaService,
       service,
-      brandAccessFixture(prismaService as never),
+      brandAccessFixture(),
     );
 
     return {
