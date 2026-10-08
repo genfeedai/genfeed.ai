@@ -693,6 +693,61 @@ describe('useStudioGeneration inline voice', () => {
 });
 
 describe('Studio generation lifecycle recovery', () => {
+  it.each([IngredientStatus.FAILED, IngredientStatus.GENERATED])(
+    'refreshes Library for a polled %s result only when it failed without a socket event',
+    async (status) => {
+      const refreshLibrary = vi.fn();
+      const onGenerated = vi.fn();
+      const ingredient = {
+        id: 'vid-1',
+        brandId: 'brand-1',
+        category: IngredientCategory.VIDEO,
+        status,
+      };
+      mockVideosFindOne.mockResolvedValue(ingredient);
+      window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshLibrary);
+      const { result, unmount } = renderStudioGeneration({
+        type: 'video',
+        onGenerated,
+      });
+
+      try {
+        act(() => {
+          result.current.rehydratePending([
+            {
+              id: ingredient.id,
+              ingredientId: ingredient.id,
+              createdAt: 1,
+              prompt: 'Saved video',
+              status: IngredientStatus.PROCESSING,
+              type: 'video',
+            },
+          ]);
+        });
+
+        await waitFor(() =>
+          expect(result.current.jobs[0]).toMatchObject({ ingredient, status }),
+        );
+        expect(onGenerated).toHaveBeenCalledOnce();
+        expect(refreshLibrary).toHaveBeenCalledTimes(
+          status === IngredientStatus.FAILED ? 1 : 0,
+        );
+        expect(mockVideosPost).not.toHaveBeenCalled();
+
+        act(() => window.dispatchEvent(new Event('focus')));
+        expect(refreshLibrary).toHaveBeenCalledTimes(
+          status === IngredientStatus.FAILED ? 1 : 0,
+        );
+      } finally {
+        unmount();
+        window.removeEventListener(
+          LIBRARY_ASSETS_REFRESH_EVENT,
+          refreshLibrary,
+        );
+      }
+    },
+  );
+
   it('shows submitting immediately and prevents a duplicate request in the same turn', async () => {
     let finish:
       | ((value: { pendingIngredientIds: string[] }) => void)
