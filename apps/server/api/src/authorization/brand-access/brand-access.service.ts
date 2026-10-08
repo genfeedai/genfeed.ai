@@ -24,7 +24,7 @@ export class BrandAccessService {
       organizationId: actor.organizationId,
       isDeleted: false,
     };
-    if (!actor.organizationId || !actor.userId) {
+    if (!actor.organizationId || (isCloudDeployment() && !actor.userId)) {
       throw new ForbiddenException('Brand access denied');
     }
     if (!isCloudDeployment()) {

@@ -1,6 +1,8 @@
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { fitBrandContextToBudgetWithReport } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
@@ -86,6 +88,7 @@ function createBrandKitAssets() {
 describe('AgentContextAssemblyService', () => {
   let brandMemoryService: { getInsights: ReturnType<typeof vi.fn> };
   let brandsService: {
+    brandAccessService: BrandAccessService;
     findOne: ReturnType<typeof vi.fn>;
     resolveBrandKitAssets: ReturnType<typeof vi.fn>;
   };
@@ -109,6 +112,7 @@ describe('AgentContextAssemblyService', () => {
       getInsights: vi.fn().mockResolvedValue([]),
     };
     brandsService = {
+      brandAccessService: brandAccessFixture(),
       findOne: vi.fn().mockResolvedValue(createCompleteBrand()),
       resolveBrandKitAssets: vi.fn().mockResolvedValue(createBrandKitAssets()),
     };

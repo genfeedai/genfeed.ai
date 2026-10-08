@@ -90,7 +90,10 @@ export class MembersController {
         include: {
           brands: {
             select: { id: true, label: true, slug: true },
-            where: await this.brandAccessService.predicate(user),
+            where: await this.brandAccessService.predicate({
+              ...user,
+              organizationId,
+            }),
           },
           role: true,
           // Colleagues see identity only — never another member's settings,

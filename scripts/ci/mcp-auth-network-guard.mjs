@@ -7,6 +7,11 @@ import { dirname, resolve } from 'node:path';
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
 const PORTS = new Set([3010, 3014, 5432, 6379, 3011]);
+const NOTIFICATION_PROBES = new Set([
+  '/v1/health',
+  '/v1/internal/email-deliveries',
+  '/v1/internal/system-notifications',
+]);
 export function destinationVerdict({
   host,
   port,
@@ -20,7 +25,7 @@ export function destinationVerdict({
   if (
     Number(port) === 3011 &&
     transport !== 'socket' &&
-    (path !== '/v1/health' || method !== 'GET')
+    (!NOTIFICATION_PROBES.has(path) || method !== 'GET')
   )
     return 'notification-submission';
   if (transport === 'https') return 'unexpected-tls';

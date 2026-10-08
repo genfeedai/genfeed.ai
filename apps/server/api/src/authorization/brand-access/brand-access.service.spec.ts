@@ -196,3 +196,17 @@ describe('live Cloud member brand policy', () => {
     );
   });
 });
+
+it('preserves actorless cosmetic selfhost reads while Cloud rejects a missing initiating user', async () => {
+  const f = fixture();
+  runtime.cloud = false;
+  expect(
+    await f.service.predicate({ organizationId: 'org-a', userId: '' }),
+  ).toEqual({ organizationId: 'org-a', isDeleted: false });
+  expect(f.findMember).not.toHaveBeenCalled();
+  runtime.cloud = true;
+  await expect(
+    f.service.predicate({ organizationId: 'org-a', userId: '' }),
+  ).rejects.toThrow(ForbiddenException);
+  expect(f.findMember).not.toHaveBeenCalled();
+});
