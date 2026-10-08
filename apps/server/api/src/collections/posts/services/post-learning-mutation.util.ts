@@ -15,6 +15,7 @@ import {
 } from '@api/collections/content-learning/services/learning-publication-source.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { preparePostPatchWrite } from '@api/collections/posts/services/post-patch-write.util';
+import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import type { PostUpdateInput } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -579,6 +580,24 @@ export async function patchPostWithLearning(
     id,
     dto,
   );
+  // Load the canonical row even when the patch only changes its scheduled
+  // date or strategy identity; those fields still consume cadence capacity.
+  if (
+    dto.targetExecutionState !== undefined ||
+    dto.scheduledDate !== undefined ||
+    dto.agentStrategyId !== undefined ||
+    dto.groupId !== undefined ||
+    dto.brandId !== undefined
+  ) {
+    const row = await tx.post.findFirst({
+      where: scopedWhere(plan.organizationId, { id }),
+    });
+    if (row)
+      await assertStrategyCadenceAdmission(tx, {
+        ...row,
+        ...prepared.prismaWriteData,
+      });
+  }
   let updatedPost = await context.writePost(
     tx,
     { id, organizationId: plan.organizationId, isDeleted: false },

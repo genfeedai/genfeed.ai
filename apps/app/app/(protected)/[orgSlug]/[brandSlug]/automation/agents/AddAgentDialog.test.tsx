@@ -207,6 +207,20 @@ describe('AddAgentDialog', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Voice' }), {
       target: { value: 'Direct and friendly' },
     });
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Weekly publishing ceiling' }),
+      { target: { value: '6' } },
+    );
+    expect(screen.getByRole('button', { name: 'Create agent' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toBeVisible();
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Weekly publishing ceiling' }),
+      { target: { value: '14' } },
+    );
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Ready-draft reserve' }),
+      { target: { value: '3' } },
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Create agent' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
@@ -219,6 +233,8 @@ describe('AddAgentDialog', () => {
           weeklyCreditBudget: 500,
           minCreditThreshold: 50,
           postsPerWeek: 7,
+          publishingCeilingPerWeek: 14,
+          readyDraftReserve: 3,
           runFrequency: 'daily',
           autonomyMode: 'SUPERVISED',
         }),

@@ -1,8 +1,13 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { AgentCadenceExecutionService } from '@api/services/agent-orchestrator/agent-cadence-execution.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
+import type {
+  AgentTurnWorkflowResult,
+  PreparedAgentTurnState,
+} from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
 import type {
   AgentChatContext,
   ToolCallSummary,
@@ -19,7 +24,7 @@ import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/
 import { buildFallbackThreadTitle } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentMessageRole } from '@genfeedai/contracts';
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 interface BatchGenerationDraft {
   brandId?: string;
@@ -63,7 +68,17 @@ export class AgentOrchestratorBatchService {
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly streamEffects: AgentStreamEffectsService,
+    @Optional()
+    private readonly cadenceExecution?: AgentCadenceExecutionService,
   ) {}
+
+  async tryExecuteCadence(
+    state: PreparedAgentTurnState,
+  ): Promise<AgentTurnWorkflowResult | null> {
+    return this.cadenceExecution
+      ? this.cadenceExecution.tryExecute(state)
+      : null;
+  }
 
   async tryHandleBatchGenerationTurnStream(
     params: BatchTurnParams,

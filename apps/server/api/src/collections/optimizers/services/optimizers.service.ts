@@ -53,6 +53,7 @@ export class OptimizersService {
     organizationId: string,
     userId?: string,
     onBilling?: (amount: number) => void,
+    creditBudget?: number,
   ): Promise<Record<string, unknown>> {
     this.logger.debug('Analyzing content', {
       contentType: dto.contentType,
@@ -67,6 +68,7 @@ export class OptimizersService {
       dto.platform,
       dto.goals,
       onBilling,
+      creditBudget,
     );
 
     // Get metadata
@@ -394,6 +396,7 @@ Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason 
     platform?: string,
     goals?: string[],
     onBilling?: (amount: number) => void,
+    creditBudget?: number,
   ): Promise<ContentAnalysis> {
     const prompt = this.buildAnalysisPrompt(
       content,
@@ -408,6 +411,7 @@ Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason 
       contentAnalysisSchema,
       CONTENT_ANALYSIS_SCHEMA_NAME,
       onBilling,
+      creditBudget,
     );
   }
 
@@ -619,15 +623,65 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
     schema: ZodType<TResult>,
     schemaName: string,
     onBilling?: (amount: number) => void,
+    creditBudget?: number,
   ): Promise<TResult> {
+    const pricedModel =
+      creditBudget === undefined
+        ? undefined
+        : await this.modelsService.findOne({
+            key: baseModelKey(DEFAULT_TEXT_MODEL),
+          });
+    if (creditBudget !== undefined && !pricedModel)
+      throw new Error(
+        `Model pricing is not configured for ${DEFAULT_TEXT_MODEL}`,
+      );
+    if (pricedModel) {
+      const rates =
+        pricedModel.pricingType === 'per-token'
+          ? [
+              pricedModel.inputCostPerMillionTokens,
+              pricedModel.outputCostPerMillionTokens,
+            ]
+          : [pricedModel.cost];
+      if (
+        rates.some(
+          (value) =>
+            typeof value !== 'number' || !Number.isFinite(value) || value < 0,
+        )
+      )
+        throw new Error(
+          `Model pricing is incomplete for ${DEFAULT_TEXT_MODEL}`,
+        );
+    }
     return this.replicateService.generateStructuredTextSync(
       DEFAULT_TEXT_MODEL,
       {
         input: { max_completion_tokens: maxCompletionTokens },
+        beforeAttempt:
+          creditBudget === undefined
+            ? undefined
+            : async (attemptInput) => {
+                const quote = calculateEstimatedTextCredits(
+                  pricedModel ?? {},
+                  attemptInput,
+                  'x'.repeat(maxCompletionTokens * 4),
+                );
+                if (
+                  !Number.isFinite(quote) ||
+                  quote < 0 ||
+                  !Number.isFinite(creditBudget) ||
+                  quote > (creditBudget ?? 0)
+                )
+                  throw new Error(
+                    'The quality evaluation exceeds its remaining credit budget.',
+                  );
+              },
         onAttempt: async (attemptInput, output) => {
-          onBilling?.(
-            await this.calculateDefaultTextCharge(attemptInput, output),
-          );
+          const charge = pricedModel
+            ? calculateEstimatedTextCredits(pricedModel, attemptInput, output)
+            : await this.calculateDefaultTextCharge(attemptInput, output);
+          if (creditBudget !== undefined) creditBudget -= charge;
+          onBilling?.(charge);
         },
         prompt,
         schema,

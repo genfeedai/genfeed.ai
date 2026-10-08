@@ -4,9 +4,43 @@ import type {
   AgentStrategyPayload,
 } from '@props/automation/agent-strategies-page.props';
 
+export function isCadenceFormValid(
+  form: Pick<
+    AgentStrategyFormState,
+    'postsPerWeek' | 'publishingCeilingPerWeek' | 'readyDraftReserve'
+  >,
+): boolean {
+  const target = form.postsPerWeek?.trim() ?? '';
+  const ceiling = form.publishingCeilingPerWeek?.trim() ?? '';
+  const reserve = form.readyDraftReserve?.trim() ?? '';
+  if (
+    target &&
+    (!Number.isInteger(Number(target)) ||
+      Number(target) < 1 ||
+      Number(target) > 100)
+  )
+    return false;
+  if (!ceiling && !reserve) return true;
+  if (!target) return false;
+  const maximum = ceiling ? Number(ceiling) : Number(target);
+  return (
+    Number.isInteger(maximum) &&
+    maximum >= Number(target) &&
+    maximum <= 1000 &&
+    (!reserve ||
+      (Number.isInteger(Number(reserve)) &&
+        Number(reserve) >= 0 &&
+        Number(reserve) <= 100))
+  );
+}
+
 export function buildPayload(
   form: AgentStrategyFormState,
 ): AgentStrategyPayload {
+  if (!isCadenceFormValid(form))
+    throw new RangeError(
+      'Invalid posting target, publishing ceiling or draft reserve.',
+    );
   const preferredWorkflowTemplateId = preferredWorkflowTemplateIdForAgentType(
     form.agentType,
   );
@@ -32,6 +66,15 @@ export function buildPayload(
       trendWatchersEnabled: form.trendWatchersEnabled,
     },
     platforms: form.platforms,
+    ...(form.postsPerWeek?.trim()
+      ? { postsPerWeek: Number(form.postsPerWeek) }
+      : {}),
+    ...(form.publishingCeilingPerWeek?.trim()
+      ? { publishingCeilingPerWeek: Number(form.publishingCeilingPerWeek) }
+      : {}),
+    ...(form.readyDraftReserve?.trim()
+      ? { readyDraftReserve: Number(form.readyDraftReserve) }
+      : {}),
     preferredWorkflowTemplateId,
     skillSlugs: form.skillSlugs,
     publishPolicy: {

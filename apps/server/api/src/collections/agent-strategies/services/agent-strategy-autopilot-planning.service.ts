@@ -14,6 +14,10 @@ import {
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.helpers';
 import type { BudgetPacingState } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
+import {
+  getCadenceDemand,
+  resolveCadencePolicy,
+} from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -250,7 +254,41 @@ export class AgentStrategyAutopilotPlanningService {
       strategyId,
       strategyOrganizationId,
     } = context;
-    if (!strategy.opportunitySources?.evergreenCadenceEnabled) return;
+    const policy = resolveCadencePolicy(strategy);
+    if (
+      !policy.separate &&
+      !strategy.opportunitySources?.evergreenCadenceEnabled
+    )
+      return;
+    if (policy.separate) {
+      const status = await this.performanceService.getCadenceStatus(strategy);
+      if (status.truncated) return;
+      const demand = getCadenceDemand(policy, status);
+      const count = Math.min(5, demand.generation);
+      for (let index = 0; index < count; index++) {
+        const purpose = index < demand.posting ? 'posting-target' : 'reserve';
+        await this.opportunitiesService.createIfMissing({
+          brandId: strategyBrandId ?? '',
+          decisionReason: `Cadence replenishment for the ${purpose}.`,
+          expiresAt,
+          estimatedCreditCost: estimateOpportunityCost(
+            resolveFormatsForStrategy(strategy),
+          ),
+          expectedTrafficScore: 55,
+          formatCandidates: resolveFormatsForStrategy(strategy),
+          metadata: { trigger: 'cadence-gap', cadencePurpose: purpose },
+          organizationId: strategyOrganizationId,
+          platformCandidates: platforms,
+          priorityScore: 55,
+          relevanceScore: computeTopicRelevance(strategy, defaultTopic),
+          sourceRef: `cadence:${day}:${index}:${purpose}`,
+          sourceType: 'evergreen',
+          strategyId,
+          topic: defaultTopic,
+        });
+      }
+      return;
+    }
 
     const cadence =
       await this.performanceService.getPublishingCadence(strategy);

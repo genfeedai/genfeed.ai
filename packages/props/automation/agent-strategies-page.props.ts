@@ -25,6 +25,9 @@ export interface AgentStrategyFormState {
   minCreditThreshold: string;
   minPostScore: string;
   monthlyCreditBudget: string;
+  postsPerWeek?: string;
+  publishingCeilingPerWeek?: string;
+  readyDraftReserve?: string;
   platforms: string[];
   skillSlugs: string[];
   reserveTrendBudget: string;

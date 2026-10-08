@@ -9,6 +9,13 @@ import {
   resolveReportWindow,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.helpers';
 import type { AgentStrategyPerformanceSnapshot } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
+import {
+  cadencePublicationDate,
+  getCadenceDemand,
+  getCadenceWeek,
+  isReadyCadenceDraft,
+  resolveCadencePolicy,
+} from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
@@ -18,6 +25,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { TargetExecutionState } from '@genfeedai/contracts';
+import type { AgentStrategyCadenceStatus } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 interface SnapshotSources {
@@ -68,6 +76,9 @@ export class AgentStrategyAutopilotPerformanceService {
     const ranked = [...latest.values()];
 
     return {
+      ...(resolveCadencePolicy(strategy).separate
+        ? { cadence: await this.getCadenceStatus(strategy) }
+        : {}),
       bestPlatformFormatPairs: this.computeBestPlatformFormatPairs(ranked),
       bestPostingWindows: this.computeBestPostingWindows(
         posts,
@@ -318,6 +329,8 @@ export class AgentStrategyAutopilotPerformanceService {
       );
     }
 
+    if (snapshot.cadence) allocationChanges.push(...snapshot.cadence.reasons);
+
     return this.reportsService.createReport({
       allocationChanges,
       bestPlatformFormatPairs: snapshot.bestPlatformFormatPairs,
@@ -331,6 +344,7 @@ export class AgentStrategyAutopilotPerformanceService {
       impressions: snapshot.impressions,
       organizationId: getStrategyOrganizationId(strategy),
       metadata: {
+        ...(snapshot.cadence ? { cadence: snapshot.cadence } : {}),
         visitsAvailable: false,
         costPerVisitAvailable: false,
         sampling: snapshot.sampling,
@@ -386,6 +400,140 @@ export class AgentStrategyAutopilotPerformanceService {
       if (dayKey(new Date(date)) === dayKey(now)) today.add(key);
     }
     return { today: today.size, week: week.size };
+  }
+
+  async getCadenceStatus(
+    strategy: AgentStrategyDocument,
+  ): Promise<AgentStrategyCadenceStatus> {
+    const policy = resolveCadencePolicy(strategy);
+    const { start, end } = getCadenceWeek(strategy.timezone || 'UTC');
+    const scope = {
+      agentStrategyId: getStrategyId(strategy),
+      brandId: getStrategyBrandId(strategy) ?? '',
+      parentId: null,
+    };
+    const scheduled = await this.postsService.findAll(
+      {
+        where: scopedWhere(getStrategyOrganizationId(strategy), {
+          ...scope,
+          targetExecutionState: {
+            in: [
+              TargetExecutionState.SCHEDULED,
+              TargetExecutionState.PUBLISHING,
+              TargetExecutionState.PUBLISHED,
+            ],
+          },
+          OR: [
+            { publishedAt: { gte: start, lt: end } },
+            { scheduledDate: { gte: start, lt: end } },
+            { targetExecutionState: TargetExecutionState.PUBLISHING },
+          ],
+        }),
+      },
+      { page: 1, limit: 1001, pagination: true },
+      false,
+    );
+    const drafts = await this.postsService.findAll(
+      {
+        where: scopedWhere(getStrategyOrganizationId(strategy), {
+          ...scope,
+          targetExecutionState: TargetExecutionState.DRAFT,
+          scheduledDate: null,
+        }),
+      },
+      { page: 1, limit: 201, pagination: true },
+      false,
+    );
+    const open = await this.opportunitiesService.listByStrategy(
+      getStrategyId(strategy),
+      getStrategyOrganizationId(strategy),
+      { statuses: ['generating', 'revising', 'held'] },
+    );
+    const groups = new Set(
+      scheduled.docs
+        .filter((post) => {
+          const date = cadencePublicationDate(
+            post as unknown as Record<string, unknown>,
+          );
+          return date && new Date(date) >= start && new Date(date) < end;
+        })
+        .map((post) => post.groupId || post.id),
+    );
+    const ready = new Set(
+      drafts.docs
+        .filter((post) =>
+          isReadyCadenceDraft(post as unknown as Record<string, unknown>),
+        )
+        .map((post) => post.groupId || post.id),
+    );
+    const truncated =
+      scheduled.hasNextPage || drafts.hasNextPage || open.length > 200;
+    const pendingDrafts = Math.min(
+      open.filter(
+        (item) => item.status === 'generating' || item.status === 'revising',
+      ).length,
+      200,
+    );
+    const week = groups.size;
+    const demand = getCadenceDemand(policy, {
+      week,
+      readyDrafts: ready.size,
+      pendingDrafts,
+    });
+    const postingShortfall = Math.max(0, policy.target - week);
+    const reserveShortfall = Math.max(
+      0,
+      policy.reserve - Math.max(0, ready.size - postingShortfall),
+    );
+    const reasons: string[] = [];
+    if (truncated)
+      reasons.push(
+        'Cadence evidence exceeds the bounded sample; automatic replenishment is held until the backlog is reduced.',
+      );
+    if (postingShortfall > 0)
+      reasons.push(
+        `${postingShortfall} weekly posting slots remain unfilled; ${ready.size} quality-approved drafts and ${pendingDrafts} pending generations provide coverage without counting as publication.`,
+      );
+    if (reserveShortfall > 0)
+      reasons.push(
+        `${reserveShortfall} reserve drafts are still needed after covering the posting target.`,
+      );
+    if (!truncated && demand.publicationSlots === 0)
+      reasons.push(
+        'The publishing ceiling is reached; additional content stays in review.',
+      );
+    if (postingShortfall > 0 || reserveShortfall > 0) {
+      for (const item of open
+        .filter((item) => item.status === 'held' && item.createdAt >= start)
+        .slice(0, 3))
+        if (item.decisionReason) reasons.push(item.decisionReason);
+      const creditsRemaining = Math.min(
+        (strategy.dailyCreditBudget ?? 0) - (strategy.dailyCreditsUsed ?? 0),
+        (strategy.weeklyCreditBudget ?? 0) -
+          (strategy.creditsUsedThisWeek ?? 0),
+        (strategy.budgetPolicy?.monthlyCreditBudget ?? 500) -
+          (strategy.monthToDateCreditsUsed ?? 0),
+      );
+      if (creditsRemaining <= 0)
+        reasons.push(
+          'The credit budget is exhausted; minimum targets are held until budget is available.',
+        );
+    }
+    return {
+      weeklyTarget: policy.target,
+      publishingCeiling: policy.ceiling,
+      draftReserve: policy.reserve,
+      week,
+      readyDrafts: ready.size,
+      pendingDrafts,
+      postingShortfall,
+      reserveShortfall,
+      publicationSlots: truncated ? 0 : demand.publicationSlots,
+      weekStart: start.toISOString(),
+      weekEnd: end.toISOString(),
+      truncated,
+      reasons,
+    };
   }
 
   async reconcilePublications(strategy: AgentStrategyDocument): Promise<void> {

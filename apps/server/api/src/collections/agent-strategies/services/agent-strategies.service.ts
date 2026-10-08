@@ -2,6 +2,10 @@ import { getAgentTypeWorkflowDefault } from '@api/collections/agent-strategies/c
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import {
+  resolveCadencePolicy,
+  type StrategyCadenceConfiguration,
+} from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
@@ -75,6 +79,8 @@ const CONFIG_BACKED_KEYS = [
   'nextRunAt',
   'opportunitySources',
   'postsPerWeek',
+  'publishingCeilingPerWeek',
+  'readyDraftReserve',
   'preferredPostingTimes',
   'qualityTier',
   'reportsToLabel',
@@ -177,6 +183,7 @@ export class AgentStrategiesService extends BaseService<
   private buildCreateWriteData(
     createDto: AgentStrategyCreateInput,
   ): Record<string, unknown> {
+    this.assertCadenceConfiguration(createDto);
     const now = new Date();
     // Pin deterministic graph on create when client omits binding (wizard/autopilot).
     const typeDefault = getAgentTypeWorkflowDefault(createDto.agentType);
@@ -235,6 +242,7 @@ export class AgentStrategiesService extends BaseService<
       });
       if (!existing) throw new NotFoundException('Agent strategy', id);
       const existingConfig = this.readRecord(existing.config) ?? {};
+      this.assertCadenceConfiguration({ ...existingConfig, ...updateDto });
       const existingPolicies = this.readRecord(existing.policies) ?? {};
       const data = this.toPrismaWriteData(
         {
@@ -261,6 +269,20 @@ export class AgentStrategiesService extends BaseService<
         }),
       );
     });
+  }
+
+  private assertCadenceConfiguration(
+    input: StrategyCadenceConfiguration,
+  ): void {
+    try {
+      resolveCadencePolicy(input);
+    } catch (error) {
+      throw new ValidationException(
+        error instanceof Error
+          ? error.message
+          : 'Invalid cadence configuration',
+      );
+    }
   }
 
   /**
@@ -330,6 +352,17 @@ export class AgentStrategiesService extends BaseService<
       if (!current) return;
       const config = this.readRecord(current.config) ?? {};
       const history = Array.isArray(config.runHistory) ? config.runHistory : [];
+      if (
+        run.executionId &&
+        history.some(
+          (entry) =>
+            entry &&
+            typeof entry === 'object' &&
+            !Array.isArray(entry) &&
+            entry.executionId === run.executionId,
+        )
+      )
+        return;
       const failures =
         run.status === AgentStrategyRunStatus.FAILED
           ? Number(config.consecutiveFailures ?? 0) + 1

@@ -33,6 +33,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { isCadenceFormValid } from '../autopilot/build-agent-strategy-payload';
 import { AGENT_PLATFORM_OPTIONS } from './agent-type-display';
 
 export default function CustomAgentForm({
@@ -47,6 +48,9 @@ export default function CustomAgentForm({
   const [topics, setTopics] = useState('');
   const [voice, setVoice] = useState('');
   const [postsPerWeek, setPostsPerWeek] = useState('7');
+  const [publishingCeiling, setPublishingCeiling] = useState('7');
+  const [draftReserve, setDraftReserve] = useState('0');
+  const cadence = useTranslations('common.automation.cadence');
   const [runFrequency, setRunFrequency] = useState<string>(
     AgentRunFrequency.DAILY,
   );
@@ -59,13 +63,16 @@ export default function CustomAgentForm({
     .filter(Boolean);
   const dailyCreditBudget = Number(budget);
   const count = Number(postsPerWeek);
+  const cadenceValid = isCadenceFormValid({
+    postsPerWeek,
+    publishingCeilingPerWeek: publishingCeiling,
+    readyDraftReserve: draftReserve,
+  });
   const isValid =
     platforms.length > 0 &&
     topicList.length > 0 &&
     voice.trim().length > 0 &&
-    Number.isInteger(count) &&
-    count >= 1 &&
-    count <= 100 &&
+    cadenceValid &&
     Number.isFinite(dailyCreditBudget) &&
     dailyCreditBudget > 0;
 
@@ -93,6 +100,8 @@ export default function CustomAgentForm({
       ),
       skillSlugs: ['content-writing'],
       postsPerWeek: count,
+      publishingCeilingPerWeek: Number(publishingCeiling),
+      readyDraftReserve: Number(draftReserve),
       reportsToLabel: 'Main Orchestrator',
       runFrequency,
       topics: topicList,
@@ -177,9 +186,9 @@ export default function CustomAgentForm({
           isDisabled={isSubmitting}
         />
       </FormControl>
-      <FormControl label={translate('postsPerWeek')}>
+      <FormControl label={cadence('weeklyTarget')}>
         <Input
-          aria-label={translate('postsPerWeek')}
+          aria-label={cadence('weeklyTarget')}
           type="number"
           min={1}
           max={100}
@@ -190,6 +199,42 @@ export default function CustomAgentForm({
           isDisabled={isSubmitting}
         />
       </FormControl>
+      <FormControl label={cadence('publishingCeiling')}>
+        <Input
+          aria-label={cadence('publishingCeiling')}
+          type="number"
+          min={count || 1}
+          max={1000}
+          step={1}
+          value={publishingCeiling}
+          onChange={(event) => setPublishingCeiling(event.target.value)}
+          isRequired
+          isDisabled={isSubmitting}
+        />
+      </FormControl>
+      <FormControl label={cadence('draftReserve')}>
+        <Input
+          aria-label={cadence('draftReserve')}
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          value={draftReserve}
+          onChange={(event) => setDraftReserve(event.target.value)}
+          isRequired
+          isDisabled={isSubmitting}
+        />
+      </FormControl>
+      <p
+        className={
+          cadenceValid
+            ? 'text-sm text-muted-foreground'
+            : 'text-sm text-destructive'
+        }
+        role={cadenceValid ? undefined : 'alert'}
+      >
+        {cadence(cadenceValid ? 'help' : 'invalid')}
+      </p>
       <FormControl label={translate('runFrequency')}>
         <Select
           value={runFrequency}

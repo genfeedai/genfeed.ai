@@ -51,6 +51,9 @@ const DEFAULT_FORM_STATE: AgentStrategyFormState = {
   minImageScore: '75',
   minPostScore: '70',
   monthlyCreditBudget: '500',
+  postsPerWeek: '7',
+  publishingCeilingPerWeek: '7',
+  readyDraftReserve: '0',
   platforms: ['twitter'],
   skillSlugs: [],
   reserveTrendBudget: '125',
@@ -91,6 +94,16 @@ function buildFormState(
       strategy.budgetPolicy?.monthlyCreditBudget ?? 500,
     ),
     platforms: strategy.platforms ?? [],
+    postsPerWeek:
+      strategy.postsPerWeek === undefined ? '' : String(strategy.postsPerWeek),
+    publishingCeilingPerWeek:
+      strategy.publishingCeilingPerWeek === undefined
+        ? ''
+        : String(strategy.publishingCeilingPerWeek),
+    readyDraftReserve:
+      strategy.readyDraftReserve === undefined
+        ? ''
+        : String(strategy.readyDraftReserve),
     skillSlugs: strategy.skillSlugs ?? [],
     reserveTrendBudget: String(
       strategy.budgetPolicy?.reserveTrendBudget ?? 125,

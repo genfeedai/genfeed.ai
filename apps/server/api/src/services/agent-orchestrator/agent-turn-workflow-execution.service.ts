@@ -623,9 +623,25 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     );
   }
 
+  private async tryExecuteCadenceTurn(
+    state: PreparedAgentTurnState,
+  ): Promise<AgentTurnWorkflowResult | null> {
+    if (
+      state.request.source !== 'proactive' ||
+      !state.strategyId ||
+      !this.batchService.tryExecuteCadence
+    )
+      return null;
+    return this.executionLaneService.runExclusive(state.threadId, () =>
+      this.batchService.tryExecuteCadence(state),
+    );
+  }
+
   async execute(
     state: PreparedAgentTurnState,
   ): Promise<AgentTurnWorkflowResult> {
+    const cadence = await this.tryExecuteCadenceTurn(state);
+    if (cadence) return cadence;
     let request = state.request;
     const baseContext = this.buildBaseContext(state);
     const mediaResult = await this.tryExecuteMediaTurn(state, baseContext);

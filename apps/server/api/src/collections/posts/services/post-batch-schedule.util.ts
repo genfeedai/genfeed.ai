@@ -6,6 +6,7 @@ import {
   postCategoryForIngredientCategories,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
+import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -61,6 +62,9 @@ export interface PostBatchScheduleContext {
 }
 
 type ExistingPost = {
+  agentStrategyId?: string | null;
+  brandId?: string | null;
+  groupId?: string | null;
   category: string;
   id: string;
   parentId: string | null;
@@ -102,7 +106,9 @@ function categoryForScheduledMedia(
  * the target platform can't take.
  */
 function planBatchWrites(
-  context: PostBatchScheduleContext,
+  context: Pick<PostBatchScheduleContext, 'logger' | 'normalizeData'> & {
+    prisma: Pick<Prisma.TransactionClient, 'post'>;
+  },
   items: readonly PostBatchScheduleItem[],
   existingById: Map<string, ExistingPost>,
   organizationId: string,
@@ -243,6 +249,9 @@ export async function batchSchedulePosts(
 
   const existingPosts = await context.prisma.post.findMany({
     select: {
+      agentStrategyId: true,
+      brandId: true,
+      groupId: true,
       category: true,
       id: true,
       parentId: true,
@@ -295,25 +304,58 @@ export async function batchSchedulePosts(
     ]),
   );
 
-  const { invalidTargetPostIds, updateIndexes, writes } = planBatchWrites(
-    context,
-    items,
-    existingById,
-    organizationId,
-    target,
-    categoryByIngredientId,
-  );
+  const planned = existingPosts.some((post) => post.agentStrategyId)
+    ? await context.prisma.$transaction(async (tx) => {
+        const invalidTargetPostIds: string[] = [];
+        const updateIndexes: number[] = [];
+        const results: unknown[] = [];
+        for (const item of items) {
+          const current = await tx.post.findFirst({
+            where: scopedWhere(organizationId, { id: String(item.postId) }),
+          });
+          if (!current) continue;
+          const plan = planBatchWrites(
+            { ...context, prisma: tx },
+            [item],
+            new Map([[current.id, current]]),
+            organizationId,
+            target,
+            categoryByIngredientId,
+          );
+          invalidTargetPostIds.push(...plan.invalidTargetPostIds);
+          if (plan.writes.length === 0) continue;
+          await assertStrategyCadenceAdmission(tx, {
+            ...current,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+            scheduledDate: item.timezone
+              ? TimezoneUtil.convertToUTC(
+                  new Date(item.scheduledDate),
+                  item.timezone,
+                )
+              : new Date(item.scheduledDate),
+          });
+          updateIndexes.push(
+            ...plan.updateIndexes.map((index) => index + results.length),
+          );
+          for (const write of plan.writes) results.push(await write);
+        }
+        return { invalidTargetPostIds, updateIndexes, results };
+      })
+    : await executeLegacyBatchWrites(
+        context,
+        items,
+        existingById,
+        organizationId,
+        target,
+        categoryByIngredientId,
+      );
+  const { invalidTargetPostIds, updateIndexes, results } = planned;
 
-  if (writes.length === 0) {
+  if (results.length === 0)
     return { invalidTargetPostIds, missingPostIds, posts: [] };
-  }
 
-  const results = await context.prisma.$transaction(writes);
-
-  if (context.cacheService) {
+  if (context.cacheService)
     await context.cacheService.invalidateByTags([...context.cacheTags]);
-  }
-
   const posts = updateIndexes.map((index) =>
     context.normalizeDocument(results[index]),
   );
@@ -328,7 +370,6 @@ export async function batchSchedulePosts(
       }),
     ),
   );
-
   context.logger.log('Batch scheduled posts', {
     invalid: invalidTargetPostIds.length,
     missing: missingPostIds.length,
@@ -336,10 +377,31 @@ export async function batchSchedulePosts(
     requested: requestedIds.length,
     updated: updateIndexes.length,
   });
+  return { invalidTargetPostIds, missingPostIds, posts };
+}
 
-  return {
-    invalidTargetPostIds,
-    missingPostIds,
-    posts,
-  };
+async function executeLegacyBatchWrites(
+  context: PostBatchScheduleContext,
+  items: readonly PostBatchScheduleItem[],
+  existingById: Map<string, ExistingPost>,
+  organizationId: string,
+  target: PostBatchScheduleTarget,
+  categoryByIngredientId: ReadonlyMap<string, string>,
+) {
+  const { invalidTargetPostIds, updateIndexes, writes } = planBatchWrites(
+    context,
+    items,
+    existingById,
+    organizationId,
+    target,
+    categoryByIngredientId,
+  );
+
+  if (writes.length === 0) {
+    return { invalidTargetPostIds, updateIndexes, results: [] };
+  }
+
+  const results = await context.prisma.$transaction(writes);
+
+  return { invalidTargetPostIds, updateIndexes, results };
 }

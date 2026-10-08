@@ -9,6 +9,8 @@ import type { ZodType } from 'zod';
 export interface ReplicateStructuredTextParams<TResult> {
   /** Everything but the prompt — token budget and model-specific knobs. */
   input: Record<string, unknown>;
+  /** Admission runs before every provider call, including a repair. */
+  beforeAttempt?: (input: Record<string, unknown>) => Promise<void> | void;
   /** Fires after every model call, first attempt and repair alike, for billing. */
   onAttempt?: (
     input: Record<string, unknown>,

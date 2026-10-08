@@ -1,6 +1,10 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
+import type {
+  OptimizerAnalysisResult,
+  PublishGateResult,
+} from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import {
   AgentAutonomyMode,
@@ -194,4 +198,55 @@ export function resolveReportWindow(reportType: AgentStrategyReportType): {
     periodStart.getUTCDate() - (reportType === 'weekly' ? 7 : 1),
   );
   return { periodEnd, periodStart };
+}
+
+export function scoreTextPublishGate(
+  strategy: AgentStrategyDocument,
+  content: string,
+  analysis: OptimizerAnalysisResult,
+): PublishGateResult {
+  const hasCTA =
+    analysis.metadata?.hasCallToAction ??
+    /comment|click|learn more|reply|share|visit/i.test(content);
+  const overallScore = Number(analysis.overallScore ?? 0);
+  const ctaRequired = strategy.goalProfile === 'reach_traffic';
+  const minPostScore = strategy.publishPolicy?.minPostScore ?? 70;
+  const reasons: string[] = [];
+
+  if (overallScore < minPostScore) {
+    reasons.push('Post quality score fell below the publish threshold.');
+  }
+  if (ctaRequired && !hasCTA) {
+    reasons.push('Reach/traffic mode requires a visible call-to-action.');
+  }
+
+  return {
+    decision:
+      reasons.length === 0
+        ? 'approved'
+        : overallScore >= Math.max(50, minPostScore - 10)
+          ? 'revise'
+          : 'discard',
+    overallScore,
+    reasons:
+      reasons.length === 0
+        ? [
+            'Post cleared the autopilot quality gate.',
+            ...(ctaRequired && hasCTA
+              ? ['Draft includes a visible call-to-action for traffic intent.']
+              : []),
+          ]
+        : reasons,
+    revisionInstructions: [
+      'Strengthen the opening hook.',
+      'Improve clarity and readability.',
+      'Add a clear call-to-action aligned to traffic intent.',
+    ],
+    scoreBreakdown: {
+      clarity: Number(analysis.breakdown?.clarity ?? 0),
+      hook: Number(analysis.breakdown?.engagement ?? 0),
+      platformFit: Number(analysis.breakdown?.platformOptimization ?? 0),
+      readability: Number(analysis.breakdown?.readability ?? 0),
+    },
+  };
 }
