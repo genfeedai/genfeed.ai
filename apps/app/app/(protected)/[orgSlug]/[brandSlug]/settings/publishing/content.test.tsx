@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import type { CardProps } from '@genfeedai/props/ui/ui.props';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 // ReactNode used by Select mock
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -675,6 +681,60 @@ describe('BrandSettingsPublishingPage', () => {
         timezone: 'Europe/Malta',
       });
     });
+  });
+
+  it.each([
+    { isCancelled: true, silent: true },
+    Object.assign(new Error('Aborted request'), { name: 'AbortError' }),
+  ])('keeps cancelled posting-set loads silent: %j', async (error) => {
+    mocks.findAllSets.mockRejectedValue(error);
+    render(<BrandSettingsPublishingPage />);
+
+    await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText(
+        'No posting sets yet. Create one from connected accounts below.',
+      ),
+    ).toBeVisible();
+    expect(mocks.loggerError).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
+    expect(screen.queryByText('Loading posting sets…')).not.toBeInTheDocument();
+  });
+
+  it('ignores a stale posting-set failure after navigation aborts its signal', async () => {
+    let rejectLoad: ((error: Error) => void) | undefined;
+    mocks.findAllSets.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectLoad = reject;
+      }),
+    );
+    const view = render(<BrandSettingsPublishingPage />);
+    await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
+    const signal = mocks.findAllSets.mock.calls[0]?.[1] as AbortSignal;
+    expect(signal.aborted).toBe(false);
+
+    view.unmount();
+    expect(signal.aborted).toBe(true);
+    await act(async () => rejectLoad?.(new Error('Late request failure')));
+
+    expect(mocks.loggerError).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
+
+  it('still reports genuine active posting-set loading failures', async () => {
+    const error = new Error('Posting sets unavailable');
+    mocks.findAllSets.mockRejectedValue(error);
+    render(<BrandSettingsPublishingPage />);
+
+    await waitFor(() =>
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        'Failed to load posting sets',
+        error,
+      ),
+    );
+    expect(mocks.error).toHaveBeenCalledWith('Failed to load posting sets');
+    expect(mocks.findAllSets.mock.calls[0]?.[1].aborted).toBe(false);
+    expect(screen.queryByText('Loading posting sets…')).not.toBeInTheDocument();
   });
 
   it('renders the no-connected-account state', () => {
