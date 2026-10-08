@@ -1,7 +1,6 @@
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { getAgentToolLabel } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
-import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
@@ -27,15 +26,6 @@ export function TimelineStreamingRow({
     () => summarizeStreamingProgress(streamState, workEvents),
     [streamState, workEvents],
   );
-  const { displayedText, isAnimating } = useAnimatedText(
-    streamState.streamingContent,
-    {
-      animate: Boolean(streamState.streamingContent),
-      charsPerTick: 1,
-      intervalMs: 10,
-    },
-  );
-
   const hasContent = Boolean(streamState.streamingContent);
   const hasReasoning = Boolean(streamState.streamingReasoning);
   const hasToolCalls = streamState.activeToolCalls.length > 0;
@@ -130,8 +120,8 @@ export function TimelineStreamingRow({
         {hasContent ? (
           <div className="min-w-0 px-0 py-0.5">
             <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-md leading-7 text-foreground">
-              {displayedText}
-              {(streamState.isStreaming || isAnimating) && (
+              {streamState.streamingContent}
+              {streamState.isStreaming && (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />
               )}
             </p>
