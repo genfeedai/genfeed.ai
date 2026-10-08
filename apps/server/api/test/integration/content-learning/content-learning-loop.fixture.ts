@@ -278,13 +278,13 @@ export async function ensureLearningLoopScope(
     target.organizationId,
     target.credentialId,
   );
-  await database.services.scopes.ensure(
+  const state = await database.services.scopes.ensure(
     database.prisma as unknown as PrismaService,
     scope,
     descriptor,
     account.epoch,
   );
-  return { scope, descriptor };
+  return { scope, descriptor, state };
 }
 
 /**
@@ -436,4 +436,24 @@ export function captureLearningLoopPublication(
     objective: OBJECTIVE,
     learningMetrics: loopMetrics(),
   });
+}
+
+export async function enableLegacyLearningLoopLive(
+  database: LearningLoopDatabase,
+  target: LearningLoopTarget,
+) {
+  const account = await database.services.accounts.ensure(
+    target.organizationId,
+    target.credentialId,
+  );
+  return database.services.accounts.control(
+    { actorId: target.actorId, organizationId: target.organizationId },
+    target.credentialId,
+    {
+      action: 'live',
+      expectedRevision: account.revision,
+      requestId: randomUUID(),
+      reason: 'Integration acceptance of legacy control isolation',
+    },
+  );
 }

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { learningFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   ConflictException,
   ForbiddenException,
@@ -10,6 +11,9 @@ import {
 export interface LearningActor {
   organizationId: string;
   actorId: string;
+}
+export function learningCanonicalHash(value: unknown): string {
+  return sha256Hex(stableStringify(value));
 }
 export function learningHash(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
