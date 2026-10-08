@@ -115,6 +115,10 @@ function editorialCard(
 
 export const MARKETING_OG_CARDS: Record<string, MarketingOgDefinition> = {
   ...SOCIAL_OG_CARDS,
+  'ai-model-selector': {
+    ...SOCIAL_OG_CARDS.default,
+    headline: ['Choose your', 'AI model'],
+  },
   ...Object.fromEntries(
     Object.entries(EDITORIAL_OG_ARTWORKS).map(([id, card]) => [
       id,
@@ -128,6 +132,8 @@ export const MARKETING_OG_PATHS: Record<string, string> = Object.fromEntries(
     .filter(([id]) => id !== 'default')
     .map(([id, card]) => [card.route, id]),
 );
+
+MARKETING_OG_PATHS['/tools/ai-model-selector'] = 'ai-model-selector';
 
 for (const id of Object.keys(SOCIAL_OG_CARDS).filter(
   (id) => id !== 'default',

@@ -78,6 +78,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/experts', label: 'For experts' },
       { href: '/vs', label: 'Genfeed vs alternatives' },
       { href: '/tools', label: 'Free tools' },
+      { href: '/tools/ai-model-selector', label: 'Free AI model selector' },
     ],
     title: 'Solutions and comparisons',
   },
