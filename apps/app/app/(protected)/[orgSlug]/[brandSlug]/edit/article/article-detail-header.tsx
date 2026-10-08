@@ -38,7 +38,7 @@ export default function ArticleDetailHeader({
         </h1>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex max-w-full flex-wrap gap-2">
         {/* Publish */}
         {canPublish && (
           <Button
