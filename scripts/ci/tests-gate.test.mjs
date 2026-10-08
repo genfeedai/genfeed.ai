@@ -273,6 +273,7 @@ test('a genuine failure keeps a superseded run red', () => {
     PLAN_API_TESTS: 'true',
     PLAN_WORKSPACE_TESTS: 'true',
     PLAN_SPEC_TYPECHECK: 'true',
+    PLAN_MCP_AUTH_RUNTIME: 'true',
     STATIC_CHECKS_RESULT: 'failure',
     RUN_SUPERSEDED: 'true',
   });

@@ -235,6 +235,7 @@ describe('ContextsService retrieval hot path', () => {
     ]);
 
     const hits = await retrieval.retrieveBrandContentMemory({
+      userId: 'user-1',
       brandId: 'brand-1',
       knowledgePurposes: ['BRAND_TRUTH'] as never,
       knowledgeSourceIds: ['source-1'],

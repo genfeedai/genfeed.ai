@@ -247,7 +247,6 @@ describe('KnowledgeContentRetrievalService', () => {
         }
         const hits = await service.retrieveSelectedBrandContentMemory(
           {
-            userId: 'user-a',
             ...params,
             limit: 999,
             minRelevance: 1,
@@ -294,7 +293,6 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
       await service.retrieveSelectedBrandContentMemory(
         {
-          userId: 'user-a',
           ...params,
           query: 'different query',
           organizationId: 'org-2',
@@ -333,7 +331,6 @@ describe('KnowledgeContentRetrievalService', () => {
         await expect(
           service.retrieveSelectedBrandContentMemory(
             {
-              userId: 'user-a',
               ...params,
               ...(kind === 'query' ? { query: ' ' } : {}),
               ...(kind === 'brand' ? { brandId: ' ' } : {}),

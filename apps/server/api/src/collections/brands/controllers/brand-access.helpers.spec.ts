@@ -133,6 +133,7 @@ describe('explicit selected brand data scope', () => {
       organizationId: 'selected-org',
     } as BrandDocument;
     const service = {
+      brandAccessService: brandAccessFixture(),
       findOne: vi.fn<BrandsService['findOne']>().mockResolvedValue(selected),
       findOneBySlug: vi
         .fn<BrandsService['findOneBySlug']>()
@@ -158,6 +159,7 @@ describe('explicit selected brand data scope', () => {
   });
   it('keeps default write/unmarked callers constrained to the original org and404 misses', async () => {
     const service = {
+      brandAccessService: brandAccessFixture(),
       findOne: vi.fn<BrandsService['findOne']>().mockResolvedValue(null),
     };
     await expect(

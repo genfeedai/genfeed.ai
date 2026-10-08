@@ -290,7 +290,11 @@ describe('account selected data and original authorization', () => {
       organizationId: originalOrg,
     } as BrandDocument);
     await selected(BrandsController.prototype.findOne, () =>
-      verifyBrandAccess({ findOne }, user.brandId, user),
+      verifyBrandAccess(
+        { findOne, brandAccessService: brandAccessFixture() },
+        user.brandId,
+        user,
+      ),
     );
     expect(findOne).toHaveBeenCalledWith({
       id: user.brandId,

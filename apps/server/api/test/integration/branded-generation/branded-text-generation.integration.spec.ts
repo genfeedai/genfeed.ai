@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
@@ -100,7 +101,9 @@ describe('Branded text generation seam (real Postgres)', () => {
         { schema },
       ),
     });
-    const access = new BrandedGenerationReceiptAccessService();
+    const access = new BrandedGenerationReceiptAccessService(
+      new BrandAccessService(prisma as unknown as PrismaService),
+    );
     receipts = new BrandedGenerationReceiptsService(
       prisma as unknown as PrismaService,
       access,
@@ -164,6 +167,7 @@ describe('Branded text generation seam (real Postgres)', () => {
         organizationId: source,
         roleId: memberRole.id,
         currentBrandId: brand,
+        brands: { connect: { id: brand } },
       },
     });
     await prisma.brandOsRevision.create({
@@ -208,7 +212,9 @@ describe('Branded text generation seam (real Postgres)', () => {
         };
       }),
     };
-    const access = new BrandedGenerationReceiptAccessService();
+    const access = new BrandedGenerationReceiptAccessService(
+      new BrandAccessService(prisma as unknown as PrismaService),
+    );
     const db = prisma as unknown as PrismaService;
     const material = () =>
       new BrandedGenerationArtifactMaterialService(db, access, receipts);
@@ -230,12 +236,14 @@ describe('Branded text generation seam (real Postgres)', () => {
           warn: vi.fn(),
           error: vi.fn(),
         } as never,
+        new BrandAccessService(db),
       ),
       {
         resolveActiveSkills: vi.fn().mockResolvedValue([]),
         buildSkillPromptSections: vi.fn().mockReturnValue(''),
       } as never,
       openRouter as never,
+      new BrandAccessService(db),
     );
     return { seam, openRouter, providerIds };
   }
@@ -275,6 +283,10 @@ describe('Branded text generation seam (real Postgres)', () => {
       postBrandId = value.brandId,
     ): BrandedTextGenerationRequestV1 => ({
       input: value,
+      initiatingActor: {
+        userId: value.actorId,
+        organizationId: value.organizationId,
+      },
       privateLearning: baselinePrivateLearning,
       resolveApiKey: async () => undefined,
       acceptText: () => true,

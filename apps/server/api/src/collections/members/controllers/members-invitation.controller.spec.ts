@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -63,6 +64,7 @@ function buildController() {
     mockMembersService,
     mockInvitationService,
     mockLoggerService,
+    brandAccessFixture(),
   );
 }
 
