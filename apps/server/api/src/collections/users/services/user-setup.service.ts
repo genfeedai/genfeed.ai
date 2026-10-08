@@ -300,6 +300,7 @@ export class UserSetupService {
 
     const settings = await this.settingsService.create({
       favoriteModelKeys: [],
+      isAdvancedMode: false,
       isFirstLogin: true,
       isMenuCollapsed: false,
       isSidebarProgressCollapsed: false,

@@ -14,6 +14,7 @@ export interface ISetting extends IBaseEntity {
   isVerified: boolean;
   isFirstLogin: boolean;
   isMenuCollapsed: boolean;
+  isAdvancedMode: boolean;
 
   // Trend notification preferences
   isTrendNotificationsInApp: boolean;

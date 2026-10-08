@@ -102,7 +102,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
-    currentUser: { settings: {} },
+    currentUser: { settings: { isAdvancedMode: true } },
   }),
 }));
 

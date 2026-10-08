@@ -199,6 +199,8 @@
     "editField": "Edit {field}",
     "enhancement": "Prompt enhancement",
     "generationControls": "Generation controls",
+    "advancedMode": "Advanced",
+    "advancedModeDescription": "Choose the model yourself instead of Auto.",
     "generationType": "Generation type",
     "generationTypeTrigger": "Generation type: {type}",
     "instrumental": "Instrumental",

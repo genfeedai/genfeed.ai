@@ -11,6 +11,7 @@ export class Setting extends BaseEntity implements ISetting {
   declare public isVerified: boolean;
   declare public isFirstLogin: boolean;
   declare public isMenuCollapsed: boolean;
+  declare public isAdvancedMode: boolean;
   declare public isTrendNotificationsInApp: boolean;
   declare public isTrendNotificationsTelegram: boolean;
   declare public isTrendNotificationsEmail: boolean;

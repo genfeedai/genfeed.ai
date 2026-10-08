@@ -47,9 +47,9 @@ import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolu
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { isStudioGenerateType } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Admission and composer tests inspect quote states independently of hover timing.
 // StudioGenerationSummary.test.tsx covers the real focus/hover tooltip behavior.
@@ -91,6 +91,22 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+const advancedModeMocks = vi.hoisted(() => ({
+  isAdvancedMode: true,
+  setAdvancedMode: vi.fn(),
+}));
+
+vi.mock(
+  '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference',
+  () => ({
+    useAdvancedModePreference: () => ({
+      isAdvancedMode: advancedModeMocks.isAdvancedMode,
+      isLoaded: true,
+      setAdvancedMode: advancedModeMocks.setAdvancedMode,
+    }),
+  }),
+);
 
 vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   useModelFavorites: () => ({
@@ -303,6 +319,60 @@ describe('StudioGenerateComposer', () => {
       screen.getByRole('button', { name: 'Remove Apple reference' }),
     );
     expect(baseProps.onRemoveAttachedAsset).toHaveBeenCalledWith('reference');
+  });
+
+  describe('Advanced Mode', () => {
+    afterEach(() => {
+      advancedModeMocks.isAdvancedMode = true;
+    });
+
+    it('hides model choice and the model name in simple mode', () => {
+      advancedModeMocks.isAdvancedMode = false;
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          prompt="A green apple"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
+        '1:1 · 1K · x1',
+      );
+      expect(generationSetupPopoverMocks.props.models).toEqual([]);
+      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+        hasModelSelection: false,
+      });
+      expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
+        isEnabled: false,
+      });
+    });
+
+    it('turning Advanced off saves it and returns the model to Auto', () => {
+      const onSettingsChange = vi.fn();
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          onSettingsChange={onSettingsChange}
+          prompt="A green apple"
+          settings={{ ...settings, modelKey: 'banana' }}
+          type="image"
+        />,
+      );
+
+      const advancedMode = generationSetupPopoverMocks.props.advancedMode as {
+        onChange: (next: boolean) => void;
+      };
+      act(() => advancedMode.onChange(false));
+
+      expect(advancedModeMocks.setAdvancedMode).toHaveBeenCalledWith(false);
+      expect(onSettingsChange).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    });
   });
 
   it('keeps an empty composer expanded with setup and submission controls', () => {

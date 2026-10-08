@@ -48,6 +48,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
     currentUser: {
       id: 'db-user-123',
       settings: {
+        isAdvancedMode: true,
         isVideoNotificationsEmail: true,
         theme: 'dark',
       },

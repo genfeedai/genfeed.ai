@@ -6669,6 +6669,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'dashboardPreferences',
       'generationPriority',
       'id',
+      'isAdvancedMode',
       'isAgentAssetsPanelOpen',
       'isDeleted',
       'isFirstLogin',

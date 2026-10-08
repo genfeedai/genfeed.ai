@@ -103,6 +103,15 @@ export class CreateSettingDto {
   })
   readonly isSidebarProgressCollapsed?: boolean;
 
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    description:
+      'Whether the prompt bar offers manual model choice (otherwise Auto)',
+    required: true,
+  })
+  readonly isAdvancedMode!: boolean;
+
   // Trend notification preferences
   @IsBoolean()
   @IsOptional()

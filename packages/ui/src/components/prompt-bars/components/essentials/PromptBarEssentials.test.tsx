@@ -151,6 +151,7 @@ describe('PromptBarEssentials', () => {
     hasModelWithoutDurationEditingValue: false,
     iconButtonClass: 'icon-button-class',
     isAdvancedControlsEnabled: true,
+    isAdvancedMode: true,
     isAutoMode: false,
     isDisabledState: false,
     isEnhancing: false,
@@ -383,6 +384,27 @@ describe('PromptBarEssentials', () => {
     expect(
       screen.queryByTestId('stop-generation-button'),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the generation meter in Simple Mode', () => {
+    render(
+      <PromptBarEssentials
+        {...defaultProps}
+        generationMeter={{
+          ariaLabel: 'About 15 credits',
+          credits: 15,
+          isEstimate: true,
+          label: '~15 cr',
+          queuedCount: 0,
+        }}
+        isAdvancedMode={false}
+      />,
+    );
+
+    expect(screen.getByTestId('studio-generation-meter')).toHaveTextContent(
+      '~15 cr',
+    );
+    expect(screen.queryByTestId('model-controls')).not.toBeInTheDocument();
   });
 
   it('hides the generation meter when the resolver returns nothing', () => {

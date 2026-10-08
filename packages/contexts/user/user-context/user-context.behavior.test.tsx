@@ -303,11 +303,11 @@ describe('UserProvider behavior', () => {
   it('does not restore a stale bootstrap after personal settings are saved', async () => {
     const savedUser = {
       id: 'user_1',
-      settings: { isMenuCollapsed: false },
+      settings: { isAdvancedMode: false },
     } as IUser;
     let bootstrapUser = {
       id: 'user_1',
-      settings: { isMenuCollapsed: true },
+      settings: { isAdvancedMode: true },
     } as IUser;
     bootstrapMock.mockImplementation(async () => ({
       currentUser: bootstrapUser,
@@ -317,7 +317,7 @@ describe('UserProvider behavior', () => {
     });
     const view = renderWithProvider();
     await waitFor(() =>
-      expect(contextValue.currentUser?.settings?.isMenuCollapsed).toBe(true),
+      expect(contextValue.currentUser?.settings?.isAdvancedMode).toBe(true),
     );
 
     act(() => contextValue.mutateUser(savedUser));
@@ -327,7 +327,7 @@ describe('UserProvider behavior', () => {
 
     expect(clearBootstrapMock).toHaveBeenCalledTimes(1);
     await waitFor(() =>
-      expect(contextValue.currentUser?.settings?.isMenuCollapsed).toBe(false),
+      expect(contextValue.currentUser?.settings?.isAdvancedMode).toBe(false),
     );
   });
 

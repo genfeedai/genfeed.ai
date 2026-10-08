@@ -56,6 +56,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
+import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
 import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@pages/library/knowledge/components/KnowledgeReferenceSection';
@@ -693,6 +694,28 @@ export default function StudioGenerateWorkspace(): ReactElement {
     models,
     notificationsService,
     type,
+    updateSettings,
+  ]);
+
+  // Simple mode (Advanced off) hides model choice, so a concrete pick saved
+  // earlier must not keep applying unseen. An Agent handoff's pick is kept.
+  const { isAdvancedMode, isLoaded: isAdvancedModeLoaded } =
+    useAdvancedModePreference();
+  useEffect(() => {
+    if (
+      !isAdvancedModeLoaded ||
+      isAdvancedMode ||
+      handoffPayload ||
+      isAutoStudioModelKey(settings.modelKey)
+    ) {
+      return;
+    }
+    updateSettings({ modelKey: AUTO_MODEL_OPTION_VALUE });
+  }, [
+    handoffPayload,
+    isAdvancedMode,
+    isAdvancedModeLoaded,
+    settings.modelKey,
     updateSettings,
   ]);
 

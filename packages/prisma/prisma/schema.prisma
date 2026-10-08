@@ -1686,6 +1686,7 @@ model Setting {
   isMenuCollapsed                  Boolean                    @default(false)
   isSidebarProgressVisible         Boolean                    @default(true)
   isSidebarProgressCollapsed       Boolean                    @default(false)
+  isAdvancedMode                   Boolean                    @default(false)
   isTrendNotificationsInApp        Boolean                    @default(true)
   isTrendNotificationsTelegram     Boolean                    @default(false)
   isTrendNotificationsEmail        Boolean                    @default(false)

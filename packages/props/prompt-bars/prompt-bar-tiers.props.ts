@@ -54,6 +54,7 @@ export interface PromptBarEssentialsProps {
   controlClass: string;
   iconButtonClass: string;
 
+  isAdvancedMode: boolean;
   isAdvancedControlsEnabled: boolean;
   isAutoMode: boolean;
   setIsAutoMode: Dispatch<SetStateAction<boolean>>;

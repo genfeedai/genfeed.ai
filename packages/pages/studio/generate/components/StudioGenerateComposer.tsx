@@ -41,6 +41,7 @@ import {
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
+import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import StudioGenerationSummary from '@pages/studio/generate/components/StudioGenerationSummary';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
@@ -233,6 +234,19 @@ export default function StudioGenerateComposer({
     onSettingsChange,
   ]);
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  // Advanced Mode only reveals manual model choice; Look, presets and
+  // references stay available either way.
+  const { isAdvancedMode, setAdvancedMode } = useAdvancedModePreference();
+  const isModelChoiceVisible = capabilities.hasModelSelection && isAdvancedMode;
+  const handleAdvancedModeChange = useCallback(
+    (next: boolean) => {
+      void setAdvancedMode(next);
+      if (!next && settings.modelKey !== AUTO_MODEL_OPTION_VALUE) {
+        onSettingsChange({ modelKey: AUTO_MODEL_OPTION_VALUE });
+      }
+    },
+    [onSettingsChange, setAdvancedMode, settings.modelKey],
+  );
 
   const isPromptEmpty = prompt.trim().length === 0;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
@@ -490,7 +504,7 @@ export default function StudioGenerateComposer({
     [deleteLook],
   );
 
-  const modelLabel = !capabilities.hasModelSelection
+  const modelLabel = !isModelChoiceVisible
     ? undefined
     : isLoadingModels
       ? translate('summary.modelLoading')
@@ -506,8 +520,9 @@ export default function StudioGenerateComposer({
           costPromptData.resolution,
         ) ?? costPromptData.resolution)
       : costPromptData.resolution;
-  const setupLabel = [
-    modelLabel ?? typeOptions.find((option) => option.value === type)?.label,
+  // The type has its own chip, so it names the setup only when nothing else does.
+  const setupParts = [
+    modelLabel,
     capabilities.hasAspectRatio || type === 'image-edit'
       ? displaySettings.aspectRatio
       : undefined,
@@ -518,9 +533,11 @@ export default function StudioGenerateComposer({
         })
       : undefined,
     capabilities.hasOutputs ? `x${costPromptData.outputs ?? 1}` : undefined,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  ].filter(Boolean);
+  const setupLabel =
+    setupParts.length > 0
+      ? setupParts.join(' · ')
+      : typeOptions.find((option) => option.value === type)?.label;
 
   const isAttachmentBusy = isGenerating || isUploading;
   const referenceSources: PromptBarReferenceSource[] = [];
@@ -953,13 +970,24 @@ export default function StudioGenerateComposer({
               triggerLabel={setupLabel}
               inputControls={inputControls}
               referenceCount={crunReferenceCount ?? attachedAssets.length}
-              capabilities={capabilities}
+              advancedMode={
+                capabilities.hasModelSelection
+                  ? {
+                      isEnabled: isAdvancedMode,
+                      onChange: handleAdvancedModeChange,
+                    }
+                  : undefined
+              }
+              capabilities={{
+                ...capabilities,
+                hasModelSelection: isModelChoiceVisible,
+              }}
               favoriteModelKeys={favoriteModelKeys}
               isDisabled={isGenerating}
               isPresetsLoading={isPresetsLoading}
               isTypeCommitted
               lookOptions={lookOptions}
-              models={capabilities.hasModelSelection ? models : []}
+              models={isModelChoiceVisible ? models : []}
               onApplyPreset={handleApplyPreset}
               onClearPreset={handleClearPreset}
               onDeletePreset={handleDeletePreset}

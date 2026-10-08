@@ -156,6 +156,7 @@ export interface PromptBarProps {
 }
 
 export interface PromptBarModelControlsProps {
+  isAdvancedMode: boolean;
   hasModelButton: boolean;
   models: IModel[];
   trainings: Array<{ id?: string | null }>;
@@ -555,6 +556,7 @@ export interface PromptBarExpandedViewProps {
   controlClass: string;
   iconButtonClass: string;
 
+  isAdvancedMode: boolean;
   isAdvancedControlsEnabled: boolean;
 
   models: IModel[];
