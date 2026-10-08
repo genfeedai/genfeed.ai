@@ -2,17 +2,24 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { isValidPostLength } from '@api/collections/posts/services/post-generation-text.util';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
+import { brandedReasonHttpStatus } from '@api/services/branded-text-generation/branded-text-generation-outcome.util';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   CredentialPlatform,
   ModelCategory,
+  PostCategory,
   PostFormat,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
@@ -41,6 +48,8 @@ export class PostDraftGenerationService {
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
     private readonly learningDecisionService: LearningDecisionService,
+    private readonly postsService: PostsService,
+    private readonly brandedTextGenerationService: BrandedTextGenerationService,
   ) {}
   async generateDraftText(
     dto: PostDraftGenerationInput,
@@ -73,6 +82,14 @@ export class PostDraftGenerationService {
       context.constraints.maxWeightedCharacters ??
       context.constraints.maxCharacters ??
       5000;
+    if (dto.brandMode || dto.requestKey)
+      return this.generateBrandedDraft(
+        dto,
+        identity,
+        context,
+        limit,
+        resolveApiKey,
+      );
     const systemPrompt = await this.buildDraftSystemPrompt(
       dto,
       identity,
@@ -132,6 +149,151 @@ export class PostDraftGenerationService {
     throw new BadRequestException(
       'The generated draft exceeds the channel limit. Try a shorter topic.',
     );
+  }
+  /**
+   * Approved-brand draft (#5786): one receipt-backed provider call, the exact
+   * text saved as a DRAFT post and bound to the receipt. A repeat of the same
+   * `requestKey` returns the original and never dispatches again.
+   */
+  private async generateBrandedDraft(
+    dto: PostDraftGenerationInput,
+    identity: GenerationMetadata,
+    context: AccountPublishingContext,
+    limit: number,
+    resolveApiKey?: TextDispatchKeyResolver,
+  ): Promise<PostDraftGenerationResult> {
+    if (!dto.requestKey)
+      throw new BadRequestException('branded_request_key_required');
+    if (dto.brandMode !== 'approved_brand')
+      throw new BadRequestException('brand_mode_required');
+    const model = await this.agentChatModelRegistry.resolveModelKey(
+      undefined,
+      DEFAULT_MINI_TEXT_MODEL,
+    );
+    const learningReceipt = await this.resolveAccountlessLearningReceipt(
+      dto,
+      identity,
+      context.brand.id,
+    );
+    const outcome = await this.brandedTextGenerationService.generate({
+      input: {
+        schemaVersion: 1,
+        actorId: identity.userId,
+        organizationId: identity.organizationId,
+        brandId: dto.brandId,
+        requestKey: dto.requestKey,
+        candidateIndex: 0,
+        surface: 'api',
+        contentType: 'post',
+        format: 'text',
+        mode: 'approved_brand',
+        originalPrompt: [
+          `Write one ${dto.platform} post, at most ${limit} characters.`,
+          'Return only the finished post text, without explanations or quotation marks.',
+          `Request: ${dto.prompt.trim()}`,
+        ].join('\n'),
+        provider: 'openrouter',
+        model,
+        generationParameters: {
+          maxTokens: Math.max(
+            TEXT_GENERATION_LIMITS.postTweetGeneration,
+            Math.ceil(limit / 2),
+          ),
+          temperature: 0.8,
+        },
+        platform: dto.platform,
+        objective: 'engagement',
+        knowledgeSourceIds: [],
+        knowledgeSpaceIds: [],
+      },
+      privateLearning: learningReceipt,
+      resolveApiKey: resolveApiKey ?? (async () => undefined),
+      acceptText: (text) =>
+        isValidPostLength(
+          text,
+          limit,
+          context.constraints.usesWeightedCharacters,
+        ),
+      persistText: async (text) => {
+        const post = await this.postsService.create({
+          brandId: dto.brandId,
+          category: PostCategory.TEXT,
+          description: text,
+          format: dto.format ?? PostFormat.STANDARD,
+          ingredients: [],
+          label: '',
+          organizationId: identity.organizationId,
+          platform: dto.platform,
+          targetExecutionState: TargetExecutionState.DRAFT,
+          userId: identity.userId,
+        });
+        return { postId: String(post.id) };
+      },
+    });
+    if (outcome.kind === 'in_progress')
+      throw new BrandedGenerationBlockedException(
+        409,
+        'branded_generation_in_progress',
+        outcome.receipt.id,
+      );
+    if (outcome.kind === 'stopped')
+      throw new BrandedGenerationBlockedException(
+        brandedReasonHttpStatus(outcome.reasonCode),
+        outcome.reasonCode,
+        outcome.receipt.id,
+      );
+    const description =
+      outcome.text ??
+      (await this.readSavedDraft(dto.brandId, identity, outcome));
+    return {
+      brandedReceipt: {
+        compliance: outcome.receipt.compliance,
+        id: outcome.receipt.id,
+        isReplayed: !outcome.hasNewDispatch,
+        revision: outcome.receipt.revision,
+        state: outcome.receipt.state,
+      },
+      description,
+      learningReceipt,
+      model,
+      postId: outcome.postId,
+    };
+  }
+
+  /** A replay returns the bound post only while it still holds the generated text. */
+  private async readSavedDraft(
+    brandId: string,
+    identity: GenerationMetadata,
+    outcome: {
+      postId: string;
+      receipt: { artifact: { version: string } | null; id: string };
+    },
+  ): Promise<string> {
+    const post = await this.postsService.findOne(
+      {
+        brandId,
+        id: outcome.postId,
+        isDeleted: false,
+        organizationId: identity.organizationId,
+      },
+      'none',
+    );
+    if (!post)
+      throw new BrandedGenerationBlockedException(
+        409,
+        'receipt_artifact_not_found',
+        outcome.receipt.id,
+      );
+    if (
+      hashBrandedGenerationTextV1(post.description) !==
+      outcome.receipt.artifact?.version
+    )
+      throw new BrandedGenerationBlockedException(
+        409,
+        'receipt_artifact_version_mismatch',
+        outcome.receipt.id,
+      );
+    return post.description;
   }
   private async buildDraftSystemPrompt(
     dto: PostDraftGenerationInput,

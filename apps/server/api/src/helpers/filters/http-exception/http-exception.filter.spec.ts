@@ -1,3 +1,4 @@
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
@@ -584,5 +585,33 @@ describe('HttpExceptionFilter', () => {
     const errors = mockResponse.json.mock.calls[0][0].errors;
     expect(errors[0].meta).toEqual({ persistedVideoIngredientIds: ['saved'] });
     expect(errors[1].meta).toBeUndefined();
+  });
+  it('exposes only the branded receipt id with the stable reason code', () => {
+    filter.catch(
+      new BrandedGenerationBlockedException(
+        422,
+        'channel_limit_exceeded',
+        'receipt-1',
+      ),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[0][0].errors[0]).toMatchObject({
+      status: '422',
+      code: 'channel_limit_exceeded',
+      detail: 'Branded generation stopped: channel_limit_exceeded',
+      meta: { brandedGenerationReceiptId: 'receipt-1' },
+    });
+    expect(
+      mockResponse.json.mock.calls[0][0].errors[0].meta
+        .persistedVideoIngredientIds,
+    ).toBeUndefined();
+    filter.catch(
+      new HttpException(
+        { code: 'x', meta: { brandedGenerationReceiptId: 'forged' } },
+        409,
+      ),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[1][0].errors[0].meta).toBeUndefined();
   });
 });

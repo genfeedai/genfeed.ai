@@ -81,6 +81,7 @@ import type { Request } from 'express';
 describe('PostsOperationsController', () => {
   let controller: PostsOperationsController;
   let generationController: PostsGenerationController;
+  let draftGeneration: { generateDraftText: ReturnType<typeof vi.fn> };
 
   // Mock IDs
   const userId = testId('user');
@@ -451,6 +452,7 @@ Tweet 3: Tech innovation is changing the world.`,
     generationController = module.get<PostsGenerationController>(
       PostsGenerationController,
     );
+    draftGeneration = module.get(PostDraftGenerationService);
   });
 
   it('should be defined', () => {
@@ -580,6 +582,66 @@ Tweet 3: Tech innovation is changing the world.`,
     );
     expect(result.meta).toMatchObject({ actualCount: 2, requestedCount: 3 });
     expect(request.creditsConfig.amount).toBe(2);
+  });
+
+  describe('generateDraftText credits', () => {
+    const dto = {
+      brandId,
+      platform: CredentialPlatform.TWITTER,
+      prompt: 'Launch day',
+    };
+    const deferredRequest = () =>
+      ({
+        ...mockRequest,
+        creditsConfig: { amount: 1, deferred: true, description: 'Draft' },
+      }) as unknown as Request & {
+        creditsConfig: { deferred: boolean; amount: number };
+      };
+
+    it('finalizes the deferred charge for a legacy draft', async () => {
+      draftGeneration.generateDraftText.mockResolvedValue({
+        description: 'text',
+        model: 'model-a',
+      });
+      const request = deferredRequest();
+      await generationController.generateDraftText(request, dto, mockUser);
+
+      expect(request.creditsConfig.deferred).toBe(false);
+    });
+
+    it('finalizes the deferred charge for a fresh branded draft', async () => {
+      draftGeneration.generateDraftText.mockResolvedValue({
+        brandedReceipt: { isReplayed: false },
+        description: 'text',
+        model: 'model-a',
+      });
+      const request = deferredRequest();
+      await generationController.generateDraftText(request, dto, mockUser);
+
+      expect(request.creditsConfig.deferred).toBe(false);
+    });
+
+    it('leaves a branded replay uncharged', async () => {
+      draftGeneration.generateDraftText.mockResolvedValue({
+        brandedReceipt: { isReplayed: true },
+        description: 'text',
+        model: 'model-a',
+      });
+      const request = deferredRequest();
+      await generationController.generateDraftText(request, dto, mockUser);
+
+      expect(request.creditsConfig.deferred).toBe(true);
+    });
+
+    it('does not finalize when the draft throws', async () => {
+      draftGeneration.generateDraftText.mockRejectedValue(new Error('blocked'));
+      const request = deferredRequest();
+      await expect(
+        generationController.generateDraftText(request, dto, mockUser),
+      ).rejects.toThrow('blocked');
+
+      expect(request.creditsConfig.deferred).toBe(true);
+    });
   });
 
   // ==========================================================================
