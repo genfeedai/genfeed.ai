@@ -251,7 +251,11 @@ export default function AgentStrategyDialog({
           </div>
 
           <AgentStrategyBudgetFields form={form} setForm={setForm} />
-          <AgentStrategyCadenceFields form={form} setForm={setForm} />
+          <AgentStrategyCadenceFields
+            form={form}
+            setForm={setForm}
+            initialStrategy={initialStrategy}
+          />
           <AgentStrategyScoreFields form={form} setForm={setForm} />
           <AgentStrategyPublishToggles
             form={form}
@@ -271,7 +275,9 @@ export default function AgentStrategyDialog({
               label="Save schedule"
               type="submit"
               variant={ButtonVariant.DEFAULT}
-              isDisabled={isSubmitting || !isCadenceFormValid(form)}
+              isDisabled={
+                isSubmitting || !isCadenceFormValid(form, initialStrategy)
+              }
             />
           </DialogFooter>
         </Form>

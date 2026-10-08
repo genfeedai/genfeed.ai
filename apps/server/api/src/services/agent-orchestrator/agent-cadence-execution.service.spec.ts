@@ -251,4 +251,21 @@ describe('active cadence workflow execution', () => {
     await s.service.tryExecute(state);
     expect(s.autopilot.executeQueuedRun).not.toHaveBeenCalled();
   });
+  it('preserves unbranded legacy turns without admitting a branded scope mismatch', async () => {
+    const s = setup();
+    s.strategies.findOneById.mockResolvedValueOnce({
+      ...s.strategy,
+      brandId: null,
+      publishingCeilingPerWeek: undefined,
+      readyDraftReserve: undefined,
+    });
+    const unbranded = {
+      ...state,
+      request: { ...state.request, brandId: undefined },
+    };
+    expect(await s.service.tryExecute(unbranded)).toBeNull();
+    await expect(s.service.tryExecute(unbranded)).rejects.toThrow('authorized');
+    expect(s.autopilot.executeQueuedRun).not.toHaveBeenCalled();
+    expect(s.text.generateContent).not.toHaveBeenCalled();
+  });
 });

@@ -57,7 +57,7 @@ export class AgentCadenceExecutionService {
       !strategy?.isActive ||
       strategy.isEnabled === false ||
       strategy.userId !== state.userId ||
-      strategy.brandId !== state.request.brandId
+      (strategy.brandId ?? undefined) !== state.request.brandId
     )
       throw new Error(
         'Cadence strategy is no longer authorized in this scope.',

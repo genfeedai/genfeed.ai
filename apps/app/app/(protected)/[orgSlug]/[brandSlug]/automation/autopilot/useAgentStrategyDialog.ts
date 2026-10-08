@@ -9,6 +9,7 @@ import type {
 } from '@props/automation/agent-strategies-page.props';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { useCallback, useEffect, useState } from 'react';
+import { isCadenceFormValid } from './build-agent-strategy-payload';
 
 export const PLATFORM_OPTIONS = [
   { label: 'Twitter / X', value: 'twitter' },
@@ -146,9 +147,10 @@ export function useAgentStrategyDialog({
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!isCadenceFormValid(form, initialStrategy)) return;
       await onSubmit(form);
     },
-    [form, onSubmit],
+    [form, initialStrategy, onSubmit],
   );
 
   return { form, setForm, handlePlatformToggle, handleSubmit };

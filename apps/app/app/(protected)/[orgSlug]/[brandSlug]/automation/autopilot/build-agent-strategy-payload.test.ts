@@ -77,4 +77,30 @@ describe('cadence form payload', () => {
     expect(isCadenceFormValid({ ...form, ...change })).toBe(false);
     expect(() => buildPayload({ ...form, ...change })).toThrow();
   });
+  it.each([
+    'postsPerWeek',
+    'publishingCeilingPerWeek',
+    'readyDraftReserve',
+  ] as const)('requires a replacement when clearing configured %s', (field) => {
+    const initial = {
+      postsPerWeek: 7,
+      publishingCeilingPerWeek: 14,
+      readyDraftReserve: 3,
+    };
+    expect(isCadenceFormValid({ ...form, [field]: '' }, initial)).toBe(false);
+    expect(
+      isCadenceFormValid({ ...form, readyDraftReserve: '0' }, initial),
+    ).toBe(true);
+  });
+  it('keeps absent legacy controls optional while requiring an existing zero reserve', () => {
+    const legacy = {
+      ...form,
+      publishingCeilingPerWeek: '',
+      readyDraftReserve: '',
+    };
+    expect(isCadenceFormValid(legacy, { postsPerWeek: 7 })).toBe(true);
+    expect(
+      isCadenceFormValid(legacy, { postsPerWeek: 7, readyDraftReserve: 0 }),
+    ).toBe(false);
+  });
 });
