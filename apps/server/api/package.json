@@ -43,7 +43,7 @@
     "linkedin-api-client": "0.3.0",
     "marked": "18.1.0",
     "multer": "2.4.0",
-    "openai": "7.30.0",
+    "openai": "7.30.1",
     "rss": "1.2.2",
     "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0",
