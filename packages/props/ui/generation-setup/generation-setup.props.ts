@@ -79,6 +79,16 @@ export interface GenerationSetupPopoverProps {
   isDisabled?: boolean;
   className?: string;
   buttonRef?: RefObject<HTMLButtonElement | null>;
+  /**
+   * The user's saved Advanced Mode. When provided, the popover shows the
+   * switch; the surface decides what Advanced reveals (manual model choice).
+   */
+  advancedMode?: GenerationSetupAdvancedMode;
+}
+
+export interface GenerationSetupAdvancedMode {
+  isEnabled: boolean;
+  onChange: (next: boolean) => void;
 }
 
 export interface GenerationSetupTriggerProps {

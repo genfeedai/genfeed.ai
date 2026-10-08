@@ -12,8 +12,8 @@ import { selectVisibleRadixOption } from '../../utils/radix-select';
  * Personal settings (settings-profile-page.tsx) shows the signed-in identity
  * read-only — name and email come from the auth session, with no editable
  * name/bio form or avatar upload (read-only since the page entered this
- * monorepo in 2df1de337) — plus persisted preferences: language, appearance,
- * Advanced Mode and the default Agent mode. All API calls are mocked.
+ * monorepo in 2df1de337) — plus persisted preferences: language, appearance
+ * and the default Agent mode. All API calls are mocked.
  *
  * The auth fixture signs in "Test User" <test@genfeed.ai>.
  */

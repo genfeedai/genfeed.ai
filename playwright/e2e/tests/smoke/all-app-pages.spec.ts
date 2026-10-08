@@ -244,7 +244,6 @@ function bootstrapPayload() {
       defaultAvatarIngredientId: null,
       defaultVoiceId: null,
       id: 'org-settings-1',
-      isAdvancedMode: false,
       isFleetNsfwVisible: false,
     },
     streak: null,

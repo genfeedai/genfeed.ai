@@ -17,12 +17,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { Switch } from '@ui/primitives/switch';
 import { TooltipProvider } from '@ui/primitives/tooltip';
 import { Pin, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useState } from 'react';
 
 const GenerationSetupPopover = memo(function GenerationSetupPopover({
+  advancedMode,
   align = 'start',
   showEnhancementSettings = false,
   buttonRef,
@@ -131,6 +133,21 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                   onClick={onClearPreset}
                   size={ButtonSize.ICON}
                   variant={ButtonVariant.GHOST}
+                />
+              </div>
+            ) : null}
+
+            {!customizeSection && advancedMode ? (
+              <div className="shrink-0 border-b border-border px-3 py-2">
+                <Switch
+                  aria-label={translate('advancedMode')}
+                  description={translate('advancedModeDescription')}
+                  isChecked={advancedMode.isEnabled}
+                  isDisabled={isDisabled}
+                  label={
+                    <span className="text-xs">{translate('advancedMode')}</span>
+                  }
+                  onCheckedChange={advancedMode.onChange}
                 />
               </div>
             ) : null}

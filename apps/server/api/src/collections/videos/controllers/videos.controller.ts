@@ -246,10 +246,9 @@ export class VideosController {
         ),
       }),
       [
-        {
-          ...PopulatePatterns.metadataFull,
-          where: scopedWhere(readScope.organizationId),
-        },
+        // Metadata has no organizationId; the scoped parent ingredient query
+        // already bounds which metadata row can be reached.
+        PopulatePatterns.metadataFull,
         PopulatePatterns.promptFull,
         PopulatePatterns.userMinimal,
         PopulatePatterns.brandMinimal,

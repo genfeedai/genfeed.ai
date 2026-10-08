@@ -11,9 +11,11 @@ function buildDefaultProps(
   return {
     agentMode: AgentThreadMode.MANUAL,
     canSendMessage: true,
+    canUseVoiceInput: false,
     disabled: false,
     generationMode: 'auto',
     hasEditor: true,
+    isEmptyComposer: true,
     isListening: false,
     isTranscribing: false,
     isUploading: false,
@@ -25,8 +27,6 @@ function buildDefaultProps(
     onStop: undefined,
     onStopListening: vi.fn(),
     promptText: '',
-    shouldShowSendButton: true,
-    shouldShowVoiceInput: false,
     showStop: false,
     ...overrides,
   };
@@ -53,6 +53,39 @@ describe('AgentChatInputToolbar', () => {
       screen.queryByTestId('generation-setup-popover'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/^Lock /)).not.toBeInTheDocument();
+  });
+
+  it('keeps a secondary mic beside Send once the field has text', () => {
+    const onStartListening = vi.fn();
+    render(
+      <AgentChatInputToolbar
+        {...buildDefaultProps({
+          canUseVoiceInput: true,
+          isEmptyComposer: false,
+          onStartListening,
+          promptText: 'Draft a launch post',
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
+    expect(onStartListening).toHaveBeenCalledOnce();
+  });
+
+  it('shows no mic beside Send when voice input is unavailable', () => {
+    render(
+      <AgentChatInputToolbar
+        {...buildDefaultProps({
+          isEmptyComposer: false,
+          promptText: 'Draft a launch post',
+        })}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Start voice input' }),
+    ).not.toBeInTheDocument();
   });
 
   it('reflects the active thread mode on the trigger', () => {

@@ -108,7 +108,6 @@ interface MockBrand {
 
 interface MockOrganizationSettings {
   id: string;
-  isAdvancedMode: boolean;
   isFleetNsfwVisible: boolean;
   defaultAvatarIngredientId: string | null;
   defaultVoiceId: string | null;
@@ -247,7 +246,6 @@ export function generateMockOrganizationSettings(
     defaultVoiceId: null,
     defaultVoiceRef: null,
     id: 'org-settings-1',
-    isAdvancedMode: false,
     isFleetNsfwVisible: false,
     ...overrides,
   };

@@ -296,7 +296,6 @@ async function fulfillReadmeApi(route: Route, url: string): Promise<void> {
         defaultVoiceId: null,
         defaultVoiceRef: null,
         id: 'org-settings-1',
-        isAdvancedMode: false,
         isFleetNsfwVisible: false,
       },
       streak: null,

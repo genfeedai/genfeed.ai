@@ -11,6 +11,8 @@ const MODEL_PAGE_LIMIT = 100;
 
 export interface UseStudioGenerateModelsReturn {
   isLoadingModels: boolean;
+  /** True only once `models` holds a successful fetch for the requested category. */
+  isModelCatalogReady: boolean;
   models: readonly IModel[];
 }
 
@@ -24,6 +26,9 @@ export function useStudioGenerateModels(
 ): UseStudioGenerateModelsReturn {
   const [models, setModels] = useState<readonly IModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(Boolean(category));
+  const [loadedCategory, setLoadedCategory] = useState<ModelCategory | null>(
+    null,
+  );
 
   const getModelsService = useAuthedService((token: string) =>
     ModelsService.getInstance(token),
@@ -32,6 +37,7 @@ export function useStudioGenerateModels(
   useEffect(() => {
     if (!category || !organizationId) {
       setModels([]);
+      setLoadedCategory(null);
       setIsLoadingModels(false);
       return;
     }
@@ -43,6 +49,7 @@ export function useStudioGenerateModels(
     // let `resolveModelKey` fall back to an image model on a video submit
     // during the window between the type switch and the new rows landing.
     setModels([]);
+    setLoadedCategory(null);
     setIsLoadingModels(true);
 
     void (async () => {
@@ -68,6 +75,7 @@ export function useStudioGenerateModels(
             ? rows.filter((row) => isImageEditModel(row.key))
             : rows,
         );
+        setLoadedCategory(category);
       } catch {
         if (!isCancelled) {
           setModels([]);
@@ -85,5 +93,9 @@ export function useStudioGenerateModels(
     };
   }, [category, getModelsService, organizationId]);
 
-  return { isLoadingModels, models };
+  return {
+    isLoadingModels,
+    isModelCatalogReady: category !== null && loadedCategory === category,
+    models,
+  };
 }

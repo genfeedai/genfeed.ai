@@ -5395,7 +5395,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'hasEverHadCredits',
       'hasGeneratedFirstAsset',
       'id',
-      'isAdvancedMode',
       'isAutoEvaluateEnabled',
       'isByokEnabled',
       'isFirstLogin',

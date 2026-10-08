@@ -82,7 +82,6 @@ const createOrganizationSetting = (
 ): IOrganizationSetting => ({
   ...createBaseEntity<IOrganizationSetting>(partial),
   brandsLimit: 1,
-  isAdvancedMode: false,
   isAutoEvaluateEnabled: false,
   isFleetNsfwVisible: false,
   isGenerateArticlesEnabled: true,
@@ -130,7 +129,7 @@ describe('Organization', () => {
 
     it('should instantiate settings when provided as object', () => {
       const org = createOrganization({
-        settings: createOrganizationSetting({ isAdvancedMode: true }),
+        settings: createOrganizationSetting({ isByokEnabled: true }),
       });
       expect(org.settings).toBeDefined();
     });

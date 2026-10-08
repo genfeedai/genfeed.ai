@@ -24,7 +24,10 @@ import type {
   GenerationSetupFieldKey,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type {
+  StudioGenerateReferenceRole,
+  StudioGenerationCostEstimate,
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   getDefaultVideoResolution,
@@ -35,11 +38,14 @@ import {
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,
 } from '@genfeedai/pricing';
+import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
+import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import StudioGenerationSummary from '@pages/studio/generate/components/StudioGenerationSummary';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
+import StudioTypeDropdown from '@pages/studio/generate/components/StudioTypeDropdown';
 import {
   crunFieldOptions,
   useCrunInputControls,
@@ -87,7 +93,8 @@ import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/Prom
 import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
-import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
+import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -140,7 +147,7 @@ export default function StudioGenerateComposer({
   prompt,
   previousPrompt = null,
   settings,
-  shouldShowVoiceInput,
+  isVoiceInputAvailable,
   type,
 }: StudioGenerateComposerProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
@@ -227,6 +234,19 @@ export default function StudioGenerateComposer({
     onSettingsChange,
   ]);
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  // Advanced Mode only reveals manual model choice; Look, presets and
+  // references stay available either way.
+  const { isAdvancedMode, setAdvancedMode } = useAdvancedModePreference();
+  const isModelChoiceVisible = capabilities.hasModelSelection && isAdvancedMode;
+  const handleAdvancedModeChange = useCallback(
+    (next: boolean) => {
+      void setAdvancedMode(next);
+      if (!next && settings.modelKey !== AUTO_MODEL_OPTION_VALUE) {
+        onSettingsChange({ modelKey: AUTO_MODEL_OPTION_VALUE });
+      }
+    },
+    [onSettingsChange, setAdvancedMode, settings.modelKey],
+  );
 
   const isPromptEmpty = prompt.trim().length === 0;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
@@ -484,7 +504,7 @@ export default function StudioGenerateComposer({
     [deleteLook],
   );
 
-  const modelLabel = !capabilities.hasModelSelection
+  const modelLabel = !isModelChoiceVisible
     ? undefined
     : isLoadingModels
       ? translate('summary.modelLoading')
@@ -500,8 +520,9 @@ export default function StudioGenerateComposer({
           costPromptData.resolution,
         ) ?? costPromptData.resolution)
       : costPromptData.resolution;
-  const setupLabel = [
-    modelLabel ?? typeOptions.find((option) => option.value === type)?.label,
+  // The type has its own chip, so it names the setup only when nothing else does.
+  const setupParts = [
+    modelLabel,
     capabilities.hasAspectRatio || type === 'image-edit'
       ? displaySettings.aspectRatio
       : undefined,
@@ -512,115 +533,86 @@ export default function StudioGenerateComposer({
         })
       : undefined,
     capabilities.hasOutputs ? `x${costPromptData.outputs ?? 1}` : undefined,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  ].filter(Boolean);
+  const setupLabel =
+    setupParts.length > 0
+      ? setupParts.join(' · ')
+      : typeOptions.find((option) => option.value === type)?.label;
 
-  const referenceControls = (
-    <>
-      {capabilities.hasReferences && type === 'image' ? (
-        <PromptBarReferenceControls
-          density="compact"
-          accept="image/*"
-          isAttachmentDisabled={isGenerating || isUploading}
-          isLibraryDisabled={isGenerating}
-          onAddFiles={(files) => onAddFiles(files, 'reference')}
-          onOpenLibrary={() => onOpenLibrary('reference')}
-        />
-      ) : null}
-
-      {type === 'image-edit' ? (
-        <>
-          <PromptBarReferenceControls
-            density="compact"
-            accept="image/*"
-            label={translate('editImage.sourceImages')}
-            isAttachmentDisabled={
-              isGenerating ||
-              isUploading ||
-              editSources.length >= editSourceLimit
-            }
-            isLibraryDisabled={
-              isGenerating || editSources.length >= editSourceLimit
-            }
-            onAddFiles={(files) => onAddFiles(files, 'editSource')}
-            onOpenLibrary={() => onOpenLibrary('editSource')}
-          />
-          {!isFlux ? (
-            <PromptBarReferenceControls
-              density="compact"
-              accept="image/*"
-              label={translate('editImage.maskOptional')}
-              isAttachmentDisabled={isGenerating || isUploading}
-              isLibraryDisabled={isGenerating}
-              onAddFiles={(files) => onAddFiles(files, 'editMask')}
-              onOpenLibrary={() => onOpenLibrary('editMask')}
-            />
-          ) : null}
-        </>
-      ) : null}
-      {type === 'video' &&
-      (inputControls?.mediaKind !== 'video' ||
-        inputControls.videoRules?.referenceMode === 'start-end') ? (
-        <>
-          <PromptBarReferenceControls
-            density="compact"
-            accept="image/*"
-            isAttachmentDisabled={isGenerating || isUploading}
-            isLibraryDisabled={isGenerating}
-            label={translate('startFrame')}
-            onAddFiles={(files) => onAddFiles(files, 'startFrame')}
-            onOpenLibrary={() => onOpenLibrary('startFrame')}
-          />
-          {!isAutoMode &&
-          (inputControls?.mediaKind === 'video'
-            ? inputControls.videoRules?.referenceMode === 'start-end'
-            : hasEndFrame(settings.modelKey)) ? (
-            <PromptBarReferenceControls
-              density="compact"
-              accept="image/*"
-              isAttachmentDisabled={isGenerating || isUploading}
-              isLibraryDisabled={isGenerating}
-              label={translate('endFrame')}
-              onAddFiles={(files) => onAddFiles(files, 'endFrame')}
-              onOpenLibrary={() => onOpenLibrary('endFrame')}
-            />
-          ) : null}
-          {!isAutoMode &&
-          inputControls?.mediaKind !== 'video' &&
-          hasVideoReferences(settings.modelKey) ? (
-            <PromptBarReferenceControls
-              density="compact"
-              accept="video/*"
-              isAttachmentDisabled={isGenerating || isUploading}
-              isLibraryDisabled={isGenerating}
-              label={translate('videoReference')}
-              onAddFiles={(files) => onAddFiles(files, 'videoReference')}
-              onOpenLibrary={() => onOpenLibrary('videoReference')}
-            />
-          ) : null}
-        </>
-      ) : null}
-    </>
-  );
+  const isAttachmentBusy = isGenerating || isUploading;
+  const referenceSources: PromptBarReferenceSource[] = [];
+  const addReferenceSource = (
+    role: StudioGenerateReferenceRole,
+    label: string,
+    accept: string,
+    isFull = false,
+  ): void => {
+    referenceSources.push({
+      accept,
+      id: role,
+      isAttachmentDisabled: isAttachmentBusy || isFull,
+      isLibraryDisabled: isGenerating || isFull,
+      label,
+      onAddFiles: (files) => onAddFiles(files, role),
+      onOpenLibrary: () => onOpenLibrary(role),
+    });
+  };
+  if (capabilities.hasReferences && type === 'image') {
+    addReferenceSource('reference', translateAssets('reference'), 'image/*');
+  }
+  if (type === 'image-edit') {
+    addReferenceSource(
+      'editSource',
+      translate('editImage.sourceImages'),
+      'image/*',
+      editSources.length >= editSourceLimit,
+    );
+    if (!isFlux) {
+      addReferenceSource(
+        'editMask',
+        translate('editImage.maskOptional'),
+        'image/*',
+      );
+    }
+  }
+  if (
+    type === 'video' &&
+    (inputControls?.mediaKind !== 'video' ||
+      inputControls.videoRules?.referenceMode === 'start-end')
+  ) {
+    addReferenceSource('startFrame', translateAssets('startFrame'), 'image/*');
+    if (
+      !isAutoMode &&
+      (inputControls?.mediaKind === 'video'
+        ? inputControls.videoRules?.referenceMode === 'start-end'
+        : hasEndFrame(settings.modelKey))
+    ) {
+      addReferenceSource('endFrame', translateAssets('endFrame'), 'image/*');
+    }
+    if (
+      !isAutoMode &&
+      inputControls?.mediaKind !== 'video' &&
+      hasVideoReferences(settings.modelKey)
+    ) {
+      addReferenceSource(
+        'videoReference',
+        translateAssets('videoReference'),
+        'video/*',
+      );
+    }
+  }
 
   return (
     <PromptBarComposer
       beforeBody={
-        attachedAssets.length > 0 ||
-        type === 'image' ||
-        type === 'image-edit' ||
-        type === 'video' ? (
+        attachedAssets.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 px-3 pb-1 pt-3">
-            {attachedAssets.length > 0 ? (
-              <PromptBarAttachedAssetsTray
-                assets={attachedAssets}
-                translate={translateAssets}
-                isDisabled={isGenerating}
-                onRemoveAttachedAsset={onRemoveAttachedAsset}
-              />
-            ) : null}
-            {referenceControls}
+            <PromptBarAttachedAssetsTray
+              assets={attachedAssets}
+              translate={translateAssets}
+              isDisabled={isGenerating}
+              onRemoveAttachedAsset={onRemoveAttachedAsset}
+            />
           </div>
         ) : null
       }
@@ -829,246 +821,270 @@ export default function StudioGenerateComposer({
               : translate('kling4KReferenceConflict')}
         </p>
       ) : null}
-      <div className="mt-2 flex min-h-8 min-w-0 flex-wrap items-center justify-between gap-2">
-        <div
-          role="group"
-          aria-label={translateSetup('promptTools')}
-          className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
-        >
-          {inputControls?.mediaKind === 'image' ? (
-            <PromptBarCrunControls
-              controls={inputControls}
-              value={settings.crunControls?.outputFormat}
+      <PromptBarToolbar
+        density="compact"
+        leadingLabel={translateSetup('promptTools')}
+        trailingLabel={translateSetup('generationControls')}
+        leading={
+          <>
+            {referenceSources.length > 0 ? (
+              <PromptBarReferenceControls
+                density="compact"
+                sources={referenceSources}
+              />
+            ) : null}
+            <StudioTypeDropdown
               isDisabled={isGenerating}
-              onChange={(outputFormat) =>
-                onSettingsChange({
-                  crunControls: {
-                    modelKey: settings.modelKey,
-                    contractVersion: inputControls.version,
-                    outputFormat,
-                  },
-                })
-              }
+              onChange={onTypeChange}
+              type={type}
             />
-          ) : null}
-          {inputControls?.mediaKind === 'video' && settings.crunControls ? (
-            <>
-              {(crunReferenceCount ?? 0) >
-                (inputControls.videoRules?.referenceMode === 'start-end'
-                  ? 1
-                  : 0) && (
-                <Label role="alert">
-                  {translate('crun.videoReferencesUnsupported')}
-                </Label>
-              )}
-              <PromptBarCrunVideoControls
+            {inputControls?.mediaKind === 'image' ? (
+              <PromptBarCrunControls
                 controls={inputControls}
-                value={{
-                  modelKey: settings.crunControls.modelKey,
-                  contractVersion: settings.crunControls.contractVersion,
-                  prompt,
-                  duration: settings.duration,
-                  aspectRatio: settings.aspectRatio || undefined,
-                  resolution: settings.resolution || undefined,
-                  negativePrompt: settings.crunControls.negativePrompt,
-                  guidanceScale: settings.crunControls.guidanceScale,
-                  translatePrompt: settings.crunControls.translatePrompt,
-                  startFrameId: crunStartFrameId,
-                  endFrameId: crunEndFrameId,
-                }}
-                isDisabled={isGenerating || isUploading || isEnhancingPrompt}
-                labels={{
-                  duration: translate('crun.duration'),
-                  aspectRatio: translate('crun.aspectRatio'),
-                  resolution: translate('crun.resolution'),
-                  negativePrompt: translate('crun.negativePrompt'),
-                  guidanceScale: translate('crun.guidanceScale'),
-                  translatePrompt: translate('crun.translatePrompt'),
-                  pricingReviewRequired: translate(
-                    'crun.pricingReviewRequired',
-                  ),
-                  aspectFromFrames: translate('crun.aspectFromFrames'),
-                  invalidContract: translate('crun.invalidContract'),
-                  errorMessages: {
-                    required: translate('crun.fieldRequired'),
-                    unknown: translate('crun.fieldUnknown'),
-                    type: translate('crun.fieldType'),
-                    enum: translate('crun.fieldEnum'),
-                    bounds: translate('crun.fieldBounds'),
-                    uri: translate('crun.fieldUri'),
-                    reference_required: translate(
-                      'crun.fieldReferenceRequired',
-                    ),
-                    pricing_unavailable: translate(
-                      'crun.pricingReviewRequired',
-                    ),
-                    contract_mismatch: translate('crun.invalidContract'),
-                  },
-                }}
-                onChange={(patch) =>
+                value={settings.crunControls?.outputFormat}
+                isDisabled={isGenerating}
+                onChange={(outputFormat) =>
                   onSettingsChange({
-                    ...(Object.hasOwn(patch, 'duration')
-                      ? { duration: patch.duration }
-                      : {}),
-                    ...(Object.hasOwn(patch, 'aspectRatio')
-                      ? { aspectRatio: patch.aspectRatio ?? '' }
-                      : {}),
-                    ...(Object.hasOwn(patch, 'resolution')
-                      ? { resolution: patch.resolution ?? '' }
-                      : {}),
                     crunControls: {
-                      ...settings.crunControls,
                       modelKey: settings.modelKey,
                       contractVersion: inputControls.version,
-                      ...(Object.hasOwn(patch, 'negativePrompt')
-                        ? { negativePrompt: patch.negativePrompt }
-                        : {}),
-                      ...(Object.hasOwn(patch, 'guidanceScale')
-                        ? { guidanceScale: patch.guidanceScale }
-                        : {}),
-                      ...(Object.hasOwn(patch, 'translatePrompt')
-                        ? { translatePrompt: patch.translatePrompt }
-                        : {}),
+                      outputFormat,
                     },
                   })
                 }
               />
-            </>
-          ) : null}
-
-          {capabilities.hasIdentity ? (
-            <StudioIdentityFields
-              isDisabled={isGenerating}
-              onChange={onSettingsChange}
-              settings={settings}
-              type={type}
-            />
-          ) : null}
-
-          {!isEnhancingPrompt && previousPrompt !== null ? (
-            <Button
-              ariaLabel={translate('undoPromptEnhancement')}
-              className="h-8 shrink-0 px-2 text-xs"
-              isDisabled={isGenerating}
-              label={translate('undo')}
-              onClick={onUndoEnhancePrompt}
-              size={ButtonSize.XS}
-              textTransform="none"
-              variant={ButtonVariant.GHOST}
-            />
-          ) : null}
-          {onEnhancePrompt && type !== 'image-edit' ? (
-            <Button
-              ariaLabel={
-                isEnhancingPrompt
-                  ? translate('cancelEnhancingPrompt')
-                  : translate('enhancePrompt')
-              }
-              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
-              icon={
-                isEnhancingPrompt ? (
-                  <Spinner className="size-4" />
-                ) : (
-                  <WandSparkles className={SHELL_ICON_CLASS} />
-                )
-              }
-              // The composer stays usable during enhancement: while pending,
-              // the button switches to Cancel instead of disabling (#4676).
-              isDisabled={isGenerating || (!isEnhancingPrompt && isPromptEmpty)}
-              onClick={
-                isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
-              }
-              tooltip={
-                isEnhancingPrompt
-                  ? translate('cancelEnhancingPrompt')
-                  : translate('enhancePrompt')
-              }
-              textTransform="none"
-              tooltipPosition="top"
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          ) : null}
-        </div>
-
-        <div
-          role="group"
-          aria-label={translateSetup('generationControls')}
-          className="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2"
-        >
-          <GenerationSetupPopover
-            showEnhancementSettings={type === 'image' || type === 'video'}
-            align="end"
-            triggerLabel={setupLabel}
-            inputControls={inputControls}
-            referenceCount={crunReferenceCount ?? attachedAssets.length}
-            capabilities={capabilities}
-            favoriteModelKeys={favoriteModelKeys}
-            isDisabled={isGenerating}
-            isPresetsLoading={isPresetsLoading}
-            isTypeCommitted
-            lookOptions={lookOptions}
-            models={capabilities.hasModelSelection ? models : []}
-            onApplyPreset={handleApplyPreset}
-            onClearPreset={handleClearPreset}
-            onDeletePreset={handleDeletePreset}
-            onFavoriteToggle={onFavoriteToggle}
-            onResetAll={onResetSettings}
-            onResetField={handleResetField}
-            onSavePreset={handleSavePreset}
-            onSetField={handleSetField}
-            onTypeChange={(nextType) => {
-              // The shared popover speaks GenerationSetupType; Studio only
-              // offers its own registry, so anything else is not a Studio pick.
-              if (isStudioGenerateType(nextType)) {
-                onTypeChange(nextType);
-              }
-            }}
-            presets={presets}
-            reasons={reasons}
-            scopeKey={scope}
-            setup={setupForComposer}
-            typeOptions={typeOptions}
-          />
-
-          {isListening || isTranscribing || shouldShowVoiceInput ? (
-            <PromptBarVoiceControl
-              density="compact"
-              isDisabled={isGenerating}
-              isListening={isListening}
-              isTranscribing={isTranscribing}
-              onStartListening={onStartListening}
-              onStopListening={onStopListening}
-            />
-          ) : (
-            <StudioGenerationSummary
-              crunQuote={crunQuote}
-              estimate={estimate}
-              model={selectedModel}
-              type={type}
-              isDisabled={isGenerating}
-              label={translate('generate')}
-            >
-              <Button
-                ariaLabel={translate('generate')}
-                className={cn(
-                  'size-8 shrink-0 min-h-0 min-w-0 p-0',
-                  isSubmitBlocked && 'cursor-not-allowed opacity-50',
+            ) : null}
+            {inputControls?.mediaKind === 'video' && settings.crunControls ? (
+              <>
+                {(crunReferenceCount ?? 0) >
+                  (inputControls.videoRules?.referenceMode === 'start-end'
+                    ? 1
+                    : 0) && (
+                  <Label role="alert">
+                    {translate('crun.videoReferencesUnsupported')}
+                  </Label>
                 )}
-                aria-disabled={isSubmitBlocked || undefined}
-                icon={<ArrowUp className={SHELL_ICON_CLASS} />}
+                <PromptBarCrunVideoControls
+                  controls={inputControls}
+                  value={{
+                    modelKey: settings.crunControls.modelKey,
+                    contractVersion: settings.crunControls.contractVersion,
+                    prompt,
+                    duration: settings.duration,
+                    aspectRatio: settings.aspectRatio || undefined,
+                    resolution: settings.resolution || undefined,
+                    negativePrompt: settings.crunControls.negativePrompt,
+                    guidanceScale: settings.crunControls.guidanceScale,
+                    translatePrompt: settings.crunControls.translatePrompt,
+                    startFrameId: crunStartFrameId,
+                    endFrameId: crunEndFrameId,
+                  }}
+                  isDisabled={isGenerating || isUploading || isEnhancingPrompt}
+                  labels={{
+                    duration: translate('crun.duration'),
+                    aspectRatio: translate('crun.aspectRatio'),
+                    resolution: translate('crun.resolution'),
+                    negativePrompt: translate('crun.negativePrompt'),
+                    guidanceScale: translate('crun.guidanceScale'),
+                    translatePrompt: translate('crun.translatePrompt'),
+                    pricingReviewRequired: translate(
+                      'crun.pricingReviewRequired',
+                    ),
+                    aspectFromFrames: translate('crun.aspectFromFrames'),
+                    invalidContract: translate('crun.invalidContract'),
+                    errorMessages: {
+                      required: translate('crun.fieldRequired'),
+                      unknown: translate('crun.fieldUnknown'),
+                      type: translate('crun.fieldType'),
+                      enum: translate('crun.fieldEnum'),
+                      bounds: translate('crun.fieldBounds'),
+                      uri: translate('crun.fieldUri'),
+                      reference_required: translate(
+                        'crun.fieldReferenceRequired',
+                      ),
+                      pricing_unavailable: translate(
+                        'crun.pricingReviewRequired',
+                      ),
+                      contract_mismatch: translate('crun.invalidContract'),
+                    },
+                  }}
+                  onChange={(patch) =>
+                    onSettingsChange({
+                      ...(Object.hasOwn(patch, 'duration')
+                        ? { duration: patch.duration }
+                        : {}),
+                      ...(Object.hasOwn(patch, 'aspectRatio')
+                        ? { aspectRatio: patch.aspectRatio ?? '' }
+                        : {}),
+                      ...(Object.hasOwn(patch, 'resolution')
+                        ? { resolution: patch.resolution ?? '' }
+                        : {}),
+                      crunControls: {
+                        ...settings.crunControls,
+                        modelKey: settings.modelKey,
+                        contractVersion: inputControls.version,
+                        ...(Object.hasOwn(patch, 'negativePrompt')
+                          ? { negativePrompt: patch.negativePrompt }
+                          : {}),
+                        ...(Object.hasOwn(patch, 'guidanceScale')
+                          ? { guidanceScale: patch.guidanceScale }
+                          : {}),
+                        ...(Object.hasOwn(patch, 'translatePrompt')
+                          ? { translatePrompt: patch.translatePrompt }
+                          : {}),
+                      },
+                    })
+                  }
+                />
+              </>
+            ) : null}
+
+            {capabilities.hasIdentity ? (
+              <StudioIdentityFields
                 isDisabled={isGenerating}
-                isLoading={isGenerating}
-                onClick={guardedSubmit}
+                onChange={onSettingsChange}
+                settings={settings}
+                type={type}
+              />
+            ) : null}
+
+            {!isEnhancingPrompt && previousPrompt !== null ? (
+              <Button
+                ariaLabel={translate('undoPromptEnhancement')}
+                className="h-8 shrink-0 px-2 text-xs"
+                isDisabled={isGenerating}
+                label={translate('undo')}
+                onClick={onUndoEnhancePrompt}
+                size={ButtonSize.XS}
+                textTransform="none"
+                variant={ButtonVariant.GHOST}
+              />
+            ) : null}
+          </>
+        }
+        trailing={
+          <>
+            <GenerationSetupPopover
+              showEnhancementSettings={type === 'image' || type === 'video'}
+              align="end"
+              triggerLabel={setupLabel}
+              inputControls={inputControls}
+              referenceCount={crunReferenceCount ?? attachedAssets.length}
+              advancedMode={
+                capabilities.hasModelSelection
+                  ? {
+                      isEnabled: isAdvancedMode,
+                      onChange: handleAdvancedModeChange,
+                    }
+                  : undefined
+              }
+              capabilities={{
+                ...capabilities,
+                hasModelSelection: isModelChoiceVisible,
+              }}
+              favoriteModelKeys={favoriteModelKeys}
+              isDisabled={isGenerating}
+              isPresetsLoading={isPresetsLoading}
+              isTypeCommitted
+              lookOptions={lookOptions}
+              models={isModelChoiceVisible ? models : []}
+              onApplyPreset={handleApplyPreset}
+              onClearPreset={handleClearPreset}
+              onDeletePreset={handleDeletePreset}
+              onFavoriteToggle={onFavoriteToggle}
+              onResetAll={onResetSettings}
+              onResetField={handleResetField}
+              onSavePreset={handleSavePreset}
+              onSetField={handleSetField}
+              onTypeChange={(nextType) => {
+                // The shared popover speaks GenerationSetupType; Studio only
+                // offers its own registry, so anything else is not a Studio pick.
+                if (isStudioGenerateType(nextType)) {
+                  onTypeChange(nextType);
+                }
+              }}
+              presets={presets}
+              reasons={reasons}
+              scopeKey={scope}
+              setup={setupForComposer}
+              typeOptions={typeOptions}
+            />
+
+            {onEnhancePrompt && type !== 'image-edit' ? (
+              <Button
+                ariaLabel={
+                  isEnhancingPrompt
+                    ? translate('cancelEnhancingPrompt')
+                    : translate('enhancePrompt')
+                }
+                className="size-8 shrink-0 min-h-0 min-w-0 p-0"
+                icon={
+                  isEnhancingPrompt ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <WandSparkles className={SHELL_ICON_CLASS} />
+                  )
+                }
+                // The composer stays usable during enhancement: while pending,
+                // the button switches to Cancel instead of disabling (#4676).
+                isDisabled={
+                  isGenerating || (!isEnhancingPrompt && isPromptEmpty)
+                }
+                onClick={
+                  isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
+                }
+                tooltip={
+                  isEnhancingPrompt
+                    ? translate('cancelEnhancingPrompt')
+                    : translate('enhancePrompt')
+                }
+                textTransform="none"
+                tooltipPosition="top"
                 size={ButtonSize.ICON}
-                variant={ButtonVariant.DEFAULT}
+                variant={ButtonVariant.GHOST}
                 withWrapper={false}
               />
-            </StudioGenerationSummary>
-          )}
-        </div>
-      </div>
+            ) : null}
+
+            <PromptBarSubmitSlot
+              density="compact"
+              isDisabled={isGenerating}
+              isEmpty={isPromptEmpty && !isGenerating}
+              isListening={isListening}
+              isTranscribing={isTranscribing}
+              isVoiceAvailable={isVoiceInputAvailable}
+              onStartListening={onStartListening}
+              onStopListening={onStopListening}
+              send={
+                <StudioGenerationSummary
+                  crunQuote={crunQuote}
+                  estimate={estimate}
+                  model={selectedModel}
+                  type={type}
+                  isDisabled={isGenerating}
+                  label={translate('generate')}
+                >
+                  <Button
+                    ariaLabel={translate('generate')}
+                    className={cn(
+                      'size-8 shrink-0 min-h-0 min-w-0 p-0',
+                      isSubmitBlocked && 'cursor-not-allowed opacity-50',
+                    )}
+                    aria-disabled={isSubmitBlocked || undefined}
+                    icon={<ArrowUp className={SHELL_ICON_CLASS} />}
+                    isDisabled={isGenerating}
+                    isLoading={isGenerating}
+                    onClick={guardedSubmit}
+                    size={ButtonSize.ICON}
+                    variant={ButtonVariant.DEFAULT}
+                    withWrapper={false}
+                  />
+                </StudioGenerationSummary>
+              }
+            />
+          </>
+        }
+      />
     </PromptBarComposer>
   );
 }

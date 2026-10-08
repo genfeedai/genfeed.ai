@@ -41,6 +41,7 @@ import type {
   StudioGenerateType,
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
+import { isAutoStudioModelKey } from '@genfeedai/pricing';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -55,6 +56,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
+import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference';
 import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@pages/library/knowledge/components/KnowledgeReferenceSection';
@@ -127,6 +129,7 @@ import {
   buildStudioGenerationSetupScope,
   setGenerationSetupField,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -438,10 +441,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
   });
 
   const { capabilities, modelCategory } = getStudioGenerateTypeConfig(type);
-  const { isLoadingModels, models } = useStudioGenerateModels(
-    modelCategory,
-    organizationId,
-  );
+  const { isLoadingModels, isModelCatalogReady, models } =
+    useStudioGenerateModels(modelCategory, organizationId);
   const editSourceLimit = getImageEditMaxSources(
     models.find((model) => model.key === settings.modelKey)?.key ??
       models.find((model) => model.isDefault)?.key,
@@ -693,6 +694,53 @@ export default function StudioGenerateWorkspace(): ReactElement {
     models,
     notificationsService,
     type,
+    updateSettings,
+  ]);
+
+  // Simple mode (Advanced off) hides model choice, so a concrete pick saved
+  // earlier must not keep applying unseen. An Agent handoff's pick is kept.
+  const { isAdvancedMode, isLoaded: isAdvancedModeLoaded } =
+    useAdvancedModePreference();
+  useEffect(() => {
+    if (
+      !isAdvancedModeLoaded ||
+      isAdvancedMode ||
+      handoffPayload ||
+      isAutoStudioModelKey(settings.modelKey)
+    ) {
+      return;
+    }
+    updateSettings({ modelKey: AUTO_MODEL_OPTION_VALUE });
+  }, [
+    handoffPayload,
+    isAdvancedMode,
+    isAdvancedModeLoaded,
+    settings.modelKey,
+    updateSettings,
+  ]);
+
+  // A persisted model pick can outlive the org's catalog (model disabled or
+  // retired). Fall back to Auto once this type's catalog has actually loaded
+  // instead of showing "Model unavailable" and blocking Generate.
+  useEffect(() => {
+    if (
+      !isModelCatalogReady ||
+      !capabilities.hasModelSelection ||
+      isAutoStudioModelKey(settings.modelKey) ||
+      models.some((model) => model.key === settings.modelKey)
+    ) {
+      return;
+    }
+    updateSettings({ modelKey: AUTO_MODEL_OPTION_VALUE });
+    notificationsService.info(
+      'Your saved model is no longer available — Studio switched to Auto.',
+    );
+  }, [
+    capabilities.hasModelSelection,
+    isModelCatalogReady,
+    models,
+    notificationsService,
+    settings.modelKey,
     updateSettings,
   ]);
 
@@ -1885,13 +1933,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
     notificationsService,
   ]);
 
-  const shouldShowVoiceInput = Boolean(
+  const isVoiceInputAvailable = Boolean(
     agentApiService &&
       organizationSettings?.isVoiceControlEnabled === true &&
-      isVoiceSupported &&
-      !isGenerating &&
-      !isTranscribing &&
-      prompt.trim().length === 0,
+      isVoiceSupported,
   );
 
   // Vary/Reprompt reloads the composer from the card's recipe rather than
@@ -2374,7 +2419,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 prompt={prompt}
                 previousPrompt={previousEnhancedPrompt}
                 settings={settings}
-                shouldShowVoiceInput={shouldShowVoiceInput}
+                isVoiceInputAvailable={isVoiceInputAvailable}
                 type={type}
               />
             </div>

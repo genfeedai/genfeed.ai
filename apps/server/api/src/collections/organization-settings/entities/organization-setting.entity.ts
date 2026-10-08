@@ -38,8 +38,6 @@ export class OrganizationSettingEntity extends BaseEntity {
 
   declare readonly subscriptionTier: string | undefined;
 
-  declare readonly isAdvancedMode: boolean;
-
   declare readonly isByokEnabled: boolean;
   declare readonly byokOpenrouterApiKey: string | undefined;
   declare readonly defaultAvatarPhotoUrl: string | undefined;

@@ -47,9 +47,9 @@ import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolu
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { isStudioGenerateType } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Admission and composer tests inspect quote states independently of hover timing.
 // StudioGenerationSummary.test.tsx covers the real focus/hover tooltip behavior.
@@ -91,6 +91,22 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+const advancedModeMocks = vi.hoisted(() => ({
+  isAdvancedMode: true,
+  setAdvancedMode: vi.fn(),
+}));
+
+vi.mock(
+  '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference',
+  () => ({
+    useAdvancedModePreference: () => ({
+      isAdvancedMode: advancedModeMocks.isAdvancedMode,
+      isLoaded: true,
+      setAdvancedMode: advancedModeMocks.setAdvancedMode,
+    }),
+  }),
+);
 
 vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   useModelFavorites: () => ({
@@ -253,7 +269,7 @@ const baseProps = {
   onStopListening: vi.fn(),
   onSubmit: vi.fn(),
   onTypeChange: vi.fn(),
-  shouldShowVoiceInput: false,
+  isVoiceInputAvailable: false,
 };
 
 describe('StudioGenerateComposer', () => {
@@ -303,6 +319,60 @@ describe('StudioGenerateComposer', () => {
       screen.getByRole('button', { name: 'Remove Apple reference' }),
     );
     expect(baseProps.onRemoveAttachedAsset).toHaveBeenCalledWith('reference');
+  });
+
+  describe('Advanced Mode', () => {
+    afterEach(() => {
+      advancedModeMocks.isAdvancedMode = true;
+    });
+
+    it('hides model choice and the model name in simple mode', () => {
+      advancedModeMocks.isAdvancedMode = false;
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          prompt="A green apple"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
+        '1:1 · 1K · x1',
+      );
+      expect(generationSetupPopoverMocks.props.models).toEqual([]);
+      expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+        hasModelSelection: false,
+      });
+      expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
+        isEnabled: false,
+      });
+    });
+
+    it('turning Advanced off saves it and returns the model to Auto', () => {
+      const onSettingsChange = vi.fn();
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+          onSettingsChange={onSettingsChange}
+          prompt="A green apple"
+          settings={{ ...settings, modelKey: 'banana' }}
+          type="image"
+        />,
+      );
+
+      const advancedMode = generationSetupPopoverMocks.props.advancedMode as {
+        onChange: (next: boolean) => void;
+      };
+      act(() => advancedMode.onChange(false));
+
+      expect(advancedModeMocks.setAdvancedMode).toHaveBeenCalledWith(false);
+      expect(onSettingsChange).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    });
   });
 
   it('keeps an empty composer expanded with setup and submission controls', () => {
@@ -776,16 +846,16 @@ describe('StudioGenerateComposer', () => {
     );
   });
 
-  it('uses the Agent voice control when the prompt is empty', () => {
+  it('puts the mic in the send slot when the prompt is empty', () => {
     const onStartListening = vi.fn();
 
     render(
       <StudioGenerateComposer
         {...baseProps}
+        isVoiceInputAvailable
         onStartListening={onStartListening}
         prompt=""
         settings={settings}
-        shouldShowVoiceInput
         type="image"
       />,
     );
@@ -798,7 +868,47 @@ describe('StudioGenerateComposer', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows labeled frame and video-reference controls for a capable model', () => {
+  it('keeps the mic beside Generate once there is a prompt to submit', () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        isVoiceInputAvailable
+        prompt="A green apple"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    const generationControls = within(
+      screen.getByRole('group', { name: 'Generation controls' }),
+    );
+    expect(
+      generationControls.getByRole('button', { name: 'Start voice input' }),
+    ).toBeInTheDocument();
+    expect(
+      generationControls.getByRole('button', { name: 'Generate' }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the mic when voice input is unavailable', () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Start voice input' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Generate' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers frame and video-reference slots from one add menu', async () => {
     render(
       <StudioGenerateComposer
         {...baseProps}
@@ -812,11 +922,45 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Start Frame' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'End Frame' })).toBeVisible();
     expect(
-      screen.getByRole('button', { name: 'Video Reference' }),
-    ).toBeVisible();
+      screen.queryByRole('button', { name: 'Start frame' }),
+    ).not.toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Start frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'End frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Video reference' }),
+    ).toBeInTheDocument();
+  });
+
+  it('switches Studio type from the leading type chip', async () => {
+    const onTypeChange = vi.fn();
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        onTypeChange={onTypeChange}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    const promptTools = within(
+      screen.getByRole('group', { name: 'Prompt tools' }),
+    );
+    fireEvent.pointerDown(
+      promptTools.getByRole('button', { name: 'Generation type: Image' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitemradio', { name: 'Video' }),
+    );
+
+    expect(onTypeChange).toHaveBeenCalledWith('video');
   });
 
   it('blocks a required image-to-video model with an inline first-frame error', () => {
@@ -997,10 +1141,10 @@ describe('StudioGenerateComposer', () => {
         screen.getByRole('group', { name: 'Generation controls' }),
       );
       expect(
-        promptTools.getByRole('button', { name: 'Enhance prompt' }),
+        generationControls.getByRole('button', { name: 'Enhance prompt' }),
       ).not.toHaveTextContent('Enhance prompt');
       expect(
-        generationControls.queryByRole('button', { name: 'Enhance prompt' }),
+        promptTools.queryByRole('button', { name: 'Enhance prompt' }),
       ).not.toBeInTheDocument();
       expect(
         generationControls.getByRole('button', { name: 'Setup' }),
@@ -1519,7 +1663,9 @@ describe('FLUX.3 composer controls', () => {
         'First source is the target. 10/10 sources. One output. No mask or seed.',
       ),
     ).toBeVisible();
-    expect(screen.getByText('Source images')).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Add context' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
     expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
       hasOutputs: false,

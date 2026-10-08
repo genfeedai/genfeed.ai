@@ -16,17 +16,11 @@ export function useMenuItems({
   items,
   insertAfterLabel,
 }: UseMenuItemsOptions): MenuItemConfig[] {
-  const { credentials, settings } = useBrand();
-  const isAdvancedMode = settings?.isAdvancedMode ?? false;
+  const { credentials } = useBrand();
 
   return useMemo(() => {
-    // Filter out advanced-only items when not in advanced mode
-    const filteredItems = isAdvancedMode
-      ? items
-      : items.filter((item) => !item.advancedOnly);
-
     if (!credentials || credentials.length === 0) {
-      return filteredItems;
+      return items;
     }
 
     const dynamicItems: MenuItemConfig[] = credentials
@@ -49,10 +43,10 @@ export function useMenuItems({
       });
 
     if (dynamicItems.length === 0) {
-      return filteredItems;
+      return items;
     }
 
-    const result = [...filteredItems];
+    const result = [...items];
     const insertIndex = result.findIndex(
       (item) => item.group === 'Posts' && item.label === insertAfterLabel,
     );
@@ -71,5 +65,5 @@ export function useMenuItems({
     }
 
     return result;
-  }, [credentials, items, insertAfterLabel, isAdvancedMode]);
+  }, [credentials, items, insertAfterLabel]);
 }

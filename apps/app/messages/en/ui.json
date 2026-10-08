@@ -1,4 +1,7 @@
 {
+  "promptBarSubmitSlot": {
+    "stop": "Stop"
+  },
   "postDraft": {
     "topic": "What do you want to post about?",
     "placeholder": "Describe an idea, announcement, or topic",

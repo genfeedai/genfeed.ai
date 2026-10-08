@@ -473,16 +473,6 @@ export class CreateOrganizationSettingDto {
   })
   readonly subscriptionTier?: string;
 
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: false,
-    description:
-      'Whether Advanced Mode is enabled — shows studio, workflow editor, and generation pages',
-    required: false,
-  })
-  readonly isAdvancedMode?: boolean;
-
   @IsEnum(AgentReplyStyle)
   @IsOptional()
   @ApiProperty({

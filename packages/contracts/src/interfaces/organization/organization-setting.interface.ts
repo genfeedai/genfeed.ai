@@ -85,7 +85,6 @@ export interface IOrganizationSetting extends IBaseEntity {
   enabledModelIds?: string[];
   subscriptionTier?: string;
 
-  isAdvancedMode: boolean;
   agentReplyStyle?: string;
 
   defaultVoiceId?: string | null;

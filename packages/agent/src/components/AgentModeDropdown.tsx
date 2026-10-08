@@ -6,6 +6,8 @@ import {
   ButtonVariant,
   normalizeAgentThreadMode,
 } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { PROMPT_BAR_CHIP_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -15,7 +17,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { Hand, ListChecks, Sparkles } from 'lucide-react';
+import { ChevronDown, Hand, ListChecks, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
 
@@ -81,14 +83,18 @@ export function AgentModeDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           ariaLabel={triggerLabel}
-          className={className}
+          className={cn(PROMPT_BAR_CHIP_CLASS, className)}
           icon={active.icon}
           isDisabled={isDisabled}
-          size={ButtonSize.ICON}
+          size={ButtonSize.SM}
+          textTransform="none"
           tooltip={triggerLabel}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
-        />
+        >
+          {active.label}
+          <ChevronDown aria-hidden className="size-3 text-muted-foreground" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"

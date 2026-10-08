@@ -28,8 +28,6 @@ export class OrganizationSetting
   declare public isAutoEvaluateEnabled: boolean;
   declare public isFleetNsfwVisible: boolean;
 
-  declare public isAdvancedMode: boolean;
-
   declare public isWebhookEnabled: boolean;
   declare public webhookEndpoint?: string;
   declare public webhookSecret?: string;
