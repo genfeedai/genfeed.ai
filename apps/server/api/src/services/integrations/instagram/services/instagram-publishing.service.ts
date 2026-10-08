@@ -1,5 +1,12 @@
+import {
+  requireMetaScopes,
+  resolveMetaPageAccess,
+} from '@api/services/integrations/_shared/meta-page-access.util';
 import { InstagramMediaType } from '@genfeedai/contracts';
-import type { InstagramCredentialResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
+import type {
+  InstagramCredentialResponse,
+  InstagramMessageRecipient,
+} from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -12,11 +19,8 @@ type ResolveInstagramCredential = (
   credentialId?: string,
 ) => Promise<InstagramCredentialResponse>;
 
-function requireString(
-  value: string | null | undefined,
-  field: string,
-): string {
-  if (!value) {
+function requireString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`Instagram credential is missing ${field}`);
   }
 
@@ -40,13 +44,47 @@ export class InstagramPublishingService {
     private readonly resolveCredential: ResolveInstagramCredential,
   ) {}
 
-  async sendCommentReplyDm(
+  /** Replies inside the provider's existing messaging window. */
+  async sendDirectMessage(
     organizationId: string,
     brandId: string,
     recipientId: string,
     message: string,
     credentialId?: string,
-  ): Promise<string | undefined> {
+  ): Promise<string> {
+    return this.sendMessage(
+      organizationId,
+      brandId,
+      { id: recipientId },
+      message,
+      credentialId,
+    );
+  }
+
+  /** Initial comment replies use comment_id, not the commenter's scoped ID. */
+  async sendPrivateReply(
+    organizationId: string,
+    brandId: string,
+    commentId: string,
+    message: string,
+    credentialId?: string,
+  ): Promise<string> {
+    return this.sendMessage(
+      organizationId,
+      brandId,
+      { comment_id: commentId },
+      message,
+      credentialId,
+    );
+  }
+
+  private async sendMessage(
+    organizationId: string,
+    brandId: string,
+    recipient: InstagramMessageRecipient,
+    message: string,
+    credentialId?: string,
+  ): Promise<string> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
 
     try {
@@ -55,23 +93,37 @@ export class InstagramPublishingService {
         brandId,
         credentialId,
       );
+      requireMetaScopes(
+        credential.grantedScopes,
+        'comment_id' in recipient
+          ? ['instagram_manage_comments', 'pages_messaging', 'pages_show_list']
+          : ['instagram_manage_messages', 'pages_show_list'],
+      );
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const externalId = requireString(credential.externalId, 'externalId');
+      const page = await resolveMetaPageAccess(
+        this.httpService,
+        `${this.graphUrl}/${this.apiVersion}`,
+        accessToken,
+        { instagramAccountId: externalId },
+      );
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/messages`,
+          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/messages`,
           {
             message: { text: message },
-            messaging_product: 'instagram',
-            messaging_type: 'RESPONSE',
-            recipient: { id: recipientId },
+            ...('id' in recipient ? { messaging_type: 'RESPONSE' } : {}),
+            recipient,
           },
-          { params: { access_token: accessToken } },
+          { params: { access_token: page.accessToken } },
         ),
       );
 
       this.loggerService.log(`${url} succeeded`, response.data);
-      return response.data?.id;
+      return requireString(
+        response.data?.message_id,
+        'message_id in the Meta response',
+      );
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

@@ -63,6 +63,63 @@ describe('InstagramAuthorizedSignalsProvider', () => {
     });
   });
 
+  it('uses supported profile fields and preserves views separately from impressions', async () => {
+    const get = vi.fn((url: string) =>
+      of({
+        data: url.endsWith('/media')
+          ? {
+              data: [
+                {
+                  id: 'media-1',
+                  insights: {
+                    data: [{ name: 'views', values: [{ value: 0 }] }],
+                  },
+                },
+              ],
+            }
+          : { id: 'account-1' },
+      }),
+    );
+    const provider = new InstagramAuthorizedSignalsProvider(
+      { get } as unknown as HttpService,
+      'https://graph.facebook.com',
+      'v26.0',
+    );
+    const result = await provider.fetch(
+      'token',
+      'account-1',
+      ['instagram_basic', 'instagram_manage_insights'],
+      'instagram_basic',
+      'instagram_manage_insights',
+    );
+    expect(get).toHaveBeenCalledWith(
+      expect.stringContaining('/account-1'),
+      expect.objectContaining({
+        params: expect.objectContaining({
+          fields: expect.not.stringContaining('account_type'),
+        }),
+      }),
+    );
+    expect(get).toHaveBeenCalledWith(
+      expect.stringContaining('/media'),
+      expect.objectContaining({
+        params: expect.objectContaining({
+          fields: expect.stringContaining('insights.metric(views,'),
+        }),
+      }),
+    );
+    expect(result.mediaResult.value?.performance[0]).toMatchObject({
+      id: 'media-1',
+      views: 0,
+    });
+    expect(
+      Object.hasOwn(
+        result.mediaResult.value?.performance[0] ?? {},
+        'impressions',
+      ),
+    ).toBe(false);
+  });
+
   it('fails clearly instead of guessing an account when the credential has no externalId', async () => {
     // Regression: this provider used to fall back to Graph's `me/accounts`
     // and silently pick the first Facebook Page's IG account. A brand can

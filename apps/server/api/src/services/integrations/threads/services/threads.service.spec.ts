@@ -72,6 +72,24 @@ describe('ThreadsService', () => {
     service = module.get<ThreadsService>(ThreadsService);
   });
 
+  it('refreshes long-lived tokens through the documented unversioned endpoint', async () => {
+    mockCredentialLookup();
+    const http = service['httpService'];
+    (http.get as ReturnType<typeof vi.fn>).mockReturnValue(
+      of({ data: { access_token: 'renewed', expires_in: 3600 } }),
+    );
+    await service.refreshToken('org', 'brand', 'credential-1');
+    expect(http.get).toHaveBeenCalledWith(
+      'https://graph.threads.net/refresh_access_token',
+      {
+        params: {
+          access_token: 'threads-token',
+          grant_type: 'th_refresh_token',
+        },
+      },
+    );
+  });
+
   function mockCredentialLookup() {
     const mockCredentialsService = service['credentialsService'];
     (

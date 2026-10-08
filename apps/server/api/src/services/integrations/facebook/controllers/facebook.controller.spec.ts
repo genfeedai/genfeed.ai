@@ -31,7 +31,7 @@ describe('FacebookController', () => {
     getUserProfile: vi.fn(),
     schedulePost: vi.fn(),
     uploadImage: vi.fn(),
-    uploadVideoByUrl: vi.fn(),
+    uploadVideo: vi.fn(),
   };
 
   const mockCredentialsService = {
@@ -314,11 +314,11 @@ describe('FacebookController', () => {
       };
 
       const postId = 'post_125';
-      mockFacebookService.uploadVideoByUrl.mockResolvedValue(postId);
+      mockFacebookService.uploadVideo.mockResolvedValue(postId);
 
       const result = await controller.createPost(mockUser, body);
 
-      expect(facebookService.uploadVideoByUrl).toHaveBeenCalledWith(
+      expect(facebookService.uploadVideo).toHaveBeenCalledWith(
         body.pageId,
         body.pageAccessToken,
         body.mediaUrl,
@@ -349,6 +349,21 @@ describe('FacebookController', () => {
   });
 
   describe('getPostAnalytics', () => {
+    it('collects the Video node when mediaType is video', async () => {
+      await controller.getPostAnalytics(
+        mockUser,
+        'video',
+        'page-token',
+        'video',
+      );
+      expect(facebookService.getPostAnalytics).toHaveBeenCalledWith(
+        'video',
+        'page-token',
+        undefined,
+        true,
+      );
+    });
+
     it('should return post analytics', async () => {
       const id = 'post_123';
       const accessToken = 'token123';

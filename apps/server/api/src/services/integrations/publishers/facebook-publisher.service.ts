@@ -109,13 +109,11 @@ export class FacebookPublisherService extends BasePublisherService {
       } else {
         // Upload video (has built-in page handling)
         externalId = await this.facebookService.uploadVideo(
-          organizationId,
-          brandId,
+          pageId,
+          targetPage.accessToken,
           mediaInfo.mediaUrls[0],
           post.label ?? '',
           caption,
-          pageId,
-          fbCredential.id,
         );
       }
 

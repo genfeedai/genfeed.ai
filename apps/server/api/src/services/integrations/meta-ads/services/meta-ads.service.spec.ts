@@ -1,14 +1,10 @@
 import type { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import type { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/integrations', () => ({
-  IntegrationHttpClient: class IntegrationHttpClient {},
-  getIntegrationProviderDefinition: () => ({
-    endpoints: { apiBaseUrl: 'https://graph.facebook.com' },
-  }),
-}));
+vi.mock('@libs/security/destination-guard', () => ({ safeFetch: vi.fn() }));
 
 const { MetaAdsService } = await import('./meta-ads.service');
 
@@ -48,7 +44,7 @@ function createService(): {
   const httpService = {
     delete: vi.fn(),
     get,
-    post: vi.fn(),
+    post: vi.fn().mockReturnValue(of({ data: { images: {} }, status: 200 })),
   } as unknown as HttpService;
   const loggerService = {
     error: vi.fn(),
@@ -65,6 +61,12 @@ function createService(): {
 describe('MetaAdsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(safeFetch).mockImplementation(
+      async () =>
+        new Response('image-bytes', {
+          headers: { 'content-type': 'image/jpeg' },
+        }),
+    );
   });
 
   describe('toHttpServiceParams', () => {

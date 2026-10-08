@@ -523,6 +523,9 @@ export function useStudioGeneration({
               ...(dimensions.height ? { height: dimensions.height } : {}),
               ...(dimensions.width ? { width: dimensions.width } : {}),
             });
+            if (ingredient.status === IngredientStatus.FAILED) {
+              window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+            }
             onGeneratedRef.current?.();
           } catch (error) {
             if (!controller.signal.aborted)

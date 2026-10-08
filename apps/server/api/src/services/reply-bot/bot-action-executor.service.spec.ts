@@ -49,7 +49,9 @@ describe('BotActionExecutorService', () => {
 
   const mockInstagramService = {
     postComment: vi.fn(),
-    sendCommentReplyDm: vi.fn(),
+    replyToComment: vi.fn(),
+    sendPrivateReply: vi.fn(),
+    sendDirectMessage: vi.fn(),
   };
 
   const mockYoutubeService = {
@@ -406,6 +408,61 @@ describe('BotActionExecutorService', () => {
     });
   });
 
+  it('routes Instagram comment replies to the comment replies edge', async () => {
+    mockInstagramService.replyToComment.mockResolvedValueOnce({
+      commentId: 'reply',
+    });
+    const result = await service.postReply(
+      {
+        id: 'credential',
+        organizationId: 'org',
+        brandId: 'brand',
+        platform: ReplyBotPlatform.INSTAGRAM,
+      } as IReplyBotCredentialData,
+      {
+        id: 'comment',
+        parentContentId: 'media',
+        authorId: 'author',
+        authorUsername: 'user',
+        createdAt: new Date(),
+        text: 'question',
+      },
+      'answer',
+    );
+    expect(result).toMatchObject({ success: true, contentId: 'reply' });
+    expect(mockInstagramService.replyToComment).toHaveBeenCalledWith(
+      'org',
+      'brand',
+      'comment',
+      'answer',
+      'credential',
+    );
+  });
+
+  it('routes Instagram initial comment DMs to private replies rather than recipient IDs', async () => {
+    mockInstagramService.sendPrivateReply.mockResolvedValueOnce('reply');
+    const result = await service.sendDm(
+      {
+        id: 'credential',
+        organizationId: 'org',
+        brandId: 'brand',
+        platform: ReplyBotPlatform.INSTAGRAM,
+      } as IReplyBotCredentialData,
+      'author',
+      'hello',
+      'comment',
+    );
+    expect(result).toMatchObject({ success: true, contentId: 'reply' });
+    expect(mockInstagramService.sendPrivateReply).toHaveBeenCalledWith(
+      'org',
+      'brand',
+      'comment',
+      'hello',
+      'credential',
+    );
+    expect(mockInstagramService.sendDirectMessage).not.toHaveBeenCalled();
+  });
+
   describe('sendDm', () => {
     it.each([
       { isSupported: true, platform: ReplyBotPlatform.TWITTER },
@@ -423,7 +480,7 @@ describe('BotActionExecutorService', () => {
             'sendTwitterDm',
           )
           .mockResolvedValue({ success: true });
-        mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
+        mockInstagramService.sendDirectMessage.mockResolvedValue('message-1');
         const credential = {
           accessToken: 'token',
           brandId: 'brand-1',
@@ -444,7 +501,7 @@ describe('BotActionExecutorService', () => {
             expect(sendTwitterDm).toHaveBeenCalledOnce();
           } else {
             expect(
-              mockInstagramService.sendCommentReplyDm,
+              mockInstagramService.sendDirectMessage,
             ).toHaveBeenCalledOnce();
           }
         } else {
@@ -452,9 +509,7 @@ describe('BotActionExecutorService', () => {
             `Unsupported reply bot platform: ${platform}`,
           );
           expect(sendTwitterDm).not.toHaveBeenCalled();
-          expect(
-            mockInstagramService.sendCommentReplyDm,
-          ).not.toHaveBeenCalled();
+          expect(mockInstagramService.sendDirectMessage).not.toHaveBeenCalled();
         }
       },
     );
@@ -466,12 +521,12 @@ describe('BotActionExecutorService', () => {
         organizationId: 'org-1',
         platform: ReplyBotPlatform.INSTAGRAM,
       };
-      mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
+      mockInstagramService.sendDirectMessage.mockResolvedValue('message-1');
 
       const result = await service.sendDm(credential, 'recipient-1', 'Hello!');
 
       expect(result.success).toBe(true);
-      expect(mockInstagramService.sendCommentReplyDm).toHaveBeenCalledWith(
+      expect(mockInstagramService.sendDirectMessage).toHaveBeenCalledWith(
         'org-1',
         'brand-1',
         'recipient-1',

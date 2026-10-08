@@ -111,6 +111,8 @@ export const instagramMediaPerformanceSignalSchema = z
   .object({
     commentCount: nonNegativeIntegerSchema.optional(),
     id: z.string().trim().min(1),
+    views: nonNegativeIntegerSchema.optional(),
+    /** Historical snapshot field only; v26 observations use views. */
     impressions: nonNegativeIntegerSchema.optional(),
     likeCount: nonNegativeIntegerSchema.optional(),
     reach: nonNegativeIntegerSchema.optional(),

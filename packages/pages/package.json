@@ -6,7 +6,7 @@
     "@genfeedai/pricing": "workspace:*",
     "@tanstack/react-query": "5.104.1",
     "@tiptap/core": "3.31.4",
-    "lucide-react": "1.52.0",
+    "lucide-react": "1.53.0",
     "next-intl": "4.14.9",
     "react": "19.3.0"
   },
