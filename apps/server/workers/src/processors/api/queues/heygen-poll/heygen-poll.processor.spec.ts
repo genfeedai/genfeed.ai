@@ -74,42 +74,76 @@ describe('HeygenPollProcessor', () => {
     expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
   });
 
-  it('finalizes a timeout failure once max attempts are reached', async () => {
-    heygenAvatarProvider.getStatus.mockResolvedValue({ status: 'queued' });
+  it.each(['unknown', 'completed'])(
+    'reschedules an unresolved %s result without recording provider failure',
+    async (status) => {
+      heygenAvatarProvider.getStatus.mockResolvedValue({ status });
 
-    await processor.process(buildJob({ attempt: HEYGEN_POLL_MAX_ATTEMPTS }));
+      await processor.process(buildJob({ attempt: 2 }));
 
-    expect(continuations.requestHeygenPollAttempt).not.toHaveBeenCalled();
-    expect(
-      webhooksService.handleFailedGenerationForIngredient,
-    ).toHaveBeenCalledWith('ingredient-1', 'HeyGen polling timeout');
-    expect(continuationCoordinator.failProviderAction).toHaveBeenCalled();
-  });
+      expect(continuations.requestHeygenPollAttempt).toHaveBeenCalledWith({
+        attempt: 3,
+        continuationId: 'continuation-1',
+        externalId: 'heygen-1',
+        organizationId: 'org-1',
+      });
+      expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
+      expect(
+        webhooksService.handleFailedGenerationForIngredient,
+      ).not.toHaveBeenCalled();
+      expect(continuationCoordinator.failProviderAction).not.toHaveBeenCalled();
+    },
+  );
 
-  it('processes media and records completion on success', async () => {
-    heygenAvatarProvider.getStatus.mockResolvedValue({
-      jobId: 'provider-video-1',
-      status: 'completed',
-      videoUrl: 'https://cdn.example/video.mp4',
-    });
+  it.each(['queued', 'processing', 'unknown', 'completed'])(
+    'stops polling unresolved %s at the ceiling without releasing its hold',
+    async (status) => {
+      heygenAvatarProvider.getStatus.mockResolvedValue({ status });
 
-    await processor.process(buildJob({}));
+      await processor.process(buildJob({ attempt: HEYGEN_POLL_MAX_ATTEMPTS }));
 
-    expect(webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
-      'ingredient-1',
-      'avatar',
-      'https://cdn.example/video.mp4',
-      'provider-video-1',
-    );
-    expect(continuationCoordinator.completeProviderAction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        identity: {
-          continuationId: 'continuation-1',
-          organizationId: 'org-1',
-        },
-      }),
-    );
-  });
+      expect(continuations.requestHeygenPollAttempt).not.toHaveBeenCalled();
+      expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
+      expect(
+        webhooksService.handleFailedGenerationForIngredient,
+      ).not.toHaveBeenCalled();
+      expect(continuationCoordinator.failProviderAction).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        'HeygenPollProcessor: unresolved provider status at polling ceiling',
+        expect.objectContaining({ status }),
+      );
+    },
+  );
+
+  it.each([1, HEYGEN_POLL_MAX_ATTEMPTS])(
+    'processes media and records completion on success at attempt %i',
+    async (attempt) => {
+      heygenAvatarProvider.getStatus.mockResolvedValue({
+        jobId: 'provider-video-1',
+        status: 'completed',
+        videoUrl: 'https://cdn.example/video.mp4',
+      });
+
+      await processor.process(buildJob({ attempt }));
+
+      expect(webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
+        'ingredient-1',
+        'avatar',
+        'https://cdn.example/video.mp4',
+        'provider-video-1',
+      );
+      expect(
+        continuationCoordinator.completeProviderAction,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identity: {
+            continuationId: 'continuation-1',
+            organizationId: 'org-1',
+          },
+        }),
+      );
+    },
+  );
 
   it('rethrows when finalizing a success fails', async () => {
     heygenAvatarProvider.getStatus.mockResolvedValue({
@@ -126,21 +160,24 @@ describe('HeygenPollProcessor', () => {
     );
   });
 
-  it('finalizes a terminal provider failure with the provider error', async () => {
-    heygenAvatarProvider.getStatus.mockResolvedValue({
-      error: 'render failed',
-      status: 'failed',
-    });
+  it.each([1, HEYGEN_POLL_MAX_ATTEMPTS])(
+    'finalizes a terminal provider failure with the provider error at attempt %i',
+    async (attempt) => {
+      heygenAvatarProvider.getStatus.mockResolvedValue({
+        error: 'render failed',
+        status: 'failed',
+      });
 
-    await processor.process(buildJob({}));
+      await processor.process(buildJob({ attempt }));
 
-    expect(
-      webhooksService.handleFailedGenerationForIngredient,
-    ).toHaveBeenCalledWith('ingredient-1', 'render failed');
-    expect(continuationCoordinator.failProviderAction).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'render failed' }),
-    );
-  });
+      expect(
+        webhooksService.handleFailedGenerationForIngredient,
+      ).toHaveBeenCalledWith('ingredient-1', 'render failed');
+      expect(continuationCoordinator.failProviderAction).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'render failed' }),
+      );
+    },
+  );
 
   it('falls back to a default failure message', async () => {
     heygenAvatarProvider.getStatus.mockResolvedValue({ status: 'failed' });
