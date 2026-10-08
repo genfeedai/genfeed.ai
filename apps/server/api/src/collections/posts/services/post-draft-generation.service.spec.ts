@@ -2,12 +2,21 @@ import type { LearningResolution } from '@api/collections/content-learning/servi
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { CredentialPlatform, PostFormat } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostFormat,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -45,7 +54,8 @@ describe('PostDraftGenerationService', () => {
   const mockAgentChatModelRegistry = { resolveModelKey: vi.fn() };
   const mockPromptBuilderService = { buildPrompt: vi.fn() };
   const mockReplicateService = { generateTextCompletionSync: vi.fn() };
-  const mockPostsService = { create: vi.fn() };
+  const mockPostsService = { create: vi.fn(), findOne: vi.fn() };
+  const mockBrandedText = { generate: vi.fn() };
   const blocked = vi.fn(() => {
     throw new Error('Accountless learning must not access persistence');
   });
@@ -111,6 +121,8 @@ describe('PostDraftGenerationService', () => {
         { provide: PromptBuilderService, useValue: mockPromptBuilderService },
         { provide: ReplicateService, useValue: mockReplicateService },
         { provide: LearningDecisionService, useValue: decisions },
+        { provide: PostsService, useValue: mockPostsService },
+        { provide: BrandedTextGenerationService, useValue: mockBrandedText },
       ],
     }).compile();
     service = context.get(PostDraftGenerationService);
@@ -531,5 +543,233 @@ describe('PostDraftGenerationService', () => {
     expect(
       mockReplicateService.generateTextCompletionSync,
     ).not.toHaveBeenCalled();
+  });
+
+  describe('approved-brand drafts', () => {
+    const requestKey = '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f';
+    const brandedDto = {
+      brandId,
+      brandMode: 'approved_brand' as const,
+      platform: CredentialPlatform.TWITTER,
+      prompt: '  Launch day  ',
+      requestKey,
+    };
+    const receipt = (overrides: Record<string, unknown> = {}) => ({
+      artifact: { version: hashBrandedGenerationTextV1('Saved text') },
+      compliance: 'unverified',
+      id: 'receipt-1',
+      revision: 4,
+      state: 'needs_review',
+      ...overrides,
+    });
+    const completed = (overrides: Record<string, unknown> = {}) => ({
+      hasNewDispatch: true,
+      kind: 'completed',
+      postId: 'post-1',
+      receipt: receipt(),
+      text: 'Branded text',
+      ...overrides,
+    });
+
+    it('keeps the legacy path off the branded seam', async () => {
+      await service.generateDraftText(
+        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
+        identity,
+      );
+      expect(mockBrandedText.generate).not.toHaveBeenCalled();
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalled();
+    });
+
+    it.each([
+      [{ requestKey: undefined }, 'branded_request_key_required'],
+      [{ brandMode: undefined }, 'brand_mode_required'],
+    ])(
+      'rejects an unpaired opt-in %j before any generation',
+      async (patch, message) => {
+        await expect(
+          service.generateDraftText({ ...brandedDto, ...patch }, identity),
+        ).rejects.toThrow(message);
+        expect(mockBrandedText.generate).not.toHaveBeenCalled();
+        expect(
+          mockReplicateService.generateTextCompletionSync,
+        ).not.toHaveBeenCalled();
+        expect(mockPromptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      },
+    );
+
+    it('sends the exact branded input and returns the saved draft with its receipt', async () => {
+      mockBrandedText.generate.mockResolvedValue(completed());
+      const resolveApiKey = vi.fn().mockResolvedValue('key');
+      const result = await service.generateDraftText(
+        brandedDto,
+        identity,
+        resolveApiKey,
+      );
+
+      expect(result).toMatchObject({
+        brandedReceipt: {
+          compliance: 'unverified',
+          id: 'receipt-1',
+          isReplayed: false,
+          revision: 4,
+          state: 'needs_review',
+        },
+        description: 'Branded text',
+        model: DEFAULT_MINI_TEXT_MODEL,
+        postId: 'post-1',
+      });
+      expect(result.learningReceipt?.mode).toBe('no_destination');
+      expect(mockBrandedText.generate).toHaveBeenCalledTimes(1);
+      const request = mockBrandedText.generate.mock.calls[0][0];
+      expect(request.input).toEqual({
+        schemaVersion: 1,
+        actorId: userId,
+        organizationId,
+        brandId,
+        requestKey,
+        candidateIndex: 0,
+        surface: 'api',
+        contentType: 'post',
+        format: 'text',
+        mode: 'approved_brand',
+        originalPrompt: [
+          'Write one twitter post, at most 280 characters.',
+          'Return only the finished post text, without explanations or quotation marks.',
+          'Request: Launch day',
+        ].join('\n'),
+        provider: 'openrouter',
+        model: DEFAULT_MINI_TEXT_MODEL,
+        generationParameters: {
+          maxTokens: expect.any(Number),
+          temperature: 0.8,
+        },
+        platform: CredentialPlatform.TWITTER,
+        objective: 'engagement',
+        knowledgeSourceIds: [],
+        knowledgeSpaceIds: [],
+      });
+      expect(request.privateLearning).toEqual(result.learningReceipt);
+      expect(request.resolveApiKey).toBe(resolveApiKey);
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).not.toHaveBeenCalled();
+      expect(mockContextAssemblyService.assembleContext).not.toHaveBeenCalled();
+    });
+
+    it('applies the channel limit and saves the exact text as a draft text post', async () => {
+      mockBrandedText.generate.mockResolvedValue(completed());
+      mockPostsService.create.mockResolvedValue({ id: 'post-9' });
+      await service.generateDraftText(brandedDto, identity);
+      const request = mockBrandedText.generate.mock.calls[0][0];
+
+      expect(request.acceptText('short')).toBe(true);
+      expect(request.acceptText('x'.repeat(400))).toBe(false);
+      await expect(request.persistText('Exact text')).resolves.toEqual({
+        postId: 'post-9',
+      });
+      expect(mockPostsService.create).toHaveBeenCalledWith({
+        brandId,
+        category: PostCategory.TEXT,
+        description: 'Exact text',
+        format: PostFormat.STANDARD,
+        ingredients: [],
+        label: '',
+        organizationId,
+        platform: CredentialPlatform.TWITTER,
+        targetExecutionState: TargetExecutionState.DRAFT,
+        userId,
+      });
+    });
+
+    it('answers a replay from the saved post scoped to the brand and organization', async () => {
+      mockBrandedText.generate.mockResolvedValue(
+        completed({ hasNewDispatch: false, text: null }),
+      );
+      mockPostsService.findOne.mockResolvedValue({ description: 'Saved text' });
+      const result = await service.generateDraftText(brandedDto, identity);
+
+      expect(result).toMatchObject({
+        brandedReceipt: { isReplayed: true },
+        description: 'Saved text',
+        postId: 'post-1',
+      });
+      expect(mockPostsService.findOne).toHaveBeenCalledWith(
+        { brandId, id: 'post-1', isDeleted: false, organizationId },
+        'none',
+      );
+    });
+
+    it.each([
+      [null, 'receipt_artifact_not_found'],
+      [{ description: 'Edited later' }, 'receipt_artifact_version_mismatch'],
+    ])('refuses a replay whose saved post is %j', async (post, code) => {
+      mockBrandedText.generate.mockResolvedValue(
+        completed({ hasNewDispatch: false, text: null }),
+      );
+      mockPostsService.findOne.mockResolvedValue(post);
+      const error = await service
+        .generateDraftText(brandedDto, identity)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(BrandedGenerationBlockedException);
+      expect(error).toMatchObject({
+        brandedGenerationReceiptId: 'receipt-1',
+        reasonCode: code,
+      });
+      expect((error as BrandedGenerationBlockedException).getStatus()).toBe(
+        409,
+      );
+    });
+
+    it.each([
+      ['channel_limit_exceeded', 422],
+      ['provider_output_empty', 422],
+      ['provider_attempt_ref_unavailable', 502],
+      ['artifact_bind_failed', 500],
+      ['no_approved_revision', 409],
+    ])(
+      'maps a stopped %s receipt to HTTP %i with the receipt id',
+      async (reasonCode, status) => {
+        mockBrandedText.generate.mockResolvedValue({
+          hasNewDispatch: false,
+          kind: 'stopped',
+          postId: null,
+          reasonCode,
+          receipt: receipt(),
+        });
+        const error = await service
+          .generateDraftText(brandedDto, identity)
+          .catch((caught: unknown) => caught);
+
+        expect(error).toBeInstanceOf(BrandedGenerationBlockedException);
+        expect(error).toMatchObject({
+          brandedGenerationReceiptId: 'receipt-1',
+          reasonCode,
+        });
+        expect((error as BrandedGenerationBlockedException).getStatus()).toBe(
+          status,
+        );
+      },
+    );
+
+    it('answers 409 while the same request is still in progress', async () => {
+      mockBrandedText.generate.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'in_progress',
+        receipt: receipt(),
+      });
+      const error = await service
+        .generateDraftText(brandedDto, identity)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toMatchObject({
+        reasonCode: 'branded_generation_in_progress',
+      });
+      expect((error as BrandedGenerationBlockedException).getStatus()).toBe(
+        409,
+      );
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   IsIn,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -30,4 +31,22 @@ export class GeneratePostDraftDto implements PostDraftGenerationInput {
   @IsIn([PostFormat.STANDARD, PostFormat.LONG_FORM])
   @ApiProperty({ enum: PostFormat, enumName: 'PostFormat', required: false })
   readonly format?: PostFormat;
+
+  @IsOptional()
+  @IsIn(['approved_brand'])
+  @ApiProperty({
+    description:
+      'Generate with the approved brand and save a receipt. Requires requestKey.',
+    enum: ['approved_brand'],
+    required: false,
+  })
+  readonly brandMode?: 'approved_brand';
+
+  @IsOptional()
+  @IsUUID('4')
+  @ApiProperty({
+    description: 'Idempotency key for branded generation (UUID v4)',
+    required: false,
+  })
+  readonly requestKey?: string;
 }

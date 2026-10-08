@@ -1,3 +1,4 @@
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { type ArgumentsHost, HttpStatus } from '@nestjs/common';
 
@@ -206,6 +207,27 @@ describe('AllExceptionFilter', () => {
         getResponse: () => ({
           detail: 'Review',
           meta: { persistedVideoIngredientIds: ['forged'] },
+        }),
+      },
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[1][0].errors[0].meta).toBeUndefined();
+  });
+  it('exposes the branded receipt id only for the typed blocked exception', () => {
+    filter.catch(
+      new BrandedGenerationBlockedException(409, 'no_approved_revision', 'r-1'),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[0][0].errors[0]).toMatchObject({
+      status: '409',
+      meta: { brandedGenerationReceiptId: 'r-1' },
+    });
+    filter.catch(
+      {
+        getStatus: () => 409,
+        getResponse: () => ({
+          detail: 'Review',
+          meta: { brandedGenerationReceiptId: 'forged' },
         }),
       },
       mockArgumentsHost,

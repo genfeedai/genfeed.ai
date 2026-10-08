@@ -1,3 +1,4 @@
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import {
@@ -111,6 +112,10 @@ export class AllExceptionFilter implements ExceptionFilter {
     }
 
     this.writeJsonApiError(res, {
+      brandedGenerationReceiptId:
+        exception instanceof BrandedGenerationBlockedException
+          ? exception.brandedGenerationReceiptId
+          : undefined,
       detail,
       persistedVideoIngredientIds:
         exception instanceof PersistedVideoGenerationException
@@ -156,6 +161,7 @@ export class AllExceptionFilter implements ExceptionFilter {
        * string so every JSON:API error keeps a `code` member (#5080).
        */
       code?: string;
+      brandedGenerationReceiptId?: string;
       persistedVideoIngredientIds?: readonly string[];
       detail: string;
       pointer: string;
@@ -167,12 +173,23 @@ export class AllExceptionFilter implements ExceptionFilter {
     res.status(error.status).json(
       new this.JSONAPIError({
         code: error.code ?? error.status.toString(),
-        ...(error.persistedVideoIngredientIds
+        ...(error.persistedVideoIngredientIds ||
+        error.brandedGenerationReceiptId
           ? {
               meta: {
-                persistedVideoIngredientIds: [
-                  ...error.persistedVideoIngredientIds,
-                ],
+                ...(error.persistedVideoIngredientIds
+                  ? {
+                      persistedVideoIngredientIds: [
+                        ...error.persistedVideoIngredientIds,
+                      ],
+                    }
+                  : {}),
+                ...(error.brandedGenerationReceiptId
+                  ? {
+                      brandedGenerationReceiptId:
+                        error.brandedGenerationReceiptId,
+                    }
+                  : {}),
               },
             }
           : {}),

@@ -13,6 +13,7 @@ import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
+import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
@@ -32,6 +33,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
     AgentContextAssemblyModule,
     AgentChatModelRegistryModule,
+    BrandedTextGenerationModule,
     ReplicateModule,
     NotificationsPublisherModule,
     PromptBuilderModule,
