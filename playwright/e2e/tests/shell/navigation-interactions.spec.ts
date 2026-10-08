@@ -266,10 +266,11 @@ test.describe('Shell — navigation interactions', () => {
               .filter((box) => box.width > 0 && box.height > 0);
             return (
               bounds.height >= 32 &&
-              bounds.height <= 40 &&
+              bounds.height <= 48 &&
               element.scrollWidth <= element.clientWidth + 1 &&
               controls.every(
                 (box) =>
+                  box.height <= 32 &&
                   box.left >= bounds.left &&
                   box.right <= bounds.right &&
                   box.top >= bounds.top &&
