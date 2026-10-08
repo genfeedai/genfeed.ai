@@ -142,6 +142,7 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/service
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heygen.tokens';
 import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -448,6 +449,7 @@ const WORKER_DOMAIN_SERVICES = [
 @Module({
   exports: [
     ...WORKER_DOMAIN_SERVICES,
+    HEYGEN_IDENTITY_SERVICE,
     CacheModule,
     SYSTEM_WORKFLOW_CATALOG,
     SYSTEM_WORKFLOW_RUNNER,
@@ -466,6 +468,7 @@ const WORKER_DOMAIN_SERVICES = [
   ],
   providers: [
     ...WORKER_DOMAIN_SERVICES,
+    { provide: HEYGEN_IDENTITY_SERVICE, useExisting: HeyGenIdentityService },
     {
       provide: SYSTEM_WORKFLOW_CATALOG,
       useExisting: SystemWorkflowCatalogService,

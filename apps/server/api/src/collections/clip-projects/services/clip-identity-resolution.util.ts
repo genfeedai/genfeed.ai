@@ -131,7 +131,7 @@ export function resolveClipIdentity({
   const avatarRef = !explicitAvatarId
     ? brandAvatar.success
       ? brandAvatar.data
-      : organizationAvatar.success
+      : !brandAvatarId && organizationAvatar.success
         ? organizationAvatar.data
         : undefined
     : undefined;

@@ -699,6 +699,7 @@ describe('WorkspaceTaskComposer', () => {
     });
     expect(screen.getByRole('button', { name: /enhance/i })).toBeEnabled();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
     mocks.createTask.mockRejectedValueOnce(new Error('create failed'));
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
     expect(await screen.findByText('create failed')).toBeVisible();
