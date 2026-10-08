@@ -76,7 +76,7 @@ describe('InstagramService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('sendCommentReplyDm', () => {
+  describe('sendDirectMessage', () => {
     it('sends a direct message to commenter', async () => {
       vi.spyOn(service, 'getValidCredential').mockResolvedValue({
         id: 'credential-id',
@@ -106,7 +106,7 @@ describe('InstagramService', () => {
         of({ data: { recipient_id: 'user', message_id: 'msg' } }),
       );
 
-      const result = await service.sendCommentReplyDm(
+      const result = await service.sendDirectMessage(
         'org',
         'acct',
         'user',
@@ -150,8 +150,54 @@ describe('InstagramService', () => {
       of({ data: { recipient_id: 'user' } }),
     );
     await expect(
-      service.sendCommentReplyDm('org', 'brand', 'user', 'hello'),
+      service.sendDirectMessage('org', 'brand', 'user', 'hello'),
     ).rejects.toThrow('message_id');
+  });
+
+  it('sends a comment-triggered private reply using comment_id and a Page token', async () => {
+    vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+      id: 'credential',
+      accessToken: 'tok',
+      externalId: 'acc',
+    });
+    (httpServiceMock.get as Mock).mockReturnValue(
+      of({
+        data: {
+          data: [
+            {
+              id: 'page',
+              access_token: 'page-token',
+              instagram_business_account: { id: 'acc' },
+            },
+          ],
+        },
+      }),
+    );
+    (httpServiceMock.post as Mock).mockReturnValue(
+      of({ data: { message_id: 'private-reply' } }),
+    );
+    expect(
+      await service.sendPrivateReply('org', 'brand', 'comment', 'hello'),
+    ).toBe('private-reply');
+    expect(httpServiceMock.post).toHaveBeenCalledWith(
+      'https://graph.facebook.com/v26.0/page/messages',
+      { recipient: { comment_id: 'comment' }, message: { text: 'hello' } },
+      { params: { access_token: 'page-token' } },
+    );
+  });
+
+  it('reports missing captured messaging grants before attempting any provider request', async () => {
+    vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+      id: 'credential',
+      accessToken: 'tok',
+      externalId: 'acc',
+      grantedScopes: ['instagram_basic'],
+    });
+    await expect(
+      service.sendDirectMessage('org', 'brand', 'user', 'hello'),
+    ).rejects.toThrow('instagram_manage_messages');
+    expect(httpServiceMock.post).not.toHaveBeenCalled();
+    expect(httpServiceMock.get).not.toHaveBeenCalled();
   });
 
   describe('listMediaComments', () => {

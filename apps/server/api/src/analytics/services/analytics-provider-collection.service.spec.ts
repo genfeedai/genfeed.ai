@@ -18,6 +18,7 @@ function harness(platform: CredentialPlatform) {
       brandId: 'brand',
       platform: platform.toUpperCase(),
       accessToken: 'token',
+      externalId: 'page',
     }),
   };
   const analytics = {

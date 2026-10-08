@@ -398,13 +398,11 @@ describe('FacebookPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockVideoId);
         expect(facebookService.uploadVideo).toHaveBeenCalledWith(
-          mockOrganizationId.toString(),
-          mockBrandId.toString(),
+          mockPageId,
+          mockPageResponse.accessToken,
           expect.stringContaining('/videos/'),
           mockVideoPost.label,
           expect.any(String),
-          mockCredential.externalId,
-          mockCredential.id,
         );
       });
 
@@ -426,8 +424,6 @@ describe('FacebookPublisherService', () => {
           expect.any(String),
           '',
           expect.any(String),
-          mockCredential.externalId,
-          mockCredential.id,
         );
       });
     });

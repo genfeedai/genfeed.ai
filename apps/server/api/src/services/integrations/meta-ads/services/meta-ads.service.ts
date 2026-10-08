@@ -21,7 +21,10 @@ import { buildMetaAdSetTargeting } from '@api/services/integrations/meta-ads/uti
 import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
+  META_GRAPH_API_VERSION,
+  META_GRAPH_URL,
 } from '@genfeedai/integrations';
+import { safeFetch } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
@@ -47,10 +50,10 @@ export class MetaGraphPaginationLimitError extends Error {
 
 @Injectable()
 export class MetaAdsService {
-  private readonly API_VERSION = 'v26.0';
+  private readonly API_VERSION = META_GRAPH_API_VERSION;
   private readonly provider = getIntegrationProviderDefinition('meta_ads');
   private readonly BASE_URL =
-    this.provider?.endpoints.apiBaseUrl ?? 'https://graph.facebook.com';
+    this.provider?.endpoints.apiBaseUrl ?? META_GRAPH_URL;
   private readonly constructorName: string = String(this.constructor.name);
   private readonly integrationHttpClient: IntegrationHttpClient;
 
@@ -641,6 +644,13 @@ export class MetaAdsService {
         status: params.status || 'PAUSED',
       };
 
+      if (
+        params.dailyBudget === undefined &&
+        params.lifetimeBudget === undefined
+      ) {
+        data.is_adset_budget_sharing_enabled = false;
+      }
+
       if (params.dailyBudget !== undefined) {
         data.daily_budget = Math.round(params.dailyBudget * 100);
       }
@@ -858,7 +868,16 @@ export class MetaAdsService {
       } else {
         objectStorySpec.link_data = linkData;
       }
-      const creativeSpec = { object_story_spec: objectStorySpec };
+      const creativeSpec = {
+        object_story_spec: objectStorySpec,
+        ...(params.creative.linkUrl
+          ? {
+              destination_spec: {
+                destination_type: 'WEBSITE_AND_SHOP_OPT_OUT',
+              },
+            }
+          : {}),
+      };
 
       const data: Record<string, unknown> = {
         adset_id: params.adSetId,
@@ -917,10 +936,60 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.makePostRequest<{
+      const download = await safeFetch(
+        imageUrl,
+        { signal: AbortSignal.timeout(30_000) },
+        { allowedSchemes: ['https:'] },
+      );
+      if (!download.ok || !download.body) {
+        await download.body?.cancel();
+        throw new Error('The ad image could not be downloaded.');
+      }
+      const contentType = download.headers
+        .get('content-type')
+        ?.split(';')[0]
+        .trim()
+        .toLowerCase();
+      const maxBytes = 30 * 1024 * 1024;
+      if (
+        !contentType ||
+        !['image/jpeg', 'image/png'].includes(contentType) ||
+        Number(download.headers.get('content-length')) > maxBytes
+      ) {
+        await download.body.cancel();
+        throw new Error(
+          'Meta ad images must be JPEG or PNG and no larger than 30 MB.',
+        );
+      }
+      const reader = download.body.getReader();
+      const chunks: Buffer[] = [];
+      let byteCount = 0;
+      try {
+        for (;;) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          byteCount += chunk.value.byteLength;
+          if (byteCount > maxBytes)
+            throw new Error('Meta ad image exceeds the 30 MB limit.');
+          chunks.push(Buffer.from(chunk.value));
+        }
+      } finally {
+        await reader.cancel();
+        reader.releaseLock();
+      }
+      if (byteCount === 0) throw new Error('Meta ad image is empty.');
+      const response = await this.integrationHttpClient.request<{
         images: Record<string, { hash: string; url: string }>;
-      }>(accessToken, `${adAccountId}/adimages`, {
-        url: imageUrl,
+      }>({
+        body: new URLSearchParams({
+          bytes: Buffer.concat(chunks).toString('base64'),
+        }),
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        method: 'POST',
+        provider: this.provider,
+        query: this.buildIntegrationQuery(accessToken),
+        timeoutMs: 30_000,
+        url: this.getApiUrl(`${adAccountId}/adimages`),
       });
 
       const imageData = Object.values(response.images)[0];

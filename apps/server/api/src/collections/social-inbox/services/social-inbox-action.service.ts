@@ -743,7 +743,7 @@ export class SocialInboxActionService implements OnModuleInit {
       throw new BadRequestException('Instagram DM requires a recipient id');
     }
 
-    const messageId = await this.instagramService.sendCommentReplyDm(
+    const messageId = await this.instagramService.sendDirectMessage(
       conversation.organizationId,
       conversation.brandId,
       recipientId,
@@ -751,7 +751,8 @@ export class SocialInboxActionService implements OnModuleInit {
       conversation.credentialId ?? undefined,
     );
 
-    return { messageId: messageId ?? `instagram_dm_${Date.now()}` };
+    if (!messageId) throw new Error('Instagram did not return a message_id.');
+    return { messageId };
   }
 
   private async completeOutboundAction(

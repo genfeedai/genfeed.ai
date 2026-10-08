@@ -8,9 +8,12 @@ import type {
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
+
+vi.mock('@libs/security/destination-guard', () => ({ safeFetch: vi.fn() }));
 
 describe('MetaAdsService - Write Operations', () => {
   let service: MetaAdsService;
@@ -612,6 +615,9 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
+      expect(creative.destination_spec).toEqual({
+        destination_type: 'WEBSITE_AND_SHOP_OPT_OUT',
+      });
       expect(creative.object_story_spec.link_data.name).toBe('Shop Now');
       expect(creative.object_story_spec.link_data.message).toBe(
         'Best deals this summer!',
@@ -634,6 +640,9 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
+      expect(creative.destination_spec).toEqual({
+        destination_type: 'WEBSITE_AND_SHOP_OPT_OUT',
+      });
       expect(creative.object_story_spec.link_data.call_to_action.type).toBe(
         'SHOP_NOW',
       );
@@ -659,6 +668,9 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
+      expect(creative.destination_spec).toEqual({
+        destination_type: 'WEBSITE_AND_SHOP_OPT_OUT',
+      });
       expect(creative.object_story_spec.video_data.video_id).toBe('vid_123');
       expect(creative.object_story_spec.video_data.title).toBe('Watch This');
     });
@@ -679,6 +691,9 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
+      expect(creative.destination_spec).toEqual({
+        destination_type: 'WEBSITE_AND_SHOP_OPT_OUT',
+      });
       expect(creative.object_story_spec.link_data.link).toBe(
         'https://example.com',
       );
@@ -769,11 +784,11 @@ describe('MetaAdsService - Write Operations', () => {
 
   describe('uploadAdImage', () => {
     beforeEach(() => {
-      httpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('image-bytes'),
-          headers: { 'content-type': 'image/jpeg' },
-        }),
+      vi.mocked(safeFetch).mockImplementation(
+        async () =>
+          new Response('image-bytes', {
+            headers: { 'content-type': 'image/jpeg' },
+          }),
       );
     });
     it('should upload an image and return hash and url', async () => {
@@ -815,14 +830,43 @@ describe('MetaAdsService - Write Operations', () => {
 
       expect(httpService.post).toHaveBeenCalledWith(
         expect.stringContaining(`${mockAdAccountId}/adimages`),
-        null,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            bytes: Buffer.from('image-bytes').toString('base64'),
-          }),
-        }),
+        expect.any(URLSearchParams),
+        expect.objectContaining({ params: { access_token: mockAccessToken } }),
       );
+      const body = httpService.post.mock.calls[0]?.[1] as URLSearchParams;
+      expect(body.get('bytes')).toBe(
+        Buffer.from('image-bytes').toString('base64'),
+      );
+      expect(body.has('url')).toBe(false);
     });
+
+    it.each([
+      ['empty', '', { 'content-type': 'image/jpeg' }],
+      ['wrong MIME type', 'text', { 'content-type': 'text/html' }],
+      [
+        'oversized declared length',
+        'image',
+        {
+          'content-type': 'image/jpeg',
+          'content-length': String(31 * 1024 * 1024),
+        },
+      ],
+    ])(
+      'rejects %s downloads before posting an ad image',
+      async (_case, body, headers) => {
+        vi.mocked(safeFetch).mockResolvedValueOnce(
+          new Response(body, { headers }),
+        );
+        await expect(
+          service.uploadAdImage(
+            mockAccessToken,
+            mockAdAccountId,
+            'https://example.com/bad.jpg',
+          ),
+        ).rejects.toThrow();
+        expect(httpService.post).not.toHaveBeenCalled();
+      },
+    );
 
     it('should throw and log error on API failure', async () => {
       httpService.post.mockReturnValue(

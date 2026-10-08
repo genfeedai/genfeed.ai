@@ -111,6 +111,7 @@ type ReplyBotDmRequest = ReplyBotRequest & {
   activityId: string;
   dmText: string;
   recipientId: string;
+  commentId?: string;
   replyContentId?: string;
   replyContentUrl?: string;
   replyText?: string;
@@ -684,6 +685,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
             dmText: next.dmText,
             organizationId: next.organizationId,
             recipientId: next.content.authorId,
+            ...(next.content.parentContentId || next.content.inReplyToId
+              ? { commentId: next.content.id }
+              : {}),
             ...(next.replyContentId
               ? { replyContentId: next.replyContentId }
               : {}),
@@ -779,6 +783,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         credential,
         request.recipientId,
         request.dmText,
+        ...(request.commentId ? ([request.commentId] as const) : []),
       );
       return {
         ...request,
@@ -1081,6 +1086,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       activityId: requiredString(request.activityId, 'activityId'),
       dmText: requiredString(request.dmText, 'dmText'),
       recipientId: requiredString(request.recipientId, 'recipientId'),
+      ...(typeof request.commentId === 'string'
+        ? { commentId: request.commentId }
+        : {}),
       ...(replyContentId === undefined ? {} : { replyContentId }),
       ...(replyContentUrl === undefined ? {} : { replyContentUrl }),
       ...(replyText === undefined ? {} : { replyText }),

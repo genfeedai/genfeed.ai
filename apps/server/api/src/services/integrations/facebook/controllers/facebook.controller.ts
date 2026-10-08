@@ -246,7 +246,7 @@ export class FacebookController {
         message,
       );
     } else if (mediaUrl && mediaType === 'video') {
-      postId = await this.facebookService.uploadVideoByUrl(
+      postId = await this.facebookService.uploadVideo(
         pageId,
         pageAccessToken,
         mediaUrl,

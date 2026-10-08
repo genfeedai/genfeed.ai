@@ -7,7 +7,7 @@ describe('InstagramSocialAdapter', () => {
   let adapter: InstagramSocialAdapter;
   let mockInstagramService: {
     postComment: ReturnType<typeof vi.fn>;
-    sendCommentReplyDm: ReturnType<typeof vi.fn>;
+    sendDirectMessage: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
@@ -19,7 +19,7 @@ describe('InstagramSocialAdapter', () => {
   beforeEach(() => {
     mockInstagramService = {
       postComment: vi.fn().mockResolvedValue({ commentId: 'comment_123' }),
-      sendCommentReplyDm: vi.fn().mockResolvedValue('msg_456'),
+      sendDirectMessage: vi.fn().mockResolvedValue('msg_456'),
     };
     mockLogger = {
       debug: vi.fn(),
@@ -59,7 +59,7 @@ describe('InstagramSocialAdapter', () => {
   });
 
   describe('createDmSender', () => {
-    it('should send DM via sendCommentReplyDm', async () => {
+    it('should send DM via sendDirectMessage', async () => {
       const sender = adapter.createDmSender();
       const result = await sender({
         brandId: 'brand1',
@@ -71,7 +71,7 @@ describe('InstagramSocialAdapter', () => {
         workflowRunId: 'workflow-run-1',
       });
 
-      expect(mockInstagramService.sendCommentReplyDm).toHaveBeenCalledWith(
+      expect(mockInstagramService.sendDirectMessage).toHaveBeenCalledWith(
         'org1',
         'brand1',
         'user789',
@@ -139,7 +139,7 @@ describe('InstagramSocialAdapter', () => {
         workflowRunId: 'workflow-run-1',
       });
 
-      expect(mockInstagramService.sendCommentReplyDm).toHaveBeenCalledWith(
+      expect(mockInstagramService.sendDirectMessage).toHaveBeenCalledWith(
         'org1',
         'explicit-brand',
         'user789',
@@ -148,21 +148,19 @@ describe('InstagramSocialAdapter', () => {
       );
     });
 
-    it('should handle null messageId from sendCommentReplyDm', async () => {
-      mockInstagramService.sendCommentReplyDm.mockResolvedValueOnce(null);
-
-      const sender = adapter.createDmSender();
-      const result = await sender({
-        brandId: 'brand1',
-        organizationId: 'org1',
-        platform: 'instagram',
-        recipientId: 'user789',
-        text: 'Hey!',
-        userId: 'brand1',
-        workflowRunId: 'workflow-run-1',
-      });
-
-      expect(result.messageId).toMatch(/^ig_dm_\d+$/);
+    it('rejects missing message IDs instead of fabricating a successful send', async () => {
+      mockInstagramService.sendDirectMessage.mockResolvedValueOnce(undefined);
+      await expect(
+        adapter.createDmSender()({
+          brandId: 'brand1',
+          organizationId: 'org1',
+          platform: 'instagram',
+          recipientId: 'user',
+          text: 'hello',
+          userId: 'brand1',
+          workflowRunId: 'run',
+        }),
+      ).rejects.toThrow('message_id');
     });
   });
 });

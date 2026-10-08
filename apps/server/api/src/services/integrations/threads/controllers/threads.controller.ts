@@ -17,6 +17,10 @@ import { ThreadsService } from '@api/services/integrations/threads/services/thre
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
+  THREADS_API_VERSION,
+  THREADS_GRAPH_URL,
+} from '@genfeedai/integrations';
+import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
@@ -52,7 +56,7 @@ interface ThreadsLongLivedTokenResponse {
 export class ThreadsController {
   private readonly constructorName: string = String(this.constructor.name);
 
-  private readonly graphUrl: string = 'https://graph.threads.net';
+  private readonly graphUrl: string;
   private readonly apiVersion: string;
 
   // Threads OAuth scopes
@@ -72,7 +76,10 @@ export class ThreadsController {
     private readonly threadsService: ThreadsService,
     private readonly loggerService: LoggerService,
   ) {
-    this.apiVersion = this.configService.get('THREADS_API_VERSION') || 'v1.0';
+    this.graphUrl =
+      this.configService.get('THREADS_GRAPH_URL') || THREADS_GRAPH_URL;
+    this.apiVersion =
+      this.configService.get('THREADS_API_VERSION') || THREADS_API_VERSION;
   }
 
   /**

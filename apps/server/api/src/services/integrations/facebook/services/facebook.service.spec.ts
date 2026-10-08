@@ -16,7 +16,7 @@ describe('FacebookService', () => {
   let service: FacebookService;
 
   const facebookConfig: Record<string, string> = {
-    FACEBOOK_API_VERSION: 'v18.0',
+    FACEBOOK_API_VERSION: 'v26.0',
     FACEBOOK_APP_ID: 'test-app-id',
     FACEBOOK_GRAPH_URL: 'https://graph.facebook.com',
     FACEBOOK_REDIRECT_URI: 'https://genfeed.ai/auth/facebook/callback',
@@ -199,16 +199,44 @@ describe('FacebookService', () => {
     expect(service).toBeDefined();
   });
 
+  it('publishes a video by URL using the supplied Page token without an invalid chunk transfer', async () => {
+    mockHttpService.post.mockReturnValue(of({ data: { id: 'video-1' } }));
+    expect(
+      await service.uploadVideo(
+        'page',
+        'page-token',
+        'https://cdn.example/video.mp4',
+        'title',
+        'caption',
+      ),
+    ).toBe('video-1');
+    expect(mockHttpService.post).toHaveBeenCalledOnce();
+    expect(mockHttpService.post).toHaveBeenCalledWith(
+      'https://graph.facebook.com/v26.0/page/videos',
+      null,
+      {
+        params: {
+          access_token: 'page-token',
+          file_url: 'https://cdn.example/video.mp4',
+          title: 'title',
+          description: 'caption',
+        },
+      },
+    );
+  });
+
   describe('generateAuthUrl', () => {
     it('should generate Facebook OAuth URL', () => {
       const state = 'test-state-123';
       const url = service.generateAuthUrl(state);
 
-      expect(url).toContain('https://www.facebook.com/v18.0/dialog/oauth');
+      expect(url).toContain('https://www.facebook.com/v26.0/dialog/oauth');
       expect(url).toContain('client_id=test-app-id');
       expect(url).toContain('state=test-state-123');
       expect(url).toContain('scope=');
       expect(url).toContain('pages_manage_posts');
+      expect(url).toContain('pages_manage_engagement');
+      expect(url).toContain('read_insights');
     });
 
     it('uses v26.0 when no API version is configured', () => {
@@ -342,7 +370,7 @@ describe('FacebookService', () => {
 
       expect(result).toEqual(['ads_management', 'ads_read']);
       expect(mockHttpService.get).toHaveBeenCalledWith(
-        'https://graph.facebook.com/v18.0/me/permissions',
+        'https://graph.facebook.com/v26.0/me/permissions',
         { params: { access_token: 'valid-token' } },
       );
     });

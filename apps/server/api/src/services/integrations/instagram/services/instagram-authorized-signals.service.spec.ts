@@ -208,7 +208,7 @@ describe('InstagramAuthorizedSignalsService', () => {
                   timestamp: '2026-08-10T12:00:00+0000',
                   insights: {
                     data: [
-                      { name: 'impressions', values: [{ value: 40 }] },
+                      { name: 'views', values: [{ value: 40 }] },
                       { name: 'reach', values: [{ value: 30 }] },
                       { name: 'saved', values: [{ value: 2 }] },
                       { name: 'shares', values: [{ value: 1 }] },
@@ -227,7 +227,6 @@ describe('InstagramAuthorizedSignalsService', () => {
 
         return of({
           data: {
-            account_type: 'BUSINESS',
             biography: 'Niche creator',
             followers_count: 0,
             follows_count: 4,
@@ -296,7 +295,6 @@ describe('InstagramAuthorizedSignalsService', () => {
       provenance: 'platform_verified',
       status: 'available',
       value: {
-        accountType: 'BUSINESS',
         followersCount: 0,
         username: 'creator',
       },
@@ -314,7 +312,6 @@ describe('InstagramAuthorizedSignalsService', () => {
     ).toMatchObject({
       status: 'available',
       value: {
-        accountType: 'BUSINESS',
         canPublish: true,
         isProfessionalAccount: true,
       },
@@ -322,7 +319,7 @@ describe('InstagramAuthorizedSignalsService', () => {
     expect(evidenceOf(snapshot, 'media-performance-snapshot')).toMatchObject({
       provenance: 'platform_verified',
       value: {
-        media: [{ id: 'media-1', impressions: 40, saved: 2 }],
+        media: [{ id: 'media-1', views: 40, saved: 2 }],
       },
     });
     expect(evidenceOf(snapshot, 'first-publish-platform-signal')).toMatchObject(
@@ -424,7 +421,6 @@ describe('InstagramAuthorizedSignalsService', () => {
 
       return of({
         data: {
-          account_type: 'MEDIA_CREATOR',
           id: 'ig-user-1',
           username: 'creator',
         },
@@ -442,11 +438,9 @@ describe('InstagramAuthorizedSignalsService', () => {
     expect(
       evidenceOf(snapshot, 'publishing-capability-snapshot'),
     ).toMatchObject({
-      reason: 'professional_account_limited',
-      status: 'permission_limited',
+      status: 'available',
       value: {
-        accountType: 'MEDIA_CREATOR',
-        canPublish: false,
+        canPublish: true,
         isProfessionalAccount: true,
       },
     });

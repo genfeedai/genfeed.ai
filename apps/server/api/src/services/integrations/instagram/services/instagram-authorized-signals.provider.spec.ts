@@ -113,8 +113,11 @@ describe('InstagramAuthorizedSignalsProvider', () => {
       views: 0,
     });
     expect(
-      result.mediaResult.value?.performance[0].impressions,
-    ).toBeUndefined();
+      Object.hasOwn(
+        result.mediaResult.value?.performance[0] ?? {},
+        'impressions',
+      ),
+    ).toBe(false);
   });
 
   it('fails clearly instead of guessing an account when the credential has no externalId', async () => {

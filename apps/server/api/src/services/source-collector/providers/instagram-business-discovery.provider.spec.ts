@@ -8,7 +8,12 @@ import { of, throwError } from 'rxjs';
 
 describe('InstagramBusinessDiscoveryProvider', () => {
   const httpService = { get: vi.fn() };
-  const instagramService = { getValidCredential: vi.fn() };
+  const instagramService = {
+    getValidCredential: vi.fn(),
+    getGraphApiBaseUrl: vi
+      .fn()
+      .mockReturnValue('https://graph.facebook.com/v26.0'),
+  };
 
   let provider: InstagramBusinessDiscoveryProvider;
 
