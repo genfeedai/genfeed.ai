@@ -790,6 +790,12 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       organizationId: 'org-a',
       sourceId: capturedId,
       versionId: captured.versionId,
+      initiatingActor: {
+        userId: actor.userId,
+        organizationId: actor.organizationId,
+        isApiKey: false,
+        scopes: [],
+      },
     });
     const current = await records.getCurrentVersion(actor, capturedId);
     expect(current).toMatchObject({

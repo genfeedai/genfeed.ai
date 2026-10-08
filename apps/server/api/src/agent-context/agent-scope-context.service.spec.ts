@@ -1041,7 +1041,18 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
     await expect(
       f.service.assertConsequentialBoundary(makeScope(), 'publish'),
     ).rejects.toThrow(ForbiddenException);
-    expect(f.findMember).toHaveBeenCalledTimes(4);
+    expect(f.findMember).toHaveBeenCalledTimes(6);
+    for (const [query] of f.findMember.mock.calls) {
+      expect(query).toMatchObject({
+        where: {
+          userId: request.userId,
+          organizationId: request.organizationId,
+          isActive: true,
+          isDeleted: false,
+          role: { isDeleted: false },
+        },
+      });
+    }
     expect(f.updateThread).not.toHaveBeenCalled();
   });
 
