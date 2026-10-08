@@ -11,7 +11,12 @@ import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-re
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { CredentialPlatform, PostFormat } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostFormat,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -666,14 +671,14 @@ describe('PostDraftGenerationService', () => {
       });
       expect(mockPostsService.create).toHaveBeenCalledWith({
         brandId,
-        category: 'TEXT',
+        category: PostCategory.TEXT,
         description: 'Exact text',
         format: PostFormat.STANDARD,
         ingredients: [],
         label: '',
         organizationId,
         platform: CredentialPlatform.TWITTER,
-        targetExecutionState: 'DRAFT',
+        targetExecutionState: TargetExecutionState.DRAFT,
         userId,
       });
     });
