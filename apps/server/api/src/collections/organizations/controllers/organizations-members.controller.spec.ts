@@ -317,6 +317,15 @@ describe('OrganizationsMembersController', () => {
   });
 
   describe('updateMember', () => {
+    it('restricts member mutations to organization owners and admins', () => {
+      expect(
+        Reflect.getMetadata(
+          'roles',
+          OrganizationsMembersController.prototype.updateMember,
+        ),
+      ).toEqual([MemberRole.OWNER, MemberRole.ADMIN]);
+    });
+
     const updateDto: UpdateMemberDto = {
       brandIds: [],
     };
