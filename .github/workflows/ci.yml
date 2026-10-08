@@ -194,7 +194,7 @@ jobs:
         run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ steps.tier.outputs.heavy }}"
       - name: Upload pull-request test plan
         if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pr-test-plan-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: ${{ steps.plan.outputs.manifest }}
@@ -378,7 +378,7 @@ jobs:
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Setup ${result.mode}: **${result.seconds}s**, Bun ${result.bunVersion}, exact cache hit ${result.exactCacheHit}.\n`);
           NODE
       - name: Upload setup measurement
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: setup-measurement-${{ matrix.mode }}
           path: setup-measurement.json
@@ -791,7 +791,7 @@ jobs:
         run: node scripts/ci/api-test-timings-reporter.mjs "$API_TEST_TIMINGS_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload API test timings
         if: always() && steps.api-tests.outcome != 'skipped' && steps.api-tests.outcome != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: api-test-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
           path: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
@@ -924,7 +924,7 @@ jobs:
           fi
       - name: Upload sanitized CLOUD tenant diagnostic summary
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cloud-tenant-guard-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.CLOUD_SWEEP_RUN_DIR }}/diagnostic-summary.json
@@ -966,7 +966,7 @@ jobs:
           cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
       - name: Upload generated OpenAPI spec
         if: needs.plan.outputs.api == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: openapi-spec-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/openapi-emit-1.json
