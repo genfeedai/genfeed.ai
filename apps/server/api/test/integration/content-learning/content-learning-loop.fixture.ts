@@ -35,6 +35,7 @@ import {
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
 import { CredentialPlatform, PrismaClient } from '@genfeedai/prisma';
+import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { Client } from 'pg';
@@ -100,9 +101,12 @@ export async function openLearningLoopDatabase() {
   );
   const scoped = new URL(connectionString);
   scoped.searchParams.set('options', `-c search_path=${schema},public`);
+  // Production reads `Ingredient.cdnUrl` through this derived-field extension.
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: scoped.toString() }, { schema }),
-  });
+  }).$extends(
+    createMediaUrlExtension({ cdnUrl: 'https://cdn.learning-loop.test' }),
+  ) as unknown as PrismaClient;
   const db = prisma as unknown as PrismaService;
   const logger = {
     debug: () => undefined,
