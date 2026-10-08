@@ -24,6 +24,8 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
@@ -84,6 +86,7 @@ import {
   TagMatchMode,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -1064,6 +1067,53 @@ describe('VideosController', () => {
       );
       expect(result).toBeDefined();
       expect(result.data).toMatchObject({ type: 'video' });
+    });
+
+    it('filters populated relations only by fields their Prisma model has', async () => {
+      const schema = readFileSync(
+        resolve(
+          __dirname,
+          '../../../../../../../packages/prisma/prisma/schema.prisma',
+        ),
+        'utf8',
+      );
+      const modelFields = (name: string): Map<string, string> => {
+        const match = schema.match(
+          new RegExp(`\\nmodel ${name} \\{\\n([\\s\\S]*?)\\n\\}`),
+        );
+        expect(match, `model ${name}`).not.toBeNull();
+        return new Map(
+          (match?.[1] ?? '')
+            .split('\n')
+            .map((line) => line.trim().split(/\s+/))
+            .filter(
+              ([field, type]) =>
+                type && !field.startsWith('@') && !field.startsWith('//'),
+            )
+            .map(([field, type]) => [field, type.replace(/[?[\]]/g, '')]),
+        );
+      };
+      const ingredientFields = modelFields('Ingredient');
+
+      await controller.findOne(mockRequest, mockVideoId.toString(), mockUser);
+
+      const populate = videosService.findOne.mock.lastCall?.[1] as
+        | PopulateOption[]
+        | undefined;
+      expect(populate?.find((option) => option.path === 'metadata')).toEqual(
+        expect.not.objectContaining({ where: expect.anything() }),
+      );
+      for (const option of populate ?? []) {
+        const target = ingredientFields.get(option.path);
+        expect(target, `Ingredient.${option.path}`).toBeDefined();
+        const targetFields = modelFields(target ?? '');
+        for (const key of Object.keys(option.where ?? {})) {
+          expect(
+            targetFields.has(key),
+            `${target}.${key} filtered by ${option.path}`,
+          ).toBe(true);
+        }
+      }
     });
 
     it('should include vote status', async () => {
