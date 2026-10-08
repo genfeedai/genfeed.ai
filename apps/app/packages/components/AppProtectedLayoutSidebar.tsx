@@ -29,6 +29,7 @@ type AppSidebarSurface = {
 type Props = {
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
+  onClose?: MenuSharedProps['onClose'];
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   /**
    * Live rail width from AppLayout (resize + localStorage). Must be accepted
@@ -73,6 +74,7 @@ type Props = {
 export default function AppProtectedLayoutSidebar({
   currentApp,
   isCollapsed,
+  onClose,
   onToggleCollapse,
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
   isAdminRoute,
@@ -111,6 +113,7 @@ export default function AppProtectedLayoutSidebar({
   const { href } = useOrgUrl();
   const sidebarStateProps = {
     isCollapsed,
+    onClose,
     onToggleCollapse,
   };
 
