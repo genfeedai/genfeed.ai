@@ -74,17 +74,46 @@ describe('HeygenPollProcessor', () => {
     expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
   });
 
-  it('finalizes a timeout failure once max attempts are reached', async () => {
-    heygenAvatarProvider.getStatus.mockResolvedValue({ status: 'queued' });
+  it.each(['unknown', 'completed'])(
+    'reschedules an unresolved %s result without recording provider failure',
+    async (status) => {
+      heygenAvatarProvider.getStatus.mockResolvedValue({ status });
 
-    await processor.process(buildJob({ attempt: HEYGEN_POLL_MAX_ATTEMPTS }));
+      await processor.process(buildJob({ attempt: 2 }));
 
-    expect(continuations.requestHeygenPollAttempt).not.toHaveBeenCalled();
-    expect(
-      webhooksService.handleFailedGenerationForIngredient,
-    ).toHaveBeenCalledWith('ingredient-1', 'HeyGen polling timeout');
-    expect(continuationCoordinator.failProviderAction).toHaveBeenCalled();
-  });
+      expect(continuations.requestHeygenPollAttempt).toHaveBeenCalledWith({
+        attempt: 3,
+        continuationId: 'continuation-1',
+        externalId: 'heygen-1',
+        organizationId: 'org-1',
+      });
+      expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
+      expect(
+        webhooksService.handleFailedGenerationForIngredient,
+      ).not.toHaveBeenCalled();
+      expect(continuationCoordinator.failProviderAction).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['queued', 'processing', 'unknown', 'completed'])(
+    'stops polling unresolved %s at the ceiling without releasing its hold',
+    async (status) => {
+      heygenAvatarProvider.getStatus.mockResolvedValue({ status });
+
+      await processor.process(buildJob({ attempt: HEYGEN_POLL_MAX_ATTEMPTS }));
+
+      expect(continuations.requestHeygenPollAttempt).not.toHaveBeenCalled();
+      expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
+      expect(
+        webhooksService.handleFailedGenerationForIngredient,
+      ).not.toHaveBeenCalled();
+      expect(continuationCoordinator.failProviderAction).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        'HeygenPollProcessor: unresolved provider status at polling ceiling',
+        expect.objectContaining({ status }),
+      );
+    },
+  );
 
   it('processes media and records completion on success', async () => {
     heygenAvatarProvider.getStatus.mockResolvedValue({
