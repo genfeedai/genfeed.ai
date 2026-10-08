@@ -33,7 +33,7 @@ function readOptionalString(value: unknown): string | undefined {
 
 function isHeygenProvider(value: unknown): boolean {
   return (
-    typeof value === 'string' && value.toLowerCase() === VoiceProvider.HEYGEN
+    typeof value === 'string' && value.toUpperCase() === VoiceProvider.HEYGEN
   );
 }
 

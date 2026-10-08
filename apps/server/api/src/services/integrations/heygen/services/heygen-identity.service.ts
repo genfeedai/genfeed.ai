@@ -52,11 +52,15 @@ export class HeyGenIdentityService {
       );
     const connection = await this.heygenService.resolveOrganizationConnection(
       organizationId,
-      candidate.connection?.kind,
+      candidate.ownership === 'private'
+        ? 'byok'
+        : (candidate.connection?.kind ??
+            (candidate.ownership === 'public' ? 'platform' : undefined)),
     );
     const voice = await this.heygenService.validateVoiceSelection(
       candidate.externalVoiceId,
       connection,
+      candidate.ownership,
     );
     return {
       ...candidate,

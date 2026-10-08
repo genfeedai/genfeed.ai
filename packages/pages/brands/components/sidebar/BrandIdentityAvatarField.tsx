@@ -1,11 +1,10 @@
-import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
-
-('use client');
+'use client';
 
 import type {
   HeyGenCatalogAvatar,
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
+import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
 import {

@@ -1,12 +1,11 @@
 'use client';
 
-import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
-
-('use client');
+'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioIdentityFieldsProps } from '@genfeedai/props/studio/studio-generate.props';
+import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
 import {
   OptionSelect,
   SettingRow,

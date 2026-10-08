@@ -90,7 +90,7 @@ export default function OrganizationIdentityDefaultsCard() {
       ) ?? null;
 
     setSelectedVoiceId(
-      orgDefaultVoiceRef?.provider === 'heygen' &&
+      orgDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
         orgDefaultVoiceRef.externalVoiceId &&
         orgDefaultVoiceRef.ownership
         ? heyGenVoiceValue({
@@ -340,7 +340,7 @@ export default function OrganizationIdentityDefaultsCard() {
             {heygen.error}
           </p>
         ) : null}
-        {orgDefaultVoiceRef?.provider === 'heygen' &&
+        {orgDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
         !orgDefaultVoiceRef.connection ? (
           <p role="status" className="text-xs text-muted-foreground">
             Reselect this voice to verify its connection.

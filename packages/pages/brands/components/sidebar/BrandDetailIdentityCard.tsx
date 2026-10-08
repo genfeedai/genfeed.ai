@@ -1,14 +1,8 @@
-import {
-  heyGenAvatarValue,
-  heyGenDefaultVoice,
-  heyGenVoiceValue,
-} from '@helpers/voice/heygen-identity.helper';
-import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
-
-('use client');
+'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
+import { VoiceProvider } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -18,8 +12,14 @@ import {
   type DefaultVoiceRef,
   matchesDefaultVoice,
 } from '@helpers/voice/default-voice-ref.helper';
+import {
+  heyGenAvatarValue,
+  heyGenDefaultVoice,
+  heyGenVoiceValue,
+} from '@helpers/voice/heygen-identity.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
+import { useHeyGenCatalog } from '@hooks/data/integrations/use-heygen-catalog';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
@@ -104,7 +104,7 @@ export default function BrandDetailIdentityCard({
       ) ?? null;
 
     setSelectedVoiceId(
-      brandDefaultVoiceRef?.provider === 'heygen' &&
+      brandDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
         brandDefaultVoiceRef.externalVoiceId &&
         brandDefaultVoiceRef.ownership
         ? heyGenVoiceValue({
@@ -335,7 +335,7 @@ export default function BrandDetailIdentityCard({
             Reselect this avatar to verify its connection.
           </p>
         ) : null}
-        {brandDefaultVoiceRef?.provider === 'heygen' &&
+        {brandDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
         !brandDefaultVoiceRef.connection ? (
           <p role="status" className="text-xs text-muted-foreground">
             Reselect this voice to verify its connection.

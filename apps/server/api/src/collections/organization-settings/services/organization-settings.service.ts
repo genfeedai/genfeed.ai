@@ -6,11 +6,12 @@ import { UpdateOrganizationSettingDto } from '@api/collections/organization-sett
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heygen.tokens';
 import {
   heyGenAvatarCandidateSchema,
   savedVoiceRefSchema,
 } from '@api/services/integrations/heygen/heygen-identity.schema';
-import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
+import type { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type {
@@ -64,9 +65,12 @@ export class OrganizationSettingsService extends BaseService<
     if (data.defaultAvatarRef || data.defaultVoiceRef) {
       const existing = await this.findOne({ id, isDeleted: false });
       if (!existing) throw new NotFoundException('Organization settings', id);
-      const identities = this.moduleRef.get(HeyGenIdentityService, {
-        strict: false,
-      });
+      const identities = this.moduleRef.get<HeyGenIdentityService>(
+        HEYGEN_IDENTITY_SERVICE,
+        {
+          strict: false,
+        },
+      );
       if (data.defaultAvatarRef) {
         const candidate = data.defaultAvatarRef;
         const parsed = heyGenAvatarCandidateSchema.safeParse(candidate);
@@ -134,9 +138,12 @@ export class OrganizationSettingsService extends BaseService<
   ): Promise<OrganizationSettingDocument> {
     const data: PrismaUpdate = { ...createDto };
     if (createDto.defaultAvatarRef || createDto.defaultVoiceRef) {
-      const identities = this.moduleRef.get(HeyGenIdentityService, {
-        strict: false,
-      });
+      const identities = this.moduleRef.get<HeyGenIdentityService>(
+        HEYGEN_IDENTITY_SERVICE,
+        {
+          strict: false,
+        },
+      );
       if (createDto.defaultAvatarRef) {
         data.defaultAvatarRef = await identities.avatarDefault(
           createDto.defaultAvatarRef,
@@ -151,7 +158,10 @@ export class OrganizationSettingsService extends BaseService<
           createDto.organizationId,
         );
     }
-    return super.create(data as CreateOrganizationSettingDto, populate ?? []);
+    return super.create(
+      data as unknown as CreateOrganizationSettingDto,
+      populate ?? [],
+    );
   }
 
   /**

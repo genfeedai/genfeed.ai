@@ -560,10 +560,17 @@ export class AvatarVideoGenerationService {
         brandIdentityDefaults.defaultAvatarPhotoUrl
           ? brandIdentityDefaults
           : organizationIdentityDefaults;
-      if (defaults.defaultAvatarRef)
-        resolved.avatarRef = heyGenAvatarRefSchema.parse(
+      if (defaults.defaultAvatarRef) {
+        const parsed = heyGenAvatarRefSchema.safeParse(
           defaults.defaultAvatarRef,
         );
+        if (!parsed.success)
+          throw new HttpException(
+            'Reselect the saved avatar to verify its connection.',
+            HttpStatus.BAD_REQUEST,
+          );
+        resolved.avatarRef = parsed.data;
+      }
     }
 
     if (
@@ -875,6 +882,7 @@ export class AvatarVideoGenerationService {
       await this.heygenService.validateVoiceSelection(
         identity.heygenVoiceId,
         identity.heygenConnection,
+        identity.voiceRef?.ownership,
       );
     }
   }

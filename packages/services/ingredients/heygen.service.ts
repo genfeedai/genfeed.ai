@@ -1,3 +1,4 @@
+import { VoiceProvider } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarRef,
@@ -62,8 +63,9 @@ export class HeyGenService extends BaseService<IHeyGen> {
     const { voiceId, voiceProvider, ...rest } = payload;
     const backendPayload: Record<string, unknown> = { ...rest };
     if (voiceId && !rest.voiceRef) {
-      if (voiceProvider === 'heygen') backendPayload.heygenVoiceId = voiceId;
-      else if (voiceProvider === 'elevenlabs')
+      if (voiceProvider?.toUpperCase() === VoiceProvider.HEYGEN)
+        backendPayload.heygenVoiceId = voiceId;
+      else if (voiceProvider?.toUpperCase() === VoiceProvider.ELEVENLABS)
         backendPayload.elevenlabsVoiceId = voiceId;
       else
         throw new Error('Choose a voice with its provider before generating.');

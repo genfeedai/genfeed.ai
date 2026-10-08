@@ -574,8 +574,13 @@ export class HeyGenService {
   public async validateVoiceSelection(
     voiceId: string,
     connection: ResolvedHeyGenConnection,
+    ownership?: 'public' | 'private',
   ): Promise<HeyGenCatalogVoice> {
-    const voices = await this.readVoiceCatalog(connection);
+    if (ownership === 'private' && connection.binding.kind !== 'byok')
+      throw new BadRequestException(
+        'Private voices require your personal HeyGen connection.',
+      );
+    const voices = await this.readVoiceCatalog(connection, ownership);
     const voice = voices.find((candidate) => candidate.voiceId === voiceId);
     if (!voice)
       throw new BadRequestException(

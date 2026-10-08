@@ -1,7 +1,5 @@
-import type {
-  HeyGenAvatarRef,
-  IBrandAgentConfig,
-} from '@genfeedai/contracts/interfaces';
+import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
+import type { DefaultVoiceRef } from '@helpers/voice/default-voice-ref.helper';
 import type { Task } from '@services/management/tasks.service';
 
 export type WorkspaceTaskMode = 'standard' | 'research' | 'trends';
@@ -18,7 +16,7 @@ export interface FacecamOption {
   preview?: string;
   provider?: string;
   avatarRef?: HeyGenAvatarRef;
-  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
+  voiceRef?: DefaultVoiceRef;
   disabled?: boolean;
 }
 

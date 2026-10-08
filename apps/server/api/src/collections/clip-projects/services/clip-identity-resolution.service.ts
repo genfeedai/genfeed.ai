@@ -66,7 +66,7 @@ export class ClipIdentityResolutionService {
         identity.avatarRef,
         params.organizationId,
       );
-    if (identity.voiceRef?.provider === 'heygen') {
+    if (identity.voiceRef?.provider === VoiceProvider.HEYGEN) {
       if (!identity.voiceRef.connection)
         throw new BadRequestException('Reselect the saved HeyGen voice.');
       identity.voiceRef = await this.identities.voiceDefault(

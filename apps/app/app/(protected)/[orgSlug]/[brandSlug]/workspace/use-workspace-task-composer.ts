@@ -1,5 +1,9 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { PromptCategory, SystemPromptKey } from '@genfeedai/contracts';
+import {
+  PromptCategory,
+  SystemPromptKey,
+  VoiceProvider,
+} from '@genfeedai/contracts';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   FacecamOption,
@@ -109,7 +113,9 @@ export function useWorkspaceTaskComposer({
     );
     const voice = selectedBrand?.agentConfig?.defaultVoiceRef;
     setFacecamVoiceId(
-      voice?.provider === 'heygen' && voice.externalVoiceId && voice.ownership
+      voice?.provider === VoiceProvider.HEYGEN &&
+        voice.externalVoiceId &&
+        voice.ownership
         ? `heygen:${voice.ownership}:${voice.externalVoiceId}`
         : '',
     );
@@ -130,7 +136,7 @@ export function useWorkspaceTaskComposer({
             voices: voices.map((voice) => ({
               id: voice.id,
               label: `[${voice.provider ?? 'Cloned'}] ${voice.metadataLabel ?? 'Cloned voice'}`,
-              provider: voice.provider ?? 'elevenlabs',
+              provider: voice.provider ?? VoiceProvider.ELEVENLABS,
             })),
           });
       })().catch(() => {});
@@ -459,7 +465,11 @@ export function useWorkspaceTaskComposer({
                     (voice) => voice.id === facecamVoiceId,
                   )?.voiceRef ?? {
                     source: 'cloned',
-                    provider: facecamVoiceProvider,
+                    provider:
+                      facecamVoiceProvider.toUpperCase() ===
+                      VoiceProvider.HEYGEN
+                        ? VoiceProvider.HEYGEN
+                        : VoiceProvider.ELEVENLABS,
                     internalVoiceId: facecamVoiceId,
                   },
                 }

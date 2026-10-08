@@ -69,6 +69,7 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
       const voice = await this.heygenService.validateVoiceSelection(
         input.voiceRef?.externalVoiceId ?? input.voiceId,
         connection,
+        input.voiceRef?.ownership,
       );
       if (
         input.voiceRef?.ownership === 'private' &&

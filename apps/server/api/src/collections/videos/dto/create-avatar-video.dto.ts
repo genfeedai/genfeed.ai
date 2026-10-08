@@ -16,6 +16,11 @@ export type AvatarVideoAspectRatio =
 
 export class CreateAvatarVideoDto {
   @IsOptional()
+  @IsString()
+  @ApiProperty({ required: false, description: 'Authorized photo ingredient' })
+  readonly photoIngredientId?: string;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => DefaultAvatarRefDto)
   @ApiProperty({ type: DefaultAvatarRefDto, required: false })
