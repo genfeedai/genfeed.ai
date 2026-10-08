@@ -12,6 +12,7 @@ import {
   type ActionContractJsonSchema,
   compileActionContract,
 } from '@genfeedai/workflows/engine';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 
 vi.mock(
   '@api/collections/outreach-campaigns/services/outreach-campaigns.service',
@@ -1230,6 +1231,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(service, {
+      brandAccess: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
@@ -6055,7 +6057,10 @@ describe('AgentToolExecutorService', () => {
         data: { settings: {} },
         success: true,
       });
-      Object.assign(service, { generationOptionsHandler: { execute } });
+      Object.assign(service, {
+        brandAccess: brandAccessFixture(),
+        generationOptionsHandler: { execute },
+      });
 
       const result = await service.executeTool(
         'get_generation_options',
@@ -6325,6 +6330,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(serviceWithoutScorer, {
+      brandAccess: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });

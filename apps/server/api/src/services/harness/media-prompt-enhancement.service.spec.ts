@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup(enabled = true) {
@@ -393,6 +394,7 @@ describe('MediaPromptEnhancementService', () => {
       const harness = new HarnessGenerationService(
         contentHarness,
         logger as LoggerService,
+        brandAccessFixture(),
         brands as BrandsService,
         profiles as HarnessProfilesService,
       );

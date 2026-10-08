@@ -30,6 +30,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -244,7 +245,10 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
-    records = new KnowledgeRecordsService(prismaService);
+    records = new KnowledgeRecordsService(
+      prismaService,
+      brandAccessFixture(prismaService as never),
+    );
     contexts = new ContextsService(
       prismaService,
       logger as never,
@@ -263,19 +267,29 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     knowledgeContentRetrieval = new KnowledgeContentRetrievalService(
       prismaService,
       contexts,
+      brandAccessFixture(prismaService as never),
     );
-    ingest = new KnowledgeSourceIngestService(prismaService, contexts);
+    ingest = new KnowledgeSourceIngestService(
+      prismaService,
+      contexts,
+      brandAccessFixture(prismaService),
+      records,
+    );
     capture = new KnowledgeCaptureService(
       records,
       workflowStub as never,
       { refresh: vi.fn() } as never,
     );
-    selection = new KnowledgeSelectionService(prismaService);
+    selection = new KnowledgeSelectionService(
+      prismaService,
+      brandAccessFixture(prismaService as never),
+    );
     legacyBackfill = new KnowledgeLegacyBackfillService(
       prismaService,
       records,
       workflowStub as never,
       logger as never,
+      brandAccessFixture(prismaService as never),
     );
     const noopCache = {
       generateKey: (...parts: string[]) => parts.join(':'),
@@ -718,7 +732,10 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       },
     });
 
-    const report = await legacyBackfill.run('org-a');
+    const report = await legacyBackfill.run({
+      organizationId: 'org-a',
+      userId: 'user-a',
+    });
     expect(report.contextSources).toMatchObject({
       migrated: 1,
       relinkedChunks: 1,

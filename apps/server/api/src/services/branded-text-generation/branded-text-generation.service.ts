@@ -94,7 +94,7 @@ export class BrandedTextGenerationService {
       isApiKey: request.initiatingActor.isApiKey,
       scopes: request.initiatingActor.scopes,
     };
-    const { receipt } = await this.receipts.create(input);
+    const { receipt } = await this.receipts.create(input, actor);
     switch (receipt.state) {
       case 'created':
         return this.runFresh(

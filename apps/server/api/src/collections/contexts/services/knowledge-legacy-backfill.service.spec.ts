@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -111,12 +112,16 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
         { schema },
       ),
     });
-    records = new KnowledgeRecordsService(prisma as unknown as PrismaService);
+    records = new KnowledgeRecordsService(
+      prisma as unknown as PrismaService,
+      brandAccessFixture(prisma as unknown as PrismaService as never),
+    );
     service = new KnowledgeLegacyBackfillService(
       prisma as unknown as PrismaService,
       records,
       { enqueueIngest } as never,
       { log: vi.fn(), warn: vi.fn() } as never,
+      brandAccessFixture(prisma as unknown as PrismaService as never),
     );
   });
 
@@ -129,7 +134,10 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
   });
 
   it('migrates every convertible legacy row exactly once and quarantines the rest', async () => {
-    const report = await service.run('org-a');
+    const report = await service.run({
+      organizationId: 'org-a',
+      userId: 'user-a',
+    });
 
     expect(report).toMatchObject({
       bookmarks: { migrated: 3, quarantined: 1, skipped: 0 },
@@ -265,7 +273,10 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
   });
 
   it('is idempotent across repeated and partial runs', async () => {
-    const first = await service.run('org-a');
+    const first = await service.run({
+      organizationId: 'org-a',
+      userId: 'user-a',
+    });
     const countAfterFirst = await prisma.knowledgeSource.count({
       where: { organizationId: 'org-a' },
     });
@@ -275,7 +286,10 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
     await prisma.knowledgeSpaceMembership.deleteMany({
       where: { organizationId: 'org-a', space: { title: 'Swipe file' } },
     });
-    const second = await service.run('org-a');
+    const second = await service.run({
+      organizationId: 'org-a',
+      userId: 'user-a',
+    });
 
     expect(second.bookmarks).toEqual({
       migrated: 0,

@@ -28,6 +28,10 @@ import type { LearningGenerationReceipt } from '@genfeedai/contracts/interfaces/
 import type { ContentHarnessBrief } from '@genfeedai/harness';
 import { learningContribution } from '@genfeedai/harness';
 import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
+import {
+  brandAccessFixture,
+  snapshotInitiatingActor,
+} from '@test/helpers/brand-access.fixture';
 import { describe, expect, it, vi } from 'vitest';
 
 const BRAND = {
@@ -85,6 +89,7 @@ function createService(overrides?: {
   const service = new HarnessGenerationService(
     contentHarnessService as never,
     logger as never,
+    brandAccessFixture(),
     brandsService as never,
     harnessProfilesService as never,
     knowledgeContentRetrievalService as never,
@@ -108,6 +113,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
     const { service, contentHarnessService } = createService();
 
     const brief = await service.resolveBrief({
+      userId: 'fixture-user',
       contentType: 'post',
       organizationId: 'org-1',
     });
@@ -122,6 +128,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
     });
 
     const brief = await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       contentType: 'post',
       organizationId: 'org-1',
@@ -142,6 +149,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
     });
 
     await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       contentType: 'image',
       organizationId: 'org-1',
@@ -162,12 +170,14 @@ describe('HarnessGenerationService#resolveBrief', () => {
     const { contentHarnessService, service } = createService();
 
     await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       contentType: 'video',
       organizationId: 'org-1',
       surface: 'media',
     });
     await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       contentType: 'post',
       organizationId: 'org-1',
@@ -188,6 +198,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
     };
 
     await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       contentType: 'post',
       organizationId: 'org-1',
@@ -221,6 +232,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       });
 
     await service.resolveBrief({
+      userId: 'fixture-user',
       additionalSources: [
         {
           content: 'Caller-supplied audience signal',
@@ -256,6 +268,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
+        userId: 'fixture-user',
         brandId: 'brand-1',
         contentType: 'post',
         organizationId: 'org-1',
@@ -270,6 +283,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
+        userId: 'fixture-user',
         brandId: 'brand-1',
         contentType: 'post',
         organizationId: 'org-1',
@@ -285,6 +299,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
+        userId: 'fixture-user',
         brandId: 'brand-1',
         contentType: 'post',
         includeContentMemory: false,
@@ -301,6 +316,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
+        userId: 'fixture-user',
         brandId: 'brand-1',
         contentType: 'post',
         includeContentMemory: true,
@@ -321,6 +337,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
     });
 
     const brief = await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       contentType: 'post',
       organizationId: 'org-1',
@@ -348,6 +365,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       const service = new HarnessGenerationService(
         contentHarnessService as never,
         { warn: vi.fn() } as never,
+        brandAccessFixture(),
         { findOne: vi.fn().mockResolvedValue(BRAND) } as never,
         {
           resolveContributionForBrand: vi.fn().mockResolvedValue(null),
@@ -361,6 +379,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       );
 
       await service.resolveBrief({
+        userId: 'fixture-user',
         brandId: 'brand-1',
         contentType: 'post',
         knowledgeSelection: { sourceIds: ['source-1'], spaceIds: ['space-1'] },
@@ -411,6 +430,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       const service = new HarnessGenerationService(
         contentHarnessService as never,
         { warn: vi.fn() } as never,
+        brandAccessFixture(),
         { findOne: vi.fn().mockResolvedValue(BRAND) } as never,
         {
           resolveContributionForBrand: vi.fn().mockResolvedValue(null),
@@ -424,6 +444,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
       );
 
       await service.resolveBrief({
+        userId: 'fixture-user',
         brandId: 'brand-1',
         contentType: 'post',
         knowledgeSelection: { sourceIds: ['source-1'] },
@@ -492,6 +513,7 @@ describe('approved Brand OS identity', () => {
         },
       });
     await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       organizationId: 'org-1',
       contentType: 'post',
@@ -524,6 +546,7 @@ describe('approved Brand OS identity', () => {
   it('falls back to profile identity only when no approval exists', async () => {
     const { service, contentHarnessService } = createService();
     await service.resolveBrief({
+      userId: 'fixture-user',
       brandId: 'brand-1',
       organizationId: 'org-1',
       contentType: 'post',
@@ -544,6 +567,7 @@ describe('approved Brand OS identity', () => {
     });
     expect(
       await service.resolveBrief({
+        userId: 'fixture-user',
         brandId: 'brand-1',
         organizationId: 'org-1',
         contentType: 'post',
@@ -746,6 +770,7 @@ function snapshotService() {
   const service = new HarnessGenerationService(
     packs as never,
     { log: vi.fn(), warn: vi.fn() } as never,
+    brandAccessFixture(),
     brand as never,
     profile as never,
     retrieval as never,
@@ -819,6 +844,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(input),
     );
     expect(result.status).toBe('resolved');
     expect(brand.findOne).not.toHaveBeenCalled();
@@ -900,6 +926,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
         env.formatter,
         baselineLearning(),
         {},
+        snapshotInitiatingActor(input),
       );
       expect(result).toMatchObject({ status: 'blocked', reasonCode: reason });
       if (kind !== 'media') expect(result.snapshot).toBeNull();
@@ -920,6 +947,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(input),
     );
     expect(result).toMatchObject({
       status: 'resolved',
@@ -936,6 +964,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(input),
     );
     expect(blocked).toMatchObject({
       status: 'blocked',
@@ -963,6 +992,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       learning,
       learningContribution(ContentLearningArm.QUESTION_EXAMPLE),
+      snapshotInitiatingActor(input),
     );
     expect(result).toMatchObject({
       status: 'blocked',
@@ -985,6 +1015,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     expect(
       env.formatter.mock.calls.map(([skills, selected]) => [
@@ -1036,6 +1067,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     expect(result).toMatchObject({
       status: 'blocked',
@@ -1065,6 +1097,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       runtime.buildSkillPromptSections.bind(runtime),
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     expect(result.status).toBe('resolved');
     if (result.status !== 'resolved') throw new Error('Expected resolution');
@@ -1097,6 +1130,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     expect(result.status).toBe('resolved');
     expect(
@@ -1135,6 +1169,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     const layers = result.layers.filter((layer) => layer.kind === 'pack');
     expect(
@@ -1169,6 +1204,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(input),
     );
     expect(result.status).toBe('resolved');
     expect(env.selection.resolve.mock.calls).toEqual([
@@ -1300,6 +1336,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
         env.formatter,
         baselineLearning(),
         {},
+        snapshotInitiatingActor(input),
       );
       expect(result).toMatchObject({
         status: 'blocked',
@@ -1347,6 +1384,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     expect(result.status).toBe('resolved');
     expect(
@@ -1384,6 +1422,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
           env.formatter,
           learning as never,
           {},
+          snapshotInitiatingActor(input as never),
         ),
       ).rejects.toHaveProperty('name', 'ZodError');
     }
@@ -1410,6 +1449,7 @@ describe('snapshot source boundary regressions', () => {
         env.formatter,
         baselineLearning(),
         {},
+        snapshotInitiatingActor(input),
       ),
     ).toMatchObject({ status: 'blocked', reasonCode: 'knowledge_unavailable' });
   });
@@ -1428,6 +1468,7 @@ describe('snapshot source boundary regressions', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     expect(result.snapshot?.voice.audience).toEqual(['Founders']);
     expect(identity.voice.audience).toEqual(['Founders']);
@@ -1446,6 +1487,7 @@ describe('snapshot source boundary regressions', () => {
         env.formatter,
         baselineLearning(),
         {},
+        snapshotInitiatingActor(generationInput()),
       ),
     ).rejects.toHaveProperty('name', 'ZodError');
   });
@@ -1469,6 +1511,7 @@ describe('snapshot diagnostic report bounds', () => {
       env.formatter,
       baselineLearning(),
       {},
+      snapshotInitiatingActor(generationInput()),
     );
     expect(result).toMatchObject({
       status: 'blocked',
@@ -1510,6 +1553,7 @@ describe('snapshot compiler recipe capture', () => {
       env.formatter,
       learning,
       contribution,
+      snapshotInitiatingActor(input),
     );
     expect(companion).toHaveBeenCalledExactlyOnceWith(
       input,
@@ -1539,6 +1583,7 @@ describe('snapshot compiler recipe capture', () => {
       env.formatter,
       learning,
       {},
+      snapshotInitiatingActor(input),
     );
     if (!recipe) throw new Error('Expected raw recipe');
     expect(recipe).toEqual(['snapshot-brief-v1', [], [], [], learning, {}]);
@@ -1601,6 +1646,7 @@ describe('snapshot compiler recipe capture', () => {
       env.formatter,
       learning,
       contribution,
+      snapshotInitiatingActor(input),
     );
     if (!recipe) throw new Error('Expected branded recipe');
     expect(
@@ -1703,6 +1749,7 @@ describe('snapshot compiler recipe capture', () => {
       env.formatter,
       learning,
       contribution,
+      snapshotInitiatingActor(input),
     );
     if (!recipe) throw new Error('Expected resolved baseline recipe');
     expect(result.status).toBe('resolved');
@@ -1795,6 +1842,7 @@ describe('snapshot compiler recipe capture', () => {
         env.formatter,
         learning,
         {},
+        snapshotInitiatingActor(input),
       );
       expect(recipe).toBeNull();
       expect(result.status).toBe('blocked');
@@ -1839,6 +1887,10 @@ describe('snapshot compiler recipe capture', () => {
         env.formatter,
         baselineLearning(),
         {},
+        snapshotInitiatingActor({
+          ...generationInput(),
+          schemaVersion: 2,
+        } as never),
       ),
     ).rejects.toThrow();
     expect(env.profile.resolveContributionForBrand).not.toHaveBeenCalled();

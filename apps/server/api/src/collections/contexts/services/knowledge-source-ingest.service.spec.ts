@@ -1,3 +1,6 @@
+import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
+
 vi.mock(
   '@api/collections/contexts/utils/extract-source-text.util',
   async () => {
@@ -105,6 +108,11 @@ function buildService(
   const service = new KnowledgeSourceIngestService(
     prisma as never,
     { addEntry } as never,
+    brandAccessFixture(prisma as never),
+    new KnowledgeRecordsService(
+      prisma as never,
+      brandAccessFixture(prisma as never),
+    ),
   );
   return {
     addEntry,

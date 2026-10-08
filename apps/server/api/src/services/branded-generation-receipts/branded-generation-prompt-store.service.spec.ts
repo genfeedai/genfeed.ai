@@ -16,11 +16,14 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import * as credentialCipher from '@libs/crypto/credential-cipher';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const actor = { organizationId: 'org', brandId: 'brand', actorId: 'user' };
 function fixture() {
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   vi.spyOn(access, 'assertBrand').mockResolvedValue({ isOwnerOrAdmin: false });
   const store = new BrandedGenerationPromptStoreService(access);
   const mock = {

@@ -20,6 +20,7 @@ import type {
   BrandedGenerationResolutionV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/prisma', async () => {
@@ -50,7 +51,9 @@ function input(): BrandedGenerationInputV1 {
   };
 }
 function fixture() {
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   vi.spyOn(access, 'assertBrand').mockResolvedValue({ isOwnerOrAdmin: false });
   const prompts = new BrandedGenerationPromptStoreService(access);
   vi.spyOn(prompts, 'prepare').mockImplementation((text) => ({
@@ -153,7 +156,10 @@ function blockedResolution(): BrandedGenerationResolutionV1 {
   };
 }
 async function saved(f: ReturnType<typeof fixture>) {
-  const result = await f.service.create(input());
+  const result = await f.service.create(input(), {
+    ...actor,
+    actorId: input().actorId,
+  });
   f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue({
     projection: result.receipt,
     isDeleted: false,
@@ -163,7 +169,10 @@ async function saved(f: ReturnType<typeof fixture>) {
 describe('real storage slice orchestration with typed transaction delegates', () => {
   it('creates original snapshot/event atomically with zero provider attempts and preserved lineage', async () => {
     const f = fixture();
-    const result = await f.service.create(input());
+    const result = await f.service.create(input(), {
+      ...actor,
+      actorId: input().actorId,
+    });
     const expectedProjection: unknown = JSON.parse(
       JSON.stringify(result.receipt),
     );
@@ -210,7 +219,9 @@ describe('real storage slice orchestration with typed transaction delegates', ()
     f.tx.brandedGenerationReceipt.create.mockClear();
     f.tx.brandedGenerationReceiptEvent.create.mockClear();
     vi.mocked(f.prompts.persist).mockClear();
-    expect(await f.service.create(input())).toEqual({
+    expect(
+      await f.service.create(input(), { ...actor, actorId: input().actorId }),
+    ).toEqual({
       receipt: current,
       replayed: true,
     });
@@ -226,16 +237,24 @@ describe('real storage slice orchestration with typed transaction delegates', ()
       OR: [{ isDeleted: false }, { isDeleted: true }],
     });
     await expect(
-      f.service.create({ ...input(), parentRequestId: 'other' }),
+      f.service.create(
+        { ...input(), parentRequestId: 'other' },
+        { ...actor, actorId: { ...input(), parentRequestId: 'other' }.actorId },
+      ),
     ).rejects.toThrow('request_payload_conflict');
     await expect(
-      f.service.create({ ...input(), actorId: 'admin' }),
+      f.service.create(
+        { ...input(), actorId: 'admin' },
+        { ...actor, actorId: { ...input(), actorId: 'admin' }.actorId },
+      ),
     ).rejects.toThrow('request_payload_conflict');
     f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue({
       projection: { ...current, isDeleted: true },
       isDeleted: true,
     });
-    await expect(f.service.create(input())).rejects.toThrow('receipt_deleted');
+    await expect(
+      f.service.create(input(), { ...actor, actorId: input().actorId }),
+    ).rejects.toThrow('receipt_deleted');
     expect(f.tx.brandedGenerationReceipt.create).not.toHaveBeenCalled();
     expect(f.tx.brandedGenerationReceiptEvent.create).not.toHaveBeenCalled();
     expect(f.prompts.persist).not.toHaveBeenCalled();
@@ -496,7 +515,13 @@ describe('real storage slice orchestration with typed transaction delegates', ()
       f.service.list(actor, { limit: 1, cursor: 'bad' }),
     ).rejects.toThrow('receipt_cursor_invalid');
     await expect(
-      f.service.create({ ...input(), candidateIndex: 2147483648 }),
+      f.service.create(
+        { ...input(), candidateIndex: 2147483648 },
+        {
+          ...actor,
+          actorId: { ...input(), candidateIndex: 2147483648 }.actorId,
+        },
+      ),
     ).rejects.toThrow('receipt_counter_out_of_range');
     f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue({
       projection: { bad: true },
@@ -1039,7 +1064,9 @@ describe('compiled resolution reproduction and immutable operation ownership', (
     vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'retention-unit-secret');
     const f = fixture();
     const value = { ...input(), knowledgeSourceIds: ['source-a', 'source-b'] };
-    const current = (await f.service.create(value)).receipt;
+    const current = (
+      await f.service.create(value, { ...actor, actorId: value.actorId })
+    ).receipt;
     f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue({
       projection: current,
       isDeleted: false,

@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpException,
 } from '@nestjs/common';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 
 const THREAD_ID = 'thread-1';
 const ORGANIZATION_ID = 'org-1';
@@ -49,7 +50,11 @@ describe('AgentScopeContextService', () => {
       brand: { findFirst: vi.fn().mockResolvedValue({ id: BRAND_ID }) },
     };
     logger.log.mockClear();
-    service = new AgentScopeContextService(prisma as never, logger as never);
+    service = new AgentScopeContextService(
+      prisma as never,
+      logger as never,
+      brandAccessFixture(prisma as never as never),
+    );
   });
 
   it('resolves an authorized thread scope from immutable server authority', async () => {

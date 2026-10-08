@@ -83,6 +83,7 @@ export class KnowledgeRecordsService {
         'An authenticated organization and user are required',
       );
     }
+    await this.brandAccessService.resolve(actor, tx);
     if (actor.brandId)
       await this.brandAccessService.assert(actor, actor.brandId, tx);
     return {

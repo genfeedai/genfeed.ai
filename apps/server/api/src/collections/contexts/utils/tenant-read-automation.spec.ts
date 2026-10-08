@@ -28,6 +28,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ExecutionContext } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { Request } from 'express';
 import { defer, firstValueFrom, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
@@ -206,7 +207,10 @@ describe('automation selected data and immutable actor', () => {
       knowledgeSource: { findMany, count },
       $transaction: (queries: Promise<unknown>[]) => Promise.all(queries),
     } as unknown as PrismaService;
-    const records = new KnowledgeRecordsService(prisma);
+    const records = new KnowledgeRecordsService(
+      prisma,
+      brandAccessFixture(prisma as never),
+    );
     const controller = instance(KnowledgeSourcesController, { records });
     expect(
       await selected(() =>

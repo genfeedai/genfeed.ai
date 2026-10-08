@@ -14,6 +14,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -88,7 +89,9 @@ function setup() {
         async (run: (client: typeof tx) => Promise<unknown>) => run(tx),
       ),
   };
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   const authorize = vi.spyOn(access, 'assertBrand');
   const receipts = {
     get: vi.fn(),

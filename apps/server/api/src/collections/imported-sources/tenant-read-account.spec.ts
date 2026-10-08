@@ -35,6 +35,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { Observable } from 'rxjs';
 import { defer, firstValueFrom, of } from 'rxjs';
 
@@ -570,7 +571,9 @@ describe('ordinary account owner and mutation behavior', () => {
       brand: { findFirst: vi.fn(async () => ({ id: user.brandId })) },
       member: { findFirst: member },
     };
-    const access = new BrandedGenerationReceiptAccessService();
+    const access = new BrandedGenerationReceiptAccessService(
+      brandAccessFixture(),
+    );
     const list = vi.fn(
       async (actor: {
         organizationId: string;

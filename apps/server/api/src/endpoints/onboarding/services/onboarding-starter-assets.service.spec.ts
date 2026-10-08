@@ -24,6 +24,7 @@ import {
 import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function approvedOnboardingRevision(version: number): IBrandOsRevision {
@@ -80,6 +81,7 @@ function realOnboardingHarness() {
         composeContentHarnessBrief(registry, input),
     } as never,
     { log: vi.fn(), warn: vi.fn() } as never,
+    brandAccessFixture(),
     { findOne } as never,
     { resolveContributionForBrand: vi.fn().mockResolvedValue(null) } as never,
     { retrieveBrandContentMemory: vi.fn().mockResolvedValue([]) } as never,

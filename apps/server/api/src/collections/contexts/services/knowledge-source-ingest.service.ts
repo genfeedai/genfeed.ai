@@ -901,6 +901,7 @@ export class KnowledgeSourceIngestService {
     status: 'completed' | 'failed',
     error?: string,
   ): Promise<void> {
+    await this.assertInitiator(state, state.source?.brandId);
     await this.prisma.knowledgeCaptureRequest.updateMany({
       where: scopedWhere(state.organizationId, {
         sourceId: state.sourceId,
@@ -926,6 +927,7 @@ export class KnowledgeSourceIngestService {
     if (etag === undefined && lastModified === undefined) {
       return;
     }
+    await this.assertInitiator(state, state.source?.brandId);
     await this.prisma.knowledgeSource.updateMany({
       where: scopedWhere(state.organizationId, { id: state.sourceId }),
       data: {
@@ -940,6 +942,7 @@ export class KnowledgeSourceIngestService {
     processingState: KnowledgeProcessingState,
     processingError?: string,
   ): Promise<void> {
+    await this.assertInitiator(state, state.source?.brandId);
     await this.prisma.knowledgeSourceVersion.updateMany({
       where: {
         id: state.versionId,

@@ -226,6 +226,7 @@ export class KnowledgeContentRetrievalService {
       return { bases: [], entries: [] };
     }
 
+    await this.brandAccessService.resolve(params);
     const rows = await this.prisma.contextBase.findMany({
       select: { createdById: true, data: true, id: true, sourceBrandId: true },
       where: scopedWhere(

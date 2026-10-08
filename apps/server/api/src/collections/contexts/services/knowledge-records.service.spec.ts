@@ -22,6 +22,7 @@ import {
 import { PrismaClient } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { Request } from 'express';
 import { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -161,7 +162,10 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         { schema },
       ),
     });
-    records = new KnowledgeRecordsService(prisma as unknown as PrismaService);
+    records = new KnowledgeRecordsService(
+      prisma as unknown as PrismaService,
+      brandAccessFixture(prisma as unknown as PrismaService as never),
+    );
   });
 
   afterEach(async () => {

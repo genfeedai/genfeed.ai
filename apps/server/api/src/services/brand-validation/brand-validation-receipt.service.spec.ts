@@ -1,3 +1,4 @@
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
@@ -179,7 +180,9 @@ function receipt(): BrandedGenerationReceiptV1 {
   };
 }
 function fixture(description = 'Example Co offers a plan.') {
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   vi.spyOn(access, 'assertBrand').mockResolvedValue({ isOwnerOrAdmin: false });
   const prompts = new BrandedGenerationPromptStoreService(access);
   const initial = brandedGenerationReceiptV1Schema.parse(receipt());

@@ -30,6 +30,7 @@ import { compileActionContract } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { vi } from 'vitest';
 
 function approvedOnboardingRevision(version: number): IBrandOsRevision {
@@ -86,6 +87,7 @@ function realOnboardingHarness() {
         composeContentHarnessBrief(registry, input),
     } as never,
     { log: vi.fn(), warn: vi.fn() } as never,
+    brandAccessFixture(),
     { findOne } as never,
     { resolveContributionForBrand: vi.fn().mockResolvedValue(null) } as never,
     { retrieveBrandContentMemory: vi.fn().mockResolvedValue([]) } as never,

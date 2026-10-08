@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
@@ -15,6 +16,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import type { INestApplication } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 
@@ -53,6 +55,7 @@ describe('Organization member mutations (real HTTP role guard)', () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [OrganizationsMembersController],
       providers: [
+        { provide: BrandAccessService, useValue: brandAccessFixture() },
         RolesGuard,
         Reflector,
         { provide: MembersService, useValue: members },

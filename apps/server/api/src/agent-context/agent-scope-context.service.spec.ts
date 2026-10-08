@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   HttpException,
 } from '@nestjs/common';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { AgentScopeContextService } from './agent-scope-context.service';
 
 type ThreadRow = {
@@ -77,7 +78,11 @@ describe('AgentScopeContextService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new AgentScopeContextService(prisma, logger);
+    service = new AgentScopeContextService(
+      prisma,
+      logger,
+      brandAccessFixture(prisma as never),
+    );
     threadFindFirst.mockResolvedValue(null);
     threadUpdateMany.mockResolvedValue({ count: 1 });
     messageFindFirst.mockResolvedValue(null);
@@ -86,7 +91,10 @@ describe('AgentScopeContextService', () => {
 
   describe('assertBrandAuthorized', () => {
     it('scopes the brand lookup to the organization and soft-delete flag', async () => {
-      await service.assertBrandAuthorized('brand-1', 'org-1');
+      await service.assertBrandAuthorized('brand-1', {
+        userId: 'user-1',
+        organizationId: 'org-1',
+      });
 
       expect(brandFindFirst).toHaveBeenCalledWith({
         select: { id: true },
@@ -98,7 +106,10 @@ describe('AgentScopeContextService', () => {
       brandFindFirst.mockResolvedValueOnce(null);
 
       await expect(
-        service.assertBrandAuthorized('brand-x', 'org-1'),
+        service.assertBrandAuthorized('brand-x', {
+          userId: 'user-1',
+          organizationId: 'org-1',
+        }),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
@@ -938,7 +949,11 @@ describe('AgentScopeContextService', () => {
   });
 
   it('operates without a logger', async () => {
-    const bare = new AgentScopeContextService(prisma);
+    const bare = new AgentScopeContextService(
+      prisma,
+      undefined,
+      brandAccessFixture(prisma as never),
+    );
     threadFindFirst.mockResolvedValue(makeThread({ contextVersion: 9 }));
 
     await expect(

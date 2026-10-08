@@ -16,6 +16,7 @@ import {
   StorageReadError,
   type VersionedStorageProvider,
 } from '@genfeedai/storage';
+import { brandAccessFixture } from '@test/helpers/brand-access.fixture';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storage = vi.hoisted(() => ({
@@ -164,7 +165,9 @@ function receipt(): BrandedGenerationReceiptV1 {
   };
 }
 function fixture() {
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   vi.spyOn(access, 'assertBrand').mockResolvedValue({ isOwnerOrAdmin: false });
   const receipts = Object.create(
     BrandedGenerationReceiptsService.prototype,
