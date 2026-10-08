@@ -418,7 +418,7 @@ describe('PostDetail standalone composer', () => {
     mockUsePostDetail.mockReturnValue(hookData);
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
     const content = screen.getByTestId('post-content');
-    const button = screen.getByRole('button', { name: 'Preview', exact: true });
+    const button = screen.getByRole('button', { name: 'Preview' });
     expect(content).toBeVisible();
     await user.click(button);
     expect(button).toHaveAttribute('aria-pressed', 'true');
@@ -451,9 +451,7 @@ describe('PostDetail standalone composer', () => {
       }),
     );
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-    await user.click(
-      screen.getByRole('button', { name: 'Preview', exact: true }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Preview' }));
     const previews = within(
       screen.getByRole('region', { name: 'Post composer' }),
     ).getAllByTestId('target-preview');
@@ -466,9 +464,7 @@ describe('PostDetail standalone composer', () => {
     const user = userEvent.setup();
     mockUsePostDetail.mockReturnValue(buildHookData());
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-    await user.click(
-      screen.getByRole('button', { name: 'Preview', exact: true }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Preview' }));
     expect(
       within(screen.getByRole('region', { name: 'Post composer' })).getByText(
         'Choose a platform to preview this post.',
@@ -485,7 +481,7 @@ describe('PostDetail standalone composer', () => {
       />,
     );
     expect(
-      screen.queryByRole('button', { name: 'Preview', exact: true }),
+      screen.queryByRole('button', { name: 'Preview' }),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('target-preview')).toBeVisible();
     expect(screen.getByTestId('post-sidebar')).toBeVisible();
@@ -507,7 +503,7 @@ describe('PostDetail standalone composer', () => {
       ).getByTestId('target-preview'),
     ).toBeVisible();
     expect(
-      screen.queryByRole('button', { name: 'Preview', exact: true }),
+      screen.queryByRole('button', { name: 'Preview' }),
     ).not.toBeInTheDocument();
   });
 });
