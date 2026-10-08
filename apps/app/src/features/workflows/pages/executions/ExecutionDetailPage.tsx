@@ -6,6 +6,10 @@ import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflo
 import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import {
+  getJsonApiErrorMember,
+  getJsonApiErrorMessage,
+} from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -122,10 +126,12 @@ export default function ExecutionDetailPage({
         if (controller.signal.aborted) {
           return;
         }
+        if (getJsonApiErrorMember(err)?.status === 404) {
+          setExecution(null);
+          return;
+        }
         setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load execution details',
+          getJsonApiErrorMessage(err, 'Failed to load execution details'),
         );
         logger.error('Failed to load execution details', { err, runId });
       } finally {

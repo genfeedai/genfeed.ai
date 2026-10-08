@@ -51,6 +51,58 @@ vi.mock('next/navigation', () => ({
 import { WorkflowSurfaceInspector } from './WorkflowSurfaceInspector';
 
 describe('WorkflowSurfaceInspector', () => {
+  it('shows missing run context without invented status or approval controls', async () => {
+    service.getExecution.mockRejectedValue({
+      errors: [{ status: '404', detail: 'Execution not found' }],
+    });
+    render(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/missing-exec"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(await screen.findByText('Execution Not Found')).toBeInTheDocument();
+    expect(service.get).not.toHaveBeenCalled();
+    expect(screen.queryByText('Not running')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('No approval is currently required.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves a missing workflow failure after successfully loading the run', async () => {
+    service.get.mockRejectedValueOnce({
+      errors: [{ status: '404', detail: 'Workflow not found' }],
+    });
+    render(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/run-1"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(await screen.findByText('Workflow not found')).toBeInTheDocument();
+    expect(screen.queryByText('Execution Not Found')).not.toBeInTheDocument();
+  });
+
+  it('keeps run permission errors visible in the inspector', async () => {
+    service.getExecution.mockRejectedValue({
+      errors: [{ status: '403', detail: 'Access denied' }],
+    });
+    render(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/denied-exec"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(await screen.findByText('Access denied')).toBeInTheDocument();
+    expect(screen.queryByText('Execution Not Found')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     getService.mockResolvedValue(service);

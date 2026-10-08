@@ -297,6 +297,9 @@ export class WorkflowExecutionsController {
             )),
         id,
       });
+    if (!execution) {
+      throw new NotFoundException('Execution');
+    }
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
 

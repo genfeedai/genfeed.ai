@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   deserializeResource: vi.fn((document: { data: unknown }) => document.data),
   get: vi.fn(),
   loggerError: vi.fn(),
+  loggerWarn: vi.fn(),
   patch: vi.fn(),
   post: vi.fn(),
 }));
@@ -60,6 +61,7 @@ vi.mock('@services/core/interceptor.service', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,
+    warn: mocks.loggerWarn,
   },
 }));
 
@@ -343,6 +345,49 @@ describe('WorkflowApiService', () => {
     expect(mocks.post).toHaveBeenCalledWith('', {
       brandId: 'brand-2',
       sourceWorkflowId: 'workflow-1',
+    });
+  });
+
+  it('preserves a missing execution 404 without logging it as a decoding error', async () => {
+    const error = {
+      errors: [{ status: '404', detail: 'Execution not found' }],
+    };
+    mocks.get.mockRejectedValueOnce(error);
+
+    await expect(service().getExecution('missing-exec')).rejects.toBe(error);
+    expect(mocks.deserializeResource).not.toHaveBeenCalled();
+    expect(mocks.loggerError).not.toHaveBeenCalled();
+    expect(mocks.loggerWarn).toHaveBeenCalledWith('Execution not found', {
+      executionId: 'missing-exec',
+      status: 404,
+    });
+  });
+
+  it('preserves execution permission errors as failures', async () => {
+    const error = { errors: [{ status: '403', detail: 'Access denied' }] };
+    mocks.get.mockRejectedValueOnce(error);
+
+    await expect(service().getExecution('denied-exec')).rejects.toBe(error);
+    expect(mocks.deserializeResource).not.toHaveBeenCalled();
+    expect(mocks.loggerError).toHaveBeenCalledWith('Failed to get execution', {
+      error,
+      executionId: 'denied-exec',
+    });
+  });
+
+  it('keeps malformed execution documents as decoding failures', async () => {
+    const error = new Error(
+      'Invalid JSON:API document: expected resource data',
+    );
+    mocks.get.mockResolvedValueOnce({ data: { data: null } });
+    mocks.deserializeResource.mockImplementationOnce(() => {
+      throw error;
+    });
+
+    await expect(service().getExecution('malformed-exec')).rejects.toBe(error);
+    expect(mocks.loggerError).toHaveBeenCalledWith('Failed to get execution', {
+      error,
+      executionId: 'malformed-exec',
     });
   });
 
