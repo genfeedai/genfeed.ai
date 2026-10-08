@@ -247,7 +247,6 @@ interface UseAgentChatInputParams {
   disabled?: boolean;
   placeholder?: string;
   apiService?: AgentApiService;
-  showStop?: boolean;
   attachments?: AttachmentItem[];
   isUploading?: boolean;
   dragState?: DragState;
@@ -268,7 +267,6 @@ export function useAgentChatInput({
   disabled,
   placeholder: placeholderOverride,
   apiService,
-  showStop = false,
   attachments = [],
   isUploading = false,
   dragState,
@@ -1145,12 +1143,6 @@ export function useAgentChatInput({
   const canUseVoiceInput =
     isVoiceControlEnabled && isSupported && !isTranscribing;
 
-  // Stop occupies the mic slot while a run is in flight. Send still appears
-  // beside Stop when the field has text so Enter can queue a follow-up.
-  const shouldShowVoiceInput = canUseVoiceInput && isEmptyComposer && !showStop;
-  const shouldShowSendButton =
-    !isTranscribing && !shouldShowVoiceInput && (!showStop || canSendMessage);
-
   return {
     actionFeedback,
     canSendMessage,
@@ -1170,14 +1162,13 @@ export function useAgentChatInput({
     isContentLibraryLoading,
     isContentPickerOpen,
     isDragActive,
+    isEmptyComposer,
     isListening,
     isTranscribing,
     promptText,
     references: displayedReferences,
     selectedContentIds,
     setIsContentPickerOpen,
-    shouldShowSendButton,
-    shouldShowVoiceInput,
     startListening,
     stopListening,
   };

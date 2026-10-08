@@ -10,6 +10,7 @@ import {
   isStudioGenerateType,
   listStudioGenerateTypeConfigs,
 } from '@pages/studio/generate/utils/studio-generate-types';
+import { PROMPT_BAR_CHIP_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -46,7 +47,7 @@ export default function StudioTypeDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           ariaLabel={triggerLabel}
-          className={cn('h-8 shrink-0 gap-1.5 px-2 text-xs', className)}
+          className={cn(PROMPT_BAR_CHIP_CLASS, className)}
           icon={<ActiveIcon className="size-3.5" />}
           isDisabled={isDisabled}
           size={ButtonSize.SM}

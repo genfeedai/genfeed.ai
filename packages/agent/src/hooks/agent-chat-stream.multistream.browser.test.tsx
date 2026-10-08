@@ -100,7 +100,9 @@ function Fixture() {
         promptText=""
         hasEditor
         canSendMessage
+        canUseVoiceInput={false}
         disabled={false}
+        isEmptyComposer={false}
         isListening={false}
         isTranscribing={false}
         isUploading={false}
@@ -114,8 +116,6 @@ function Fixture() {
         onStartListening={noop}
         onStop={noop}
         onStopListening={noop}
-        shouldShowSendButton
-        shouldShowVoiceInput={false}
         showStop={stream.isStreaming}
         willQueueFollowUp={stream.isStreaming}
       />

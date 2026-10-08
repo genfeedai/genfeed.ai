@@ -146,14 +146,13 @@ export function AgentChatInput({
     isContentLibraryLoading,
     isContentPickerOpen,
     isDragActive,
+    isEmptyComposer,
     isListening,
     isTranscribing,
     promptText,
     references,
     selectedContentIds,
     setIsContentPickerOpen,
-    shouldShowSendButton,
-    shouldShowVoiceInput,
     canUseVoiceInput,
     startListening,
     stopListening,
@@ -174,7 +173,6 @@ export function AgentChatInput({
     onStop,
     placeholder,
     removeAttachment,
-    showStop,
   });
 
   const translate = useTranslations('common.agent.composer');
@@ -269,6 +267,7 @@ export function AgentChatInput({
           canUseVoiceInput={canUseVoiceInput}
           disabled={disabled}
           hasEditor={Boolean(editor)}
+          isEmptyComposer={isEmptyComposer}
           isListening={isListening}
           isTranscribing={isTranscribing}
           isUploading={isUploading}
@@ -282,8 +281,6 @@ export function AgentChatInput({
           onStartListening={startListening}
           onStop={onStop}
           onStopListening={stopListening}
-          shouldShowSendButton={shouldShowSendButton}
-          shouldShowVoiceInput={shouldShowVoiceInput}
           showStop={Boolean(showStop)}
           willQueueFollowUp={willQueueFollowUp}
           // The dock rail is narrow — use compact icon-only toolbar density.

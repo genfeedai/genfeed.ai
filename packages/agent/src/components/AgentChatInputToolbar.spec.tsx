@@ -11,9 +11,11 @@ function buildDefaultProps(
   return {
     agentMode: AgentThreadMode.MANUAL,
     canSendMessage: true,
+    canUseVoiceInput: false,
     disabled: false,
     generationMode: 'auto',
     hasEditor: true,
+    isEmptyComposer: true,
     isListening: false,
     isTranscribing: false,
     isUploading: false,
@@ -25,8 +27,6 @@ function buildDefaultProps(
     onStop: undefined,
     onStopListening: vi.fn(),
     promptText: '',
-    shouldShowSendButton: true,
-    shouldShowVoiceInput: false,
     showStop: false,
     ...overrides,
   };
@@ -61,6 +61,7 @@ describe('AgentChatInputToolbar', () => {
       <AgentChatInputToolbar
         {...buildDefaultProps({
           canUseVoiceInput: true,
+          isEmptyComposer: false,
           onStartListening,
           promptText: 'Draft a launch post',
         })}
@@ -75,7 +76,10 @@ describe('AgentChatInputToolbar', () => {
   it('shows no mic beside Send when voice input is unavailable', () => {
     render(
       <AgentChatInputToolbar
-        {...buildDefaultProps({ promptText: 'Draft a launch post' })}
+        {...buildDefaultProps({
+          isEmptyComposer: false,
+          promptText: 'Draft a launch post',
+        })}
       />,
     );
 
