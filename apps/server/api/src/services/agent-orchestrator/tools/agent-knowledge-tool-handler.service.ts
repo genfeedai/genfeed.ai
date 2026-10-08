@@ -203,6 +203,9 @@ export class AgentKnowledgeToolHandler {
     }
     const hits =
       await this.knowledgeContentRetrievalService.retrieveBrandContentMemory({
+        userId: ctx.userId,
+        isApiKey: ctx.apiKeyContext?.isApiKey,
+        scopes: ctx.apiKeyContext?.scopes,
         brandId,
         knowledgePurposes: readPurposes(params.purposes),
         knowledgeSourceIds: sourceIds,

@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { ContextEntrySimilarityResult } from '@api/collections/contexts/schemas/context-entry.schema';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import {
@@ -38,6 +39,7 @@ export class KnowledgeContentRetrievalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contextsService: ContextsService,
+    private readonly brandAccessService: BrandAccessService,
   ) {}
 
   /**
@@ -84,6 +86,7 @@ export class KnowledgeContentRetrievalService {
     const query = params.query.trim();
     const brandId = params.brandId?.trim();
     if (!query || !brandId) throw new Error('knowledge_unavailable');
+    await this.brandAccessService.assert(params, brandId);
     const rows = await this.prisma.contextBase.findMany({
       select: { createdById: true, data: true, id: true, sourceBrandId: true },
       where: scopedWhere(
@@ -184,6 +187,7 @@ export class KnowledgeContentRetrievalService {
       return { bases: [], entries: [] };
     }
 
+    await this.brandAccessService.assert(params, brandId);
     const rows = await this.prisma.contextBase.findMany({
       select: { createdById: true, data: true, id: true, sourceBrandId: true },
       where: scopedWhere(params.organizationId, buildBaseWhere(brandId)),

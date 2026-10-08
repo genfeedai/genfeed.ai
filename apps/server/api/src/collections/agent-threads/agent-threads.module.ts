@@ -1,3 +1,5 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 /**
  * Agent Conversations Module
  * Stores agent chat threads (rooms) for AI-powered agent interactions.
@@ -29,6 +31,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [AgentScopeContextService, AgentThreadsService],
   imports: [
+    BrandAccessModule,
     AgentMessagesModule,
     UsersCoreModule,
     BrandsCoreModule,
@@ -43,10 +46,13 @@ import { Module } from '@nestjs/common';
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {
-      inject: [PrismaService, LoggerService],
+      inject: [PrismaService, LoggerService, BrandAccessService],
       provide: AgentScopeContextService,
-      useFactory: (prisma: PrismaService, logger: LoggerService) =>
-        new AgentScopeContextService(prisma, logger),
+      useFactory: (
+        prisma: PrismaService,
+        logger: LoggerService,
+        access: BrandAccessService,
+      ) => new AgentScopeContextService(prisma, logger, access),
     },
   ],
 })

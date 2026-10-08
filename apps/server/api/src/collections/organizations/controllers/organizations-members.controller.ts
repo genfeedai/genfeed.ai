@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 /**
  * Organizations Members Controller
  * Handles organization membership management:
@@ -71,6 +72,7 @@ export class OrganizationsMembersController {
     private readonly configService: ConfigService,
     private readonly invitationService: InvitationService,
     private readonly brandsService: BrandsService,
+    private readonly brandAccessService: BrandAccessService,
   ) {}
 
   @Get(':organizationId/members')
@@ -91,9 +93,18 @@ export class OrganizationsMembersController {
     const data = await this.membersService.findAll(
       {
         include: {
-          brands: true,
+          brands: { where: await this.brandAccessService.predicate(user) },
           role: true,
-          user: true,
+          user: {
+            select: {
+              id: true,
+              avatar: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              handle: true,
+            },
+          },
         },
         orderBy: handleQuerySort(query.sort),
         where: {

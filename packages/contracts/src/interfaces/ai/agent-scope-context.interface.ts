@@ -34,6 +34,8 @@ export interface AgentRoutingPolicy {
 }
 
 export interface ValidatedAgentScope {
+  isApiKey?: boolean;
+  scopes?: string[];
   brandId?: string;
   contextVersion: number;
   isLegacyFallback: boolean;

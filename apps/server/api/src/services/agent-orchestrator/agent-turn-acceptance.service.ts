@@ -154,6 +154,8 @@ export class AgentTurnAcceptanceService {
         organizationId: context.organizationId,
         threadId,
         userId: context.userId,
+        isApiKey: context.apiKeyContext?.isApiKey,
+        scopes: context.apiKeyContext?.scopes,
       }));
     if (existingScope)
       await this.resolveActiveInput(threadId, request.content, {

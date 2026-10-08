@@ -1,3 +1,7 @@
+import {
+  type BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
 import {
@@ -16,6 +20,7 @@ import { chunkTranscriptCues } from '@api/collections/contexts/utils/knowledge-t
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   KnowledgeBaseCategory,
   KnowledgeMemoryScope,
@@ -35,7 +40,7 @@ import type {
   KnowledgeSourceIngestWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
-import { Injectable, Optional } from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 
 export type KnowledgeSourceIngestStatus =
   | 'completed'
@@ -71,6 +76,7 @@ export interface KnowledgeSourceIngestVersion {
 }
 
 export interface KnowledgeSourceIngestState {
+  initiatingActor?: BrandAccessActor;
   chunks?: string[];
   extracted?: {
     endMs?: number;
@@ -153,8 +159,21 @@ export class KnowledgeSourceIngestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contextsService: ContextsService,
+    private readonly brandAccessService: BrandAccessService,
     @Optional() private readonly transcripts?: KnowledgeTranscriptIngestService,
   ) {}
+
+  private async assertInitiator(
+    state: KnowledgeSourceIngestState,
+    brandId?: string,
+  ): Promise<void> {
+    if (!isCloudDeployment()) return;
+    if (!state.initiatingActor)
+      throw new ForbiddenException('Knowledge access denied');
+    await this.brandAccessService.resolve(state.initiatingActor);
+    if (brandId)
+      await this.brandAccessService.assert(state.initiatingActor, brandId);
+  }
 
   async loadSource(
     request: KnowledgeSourceIngestWorkflowInput,
@@ -201,6 +220,30 @@ export class KnowledgeSourceIngestService {
     ) {
       return base;
     }
+    const provenance = row.provenance;
+    const storedActor =
+      provenance && typeof provenance === 'object' && !Array.isArray(provenance)
+        ? provenance.initiatingActor
+        : undefined;
+    if (
+      storedActor &&
+      typeof storedActor === 'object' &&
+      !Array.isArray(storedActor) &&
+      typeof storedActor.userId === 'string' &&
+      storedActor.organizationId === request.organizationId
+    ) {
+      base.initiatingActor = {
+        userId: storedActor.userId,
+        organizationId: request.organizationId,
+        isApiKey: storedActor.isApiKey === true,
+        scopes: Array.isArray(storedActor.scopes)
+          ? storedActor.scopes.filter(
+              (scope): scope is string => typeof scope === 'string',
+            )
+          : [],
+      };
+    }
+    await this.assertInitiator(base, row.source.brandId ?? undefined);
     const payload = readPayload(row.payload);
     // Prisma enums are string unions; the shared contracts enums carry the
     // same persisted labels, so the guards narrow without a cast.
@@ -276,6 +319,7 @@ export class KnowledgeSourceIngestService {
   async extractSource(
     state: KnowledgeSourceIngestState,
   ): Promise<KnowledgeSourceIngestState> {
+    await this.assertInitiator(state, state.source?.brandId);
     if (state.status !== 'ready' || !state.source || !state.version) {
       return state;
     }
@@ -375,6 +419,7 @@ export class KnowledgeSourceIngestService {
     if (!state.source || !state.version || !state.extracted || !state.chunks) {
       return state;
     }
+    await this.assertInitiator(state, state.source.brandId);
     const contextBaseId = await this.ensureContextBase(
       state.organizationId,
       state.source,
@@ -399,6 +444,7 @@ export class KnowledgeSourceIngestService {
       });
     });
     for (const [chunkIndex, content] of state.chunks.entries()) {
+      await this.assertInitiator(state, state.source.brandId);
       const cue = state.extractedCues?.[chunkIndex];
       await this.contextsService.addEntry(
         contextBaseId,

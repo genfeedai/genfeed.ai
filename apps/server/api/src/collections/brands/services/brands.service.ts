@@ -1,3 +1,7 @@
+import {
+  type BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
 import type { GenerateBatchIdeasDto } from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import type { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
@@ -122,6 +126,7 @@ export class BrandsService extends BaseService<
     private readonly skillsService: SkillsService,
     private readonly brandLifecycleService: BrandLifecycleService,
     private readonly heygenIdentityService: HeyGenIdentityService,
+    public readonly brandAccessService: BrandAccessService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -255,7 +260,7 @@ export class BrandsService extends BaseService<
   ): Promise<BrandDocument[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
-    if (options.brandIds && options.brandIds.length > 0) {
+    if (options.brandIds !== undefined) {
       where.id = { in: options.brandIds };
     }
 
@@ -985,11 +990,13 @@ export class BrandsService extends BaseService<
     brandId: string,
     userId: string,
     organizationId: string,
+    actor?: BrandAccessActor,
   ): Promise<BrandDocument> {
     return this.brandLifecycleService.selectBrandForUser(
       brandId,
       userId,
       organizationId,
+      actor ?? { userId, organizationId },
     );
   }
 }

@@ -15,6 +15,8 @@ export function resolveKnowledgeActor(
   return {
     organizationId: readScope?.organizationId ?? user.organizationId,
     userId: user.userId ?? user.id,
+    isApiKey: user.isApiKey,
+    scopes: user.scopes,
     brandId: requestedBrandId || undefined,
   };
 }

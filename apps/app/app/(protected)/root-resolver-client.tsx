@@ -3,8 +3,11 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationAccountType } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  hasAgentFirstOnboarding,
+  isCloudDeployment,
+} from '@genfeedai/config/deployment';
+import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -28,12 +31,25 @@ const WORKSPACE_RESOLUTION_TIMEOUT_MS = 8_000;
 export default function ProtectedRootResolver() {
   // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
   const isAgentModuleEnabled = useFeatureFlag('agent');
-  const { brands, isReady, organizationId, refreshBrands, selectedBrand } =
-    useBrand();
+  const {
+    brands,
+    isReady,
+    isBrandScopeResolved,
+    organizationId,
+    refreshBrands,
+    selectedBrand,
+  } = useBrand();
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
   const { replace } = useRouter();
   const searchParams = useSearchParams();
+  const hasNoBrandAccess =
+    isCloudDeployment() &&
+    isBrandScopeResolved &&
+    brands.length === 0 &&
+    Boolean(accessState?.memberRole) &&
+    accessState?.memberRole !== MemberRole.OWNER &&
+    accessState?.memberRole !== MemberRole.ADMIN;
   const hasStartedRef = useRef(false);
   const [needsWorkspaceAction, setNeedsWorkspaceAction] = useState(false);
 
@@ -71,6 +87,7 @@ export default function ProtectedRootResolver() {
       isCurrentUserLoading ||
       !isReady ||
       !currentUser ||
+      hasNoBrandAccess ||
       hasStartedRef.current
     ) {
       return;
@@ -144,6 +161,7 @@ export default function ProtectedRootResolver() {
     setNeedsWorkspaceAction(true);
   }, [
     accessState,
+    hasNoBrandAccess,
     brands,
     currentUser,
     isCurrentUserLoading,
@@ -155,6 +173,13 @@ export default function ProtectedRootResolver() {
     selectedBrand,
     isAgentModuleEnabled,
   ]);
+
+  if (hasNoBrandAccess)
+    return (
+      <p className="px-6 py-12 text-muted-foreground" role="status">
+        No brands assigned. Ask an organization admin for access.
+      </p>
+    );
 
   if (needsWorkspaceAction) {
     // A root bootstrap without a routable slug must never widen into whichever

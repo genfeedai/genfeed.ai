@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
@@ -73,6 +74,9 @@ export const HARNESS_SELECTED_KNOWLEDGE_LIMIT =
 export const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
 
 export type ResolveHarnessBriefParams = {
+  userId?: string;
+  isApiKey?: boolean;
+  scopes?: string[];
   /**
    * Extra sources (e.g. caller-supplied audience signals) folded into the
    * brief alongside any retrieved brand content memory. Caller-supplied
@@ -134,6 +138,7 @@ export class HarnessGenerationService {
   constructor(
     private readonly contentHarnessService: ContentHarnessService,
     private readonly logger: LoggerService,
+    private readonly brandAccessService: BrandAccessService,
     @Optional()
     private readonly brandsService?: BrandsService,
     @Optional()
@@ -222,6 +227,10 @@ export class HarnessGenerationService {
           : undefined,
       );
     }
+    await this.brandAccessService.assert(
+      { userId: parsed.actorId, organizationId: parsed.organizationId },
+      parsed.brandId,
+    );
     if (!identity) return compile(null, ['no_approved_revision']);
     if (
       identity.organizationId !== parsed.organizationId ||
@@ -507,6 +516,7 @@ export class HarnessGenerationService {
     try {
       const retrievalInput = {
         organizationId: input.organizationId,
+        userId: input.actorId,
         brandId: input.brandId,
         query: input.originalPrompt,
         limit: HARNESS_MEMORY_LIMIT,
@@ -676,6 +686,10 @@ export class HarnessGenerationService {
       return null;
     }
 
+    await this.brandAccessService.assert(
+      { ...params, userId: params.userId ?? '' },
+      params.brandId,
+    );
     try {
       const brand = await brandsService.findOne({
         id: params.brandId,
@@ -708,6 +722,9 @@ export class HarnessGenerationService {
         includeMemory && params.topic?.trim()
           ? await this.loadBrandMemorySources({
               brandId: params.brandId,
+              userId: params.userId ?? '',
+              isApiKey: params.isApiKey,
+              scopes: params.scopes,
               filters: knowledgeFilters,
               organizationId: params.organizationId,
               topic: params.topic.trim(),
@@ -783,6 +800,9 @@ export class HarnessGenerationService {
   }
 
   private async loadBrandMemorySources(params: {
+    userId: string;
+    isApiKey?: boolean;
+    scopes?: string[];
     brandId: string;
     filters?: KnowledgeRetrievalFilters;
     organizationId: string;
@@ -807,6 +827,9 @@ export class HarnessGenerationService {
       const hits =
         await knowledgeContentRetrievalService.retrieveBrandContentMemory({
           brandId: params.brandId,
+          userId: params.userId,
+          isApiKey: params.isApiKey,
+          scopes: params.scopes,
           limit,
           minRelevance,
           organizationId: params.organizationId,

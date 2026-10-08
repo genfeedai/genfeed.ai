@@ -13,7 +13,14 @@ import type { Prisma } from '@genfeedai/prisma';
 /** Brand-scoped retrieval without content-memory source/purpose narrowing. */
 export type BrandScopedRetrievalParams = Pick<
   BrandContentMemoryRetrievalParams,
-  'brandId' | 'limit' | 'minRelevance' | 'organizationId' | 'query'
+  | 'userId'
+  | 'isApiKey'
+  | 'scopes'
+  | 'brandId'
+  | 'limit'
+  | 'minRelevance'
+  | 'organizationId'
+  | 'query'
 >;
 
 /** The context-base columns brand-scope decisions read. */
