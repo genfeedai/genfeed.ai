@@ -6,12 +6,21 @@ import {
   PostFormat,
   PostVisibility,
 } from '@genfeedai/contracts';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  captureLearningLoopPublication,
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import {
+  captureLearningLoopPublication as capturePublication,
   closeLearningLoopDatabase,
   ensureLearningLoopScope,
   type LearningLoopDatabase,
+  type LearningLoopPublication,
   type LearningLoopTarget,
   openLearningLoopDatabase,
   publishLearningLoopPost,
@@ -29,6 +38,15 @@ describe('Content learning generation loop (real Postgres)', () => {
   const db = () => {
     if (!database) throw new Error('database not open');
     return database;
+  };
+  const captureLearningLoopPublication = (
+    database: LearningLoopDatabase,
+    publication: LearningLoopPublication,
+  ) => {
+    vi.setSystemTime(
+      new Date(publication.publishedAt.getTime() + (48 * 60 + 10) * 60000),
+    );
+    return capturePublication(database, publication);
   };
   const draft = async (description: string) => {
     const id = randomUUID();
@@ -71,6 +89,8 @@ describe('Content learning generation loop (real Postgres)', () => {
   };
 
   beforeAll(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date());
     database = await openLearningLoopDatabase();
     target = await seedLearningLoopTenant(db());
     other = await seedLearningLoopTenant(db());
@@ -83,8 +103,13 @@ describe('Content learning generation loop (real Postgres)', () => {
     }
   }, 600000);
 
+  afterEach(() => vi.restoreAllMocks());
   afterAll(async () => {
-    await closeLearningLoopDatabase(database);
+    try {
+      await closeLearningLoopDatabase(database);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('materializes a twenty-contributor baseline and resolves a shadow decision against it', async () => {
@@ -207,7 +232,17 @@ describe('Content learning generation loop (real Postgres)', () => {
 
   it('commits no valid reward when the artifact was never bound', async () => {
     const postId = await draft('Unbound candidate text');
-    await resolve(postId);
+    const resolution = await resolve(postId);
+    const binding = vi
+      .spyOn(db().services.decisions, 'bindArtifact')
+      .mockResolvedValue('');
+    await db().services.decisions.bindArtifact(
+      target.organizationId,
+      resolution.receipt.decisionId as string,
+      postId,
+      'Unbound candidate text',
+    );
+    expect(binding).toHaveBeenCalledOnce();
     const publication = await publishLearningLoopPost(db(), target, {
       postId,
     });
