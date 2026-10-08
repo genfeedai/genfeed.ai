@@ -18,6 +18,7 @@ import {
 import {
   captureLearningLoopPublication as capturePublication,
   closeLearningLoopDatabase,
+  enableLegacyLearningLoopLive,
   ensureLearningLoopScope,
   type LearningLoopDatabase,
   type LearningLoopPublication,
@@ -228,6 +229,70 @@ describe('Content learning generation loop (real Postgres)', () => {
         },
       }),
     ).toBe(1);
+    const policy = await db().services.policies.rebuild(
+      target.organizationId,
+      target.credentialId,
+      scope.state.scopeKey,
+    );
+    expect(policy).toMatchObject({ state: 'shadow', evidenceIds: [rewardId] });
+    if (!policy) throw new Error('Expected a learned shadow policy');
+    expect(
+      await db().services.dependencies.valid(
+        'policy',
+        policy.id,
+        db().prisma,
+        target.organizationId,
+      ),
+    ).toBe(true);
+    expect(
+      await db().prisma.contentLearningDependency.count({
+        where: {
+          derivedKind: 'policy',
+          derivedId: policy.id,
+          derivedOrganizationId: target.organizationId,
+          sourceKind: 'reward',
+          sourceId: rewardId,
+          valid: true,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(1);
+    const readScope = () =>
+      db().prisma.contentLearningScopeState.findFirstOrThrow({
+        where: {
+          id: scope.state.id,
+          organizationId: target.organizationId,
+          isDeleted: false,
+        },
+      });
+    expect((await readScope()).activePolicyId).toBeNull();
+    await enableLegacyLearningLoopLive(db(), target);
+    expect((await readScope()).activePolicyId).toBeNull();
+    const where = {
+      organizationId: target.organizationId,
+      credentialId: target.credentialId,
+      scopeKey: scope.state.scopeKey,
+      epoch: scope.state.epoch,
+      isDeleted: false,
+    };
+    const count = await db().prisma.contentLearningPolicyVersion.count({
+      where,
+    });
+    expect(
+      await db().services.policies.rebuild(
+        target.organizationId,
+        target.credentialId,
+        scope.state.scopeKey,
+      ),
+    ).toMatchObject({
+      id: policy.id,
+      state: 'shadow',
+      evidenceManifestHash: policy.evidenceManifestHash,
+    });
+    expect(
+      await db().prisma.contentLearningPolicyVersion.count({ where }),
+    ).toBe(count);
+    expect((await readScope()).activePolicyId).toBeNull();
   }, 180000);
 
   it('commits no valid reward when the artifact was never bound', async () => {

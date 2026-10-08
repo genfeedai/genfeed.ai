@@ -6,6 +6,10 @@ import {
   learningHash,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
+import {
+  learningPilotPolicyLineageValid,
+  readCurrentLearningPilotV1,
+} from '@api/collections/content-learning/services/learning-pilot-gate.helper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import {
@@ -201,6 +205,15 @@ export class LearningScopeStateService {
         input.organizationId,
       ))
     )
+      return null;
+    const pilot = await readCurrentLearningPilotV1(
+      tx,
+      this.dependencies,
+      { ...input, brandId: scope.brandId },
+      new Date(),
+      'activation',
+    );
+    if (!pilot || !learningPilotPolicyLineageValid(pilot.candidate, policy))
       return null;
     if (scope.activePolicyId === policy.id) return scope;
     const changed = await tx.contentLearningScopeState.updateMany({
