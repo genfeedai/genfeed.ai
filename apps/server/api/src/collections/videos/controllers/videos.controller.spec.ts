@@ -867,8 +867,8 @@ describe('VideosController', () => {
         where?: {
           AND?: Array<{
             OR?: Array<{
-              'metadata.label'?: {
-                contains?: unknown;
+              metadata?: {
+                label?: { contains?: unknown };
               };
             }>;
           }>;
@@ -876,20 +876,20 @@ describe('VideosController', () => {
       };
       const searchStage = aggregate.where?.AND?.find((condition) =>
         condition.OR?.some(
-          (orCondition) => orCondition['metadata.label']?.contains,
+          (orCondition) => orCondition.metadata?.label?.contains,
         ),
       ) as
         | {
             OR?: Array<{
-              'metadata.label'?: {
-                contains?: unknown;
+              metadata?: {
+                label?: { contains?: unknown };
               };
             }>;
           }
         | undefined;
 
       expect(searchStage).toBeDefined();
-      expect(searchStage?.OR?.[0]?.['metadata.label']?.contains).toBe('sunset');
+      expect(searchStage?.OR?.[0]?.metadata?.label?.contains).toBe('sunset');
     });
 
     it('should filter by status', async () => {

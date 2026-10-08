@@ -349,7 +349,7 @@ export const CollectionFilterUtil = {
    * @example
    * // Search across metadata fields
    * CollectionFilterUtil.buildSearchFilter('hello', ['metadata.label', 'metadata.description'])
-   * // Returns: { where: { OR: [{ 'metadata.label': { contains: 'hello', mode: 'insensitive' } }, ...] } }
+   * // Returns: { where: { OR: [{ metadata: { label: { contains: 'hello', mode: 'insensitive' } } }, ...] } }
    *
    * @example
    * // No search
@@ -365,7 +365,16 @@ export const CollectionFilterUtil = {
     }
 
     const searchRegex = { mode: 'insensitive', contains: search.trim() };
-    const orConditions = fields.map((field) => ({ [field]: searchRegex }));
+    // Existing media callers use the legacy prompt.prompt path; Prisma stores
+    // the submitted prompt text in Prompt.original.
+    const orConditions = fields.map((field) =>
+      (field === 'prompt.prompt' ? 'prompt.original' : field)
+        .split('.')
+        .reduceRight<Record<string, unknown>>(
+          (condition, key) => ({ [key]: condition }),
+          searchRegex,
+        ),
+    );
 
     return {
       where: {

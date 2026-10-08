@@ -324,16 +324,52 @@ describe('CollectionFilterUtil', () => {
       expect(result).toEqual({ where: {} });
     });
 
-    it('creates OR where filter for provided fields', () => {
-      const result = CollectionFilterUtil.buildSearchFilter('hello', [
-        'metadata.label',
-        'metadata.description',
-      ]);
+    it('nests relation paths into Prisma OR conditions', () => {
+      expect(
+        CollectionFilterUtil.buildSearchFilter('  hello  ', [
+          'metadata.label',
+          'metadata.description',
+          'prompt.prompt',
+          'label',
+        ]),
+      ).toEqual({
+        where: {
+          OR: [
+            { metadata: { label: { mode: 'insensitive', contains: 'hello' } } },
+            {
+              metadata: {
+                description: { mode: 'insensitive', contains: 'hello' },
+              },
+            },
+            {
+              prompt: { original: { mode: 'insensitive', contains: 'hello' } },
+            },
+            { label: { mode: 'insensitive', contains: 'hello' } },
+          ],
+        },
+      });
+    });
 
-      const where = result.where as { OR: unknown[] };
-      expect(where.OR).toHaveLength(2);
-      expect(where.OR[0]).toEqual({
-        'metadata.label': { mode: 'insensitive', contains: 'hello' },
+    it('uses nested metadata label and description filters by default', () => {
+      expect(CollectionFilterUtil.buildSearchFilter('sunset')).toEqual({
+        where: {
+          OR: [
+            {
+              metadata: { label: { mode: 'insensitive', contains: 'sunset' } },
+            },
+            {
+              metadata: {
+                description: { mode: 'insensitive', contains: 'sunset' },
+              },
+            },
+          ],
+        },
+      });
+    });
+
+    it.each(['', '  '])('omits empty search %j', (search) => {
+      expect(CollectionFilterUtil.buildSearchFilter(search)).toEqual({
+        where: {},
       });
     });
   });
