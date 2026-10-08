@@ -157,6 +157,22 @@ export interface BreakoutResponseView {
   capacity: BreakoutLiveCapacitySnapshot | null;
   readAt: string;
 }
+export interface BreakoutResponseListParams {
+  page?: number;
+  limit?: number;
+  credentialId?: string;
+}
+export interface BreakoutResponseDetailParams {
+  /** Optional read-only advisory snapshot; never reserves budget or quota. */
+  strategyId?: string;
+}
+export interface BreakoutResponsePage {
+  docs: BreakoutResponseView[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
 export interface BreakoutTextArtifactBindingInput
   extends BreakoutOutputRecoveryInput {
   postId: string;

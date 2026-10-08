@@ -137,11 +137,38 @@ actor IDs and invented costs/lift. List reads explicitly omit detailed recovery;
 detail reads distinguish an empty plan from an invalid/overfull registry. An
 explicit optional `strategyId` adds the existing scoped advisory capacity snapshot.
 No read creates receipts, slots, generation jobs, provider calls, credit debits,
-publication authority or automatic expiration. UI and consolidated MCP work remain
-separate. Final combined-source authorization still must prove #5147's current
+publication authority or automatic expiration. Consolidated MCP work remains separate. Final combined-source authorization still must prove #5147's current
 Cloud unassigned/assigned brand rules, Owner/Admin access, removed membership and
 capped-key denial, plus self-hosted semantics. Current branch guard behavior alone
 does not qualify that policy as complete.
+
+## Breakouts status page
+
+The brand-scoped `/analytics/breakouts` page reads the manual status routes through
+`BreakoutResponsesService`. The client binds each fresh instance to the confirmed
+organization using the existing HTTP interceptor contract and encodes brand and
+response path segments. It uses the existing JSON:API deserializers and pagination;
+there are no client generation, reservation or publication methods.
+
+Changing organization, brand, session or user remounts the scoped read view before
+another scope renders. Both list and detail requests abort on replacement and
+ignore late results. Unexpected response scope is held, failed reads stay errors,
+and omitted output details remain distinct from an empty plan or registry conflict.
+
+The page exposes original-post identity and trigger evidence, normalized output
+state and post links, and confirmed external publication identity when available.
+Capacity remains explicitly unchecked without a selected strategy. An explicit
+`?strategyId=<id>` on the page requests the existing scoped advisory snapshot for
+that strategy when inspecting a response; it reserves nothing. Changing this
+selection clears and aborts the previous scoped view. Refresh, inspection and pagination are read actions. No navigation/menu
+file is changed by this isolated page addition; it is accessible at the existing
+brand route plus `/analytics/breakouts`.
+
+Frontend/client fixtures cover brand/org/session replacement, late responses,
+organization-bound HTTP cancellation, access errors, observed zero versus missing
+metrics/capacity and scheduled versus confirmed publication. They are written but
+unrun until the final designated-host batch. Final combined #5147 authorization
+qualification remains required; this UI does not establish a new actor policy.
 
 ## Required connected outcome
 
@@ -161,7 +188,7 @@ lineage and subsequent measurements.
 
 Additional qualified provider exposure mappings, priority workflow execution,
 generation-to-artifact/quote workflow attachment, recovery
-workflow wiring, product status UI/consolidated agent reads and connected acceptance
+workflow wiring, consolidated agent reads and connected acceptance
 remain unfinished. The human response lifetime choice and the authoritative automatic actor contract are unresolved.
 No default lifetime or synthetic owner principal grants permission to execute.
 
