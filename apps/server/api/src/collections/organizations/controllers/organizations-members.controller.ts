@@ -145,6 +145,7 @@ export class OrganizationsMembersController {
   }
 
   @Patch(':organizationId/members/:memberId')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMember(
     @Req() request: Request,
