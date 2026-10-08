@@ -66,6 +66,29 @@ describe('literal MCP instruction contract', () => {
       }),
     ]);
   });
+  it('rejects unknown tool-table rows while excluding parameter and provenance tables', () => {
+    const text = [
+      '| Tool | Description | Required Params |',
+      '| --- | --- | --- |',
+      '| `missing_action` | Generate content | `brand_id` |',
+      '',
+      '| Parameter | Description |',
+      '| --- | --- |',
+      '| `brand_id` | Input field |',
+      '',
+      '| Provenance | Meaning |',
+      '| --- | --- |',
+      '| `user_confirmed` | Manual user confirmation |',
+    ].join('\n');
+    expect(checkReferenceSources(catalog, source(text))).toEqual([
+      {
+        path: 'fixture/SKILL.md',
+        line: 3,
+        name: 'missing_action',
+        surface: 'missing',
+      },
+    ]);
+  });
   it('recognizes single-word curated and namespaced tools', () => {
     writeFileSync(
       catalog,

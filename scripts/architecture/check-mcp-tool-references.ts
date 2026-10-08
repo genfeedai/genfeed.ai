@@ -56,6 +56,7 @@ export function checkReferenceSources(
   for (const source of sources) {
     const lines = source.text.split('\n');
     let fenced = false;
+    let toolColumn = -1;
     let genfeedExample = false;
     const fencedFields = new Map<number, string[]>();
     for (const [index, line] of lines.entries()) {
@@ -102,6 +103,27 @@ export function checkReferenceSources(
         continue;
       }
       const candidates = new Set<string>();
+      if (!fenced && line.trim().startsWith('|')) {
+        const cells = line
+          .split('|')
+          .slice(1, -1)
+          .map((cell) => cell.trim());
+        const header = cells.findIndex((cell) =>
+          /^(?:MCP\s+)?Tool(?:\s+name)?$/iu.test(cell),
+        );
+        if (header >= 0) toolColumn = header;
+        else if (toolColumn >= 0) {
+          const token = (cells[toolColumn] ?? '').replace(/^`|`$/gu, '');
+          const name = token.replace(/^mcp__genfeed__/u, '');
+          if (
+            TOKEN.test(name) &&
+            (name.includes('_') ||
+              token.startsWith('mcp__genfeed__') ||
+              actions.has(name))
+          )
+            candidates.add(name);
+        }
+      } else if (!fenced) toolColumn = -1;
       if (!fenced) {
         for (const match of line.matchAll(/`([^`]+)`/gu)) {
           const token = match[1] ?? '';
