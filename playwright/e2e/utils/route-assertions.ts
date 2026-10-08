@@ -36,6 +36,10 @@ interface AssertRouteOptions {
 export const ERROR_BOUNDARY_FALLBACK_SELECTOR =
   '[data-testid="error-boundary-fallback"]';
 
+// Next.js retains the console-error dialog beneath a display:none overlay
+// when its issue badge is collapsed. Only a rendered dialog blocks the page.
+export const FRAMEWORK_ERROR_OVERLAY_SELECTOR = '[data-nextjs-dialog]:visible';
+
 /**
  * Asserts the current page did not render an application ErrorBoundary
  * fallback. The framework's own error overlay only fires for a raw, uncaught
@@ -88,7 +92,7 @@ export async function assertRouteRenders(
   );
 
   await expect(
-    page.locator('[data-nextjs-dialog]'),
+    page.locator(FRAMEWORK_ERROR_OVERLAY_SELECTOR),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
 
@@ -152,7 +156,7 @@ export async function tryClick(page: Page, selector: string): Promise<boolean> {
  * @param page - Playwright page
  */
 export async function expectNoErrorOverlay(page: Page): Promise<void> {
-  await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0, {
+  await expect(page.locator(FRAMEWORK_ERROR_OVERLAY_SELECTOR)).toHaveCount(0, {
     timeout: 1_000,
   });
   await assertNoErrorBoundaryFallback(page, new URL(page.url()).pathname);
