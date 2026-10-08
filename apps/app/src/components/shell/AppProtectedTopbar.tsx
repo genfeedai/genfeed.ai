@@ -130,7 +130,7 @@ function AppProtectedTopbarContent({
         data-testid="app-protected-topbar-inner"
         className="flex h-full w-full items-center gap-1 px-2 md:gap-3 md:px-3"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-1 md:gap-1.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -175,7 +175,7 @@ function AppProtectedTopbarContent({
           </div>
         </div>
 
-        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-2">
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
           {!isAdminChrome ? <NotificationInboxMenu /> : null}

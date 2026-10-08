@@ -49,7 +49,7 @@ export default function RailAccount() {
 
   return (
     <div
-      className="flex flex-col items-center gap-1"
+      className="flex flex-col items-center gap-2"
       data-testid="app-rail-account"
     >
       <Tooltip>
