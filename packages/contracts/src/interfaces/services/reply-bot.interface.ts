@@ -29,6 +29,8 @@ export interface IReplyBotCredentialData {
  * Minimal content data needed for posting replies
  */
 export interface IReplyBotContentData {
+  parentContentId?: string;
+  inReplyToId?: string;
   id: string;
   text: string;
   authorId: string;

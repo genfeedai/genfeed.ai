@@ -193,7 +193,7 @@ describe('MetaAdsController', () => {
       const result = await controller.createCampaign(mockUser, {
         adAccountId: 'act_123',
         name: 'New Campaign',
-        objective: 'LINK_CLICKS',
+        objective: 'OUTCOME_TRAFFIC',
         status: 'PAUSED',
       } as never);
 
@@ -216,7 +216,7 @@ describe('MetaAdsController', () => {
       await controller.createCampaign(mockUser, {
         adAccountId: 'act_123',
         name: 'New Campaign',
-        objective: 'LINK_CLICKS',
+        objective: 'OUTCOME_TRAFFIC',
       } as never);
 
       expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
@@ -233,7 +233,7 @@ describe('MetaAdsController', () => {
           controller.createCampaign(mockUser, {
             adAccountId: 'act_123',
             name: 'Activating Campaign',
-            objective: 'LINK_CLICKS',
+            objective: 'OUTCOME_TRAFFIC',
             status,
           } as never),
         ).rejects.toBeInstanceOf(BadRequestException);

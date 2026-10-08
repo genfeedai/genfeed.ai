@@ -195,6 +195,54 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
 });
 
 describe('PostAnalyticsService provider metric mapping', () => {
+  it.each([Platform.FACEBOOK, Platform.INSTAGRAM, Platform.THREADS])(
+    'preserves missing versus observed-zero %s views through the persistence boundary',
+    async (platform) => {
+      const { service } = await createHarness(null);
+      const update = vi
+        .spyOn(service, 'updateTodayAnalytics')
+        .mockResolvedValue(null);
+      const context = {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      };
+      for (const providerViews of [undefined, 0]) {
+        const analytics = {
+          views: 0,
+          likes: 3,
+          comments: 1,
+          shares: 0,
+          learningMetrics: captureLearningMetrics(
+            { views: providerViews },
+            { views: 'views' },
+          ),
+        };
+        if (platform === Platform.FACEBOOK)
+          await service.processFacebookAnalytics('post_1', analytics, context);
+        else if (platform === Platform.INSTAGRAM)
+          await service.processInstagramAnalytics('post_1', analytics, context);
+        if (platform === Platform.THREADS)
+          await service.processThreadsAnalytics(
+            'post_1',
+            { ...analytics, replies: 1, reposts: 0, quotes: 0 },
+            context,
+          );
+        expect(update).toHaveBeenLastCalledWith(
+          'post_1',
+          platform.toUpperCase(),
+          expect.objectContaining({
+            totalViews: 0,
+            metricAvailability: expect.objectContaining({
+              views: providerViews === undefined ? 'unavailable' : 'observed',
+            }),
+          }),
+          context,
+        );
+      }
+    },
+  );
+
   it('converts YouTube total watch minutes while preserving average seconds', async () => {
     const { service } = await createHarness(null);
     const update = vi

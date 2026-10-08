@@ -5,6 +5,10 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import {
+  requireMetaScopes,
+  resolveMetaPageAccess,
+} from '@api/services/integrations/_shared/meta-page-access.util';
+import {
   getInstagramErrorCode,
   getSafeInstagramOAuthErrorLog,
   isInstagramAuthorizationError,
@@ -25,6 +29,10 @@ import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,
 } from '@genfeedai/helpers';
+import {
+  META_GRAPH_API_VERSION,
+  META_GRAPH_URL,
+} from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -160,6 +168,9 @@ function toInstagramCredentialResponse(
     accessToken: requireString(credential.accessToken, 'accessToken'),
     externalId: credential.externalId ?? undefined,
     isConnected: credential.isConnected,
+    ...(credential.grantedScopesCapturedAt
+      ? { grantedScopes: credential.grantedScopes }
+      : {}),
   };
 }
 
@@ -167,7 +178,7 @@ function toInstagramCredentialResponse(
 export class InstagramService {
   private readonly constructorName: string = String(this.constructor.name);
 
-  private readonly graphUrl: string = 'https://graph.facebook.com';
+  private readonly graphUrl: string = META_GRAPH_URL;
   private readonly apiVersion: string;
   private readonly analyticsService: InstagramAnalyticsService;
   private readonly publishingService: InstagramPublishingService;
@@ -180,7 +191,7 @@ export class InstagramService {
     private readonly httpService: HttpService,
   ) {
     this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || 'v26.0';
+      this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
     this.publishingService = new InstagramPublishingService(
       this.httpService,
       this.loggerService,
@@ -197,6 +208,10 @@ export class InstagramService {
       (organizationId, brandId, credentialId) =>
         this.getValidCredential(organizationId, brandId, credentialId),
     );
+  }
+
+  public getGraphApiBaseUrl(): string {
+    return `${this.graphUrl}/${this.apiVersion}`;
   }
 
   private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
@@ -587,21 +602,37 @@ export class InstagramService {
    * Send a direct message to a user who commented
    * @param organizationId The organization ID
    * @param brandId The brand ID
-   * @param recipientId The Instagram user ID of the commenter
+   * @param recipientId The Instagram-scoped ID of an existing messaging participant
    * @param message The message to send
    * @returns The sent message ID
    */
-  public async sendCommentReplyDm(
+  public async sendDirectMessage(
     organizationId: string,
     brandId: string,
     recipientId: string,
     message: string,
     credentialId?: string,
-  ): Promise<string | undefined> {
-    return this.publishingService.sendCommentReplyDm(
+  ): Promise<string> {
+    return this.publishingService.sendDirectMessage(
       organizationId,
       brandId,
       recipientId,
+      message,
+      credentialId,
+    );
+  }
+
+  public async sendPrivateReply(
+    organizationId: string,
+    brandId: string,
+    commentId: string,
+    message: string,
+    credentialId?: string,
+  ): Promise<string> {
+    return this.publishingService.sendPrivateReply(
+      organizationId,
+      brandId,
+      commentId,
       message,
       credentialId,
     );
@@ -738,7 +769,7 @@ export class InstagramService {
    * @param userId The user ID
    * @param brandId The brand ID
    * @param mediaId The Instagram media ID
-   * @returns Analytics data including views, likes, comments, saves, shares, reach, impressions
+   * @returns Analytics data including views, likes, comments, saves, shares, and reach
    */
   public async getMediaAnalytics(
     organizationId: string,
@@ -863,6 +894,11 @@ export class InstagramService {
         brandId,
         credentialId,
       );
+      requireMetaScopes(credential.grantedScopes, [
+        'instagram_manage_messages',
+        'pages_manage_metadata',
+        'pages_show_list',
+      ]);
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );
@@ -870,14 +906,20 @@ export class InstagramService {
         credential.externalId,
         'externalId',
       );
+      const page = await resolveMetaPageAccess(
+        this.httpService,
+        this.getGraphApiBaseUrl(),
+        decryptedAccessToken,
+        { instagramAccountId: instagramAccountId },
+      );
       const boundedLimit = boundGraphLimit(limit);
 
       const response = await firstValueFrom(
         this.httpService.get<InstagramGraphConversationsResponse>(
-          `${this.graphUrl}/${this.apiVersion}/${instagramAccountId}/conversations`,
+          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/conversations`,
           {
             params: {
-              access_token: decryptedAccessToken,
+              access_token: page.accessToken,
               fields: `id,updated_time,participants{id,username,name},messages.limit(${boundedLimit}){${INSTAGRAM_MESSAGE_NODE_FIELDS}}`,
               limit: boundedLimit,
               platform: 'instagram',

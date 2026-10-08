@@ -208,7 +208,7 @@ describe('InstagramAuthorizedSignalsService', () => {
                   timestamp: '2026-08-10T12:00:00+0000',
                   insights: {
                     data: [
-                      { name: 'impressions', values: [{ value: 40 }] },
+                      { name: 'views', values: [{ value: 40 }] },
                       { name: 'reach', values: [{ value: 30 }] },
                       { name: 'saved', values: [{ value: 2 }] },
                       { name: 'shares', values: [{ value: 1 }] },
@@ -227,7 +227,6 @@ describe('InstagramAuthorizedSignalsService', () => {
 
         return of({
           data: {
-            account_type: 'BUSINESS',
             biography: 'Niche creator',
             followers_count: 0,
             follows_count: 4,
@@ -296,7 +295,6 @@ describe('InstagramAuthorizedSignalsService', () => {
       provenance: 'platform_verified',
       status: 'available',
       value: {
-        accountType: 'BUSINESS',
         followersCount: 0,
         username: 'creator',
       },
@@ -314,7 +312,6 @@ describe('InstagramAuthorizedSignalsService', () => {
     ).toMatchObject({
       status: 'available',
       value: {
-        accountType: 'BUSINESS',
         canPublish: true,
         isProfessionalAccount: true,
       },
@@ -322,7 +319,7 @@ describe('InstagramAuthorizedSignalsService', () => {
     expect(evidenceOf(snapshot, 'media-performance-snapshot')).toMatchObject({
       provenance: 'platform_verified',
       value: {
-        media: [{ id: 'media-1', impressions: 40, saved: 2 }],
+        media: [{ id: 'media-1', views: 40, saved: 2 }],
       },
     });
     expect(evidenceOf(snapshot, 'first-publish-platform-signal')).toMatchObject(
@@ -416,7 +413,7 @@ describe('InstagramAuthorizedSignalsService', () => {
     }
   });
 
-  it('treats a personal or creator-limited account as an actionable state, not a failed check', async () => {
+  it('allows publishing for a professional Creator account with the publish grant', async () => {
     httpService.get.mockImplementation((url: string) => {
       if (url.includes('/media')) {
         return of({ data: { data: [], paging: {} } });
@@ -424,7 +421,6 @@ describe('InstagramAuthorizedSignalsService', () => {
 
       return of({
         data: {
-          account_type: 'MEDIA_CREATOR',
           id: 'ig-user-1',
           username: 'creator',
         },
@@ -438,15 +434,13 @@ describe('InstagramAuthorizedSignalsService', () => {
       organizationId: 'org-1',
     });
 
-    expect(snapshot.state).toBe('partial');
+    expect(snapshot.state).toBe('empty');
     expect(
       evidenceOf(snapshot, 'publishing-capability-snapshot'),
     ).toMatchObject({
-      reason: 'professional_account_limited',
-      status: 'permission_limited',
+      status: 'available',
       value: {
-        accountType: 'MEDIA_CREATOR',
-        canPublish: false,
+        canPublish: true,
         isProfessionalAccount: true,
       },
     });
@@ -514,6 +508,21 @@ describe('InstagramAuthorizedSignalsService', () => {
       status: 'stale',
       value: { media: [{ id: 'media-1', likeCount: 12 }] },
     });
+  });
+
+  it('retains a historical cached snapshot with impressions without making a provider request', async () => {
+    const cached = makePreviousSnapshot();
+    const performance = evidenceOf(cached, 'media-performance-snapshot');
+    if (performance.key !== 'media-performance-snapshot' || !performance.value)
+      throw new Error('Missing performance fixture');
+    performance.value.media[0].impressions = 42;
+    cacheService.get.mockResolvedValueOnce(cached);
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      organizationId: 'org-1',
+    });
+    expect(snapshot).toEqual(cached);
+    expect(httpService.get).not.toHaveBeenCalled();
   });
 
   it('serves a fresh cached snapshot without issuing provider or database requests', async () => {

@@ -16,6 +16,7 @@ import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import {
   mergeReplyContext,
   numberValue,
+  optionalString,
   requiredString,
 } from '@api/services/reply-bot/reply-bot-orchestrator-parsing.util';
 import {
@@ -111,6 +112,7 @@ type ReplyBotDmRequest = ReplyBotRequest & {
   activityId: string;
   dmText: string;
   recipientId: string;
+  commentId?: string;
   replyContentId?: string;
   replyContentUrl?: string;
   replyText?: string;
@@ -684,6 +686,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
             dmText: next.dmText,
             organizationId: next.organizationId,
             recipientId: next.content.authorId,
+            ...(next.content.parentContentId || next.content.inReplyToId
+              ? { commentId: next.content.id }
+              : {}),
             ...(next.replyContentId
               ? { replyContentId: next.replyContentId }
               : {}),
@@ -779,6 +784,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         credential,
         request.recipientId,
         request.dmText,
+        request.commentId,
       );
       return {
         ...request,
@@ -1066,21 +1072,15 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
 
   private readDmRequest(value: unknown): ReplyBotDmRequest {
     const request = readRecord(value);
-    const replyContentId =
-      typeof request.replyContentId === 'string'
-        ? request.replyContentId
-        : undefined;
-    const replyContentUrl =
-      typeof request.replyContentUrl === 'string'
-        ? request.replyContentUrl
-        : undefined;
-    const replyText =
-      typeof request.replyText === 'string' ? request.replyText : undefined;
+    const replyContentId = optionalString(request.replyContentId);
+    const replyContentUrl = optionalString(request.replyContentUrl);
+    const replyText = optionalString(request.replyText);
     return {
       ...this.readBotRequest(request),
       activityId: requiredString(request.activityId, 'activityId'),
       dmText: requiredString(request.dmText, 'dmText'),
       recipientId: requiredString(request.recipientId, 'recipientId'),
+      commentId: optionalString(request.commentId),
       ...(replyContentId === undefined ? {} : { replyContentId }),
       ...(replyContentUrl === undefined ? {} : { replyContentUrl }),
       ...(replyText === undefined ? {} : { replyText }),
