@@ -19,6 +19,7 @@
     "feedError": "Unable to load your feeds. Try refreshing.",
     "connectAccount": "Connect an account",
     "automaticAccounts": "Your connected social accounts appear here automatically.",
+    "selectBrand": "Select a brand in the header to load its connected timelines.",
     "updated": "Updated",
     "refresh": "Refresh",
     "openFeed": "Open native feed",

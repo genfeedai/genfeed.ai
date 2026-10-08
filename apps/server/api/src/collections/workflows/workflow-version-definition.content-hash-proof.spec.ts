@@ -392,6 +392,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'social.inbox.outbound.send-dm',
   'social.inbox.sync.youtube-comments',
   'social.reply-campaign.dispatch-tick',
+  'social.timeline.native-action',
   'streak.organization.process',
   'streak.record.process',
   'streak.sweep',

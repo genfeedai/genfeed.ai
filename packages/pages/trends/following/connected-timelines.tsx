@@ -279,6 +279,9 @@ export default function ConnectedTimelines() {
         {query.isLoading ? (
           <p role="status">{translate('loadingFeeds')}</p>
         ) : null}
+        {scope.isReady && !brandId ? (
+          <p role="status">{translate('selectBrand')}</p>
+        ) : null}
         {query.error || refresh.error ? (
           <p role="alert" className="text-sm text-destructive">
             {translate('feedError')}
