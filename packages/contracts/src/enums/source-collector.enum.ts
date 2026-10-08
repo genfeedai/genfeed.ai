@@ -82,4 +82,5 @@ export enum SourcePostNativeActionStatus {
   PENDING = 'pending',
   COMPLETED = 'completed',
   UNCERTAIN = 'uncertain',
+  FAILED = 'failed',
 }

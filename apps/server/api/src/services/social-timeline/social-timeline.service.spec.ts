@@ -214,6 +214,23 @@ describe('connected timeline isolation and action delivery', () => {
     expect(provider.execute).not.toHaveBeenCalled();
   });
 
+  it.each([401, 403, 429])(
+    'persists a definite provider rejection %s as failed and replays its receipt without publication',
+    async (status) => {
+      provider.execute.mockRejectedValue({ status });
+      const first = await service.act(scope, post.id, input);
+      expect(first.status).toBe('failed');
+      expect(first.message).not.toContain('could not be confirmed');
+      const saved = prisma.sourcePostNativeAction.create.mock.calls[0][0].data;
+      prisma.sourcePostNativeAction.findFirst.mockResolvedValue({
+        ...saved,
+        ...first,
+      });
+      expect(await service.act(scope, post.id, input)).toMatchObject(first);
+      expect(provider.execute).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('does not execute the same request twice, including uncertain delivery', async () => {
     provider.execute.mockRejectedValue(
       new Error('socket closed after publication'),

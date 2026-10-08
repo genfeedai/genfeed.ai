@@ -131,7 +131,7 @@ export default function TrendingTopicsSection({
                 >
                   {item.metadata?.growthMeasured === true
                     ? `${item.growthRate > 0 ? '+' : ''}${item.growthRate}%`
-                    : 'Not measured'}
+                    : discovery('notMeasured')}
                 </span>
               ),
             },

@@ -78,6 +78,7 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
         setRequest(null);
         setMessage(`${actionLabel(action)} completed as ${account.label}.`);
       } else {
+        if (result.status === 'failed') setRequest(null);
         setMessage(
           result.message ||
             'The action is awaiting confirmation. Check the source before sending again.',

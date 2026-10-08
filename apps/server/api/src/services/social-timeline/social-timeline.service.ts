@@ -35,7 +35,7 @@ import type {
   SourcePostNativeActionInput,
   SourcePostNativeActionResult,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import type { Prisma, SourcePostNativeAction } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import {
   BadRequestException,
@@ -400,6 +400,24 @@ export class SocialTimelineService implements OnModuleInit {
     return result;
   }
 
+  private actionReceipt(
+    receipt: SourcePostNativeAction,
+  ): SourcePostNativeActionResult {
+    return {
+      id: receipt.id,
+      status:
+        receipt.status === SourcePostNativeActionStatus.COMPLETED
+          ? 'completed'
+          : receipt.status === SourcePostNativeActionStatus.UNCERTAIN
+            ? 'uncertain'
+            : receipt.status === SourcePostNativeActionStatus.FAILED
+              ? 'failed'
+              : 'pending',
+      externalId: receipt.externalId,
+      message: receipt.message,
+    };
+  }
+
   private async actNative(
     scope: TimelineScope,
     postId: string,
@@ -427,17 +445,7 @@ export class SocialTimelineService implements OnModuleInit {
         throw new ConflictException(
           'This action key was already used for another request.',
         );
-      return {
-        id: saved.id,
-        status:
-          saved.status === SourcePostNativeActionStatus.COMPLETED
-            ? 'completed'
-            : saved.status === SourcePostNativeActionStatus.UNCERTAIN
-              ? 'uncertain'
-              : 'pending',
-        externalId: saved.externalId,
-        message: saved.message,
-      };
+      return this.actionReceipt(saved);
     }
     const post = await this.prisma.sourcePost.findFirst({
       where: scopedWhere(scope.organizationId, {
@@ -501,17 +509,7 @@ export class SocialTimelineService implements OnModuleInit {
         throw new ConflictException(
           'This action key was already used for another request.',
         );
-      return {
-        id: existing.id,
-        status:
-          existing.status === SourcePostNativeActionStatus.COMPLETED
-            ? 'completed'
-            : existing.status === SourcePostNativeActionStatus.UNCERTAIN
-              ? 'uncertain'
-              : 'pending',
-        externalId: existing.externalId,
-        message: existing.message,
-      };
+      return this.actionReceipt(existing);
     }
     try {
       const externalId = await this.provider.execute(
@@ -534,17 +532,28 @@ export class SocialTimelineService implements OnModuleInit {
       };
     } catch (error: unknown) {
       const failure = classifyTimelineError(error);
-      const message = `${failure.message} Delivery could not be confirmed. Check the source before sending again.`;
+      const rejected = [
+        'reconnect',
+        'access_required',
+        'rate_limited',
+        'budget_blocked',
+      ].includes(failure.status);
+      const status = rejected
+        ? SourcePostNativeActionStatus.FAILED
+        : SourcePostNativeActionStatus.UNCERTAIN;
+      const message = rejected
+        ? failure.message
+        : `${failure.message} Delivery could not be confirmed. Check the source before sending again.`;
       await this.prisma.sourcePostNativeAction.updateMany({
         where: scopedWhere(scope.organizationId, {
           brandId: scope.brandId,
           id: receipt.id,
         }),
-        data: { status: SourcePostNativeActionStatus.UNCERTAIN, message },
+        data: { status, message },
       });
       return {
         id: receipt.id,
-        status: SourcePostNativeActionStatus.UNCERTAIN,
+        status,
         message,
       };
     }

@@ -107,6 +107,31 @@ describe('CorpusHealthPanel', () => {
     expect(screen.queryByText(/tiktok/)).not.toBeInTheDocument();
     expect(screen.getByText('youtube · available')).toBeInTheDocument();
   });
+  it('hides preview coverage when all failures belong to unselected platforms', () => {
+    render(
+      <CorpusHealthPanel
+        selectedPlatforms={['youtube']}
+        health={{
+          ...emptyHealth,
+          providerFailures: [
+            {
+              platform: 'tiktok',
+              provider: 'apify',
+              reason: 'fallback_source_preview',
+              message: '',
+              retryAction: '',
+              affectedTrendCount: 1,
+              severity: 'warning',
+            },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.queryByText('Source preview coverage'),
+    ).not.toBeInTheDocument();
+  });
+
   it('separates preview coverage from provider health and never prints raw errors', () => {
     render(
       <CorpusHealthPanel

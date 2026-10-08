@@ -56,6 +56,24 @@ describe('interactive social media playback', () => {
       'https://www.instagram.com/p/abc/',
     );
   });
+  it('falls back from an expired CDN video to its native embed', () => {
+    render(
+      <SocialMediaPlayer
+        contentType="video"
+        mediaUrl="https://cdn.example.com/expired.mp4"
+        sourceUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        title="Fallback"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Play Fallback' }));
+    fireEvent.error(screen.getByLabelText('Direct video'));
+    expect(screen.getByTitle('Fallback')).toHaveAttribute(
+      'src',
+      expect.stringContaining('youtube-nocookie.com'),
+    );
+    expect(screen.queryByText(/Preview unavailable/)).not.toBeInTheDocument();
+  });
+
   it('never treats a platform page or unsafe URL as a direct video', () => {
     expect(
       getSocialMediaSource({

@@ -178,6 +178,27 @@ describe('connected Following feeds and native action confirmation', () => {
     ).toBeDisabled();
   });
 
+  it('allows a fresh action key after a definite provider rejection', async () => {
+    mocks.service.act.mockResolvedValueOnce({
+      id: 'receipt-a',
+      status: 'failed',
+      message: 'Reconnect this account.',
+    });
+    renderFollowing();
+    await screen.findByText('Followed author');
+    fireEvent.click(screen.getByRole('button', { name: /^Like$/ }));
+    await screen.findByText('Reconnect this account.');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Like$/ })).toBeEnabled(),
+    );
+    const firstKey = mocks.service.act.mock.calls[0][2].idempotencyKey;
+    fireEvent.click(screen.getByRole('button', { name: /^Like$/ }));
+    await screen.findByText('Like completed as Selected account.');
+    expect(mocks.service.act.mock.calls[1][2].idempotencyKey).not.toBe(
+      firstKey,
+    );
+  });
+
   it('shows the posting account and requires explicit publication of composed text', async () => {
     renderFollowing();
     await screen.findByText('Followed author');

@@ -7,12 +7,12 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { useTranslations } from 'next-intl';
 
-function timestamp(value?: string | null): string {
-  if (!value) return 'Not recorded';
+function timestamp(value: string | null | undefined, fallback: string): string {
+  if (!value) return fallback;
   const date = new Date(value);
   return Number.isFinite(date.getTime())
     ? `${date.toISOString().slice(0, 16).replace('T', ' ')} UTC`
-    : 'Not recorded';
+    : fallback;
 }
 
 function receiptLabel(receipt: TrendRefreshHealth): string {
@@ -46,6 +46,13 @@ export default function CorpusHealthPanel({
           ...(health?.summary.platforms ?? []),
         ]),
       ];
+  const previewFailures =
+    health?.providerFailures.filter(
+      (failure) =>
+        failure.reason !== 'refresh_failed' &&
+        (!selectedPlatforms.length ||
+          selectedPlatforms.includes(failure.platform)),
+    ) ?? [];
   const failures = receipts.filter((receipt) =>
     receipt.outcome.endsWith('failed'),
   );
@@ -156,9 +163,13 @@ export default function CorpusHealthPanel({
                   </p>
                 ) : null}
                 <p className="text-xs text-muted-foreground">
-                  {translate('lastAttempt')} {timestamp(receipt.lastAttemptAt)}{' '}
-                  · {translate('lastSuccess')}{' '}
-                  {timestamp(receipt.lastSuccessfulRefreshAt)}
+                  {translate('lastAttempt')}{' '}
+                  {timestamp(receipt.lastAttemptAt, translate('notRecorded'))} ·{' '}
+                  {translate('lastSuccess')}{' '}
+                  {timestamp(
+                    receipt.lastSuccessfulRefreshAt,
+                    translate('notRecorded'),
+                  )}
                 </p>
               </li>
             ))}
@@ -169,31 +180,25 @@ export default function CorpusHealthPanel({
             </p>
           ) : null}
         </details>
-        {health?.providerFailures.some(
-          (failure) => failure.reason !== 'refresh_failed',
-        ) ? (
+        {previewFailures.length ? (
           <details>
             <summary className="cursor-pointer text-xs text-muted-foreground">
               {translate('previewCoverage')}
             </summary>
             <ul className="mt-2 space-y-2">
-              {health.providerFailures
-                .filter(
-                  (failure) =>
-                    failure.reason !== 'refresh_failed' &&
-                    (!selectedPlatforms.length ||
-                      selectedPlatforms.includes(failure.platform)),
-                )
-                .map((failure) => (
-                  <li
-                    key={`${failure.platform}:${failure.provider}:${failure.reason}`}
-                    className="text-xs text-muted-foreground"
-                  >
-                    {failure.platform} · {failure.provider}:{' '}
-                    {translate(`previewReasons.${failure.reason}`)} ·{' '}
-                    {timestamp(failure.latestObservedAt)}
-                  </li>
-                ))}
+              {previewFailures.map((failure) => (
+                <li
+                  key={`${failure.platform}:${failure.provider}:${failure.reason}`}
+                  className="text-xs text-muted-foreground"
+                >
+                  {failure.platform} · {failure.provider}:{' '}
+                  {translate(`previewReasons.${failure.reason}`)} ·{' '}
+                  {timestamp(
+                    failure.latestObservedAt,
+                    translate('notRecorded'),
+                  )}
+                </li>
+              ))}
             </ul>
           </details>
         ) : null}

@@ -19,7 +19,13 @@ export default function SocialMediaPlayer({
   const { directUrl, embedUrl, thumbnail, sourceUrl } =
     getSocialMediaSource(source);
   const [isPlaying, setPlaying] = useState(false);
-  const [hasError, setError] = useState(false);
+  const [directFailed, setDirectFailed] = useState(false);
+  const [embedFailed, setEmbedFailed] = useState(false);
+  const activeDirect = directFailed ? null : directUrl;
+  const hasError =
+    (directFailed || embedFailed) &&
+    !activeDirect &&
+    (!embedUrl || embedFailed);
   const [isVisible, setVisible] = useState(true);
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -44,9 +50,9 @@ export default function SocialMediaPlayer({
     <div ref={container} className={`space-y-2 ${className}`}>
       <div className="relative aspect-video overflow-hidden rounded-lg bg-secondary">
         {isPlaying && isVisible && !hasError ? (
-          directUrl ? (
+          activeDirect ? (
             <VideoPlayer
-              src={directUrl}
+              src={activeDirect}
               thumbnail={thumbnail ?? ''}
               ariaLabel={title}
               config={{
@@ -57,7 +63,7 @@ export default function SocialMediaPlayer({
                 autoPlay: true,
                 preload: 'metadata',
               }}
-              onPlaybackError={() => setError(true)}
+              onPlaybackError={() => setDirectFailed(true)}
               className="size-full"
             />
           ) : embedUrl ? (
@@ -68,7 +74,7 @@ export default function SocialMediaPlayer({
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
-              onError={() => setError(true)}
+              onError={() => setEmbedFailed(true)}
             />
           ) : null
         ) : (
