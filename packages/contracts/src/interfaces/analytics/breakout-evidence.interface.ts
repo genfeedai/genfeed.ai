@@ -18,6 +18,36 @@ export interface BreakoutObservationScope {
   platform: Platform;
   format: LearningFormat;
 }
+export interface BreakoutPublicationSourceInput
+  extends Omit<BreakoutObservationScope, 'format'> {
+  postId: string;
+  externalId: string;
+}
+export interface BreakoutPublicationSourceV1
+  extends BreakoutPublicationSourceInput {
+  version: 1;
+  format: LearningFormat;
+  publishedAt: string;
+  contentDigest: string;
+  publicationFingerprint: string;
+  logicalPostId: string;
+  isResponse: boolean;
+}
+export interface BreakoutCollectionContext {
+  source: BreakoutPublicationSourceV1;
+  sourceAttemptId: string;
+  requestStartedAt: Date;
+  receivedAt: Date;
+}
+export interface BreakoutCaptureInput extends BreakoutCollectionContext {
+  providerAsOf?: Date | null;
+  exposures: Partial<Record<BreakoutExposureMetric, BreakoutExposureEvidence>>;
+  isPinned: boolean | null;
+  isPromoted: boolean | null;
+}
+export type BreakoutCaptureResult =
+  | { status: 'captured' | 'replayed'; observationId: string }
+  | { status: 'invalid_collection' | 'source_changed' | 'attempt_conflict' };
 /** Provider evidence only; these fields never confer customer authority. */
 export interface BreakoutObservation extends BreakoutObservationScope {
   id: string;

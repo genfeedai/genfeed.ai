@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { TwitterAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import {
+  exposureCollectionContext,
+  prepareExposureCollectionSource,
+} from '@api/analytics/services/analytics-exposure-source.util';
+import {
   AccountAnalyticsSnapshotService,
   extractProfileCounts,
 } from '@api/endpoints/analytics/account-analytics-snapshot.service';
@@ -15,6 +19,7 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsPersistenceContext,
+  BreakoutPublicationSourceV1,
   IReplyBotCredentialData,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
@@ -87,6 +92,22 @@ export class AnalyticsTwitterCollectionService {
             externalId: post.externalId,
           }),
         );
+      const exposureSources = new Map<
+        string,
+        BreakoutPublicationSourceV1 | null
+      >();
+      for (const post of posts)
+        exposureSources.set(
+          post.id,
+          await prepareExposureCollectionSource(this.postAnalyticsService, {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credential.id,
+            postId: post.id,
+            platform: CredentialPlatform.TWITTER,
+            externalId: post.externalId,
+          }),
+        );
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analyticsMap = await this.twitterService.getMediaAnalyticsBatch(
@@ -110,6 +131,7 @@ export class AnalyticsTwitterCollectionService {
         requestStartedAt,
         receivedAt,
         settledPostIds,
+        exposureSources,
       );
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
       if (delayedTargets.length > 0) {
@@ -193,6 +215,7 @@ export class AnalyticsTwitterCollectionService {
     requestStartedAt: Date,
     receivedAt: Date,
     settledPostIds: Set<string>,
+    exposureSources: Map<string, BreakoutPublicationSourceV1 | null>,
   ): Promise<TwitterBatchOutcome> {
     const { posts } = data;
     const readyTargets: AnalyticsCollectionAttemptRef[] = [];
@@ -229,6 +252,11 @@ export class AnalyticsTwitterCollectionService {
           post.id,
           analytics,
           {
+            ...exposureCollectionContext(exposureSources.get(post.id), {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+            }),
             learningObservation: {
               sourceAttemptId,
               requestStartedAt,

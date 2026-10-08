@@ -13,9 +13,10 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
-  BreakoutExposureEvidence,
-  BreakoutExposureMetric,
-  BreakoutObservationScope,
+  BreakoutCaptureInput,
+  BreakoutCaptureResult,
+  BreakoutPublicationSourceInput,
+  BreakoutPublicationSourceV1,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 
@@ -49,34 +50,11 @@ type PublicationClient = Pick<
   | 'contentVersionPin'
   | 'postPublishFinalization'
 >;
-export interface PostExposureSourceInput
-  extends Omit<BreakoutObservationScope, 'format'> {
-  postId: string;
-  externalId: string;
-}
+export type PostExposureSourceInput = BreakoutPublicationSourceInput;
 /** Prepared before collection and checked again inside the persistence transaction. */
-export interface PostExposurePublication extends PostExposureSourceInput {
-  version: 1;
-  format: BreakoutObservationScope['format'];
-  publishedAt: string;
-  contentDigest: string;
-  publicationFingerprint: string;
-  logicalPostId: string;
-  isResponse: boolean;
-}
-export interface PostExposureCollection {
-  source: Readonly<PostExposurePublication>;
-  sourceAttemptId: string;
-  requestStartedAt: Date;
-  receivedAt: Date;
-  providerAsOf?: Date | null;
-  exposures: Partial<Record<BreakoutExposureMetric, BreakoutExposureEvidence>>;
-  isPinned: boolean | null;
-  isPromoted: boolean | null;
-}
-export type PostExposureCaptureResult =
-  | { status: 'captured' | 'replayed'; observationId: string }
-  | { status: 'invalid_collection' | 'source_changed' | 'attempt_conflict' };
+export type PostExposurePublication = BreakoutPublicationSourceV1;
+export type PostExposureCollection = BreakoutCaptureInput;
+export type PostExposureCaptureResult = BreakoutCaptureResult;
 
 function digest(value: unknown): string {
   return buildArtifactContentDigest({ evidence: value });
@@ -277,7 +255,7 @@ export async function loadPostExposurePublication(
       confirmed.externalId,
     ]),
     // The dedicated response relation is added with connected response execution.
-    isResponse: post.originalPostId !== null || post.quoteTweetId !== null,
+    isResponse: false,
   };
 }
 

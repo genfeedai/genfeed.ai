@@ -1,5 +1,12 @@
+import type {
+  BreakoutExposureEvidence,
+  BreakoutExposureMetric,
+} from '@genfeedai/contracts/interfaces';
 import type { LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 export interface UpdateTodayAnalyticsMetrics {
+  breakoutExposures?: Partial<
+    Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+  >;
   learningMetrics?: LearningMetrics;
   averageWatchTimeSeconds?: number | null;
   clicks?: number | null;

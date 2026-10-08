@@ -10,6 +10,10 @@ import {
 } from '@api/analytics/analytics-collection-credential';
 import { classifyAnalyticsCollectionError } from '@api/analytics/analytics-collection-state';
 import {
+  exposureCollectionContext,
+  prepareExposureCollectionSource,
+} from '@api/analytics/services/analytics-exposure-source.util';
+import {
   AccountAnalyticsSnapshotService,
   extractProfileCounts,
 } from '@api/endpoints/analytics/account-analytics-snapshot.service';
@@ -24,6 +28,7 @@ import {
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsPersistenceContext,
+  BreakoutPublicationSourceV1,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
@@ -106,6 +111,17 @@ export class AnalyticsSocialCollectionService {
         platform: post.platform,
         externalId: post.externalId,
       });
+    const exposureSource = await prepareExposureCollectionSource(
+      this.postAnalyticsService,
+      {
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId,
+        postId: post.id,
+        platform: post.platform,
+        externalId: post.externalId,
+      },
+    );
     const sourceAttemptId = randomUUID(),
       requestStartedAt = new Date();
 
@@ -117,6 +133,7 @@ export class AnalyticsSocialCollectionService {
           publicationSource,
           sourceAttemptId,
           requestStartedAt,
+          exposureSource,
         );
       case CredentialPlatform.TIKTOK:
         return this.collectTikTok(
@@ -125,6 +142,7 @@ export class AnalyticsSocialCollectionService {
           publicationSource,
           sourceAttemptId,
           requestStartedAt,
+          exposureSource,
         );
       case CredentialPlatform.PINTEREST:
         return this.collectPinterest(
@@ -133,6 +151,7 @@ export class AnalyticsSocialCollectionService {
           publicationSource,
           sourceAttemptId,
           requestStartedAt,
+          exposureSource,
         );
       case CredentialPlatform.LINKEDIN:
         return this.collectLinkedIn(
@@ -141,6 +160,7 @@ export class AnalyticsSocialCollectionService {
           publicationSource,
           sourceAttemptId,
           requestStartedAt,
+          exposureSource,
         );
       case CredentialPlatform.MASTODON:
         return this.collectMastodon(
@@ -149,6 +169,7 @@ export class AnalyticsSocialCollectionService {
           publicationSource,
           sourceAttemptId,
           requestStartedAt,
+          exposureSource,
         );
       default:
         throw new Error(
@@ -162,6 +183,7 @@ export class AnalyticsSocialCollectionService {
     publicationSource: LearningPublicationSourceV1 | null,
     sourceAttemptId: string,
     requestStartedAt: Date,
+    exposureSource: BreakoutPublicationSourceV1 | null,
   ): Promise<AnalyticsPersistenceContext> {
     const analytics = await this.instagramService.getMediaAnalytics(
       post.organizationId,
@@ -185,6 +207,11 @@ export class AnalyticsSocialCollectionService {
           : undefined,
       },
       {
+        ...exposureCollectionContext(exposureSource, {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+        }),
         learningObservation: {
           sourceAttemptId,
           requestStartedAt,
@@ -209,6 +236,7 @@ export class AnalyticsSocialCollectionService {
     publicationSource: LearningPublicationSourceV1 | null,
     sourceAttemptId: string,
     requestStartedAt: Date,
+    exposureSource: BreakoutPublicationSourceV1 | null,
   ): Promise<AnalyticsPersistenceContext> {
     const analytics = await this.tiktokService.getMediaAnalytics(
       post.organizationId,
@@ -224,6 +252,11 @@ export class AnalyticsSocialCollectionService {
         shares: analytics.shares ?? 0,
       },
       {
+        ...exposureCollectionContext(exposureSource, {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+        }),
         learningObservation: {
           sourceAttemptId,
           requestStartedAt,
@@ -248,6 +281,7 @@ export class AnalyticsSocialCollectionService {
     publicationSource: LearningPublicationSourceV1 | null,
     sourceAttemptId: string,
     requestStartedAt: Date,
+    exposureSource: BreakoutPublicationSourceV1 | null,
   ): Promise<AnalyticsPersistenceContext> {
     const analytics = await this.pinterestService.getMediaAnalytics(
       post.organizationId,
@@ -260,6 +294,11 @@ export class AnalyticsSocialCollectionService {
       post.id,
       analytics,
       {
+        ...exposureCollectionContext(exposureSource, {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+        }),
         learningObservation: {
           sourceAttemptId,
           requestStartedAt,
@@ -284,6 +323,7 @@ export class AnalyticsSocialCollectionService {
     publicationSource: LearningPublicationSourceV1 | null,
     sourceAttemptId: string,
     requestStartedAt: Date,
+    exposureSource: BreakoutPublicationSourceV1 | null,
   ): Promise<AnalyticsPersistenceContext> {
     const analytics = await this.linkedInService.getMediaAnalytics(
       post.organizationId,
@@ -307,6 +347,11 @@ export class AnalyticsSocialCollectionService {
         views: analytics.views,
       },
       {
+        ...exposureCollectionContext(exposureSource, {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+        }),
         learningObservation: {
           sourceAttemptId,
           requestStartedAt,
@@ -331,6 +376,7 @@ export class AnalyticsSocialCollectionService {
     publicationSource: LearningPublicationSourceV1 | null,
     sourceAttemptId: string,
     requestStartedAt: Date,
+    exposureSource: BreakoutPublicationSourceV1 | null,
   ): Promise<AnalyticsPersistenceContext> {
     const analytics = await this.mastodonService.getMediaAnalytics(
       post.organizationId,
@@ -343,6 +389,11 @@ export class AnalyticsSocialCollectionService {
       post.id,
       analytics,
       {
+        ...exposureCollectionContext(exposureSource, {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+        }),
         learningObservation: {
           sourceAttemptId,
           requestStartedAt,

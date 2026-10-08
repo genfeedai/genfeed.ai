@@ -5,6 +5,10 @@ import {
   resolveAnalyticsCollectionCredential,
 } from '@api/analytics/analytics-collection-credential';
 import {
+  exposureCollectionContext,
+  prepareExposureCollectionSource,
+} from '@api/analytics/services/analytics-exposure-source.util';
+import {
   AccountAnalyticsSnapshotService,
   extractProfileCounts,
 } from '@api/endpoints/analytics/account-analytics-snapshot.service';
@@ -19,6 +23,7 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsPersistenceContext,
+  BreakoutPublicationSourceV1,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
@@ -86,6 +91,22 @@ export class AnalyticsYouTubeCollectionService {
             externalId: post.externalId,
           }),
         );
+      const exposureSources = new Map<
+        string,
+        BreakoutPublicationSourceV1 | null
+      >();
+      for (const post of posts)
+        exposureSources.set(
+          post.id,
+          await prepareExposureCollectionSource(this.postAnalyticsService, {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+            postId: post.id,
+            platform: CredentialPlatform.YOUTUBE,
+            externalId: post.externalId,
+          }),
+        );
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
@@ -110,6 +131,7 @@ export class AnalyticsYouTubeCollectionService {
         requestStartedAt,
         receivedAt,
         settledPostIds,
+        exposureSources,
       );
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
       if (delayedTargets.length > 0) {
@@ -178,6 +200,7 @@ export class AnalyticsYouTubeCollectionService {
     requestStartedAt: Date,
     receivedAt: Date,
     settledPostIds: Set<string>,
+    exposureSources: Map<string, BreakoutPublicationSourceV1 | null>,
   ): Promise<YouTubeBatchOutcome> {
     const { posts } = data;
     const readyTargets: AnalyticsCollectionAttemptRef[] = [];
@@ -214,6 +237,11 @@ export class AnalyticsYouTubeCollectionService {
           post.id,
           analytics,
           {
+            ...exposureCollectionContext(exposureSources.get(post.id), {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+            }),
             learningObservation: {
               sourceAttemptId,
               requestStartedAt,

@@ -6,6 +6,10 @@ import {
   resolveAnalyticsCollectionCredential,
 } from '@api/analytics/analytics-collection-credential';
 import { classifyAnalyticsCollectionError } from '@api/analytics/analytics-collection-state';
+import {
+  exposureCollectionContext,
+  prepareExposureCollectionSource,
+} from '@api/analytics/services/analytics-exposure-source.util';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
@@ -91,6 +95,17 @@ export class AnalyticsProviderCollectionService {
           platform: CredentialPlatform.FACEBOOK,
           externalId: post.externalId,
         });
+      const exposureSource = await prepareExposureCollectionSource(
+        this.postAnalyticsService,
+        {
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+          postId: post.id,
+          platform: post.platform,
+          externalId: post.externalId,
+        },
+      );
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       if (!credential.externalId)
@@ -120,6 +135,11 @@ export class AnalyticsProviderCollectionService {
           views: analytics.views,
         },
         {
+          ...exposureCollectionContext(exposureSource, {
+            sourceAttemptId,
+            requestStartedAt,
+            receivedAt,
+          }),
           learningObservation: {
             sourceAttemptId,
             requestStartedAt,
@@ -180,6 +200,17 @@ export class AnalyticsProviderCollectionService {
           platform: CredentialPlatform.THREADS,
           externalId: post.externalId,
         });
+      const exposureSource = await prepareExposureCollectionSource(
+        this.postAnalyticsService,
+        {
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+          postId: post.id,
+          platform: post.platform,
+          externalId: post.externalId,
+        },
+      );
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analytics = await this.threadsService.getThreadInsights(
@@ -193,6 +224,11 @@ export class AnalyticsProviderCollectionService {
         post.id,
         analytics,
         {
+          ...exposureCollectionContext(exposureSource, {
+            sourceAttemptId,
+            requestStartedAt,
+            receivedAt,
+          }),
           learningObservation: {
             sourceAttemptId,
             requestStartedAt,

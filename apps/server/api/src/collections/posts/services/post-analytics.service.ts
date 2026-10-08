@@ -8,6 +8,10 @@ import {
   resolveLearningPublicationSourceV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import {
+  capturePostExposureObservation,
+  loadPostExposurePublication,
+} from '@api/collections/outliers/services/post-exposure-observation.util';
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
 import { type PostDocument } from '@api/collections/posts/post.schema';
@@ -26,7 +30,13 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
-import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
+import type {
+  AnalyticsPersistenceContext,
+  BreakoutExposureEvidence,
+  BreakoutExposureMetric,
+  BreakoutPublicationSourceInput,
+  BreakoutPublicationSourceV1,
+} from '@genfeedai/contracts/interfaces';
 import { type LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -89,6 +99,64 @@ export class PostAnalyticsService extends BaseService<
       source.externalId === input.externalId
       ? source
       : null;
+  }
+  async prepareExposureObservation(
+    input: BreakoutPublicationSourceInput,
+  ): Promise<BreakoutPublicationSourceV1 | null> {
+    return loadPostExposurePublication(this.prisma, input);
+  }
+
+  private assertExposureSource(
+    postId: string,
+    platform: CredentialPlatform,
+    context: AnalyticsPersistenceContext,
+  ): void {
+    const source = context.exposureObservation?.source;
+    if (!source) return;
+    if (
+      source.organizationId !== context.organizationId ||
+      source.brandId !== context.brandId ||
+      source.credentialId !== context.credentialId ||
+      source.postId !== postId ||
+      source.platform !== fromPrismaCredentialPlatform(platform)
+    )
+      throw new Error('Exposure collection source does not match its account');
+  }
+
+  private async persistExposureObservation(
+    postId: string,
+    platform: CredentialPlatform,
+    metrics: UpdateTodayAnalyticsMetrics,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void> {
+    const observation = context.exposureObservation;
+    if (!observation) return;
+    const { source } = observation;
+    this.assertExposureSource(postId, platform, context);
+    const exposures: Partial<
+      Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+    > = {};
+    for (const metric of ['views', 'impressions'] as const) {
+      const explicit = metrics.breakoutExposures?.[metric];
+      const evidence = metrics.learningMetrics?.metrics[metric];
+      exposures[metric] = explicit ?? {
+        availability: evidence?.availability ?? 'unavailable',
+        value: evidence?.value ?? null,
+        source: `${source.platform}:aggregate:${evidence?.source ?? metric}`,
+        scope: evidence?.availability === 'observed' ? 'aggregate' : 'unknown',
+      };
+    }
+    const result = await this.prisma.$transaction((tx) =>
+      capturePostExposureObservation(tx, {
+        ...observation,
+        exposures,
+        isPinned: metrics.isPinned ?? metrics.learningMetrics?.isPinned ?? null,
+        isPromoted:
+          metrics.isPromoted ?? metrics.learningMetrics?.isPaid ?? null,
+      }),
+    );
+    if (result.status !== 'captured' && result.status !== 'replayed')
+      throw new Error(`Exposure observation held: ${result.status}`);
   }
   private async persistLearningObservation(
     postId: string,
@@ -204,6 +272,7 @@ export class PostAnalyticsService extends BaseService<
     metrics: UpdateTodayAnalyticsMetrics,
     context: AnalyticsPersistenceContext,
   ): Promise<PostAnalyticsEntity | null> {
+    this.assertExposureSource(postId, platform, context);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -278,6 +347,7 @@ export class PostAnalyticsService extends BaseService<
     await this.outliersService.authorize(account);
     const dailyMetrics = { ...metrics };
     delete dailyMetrics.learningMetrics;
+    delete dailyMetrics.breakoutExposures;
     const attributedMetrics = {
       ...dailyMetrics,
       credentialId,
@@ -330,6 +400,7 @@ export class PostAnalyticsService extends BaseService<
       },
     });
 
+    await this.persistExposureObservation(postId, platform, metrics, context);
     await this.persistLearningObservation(postId, platform, metrics, context);
     return result
       ? new PostAnalyticsEntity(result as PostAnalyticsDocument)
@@ -519,6 +590,9 @@ export class PostAnalyticsService extends BaseService<
     postId: string,
     analytics: {
       learningMetrics?: LearningMetrics;
+      breakoutExposures?: Partial<
+        Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+      >;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views: number;
@@ -539,6 +613,7 @@ export class PostAnalyticsService extends BaseService<
         CREDENTIAL_PLATFORM.TWITTER,
         {
           learningMetrics: analytics.learningMetrics,
+          breakoutExposures: analytics.breakoutExposures,
           impressions: analytics.impressions ?? null,
           isPinned:
             analytics.isPinned ?? analytics.learningMetrics?.isPinned ?? null,

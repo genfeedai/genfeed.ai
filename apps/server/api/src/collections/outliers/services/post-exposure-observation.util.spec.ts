@@ -243,12 +243,12 @@ describe('prospective post exposure capture', () => {
       });
     },
   );
-  it('keeps imported variants and quotes out of recursive response candidates', async () => {
+  it('does not mistake an ordinary quote for a generated breakout response', async () => {
     const h = harness();
     Object.assign(h.post, { quoteTweetId: 'original-tweet' });
     h.pinCurrentMaterial();
     expect(await loadPostExposurePublication(h.tx, scope)).toMatchObject({
-      isResponse: true,
+      isResponse: false,
     });
   });
   it.each([

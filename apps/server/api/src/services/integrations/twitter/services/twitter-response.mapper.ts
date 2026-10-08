@@ -1,5 +1,9 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
+import type {
+  BreakoutExposureEvidence,
+  BreakoutExposureMetric,
+  ITwitterSearchResult,
+} from '@genfeedai/contracts/interfaces';
 import {
   captureLearningMetrics,
   type LearningMetrics,
@@ -116,6 +120,9 @@ export interface TwitterAnalyticsResponse {
 }
 
 export interface TwitterAnalyticsResult {
+  breakoutExposures?: Partial<
+    Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+  >;
   learningMetrics?: LearningMetrics;
   bookmarks?: number;
   comments: number;
@@ -272,6 +279,17 @@ export class TwitterResponseMapper {
         : 0;
 
     return {
+      breakoutExposures: {
+        impressions: this.postImpressionEvidence(tweet),
+        // X media views aggregate across posts using the same asset. They
+        // cannot establish an organic exposure count for this one post.
+        views: {
+          availability: 'unavailable',
+          value: null,
+          source: 'twitter:post:views',
+          scope: 'unknown',
+        },
+      },
       learningMetrics,
       bookmarks: metrics.bookmark_count || 0,
       comments: metrics.reply_count || 0,
@@ -283,6 +301,39 @@ export class TwitterResponseMapper {
       quotes: metrics.quote_count || 0,
       retweets: metrics.retweet_count || 0,
       views: learningMetrics.metrics.views?.value ?? 0,
+    };
+  }
+
+  private postImpressionEvidence(
+    tweet: TwitterAnalyticsTweet | undefined,
+  ): BreakoutExposureEvidence {
+    const groups = [
+      ['organic_metrics', 'organic', tweet?.organic_metrics],
+      ['non_public_metrics', 'aggregate', tweet?.non_public_metrics],
+      ['public_metrics', 'aggregate', tweet?.public_metrics],
+    ] as const;
+    for (const [group, scope, metrics] of groups) {
+      if (metrics?.impression_count === undefined) continue;
+      const value = metrics.impression_count;
+      return Number.isSafeInteger(value) && value >= 0
+        ? {
+            availability: 'observed',
+            value,
+            source: `twitter:post:${group}.impression_count`,
+            scope,
+          }
+        : {
+            availability: 'unavailable',
+            value: null,
+            source: `twitter:post:${group}.impression_count`,
+            scope,
+          };
+    }
+    return {
+      availability: 'unavailable',
+      value: null,
+      source: 'twitter:post:organic_metrics.impression_count',
+      scope: 'unknown',
     };
   }
 
