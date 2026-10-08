@@ -276,7 +276,7 @@ export default function LibraryBrowserToolbar({
     // Tiers key off the Library page width (`@container/library` on the layout
     // Container), so opening the inspector compacts the row instead of
     // wrapping it. Items only wrap as a last resort on narrow widths.
-    <div className="flex shrink-0 flex-wrap items-center gap-2 @[44rem]/library:flex-nowrap">
+    <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2 @[44rem]/library:flex-nowrap">
       <Select value={statusValue} onValueChange={handleStatusValueChange}>
         <SelectTrigger
           aria-label={translate('statusAria')}
