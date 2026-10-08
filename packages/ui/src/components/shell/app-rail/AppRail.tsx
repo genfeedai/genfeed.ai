@@ -424,19 +424,19 @@ export function AppRail({
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
       <nav
         aria-label={t('apps')}
-        className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto p-1 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
+        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
         data-testid="app-rail"
       >
         {header ? (
           <div
-            className="flex flex-col items-center gap-2 pb-1"
+            className="flex flex-col items-center gap-1 pb-1"
             data-testid="app-rail-header"
           >
             {header}
             <Separator className="mt-1 w-5" />
           </div>
         ) : null}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1">
           {dailyItems.map(renderItem)}
           {overflowItems.length > 0 ? (
             <AppRailMore
@@ -458,7 +458,7 @@ export function AppRail({
         </div>
         {admin || footer ? (
           <div
-            className="mt-auto flex flex-col items-center gap-2 pt-2"
+            className="mt-auto flex flex-col items-center gap-1 pt-2"
             data-testid="app-rail-bottom"
           >
             {admin ? renderItem(admin) : null}

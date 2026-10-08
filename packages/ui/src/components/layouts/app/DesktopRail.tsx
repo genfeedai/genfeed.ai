@@ -18,7 +18,7 @@ type DesktopRailProps = {
  * Fixed app rail at the far left. It never collapses. It shares the window
  * chrome colour with the topbar (`gray-100`) and has no divider of its own.
  * The rounded block to its right holds the menu and the page.
- * The top band matches the topbar (40px) and holds the Genfeed mark, which
+ * The top band matches the topbar (48px) and holds the Genfeed mark, which
  * collapses the module sidebar.
  */
 export default function DesktopRail({
