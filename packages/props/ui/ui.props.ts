@@ -43,7 +43,7 @@ export interface CardProps {
   iconClassName?: string;
   id?: string;
   label?: ReactNode;
-  labelAs?: 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  labelAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   isLabelWrapped?: boolean;
   description?: string;
   isDisabled?: boolean;

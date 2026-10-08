@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 // ReactNode used by Select mock
@@ -128,10 +129,16 @@ vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
-  }: {
-    children?: ReactNode;
-    className?: string;
-  }) => <section className={className}>{children}</section>,
+    label,
+    labelAs: LabelTag = 'h3',
+    description,
+  }: CardProps) => (
+    <section className={className}>
+      {label ? <LabelTag>{label}</LabelTag> : null}
+      {description ? <p>{description}</p> : null}
+      {children}
+    </section>
+  ),
 }));
 
 vi.mock('@ui/loading/default/Loading', () => ({
@@ -295,6 +302,25 @@ describe('BrandSettingsPublishingPage', () => {
     mocks.getPostingSetsService.mockResolvedValue(mocks.postingSetsService);
     mocks.createRss.mockResolvedValue({ id: 'rss-1' });
     mocks.rssSources = [];
+  });
+
+  it('uses Publishing defaults as its only primary heading and keeps section headings', async () => {
+    render(<BrandSettingsPublishingPage />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Publishing defaults' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    for (const name of [
+      'Posting sets',
+      'RSS sources',
+      'Connected account readiness',
+    ]) {
+      expect(screen.getByRole('heading', { level: 3, name })).toBeVisible();
+    }
+    await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
+    expect(mocks.updateAgentConfig).not.toHaveBeenCalled();
+    expect(mocks.createRss).not.toHaveBeenCalled();
   });
 
   it('loads publishing defaults and saves schedule/autopublish settings', async () => {
