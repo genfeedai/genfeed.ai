@@ -170,13 +170,12 @@ describe('ArticleDetail', () => {
 
     const trigger = screen.getByRole('button', {
       name: 'Tutorial',
-      exact: true,
     });
     expect(trigger).toHaveTextContent('Category:');
     expect(trigger).not.toHaveTextContent('articleCategory:');
 
     fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole('button', { name: 'Guide', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guide' }));
 
     expect(state.setFormField).toHaveBeenCalledWith(
       'category',

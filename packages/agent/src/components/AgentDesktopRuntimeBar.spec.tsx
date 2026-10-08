@@ -56,8 +56,8 @@ describe('AgentDesktopRuntimeBar', () => {
     render(<AgentDesktopRuntimeBar selection={buildSelection([])} />);
 
     expect(screen.queryByTestId('agent-desktop-runtime-notice')).toBeNull();
-    expect(screen.getByTestId('agent-desktop-runtime-bar')).toHaveTextContent(
-      /^Default$/,
+    expect(screen.getByTestId('agent-desktop-runtime-bar').textContent).toBe(
+      'Default',
     );
     expect(screen.queryByText(/Runs on Genfeed/)).toBeNull();
     expect(screen.queryByText(/uses Genfeed credits/)).toBeNull();
