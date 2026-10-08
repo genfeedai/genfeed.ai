@@ -510,6 +510,21 @@ describe('InstagramAuthorizedSignalsService', () => {
     });
   });
 
+  it('retains a historical cached snapshot with impressions without making a provider request', async () => {
+    const cached = makePreviousSnapshot();
+    const performance = evidenceOf(cached, 'media-performance-snapshot');
+    if (performance.key !== 'media-performance-snapshot' || !performance.value)
+      throw new Error('Missing performance fixture');
+    performance.value.media[0].impressions = 42;
+    cacheService.get.mockResolvedValueOnce(cached);
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      organizationId: 'org-1',
+    });
+    expect(snapshot).toEqual(cached);
+    expect(httpService.get).not.toHaveBeenCalled();
+  });
+
   it('serves a fresh cached snapshot without issuing provider or database requests', async () => {
     const cached = makePreviousSnapshot();
     cacheService.get.mockResolvedValueOnce(cached);

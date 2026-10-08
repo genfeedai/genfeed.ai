@@ -56,10 +56,44 @@ function harness(platform: CredentialPlatform) {
     { error: vi.fn() } as never,
     { upsertDailySnapshot: vi.fn() } as never,
   );
-  return { service, analytics, state, posts, facebook, threads };
+  return { service, analytics, state, posts, facebook, threads, credentials };
 }
 describe('provider collection resolved account boundaries', () => {
   afterEach(() => vi.restoreAllMocks());
+  it('stops retrying a Facebook credential that needs its Page identity restored', async () => {
+    const h = harness(CredentialPlatform.FACEBOOK);
+    h.credentials.findOne.mockResolvedValue({
+      id: 'resolved',
+      organizationId: 'org',
+      brandId: 'brand',
+      platform: 'FACEBOOK',
+      accessToken: 'token',
+      externalId: '',
+    });
+    await expect(
+      h.service.collectFacebook({
+        posts: [
+          {
+            id: 'post',
+            externalId: 'external',
+            brandId: 'brand',
+            organizationId: 'org',
+            platform: CredentialPlatform.FACEBOOK,
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ status: 401 });
+    expect(h.facebook.getPostAnalytics).not.toHaveBeenCalled();
+    expect(h.state.markFailedTargets).toHaveBeenCalledWith([
+      expect.objectContaining({
+        failure: expect.objectContaining({
+          code: 'analytics.authentication_failed',
+          isRetryable: false,
+        }),
+      }),
+    ]);
+  });
+
   it('uses the selected Page token and video metrics for a published Facebook video', async () => {
     const h = harness(CredentialPlatform.FACEBOOK);
     await h.service.collectFacebook({
