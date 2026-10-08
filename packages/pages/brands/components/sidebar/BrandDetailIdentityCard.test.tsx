@@ -469,3 +469,8 @@ describe('BrandDetailIdentityCard.tsx', () => {
     expect(mockPush).toHaveBeenCalledTimes(2);
   });
 });
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});

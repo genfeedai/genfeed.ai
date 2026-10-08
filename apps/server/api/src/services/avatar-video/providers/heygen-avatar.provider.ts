@@ -138,14 +138,25 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
   ): Promise<AvatarVideoJobResult> {
     let receipt: unknown;
     try {
-      const ingredient = await this.prisma.ingredient.findFirst({
+      const metadata = await this.prisma.metadata.findMany({
         where: {
-          organizationId,
+          externalId: jobId,
+          externalProvider: 'heygen',
           isDeleted: false,
-          metadata: { externalId: jobId, externalProvider: 'heygen' },
         },
-        select: { generationProvider: true },
+        select: { id: true },
       });
+      const ingredient =
+        metadata.length > 0
+          ? await this.prisma.ingredient.findFirst({
+              where: {
+                organizationId,
+                isDeleted: false,
+                metadataId: { in: metadata.map((item) => item.id) },
+              },
+              select: { generationProvider: true },
+            })
+          : null;
       const clip = !ingredient
         ? await this.prisma.clipResult.findFirst({
             where: { providerJobId: jobId, organizationId, isDeleted: false },

@@ -36,6 +36,7 @@ import {
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -63,7 +64,11 @@ export class OrganizationSettingsService extends BaseService<
   ): Promise<OrganizationSettingDocument> {
     const data: PrismaUpdate = { ...updateDto };
     if (data.defaultAvatarRef || data.defaultVoiceRef) {
-      const existing = await this.findOne({ id, isDeleted: false });
+      const organizationId = getTenantContext()?.organizationId;
+      const existing = await this.findOne({
+        id,
+        ...(organizationId ? { organizationId } : {}),
+      });
       if (!existing) throw new NotFoundException('Organization settings', id);
       const identities = this.moduleRef.get<HeyGenIdentityService>(
         HEYGEN_IDENTITY_SERVICE,

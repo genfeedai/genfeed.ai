@@ -1,3 +1,5 @@
+'use client';
+
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import {
@@ -33,6 +35,7 @@ import {
 } from '@ui/primitives/select';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function getVoiceName(voice: Voice): string {
@@ -40,6 +43,7 @@ function getVoiceName(voice: Voice): string {
 }
 
 export default function OrganizationIdentityDefaultsCard() {
+  const translate = useTranslations('pages.identityDefaults');
   const { push } = useRouter();
   const { brandSlug, href, orgHref } = useOrgUrl();
   const notifications = NotificationsService.getInstance();
@@ -217,7 +221,7 @@ export default function OrganizationIdentityDefaultsCard() {
 
   return (
     <Card
-      label="Organization Identity"
+      label={translate('organizationLabel')}
       bodyClassName="gap-3 p-4"
       data-testid="org-identity-defaults-card"
     >
@@ -227,7 +231,7 @@ export default function OrganizationIdentityDefaultsCard() {
             htmlFor="org-default-avatar"
             className="mb-1 block text-sm font-medium"
           >
-            Default Avatar
+            {translate('avatarLabel')}
           </label>
           <Select
             disabled={isLoadingAvatars}
@@ -250,7 +254,7 @@ export default function OrganizationIdentityDefaultsCard() {
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No organization default</SelectItem>
+              <SelectItem value="none">{translate('none')}</SelectItem>
               {heygen.avatars.map((avatar) => (
                 <SelectItem
                   key={heyGenAvatarValue(avatar.avatarRef)}
@@ -259,8 +263,8 @@ export default function OrganizationIdentityDefaultsCard() {
                 >
                   {avatar.name} ·{' '}
                   {avatar.avatarRef.ownership === 'public'
-                    ? 'Public preset'
-                    : 'Personal HeyGen'}
+                    ? translate('publicPreset')
+                    : translate('personalConnection')}
                   {avatar.avatarRef.readiness.reason
                     ? ` · ${avatar.avatarRef.readiness.reason}`
                     : ''}
@@ -275,7 +279,7 @@ export default function OrganizationIdentityDefaultsCard() {
           </Select>
           {selectedAvatar ? (
             <SelectedAvatarPreview
-              description="Used by agents and workflows when no brand override exists."
+              description={translate('avatarDescription')}
               imageAlt={
                 getIngredientDisplayLabel(selectedAvatar) || 'Selected avatar'
               }
@@ -291,8 +295,7 @@ export default function OrganizationIdentityDefaultsCard() {
           ) : null}
           {!isLoadingAvatars && avatars.length === 0 ? (
             <p className="mt-2 text-xs text-muted-foreground">
-              No avatar ingredients are available yet. Mark an image as an
-              avatar from its ingredient page first.
+              {translate('noAvatars')}
             </p>
           ) : null}
         </div>
@@ -302,7 +305,7 @@ export default function OrganizationIdentityDefaultsCard() {
             htmlFor="org-default-voice-ref"
             className="mb-1 block text-sm font-medium"
           >
-            Default Voice
+            {translate('voiceLabel')}
           </label>
           <Select
             disabled={isLoadingCatalog}
@@ -325,7 +328,7 @@ export default function OrganizationIdentityDefaultsCard() {
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No organization default</SelectItem>
+              <SelectItem value="none">{translate('none')}</SelectItem>
               {catalogOptions.map((voice) => (
                 <SelectItem key={voice.value} value={voice.value}>
                   {voice.label}
@@ -343,13 +346,14 @@ export default function OrganizationIdentityDefaultsCard() {
         {orgDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
         !orgDefaultVoiceRef.connection ? (
           <p role="status" className="text-xs text-muted-foreground">
-            Reselect this voice to verify its connection.
+            {translate('reselectVoice')}
           </p>
         ) : null}
         <p className="text-xs text-muted-foreground">
-          Current avatar: {currentAvatarSummary}. Current voice:{' '}
-          {currentVoiceSummary}. These values are used only when a brand does
-          not define its own identity defaults.
+          {translate('summary', {
+            avatar: currentAvatarSummary,
+            voice: currentVoiceSummary,
+          })}
         </p>
 
         <div className="flex flex-wrap gap-2">

@@ -5190,5 +5190,20 @@
     "learning": "Learning",
     "receipts": "Generation receipts",
     "writingVoice": "Writing voice"
+  },
+  "identityDefaults": {
+    "organizationLabel": "Organization Identity",
+    "avatarLabel": "Default Avatar",
+    "none": "No organization default",
+    "avatarDescription": "Used by agents and workflows when no brand override exists.",
+    "noAvatars": "No avatar ingredients are available yet. Mark an image as an avatar from its ingredient page first.",
+    "voiceLabel": "Default Voice",
+    "reselectVoice": "Reselect this voice to verify its connection.",
+    "reselectAvatar": "Reselect this avatar to verify its connection.",
+    "summary": "Current avatar: {avatar}. Current voice: {voice}. These values are used only when a brand does not define its own identity defaults.",
+    "brandLabel": "Brand identity",
+    "brandDescription": "Avatar and speaking voice (TTS) defaults. Empty values inherit organization defaults. Writing tone lives under Brand voice.",
+    "publicPreset": "Public preset",
+    "personalConnection": "Personal HeyGen"
   }
 }

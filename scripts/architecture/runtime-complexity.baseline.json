@@ -90,12 +90,6 @@
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
   },
   {
-    "actual": 192,
-    "file": "apps/server/api/src/collections/videos/services/avatar-video-generation.service.ts",
-    "metric": "method-lines",
-    "symbol": "AvatarVideoGenerationService.resolveIdentityInputs"
-  },
-  {
     "actual": 1186,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",

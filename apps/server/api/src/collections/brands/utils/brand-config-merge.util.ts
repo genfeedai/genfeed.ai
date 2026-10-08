@@ -1,3 +1,25 @@
+/**
+ * `agentConfig` sub-objects that `updateAgentConfig` merges key-by-key instead
+ * of replacing wholesale.
+ *
+ * These are partial-patch targets: the app's brand cards each own a slice of
+ * `voice`/`strategy` and send only their own keys, and fields no UI surfaces at
+ * all (`voice.taglines`, `voice.hashtags` — written during brand-kit extraction
+ * and read back by `buildBrandContext`) would otherwise be dropped by the first
+ * inline field save.
+ *
+ * `platformOverrides` is deliberately absent. It is an authoritative map, not a
+ * patch target: the agent profile card rebuilds it from form state and omits
+ * overrides the user cleared, so merging would resurrect deleted overrides.
+ */
+export const MERGEABLE_AGENT_CONFIG_KEYS: ReadonlySet<string> = new Set([
+  'autoPublish',
+  'prompting',
+  'schedule',
+  'strategy',
+  'voice',
+]);
+
 export function isMergeableRecord(
   value: unknown,
 ): value is Record<string, unknown> {

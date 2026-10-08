@@ -159,3 +159,11 @@ export function resolveClipIdentity({
       (resolvedVoiceId ? VoiceProvider.HEYGEN : undefined),
   };
 }
+
+export function clipGenerationIdentity(identity?: AgentClipRunIdentity) {
+  return {
+    avatarId: identity?.avatarId,
+    ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+    ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
+  };
+}

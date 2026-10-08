@@ -60,6 +60,7 @@ describe('HeygenAvatarProvider', () => {
     connection: connection.binding,
   };
   const prisma = {
+    metadata: { findMany: vi.fn().mockResolvedValue([{ id: 'metadata-1' }]) },
     ingredient: { findFirst: vi.fn() },
     clipResult: { updateMany: vi.fn(), findFirst: vi.fn() },
   };

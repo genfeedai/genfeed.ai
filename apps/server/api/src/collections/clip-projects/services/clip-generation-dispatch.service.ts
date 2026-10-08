@@ -6,6 +6,7 @@ import {
 } from '@api/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { clipGenerationIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import type { ResolvedClipReference } from '@api/collections/clip-projects/services/clip-reference-generation.util';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
@@ -95,9 +96,7 @@ export class ClipGenerationDispatchService {
         progress: 0,
         settings: {
           ...project.settings,
-          avatarId: identity?.avatarId,
-          ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
-          ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
+          ...clipGenerationIdentity(identity),
           avatarProvider: dto.avatarProvider ?? 'heygen',
           flow: 'review',
           mode,
@@ -110,9 +109,7 @@ export class ClipGenerationDispatchService {
     );
 
     const result = await this.clipGenerationService.generateClips({
-      avatarId: identity?.avatarId,
-      ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
-      ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
+      ...clipGenerationIdentity(identity),
       highlights: selectedEditedHighlights,
       hookApprovalRequired,
       mode,
@@ -270,9 +267,7 @@ export class ClipGenerationDispatchService {
     let generated: ClipGenerationJobResult;
     try {
       generated = await this.clipGenerationService.generateClips({
-        avatarId: identity?.avatarId,
-        ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
-        ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
+        ...clipGenerationIdentity(identity),
         highlights,
         hookApprovalRequired: false,
         mode,

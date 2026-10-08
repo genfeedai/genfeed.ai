@@ -31,6 +31,7 @@ import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import BrandIdentityActions from './BrandIdentityActions';
 import BrandIdentityAvatarField from './BrandIdentityAvatarField';
@@ -45,6 +46,7 @@ export default function BrandDetailIdentityCard({
   brandId,
   onRefreshBrand,
 }: BrandDetailIdentityCardProps) {
+  const translate = useTranslations('pages.identityDefaults');
   const router = useRouter();
   const { orgSlug, orgHref } = useOrgUrl();
   const ownerOrgSlug = getBrandOrganizationSlug(brand) || orgSlug;
@@ -311,8 +313,8 @@ export default function BrandDetailIdentityCard({
   return (
     <Card
       data-testid="brand-identity-card"
-      label="Brand identity"
-      description="Avatar and speaking voice (TTS) defaults. Empty values inherit organization defaults. Writing tone lives under Brand voice."
+      label={translate('brandLabel')}
+      description={translate('brandDescription')}
     >
       <div className="flex flex-col gap-3">
         <BrandIdentityAvatarField
@@ -332,13 +334,13 @@ export default function BrandDetailIdentityCard({
         {brand.agentConfig?.heygenAvatarId &&
         !brand.agentConfig.defaultAvatarRef ? (
           <p role="status" className="text-xs text-muted-foreground">
-            Reselect this avatar to verify its connection.
+            {translate('reselectAvatar')}
           </p>
         ) : null}
         {brandDefaultVoiceRef?.provider === VoiceProvider.HEYGEN &&
         !brandDefaultVoiceRef.connection ? (
           <p role="status" className="text-xs text-muted-foreground">
-            Reselect this voice to verify its connection.
+            {translate('reselectVoice')}
           </p>
         ) : null}
         <BrandIdentityVoiceField

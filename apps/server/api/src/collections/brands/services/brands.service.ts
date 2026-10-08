@@ -35,9 +35,11 @@ import {
 } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
 import {
   isMergeableRecord,
+  MERGEABLE_AGENT_CONFIG_KEYS,
   mergeDefinedKeys,
   omitUndefinedFields,
 } from '@api/collections/brands/utils/brand-config-merge.util';
+import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/brand-identity-defaults.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import {
@@ -89,28 +91,6 @@ export type {
   BrandRelocationResult,
   BrandRelocationSummary,
 } from '@api/collections/brands/services/brand-relocation.service';
-
-/**
- * `agentConfig` sub-objects that `updateAgentConfig` merges key-by-key instead
- * of replacing wholesale.
- *
- * These are partial-patch targets: the app's brand cards each own a slice of
- * `voice`/`strategy` and send only their own keys, and fields no UI surfaces at
- * all (`voice.taglines`, `voice.hashtags` — written during brand-kit extraction
- * and read back by `buildBrandContext`) would otherwise be dropped by the first
- * inline field save.
- *
- * `platformOverrides` is deliberately absent. It is an authoritative map, not a
- * patch target: the agent profile card rebuilds it from form state and omits
- * overrides the user cleared, so merging would resurrect deleted overrides.
- */
-const MERGEABLE_AGENT_CONFIG_KEYS: ReadonlySet<string> = new Set([
-  'autoPublish',
-  'prompting',
-  'schedule',
-  'strategy',
-  'voice',
-]);
 
 type BrandCreateInput = CreateBrandDto & {
   agentConfig?: UpdateBrandAgentConfigDto & Record<string, unknown>;
@@ -164,25 +144,14 @@ export class BrandsService extends BaseService<
       resolvedOrganizationId,
       initialAgentConfig,
     );
-    const agentConfig: Record<string, unknown> | undefined = resolvedAgentConfig
-      ? { ...resolvedAgentConfig }
+    const agentConfig = resolvedAgentConfig
+      ? await normalizeBrandIdentityDefaults(
+          resolvedAgentConfig,
+          resolvedOrganizationId,
+          this.heygenIdentityService,
+          false,
+        )
       : undefined;
-    if (agentConfig && resolvedAgentConfig?.defaultAvatarRef) {
-      agentConfig.defaultAvatarRef =
-        await this.heygenIdentityService.avatarDefault(
-          resolvedAgentConfig.defaultAvatarRef,
-          resolvedOrganizationId,
-        );
-      agentConfig.defaultAvatarPhotoUrl = null;
-      agentConfig.defaultAvatarIngredientId = null;
-      agentConfig.heygenAvatarId = null;
-    }
-    if (agentConfig && resolvedAgentConfig?.defaultVoiceRef)
-      agentConfig.defaultVoiceRef =
-        await this.heygenIdentityService.voiceDefault(
-          resolvedAgentConfig.defaultVoiceRef,
-          resolvedOrganizationId,
-        );
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
@@ -673,29 +642,12 @@ export class BrandsService extends BaseService<
       return null;
     }
 
-    const normalizedConfig: Record<string, unknown> = { ...agentConfig };
-    if (agentConfig.defaultAvatarRef) {
-      normalizedConfig.defaultAvatarRef =
-        await this.heygenIdentityService.avatarDefault(
-          agentConfig.defaultAvatarRef,
-          orgId,
-        );
-      normalizedConfig.defaultAvatarPhotoUrl = null;
-      normalizedConfig.defaultAvatarIngredientId = null;
-      normalizedConfig.heygenAvatarId = null;
-    } else if (
-      agentConfig.defaultAvatarPhotoUrl ||
-      agentConfig.defaultAvatarIngredientId
-    ) {
-      normalizedConfig.defaultAvatarRef = null;
-    }
-    if (agentConfig.defaultVoiceRef) {
-      normalizedConfig.defaultVoiceRef =
-        await this.heygenIdentityService.voiceDefault(
-          agentConfig.defaultVoiceRef,
-          orgId,
-        );
-    }
+    const normalizedConfig = await normalizeBrandIdentityDefaults(
+      agentConfig,
+      orgId,
+      this.heygenIdentityService,
+      true,
+    );
 
     const storedConfig = (existing as Record<string, unknown>).agentConfig;
     const currentConfig = isMergeableRecord(storedConfig) ? storedConfig : {};

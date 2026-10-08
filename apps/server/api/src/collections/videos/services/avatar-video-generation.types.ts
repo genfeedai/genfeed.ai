@@ -1,13 +1,17 @@
+import type { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import type { GenerationBillingRequest } from '@api/collections/credits/services/generation-billing.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import type { VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import type {
   HeyGenAvatarCandidate,
   ResolvedHeyGenConnection,
 } from '@api/services/integrations/heygen/heygen-identity.types';
+import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import type { VoiceProvider } from '@genfeedai/contracts';
 import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
+import type { HttpException } from '@nestjs/common';
 
 export interface AvatarVideoGenerationContext {
   organizationId: string;
@@ -84,3 +88,27 @@ export interface ResolvedAudioSource {
   audioUrl?: string;
   heygenVoiceId?: string;
 }
+
+export type AvatarIdentityDefaults = ReturnType<
+  typeof resolveEffectiveBrandAgentConfig
+>['identityDefaults']['brand'];
+export interface AvatarIdentityResolutionDependencies {
+  orgSettingsService: Pick<OrganizationSettingsService, 'findOne'>;
+  findVoiceById: (
+    voiceId: string,
+    organizationId: string,
+  ) => Promise<VoiceDocument | null>;
+  resolveSavedVoiceRef: (
+    ref: DefaultVoiceRef,
+    organizationId: string,
+    text: string,
+    freshSelection?: boolean,
+  ) => Promise<ResolvedIdentity>;
+  resolveVoiceLookup: (voice: ResolvableVoiceDocument) => ResolvedIdentity;
+  hasUsableVoiceSource: (identity: ResolvedIdentity) => boolean;
+  invalidSavedVoiceException: () => HttpException;
+}
+
+export type AvatarVideoSpeechInput = Parameters<
+  HeyGenService['generateNativeAvatarVideo']
+>[2];
