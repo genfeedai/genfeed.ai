@@ -954,7 +954,7 @@ export class SkillsService {
       options.modality &&
       modalities.length > 0 &&
       !modalities.includes(options.modality) &&
-      !modalities.includes('multi')
+      !(modalities.length === 1 && modalities.includes('multi'))
     ) {
       return false;
     }
