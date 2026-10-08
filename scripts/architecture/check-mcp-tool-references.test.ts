@@ -147,6 +147,28 @@ describe('literal MCP instruction contract', () => {
       ),
     ).toBe(true);
   });
+  it('rejects an empty or nested explicitly requested public checkout', () => {
+    const skills = join(root, 'empty');
+    mkdirSync(skills);
+    execFileSync('git', ['init', skills]);
+    const options = {
+      repoRoot: root,
+      catalogPath: catalog,
+      skillsDir: skills,
+      noLocalSkills: true,
+      noDesktop: true,
+    };
+    expect(() => runCheckMcpToolReferences(options)).toThrow(
+      'Empty instruction source',
+    );
+    mkdirSync(join(skills, 'nested'));
+    expect(() =>
+      runCheckMcpToolReferences({
+        ...options,
+        skillsDir: join(skills, 'nested'),
+      }),
+    ).toThrow('must be the repository root');
+  });
   it('rejects a request selecting no instruction surfaces', () => {
     expect(() =>
       runCheckMcpToolReferences({

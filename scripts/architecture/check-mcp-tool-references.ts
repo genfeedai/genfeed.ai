@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseCatalogSource } from '../../packages/actions/scripts/report-curated-action-catalog';
 
@@ -138,7 +138,17 @@ export function checkReferenceSources(
 function trackedMarkdown(root: string, prefix?: string): ReferenceSource[] {
   if (!existsSync(root))
     throw new Error(`Requested source directory is missing: ${root}`);
-  return execFileSync(
+  if (
+    realpathSync(
+      execFileSync('git', ['-C', root, 'rev-parse', '--show-toplevel'], {
+        encoding: 'utf8',
+      }).trim(),
+    ) !== realpathSync(root)
+  )
+    throw new Error(
+      `Malformed source checkout: ${root} must be the repository root`,
+    );
+  const sources = execFileSync(
     'git',
     ['-C', root, 'ls-files', '-z', ...(prefix ? ['--', prefix] : [])],
     { encoding: 'utf8' },
@@ -153,12 +163,17 @@ function trackedMarkdown(root: string, prefix?: string): ReferenceSource[] {
       path: join(root, file),
       text: readFileSync(join(root, file), 'utf8'),
     }));
+  if (!sources.length || sources.every((source) => !source.text.trim()))
+    throw new Error(`Empty instruction source: ${root}`);
+  return sources;
 }
 
 export function runCheckMcpToolReferences(
   options: McpReferenceOptions = {},
 ): McpReferenceViolation[] {
-  const root = resolve(options.repoRoot ?? process.cwd());
+  const root = resolve(
+    options.repoRoot ?? resolve(import.meta.dirname, '../..'),
+  );
   const catalog = resolve(root, options.catalogPath ?? CATALOG);
   if (options.sources) return checkReferenceSources(catalog, options.sources);
   if (options.noLocalSkills && options.noDesktop && !options.skillsDir)
