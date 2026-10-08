@@ -118,7 +118,30 @@ expiry and failure remain distinct. Published status requires the existing canon
 publication resolver's real approval, material/version and provider-finalization
 proof; a queue, workflow or output state is insufficient. Confirmed publication
 remains a fact after response suppression. These are internal transaction utilities,
-not customer/MCP routes: brand-authorized adapters and serializers remain required.
+not dispatch or publication routes.
+
+## Authorized status reads
+
+`GET /brands/:brandId/breakout-responses` lists bounded paginated response status;
+`GET /brands/:brandId/breakout-responses/:id` adds at most five output recovery
+projections. The analytics feature boundary and selected tenant read scope apply.
+The adapter requires the guard's canonical user ID, then consumes the existing
+manual member/brand access service before querying the response. API-key requests
+are held because this manual actor shape cannot carry a capped key's authority.
+No actor is derived from source ownership or a receipt, and these reads do not
+resolve automatic execution principals.
+
+The serializer exposes allowlisted source identity, current-source validity,
+trigger ratio/median/sample size and normalized recovery state. It omits prompts,
+actor IDs and invented costs/lift. List reads explicitly omit detailed recovery;
+detail reads distinguish an empty plan from an invalid/overfull registry. An
+explicit optional `strategyId` adds the existing scoped advisory capacity snapshot.
+No read creates receipts, slots, generation jobs, provider calls, credit debits,
+publication authority or automatic expiration. UI and consolidated MCP work remain
+separate. Final combined-source authorization still must prove #5147's current
+Cloud unassigned/assigned brand rules, Owner/Admin access, removed membership and
+capped-key denial, plus self-hosted semantics. Current branch guard behavior alone
+does not qualify that policy as complete.
 
 ## Required connected outcome
 
@@ -138,7 +161,7 @@ lineage and subsequent measurements.
 
 Additional qualified provider exposure mappings, priority workflow execution,
 generation-to-artifact/quote workflow attachment, recovery
-workflow wiring, authorized product/agent status routes/UI and connected acceptance
+workflow wiring, product status UI/consolidated agent reads and connected acceptance
 remain unfinished. The human response lifetime choice and the authoritative automatic actor contract are unresolved.
 No default lifetime or synthetic owner principal grants permission to execute.
 

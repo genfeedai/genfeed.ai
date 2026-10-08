@@ -114,6 +114,49 @@ export interface BreakoutOutputRecoveryInput
   responseId: string;
   outputId: string;
 }
+export interface BreakoutResponseView {
+  id: string;
+  organizationId: string;
+  brandId: string;
+  credentialId: string;
+  platform: string;
+  state: string;
+  detectedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  isDeleted: false;
+  source: {
+    kind: 'post' | 'native_source_post' | 'unavailable';
+    id: string | null;
+    externalId: string;
+    logicalPostId: string;
+    format: string | null;
+    publishedAt: string | null;
+    status: 'current' | 'changed_or_unavailable';
+  };
+  trigger: {
+    receiptId: string;
+    metric: string;
+    evaluatedAt: string;
+    ratio: number | null;
+    median: number | null;
+    sampleSize: number;
+    targetValue: number | null;
+    metricSource: string | null;
+    timeBasis: 'provider_as_of' | 'collection_interval';
+  } | null;
+  /** List reads omit detailed recovery; null is distinct from an empty plan. */
+  outputs: Array<{
+    id: string;
+    ordinal: number;
+    kind: string;
+    format: string;
+    recovery: BreakoutOutputRecoveryResult;
+  }> | null;
+  outputRegistryStatus: 'not_loaded' | 'current' | 'conflict';
+  capacity: BreakoutLiveCapacitySnapshot | null;
+  readAt: string;
+}
 export interface BreakoutTextArtifactBindingInput
   extends BreakoutOutputRecoveryInput {
   postId: string;
