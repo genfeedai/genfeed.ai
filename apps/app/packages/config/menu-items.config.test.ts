@@ -20,12 +20,7 @@ describe('APP_MENU_ITEMS', () => {
       return labels;
     }, []);
 
-    expect(ungroupedLabels).toEqual([
-      'Dashboard',
-      'Inbox',
-      'Tasks',
-      'Activity',
-    ]);
+    expect(ungroupedLabels).toEqual(['Overview', 'Inbox', 'Tasks', 'Activity']);
   });
 
   it('keeps Messages out of the workspace menu (the app rail owns it)', () => {
@@ -55,12 +50,7 @@ describe('APP_MENU_ITEMS', () => {
       return labels;
     }, []);
 
-    expect(workspaceLabels).toEqual([
-      'Dashboard',
-      'Inbox',
-      'Tasks',
-      'Activity',
-    ]);
+    expect(workspaceLabels).toEqual(['Overview', 'Inbox', 'Tasks', 'Activity']);
   });
 
   it('does not include analytics group items pointing to /analytics/* routes', () => {

@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { ChartColumn, LayoutGrid, MessageSquare } from 'lucide-react';
+import { ChartColumn, LayoutDashboard, MessageSquare } from 'lucide-react';
 
 export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -8,8 +8,8 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.WORKSPACE.OVERVIEW,
     label: 'Overview',
     matchPaths: [APP_ROUTES.WORKSPACE.OVERVIEW, APP_ROUTES.WORKSPACE.ROOT],
-    outline: LayoutGrid,
-    solid: LayoutGrid,
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
   },
   {
     group: '',
