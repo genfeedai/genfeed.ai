@@ -20,6 +20,7 @@ const base = {
 
 function buildService() {
   const records = {
+    assertCanBackfill: vi.fn().mockResolvedValue(undefined),
     createIdempotentCapture: vi.fn(),
     createSource: vi.fn().mockResolvedValue({ id: 'source-1' }),
     createVersion: vi.fn().mockResolvedValue({ id: 'version-1', version: 1 }),
@@ -83,6 +84,12 @@ describe('KnowledgeCaptureService', () => {
       }),
     );
     expect(workflow.enqueueIngest).toHaveBeenCalledWith({
+      initiatingActor: {
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+        isApiKey: false,
+        scopes: [],
+      },
       organizationId: 'org-1',
       sourceId: 'source-1',
       versionId: 'version-1',
@@ -113,6 +120,12 @@ describe('KnowledgeCaptureService', () => {
       expect.stringMatching(/^sha256:/),
     );
     expect(workflow.enqueueIngest).toHaveBeenNthCalledWith(2, {
+      initiatingActor: {
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+        isApiKey: false,
+        scopes: [],
+      },
       organizationId: 'org-1',
       sourceId: 'source-1',
       versionId: 'version-1',
@@ -234,6 +247,12 @@ describe('KnowledgeCaptureService', () => {
       KnowledgeProcessingState.QUEUED,
     );
     expect(workflow.enqueueIngest).toHaveBeenCalledWith({
+      initiatingActor: {
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+        isApiKey: false,
+        scopes: [],
+      },
       organizationId: 'org-1',
       sourceId: 'source-1',
       versionId: 'version-1',
@@ -265,10 +284,16 @@ describe('KnowledgeCaptureService', () => {
   it('queues one tenant-scoped backfill', async () => {
     const { service, workflow } = buildService();
 
-    await expect(service.backfill('org-1')).resolves.toEqual({
+    await expect(service.backfill(actor)).resolves.toEqual({
       jobId: 'backfill-job',
     });
     expect(workflow.enqueueBackfill).toHaveBeenCalledWith({
+      initiatingActor: {
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+        isApiKey: false,
+        scopes: [],
+      },
       organizationId: 'org-1',
     });
   });

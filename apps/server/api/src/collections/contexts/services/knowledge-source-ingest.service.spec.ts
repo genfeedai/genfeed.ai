@@ -169,7 +169,7 @@ describe('KnowledgeSourceIngestService', () => {
       mimeType: 'text/plain',
       text: 'Plans start at $29 per month.',
     });
-    const chunked = service.chunkSource(extracted);
+    const chunked = await service.chunkSource(extracted);
     expect(chunked.chunks).toEqual(['Plans start at $29 per month.']);
 
     await service.replaceChunks(chunked);
@@ -382,7 +382,7 @@ describe('KnowledgeSourceIngestService', () => {
       text: 'Fetched pricing',
     });
 
-    const chunked = service.chunkSource(extracted);
+    const chunked = await service.chunkSource(extracted);
     await service.replaceChunks(chunked);
     await service.finalizeSource(chunked);
 

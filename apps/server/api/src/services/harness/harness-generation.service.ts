@@ -1,4 +1,7 @@
-import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import {
+  type BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
@@ -65,7 +68,12 @@ import {
   type HarnessSourceRecord,
 } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional, type Type } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Optional,
+  type Type,
+} from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 export const HARNESS_MEMORY_LIMIT = 5;
@@ -161,6 +169,7 @@ export class HarnessGenerationService {
     renderSkillSections: SkillRuntimeService['buildSkillPromptSections'],
     learning: BrandLearningApplicationV1,
     learningContribution: ContentHarnessContribution,
+    initiatingActor: BrandAccessActor,
   ): Promise<BrandedGenerationResolutionV1> {
     const [result] = await this.resolveSnapshotBriefWithRecipe(
       input,
@@ -170,6 +179,7 @@ export class HarnessGenerationService {
       renderSkillSections,
       learning,
       learningContribution,
+      initiatingActor,
     );
     return result;
   }
@@ -185,6 +195,7 @@ export class HarnessGenerationService {
       renderSkillSections,
       learning,
       learningContribution,
+      initiatingActor,
     ] = args;
     const parsed = brandedGenerationInputV1Schema.parse(input);
     const identity =
@@ -227,10 +238,12 @@ export class HarnessGenerationService {
           : undefined,
       );
     }
-    await this.brandAccessService.assert(
-      { userId: parsed.actorId, organizationId: parsed.organizationId },
-      parsed.brandId,
-    );
+    if (
+      initiatingActor.userId !== parsed.actorId ||
+      initiatingActor.organizationId !== parsed.organizationId
+    )
+      throw new ForbiddenException('Brand access denied');
+    await this.brandAccessService.assert(initiatingActor, parsed.brandId);
     if (!identity) return compile(null, ['no_approved_revision']);
     if (
       identity.organizationId !== parsed.organizationId ||
@@ -259,7 +272,7 @@ export class HarnessGenerationService {
         ['context_unavailable', skillFailure],
       );
     const [sourceIds, explicitKnowledge, selectionFailure] =
-      await this.resolveSnapshotKnowledgeSelection(parsed);
+      await this.resolveSnapshotKnowledgeSelection(parsed, initiatingActor);
     if (selectionFailure)
       return compile(identity, ['knowledge_unavailable', selectionFailure]);
     const [knowledge, knowledgeDiagnostics, knowledgeFailure] =
@@ -267,6 +280,7 @@ export class HarnessGenerationService {
         parsed,
         sourceIds,
         explicitKnowledge,
+        initiatingActor,
       );
     if (knowledgeFailure)
       return captureSnapshotBriefResolution(
@@ -443,6 +457,7 @@ export class HarnessGenerationService {
 
   private async resolveSnapshotKnowledgeSelection(
     input: BrandedGenerationInputV1,
+    initiatingActor: BrandAccessActor,
   ): Promise<readonly [string[], boolean, string?]> {
     const explicit = Boolean(
       input.knowledgeSourceIds.length || input.knowledgeSpaceIds.length,
@@ -464,6 +479,7 @@ export class HarnessGenerationService {
           input.organizationId,
           input.brandId,
           { spaceIds: [spaceId] },
+          initiatingActor,
         );
         if (!expanded?.knowledgeSourceIds?.length)
           return [[], true, 'knowledge_unavailable'];
@@ -481,6 +497,7 @@ export class HarnessGenerationService {
     input: BrandedGenerationInputV1,
     sourceIds: string[],
     explicit: boolean,
+    initiatingActor: BrandAccessActor,
   ): Promise<SnapshotStageResult> {
     const provider = this.resolveProvider(
       this.knowledgeContentRetrievalService,
@@ -516,7 +533,7 @@ export class HarnessGenerationService {
     try {
       const retrievalInput = {
         organizationId: input.organizationId,
-        userId: input.actorId,
+        ...initiatingActor,
         brandId: input.brandId,
         query: input.originalPrompt,
         limit: HARNESS_MEMORY_LIMIT,

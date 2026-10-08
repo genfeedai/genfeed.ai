@@ -37,7 +37,7 @@ import {
 
 type GenerationMetadata = Pick<
   AuthenticatedUser,
-  'brandId' | 'organizationId' | 'userId'
+  'brandId' | 'organizationId' | 'userId' | 'isApiKey' | 'scopes'
 >;
 @Injectable()
 export class PostDraftGenerationService {
@@ -176,6 +176,7 @@ export class PostDraftGenerationService {
       context.brand.id,
     );
     const outcome = await this.brandedTextGenerationService.generate({
+      initiatingActor: identity,
       input: {
         schemaVersion: 1,
         actorId: identity.userId,
