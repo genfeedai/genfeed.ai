@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  appliesMcpAuthRuntime,
   classifyChangedFiles,
   createPrTestPlan,
   createShardMatrix,
@@ -491,4 +492,31 @@ test('benchmarks shared action changes alongside their conservative full coverag
     createPrTestPlan({ changedFiles: ['docs/testing.md'] }).setupBenchmark,
     false,
   );
+});
+
+test('plans actual MCP authorization independently of unit-file discovery', () => {
+  for (const file of [
+    'apps/server/mcp/src/main.ts',
+    'apps/server/api/src/auth/auth.module.ts',
+    'packages/prisma/prisma/schema.prisma',
+    'apps/app/app/oauth/consent/page.tsx',
+    'scripts/ci/mcp-auth-runtime.mjs',
+    '.github/workflows/ci.yml',
+    '.github/actions/setup-bun-env/action.yml',
+    'bun.lock',
+    'package.json',
+    'patches/transport.patch',
+  ]) {
+    assert.equal(appliesMcpAuthRuntime([file]), true, file);
+    assert.equal(
+      createPrTestPlan({ base: 'master', changedFiles: [file], apiTests: [] })
+        .mcpAuthRuntime,
+      true,
+      file,
+    );
+  }
+  assert.equal(appliesMcpAuthRuntime(['docs/example.md']), false);
+  assert.equal(appliesMcpAuthRuntime(['docs/example.md'], true), true);
+  assert.equal(appliesMcpAuthRuntime(['docs/example.md'], false, true), true);
+  assert.equal(appliesMcpAuthRuntime(undefined), true);
 });

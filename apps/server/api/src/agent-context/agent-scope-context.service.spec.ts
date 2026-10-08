@@ -1,5 +1,7 @@
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { MemberRole } from '@genfeedai/contracts';
 import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
@@ -8,6 +10,15 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { AgentScopeContextService } from './agent-scope-context.service';
+
+const scopeRuntime = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => scopeRuntime.cloud,
+}));
+beforeEach(() => {
+  scopeRuntime.cloud = false;
+});
 
 type ThreadRow = {
   brandId: string | null;
@@ -977,5 +988,97 @@ describe('AgentScopeContextService', () => {
         userId: 'user-1',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('Cloud actor authorization across persisted thread reuse', () => {
+  function fixture() {
+    scopeRuntime.cloud = true;
+    const membership = {
+      role: { key: MemberRole.USER },
+      roleKey: MemberRole.OWNER,
+      brands: [{ id: 'brand-1' }],
+    };
+    const findMember = vi.fn().mockImplementation(async () => membership);
+    const findBrand = vi.fn().mockImplementation(async ({ where }) => {
+      const predicate = where.AND[0];
+      return !predicate.id || predicate.id.in.includes('brand-1')
+        ? { id: 'brand-1' }
+        : null;
+    });
+    const findThread = vi
+      .fn()
+      .mockResolvedValue(makeThread({ brandId: 'brand-1' }));
+    const updateThread = vi.fn();
+    const prisma = {
+      member: { findFirst: findMember },
+      brand: { findFirst: findBrand },
+      agentThread: { findFirst: findThread, updateMany: updateThread },
+      agentMessage: { findFirst: vi.fn() },
+    };
+    const service = new AgentScopeContextService(
+      prisma as never,
+      undefined,
+      brandAccessFixture(prisma as unknown as PrismaService),
+    );
+    return { service, membership, findMember, findBrand, updateThread };
+  }
+  const request = {
+    organizationId: 'org-1',
+    userId: 'user-1',
+    threadId: 'thread-1',
+    expectedContextVersion: 3,
+  };
+
+  it('rechecks assignments when reusing a persisted thread and at the consequential boundary', async () => {
+    const f = fixture();
+    await f.service.prepareForTurn(request);
+    await f.service.assertConsequentialBoundary(makeScope(), 'publish');
+    f.membership.brands = [];
+    await expect(f.service.prepareForTurn(request)).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(
+      f.service.assertConsequentialBoundary(makeScope(), 'publish'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.findMember).toHaveBeenCalledTimes(4);
+    expect(f.updateThread).not.toHaveBeenCalled();
+  });
+
+  it('rechecks canonical role revocation with the same persisted thread context', async () => {
+    const f = fixture();
+    f.membership.role.key = MemberRole.OWNER;
+    f.membership.brands = [];
+    await f.service.assertConsequentialBoundary(makeScope(), 'workflow');
+    f.membership.role.key = MemberRole.USER;
+    await expect(
+      f.service.assertConsequentialBoundary(makeScope(), 'workflow'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.membership.roleKey).toBe(MemberRole.OWNER);
+  });
+
+  it('carries an API-key cap into both thread reuse and dispatch admission', async () => {
+    const f = fixture();
+    f.membership.role.key = MemberRole.OWNER;
+    f.membership.brands = [];
+    await expect(
+      f.service.prepareForTurn({ ...request, isApiKey: true, scopes: [] }),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(
+      f.service.assertConsequentialBoundary(
+        makeScope({ isApiKey: true, scopes: [] }),
+        'workflow',
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.findBrand).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            { organizationId: 'org-1', isDeleted: false, id: { in: [] } },
+            { id: 'brand-1' },
+          ],
+        },
+      }),
+    );
   });
 });

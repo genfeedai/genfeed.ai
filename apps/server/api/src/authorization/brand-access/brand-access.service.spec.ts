@@ -79,6 +79,7 @@ describe('live Cloud member brand policy', () => {
             isDeleted: false,
             isActive: true,
             organization: { isDeleted: false },
+            role: { isDeleted: false },
           },
         }),
       );

@@ -212,6 +212,7 @@ describe('KnowledgeContentRetrievalService', () => {
 
   describe('retrieveSelectedBrandContentMemory', () => {
     const params = {
+      userId: 'user-a',
       brandId: BRAND_A,
       organizationId: 'org-1',
       query: 'pricing',
@@ -504,6 +505,7 @@ describe('KnowledgeContentRetrievalService', () => {
       const { contextBase, service } = buildService();
 
       await service.retrieveBrandKnowledge({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',
@@ -557,6 +559,7 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
 
       const hits = await service.retrieveBrandKnowledge({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',
@@ -593,6 +596,7 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
 
       const hits = await service.retrieveBrandKnowledge({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',

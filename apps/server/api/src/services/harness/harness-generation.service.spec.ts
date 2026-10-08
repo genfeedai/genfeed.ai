@@ -1238,6 +1238,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
         organizationId: 'org',
         brandId: 'brand',
         query: input.originalPrompt,
+        userId: 'user',
         limit: 5,
         minRelevance: 0.65,
       },

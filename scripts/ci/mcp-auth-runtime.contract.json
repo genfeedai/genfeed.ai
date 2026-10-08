@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "family": "brand-access",
+  "database": "genfeed_mcp_auth_runtime_test",
+  "cases": [
+    "B01_REAL_PRINCIPALS",
+    "B02_MCP_ORDINARY_LIST",
+    "B03_MCP_PRIVILEGED_LIST",
+    "B04_KEY_CAP_AND_DIRECT_PARITY",
+    "B05_NONDISCLOSING_POINT_DENIAL",
+    "B06_HEADER_CONTEXT_SPOOF",
+    "B07_WARM_CONTEXT_REVOKE",
+    "B08_EMPTY_ASSIGNMENTS",
+    "B09_MEMBERSHIP_REVOCATION",
+    "B10_ROLE_DOWNGRADE",
+    "B11_PROVIDER_NOT_STARTED",
+    "B12_RECEIPT_AND_CLEANUP"
+  ],
+  "ports": {
+    "api": 3010,
+    "mcp": 3014,
+    "postgres": 5432,
+    "redis": 6379,
+    "notifications": 3011
+  },
+  "deadlinesMs": {
+    "migration": 180000,
+    "api": 120000,
+    "mcp": 60000,
+    "journey": 180000,
+    "overall": 600000
+  }
+}

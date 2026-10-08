@@ -81,6 +81,23 @@ export function classifyChangedFiles(changedFiles) {
   return { api, app, forceFull: false };
 }
 
+export function appliesMcpAuthRuntime(
+  changedFiles,
+  forceAllSurfaces = false,
+  runHeavy = false,
+) {
+  return (
+    forceAllSurfaces ||
+    runHeavy ||
+    !Array.isArray(changedFiles) ||
+    changedFiles.some((file) =>
+      /^(?:apps\/server\/|packages\/|apps\/app\/.*(?:oauth|consent)|scripts\/ci\/|\.github\/(?:workflows\/ci\.yml|actions\/setup-bun-env\/)|(?:package\.json|bun\.lock|turbo\.json|tsconfig[^/]*\.json|Dockerfile[^/]*|patches\/|apps\/server\/Dockerfile))/.test(
+        file,
+      ),
+    )
+  );
+}
+
 export const FULL_SUITE_SHARDS = 4;
 
 export function selectShardCount(testFileCount) {
@@ -238,6 +255,11 @@ export function createPrTestPlan({
 
   return {
     version: 1,
+    mcpAuthRuntime: appliesMcpAuthRuntime(
+      changedFiles,
+      forceAllSurfaces,
+      forceFull,
+    ),
     base,
     changedFiles: [...changedFiles].sort(),
     forceFull,
@@ -405,6 +427,7 @@ function writeOutputs(plan, manifestPath) {
     api: plan.surfaces.api,
     app_tests: plan.appTests.applicable,
     api_tests: plan.apiTests.applicable,
+    mcp_auth_runtime: plan.mcpAuthRuntime,
     app_count: plan.appTests.count,
     api_count: plan.apiTests.count,
     app_matrix: JSON.stringify(plan.appTests.matrix),

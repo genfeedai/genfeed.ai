@@ -250,13 +250,23 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
     expect(enqueueIngest).toHaveBeenCalledTimes(4);
     expect(enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
-      initiatingActor: { organizationId: 'org-a', userId: 'member-a' },
+      initiatingActor: {
+        organizationId: 'org-a',
+        userId: 'member-a',
+        isApiKey: false,
+        scopes: [],
+      },
       sourceId: video.id,
       versionId: video.versions[0]?.id,
     });
     expect(enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
-      initiatingActor: { organizationId: 'org-a', userId: 'member-a' },
+      initiatingActor: {
+        organizationId: 'org-a',
+        userId: 'member-a',
+        isApiKey: false,
+        scopes: [],
+      },
       sourceId: thread.id,
       versionId: thread.versions[0]?.id,
     });

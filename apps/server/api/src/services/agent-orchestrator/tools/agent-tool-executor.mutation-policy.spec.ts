@@ -251,7 +251,10 @@ describe('AgentToolExecutorService mutation policy', () => {
       { content: 'Draft' },
       context({
         brandId: testId('brand'),
-        apiKeyContext: { isApiKey: true, scopes: ['brands:read'] },
+        apiKeyContext: {
+          isApiKey: true,
+          scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
+        },
       }),
     );
     expect(denied.success).toBe(false);

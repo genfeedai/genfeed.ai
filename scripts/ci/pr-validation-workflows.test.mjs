@@ -15,6 +15,8 @@ import './nightly-e2e-failure-reporter.test.mjs';
 import './nightly-playwright-full-failure-reporter.test.mjs';
 import './playwright-full-nightly.test.mjs';
 import './runtime-acceptance.test.mjs';
+import './mcp-auth-runtime.test.mjs';
+import './mcp-auth-network-guard.test.mjs';
 import './scheduled-failure-tracker.test.mjs';
 import './scheduled-suite-ownership.test.mjs';
 
@@ -1732,4 +1734,22 @@ test('runtime acceptance workflows upload plaintext evidence without a public ke
     assert.doesNotMatch(workflow, /evidence\.encrypted\.json/, fileName);
     assert.match(workflow, /public\/evidence\.json/, fileName);
   }
+});
+
+test('MCP real transport job is planned, required and publishes only its sanitized receipt', () => {
+  const workflow = readWorkflow('ci.yml');
+  const runtime = jobBlock(workflow, 'mcp-auth-runtime', 'ci.yml');
+  const gate = jobBlock(workflow, 'tests-gate', 'ci.yml');
+  assert.match(runtime, /if: needs\.plan\.outputs\.mcp_auth_runtime == 'true'/);
+  assert.match(runtime, /timeout-minutes: 20/);
+  assert.match(runtime, /--case-family brand-access/);
+  assert.match(runtime, /--filter=@genfeedai\/api --filter=@genfeedai\/mcp/);
+  assert.match(runtime, /if: always\(\)/);
+  assert.match(runtime, /path:.*report\.json/);
+  assert.match(runtime, /if-no-files-found: error/);
+  assert.match(runtime, /retention-days: 7/);
+  assert.doesNotMatch(runtime, /secrets\.|id-token|\.private\.log/);
+  assert.match(gate, /- mcp-auth-runtime/);
+  assert.match(gate, /PLAN_MCP_AUTH_RUNTIME:/);
+  assert.match(gate, /MCP_AUTH_RUNTIME_RESULT:/);
 });

@@ -201,7 +201,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       ).rejects.toMatchObject({ status: 404 });
       await expect(
         records.purgeVersion(denied, source.id, version.id),
-      ).rejects.toMatchObject({ status: 404 });
+      ).rejects.toMatchObject({ status: denied === otherTenant ? 403 : 404 });
       expect((await records.listSources(denied)).docs).toHaveLength(0);
     }
     const personal = await createSource(KnowledgeMemoryScope.PERSONAL);
@@ -756,7 +756,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         },
         otherTenant.brandId,
       ),
-    ).rejects.toMatchObject({ status: 404 });
+    ).rejects.toMatchObject({ status: 403 });
     const inboxResponse = await spaces.inbox(
       request,
       actor,
