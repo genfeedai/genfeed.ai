@@ -3,6 +3,7 @@ import { currentWorkflowAccountingScope } from '@api/collections/workflow-execut
 import { AgentCadenceExecutionService } from '@api/services/agent-orchestrator/agent-cadence-execution.service';
 import type { PreparedAgentTurnState } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
 import {
+  ActivitySource,
   AgentStrategyRunStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -96,6 +97,14 @@ describe('active cadence workflow execution', () => {
     'accounts for quality charges even when scoring fails (%s)',
     async (fails) => {
       const s = setup();
+      s.credits.deductCreditsFromOrganization.mockImplementation(async () => {
+        expect(currentWorkflowAccountingScope()).toEqual({
+          organizationId: state.organizationId,
+          workflowExecutionId: state.executionId,
+          workflowNodeId: 'agent.turn.execute',
+          workflowOperationId: `cadence:${state.executionId}`,
+        });
+      });
       if (fails)
         s.optimizers.analyzeContent.mockImplementation(
           async (_params, _org, _user, onBilling) => {
@@ -122,6 +131,14 @@ describe('active cadence workflow execution', () => {
           GENERATE_CONTENT_TEXT_CREDITS + 1,
         );
       expect(s.credits.deductCreditsFromOrganization).toHaveBeenCalledOnce();
+      expect(s.credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+        state.organizationId,
+        state.userId,
+        1,
+        'Cadence quality evaluation',
+        ActivitySource.SCRIPT,
+        { brandId: s.strategy.brandId },
+      );
       expect(s.optimizers.analyzeContent).toHaveBeenCalledWith(
         expect.any(Object),
         state.organizationId,
