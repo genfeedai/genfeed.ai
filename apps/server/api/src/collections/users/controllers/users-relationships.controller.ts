@@ -206,7 +206,10 @@ export class UsersRelationshipsController {
     }
 
     const authorizedWhere =
-      await this.brandsService.brandAccessService.predicate(user);
+      await this.brandsService.brandAccessService.predicate({
+        ...user,
+        organizationId: tenant.organizationId,
+      });
     const data = await this.brandsService.findAll(
       {
         include: { credentials: true },

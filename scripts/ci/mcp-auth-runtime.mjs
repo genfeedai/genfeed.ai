@@ -352,7 +352,15 @@ function cleanInputs(source, destination) {
       ) {
         if (entry.isDirectory()) {
           mkdirSync(target, { recursive: true });
-          command('cp', ['-a', '-l', `${file}/.`, target]);
+          // Generated inputs may already exist in the exact git archive.
+          // Replace only destination leaves before linking the built inputs.
+          command('cp', [
+            '-a',
+            '-l',
+            '--remove-destination',
+            `${file}/.`,
+            target,
+          ]);
         }
         continue;
       }
