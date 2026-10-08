@@ -15,8 +15,12 @@ export type PrismaUpdate = Record<string, unknown>;
 export type PopulateInput = (string | PopulateOption)[] | 'none';
 
 type PrismaOrderDirection = 'asc' | 'desc' | number;
-type PrismaOrderByInput = Record<string, PrismaOrderDirection>;
-type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
+type PrismaOrderByInput = {
+  [field: string]: PrismaOrderDirection | PrismaOrderByInput;
+};
+type PrismaOrderBy = {
+  [field: string]: 'asc' | 'desc' | PrismaOrderBy;
+};
 
 export interface PrismaFindAllInput {
   where?: PrismaFilter;
@@ -307,8 +311,21 @@ export class BaseQueryNormalizationAdapter {
       return [{ createdAt: 'desc' }];
     }
 
+    const normalizeDirection = (
+      direction: unknown,
+    ): 'asc' | 'desc' | PrismaOrderBy => {
+      if (this.isPlainObject(direction)) {
+        return Object.fromEntries(
+          Object.entries(direction).map(([field, nestedDirection]) => [
+            field,
+            normalizeDirection(nestedDirection),
+          ]),
+        );
+      }
+      return direction === 1 || direction === 'asc' ? 'asc' : 'desc';
+    };
     const toEntry = ([key, direction]: [string, unknown]): PrismaOrderBy => ({
-      [key]: direction === 1 || direction === 'asc' ? 'asc' : 'desc',
+      [key]: normalizeDirection(direction),
     });
 
     // Prisma's array form preserves deterministic multi-field precedence;
