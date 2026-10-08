@@ -99,9 +99,20 @@ describe('Content learning generation loop (real Postgres)', () => {
     const resolution = await resolve(postId);
     expect(resolution.receipt).toMatchObject({
       mode: 'shadow',
-      baselineId: baseline?.id,
       synthetic: false,
     });
+    // The decision freezes its own baseline from the same twenty contributors.
+    const frozen = await db().prisma.contentLearningBaseline.findFirstOrThrow({
+      where: {
+        id: resolution.receipt.baselineId,
+        organizationId: target.organizationId,
+        isDeleted: false,
+      },
+    });
+    expect(frozen).toMatchObject({ count: 20, validity: 'valid' });
+    expect(new Set(frozen.contributorCheckpointIds)).toEqual(
+      new Set(baseline?.contributorCheckpointIds),
+    );
     expect(resolution.contribution).toEqual({});
     const decision = await db().prisma.contentLearningDecision.findFirstOrThrow(
       {
@@ -205,21 +216,12 @@ describe('Content learning generation loop (real Postgres)', () => {
       postId,
     );
     const checkpoint = await captureLearningLoopPublication(db(), publication);
-    const committed = await db().services.rewards.commitForCheckpoint(
-      target.organizationId,
-      (checkpoint as { id: string }).id,
-    );
-    expect(committed).toMatchObject({
-      status: 'committed',
-      rewardStatus: 'unavailable',
-    });
-    const reward = await db().prisma.contentLearningReward.findFirstOrThrow({
-      where: {
-        id: (committed as { rewardId: string }).rewardId,
-        organizationId: target.organizationId,
-      },
-    });
-    expect(reward.reason).toBe('decision_unbound');
+    expect(
+      await db().services.rewards.commitForCheckpoint(
+        target.organizationId,
+        (checkpoint as { id: string }).id,
+      ),
+    ).toEqual({ status: 'unavailable', reason: 'decision_unbound' });
   }, 180000);
 
   it('censors a candidate edited before approval', async () => {
@@ -246,18 +248,22 @@ describe('Content learning generation loop (real Postgres)', () => {
       ),
     ).toMatchObject({ status: 'censored', reason: 'edited_artifact' });
     const checkpoint = await captureLearningLoopPublication(db(), publication);
-    const committed = await db().services.rewards.commitForCheckpoint(
-      target.organizationId,
-      (checkpoint as { id: string }).id,
-    );
-    expect(committed).toMatchObject({ status: 'committed' });
-    const reward = await db().prisma.contentLearningReward.findFirstOrThrow({
-      where: {
-        id: (committed as { rewardId: string }).rewardId,
-        organizationId: target.organizationId,
-      },
-    });
-    expect(reward.reason).toBe('decision_unbound');
+    expect(
+      await db().services.rewards.commitForCheckpoint(
+        target.organizationId,
+        (checkpoint as { id: string }).id,
+      ),
+    ).toEqual({ status: 'unavailable', reason: 'decision_unbound' });
+    expect(
+      (
+        await db().prisma.contentLearningDecision.findFirstOrThrow({
+          where: {
+            generationId: postId,
+            organizationId: target.organizationId,
+          },
+        })
+      ).censorshipReason,
+    ).toBe('edited_artifact');
   }, 180000);
 
   it('never exposes a decision to another organization', async () => {
