@@ -1,4 +1,5 @@
 import type { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
+import { registerBreakoutResponse } from '@api/collections/outliers/services/breakout-response-identity.util';
 import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { capturePostExposureObservation } from '@api/collections/outliers/services/post-exposure-observation.util';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
@@ -20,6 +21,10 @@ vi.mock(
     loadPostExposurePublication: vi.fn(),
     capturePostExposureObservation: vi.fn(),
   }),
+);
+vi.mock(
+  '@api/collections/outliers/services/breakout-response-identity.util',
+  () => ({ registerBreakoutResponse: vi.fn() }),
 );
 
 function harness() {
@@ -52,15 +57,24 @@ function harness() {
   const upsert = vi.fn(async (_args: Prisma.PostAnalyticsUpsertArgs) => ({
     id: 'daily-a',
   }));
-  const tx = {} as Prisma.TransactionClient;
+  const tx = {
+    outlierConfiguration: { findFirst: vi.fn(async () => null) },
+  } as unknown as Prisma.TransactionClient;
   const transaction = vi.fn(
-    async (fn: (client: Prisma.TransactionClient) => Promise<unknown>) =>
-      fn(tx),
+    async (
+      fn: (client: Prisma.TransactionClient) => Promise<unknown>,
+      _options?: { maxWait: number; timeout: number },
+    ) => fn(tx),
   );
   const capture = vi.mocked(capturePostExposureObservation);
   capture.mockResolvedValue({
     status: 'captured',
     observationId: 'observation-a',
+  });
+  const detect = vi.mocked(registerBreakoutResponse);
+  detect.mockResolvedValue({
+    status: 'evidence_held',
+    reason: 'below_threshold',
   });
   const learningCapture = vi.fn();
   const service = new PostAnalyticsService(
@@ -91,6 +105,7 @@ function harness() {
     tx,
     transaction,
     capture,
+    detect,
     learningCapture,
   };
 }
@@ -132,6 +147,19 @@ describe('PostAnalyticsService prospective capture wiring', () => {
     expect(call).not.toHaveProperty('update.breakoutExposures');
     expect(call).not.toHaveProperty('create.learningMetrics');
     expect(h.learningCapture).not.toHaveBeenCalled();
+    expect(h.detect).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({
+        targetObservationId: 'observation-a',
+        metric: 'impressions',
+        organizationId: h.source.organizationId,
+        credentialId: h.source.credentialId,
+      }),
+    );
+    expect(h.transaction).toHaveBeenCalledWith(expect.any(Function), {
+      maxWait: 10_000,
+      timeout: 60_000,
+    });
   });
   it('cannot use a generic exposure source to enter experimental learning', async () => {
     const h = harness();
@@ -196,5 +224,19 @@ describe('PostAnalyticsService prospective capture wiring', () => {
     );
     expect(h.upsert).toHaveBeenCalledOnce();
     expect(h.capture).not.toHaveBeenCalled();
+    expect(h.detect).not.toHaveBeenCalled();
+  });
+  it('propagates detection failure so capture and detection cannot commit separately', async () => {
+    const h = harness();
+    h.detect.mockResolvedValue({ status: 'receipt_conflict' });
+    await expect(
+      h.service.processTwitterAnalytics(
+        h.source.postId,
+        new TwitterResponseMapper().mapAnalytics({
+          data: [{ organic_metrics: { impression_count: 1000 } }],
+        }),
+        h.context,
+      ),
+    ).rejects.toThrow('Breakout detection held: receipt_conflict');
   });
 });

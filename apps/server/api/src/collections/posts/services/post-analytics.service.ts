@@ -8,11 +8,9 @@ import {
   parseLearningPublicationSourceV1,
   resolveLearningPublicationSourceV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
+import { captureAndDetectPostExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
-import {
-  capturePostExposureObservation,
-  loadPostExposurePublication,
-} from '@api/collections/outliers/services/post-exposure-observation.util';
+import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
 import { type PostDocument } from '@api/collections/posts/post.schema';
@@ -123,14 +121,17 @@ export class PostAnalyticsService extends BaseService<
       fromPrismaCredentialPlatform(platform),
     );
     const exposures = mapBreakoutExposureMetrics(metrics, source.platform);
-    const result = await this.prisma.$transaction((tx) =>
-      capturePostExposureObservation(tx, {
-        ...observation,
-        exposures,
-        isPinned: metrics.isPinned ?? metrics.learningMetrics?.isPinned ?? null,
-        isPromoted:
-          metrics.isPromoted ?? metrics.learningMetrics?.isPaid ?? null,
-      }),
+    const result = await this.prisma.$transaction(
+      (tx) =>
+        captureAndDetectPostExposureObservation(tx, {
+          ...observation,
+          exposures,
+          isPinned:
+            metrics.isPinned ?? metrics.learningMetrics?.isPinned ?? null,
+          isPromoted:
+            metrics.isPromoted ?? metrics.learningMetrics?.isPaid ?? null,
+        }),
+      { maxWait: 10_000, timeout: 60_000 },
     );
     if (result.status !== 'captured' && result.status !== 'replayed')
       throw new Error(`Exposure observation held: ${result.status}`);
