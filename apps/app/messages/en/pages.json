@@ -66,6 +66,9 @@
         "upstream_error": "Website traffic is temporarily unavailable. Try again shortly."
       },
       "methodology": "Recorded pageviews, including repeat visits, internal and automated traffic. Resource actions include skill links, install command copies, Skills Pro, agent and MCP setup. Daily totals use UTC; today is partial. Data is limited by analytics retention and collection."
+    },
+    "edit": {
+      "category": "Category"
     }
   },
   "analytics": {
@@ -1918,7 +1921,10 @@
       },
       "notFound": "Post not found",
       "title": "Post detail",
-      "tweetFieldLabel": "Post"
+      "tweetFieldLabel": "Post",
+      "composerLabel": "Post composer",
+      "contentLabel": "Content",
+      "choosePlatform": "Choose a platform to preview this post."
     },
     "list": {
       "channelCount": "{count, plural, one {# channel} other {# channels}}",
@@ -2763,7 +2769,8 @@
       "retryFailed": "Could not start {count, plural, one {# retry} other {# retries}}.",
       "scopeChanged": "The Library scope changed. Review the current failures and try again.",
       "reviewUnavailable": "Saved inputs could not be opened in Studio. Inspect this asset for details."
-    }
+    },
+    "scrollTable": "Scroll table horizontally"
   },
   "onboarding": {
     "brand": {
@@ -3463,6 +3470,10 @@
       "deleteEdge": "Delete edge",
       "pauseEdge": "Pause edge",
       "resumeEdge": "Resume edge"
+    },
+    "surfaceInspector": {
+      "executionNotFound": "Execution Not Found",
+      "executionNotFoundDescription": "The execution run you're looking for doesn't exist."
     }
   },
   "models": {

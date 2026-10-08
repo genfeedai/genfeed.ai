@@ -110,6 +110,7 @@ export default function AppTable<T>({
   getRowClassName,
   label,
   ariaLabel,
+  scrollAriaLabel,
   description,
   emptyLabel = EMPTY_STATES.DEFAULT,
   emptyDescription,
@@ -372,7 +373,7 @@ export default function AppTable<T>({
         <div
           {...(enableDragScroll
             ? {
-                'aria-label': 'Scroll table horizontally',
+                'aria-label': scrollAriaLabel ?? ariaLabel ?? label,
                 role: 'region',
                 tabIndex: 0,
               }

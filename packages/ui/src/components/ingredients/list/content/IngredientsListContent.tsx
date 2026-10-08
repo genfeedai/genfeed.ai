@@ -762,6 +762,7 @@ export default function IngredientsListContent({
         <AppTable
           density="compact"
           enableDragScroll
+          scrollAriaLabel={translate('scrollTable')}
           items={filteredIngredients}
           isLoading={isLoading}
           columns={columns}
@@ -880,6 +881,7 @@ export default function IngredientsListContent({
               <AppTable
                 density="compact"
                 enableDragScroll
+                scrollAriaLabel={translate('scrollTable')}
                 items={nonVisualIngredients}
                 isLoading={false}
                 columns={columns}
@@ -902,6 +904,7 @@ export default function IngredientsListContent({
       <AppTable
         density="compact"
         enableDragScroll
+        scrollAriaLabel={translate('scrollTable')}
         items={filteredIngredients}
         isLoading={isLoading}
         columns={columns}

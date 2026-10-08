@@ -671,6 +671,7 @@
       "saving": "Saving\u2026"
     },
     "profile": {
+      "appearanceAriaLabel": "Appearance",
       "fields": {
         "email": "Email",
         "name": "Name",

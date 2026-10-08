@@ -49,6 +49,8 @@ export interface TableProps<T> {
   density?: 'comfortable' | 'compact';
   /** Mouse drag scrolling. Uses a horizontal scrollport instead of viewport-pinned headers. */
   enableDragScroll?: boolean;
+  /** Localized accessible name for the optional horizontal scroll region. */
+  scrollAriaLabel?: string;
 
   getRowKey?: (item: T, index: number) => Key;
   getRowClassName?: (item: T) => string;

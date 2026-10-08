@@ -227,7 +227,7 @@ export default function SettingsProfilePage() {
           value={selectedTheme}
         >
           <SelectTrigger
-            aria-label="Appearance"
+            aria-label={translate('settings.profile.appearanceAriaLabel')}
             id="personal-appearance"
             className="w-full"
             data-testid="personal-appearance-trigger"
