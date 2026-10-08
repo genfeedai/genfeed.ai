@@ -102,7 +102,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
       <PopoverContent
         align={align}
-        avoidCollisions={false}
+        avoidCollisions
         className={cn(
           overlayMenuSurfaceClassName,
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg p-0',
