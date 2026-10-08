@@ -209,6 +209,35 @@ describe('CommandPaletteService', () => {
       expect(ids).toContain('unique-xyz');
     });
 
+    it('does not match unrelated commands solely because they have priority', () => {
+      CommandPaletteService.registerCommands([
+        makeCommand('workspace', 'Go to Workspace', { priority: 100 }),
+        makeCommand('studio', 'Go to Studio', { priority: 10 }),
+      ]);
+
+      expect(
+        CommandPaletteService.searchCommands('qanoresults20261008'),
+      ).toEqual([]);
+      expect(
+        CommandPaletteService.searchCommands('studio').map(
+          (command) => command.id,
+        ),
+      ).toEqual(['studio']);
+    });
+
+    it('uses priority to rank commands that both match the query', () => {
+      CommandPaletteService.registerCommands([
+        makeCommand('low', 'Open Studio', { priority: 1 }),
+        makeCommand('high', 'Open Studio', { priority: 10 }),
+      ]);
+
+      expect(
+        CommandPaletteService.searchCommands('studio').map(
+          (command) => command.id,
+        ),
+      ).toEqual(['high', 'low']);
+    });
+
     it('excludes commands whose condition() returns false', () => {
       CommandPaletteService.registerCommands([
         makeCommand('hidden', 'Hidden Command', { condition: () => false }),
