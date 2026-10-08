@@ -71,6 +71,7 @@ export function writeDiagnosticEvidence(
       const final = Boolean(report.finalLogScannedAt);
       const snapshot = collectCausalEvidence(report, directory, {
         final,
+        requireIsolated: true,
         actors: DIAGNOSTIC_ACTORS,
         phases: DIAGNOSTIC_PHASES,
       });

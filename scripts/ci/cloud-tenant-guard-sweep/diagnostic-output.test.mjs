@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   existsSync,
@@ -9,7 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { writeDiagnosticEvidence } from './diagnostic-output.mjs';
 import { MAIL_REASONS, zeroMailStats } from './local-mail-stub.mjs';
@@ -303,7 +304,7 @@ test('finalization refreshes partial owned observations into complete stopped ev
     tenantFailuresVersion: 1,
   };
   const file = join(f.directory, 'api-observations.ndjson');
-  writeFileSync(file, `${JSON.stringify(header)}\n`, { mode: 0o600 });
+  writeIsolatedFixture(file, `${JSON.stringify(header)}\n`, { mode: 0o600 });
   f.write();
   assert.equal(f.summary().causalEvidence.quality, 'partial');
   assert.equal(f.saved().hasFailed, false);
@@ -323,7 +324,10 @@ test('finalization refreshes partial owned observations into complete stopped ev
     databaseIncomplete: 0,
     tenantFailures: 0,
   };
-  writeFileSync(file, `${JSON.stringify(header)}\n${JSON.stringify(footer)}\n`);
+  writeIsolatedFixture(
+    file,
+    `${JSON.stringify(header)}\n${JSON.stringify(footer)}\n`,
+  );
   writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
   f.report.finalLogScannedAt = new Date().toISOString();
   f.write();
@@ -378,7 +382,7 @@ for (const scenario of [
       databaseIncomplete: 0,
       tenantFailures: 0,
     };
-    writeFileSync(
+    writeIsolatedFixture(
       join(f.directory, 'api-observations.ndjson'),
       `${JSON.stringify(header)}\n${scenario === 'missing lifecycle' ? '' : `${JSON.stringify(footer)}\n`}`,
       { mode: 0o600 },
@@ -647,7 +651,7 @@ for (const missing of ['none', 'footer', 'stopped', 'mail refusal'])
       databaseIncomplete: 0,
       tenantFailures: 0,
     };
-    writeFileSync(
+    writeIsolatedFixture(
       join(f.directory, 'api-observations.ndjson'),
       `${JSON.stringify(header)}\n${missing === 'footer' ? '' : `${JSON.stringify(footer)}\n`}`,
       { mode: 0o600 },
@@ -811,7 +815,7 @@ test('finalization durably retains failed-sample offsets and keeps sampler failu
       tenantFailures: 0,
     },
   ];
-  writeFileSync(
+  writeIsolatedFixture(
     join(f.directory, 'api-observations.ndjson'),
     `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
     { mode: 0o600 },
@@ -879,7 +883,7 @@ for (const mode of ['positive', 'legacy', 'zero'])
         ? {}
         : { tenantFailures: mode === 'positive' ? 1 : 0 }),
     });
-    writeFileSync(
+    writeIsolatedFixture(
       join(f.directory, 'api-observations.ndjson'),
       `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
       { mode: 0o600 },
@@ -911,3 +915,144 @@ for (const mode of ['positive', 'legacy', 'zero'])
     assert.equal(f.summary().tenantEvidence.logHits, 0);
     assert.equal(f.summary().tenantEvidence.responseHits, 0);
   });
+
+function writeIsolatedFixture(file, text, options = { mode: 0o600 }) {
+  const records = text
+      .trimEnd()
+      .split('\n')
+      .map((line) => JSON.parse(line)),
+    directory = dirname(file),
+    binding = {
+      version: 1,
+      producer: 'api',
+      runNonce: 'b'.repeat(32),
+      sourceSha: 'a'.repeat(40),
+    };
+  const header = { ...records[0], databaseSampler: binding },
+    footer = records.at(-1)?.kind === 'footer' ? records.at(-1) : null;
+  if (!footer) {
+    writeFileSync(
+      file,
+      `${JSON.stringify(header)}\n${records
+        .slice(1)
+        .map((r) => `${JSON.stringify(r)}\n`)
+        .join('')}`,
+      options,
+    );
+    return;
+  }
+  const dbRecords = records
+      .filter((r) => r.kind === 'database')
+      .map((r) => (r.outcome === 'success' ? { diagnostic: null, ...r } : r)),
+    apiRecords = records.slice(1, -1).filter((r) => r.kind !== 'database');
+  const apiFooter = {
+    ...footer,
+    records: footer.records - dbRecords.length,
+    databaseSamples: footer.databaseSamples - dbRecords.length,
+    databaseIncomplete: 0,
+    databaseWorker: {
+      readyObservedAt: header.startedAt,
+      stopRequestedAt: footer.endedAt,
+      stopCompletedAt: footer.endedAt,
+      state: 'complete',
+    },
+  };
+  const dbHeader = {
+    kind: 'header',
+    protocol: 1,
+    startedAt: header.startedAt,
+    tenantFailuresVersion: 1,
+    databaseSampler: { ...binding, producer: 'database' },
+  };
+  const dbFooter = {
+    ...footer,
+    records: dbRecords.length + 1,
+    ingress: 0,
+    pipelineEntries: 0,
+    finishes: 0,
+    closes: 0,
+    invalidSequences: 0,
+    duplicateSequences: 0,
+    runtimeSamples: 0,
+    databaseSamples: dbRecords.length,
+    tenantFailures: 0,
+  };
+  delete dbFooter.databaseWorker;
+  const dbText = `${[dbHeader, ...dbRecords, dbFooter]
+    .map((r) => JSON.stringify(r))
+    .join('\n')}\n`;
+  writeFileSync(join(directory, 'database-observations.ndjson'), dbText, {
+    mode: 0o600,
+  });
+  const seal = {
+    version: 1,
+    runNonce: binding.runNonce,
+    sourceSha: binding.sourceSha,
+    state: 'complete',
+    readyAt: header.startedAt,
+    stopReceivedAt: footer.endedAt,
+    sealedAt: footer.endedAt,
+    bytes: Buffer.byteLength(dbText),
+    records: dbRecords.length + 2,
+    sha256: createHash('sha256').update(dbText).digest('hex'),
+  };
+  writeFileSync(
+    join(directory, 'database-observations.seal.json'),
+    `${JSON.stringify(seal)}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(
+    file,
+    `${[header, ...apiRecords, apiFooter]
+      .map((r) => JSON.stringify(r))
+      .join('\n')}\n`,
+    options,
+  );
+}
+
+test('current finalization requires independent sealed worker and preserves unavailable failure twice', (context) => {
+  const previous = Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+  Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
+  context.after(() => {
+    if (previous === undefined)
+      Reflect.deleteProperty(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+    else Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', previous);
+  });
+  const f = fixture(context),
+    at = 100;
+  const records = [
+    { kind: 'header', protocol: 1, startedAt: at, tenantFailuresVersion: 1 },
+    {
+      kind: 'footer',
+      endedAt: 200,
+      unavailable: false,
+      records: 1,
+      ingress: 0,
+      pipelineEntries: 0,
+      finishes: 0,
+      closes: 0,
+      invalidSequences: 0,
+      duplicateSequences: 0,
+      runtimeSamples: 0,
+      databaseSamples: 0,
+      databaseIncomplete: 0,
+      tenantFailures: 0,
+    },
+  ];
+  writeIsolatedFixture(
+    join(f.directory, 'api-observations.ndjson'),
+    `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+  );
+  writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  f.report.finalLogScannedAt = new Date().toISOString();
+  f.write();
+  assert.equal(f.saved().hasFailed, false);
+  rmSync(join(f.directory, 'database-observations.seal.json'));
+  for (let repeat = 0; repeat < 2; repeat++) {
+    f.write();
+    assert.equal(f.saved().hasFailed, true);
+    assert.equal(f.summary().causalEvidence.quality, 'incomplete');
+    assert.equal(f.summary().causalEvidence.reasons.invalidSchema, 1);
+    assert.equal(f.summary().causalEvidence.tenantFailures.available, false);
+  }
+});

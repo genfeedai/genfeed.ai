@@ -17,6 +17,7 @@ import {
   validateObservationRecord,
   WAITS,
 } from './api-observer-core.mjs';
+import { readIsolatedSampler } from './database-sampler-core.mjs';
 import { validateRunDirectory } from './local-mail-stub.mjs';
 import {
   MAX_TENANT_FAILURES,
@@ -1393,6 +1394,26 @@ export function collectCausalEvidence(report, directory, options = {}) {
       .trimEnd()
       .split('\n')
       .map((line) => JSON.parse(line));
+    if (options.requireIsolated || records[0]?.databaseSampler) {
+      const isolated = readIsolatedSampler(
+        directory,
+        Buffer.from(text),
+        report.sourceSha,
+        { final: options.final },
+      );
+      const apiProof = joinCausalEvidence(report, isolated.api, {
+        ...options,
+        stopped: true,
+      });
+      if (
+        apiProof.reasons.invalidSchema ||
+        apiProof.reasons.clockRegression ||
+        apiProof.reasons.duplicateSequence ||
+        apiProof.reasons.capacityExceeded
+      )
+        throw new Error('Invalid API producer');
+      records = isolated.records;
+    }
   } catch {
     readFailure = true;
   }

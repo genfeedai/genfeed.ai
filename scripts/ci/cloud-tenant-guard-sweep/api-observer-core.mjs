@@ -252,6 +252,12 @@ export function validateObservationRecord(record) {
     Object.hasOwn(record, 'tenantFailuresVersion')
       ? ['tenantFailuresVersion']
       : []),
+    ...(record.kind === 'header' && Object.hasOwn(record, 'databaseSampler')
+      ? ['databaseSampler']
+      : []),
+    ...(record.kind === 'footer' && Object.hasOwn(record, 'databaseWorker')
+      ? ['databaseWorker']
+      : []),
     ...(record.kind === 'footer' && Object.hasOwn(record, 'tenantFailures')
       ? ['tenantFailures']
       : []),
@@ -263,6 +269,36 @@ export function validateObservationRecord(record) {
       ? CONNECTION_FIELDS
       : []),
   ]);
+  if (Object.hasOwn(record, 'databaseSampler')) {
+    exact(record.databaseSampler, [
+      'version',
+      'producer',
+      'runNonce',
+      'sourceSha',
+    ]);
+    const b = record.databaseSampler;
+    if (
+      b.version !== 1 ||
+      !['api', 'database'].includes(b.producer) ||
+      !/^[a-f0-9]{32}$/.test(b.runNonce) ||
+      !/^[a-f0-9]{40}$/.test(b.sourceSha)
+    )
+      throw new Error('Invalid sampler binding');
+  }
+  if (Object.hasOwn(record, 'databaseWorker')) {
+    exact(record.databaseWorker, [
+      'readyObservedAt',
+      'stopRequestedAt',
+      'stopCompletedAt',
+      'state',
+    ]);
+    for (const key of ['readyObservedAt', 'stopRequestedAt', 'stopCompletedAt'])
+      safe(record.databaseWorker[key]);
+    if (
+      !['complete', 'failed', 'timeout'].includes(record.databaseWorker.state)
+    )
+      throw new Error('Invalid worker state');
+  }
   for (const key of ['at', 'startedAt', 'endedAt', 'start', 'end'])
     if (Object.hasOwn(record, key)) safe(record[key]);
   if (Object.hasOwn(record, 'start') && record.end < record.start)
@@ -416,6 +452,9 @@ export function createApiObserver({
   close = () => {},
   now = Date.now,
   pool,
+  producer = 'combined',
+  databaseSampler,
+  databaseWorker,
   setIntervalImpl = setInterval,
   clearIntervalImpl = clearInterval,
   monitor,
@@ -424,6 +463,10 @@ export function createApiObserver({
   maxBytes = MAX_BYTES,
   maxRecords = MAX_RECORDS,
 }) {
+  if (!['combined', 'api', 'database'].includes(producer))
+    throw new Error('Invalid observer producer');
+  const apiEnabled = producer !== 'database',
+    databaseEnabled = producer !== 'api';
   const counts = {
     records: 0,
     ingress: 0,
@@ -488,16 +531,18 @@ export function createApiObserver({
     connectionGeneration++;
   };
   if (
-    typeof pool?.on !== 'function' ||
-    typeof pool?.removeListener !== 'function'
+    databaseEnabled &&
+    (typeof pool?.on !== 'function' ||
+      typeof pool?.removeListener !== 'function')
   )
     mark();
-  else pool.on('connect', connectionListener);
+  else if (databaseEnabled) pool.on('connect', connectionListener);
   emit({
     kind: 'header',
     protocol: 1,
     startedAt: last,
     tenantFailuresVersion: 1,
+    ...(databaseSampler ? { databaseSampler } : {}),
   });
   const guard = (run) => {
     try {
@@ -636,9 +681,10 @@ export function createApiObserver({
     pipelineFinalize: (request, entry) =>
       event(request, 'pipelineFinalize', entry),
   };
-  monitor?.enable();
-  const runtimeTick = () =>
-    guard(() => {
+  if (apiEnabled) monitor?.enable();
+  const runtimeTick = () => {
+    if (!apiEnabled) throw new Error('Runtime producer disabled');
+    return guard(() => {
       if (counts.runtimeSamples >= 900) {
         mark();
         return;
@@ -669,8 +715,11 @@ export function createApiObserver({
       counts.runtimeSamples++;
       emit(record);
     });
-  const databaseTick = () =>
-    guard(() => {
+  };
+  let pendingQuery;
+  const databaseTick = () => {
+    if (!databaseEnabled) throw new Error('Database producer disabled');
+    return guard(() => {
       if (counts.databaseSamples >= 450) {
         mark();
         return;
@@ -701,7 +750,7 @@ export function createApiObserver({
               ? 'reconnect'
               : 'unknown';
       busy = true;
-      Promise.resolve()
+      pendingQuery = Promise.resolve()
         .then(() => pool.query(DATABASE_QUERY))
         .then(
           ({ rows }) => {
@@ -751,27 +800,46 @@ export function createApiObserver({
           busy = false;
         });
     });
+  };
   const timers = [
-    setIntervalImpl(runtimeTick, 1000),
-    setIntervalImpl(databaseTick, 2000),
+    ...(apiEnabled ? [setIntervalImpl(runtimeTick, 1000)] : []),
+    ...(databaseEnabled ? [setIntervalImpl(databaseTick, 2000)] : []),
   ];
   for (const timer of timers) timer?.unref?.();
   return {
-    observer,
+    observer: apiEnabled ? observer : undefined,
     runtimeTick,
     databaseTick,
-    stop: () => {
+    drain: async () => {
+      if (producer !== 'database')
+        throw new Error('Database drain producer disabled');
+      for (const timer of timers) clearIntervalImpl(timer);
+      await pendingQuery;
+      await pool.end();
+    },
+    markUnavailable: mark,
+    stop: ({ poolEnded = false } = {}) => {
       if (stopped) return;
       for (const timer of timers) clearIntervalImpl(timer);
-      monitor?.disable();
-      pool?.removeListener?.('connect', connectionListener);
+      if (apiEnabled) monitor?.disable();
+      if (databaseEnabled)
+        pool?.removeListener?.('connect', connectionListener);
       if (busy) counts.databaseIncomplete = 1;
       try {
-        pool?.end()?.catch?.(mark);
+        if (databaseEnabled && !poolEnded) pool?.end()?.catch?.(mark);
       } catch {
         mark();
       }
-      emit({ kind: 'footer', endedAt: now(), unavailable, ...counts }, true);
+      emit(
+        {
+          kind: 'footer',
+          endedAt: now(),
+          unavailable,
+          ...counts,
+          ...(databaseWorker ? { databaseWorker: databaseWorker() } : {}),
+        },
+        true,
+      );
       stopped = true;
       try {
         close();

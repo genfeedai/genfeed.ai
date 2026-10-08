@@ -911,3 +911,42 @@ test('unsafe tenant producer enums never serialize canaries', async () => {
   assert.equal(f.lines.at(-1).tenantFailures, 0);
   assert.doesNotMatch(JSON.stringify(f.lines), /secret-/);
 });
+
+test('same-thread negative control: loaded sampler cannot complete while main is busy', () => {
+  const core = new URL('./api-observer-core.mjs', import.meta.url).href;
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `
+    import {EventEmitter} from 'node:events';
+    import {Worker} from 'node:worker_threads';
+    import {performance} from 'node:perf_hooks';
+    import {createApiObserver,DATABASE_QUERY,POOL_OPTIONS} from ${JSON.stringify(core)};
+    const flags=new SharedArrayBuffer(8),state=new Int32Array(flags),lines=[];
+    const worker=new Worker('const {workerData,parentPort}=require("node:worker_threads");const s=new Int32Array(workerData);Atomics.store(s,1,1);Atomics.notify(s,1);parentPort.close();',{eval:true,env:{},execArgv:[],workerData:flags});
+    while(!Atomics.load(state,1)) Atomics.wait(state,1,0,100);
+    let calls=0;
+    const pool=Object.assign(new EventEmitter(),{idleCount:1,totalCount:1,end:async()=>{},query:query=>{if(query!==DATABASE_QUERY||POOL_OPTIONS.query_timeout!==750)throw Error('prerequisite');calls++;return new Promise(resolve=>setTimeout(()=>resolve({rows:[]}),20));}});
+    const instance=createApiObserver({pool,write:line=>{const record=JSON.parse(line);lines.push(record);if(record.kind==='database')Atomics.store(state,0,1);},setIntervalImpl:()=>({unref(){}}),clearIntervalImpl:()=>{}});
+    instance.databaseTick(); await Promise.resolve();
+    const end=performance.now()+900;while(performance.now()<end){}
+    const whileBusy=Atomics.load(state,0);await new Promise(resolve=>setTimeout(resolve,30));instance.stop();
+    console.log(JSON.stringify({loaded:typeof createApiObserver==='function',independentWorkerReady:Atomics.load(state,1)===1,calls,completedAfterBusy:lines.some(r=>r.kind==='database'&&r.outcome==='success'),whileBusy}));
+  `,
+    ],
+    { encoding: 'utf8', timeout: 5000 },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  const proof = JSON.parse(result.stdout);
+  assert.equal(proof.loaded, true);
+  assert.equal(proof.independentWorkerReady, true);
+  assert.equal(proof.calls, 1);
+  assert.equal(proof.completedAfterBusy, true);
+  assert.equal(
+    proof.whileBusy,
+    0,
+    'same-thread sampler cannot complete while main is busy',
+  );
+});

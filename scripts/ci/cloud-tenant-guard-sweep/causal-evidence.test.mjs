@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import {
   chmodSync,
@@ -8,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { createApiObserver } from './api-observer-core.mjs';
 import {
@@ -1224,4 +1225,169 @@ test('independent sampler failure cannot erase valid actual-throw attribution', 
       count: 1,
     },
   ]);
+});
+
+function writeIsolatedFixture(file, text, options = { mode: 0o600 }) {
+  const records = text
+      .trimEnd()
+      .split('\n')
+      .map((line) => JSON.parse(line)),
+    directory = dirname(file),
+    binding = {
+      version: 1,
+      producer: 'api',
+      runNonce: 'b'.repeat(32),
+      sourceSha: 'a'.repeat(40),
+    };
+  const header = { ...records[0], databaseSampler: binding },
+    footer = records.at(-1)?.kind === 'footer' ? records.at(-1) : null;
+  if (!footer) {
+    writeFileSync(
+      file,
+      `${JSON.stringify(header)}\n${records
+        .slice(1)
+        .map((r) => `${JSON.stringify(r)}\n`)
+        .join('')}`,
+      options,
+    );
+    return;
+  }
+  const dbRecords = records
+      .filter((r) => r.kind === 'database')
+      .map((r) => (r.outcome === 'success' ? { diagnostic: null, ...r } : r)),
+    apiRecords = records.slice(1, -1).filter((r) => r.kind !== 'database');
+  const apiFooter = {
+    ...footer,
+    records: footer.records - dbRecords.length,
+    databaseSamples: footer.databaseSamples - dbRecords.length,
+    databaseIncomplete: 0,
+    databaseWorker: {
+      readyObservedAt: header.startedAt,
+      stopRequestedAt: footer.endedAt,
+      stopCompletedAt: footer.endedAt,
+      state: 'complete',
+    },
+  };
+  const dbHeader = {
+    kind: 'header',
+    protocol: 1,
+    startedAt: header.startedAt,
+    tenantFailuresVersion: 1,
+    databaseSampler: { ...binding, producer: 'database' },
+  };
+  const dbFooter = {
+    ...footer,
+    records: dbRecords.length + 1,
+    ingress: 0,
+    pipelineEntries: 0,
+    finishes: 0,
+    closes: 0,
+    invalidSequences: 0,
+    duplicateSequences: 0,
+    runtimeSamples: 0,
+    databaseSamples: dbRecords.length,
+    tenantFailures: 0,
+  };
+  delete dbFooter.databaseWorker;
+  const dbText = `${[dbHeader, ...dbRecords, dbFooter]
+    .map((r) => JSON.stringify(r))
+    .join('\n')}\n`;
+  writeFileSync(join(directory, 'database-observations.ndjson'), dbText, {
+    mode: 0o600,
+  });
+  const seal = {
+    version: 1,
+    runNonce: binding.runNonce,
+    sourceSha: binding.sourceSha,
+    state: 'complete',
+    readyAt: header.startedAt,
+    stopReceivedAt: footer.endedAt,
+    sealedAt: footer.endedAt,
+    bytes: Buffer.byteLength(dbText),
+    records: dbRecords.length + 2,
+    sha256: createHash('sha256').update(dbText).digest('hex'),
+  };
+  writeFileSync(
+    join(directory, 'database-observations.seal.json'),
+    `${JSON.stringify(seal)}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(
+    file,
+    `${[header, ...apiRecords, apiFooter]
+      .map((r) => JSON.stringify(r))
+      .join('\n')}\n`,
+    options,
+  );
+}
+
+test('current isolated proof conserves historical lifecycle and keeps private binding out of public evidence', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'isolated-causal-'));
+  chmodSync(directory, 0o700);
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const f = fixture();
+  f.report.sourceSha = 'a'.repeat(40);
+  Object.assign(
+    f.records.find((r) => r.kind === 'database'),
+    {
+      connectionStateAtStart: 'initial',
+      connectionGenerationBefore: 0,
+      connectionGenerationAfter: 1,
+      diagnostic: null,
+    },
+  );
+  const file = join(directory, 'api-observations.ndjson');
+  writeIsolatedFixture(
+    file,
+    `${f.records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+  );
+  writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  const actual = collectCausalEvidence(f.report, directory, {
+    ...options,
+    requireIsolated: true,
+  });
+  assert.equal(actual.evidence.quality, 'complete');
+  assert.equal(actual.evidence.conservation.clientAttempts, 8);
+  assert.equal(actual.evidence.database.measuredSamples, 1);
+  const encoded = JSON.stringify(actual.evidence);
+  for (const forbidden of [
+    'runNonce',
+    'databaseWorker',
+    'databaseSampler',
+    'readyAt',
+    'stopReceivedAt',
+    'sha256',
+    directory,
+  ])
+    assert.equal(encoded.includes(forbidden), false);
+  f.report.sourceSha = 'c'.repeat(40);
+  assert.equal(
+    collectCausalEvidence(f.report, directory, {
+      ...options,
+      requireIsolated: true,
+    }).evidence.quality,
+    'incomplete',
+  );
+});
+test('explicit historical collector stays readable but current mode cannot promote inline evidence', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'historical-causal-'));
+  chmodSync(directory, 0o700);
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const f = fixture();
+  writeFileSync(
+    join(directory, 'api-observations.ndjson'),
+    `${f.records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  assert.equal(
+    collectCausalEvidence(f.report, directory, options).evidence.quality,
+    'complete',
+  );
+  const current = collectCausalEvidence(f.report, directory, {
+    ...options,
+    requireIsolated: true,
+  });
+  assert.equal(current.evidence.quality, 'incomplete');
+  assert.equal(current.evidence.reasons.invalidSchema, 1);
 });
