@@ -1,7 +1,14 @@
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+  createPublishingPostsFilterRoute,
+  isPersonalSettingsPath,
+  parseScopedAppPath,
+} from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
@@ -45,7 +52,12 @@ const UNSCOPED_ROUTE_PREFIXES = new Set([
 const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
   '/calendar': APP_ROUTES.PUBLISHING.CALENDAR,
   '/calendar/posts': APP_ROUTES.PUBLISHING.CALENDAR,
-  '/drafts': '/publishing/posts?publicationState=not-posted',
+  '/drafts': createPublishingPostsFilterRoute({
+    publicationState: 'not-posted',
+  }),
+  '/content/posts': APP_ROUTES.PUBLISHING.POSTS,
+  '/content/articles': `${APP_ROUTES.PUBLISHING.POSTS}?type=article`,
+  '/overview': APP_ROUTES.WORKSPACE.OVERVIEW,
   '/review': APP_ROUTES.PUBLISHING.REVIEW,
 };
 
@@ -170,7 +182,19 @@ export class AgentRouteRewriteService {
     }
 
     const { path: rawPath, suffix: rawSuffix } = this.splitHrefSuffix(href);
-    const rewrite = LEGACY_INTERNAL_PATH_REWRITES[rawPath];
+    const isAlreadyScoped = rawPath.startsWith(`/${slugs.orgSlug}/`);
+    const existingScope = parseScopedAppPath(rawPath);
+    const appPath = isAlreadyScoped
+      ? `/${rawPath.split('/').filter(Boolean).slice(2).join('/')}`
+      : rawPath;
+    const contentDetail = appPath.match(
+      /^\/content\/(?:posts|articles)\/(.+)$/,
+    );
+    const rewrite =
+      LEGACY_INTERNAL_PATH_REWRITES[appPath] ??
+      (contentDetail
+        ? `${APP_ROUTES.PUBLISHING.POSTS}/${contentDetail[1]}`
+        : undefined);
     // Rewrites may carry their own query (`/drafts`, `/calendar`); merge the
     // caller's query into it instead of appending a second `?`.
     const { path, suffix } = rewrite
@@ -179,26 +203,41 @@ export class AgentRouteRewriteService {
             ? `${rewrite}&${rawSuffix.slice(1)}`
             : `${rewrite}${rawSuffix}`,
         )
-      : { path: rawPath, suffix: rawSuffix };
+      : { path: appPath, suffix: rawSuffix };
     const firstSegment = path.split('/').filter(Boolean)[0];
 
     if (!firstSegment || UNSCOPED_ROUTE_PREFIXES.has(firstSegment)) {
       return `${path}${suffix}`;
     }
 
-    if (path.startsWith(`/${slugs.orgSlug}/`)) {
+    if (
+      isPersonalSettingsPath(path) &&
+      !(isAlreadyScoped && path === APP_ROUTES.SETTINGS.ROOT)
+    ) {
       return `${path}${suffix}`;
+    }
+    if (isAlreadyScoped && path === APP_ROUTES.SETTINGS.ROOT) return href;
+    if (firstSegment === 'settings') {
+      const organizationRoute = createOrganizationAppRoute(slugs.orgSlug, path);
+      const isBrandOnly = organizationRoute !== `/${slugs.orgSlug}/~${path}`;
+      const brandSlug = isAlreadyScoped
+        ? existingScope.brandSlug || slugs.brandSlug
+        : slugs.brandSlug;
+      return `${isBrandOnly && brandSlug ? createBrandAppRoute(slugs.orgSlug, brandSlug, path) : organizationRoute}${suffix}`;
+    }
+    if (isAlreadyScoped) {
+      return `${existingScope.brandSlug ? createBrandAppRoute(slugs.orgSlug, existingScope.brandSlug, path) : createOrganizationAppRoute(slugs.orgSlug, path)}${suffix}`;
     }
 
     if (ORG_LEVEL_ROUTE_PREFIXES.has(firstSegment)) {
-      return `/${slugs.orgSlug}/~${path}${suffix}`;
+      return `${createOrganizationAppRoute(slugs.orgSlug, path)}${suffix}`;
     }
 
     if (slugs.brandSlug) {
-      return `/${slugs.orgSlug}/${slugs.brandSlug}${path}${suffix}`;
+      return `${createBrandAppRoute(slugs.orgSlug, slugs.brandSlug, path)}${suffix}`;
     }
 
-    return `/${slugs.orgSlug}/~${path}${suffix}`;
+    return `${createOrganizationAppRoute(slugs.orgSlug, path)}${suffix}`;
   }
 
   private isScopeableInternalHref(href: string): boolean {
