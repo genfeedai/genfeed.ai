@@ -4585,22 +4585,6 @@
       "workspace": "app"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-composer.test.tsx",
-      "fingerprint": "1ad13d7bbf084bd18d63",
-      "message": "Type 'null' is not assignable to type 'string'.",
-      "workspace": "app"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-composer.test.tsx",
-      "fingerprint": "7101dca10610a46ed0d0",
-      "message": "Property 'agentConfig' is missing in type '{ id: string; label: string; name: null; }' but required in type '{ agentConfig: { heygenAvatarId: string; heygenVoiceId: string; }; id: string; label: string; name: null; }'.",
-      "workspace": "app"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/content.test.tsx",
