@@ -32,7 +32,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@pages/posts/detail/components/PostDetailHeader', () => ({
-  default: () => <div data-testid="post-header" />,
+  default: ({ headingLevel }: { headingLevel?: 1 | 2 }) => (
+    <div data-testid="post-header" data-heading-level={headingLevel} />
+  ),
 }));
 
 vi.mock('@pages/posts/detail/components/PostDetailContent', () => ({
@@ -210,6 +212,10 @@ describe('PostDetail', () => {
     );
 
     expect(container.querySelector('.container')).not.toBeNull();
+    expect(screen.getByTestId('post-header')).toHaveAttribute(
+      'data-heading-level',
+      '1',
+    );
   });
 
   it('drops the page container in the overlay presentation', () => {
@@ -222,6 +228,10 @@ describe('PostDetail', () => {
     );
 
     expect(container.querySelector('.container')).toBeNull();
+    expect(screen.getByTestId('post-header')).toHaveAttribute(
+      'data-heading-level',
+      '2',
+    );
   });
 
   it('hands the sidebar to the host when a context renderer is provided', () => {

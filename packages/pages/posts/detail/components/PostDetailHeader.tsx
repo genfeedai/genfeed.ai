@@ -44,6 +44,7 @@ export interface PostDetailHeaderProps {
   isPublished: boolean;
   hasChildren: boolean;
   viewMode: 'edit' | 'preview';
+  headingLevel?: 1 | 2;
   isExpandingToThread?: boolean;
   onViewModeChange: (mode: 'edit' | 'preview') => void;
   onDelete: () => void;
@@ -81,6 +82,7 @@ export default function PostDetailHeader({
   isPublished,
   hasChildren,
   viewMode,
+  headingLevel = 2,
   isExpandingToThread = false,
   onViewModeChange,
   onDelete,
@@ -93,6 +95,7 @@ export default function PostDetailHeader({
   isScheduleDirty = false,
   isSavingSchedule = false,
 }: PostDetailHeaderProps) {
+  const Heading = headingLevel === 1 ? 'h1' : 'h2';
   const translate = useTranslations('pages.posts.detail.header');
   const [isThreadDialogOpen, setIsThreadDialogOpen] = useState(false);
   const isEditable = scope === PageScope.PUBLISHING && !isPublished;
@@ -254,7 +257,7 @@ export default function PostDetailHeader({
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
         <p className="text-sm text-foreground/60">Post detail</p>
-        <h2 className="text-2xl font-bold">{getPostLabel(post)}</h2>
+        <Heading className="text-2xl font-bold">{getPostLabel(post)}</Heading>
       </div>
 
       <CollectionItemActions overflow={overflow} primary={primary} />
