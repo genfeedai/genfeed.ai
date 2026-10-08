@@ -278,13 +278,13 @@ export async function ensureLearningLoopScope(
     target.organizationId,
     target.credentialId,
   );
-  await database.services.scopes.ensure(
+  const state = await database.services.scopes.ensure(
     database.prisma as unknown as PrismaService,
     scope,
     descriptor,
     account.epoch,
   );
-  return { scope, descriptor };
+  return { scope, descriptor, state };
 }
 
 /**

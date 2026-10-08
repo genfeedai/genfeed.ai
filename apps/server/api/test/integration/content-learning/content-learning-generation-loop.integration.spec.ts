@@ -232,7 +232,7 @@ describe('Content learning generation loop (real Postgres)', () => {
     const policy = await db().services.policies.rebuild(
       target.organizationId,
       target.credentialId,
-      scope.scope.scopeKey,
+      scope.state.scopeKey,
     );
     expect(policy).toMatchObject({ state: 'shadow', evidenceIds: [rewardId] });
     if (!policy) throw new Error('Expected a learned shadow policy');
@@ -260,7 +260,7 @@ describe('Content learning generation loop (real Postgres)', () => {
     const readScope = () =>
       db().prisma.contentLearningScopeState.findFirstOrThrow({
         where: {
-          id: scope.scope.id,
+          id: scope.state.id,
           organizationId: target.organizationId,
           isDeleted: false,
         },
@@ -271,8 +271,8 @@ describe('Content learning generation loop (real Postgres)', () => {
     const where = {
       organizationId: target.organizationId,
       credentialId: target.credentialId,
-      scopeKey: scope.scope.scopeKey,
-      epoch: scope.scope.epoch,
+      scopeKey: scope.state.scopeKey,
+      epoch: scope.state.epoch,
       isDeleted: false,
     };
     const count = await db().prisma.contentLearningPolicyVersion.count({
@@ -282,7 +282,7 @@ describe('Content learning generation loop (real Postgres)', () => {
       await db().services.policies.rebuild(
         target.organizationId,
         target.credentialId,
-        scope.scope.scopeKey,
+        scope.state.scopeKey,
       ),
     ).toMatchObject({
       id: policy.id,

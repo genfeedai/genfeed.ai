@@ -1,5 +1,6 @@
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningCanonicalHash } from '@api/collections/content-learning/services/learning-operation.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   ContentLearningPolicyVersion,
   ContentLearningScopeState,
@@ -35,8 +36,7 @@ export async function readCurrentLearningPilotV1(
 ) {
   const { organizationId, brandId, credentialId, scopeKey, epoch } = scope;
   const experiments = await tx.contentLearningExperiment.findMany({
-    where: {
-      organizationId,
+    where: scopedWhere(organizationId, {
       brandId,
       credentialId,
       cellKey: scopeKey,
@@ -47,7 +47,7 @@ export async function readCurrentLearningPilotV1(
       isDeleted: false,
       endAt: { gt: at },
       ...(window === 'assignment' ? { startAt: { lte: at } } : {}),
-    },
+    }),
     take: 2,
   });
   if (experiments.length !== 1) return null;
