@@ -264,9 +264,9 @@ export default function Container({
               <h1 className="sr-only">{sectionTitle}</h1>
             )}
             {leading}
-            {right}
             {helpNode}
             {iconActions}
+            {right}
             {moduleTabsNode}
           </div>
         ) : usesModuleLocalChrome ? (
@@ -300,9 +300,9 @@ export default function Container({
               data-testid="container-header-actions"
               className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
             >
-              {right}
               {helpNode}
               {iconActions}
+              {right}
             </div>
           </div>
         ) : null}

@@ -21,6 +21,7 @@ import { Suspense, useCallback, useMemo, useReducer } from 'react';
 const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
   setExportNode: () => {},
   setFiltersNode: () => {},
+  setLeadingNode: () => {},
   setIsRefreshing: () => {},
   setRefresh: () => {},
   setScheduleActionsNode: () => {},
@@ -31,6 +32,7 @@ const initialPostsLayoutState: PostsLayoutState = {
   refreshFn: null,
   isRefreshing: false,
   filtersNode: null,
+  leadingNode: null,
   exportNode: null,
   viewToggleNode: null,
   scheduleActionsNode: null,
@@ -49,6 +51,10 @@ function postsLayoutReducer(
       return state.isRefreshing === action.payload
         ? state
         : { ...state, isRefreshing: action.payload };
+    case 'SET_LEADING_NODE':
+      return state.leadingNode === action.payload
+        ? state
+        : { ...state, leadingNode: action.payload };
     case 'SET_FILTERS_NODE':
       return state.filtersNode === action.payload
         ? state
@@ -86,6 +92,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     refreshFn,
     isRefreshing,
     filtersNode,
+    leadingNode,
     exportNode,
     viewToggleNode,
     scheduleActionsNode,
@@ -135,6 +142,10 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     (node: ReactNode) => dispatch({ type: 'SET_EXPORT_NODE', payload: node }),
     [],
   );
+  const setLeadingNode = useCallback(
+    (node: ReactNode) => dispatch({ type: 'SET_LEADING_NODE', payload: node }),
+    [],
+  );
   const setFiltersNode = useCallback(
     (node: ReactNode) => dispatch({ type: 'SET_FILTERS_NODE', payload: node }),
     [],
@@ -163,6 +174,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     () => ({
       setExportNode,
       setFiltersNode,
+      setLeadingNode,
       setIsRefreshing,
       setRefresh: setRefreshFn,
       setScheduleActionsNode,
@@ -172,6 +184,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     [
       setExportNode,
       setFiltersNode,
+      setLeadingNode,
       setIsRefreshing,
       setRefreshFn,
       setScheduleActionsNode,
@@ -189,11 +202,8 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
 
   const listActions = (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
-      {viewToggleNode}
       {filtersNode}
-      {exportNode}
       {scheduleActionsNode}
-      <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
     </div>
   );
 
@@ -213,6 +223,17 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
                 tabs: getPostPlatformTabs(),
               }
             : undefined
+        }
+        leading={leadingNode}
+        iconActions={
+          <>
+            {viewToggleNode}
+            {exportNode}
+            <ButtonRefresh
+              onClick={handleRefresh}
+              isRefreshing={isRefreshing}
+            />
+          </>
         }
         right={listActions}
       >

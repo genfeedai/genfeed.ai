@@ -34,6 +34,7 @@ const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,
   isRefreshing: false,
   filtersNode: null,
+  leadingNode: null,
   exportNode: null,
   viewToggleNode: null,
   scheduleActionsNode: null,
@@ -48,6 +49,8 @@ function publishingLayoutReducer(
       return { ...state, refreshFn: action.payload };
     case 'SET_IS_REFRESHING':
       return { ...state, isRefreshing: action.payload };
+    case 'SET_LEADING_NODE':
+      return { ...state, leadingNode: action.payload };
     case 'SET_FILTERS_NODE':
       return { ...state, filtersNode: action.payload };
     case 'SET_EXPORT_NODE':
@@ -64,6 +67,9 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
     /* noop */
   },
   setFiltersNode: () => {
+    /* noop */
+  },
+  setLeadingNode: () => {
     /* noop */
   },
   setIsRefreshing: () => {
@@ -95,6 +101,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     refreshFn,
     isRefreshing,
     filtersNode,
+    leadingNode,
     exportNode,
     viewToggleNode,
     scheduleActionsNode,
@@ -133,6 +140,10 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     (node: ReactNode) => dispatch({ type: 'SET_FILTERS_NODE', payload: node }),
     [],
   );
+  const setLeadingNode = useCallback(
+    (node: ReactNode) => dispatch({ type: 'SET_LEADING_NODE', payload: node }),
+    [],
+  );
   const setIsRefreshing = useCallback(
     (value: boolean) => dispatch({ type: 'SET_IS_REFRESHING', payload: value }),
     [],
@@ -158,6 +169,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
       setExportNode,
       setFiltersNode,
       setIsRefreshing,
+      setLeadingNode,
       setRefresh: setRefreshFn,
       setScheduleActionsNode,
       setViewToggleNode,
@@ -167,6 +179,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
       setExportNode,
       setFiltersNode,
       setIsRefreshing,
+      setLeadingNode,
       setRefreshFn,
       setScheduleActionsNode,
       setViewToggleNode,
@@ -192,16 +205,21 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         description={translate('description')}
         icon={Newspaper}
         titleVisibility="sr-only"
-        right={
-          <div className="flex min-w-0 items-center justify-end gap-2">
-            {filtersNode}
+        leading={leadingNode}
+        iconActions={
+          <>
             {viewToggleNode}
             {exportNode}
-            {scheduleActionsNode}
             <ButtonRefresh
               onClick={handleRefresh}
               isRefreshing={isRefreshing}
             />
+          </>
+        }
+        right={
+          <div className="flex min-w-0 items-center justify-end gap-2">
+            {filtersNode}
+            {scheduleActionsNode}
             <Button
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}

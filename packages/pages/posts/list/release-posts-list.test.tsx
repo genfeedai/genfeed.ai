@@ -38,6 +38,7 @@ let searchParams = new URLSearchParams('');
 const replaceMock = vi.fn();
 const refetchMock = vi.fn();
 const setViewToggleNode = vi.fn();
+const setLeadingNode = vi.fn();
 let queryError: Error | null = null;
 let queryReleases = releases;
 
@@ -75,6 +76,7 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
     setFiltersNode: vi.fn(),
     setRefresh: vi.fn(),
     setViewToggleNode,
+    setLeadingNode,
   }),
 }));
 
@@ -148,6 +150,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
     searchParams = new URLSearchParams('');
     replaceMock.mockClear();
     refetchMock.mockClear();
+    setLeadingNode.mockClear();
     queryError = null;
     queryReleases = releases;
   });
@@ -163,6 +166,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
       />,
     );
     expect(screen.getByText('Calendar content')).toBeInTheDocument();
+    expect(setLeadingNode).toHaveBeenLastCalledWith(null);
     expect(screen.queryByText('Campaign release')).not.toBeInTheDocument();
     const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
     render(toggle);
