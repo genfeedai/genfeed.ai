@@ -1,6 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { History, LayoutGrid, Megaphone, Users, Workflow } from 'lucide-react';
+import {
+  History,
+  LayoutDashboard,
+  Megaphone,
+  Users,
+  Workflow,
+} from 'lucide-react';
 
 /**
  * Automation module nav — flat under the Automation app chrome (same shape as
@@ -19,8 +25,8 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.AUTOMATION.OVERVIEW,
     label: 'Overview',
     matchPaths: [APP_ROUTES.AUTOMATION.ROOT, APP_ROUTES.AUTOMATION.OVERVIEW],
-    outline: LayoutGrid,
-    solid: LayoutGrid,
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
   },
   {
     group: '',
