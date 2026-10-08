@@ -5,10 +5,15 @@ import { parseCatalogSource } from '../../packages/actions/scripts/report-curate
 
 const CATALOG = 'packages/actions/src/registry/curated-action-catalog.ts';
 const TOKEN = /^[a-z][a-z0-9_]*$/u;
-function isToolInstruction(line: string, offset: number): boolean {
+function isToolInstruction(
+  line: string,
+  offset: number,
+  name: string,
+): boolean {
   const before = line.slice(0, offset);
   const after = line.slice(offset).replace(/^`[^`]+`/u, '');
-  // Parameters, provenance labels and IDs are data, even inside instructions.
+  // Parameters, provenance labels, server names and IDs are data.
+  if (/^\s*(?:MCP\s+)?server\b/iu.test(after)) return false;
   if (
     /\b(?:fields?|parameters?|keys?|IDs?|formats?|labels?|values?)\s*[:=]?[^`]*$/iu.test(
       before,
@@ -16,9 +21,9 @@ function isToolInstruction(line: string, offset: number): boolean {
   )
     return false;
   return (
-    /\b(?:call|calling|invoke|invoking|use|using|tools?)\b[^`]*$/iu.test(
-      before,
-    ) || /^\s*(?:tools?\b|(?:and|or)\s+`[^`]+`\s+tools?\b)/iu.test(after)
+    /\b(?:call|calling|invoke|invoking|tools?)\b[^`]*$/iu.test(before) ||
+    /^\s*(?:tools?\b|(?:and|or)\s+`[^`]+`\s+tools?\b)/iu.test(after) ||
+    (name.includes('_') && /\b(?:use|using)\b[^`]*$/iu.test(before))
   );
 }
 
@@ -115,13 +120,7 @@ export function checkReferenceSources(
         else if (toolColumn >= 0) {
           const token = (cells[toolColumn] ?? '').replace(/^`|`$/gu, '');
           const name = token.replace(/^mcp__genfeed__/u, '');
-          if (
-            TOKEN.test(name) &&
-            (name.includes('_') ||
-              token.startsWith('mcp__genfeed__') ||
-              actions.has(name))
-          )
-            candidates.add(name);
+          if (TOKEN.test(name)) candidates.add(name);
         }
       } else if (!fenced) toolColumn = -1;
       if (!fenced) {
@@ -132,7 +131,7 @@ export function checkReferenceSources(
             TOKEN.test(name) &&
             (token.startsWith('mcp__genfeed__') ||
               actions.has(name) ||
-              (name.includes('_') && isToolInstruction(line, match.index ?? 0)))
+              isToolInstruction(line, match.index ?? 0, name))
           )
             candidates.add(name);
         }
