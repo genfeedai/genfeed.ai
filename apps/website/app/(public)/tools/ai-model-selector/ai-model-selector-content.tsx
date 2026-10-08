@@ -197,9 +197,9 @@ export default function AiModelSelectorContent({
           <h3 className="font-semibold">
             The model catalog could not be reached.
           </h3>
-          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
-            <Link href="/tools/ai-model-selector">Reload catalog</Link>
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            Please try again later.
+          </p>
         </div>
       ) : shortlist.length === 0 ? (
         <div className="space-y-3 py-6" role="status">
