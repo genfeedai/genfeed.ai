@@ -133,3 +133,24 @@ export interface BreakoutBaselineEvaluation {
     reasons: BreakoutEvidenceExclusion[];
   }>;
 }
+/** Internal provider-evidence read; callers must separately authorize product access. */
+export interface BreakoutBaselineReadInput extends BreakoutObservationScope {
+  targetObservationId: string;
+  metric: BreakoutExposureMetric;
+  options: BreakoutBaselineOptions;
+  nowMs: number;
+}
+export type BreakoutBaselineReceiptResult =
+  | {
+      status: 'recorded' | 'replayed';
+      receiptId: string;
+      evidenceFingerprint: string;
+      evaluation: BreakoutBaselineEvaluation;
+    }
+  | {
+      status:
+        | 'missing_target'
+        | 'source_changed'
+        | 'invalid_observation'
+        | 'receipt_conflict';
+    };

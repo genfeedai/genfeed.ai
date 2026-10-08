@@ -8316,11 +8316,39 @@ model PostExposureObservation {
   isDeleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  breakoutBaselineReceipts BreakoutBaselineReceipt[]
   @@unique([id, organizationId])
   @@unique([organizationId, credentialId, platform, externalId, sourceAttemptId], map: "post_exposure_observations_attempt_key")
+  @@unique([id, organizationId, brandId, credentialId], map: "post_exposure_observations_receipt_scope_key")
   @@index([organizationId, brandId, credentialId, platform, format, isDeleted, publishedAt(sort: Desc)], map: "post_exposure_observations_baseline_idx")
   @@index([organizationId, postId, isDeleted, receivedAt(sort: Desc)], map: "post_exposure_observations_post_idx")
   @@map("post_exposure_observations")
+}
+
+/// Historical comparison evidence only. A receipt never authorizes generation
+/// or publication; execution must revalidate current source and account policy.
+model BreakoutBaselineReceipt {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  credentialId String
+  targetObservationId String
+  targetObservation PostExposureObservation @relation(fields: [targetObservationId, organizationId, brandId, credentialId], references: [id, organizationId, brandId, credentialId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_baseline_receipts_target_scope_fkey")
+  platform String
+  format String
+  metric String
+  optionsFingerprint String
+  evidenceFingerprint String
+  idempotencyKey String
+  evaluation Json
+  evaluatedAt DateTime
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, organizationId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, brandId, credentialId, isDeleted, evaluatedAt(sort: Desc)], map: "breakout_baseline_receipts_scope_idx")
+  @@map("breakout_baseline_receipts")
 }
 
 model OutlierBaselineSnapshot {

@@ -1618,6 +1618,32 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       receipt: 'receiptId',
     },
   },
+  BreakoutBaselineReceipt: {
+    allFields: [
+      'brandId',
+      'createdAt',
+      'credentialId',
+      'evaluatedAt',
+      'evaluation',
+      'evidenceFingerprint',
+      'format',
+      'id',
+      'idempotencyKey',
+      'isDeleted',
+      'metric',
+      'optionsFingerprint',
+      'organizationId',
+      'platform',
+      'targetObservation',
+      'targetObservationId',
+      'updatedAt',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {
+      targetObservation: 'targetObservationId',
+    },
+  },
   Campaign: {
     allFields: [
       'brand',
@@ -6024,7 +6050,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'sourceFingerprint',
       'updatedAt',
     ],
-    listFields: [],
+    listFields: ['breakoutBaselineReceipts'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
