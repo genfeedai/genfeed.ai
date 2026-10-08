@@ -21,6 +21,7 @@ import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import { isCloudDeployment } from '@genfeedai/config';
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -289,7 +290,8 @@ export class BrandLifecycleService {
         Prisma.sql`SELECT "id" FROM "brands" WHERE "id" = ${brandId} AND "organizationId" = ${organizationId} AND "isDeleted" = false FOR UPDATE`,
       );
 
-      await this.brandAccessService.assert(actor, brandId, tx);
+      if (isCloudDeployment())
+        await this.brandAccessService.assert(actor, brandId, tx);
       const targetBrand = await tx.brand.findFirst({
         where: { id: brandId, isDeleted: false, organizationId },
       });
@@ -297,6 +299,8 @@ export class BrandLifecycleService {
       if (!targetBrand) {
         throw new NotFoundException('Brand', brandId);
       }
+      if (!isCloudDeployment())
+        await this.brandAccessService.assert(actor, brandId, tx);
 
       const updated = await tx.member.updateMany({
         data: { currentBrandId: targetBrand.id },

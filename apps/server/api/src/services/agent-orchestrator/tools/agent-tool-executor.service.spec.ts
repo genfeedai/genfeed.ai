@@ -1231,7 +1231,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(service, {
-      brandAccess: brandAccessFixture(),
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
@@ -6058,7 +6058,7 @@ describe('AgentToolExecutorService', () => {
         success: true,
       });
       Object.assign(service, {
-        brandAccess: brandAccessFixture(),
+        brandAccessService: brandAccessFixture(),
         generationOptionsHandler: { execute },
       });
 
@@ -6330,7 +6330,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(serviceWithoutScorer, {
-      brandAccess: brandAccessFixture(),
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });

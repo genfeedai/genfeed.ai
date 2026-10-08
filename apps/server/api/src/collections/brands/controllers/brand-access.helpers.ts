@@ -147,6 +147,8 @@ async function findAuthorizedBrand(
   organizationId: string,
   id: string,
 ) {
+  if (!isCloudDeployment())
+    return service.findOne(scopedWhere(organizationId, { id }));
   return service.findOne({
     AND: [await brandPredicate(service, user, organizationId), { id }],
   });
@@ -157,6 +159,8 @@ async function findAuthorizedSlug(
   organizationId: string,
   slug: string,
 ) {
+  if (!isCloudDeployment())
+    return service.findOneBySlug(scopedWhere(organizationId, { slug }));
   return service.findOneBySlug({
     AND: [await brandPredicate(service, user, organizationId), { slug }],
   });

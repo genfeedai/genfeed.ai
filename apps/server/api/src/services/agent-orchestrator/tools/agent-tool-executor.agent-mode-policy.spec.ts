@@ -155,7 +155,7 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       workflowRunner as never,
     );
     Object.assign(service, {
-      brandAccess: brandAccessFixture(),
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });

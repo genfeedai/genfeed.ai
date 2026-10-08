@@ -387,10 +387,20 @@ describe('HarnessGenerationService#resolveBrief', () => {
         topic: 'pricing',
       });
 
-      expect(resolve).toHaveBeenCalledWith('org-1', 'brand-1', {
-        sourceIds: ['source-1'],
-        spaceIds: ['space-1'],
-      });
+      expect(resolve).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        {
+          sourceIds: ['source-1'],
+          spaceIds: ['space-1'],
+        },
+        {
+          userId: 'fixture-user',
+          organizationId: 'org-1',
+          isApiKey: undefined,
+          scopes: undefined,
+        },
+      );
       expect(
         knowledgeContentRetrievalService.retrieveBrandContentMemory,
       ).toHaveBeenCalledWith(
@@ -1208,8 +1218,18 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
     );
     expect(result.status).toBe('resolved');
     expect(env.selection.resolve.mock.calls).toEqual([
-      ['org', 'brand', { spaceIds: ['space-a'] }],
-      ['org', 'brand', { spaceIds: ['space-b'] }],
+      [
+        'org',
+        'brand',
+        { spaceIds: ['space-a'] },
+        { organizationId: 'org', userId: 'user' },
+      ],
+      [
+        'org',
+        'brand',
+        { spaceIds: ['space-b'] },
+        { organizationId: 'org', userId: 'user' },
+      ],
     ]);
     expect(
       env.retrieval.retrieveSelectedBrandContentMemory,
@@ -1538,7 +1558,7 @@ describe('snapshot diagnostic report bounds', () => {
 });
 
 describe('snapshot compiler recipe capture', () => {
-  it('delegates the old seven-input wrapper once and returns the actual companion result', async () => {
+  it('delegates the actor-bound wrapper once and returns the actual companion result', async () => {
     const env = snapshotService();
     const companion = vi.spyOn(env.service, 'resolveSnapshotBriefWithRecipe');
     const input = generationInput();
@@ -1563,6 +1583,7 @@ describe('snapshot compiler recipe capture', () => {
       env.formatter,
       learning,
       contribution,
+      snapshotInitiatingActor(input),
     );
     const [captured] = await companion.mock.results[0].value;
     expect(result).toBe(captured);

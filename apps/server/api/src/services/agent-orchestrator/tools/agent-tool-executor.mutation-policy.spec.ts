@@ -167,7 +167,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       workflowRunner as never,
     );
     Object.assign(service, {
-      brandAccess: brandAccessFixture(),
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });

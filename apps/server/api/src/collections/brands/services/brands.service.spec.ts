@@ -740,6 +740,7 @@ describe('BrandsService', () => {
       brandId,
       userId,
       organizationId,
+      { userId, organizationId },
     );
     expect(result).toBe(selected);
   });

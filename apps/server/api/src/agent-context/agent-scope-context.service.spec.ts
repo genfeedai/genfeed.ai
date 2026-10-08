@@ -98,7 +98,12 @@ describe('AgentScopeContextService', () => {
 
       expect(brandFindFirst).toHaveBeenCalledWith({
         select: { id: true },
-        where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+        where: {
+          AND: [
+            { isDeleted: false, organizationId: 'org-1' },
+            { id: 'brand-1' },
+          ],
+        },
       });
     });
 
@@ -665,7 +670,15 @@ describe('AgentScopeContextService', () => {
       });
 
       expect(threadUpdateMany.mock.calls[0][0].data.brandId).toBeNull();
-      expect(brandFindFirst).not.toHaveBeenCalled();
+      expect(brandFindFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          AND: [
+            { isDeleted: false, organizationId: 'org-1' },
+            { id: 'brand-old' },
+          ],
+        },
+      });
     });
 
     it('caps the provenance trail at 50 entries', async () => {
