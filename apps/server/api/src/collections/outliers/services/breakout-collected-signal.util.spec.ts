@@ -1,12 +1,15 @@
 import {
+  captureAndDetectNativeSourceExposureObservation,
   captureAndDetectPostExposureObservation,
   collectedBreakoutBaselineOptions,
 } from '@api/collections/outliers/services/breakout-collected-signal.util';
 import { registerBreakoutResponse } from '@api/collections/outliers/services/breakout-response-identity.util';
+import { captureNativeSourceExposureObservation } from '@api/collections/outliers/services/native-source-exposure-observation.util';
 import { capturePostExposureObservation } from '@api/collections/outliers/services/post-exposure-observation.util';
 import { Platform } from '@genfeedai/contracts';
 import {
   type BreakoutCaptureInput,
+  type BreakoutNativeCaptureInput,
   outlierConfigurationSchema,
 } from '@genfeedai/contracts/interfaces';
 import type { OutlierConfiguration, Prisma } from '@genfeedai/prisma';
@@ -18,6 +21,11 @@ vi.mock(
 vi.mock(
   '@api/collections/outliers/services/breakout-response-identity.util',
   () => ({ registerBreakoutResponse: vi.fn() }),
+);
+
+vi.mock(
+  '@api/collections/outliers/services/native-source-exposure-observation.util',
+  () => ({ captureNativeSourceExposureObservation: vi.fn() }),
 );
 
 function harness() {
@@ -78,6 +86,35 @@ describe('capture to immediate durable breakout detection', () => {
     vi.setSystemTime(new Date('2026-10-08T12:10:00Z'));
   });
   afterEach(() => vi.useRealTimers());
+
+  it('runs native capture and registration in the same transaction with no Post/actor fallback', async () => {
+    const h = harness();
+    const { postId: _postId, ...source } = h.input.source;
+    const native: BreakoutNativeCaptureInput = {
+      ...h.input,
+      source: {
+        ...source,
+        sourceKind: 'native_source_post',
+        sourcePostId: 'native-a',
+      },
+    };
+    vi.mocked(captureNativeSourceExposureObservation).mockResolvedValue({
+      status: 'captured',
+      observationId: 'observation-native',
+    });
+    expect(
+      await captureAndDetectNativeSourceExposureObservation(h.tx, native),
+    ).toEqual({ status: 'captured', observationId: 'observation-native' });
+    expect(captureNativeSourceExposureObservation).toHaveBeenCalledWith(
+      h.tx,
+      native,
+    );
+    expect(h.capture).not.toHaveBeenCalled();
+    expect(h.register).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({ targetObservationId: 'observation-native' }),
+    );
+  });
 
   it('compares actual measured post age immediately in the same transaction', async () => {
     const h = harness();

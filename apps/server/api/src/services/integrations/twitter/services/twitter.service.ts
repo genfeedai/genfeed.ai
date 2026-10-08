@@ -4,6 +4,11 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type {
+  TwitterTimelinePost,
+  TwitterTimelineResponse,
+} from '@api/services/integrations/twitter/services/twitter-native-timeline.types';
+import { mapTwitterTimeline } from '@api/services/integrations/twitter/services/twitter-native-timeline.util';
 import {
   isTwitterAuthorizationError,
   isTwitterRateLimitError,
@@ -397,6 +402,7 @@ export class TwitterService {
   public async getUserTimelineByUsername(
     username: string,
     options: {
+      captureBreakoutEvidence?: boolean;
       maxResults?: number;
       excludeReplies?: boolean;
       excludeRetweets?: boolean;
@@ -404,25 +410,7 @@ export class TwitterService {
       /** Decrypted OAuth2 user access token (brand credential). */
       accessToken?: string;
     } = {},
-  ): Promise<
-    Array<{
-      id: string;
-      text: string;
-      createdAt?: Date;
-      authorId?: string;
-      authorUsername?: string;
-      authorName?: string;
-      authorAvatarUrl?: string;
-      authorFollowersCount?: number;
-      isRetweet: boolean;
-      inReplyToId: string | null;
-      metrics?: {
-        likes: number;
-        comments: number;
-        shares: number;
-      };
-    }>
-  > {
+  ): Promise<TwitterTimelinePost[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const cleanUsername = username.replace(/^@/, '');
     const maxResults = Math.min(Math.max(options.maxResults ?? 25, 5), 100);
@@ -449,12 +437,17 @@ export class TwitterService {
       }
 
       const params: Record<string, string | number | string[]> = {
-        expansions: 'author_id',
+        expansions: options.captureBreakoutEvidence
+          ? 'author_id,attachments.media_keys'
+          : 'author_id',
         max_results: maxResults,
         'tweet.fields':
-          'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
+          options.captureBreakoutEvidence && options.accessToken
+            ? 'created_at,public_metrics,organic_metrics,author_id,referenced_tweets,in_reply_to_user_id,attachments'
+            : 'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
         'user.fields': 'username,name,public_metrics,profile_image_url',
       };
+      if (options.captureBreakoutEvidence) params['media.fields'] = 'type';
       if (exclude.length > 0) {
         params.exclude = exclude;
       }
@@ -465,61 +458,14 @@ export class TwitterService {
       const result = (await client.v2.get(
         `users/${user.id}/tweets`,
         params,
-      )) as {
-        data?: Array<{
-          id: string;
-          text?: string;
-          created_at?: string;
-          author_id?: string;
-          in_reply_to_user_id?: string;
-          referenced_tweets?: Array<{ type: string; id: string }>;
-          public_metrics?: {
-            like_count?: number;
-            reply_count?: number;
-            retweet_count?: number;
-          };
-        }>;
-        includes?: {
-          users?: Array<{
-            id: string;
-            username?: string;
-            name?: string;
-            profile_image_url?: string;
-            public_metrics?: { followers_count?: number };
-          }>;
-        };
-      };
+      )) as TwitterTimelineResponse;
 
-      const authors = new Map(
-        (result.includes?.users ?? []).map((author) => [author.id, author]),
+      return mapTwitterTimeline(
+        result,
+        user,
+        this.responseMapper,
+        Boolean(options.captureBreakoutEvidence),
       );
-
-      return (result.data ?? []).map((tweet) => {
-        const author = authors.get(tweet.author_id ?? user.id);
-        const isRetweet = Boolean(
-          tweet.referenced_tweets?.some((ref) => ref.type === 'retweeted'),
-        );
-        return {
-          authorAvatarUrl: author?.profile_image_url ?? user.profileImageUrl,
-          authorFollowersCount:
-            author?.public_metrics?.followers_count ?? user.followersCount,
-          authorId: tweet.author_id ?? user.id,
-          authorName: author?.name ?? user.name,
-          authorUsername: author?.username ?? user.username,
-          createdAt: tweet.created_at ? new Date(tweet.created_at) : undefined,
-          id: tweet.id,
-          inReplyToId: tweet.in_reply_to_user_id ?? null,
-          isRetweet,
-          metrics: tweet.public_metrics
-            ? {
-                comments: tweet.public_metrics.reply_count ?? 0,
-                likes: tweet.public_metrics.like_count ?? 0,
-                shares: tweet.public_metrics.retweet_count ?? 0,
-              }
-            : undefined,
-          text: tweet.text ?? '',
-        };
-      });
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed for @${cleanUsername}`, error);
       throw error;

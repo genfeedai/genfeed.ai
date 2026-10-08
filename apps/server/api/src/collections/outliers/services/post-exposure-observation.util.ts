@@ -13,8 +13,10 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
+  BreakoutAnyCaptureInput,
   BreakoutCaptureInput,
   BreakoutCaptureResult,
+  BreakoutPublicationSource,
   BreakoutPublicationSourceInput,
   BreakoutPublicationSourceV1,
 } from '@genfeedai/contracts/interfaces';
@@ -260,7 +262,9 @@ export async function loadPostExposurePublication(
   };
 }
 
-function validCollection(input: Readonly<PostExposureCollection>): boolean {
+export function validBreakoutCollection(
+  input: Readonly<BreakoutAnyCaptureInput>,
+): boolean {
   if (
     !validId(input.sourceAttemptId) ||
     input.sourceAttemptId.length > 256 ||
@@ -309,7 +313,7 @@ export async function capturePostExposureObservation(
   tx: Prisma.TransactionClient,
   input: Readonly<PostExposureCollection>,
 ): Promise<PostExposureCaptureResult> {
-  if (!validCollection(input)) return { status: 'invalid_collection' };
+  if (!validBreakoutCollection(input)) return { status: 'invalid_collection' };
   const { source } = input;
   await tx.$queryRaw(Prisma.sql`
     SELECT "id" FROM "posts"
@@ -327,6 +331,15 @@ export async function capturePostExposureObservation(
   });
   if (!current || digest(current) !== digest(source))
     return { status: 'source_changed' };
+  return persistBreakoutExposureObservation(tx, current, input);
+}
+
+/** Persist only a source already revalidated under its row lock. */
+export async function persistBreakoutExposureObservation(
+  tx: Prisma.TransactionClient,
+  current: Readonly<BreakoutPublicationSource>,
+  input: Readonly<BreakoutAnyCaptureInput>,
+): Promise<BreakoutCaptureResult> {
   const exposures = Object.fromEntries(
     Object.entries(input.exposures).map(([key, metric]) => [
       key,
@@ -360,7 +373,9 @@ export async function capturePostExposureObservation(
     data: {
       ...where,
       brandId: current.brandId,
-      postId: current.postId,
+      postId: 'postId' in current ? current.postId : null,
+      nativeSourcePostId:
+        'sourcePostId' in current ? current.sourcePostId : null,
       format: current.format,
       logicalPostId: current.logicalPostId,
       contentDigest: current.contentDigest,

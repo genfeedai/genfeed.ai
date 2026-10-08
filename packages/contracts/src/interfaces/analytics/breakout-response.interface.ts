@@ -2,7 +2,7 @@ import type {
   BreakoutObservationScope,
   BreakoutOutputPlanResult,
   BreakoutOutputPlanSlot,
-  BreakoutPublicationSourceV1,
+  BreakoutPublicationSource,
 } from './breakout-evidence.interface';
 import type { LearningFormat } from './content-learning.interface';
 
@@ -27,7 +27,7 @@ export interface BreakoutPlanningBudget {
   remainingFormatCredits: Partial<Record<LearningFormat, number | null>>;
 }
 export interface BreakoutCapacityInput {
-  source: Readonly<BreakoutPublicationSourceV1>;
+  source: Readonly<BreakoutPublicationSource>;
   requestedTotalOutputs: number;
   remainingPublicationSlots: number | null;
   budget: Readonly<BreakoutPlanningBudget>;
@@ -65,6 +65,41 @@ export interface BreakoutCapacityReservationInput
   extends BreakoutCapacityInput {
   responseId: string;
 }
+export interface BreakoutLiveCapacityInput
+  extends Omit<BreakoutObservationScope, 'format'> {
+  strategyId: string;
+  nowMs: number;
+}
+export type BreakoutLiveCapacitySnapshot =
+  | {
+      status: 'available';
+      capturedAt: string;
+      strategyId: string;
+      walletVersion: number;
+      budget: BreakoutPlanningBudget;
+      remainingPublicationSlots: number | null;
+      capUsageBasis: 'configured_cap_usage_unavailable';
+      cadenceTruncated: boolean;
+    }
+  | {
+      status: 'held';
+      reason:
+        | 'missing_strategy'
+        | 'account_unavailable'
+        | 'wallet_unavailable'
+        | 'policy_unreadable';
+    };
+export interface BreakoutLiveCapacityReservationInput
+  extends Omit<
+    BreakoutCapacityReservationInput,
+    'budget' | 'remainingPublicationSlots'
+  > {
+  strategyId: string;
+  nowMs: number;
+}
+export type BreakoutLiveCapacityReservationResult =
+  | BreakoutCapacityReservationResult
+  | Extract<BreakoutLiveCapacitySnapshot, { status: 'held' }>;
 export type BreakoutCapacityReservationResult =
   | (Extract<BreakoutOutputPlanResult, { outputIds: string[] }> & {
       /** Replay does not fabricate the original cost estimate. */

@@ -33,6 +33,50 @@ export interface BreakoutPublicationSourceV1
   logicalPostId: string;
   isResponse: boolean;
 }
+export interface BreakoutNativePublicationSourceV1
+  extends Omit<BreakoutPublicationSourceV1, 'postId'> {
+  sourceKind: 'native_source_post';
+  sourcePostId: string;
+}
+export type BreakoutPublicationSource =
+  | BreakoutPublicationSourceV1
+  | BreakoutNativePublicationSourceV1;
+export interface BreakoutPublicationReference
+  extends Omit<BreakoutObservationScope, 'format'> {
+  postId: string | null;
+  nativeSourcePostId: string | null;
+  externalId: string;
+}
+export interface BreakoutProviderAttempt {
+  sourceAttemptId: string;
+  requestStartedAt: Date;
+  receivedAt: Date;
+}
+export interface BreakoutOwnedProviderAttempt
+  extends BreakoutProviderAttempt,
+    Omit<BreakoutObservationScope, 'format'> {
+  provider:
+    | 'brand-oauth'
+    | 'app-bearer'
+    | 'app-api-key'
+    | 'apify'
+    | 'social-monitor';
+}
+export interface BreakoutNativeMaterialInput {
+  nativeFormat?: LearningFormat;
+  text: string | null;
+  mediaUrls: readonly string[];
+  contentType: string;
+  authorId: string;
+  attachmentMediaKeys: readonly string[];
+}
+export interface BreakoutNativeCaptureInput
+  extends Omit<BreakoutCaptureInput, 'source'> {
+  source: BreakoutNativePublicationSourceV1;
+}
+export type BreakoutAnyCaptureInput =
+  | BreakoutCaptureInput
+  | BreakoutNativeCaptureInput;
 export interface BreakoutCollectionContext {
   source: BreakoutPublicationSourceV1;
   sourceAttemptId: string;

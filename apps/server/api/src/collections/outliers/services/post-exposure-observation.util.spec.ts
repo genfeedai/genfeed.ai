@@ -3,6 +3,7 @@ import {
   projectPostArtifactMaterial,
   readArtifactRecord,
 } from '@api/agent-artifacts/agent-artifact-material.util';
+import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import {
   capturePostExposureObservation,
   loadPostExposurePublication,
@@ -177,6 +178,15 @@ describe('prospective post exposure capture', () => {
     vi.setSystemTime(new Date('2026-10-08T12:10:00Z'));
   });
   afterEach(() => vi.useRealTimers());
+  it('resolves generated publications without passing native reference fields into the strict Post resolver', async () => {
+    const h = harness();
+    expect(
+      await loadBreakoutPublication(h.tx, {
+        ...scope,
+        nativeSourcePostId: null,
+      }),
+    ).toEqual(await loadPostExposurePublication(h.tx, scope));
+  });
 
   it('preserves generated-response lineage independently of ordinary quote fields', async () => {
     const h = harness();

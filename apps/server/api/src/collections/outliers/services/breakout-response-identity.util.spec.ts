@@ -72,6 +72,7 @@ function harness() {
     platform: input.platform,
     format: input.format,
     postId: 'post-a',
+    nativeSourcePostId: null,
     externalId: 'tweet-a',
     logicalPostId: 'logical-a',
     publishedAt: new Date(NOW.getTime() - 3_600_000),
@@ -104,7 +105,8 @@ function harness() {
         platform: data.platform,
         externalId: data.externalId,
         logicalPostId: data.logicalPostId,
-        sourcePostId: data.sourcePostId,
+        sourcePostId: data.sourcePostId ?? null,
+        nativeSourcePostId: data.nativeSourcePostId ?? null,
         triggerReceiptId: data.triggerReceiptId,
         publicationFingerprint: data.publicationFingerprint,
         contentDigest: data.contentDigest,
@@ -253,6 +255,30 @@ describe('durable breakout response and output identity', () => {
         skipDuplicates: true,
       }),
     );
+  });
+
+  it('retains native source identity without fabricating a published Post', async () => {
+    const h = harness();
+    h.target.postId = null;
+    h.target.nativeSourcePostId = 'native-a';
+    expect(await registerBreakoutResponse(h.tx, input)).toMatchObject({
+      status: 'registered',
+    });
+    expect(await registerBreakoutResponse(h.tx, input)).toMatchObject({
+      status: 'replayed',
+    });
+    expect(h.createResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sourcePostId: null,
+          nativeSourcePostId: 'native-a',
+        }),
+      }),
+    );
+    h.target.postId = 'post-a';
+    expect(await registerBreakoutResponse(h.tx, input)).toEqual({
+      status: 'invalid_observation',
+    });
   });
 
   it('cannot register when current evidence is held', async () => {

@@ -55,7 +55,8 @@ export async function registerBreakoutResponse(
     target.credentialId !== input.credentialId ||
     target.platform !== input.platform ||
     target.format !== input.format ||
-    target.isDeleted
+    target.isDeleted ||
+    Boolean(target.postId) === Boolean(target.nativeSourcePostId)
   )
     return { status: 'invalid_observation' };
   if (target.isResponse)
@@ -72,6 +73,7 @@ export async function registerBreakoutResponse(
       brandId: input.brandId,
       logicalPostId: target.logicalPostId,
       sourcePostId: target.postId,
+      nativeSourcePostId: target.nativeSourcePostId,
       triggerReceiptId: receipt.receiptId,
       publicationFingerprint: target.publicationFingerprint,
       contentDigest: target.contentDigest,
@@ -90,6 +92,7 @@ export async function registerBreakoutResponse(
       triggerReceiptId: true,
       logicalPostId: true,
       sourcePostId: true,
+      nativeSourcePostId: true,
       publicationFingerprint: true,
       contentDigest: true,
     },
@@ -98,6 +101,7 @@ export async function registerBreakoutResponse(
     !retained ||
     retained.logicalPostId !== target.logicalPostId ||
     retained.sourcePostId !== target.postId ||
+    retained.nativeSourcePostId !== target.nativeSourcePostId ||
     retained.publicationFingerprint !== target.publicationFingerprint ||
     retained.contentDigest !== target.contentDigest
   )

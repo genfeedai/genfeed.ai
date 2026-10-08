@@ -1,9 +1,12 @@
 import { registerBreakoutResponse } from '@api/collections/outliers/services/breakout-response-identity.util';
+import { captureNativeSourceExposureObservation } from '@api/collections/outliers/services/native-source-exposure-observation.util';
 import { capturePostExposureObservation } from '@api/collections/outliers/services/post-exposure-observation.util';
 import {
+  type BreakoutAnyCaptureInput,
   type BreakoutBaselineOptions,
   type BreakoutCaptureInput,
   type BreakoutCaptureResult,
+  type BreakoutNativeCaptureInput,
   type OutlierConfigurationValues,
   outlierConfigurationSchema,
 } from '@genfeedai/contracts/interfaces';
@@ -11,7 +14,7 @@ import type { Prisma } from '@genfeedai/prisma';
 
 /** Sampling policy only. Actual response lifetime/growth is a separate execution gate. */
 export function collectedBreakoutBaselineOptions(
-  input: Readonly<BreakoutCaptureInput>,
+  input: Readonly<BreakoutAnyCaptureInput>,
   configuration: Readonly<OutlierConfigurationValues>,
 ): BreakoutBaselineOptions | null {
   const measuredAt =
@@ -43,6 +46,23 @@ export async function captureAndDetectPostExposureObservation(
   input: Readonly<BreakoutCaptureInput>,
 ): Promise<BreakoutCaptureResult> {
   const capture = await capturePostExposureObservation(tx, input);
+  return detectCapturedBreakout(tx, input, capture);
+}
+export async function captureAndDetectNativeSourceExposureObservation(
+  tx: Prisma.TransactionClient,
+  input: Readonly<BreakoutNativeCaptureInput>,
+): Promise<BreakoutCaptureResult> {
+  return detectCapturedBreakout(
+    tx,
+    input,
+    await captureNativeSourceExposureObservation(tx, input),
+  );
+}
+async function detectCapturedBreakout(
+  tx: Prisma.TransactionClient,
+  input: Readonly<BreakoutAnyCaptureInput>,
+  capture: BreakoutCaptureResult,
+): Promise<BreakoutCaptureResult> {
   if (capture.status !== 'captured' && capture.status !== 'replayed')
     return capture;
   if (input.source.isResponse) return capture;

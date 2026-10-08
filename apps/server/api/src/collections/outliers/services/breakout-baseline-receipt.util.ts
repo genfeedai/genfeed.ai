@@ -2,7 +2,10 @@ import {
   buildArtifactContentDigest,
   readArtifactRecord,
 } from '@api/agent-artifacts/agent-artifact-material.util';
-import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
+import {
+  breakoutPublicationId,
+  loadBreakoutPublication,
+} from '@api/collections/outliers/services/breakout-publication-source.util';
 import { isPlatform } from '@genfeedai/contracts';
 import type {
   BreakoutBaselineReadInput,
@@ -10,7 +13,7 @@ import type {
   BreakoutExposureEvidence,
   BreakoutExposureMetric,
   BreakoutObservation,
-  BreakoutPublicationSourceV1,
+  BreakoutPublicationSource,
 } from '@genfeedai/contracts/interfaces';
 import { evaluateComparableBreakout } from '@genfeedai/helpers';
 import {
@@ -42,7 +45,11 @@ function hash(value: unknown): string {
   return buildArtifactContentDigest({ evidence: value });
 }
 function observation(row: PostExposureObservation): BreakoutObservation | null {
-  if (!isPlatform(row.platform)) return null;
+  if (
+    !isPlatform(row.platform) ||
+    Boolean(row.postId) === Boolean(row.nativeSourcePostId)
+  )
+    return null;
   if (
     [
       row.publishedAt,
@@ -128,7 +135,7 @@ function inScope(
 }
 function matchesPublication(
   row: PostExposureObservation,
-  current: BreakoutPublicationSourceV1 | null,
+  current: BreakoutPublicationSource | null,
 ): boolean {
   return (
     current !== null &&
@@ -138,7 +145,8 @@ function matchesPublication(
     current.credentialId === row.credentialId &&
     current.platform === row.platform &&
     current.format === row.format &&
-    current.postId === row.postId &&
+    'postId' in current === Boolean(row.postId) &&
+    breakoutPublicationId(current) === (row.postId ?? row.nativeSourcePostId) &&
     current.externalId === row.externalId &&
     current.logicalPostId === row.logicalPostId &&
     current.publishedAt === row.publishedAt.toISOString() &&
@@ -152,12 +160,13 @@ async function currentPublication(
   row: PostExposureObservation,
 ) {
   if (!isPlatform(row.platform)) return null;
-  return loadPostExposurePublication(tx, {
+  return loadBreakoutPublication(tx, {
     organizationId: row.organizationId,
     brandId: row.brandId,
     credentialId: row.credentialId,
     platform: row.platform,
     postId: row.postId,
+    nativeSourcePostId: row.nativeSourcePostId,
     externalId: row.externalId,
   });
 }
@@ -210,7 +219,7 @@ export async function readBreakoutBaselineReceipt(
     WHERE o."organizationId" = ${input.organizationId} AND o."brandId" = ${input.brandId}
       AND o."credentialId" = ${input.credentialId} AND o."platform" = ${input.platform}
       AND o."format" = ${input.format} AND o."isDeleted" = false
-      AND o."postId" <> ${targetRow.postId} AND o."publishedAt" < ${targetRow.publishedAt}
+      AND o."logicalPostId" <> ${targetRow.logicalPostId} AND o."publishedAt" < ${targetRow.publishedAt}
       AND o."receivedAt" <= ${targetRow.receivedAt}
       AND EXTRACT(EPOCH FROM (COALESCE(o."providerAsOf", o."requestStartedAt") - o."publishedAt")) * 1000 >= ${lower}
       AND EXTRACT(EPOCH FROM (COALESCE(o."providerAsOf", o."receivedAt") - o."publishedAt")) * 1000 <= ${upper}
@@ -220,32 +229,53 @@ export async function readBreakoutBaselineReceipt(
   `);
   if (rows.some((row) => !inScope(row, input)))
     return { status: 'invalid_observation' };
-  const priorPostIds = [...new Set(rows.map((row) => row.postId))];
+  const priorPostIds = [
+    ...new Set(
+      rows.map((row) => JSON.stringify([row.postId, row.nativeSourcePostId])),
+    ),
+  ];
   const truncated =
     rows.length > MAX_CANDIDATE_ROWS ||
     priorPostIds.length > MAX_PRIOR_PUBLICATIONS;
-  const postIds = [targetRow.postId, ...(truncated ? [] : priorPostIds)].sort();
-  await tx.$queryRaw(Prisma.sql`
+  const relevant = [targetRow, ...(truncated ? [] : rows)];
+  const postIds = [
+    ...new Set(relevant.flatMap((row) => (row.postId ? [row.postId] : []))),
+  ].sort();
+  const nativeIds = [
+    ...new Set(
+      relevant.flatMap((row) =>
+        row.nativeSourcePostId ? [row.nativeSourcePostId] : [],
+      ),
+    ),
+  ].sort();
+  if (postIds.length)
+    await tx.$queryRaw(Prisma.sql`
     SELECT "id" FROM "posts"
     WHERE "id" IN (${Prisma.join(postIds)}) AND "organizationId" = ${input.organizationId}
       AND "brandId" = ${input.brandId} AND "isDeleted" = false
     ORDER BY "id" FOR SHARE
+  `);
+  if (nativeIds.length)
+    await tx.$queryRaw(Prisma.sql`
+    SELECT "id" FROM "source_posts" WHERE "id" IN (${Prisma.join(nativeIds)}) AND "organizationId" = ${input.organizationId}
+      AND "brandId" = ${input.brandId} AND "isDeleted" = false ORDER BY "id" FOR SHARE
   `);
   const current = await currentPublication(tx, targetRow);
   if (!matchesPublication(targetRow, current))
     return { status: 'source_changed' };
   target.sourceValid = true;
   const candidates: BreakoutObservation[] = [];
-  const currentByPost = new Map<string, BreakoutPublicationSourceV1 | null>();
+  const currentByPost = new Map<string, BreakoutPublicationSource | null>();
   if (!truncated) {
     for (const row of rows) {
       const item = observation(row);
       if (!item) return { status: 'invalid_observation' };
-      if (!currentByPost.has(row.postId))
-        currentByPost.set(row.postId, await currentPublication(tx, row));
+      const referenceKey = JSON.stringify([row.postId, row.nativeSourcePostId]);
+      if (!currentByPost.has(referenceKey))
+        currentByPost.set(referenceKey, await currentPublication(tx, row));
       item.sourceValid = matchesPublication(
         row,
-        currentByPost.get(row.postId) ?? null,
+        currentByPost.get(referenceKey) ?? null,
       );
       candidates.push(item);
     }

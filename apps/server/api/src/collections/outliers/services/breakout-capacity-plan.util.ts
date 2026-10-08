@@ -1,8 +1,14 @@
+import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
+import {
+  breakoutPublicationId,
+  loadBreakoutPublication,
+} from '@api/collections/outliers/services/breakout-publication-source.util';
 import { reserveBreakoutOutputPlan } from '@api/collections/outliers/services/breakout-response-identity.util';
-import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import type {
   BreakoutCapacityReservationInput,
   BreakoutCapacityReservationResult,
+  BreakoutLiveCapacityReservationInput,
+  BreakoutLiveCapacityReservationResult,
   BreakoutOutputPlanSlot,
   LearningFormat,
 } from '@genfeedai/contracts/interfaces';
@@ -13,6 +19,23 @@ function isFormat(value: string): value is LearningFormat {
   return ['text', 'image', 'carousel', 'video', 'short', 'thread'].includes(
     value,
   );
+}
+
+export async function reserveBreakoutLiveCapacityPlan(
+  tx: Prisma.TransactionClient,
+  input: Readonly<BreakoutLiveCapacityReservationInput>,
+): Promise<BreakoutLiveCapacityReservationResult> {
+  const snapshot = await readBreakoutLiveCapacity(tx, {
+    ...input.source,
+    strategyId: input.strategyId,
+    nowMs: input.nowMs,
+  });
+  if (snapshot.status === 'held') return snapshot;
+  return reserveBreakoutCapacityPlan(tx, {
+    ...input,
+    budget: snapshot.budget,
+    remainingPublicationSlots: snapshot.remainingPublicationSlots,
+  });
 }
 
 /** Reserve immutable identities from a capacity snapshot. Live execution still needs admission. */
@@ -39,19 +62,21 @@ export async function reserveBreakoutCapacityPlan(
     },
   });
   if (!response) return { status: 'missing_response' };
-  const source = await loadPostExposurePublication(tx, {
+  const source = await loadBreakoutPublication(tx, {
     organizationId,
     brandId,
     credentialId,
     platform,
     postId: response.sourcePostId,
+    nativeSourcePostId: response.nativeSourcePostId,
     externalId: response.externalId,
   });
   if (
     !source ||
     source.isResponse ||
     source.format !== input.source.format ||
-    source.postId !== input.source.postId ||
+    'postId' in source !== 'postId' in input.source ||
+    breakoutPublicationId(source) !== breakoutPublicationId(input.source) ||
     source.externalId !== input.source.externalId ||
     source.logicalPostId !== response.logicalPostId ||
     source.logicalPostId !== input.source.logicalPostId ||

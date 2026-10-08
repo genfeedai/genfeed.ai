@@ -1,3 +1,4 @@
+import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import {
   hashBrandedGenerationArtifactManifestV1,
@@ -66,12 +67,13 @@ export async function bindBreakoutTextArtifact(
       (platform !== Platform.TWITTER || output.ordinal !== 1))
   )
     return { status: 'held', reason: 'unsupported_format' };
-  const source = await loadPostExposurePublication(tx, {
+  const source = await loadBreakoutPublication(tx, {
     organizationId,
     brandId,
     credentialId,
     platform,
     postId: response.sourcePostId,
+    nativeSourcePostId: response.nativeSourcePostId,
     externalId: response.externalId,
   });
   if (

@@ -505,6 +505,120 @@ describe('TwitterService (coverage)', () => {
   });
 
   describe('getUserTimelineByUsername', () => {
+    it('retains exact organic impressions and native media identity for explicitly requested own-account capture', async () => {
+      mockV2Get
+        .mockResolvedValueOnce({ data: { id: 'uid-1', username: 'brand' } })
+        .mockResolvedValueOnce({
+          data: [
+            {
+              id: 'text',
+              author_id: 'uid-1',
+              text: 'Text',
+              organic_metrics: { impression_count: 0 },
+            },
+            {
+              id: 'image',
+              author_id: 'uid-1',
+              text: 'Image',
+              attachments: { media_keys: ['photo-1'] },
+              organic_metrics: { impression_count: 100 },
+            },
+            {
+              id: 'carousel',
+              author_id: 'uid-1',
+              text: 'Carousel',
+              attachments: { media_keys: ['photo-1', 'photo-2'] },
+            },
+            {
+              id: 'video',
+              author_id: 'uid-1',
+              text: 'Video',
+              attachments: { media_keys: ['video-1'] },
+            },
+            {
+              id: 'missing-media',
+              author_id: 'uid-1',
+              text: 'Unknown',
+              attachments: { media_keys: ['unknown'] },
+            },
+            {
+              id: 'missing-author',
+              text: 'No actual author ID',
+              organic_metrics: { impression_count: 1000 },
+            },
+            {
+              id: 'foreign-author',
+              author_id: 'foreign',
+              text: 'Foreign',
+              organic_metrics: { impression_count: 1000 },
+            },
+          ],
+          includes: {
+            media: [
+              { media_key: 'photo-1', type: 'photo' },
+              { media_key: 'photo-2', type: 'photo' },
+              { media_key: 'video-1', type: 'video' },
+            ],
+          },
+        });
+      const tweets = await service.getUserTimelineByUsername('brand', {
+        accessToken: 'fake-token',
+        captureBreakoutEvidence: true,
+      });
+      expect(mockV2Get).toHaveBeenNthCalledWith(
+        2,
+        'users/uid-1/tweets',
+        expect.objectContaining({
+          expansions: 'author_id,attachments.media_keys',
+          'media.fields': 'type',
+          'tweet.fields': expect.stringContaining('organic_metrics'),
+        }),
+      );
+      expect(tweets.map((tweet) => tweet.nativeFormat)).toEqual([
+        'text',
+        'image',
+        'carousel',
+        'video',
+        undefined,
+        'text',
+        'text',
+      ]);
+      expect(tweets[0]).toMatchObject({
+        nativeAuthorVerified: true,
+        breakoutExposures: {
+          impressions: {
+            availability: 'observed',
+            value: 0,
+            scope: 'organic',
+            source: 'twitter:post:organic_metrics.impression_count',
+          },
+        },
+      });
+      expect(tweets[5].nativeAuthorVerified).toBe(false);
+      expect(tweets[6].nativeAuthorVerified).toBe(false);
+      expect(tweets[1].attachmentMediaKeys).toEqual(['photo-1']);
+    });
+
+    it('preserves the ordinary request field set without requesting restricted organic metrics', async () => {
+      mockV2Get
+        .mockResolvedValueOnce({ data: { id: 'uid-1', username: 'brand' } })
+        .mockResolvedValueOnce({
+          data: [{ id: 'text', author_id: 'uid-1', text: 'Text' }],
+        });
+      const tweets = await service.getUserTimelineByUsername('brand');
+      expect(mockV2Get).toHaveBeenNthCalledWith(
+        2,
+        'users/uid-1/tweets',
+        expect.objectContaining({
+          expansions: 'author_id',
+          'tweet.fields':
+            'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
+        }),
+      );
+      expect(tweets[0]).not.toHaveProperty('breakoutExposures');
+      expect(tweets[0]).not.toHaveProperty('nativeAuthorVerified');
+    });
+
     it('requests and maps the profile image onto each tweet', async () => {
       mockV2Get
         .mockResolvedValueOnce({

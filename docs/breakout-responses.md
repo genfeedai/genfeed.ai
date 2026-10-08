@@ -11,6 +11,26 @@ immediately evaluates available organic exposure in the same transaction. A posi
 comparison records one durable detected response per account/publication. Detection
 does not queue generation, spend credits, reserve publishing quota or publish a post.
 
+Own-account social-source synchronization also records the server's actual winning
+provider attempt with its request/receive interval, before collection data reaches
+persistence. Imported posts bind through their native `SourcePost` identity and the
+current scoped own-account source, active organization/brand, connected credential,
+platform and actual provider author ID. They do not acquire a fabricated Genfeed
+published post, version pin or acting principal. Observations and response roots
+have exactly one generated-post or native-source reference; the additive migration
+enforces that boundary with scoped foreign keys and database checks.
+
+Native X OAuth collection requests separate organic metrics only for explicit
+own-account capture, retains media keys and known text/image/carousel/video formats,
+and requires the actual returned author ID for organic qualification. Display author
+fallbacks are not evidence. Missing/unknown formats remain held; existing typed
+native video/short formats are retained without guessing from runtime duration.
+Public/scraped counts remain aggregate, and fallback providers cannot claim organic
+authority. Reposts, changed captured material, changed account binding and generated
+responses cannot initiate a response. Ordinary collection outputs and daily analytics
+remain separate from immutable evidence. Native and generated publications share the
+bounded comparison, response identity, capacity planner and text quote binder.
+
 The observation binds organization, brand, connected credential, platform, format,
 external publication, material digest and confirmed publication/version identity.
 Views and impressions remain separate. Observed zero is a measurement; unavailable
@@ -72,6 +92,17 @@ because that price snapshot is not persisted; it does not invent one. Dispatch a
 scheduling still need fresh accounting and transactional cadence admission. This
 utility is not yet connected to a policy-authorized workflow caller.
 
+`readBreakoutLiveCapacity` reads the current scoped active strategy and account,
+resolves the existing billing-account authority, and reads settled wallet funds less
+held funds without creating a wallet. It retains current stored daily/weekly/monthly
+budget usage and existing pacing. Cadence uses the existing timezone/week/group
+rules, with a bounded 1,001-row read; saturation leaves quota unknown. Configured
+platform/format caps have no verified usage-period and dimension-counter contract
+in the current policy, so they remain unknown rather than assuming zero spend or
+subtracting monthly totals under an invented period. `reserveBreakoutLiveCapacityPlan`
+feeds this fresh snapshot to the existing immutable slot registry. These reads and
+identity reservations neither debit credits nor reserve future posting capacity.
+
 `readBreakoutOutputRecovery` reads the existing scoped branded generation receipt
 using the output generation key and candidate index zero, validates its canonical
 schema and retained identity, and returns normalized internal status without prompts,
@@ -105,8 +136,8 @@ Product and agent reads must distinguish detection, reservation, drafts, review,
 scheduling, confirmed publication, suppression, expiry and failure, with retained
 lineage and subsequent measurements.
 
-Imported own-account sources, additional qualified provider exposure mappings,
-priority workflow execution, generation-to-artifact/quote attachment, recovery
+Additional qualified provider exposure mappings, priority workflow execution,
+generation-to-artifact/quote workflow attachment, recovery
 workflow wiring, authorized product/agent status routes/UI and connected acceptance
 remain unfinished. The human response lifetime choice and the authoritative automatic actor contract are unresolved.
 No default lifetime or synthetic owner principal grants permission to execute.
@@ -115,8 +146,11 @@ No default lifetime or synthetic owner principal grants permission to execute.
 
 Unit fixtures are written for capture, comparable-age evaluation, immutable
 receipts, source identity, output caps, lineage, the capture-to-detection path,
-bounded capacity, immutable plan replay, receipt recovery and pre-review text
-lineage attachment.
+bounded capacity, live billing/cadence snapshots, immutable plan replay, receipt
+recovery and pre-review text lineage attachment. Native fixtures cover provider
+attempt ownership/timing, organic/fallback provenance, zero/missing exposure,
+explicit supported formats, mutable source material, account/author changes,
+native baseline/identity/plan/quote binding and recursive response exclusion.
 They remain unrun until the final designated-host verification batch. Schema
 generation and permitted package builds do not prove PostgreSQL constraints,
 concurrent delivery or the complete provider workflow.

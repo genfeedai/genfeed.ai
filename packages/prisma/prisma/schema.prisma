@@ -5643,6 +5643,8 @@ model SourcePost {
 
   listeningEvidence ListeningEvidence[]
   nativeActions SourcePostNativeAction[]
+  exposureObservations PostExposureObservation[]
+  breakoutSourceResponses BreakoutResponse[]
 
   @@unique([id, organizationId, brandId], map: "source_posts_id_scope_key")
   @@unique([sourceId, externalId], map: "source_posts_source_external_key")
@@ -8299,8 +8301,10 @@ model PostExposureObservation {
   brand Brand @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_brand_scope_fkey")
   credentialId String
   credential Credential @relation(fields: [credentialId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_credential_scope_fkey")
-  postId String
-  post Post @relation(fields: [postId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_post_scope_fkey")
+  postId String?
+  post Post? @relation(fields: [postId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_post_scope_fkey")
+  nativeSourcePostId String?
+  nativeSourcePost SourcePost? @relation(fields: [nativeSourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_native_source_scope_fkey")
   platform String
   format String
   externalId String
@@ -8326,6 +8330,7 @@ model PostExposureObservation {
   @@unique([id, organizationId, brandId, credentialId], map: "post_exposure_observations_receipt_scope_key")
   @@index([organizationId, brandId, credentialId, platform, format, isDeleted, publishedAt(sort: Desc)], map: "post_exposure_observations_baseline_idx")
   @@index([organizationId, postId, isDeleted, receivedAt(sort: Desc)], map: "post_exposure_observations_post_idx")
+  @@index([organizationId, nativeSourcePostId, isDeleted, receivedAt(sort: Desc)], map: "post_exposure_observations_native_source_idx")
   @@map("post_exposure_observations")
 }
 
@@ -8367,8 +8372,10 @@ model BreakoutResponse {
   platform String
   externalId String
   logicalPostId String
-  sourcePostId String
-  sourcePost Post @relation("breakout_source_post", fields: [sourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_source_post_scope_fkey")
+  sourcePostId String?
+  sourcePost Post? @relation("breakout_source_post", fields: [sourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_source_post_scope_fkey")
+  nativeSourcePostId String?
+  nativeSourcePost SourcePost? @relation(fields: [nativeSourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_native_source_scope_fkey")
   triggerReceiptId String
   triggerReceipt BreakoutBaselineReceipt @relation(fields: [triggerReceiptId, organizationId, brandId, credentialId], references: [id, organizationId, brandId, credentialId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_trigger_scope_fkey")
   publicationFingerprint String

@@ -1,16 +1,18 @@
 import { readBreakoutBaselineReceipt } from '@api/collections/outliers/services/breakout-baseline-receipt.util';
-import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
+import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { Platform } from '@genfeedai/contracts';
 import type {
   BreakoutBaselineReadInput,
-  BreakoutPublicationSourceV1,
+  BreakoutPublicationSource,
 } from '@genfeedai/contracts/interfaces';
 import type { PostExposureObservation, Prisma } from '@genfeedai/prisma';
 
 vi.mock(
-  '@api/collections/outliers/services/post-exposure-observation.util',
+  '@api/collections/outliers/services/breakout-publication-source.util',
   () => ({
-    loadPostExposurePublication: vi.fn(),
+    loadBreakoutPublication: vi.fn(),
+    breakoutPublicationId: (source: BreakoutPublicationSource) =>
+      'postId' in source ? source.postId : source.sourcePostId,
   }),
 );
 
@@ -39,6 +41,7 @@ function observation(id: string, index = 0): PostExposureObservation {
     id,
     ...input,
     postId: `post-${id}`,
+    nativeSourcePostId: null,
     externalId: `external-${id}`,
     logicalPostId: `logical-${id}`,
     publishedAt,
@@ -65,16 +68,23 @@ function observation(id: string, index = 0): PostExposureObservation {
     updatedAt: new Date(NOW),
   };
 }
-function publication(
-  row: PostExposureObservation,
-): BreakoutPublicationSourceV1 {
+function publication(row: PostExposureObservation): BreakoutPublicationSource {
+  const identity = row.postId
+    ? { postId: row.postId }
+    : row.nativeSourcePostId
+      ? {
+          sourceKind: 'native_source_post' as const,
+          sourcePostId: row.nativeSourcePostId,
+        }
+      : null;
+  if (!identity) throw new Error('Missing fixture publication identity');
   return {
+    ...identity,
     organizationId: row.organizationId,
     brandId: row.brandId,
     credentialId: row.credentialId,
     platform: Platform.TWITTER,
     format: 'text',
-    postId: row.postId,
     externalId: row.externalId,
     version: 1,
     publishedAt: row.publishedAt.toISOString(),
@@ -90,10 +100,14 @@ function harness() {
     observation(`prior-${index}`, index + 1),
   );
   const bindings = new Map(
-    [target, ...candidates].map((row) => [row.postId, publication(row)]),
+    [target, ...candidates].map((row) => [
+      row.postId ?? row.nativeSourcePostId,
+      publication(row),
+    ]),
   );
-  vi.mocked(loadPostExposurePublication).mockImplementation(
-    async (_tx, scope) => bindings.get(scope.postId) ?? null,
+  vi.mocked(loadBreakoutPublication).mockImplementation(
+    async (_tx, scope) =>
+      bindings.get(scope.postId ?? scope.nativeSourcePostId) ?? null,
   );
   const rows = new Map<string, Prisma.BreakoutBaselineReceiptCreateManyInput>();
   let queryIndex = 0;
@@ -147,6 +161,40 @@ function harness() {
 describe('bounded immutable breakout baseline receipts', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('compares imported publications through the same immutable evidence receipt', async () => {
+    const h = harness();
+    h.bindings.clear();
+    for (const row of [h.target, ...h.candidates]) {
+      row.nativeSourcePostId = row.postId;
+      row.postId = null;
+      h.bindings.set(row.nativeSourcePostId, publication(row));
+    }
+    expect(await readBreakoutBaselineReceipt(h.tx, input)).toMatchObject({
+      status: 'recorded',
+      evaluation: { status: 'breakout', ratio: 10, sampleSize: 5 },
+    });
+    expect(loadBreakoutPublication).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({
+        postId: null,
+        nativeSourcePostId: h.target.nativeSourcePostId,
+      }),
+    );
+  });
+
+  it.each([false, true])(
+    'rejects an observation with zero or two publication references (%s)',
+    async (both) => {
+      const h = harness();
+      h.target.postId = both ? 'post-target' : null;
+      h.target.nativeSourcePostId = both ? 'native-target' : null;
+      expect(await readBreakoutBaselineReceipt(h.tx, input)).toEqual({
+        status: 'invalid_observation',
+      });
+      expect(h.createMany).not.toHaveBeenCalled();
+    },
+  );
+
   it('retains the same-age baseline and retries to the same receipt without overwriting', async () => {
     const h = harness();
     const first = await readBreakoutBaselineReceipt(h.tx, input);
@@ -158,7 +206,7 @@ describe('bounded immutable breakout baseline receipts', () => {
     const second = await readBreakoutBaselineReceipt(h.tx, input);
     expect(second).toEqual({ ...first, status: 'replayed' });
     expect(h.rows.size).toBe(1);
-    expect(loadPostExposurePublication).toHaveBeenCalledTimes(12);
+    expect(loadBreakoutPublication).toHaveBeenCalledTimes(12);
     expect(h.findTarget).toHaveBeenCalledWith({
       where: {
         id: input.targetObservationId,
@@ -199,7 +247,7 @@ describe('bounded immutable breakout baseline receipts', () => {
       expect(await readBreakoutBaselineReceipt(h.tx, input)).toEqual({
         status: 'invalid_observation',
       });
-      expect(loadPostExposurePublication).not.toHaveBeenCalled();
+      expect(loadBreakoutPublication).not.toHaveBeenCalled();
       expect(h.createMany).not.toHaveBeenCalled();
     },
   );
@@ -279,7 +327,7 @@ describe('bounded immutable breakout baseline receipts', () => {
       status: 'recorded',
       evaluation: { status: 'truncated', ratio: null, sampleSize: 0 },
     });
-    expect(loadPostExposurePublication).toHaveBeenCalledTimes(1);
+    expect(loadBreakoutPublication).toHaveBeenCalledTimes(1);
   });
 
   it('bounds canonical prior-source resolutions at fifty distinct posts', async () => {
@@ -291,7 +339,7 @@ describe('bounded immutable breakout baseline receipts', () => {
       status: 'recorded',
       evaluation: { status: 'truncated', ratio: null },
     });
-    expect(loadPostExposurePublication).toHaveBeenCalledTimes(1);
+    expect(loadBreakoutPublication).toHaveBeenCalledTimes(1);
   });
 
   it('resolves a prior post once even with repeated measurements', async () => {
@@ -305,7 +353,7 @@ describe('bounded immutable breakout baseline receipts', () => {
       status: 'recorded',
       evaluation: { status: 'breakout', sampleSize: 5 },
     });
-    expect(loadPostExposurePublication).toHaveBeenCalledTimes(6);
+    expect(loadBreakoutPublication).toHaveBeenCalledTimes(6);
   });
 
   it('holds malformed stored exposure rather than treating it as an observed zero', async () => {

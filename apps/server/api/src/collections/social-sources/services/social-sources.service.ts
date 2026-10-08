@@ -583,6 +583,9 @@ export class SocialSourcesService {
         normalizePlatform(source.platform),
         source.handle,
         {
+          ...(source.sourceType === SocialSourceType.OWN_ACCOUNT
+            ? { captureBreakoutEvidence: true }
+            : {}),
           brandId: source.brandId,
           credentialId: source.credentialId ?? undefined,
           includeReplies: true,
@@ -606,11 +609,16 @@ export class SocialSourcesService {
       const normalizedPosts = collected.posts.map((item) =>
         normalizeCollectedPost(source, item),
       );
-      const { posts, rejectedCount } =
-        await this.sourcePostsService.upsertCollectedPosts(
-          source,
-          normalizedPosts,
-        );
+      const { posts, rejectedCount } = collected.breakoutAttempt
+        ? await this.sourcePostsService.upsertCollectedPosts(
+            source,
+            normalizedPosts,
+            collected,
+          )
+        : await this.sourcePostsService.upsertCollectedPosts(
+            source,
+            normalizedPosts,
+          );
       const latestPost = posts[0];
       const rejectedPostMessage =
         rejectedCount > 0

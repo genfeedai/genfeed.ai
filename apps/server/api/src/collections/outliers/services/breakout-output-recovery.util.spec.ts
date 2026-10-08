@@ -2,6 +2,7 @@ import {
   bindBreakoutTextArtifact,
   readBreakoutOutputRecovery,
 } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import { loadNativeSourceExposurePublication } from '@api/collections/outliers/services/native-source-exposure-observation.util';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import {
   hashBrandedGenerationArtifactManifestV1,
@@ -20,6 +21,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock(
   '@api/collections/outliers/services/post-exposure-observation.util',
   () => ({ loadPostExposurePublication: vi.fn() }),
+);
+vi.mock(
+  '@api/collections/outliers/services/native-source-exposure-observation.util',
+  () => ({ loadNativeSourceExposurePublication: vi.fn() }),
 );
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
@@ -198,7 +203,8 @@ function fixture() {
     externalId: 'source-tweet',
     state: 'planned',
     outputPlanFingerprint: 'plan-a',
-    sourcePostId: 'post-source-a',
+    sourcePostId: 'post-source-a' as string | null,
+    nativeSourcePostId: null as string | null,
     logicalPostId: 'logical-source-a',
     contentDigest: hash,
     publicationFingerprint: hash,
@@ -548,7 +554,7 @@ function bindingFixture() {
   vi.mocked(loadPostExposurePublication).mockResolvedValue({
     ...input,
     version: 1,
-    postId: h.response.sourcePostId,
+    postId: h.response.sourcePostId ?? 'post-source-a',
     externalId: h.response.externalId,
     format: 'text',
     publishedAt: time,
@@ -573,6 +579,40 @@ function bindingFixture() {
   return { ...h, post, update, tx, binding: { ...input, postId: post.id } };
 }
 describe('text artifact lineage before normal review and publication', () => {
+  it('binds useful X quote commentary to an imported winning source without creating a source Post', async () => {
+    const h = bindingFixture();
+    h.response.sourcePostId = null;
+    h.response.nativeSourcePostId = 'native-source-a';
+    vi.mocked(loadNativeSourceExposurePublication).mockResolvedValue({
+      version: 1,
+      sourceKind: 'native_source_post',
+      sourcePostId: 'native-source-a',
+      organizationId: input.organizationId,
+      brandId: input.brandId,
+      credentialId: input.credentialId,
+      platform: input.platform,
+      externalId: h.response.externalId,
+      format: 'text',
+      publishedAt: time,
+      logicalPostId: h.response.logicalPostId,
+      contentDigest: h.response.contentDigest,
+      publicationFingerprint: h.response.publicationFingerprint,
+      isResponse: false,
+    });
+    expect(await bindBreakoutTextArtifact(h.tx, h.binding)).toMatchObject({
+      status: 'bound',
+    });
+    expect(loadNativeSourceExposurePublication).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({
+        postId: null,
+        nativeSourcePostId: 'native-source-a',
+      }),
+    );
+    expect(h.post.quoteTweetId).toBe(h.response.externalId);
+    expect(h.post.publishApprovalId).toBeNull();
+  });
+
   it('attaches the existing output and source quote without publishing or granting approval', async () => {
     const h = bindingFixture();
     expect(await bindBreakoutTextArtifact(h.tx, h.binding)).toEqual({

@@ -1,9 +1,14 @@
-import { reserveBreakoutCapacityPlan } from '@api/collections/outliers/services/breakout-capacity-plan.util';
+import {
+  reserveBreakoutCapacityPlan,
+  reserveBreakoutLiveCapacityPlan,
+} from '@api/collections/outliers/services/breakout-capacity-plan.util';
+import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
+import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { reserveBreakoutOutputPlan } from '@api/collections/outliers/services/breakout-response-identity.util';
-import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import { Platform } from '@genfeedai/contracts';
 import type {
   BreakoutCapacityReservationInput,
+  BreakoutPublicationSource,
   BreakoutPublicationSourceV1,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -14,8 +19,17 @@ vi.mock(
   () => ({ reserveBreakoutOutputPlan: vi.fn() }),
 );
 vi.mock(
-  '@api/collections/outliers/services/post-exposure-observation.util',
-  () => ({ loadPostExposurePublication: vi.fn() }),
+  '@api/collections/outliers/services/breakout-publication-source.util',
+  () => ({
+    loadBreakoutPublication: vi.fn(),
+    breakoutPublicationId: (source: BreakoutPublicationSource) =>
+      'postId' in source ? source.postId : source.sourcePostId,
+  }),
+);
+
+vi.mock(
+  '@api/collections/outliers/services/breakout-live-capacity.util',
+  () => ({ readBreakoutLiveCapacity: vi.fn() }),
 );
 
 const source: BreakoutPublicationSourceV1 = {
@@ -53,7 +67,8 @@ function fixture() {
   };
   const response = {
     id: input.responseId,
-    sourcePostId: source.postId,
+    sourcePostId: source.postId as string | null,
+    nativeSourcePostId: null as string | null,
     externalId: source.externalId,
     logicalPostId: source.logicalPostId,
     contentDigest: source.contentDigest,
@@ -73,7 +88,7 @@ function fixture() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(loadPostExposurePublication).mockResolvedValue(source);
+  vi.mocked(loadBreakoutPublication).mockResolvedValue(source);
   vi.mocked(reserveBreakoutOutputPlan).mockResolvedValue({
     status: 'reserved',
     outputIds: ['output-a'],
@@ -81,6 +96,88 @@ beforeEach(() => {
   });
 });
 describe('capacity snapshot to immutable output identities', () => {
+  it('reserves from the fresh reachable wallet/cadence snapshot rather than caller-provided budget', async () => {
+    const h = fixture();
+    vi.mocked(readBreakoutLiveCapacity).mockResolvedValue({
+      status: 'available',
+      capturedAt: source.publishedAt,
+      strategyId: 'strategy-a',
+      walletVersion: 4,
+      capUsageBasis: 'configured_cap_usage_unavailable',
+      cadenceTruncated: false,
+      remainingPublicationSlots: 2,
+      budget: { ...h.input.budget, availableOrganizationCredits: 10 },
+    });
+    const {
+      budget: _budget,
+      remainingPublicationSlots: _slots,
+      ...input
+    } = h.input;
+    expect(
+      await reserveBreakoutLiveCapacityPlan(h.tx, {
+        ...input,
+        strategyId: 'strategy-a',
+        nowMs: Date.parse(source.publishedAt),
+      }),
+    ).toMatchObject({
+      status: 'reserved',
+      estimate: { selectedTotalOutputs: 2, estimatedCredits: 10 },
+    });
+    expect(readBreakoutLiveCapacity).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({
+        organizationId: source.organizationId,
+        brandId: source.brandId,
+        credentialId: source.credentialId,
+        platform: source.platform,
+        strategyId: 'strategy-a',
+      }),
+    );
+  });
+
+  it('does not reserve or substitute another wallet when live capacity is unavailable', async () => {
+    const h = fixture();
+    vi.mocked(readBreakoutLiveCapacity).mockResolvedValue({
+      status: 'held',
+      reason: 'wallet_unavailable',
+    });
+    const {
+      budget: _budget,
+      remainingPublicationSlots: _slots,
+      ...input
+    } = h.input;
+    expect(
+      await reserveBreakoutLiveCapacityPlan(h.tx, {
+        ...input,
+        strategyId: 'strategy-a',
+        nowMs: Date.parse(source.publishedAt),
+      }),
+    ).toEqual({ status: 'held', reason: 'wallet_unavailable' });
+    expect(h.findResponse).not.toHaveBeenCalled();
+    expect(reserveBreakoutOutputPlan).not.toHaveBeenCalled();
+  });
+
+  it('plans from native evidence without assigning a Genfeed source Post', async () => {
+    const h = fixture();
+    const { postId: _postId, ...material } = source;
+    const native: BreakoutPublicationSource = {
+      ...material,
+      sourceKind: 'native_source_post',
+      sourcePostId: 'native-a',
+    };
+    h.response.sourcePostId = null;
+    h.response.nativeSourcePostId = 'native-a';
+    h.input.source = native;
+    vi.mocked(loadBreakoutPublication).mockResolvedValue(native);
+    expect(await reserveBreakoutCapacityPlan(h.tx, h.input)).toMatchObject({
+      status: 'reserved',
+    });
+    expect(loadBreakoutPublication).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({ postId: null, nativeSourcePostId: 'native-a' }),
+    );
+  });
+
   it('checks the current source before reserving five including one quote', async () => {
     const { input, tx } = fixture();
     const result = await reserveBreakoutCapacityPlan(tx, input);
@@ -125,7 +222,7 @@ describe('capacity snapshot to immutable output identities', () => {
     'postId',
   ] as const)('holds a changed %s', async (field) => {
     const { input, tx } = fixture();
-    vi.mocked(loadPostExposurePublication).mockResolvedValue({
+    vi.mocked(loadBreakoutPublication).mockResolvedValue({
       ...source,
       [field]: 'changed',
     });
@@ -136,11 +233,11 @@ describe('capacity snapshot to immutable output identities', () => {
   });
   it('holds deleted, invalidated or response sources', async () => {
     const { input, tx } = fixture();
-    vi.mocked(loadPostExposurePublication).mockResolvedValue(null);
+    vi.mocked(loadBreakoutPublication).mockResolvedValue(null);
     expect(await reserveBreakoutCapacityPlan(tx, input)).toEqual({
       status: 'source_changed',
     });
-    vi.mocked(loadPostExposurePublication).mockResolvedValue({
+    vi.mocked(loadBreakoutPublication).mockResolvedValue({
       ...source,
       isResponse: true,
     });
