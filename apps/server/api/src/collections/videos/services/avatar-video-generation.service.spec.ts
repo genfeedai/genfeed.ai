@@ -858,7 +858,7 @@ describe('AvatarVideoGenerationService', () => {
         expect.any(Object),
         context.organizationId,
         context.userId,
-        isByok ? 'byok-test-key' : undefined,
+        isByok ? 'byok-test-key' : 'platform-key',
         '9:16',
       );
       expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledTimes(

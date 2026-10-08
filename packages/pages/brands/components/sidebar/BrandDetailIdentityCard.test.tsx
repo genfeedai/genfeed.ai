@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { HeyGenCatalogAvatar } from '@genfeedai/contracts/interfaces';
 import type { Voice } from '@models/ingredients/voice.model';
 import BrandDetailIdentityCard from '@pages/brands/components/sidebar/BrandDetailIdentityCard';
 import type { BrandDetailIdentityCardProps } from '@props/pages/brand-detail.props';
@@ -18,6 +19,7 @@ const mockUseBrand = vi.fn();
 const mockUseOrganization = vi.fn();
 const mockUseAvatarImages = vi.fn();
 const mockUseVoiceCatalog = vi.fn();
+const mockUseHeyGenCatalog = vi.fn();
 const mockPush = vi.fn();
 
 const {
@@ -46,6 +48,10 @@ vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
 
 vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: () => mockUseVoiceCatalog(),
+}));
+
+vi.mock('@hooks/data/integrations/use-heygen-catalog', () => ({
+  useHeyGenCatalog: () => mockUseHeyGenCatalog(),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -138,15 +144,18 @@ vi.mock('@ui/primitives/select', async () => {
     SelectItem: ({
       children,
       value,
+      disabled,
     }: {
       children: ReactNode;
       value: string;
+      disabled?: boolean;
     }) => {
       const onValueChange = useContext(ValueChangeContext);
 
       return (
         <button
           data-value={value}
+          disabled={disabled}
           onClick={() => onValueChange(value)}
           type="button"
         >
@@ -206,6 +215,12 @@ describe('BrandDetailIdentityCard.tsx', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseHeyGenCatalog.mockReturnValue({
+      avatars: [],
+      voices: [],
+      error: null,
+      isLoading: false,
+    });
     updateAgentConfigMock.mockResolvedValue(undefined);
   });
 
@@ -357,6 +372,82 @@ describe('BrandDetailIdentityCard.tsx', () => {
     expect(props.onRefreshBrand).toHaveBeenCalledOnce();
     expect(notifySuccessMock).toHaveBeenCalledWith(
       'Brand identity defaults saved',
+    );
+  });
+
+  it('saves the personal native look with its connection and disables unavailable looks', async () => {
+    mockDefaults();
+    const ready: HeyGenCatalogAvatar = {
+      avatarId: 'look-1',
+      name: 'Founder',
+      preview: 'https://example.com/look.png',
+      index: 0,
+      avatarRef: {
+        version: 1,
+        source: 'heygen-look',
+        provider: 'heygen',
+        lookId: 'look-1',
+        groupId: 'group-1',
+        ownership: 'private',
+        label: 'Founder',
+        preview: 'https://example.com/look.png',
+        avatarType: 'photo',
+        supportedEngines: ['avatar_iv'],
+        readiness: {
+          lookStatus: 'completed',
+          groupStatus: 'completed',
+          consentStatus: 'approved',
+          usable: true,
+          reason: null,
+        },
+        connection: {
+          provider: 'heygen',
+          kind: 'byok',
+          organizationId: 'org-1',
+          credentialVersionId: 'version-1',
+        },
+      },
+    };
+    mockUseHeyGenCatalog.mockReturnValue({
+      avatars: [
+        ready,
+        {
+          ...ready,
+          avatarId: 'look-2',
+          name: 'Processing',
+          avatarRef: {
+            ...ready.avatarRef,
+            lookId: 'look-2',
+            readiness: {
+              ...ready.avatarRef.readiness,
+              usable: false,
+              reason: 'Processing',
+            },
+          },
+        },
+      ],
+      voices: [],
+      error: null,
+      isLoading: false,
+    });
+    render(<BrandDetailIdentityCard {...props} />);
+    expect(
+      screen.getByRole('button', {
+        name: 'Processing · Personal HeyGen · Processing',
+      }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Founder · Personal HeyGen' }),
+    );
+    fireEvent.click(screen.getByTestId('save-brand-identity'));
+    await waitFor(() =>
+      expect(updateAgentConfigMock).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          defaultAvatarRef: ready.avatarRef,
+          defaultAvatarIngredientId: null,
+        }),
+      ),
     );
   });
 
