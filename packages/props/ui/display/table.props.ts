@@ -45,6 +45,10 @@ export interface TableProps<T> {
   actions?: TableAction<T>[];
   /** Render the shared table frame. Disable when a parent surface owns it. */
   framed?: boolean;
+  /** Compact padding for dense ledgers; regular tables retain their spacing. */
+  density?: 'comfortable' | 'compact';
+  /** Mouse drag scrolling. Uses a horizontal scrollport instead of viewport-pinned headers. */
+  enableDragScroll?: boolean;
 
   getRowKey?: (item: T, index: number) => Key;
   getRowClassName?: (item: T) => string;
