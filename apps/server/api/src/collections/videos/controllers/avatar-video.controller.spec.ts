@@ -97,13 +97,13 @@ describe('AvatarVideoController', () => {
       );
     });
 
-    it('settles avatar credits on completion, not when HeyGen accepts the job', () => {
+    it('leaves credit admission and settlement to the generation service', () => {
       const config = Reflect.getMetadata(
         'credits',
         AvatarVideoController.prototype.createAvatarVideo,
       );
 
-      expect(config).toMatchObject({ settlement: 'completion' });
+      expect(config).toBeUndefined();
     });
 
     it('throws when the ingredient cannot be reloaded for serialization', async () => {
