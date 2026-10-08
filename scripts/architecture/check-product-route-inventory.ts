@@ -226,6 +226,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/threads',
     '/tiktok',
     '/tools',
+    '/tools/ai-model-selector',
     '/tools/youtube-clips',
     '/tools/youtube-long-form',
     '/use-cases',
