@@ -48,8 +48,9 @@ export class AgentCadenceExecutionService {
     state: PreparedAgentTurnState,
   ): Promise<AgentTurnWorkflowResult | null> {
     if (state.request.source !== 'proactive' || !state.strategyId) return null;
+    const strategyId = state.strategyId;
     const strategy = await this.strategies.findOneById(
-      state.strategyId,
+      strategyId,
       state.organizationId,
     );
     if (
@@ -79,7 +80,7 @@ export class AgentCadenceExecutionService {
       const execution = await this.withAccounting(state, () =>
         this.autopilot.executeQueuedRun({
           organizationId: state.organizationId,
-          strategyId: state.strategyId,
+          strategyId,
           userId: state.userId,
           runId: state.executionId,
           creditBudget: state.request.creditBudget,
@@ -109,7 +110,7 @@ export class AgentCadenceExecutionService {
                 organizationId: state.organizationId,
                 userId: state.userId,
                 brandId: strategy.brandId ?? undefined,
-                strategyId: state.strategyId,
+                strategyId,
                 runId: state.executionId,
                 sourceActionId: input.opportunity.id,
                 creditBudget: input.creditBudget,
@@ -126,7 +127,7 @@ export class AgentCadenceExecutionService {
             )
               return { creditsUsed: result.creditsUsed };
             const draft = await this.posts.create({
-              agentStrategyId: state.strategyId,
+              agentStrategyId: strategyId,
               brandId: strategy.brandId ?? undefined,
               category: PostCategory.TEXT,
               description: data.content,
@@ -164,7 +165,7 @@ export class AgentCadenceExecutionService {
       return this.result(state, execution.summary, charged);
     } finally {
       await this.strategies.recordRun(
-        state.strategyId,
+        strategyId,
         {
           startedAt,
           completedAt: new Date(),
