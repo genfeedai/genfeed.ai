@@ -1,3 +1,4 @@
+import { AGENT_NEXT_STEP_DESTINATIONS } from '@api/services/agent-orchestrator/constants/agent-next-step-destinations.constant';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
@@ -235,6 +236,124 @@ describe('AgentRouteRewriteService', () => {
         label: 'Open release',
       },
     ]);
+  });
+
+  it.each(['connected-accounts', 'agent', 'publishing', 'skills', 'knowledge'])(
+    'scopes brand-only Settings %s with the resolved brand',
+    async (page) => {
+      const scoped = await createService().scopeToolResultHrefs(
+        { success: true, data: { href: `/settings/${page}?q=1#top` } },
+        context,
+      );
+      expect(scoped.data).toEqual({
+        href: `/genfeed-ai/launch-brand/settings/${page}?q=1#top`,
+      });
+    },
+  );
+
+  it('repairs saved organization-only brand settings, preserves explicit brands and settings roots', async () => {
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        success: true,
+        data: {
+          href: '/genfeed-ai/~/settings/connected-accounts?platform=x#top',
+          ctaHref: '/genfeed-ai/other/settings/connected-accounts',
+          editorUrl: '/genfeed-ai/launch-brand/settings',
+        },
+      },
+      context,
+    );
+    expect(scoped.data).toEqual({
+      href: '/genfeed-ai/launch-brand/settings/connected-accounts?platform=x#top',
+      ctaHref: '/genfeed-ai/other/settings/connected-accounts',
+      editorUrl: '/genfeed-ai/launch-brand/settings',
+    });
+  });
+
+  it('falls back to the organization Brands hub when no brand is available', async () => {
+    brandsService.findOne.mockResolvedValueOnce(null);
+    const scoped = await createService().scopeToolResultHrefs(
+      { success: true, data: { href: '/settings/connected-accounts' } },
+      context,
+    );
+    expect(scoped.data).toEqual({ href: '/genfeed-ai/~/settings/brands' });
+  });
+
+  it.each([
+    'subscription',
+    'credits',
+    'integrations',
+    'models',
+    'members',
+    'brands',
+  ])('keeps organization Settings %s in organization scope', async (page) => {
+    const scoped = await createService().scopeToolResultHrefs(
+      { success: true, data: { href: `/settings/${page}` } },
+      context,
+    );
+    expect(scoped.data).toEqual({ href: `/genfeed-ai/~/settings/${page}` });
+  });
+
+  it('keeps personal Settings unscoped and repairs retired content destinations', async () => {
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        success: true,
+        data: {
+          href: '/settings/personal',
+          ctaHref: '/content/articles?search=launch#top',
+          editorUrl: '/genfeed-ai/launch-brand/content/posts',
+        },
+      },
+      context,
+    );
+    expect(scoped.data).toEqual({
+      href: '/settings/personal',
+      ctaHref:
+        '/genfeed-ai/launch-brand/publishing/posts?type=article&search=launch#top',
+      editorUrl: '/genfeed-ai/launch-brand/publishing/posts',
+    });
+  });
+
+  it('repairs dynamic retired content links without changing their entity or query', async () => {
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        success: true,
+        data: { href: '/content/articles/article-1?view=edit#body' },
+      },
+      context,
+    );
+    expect(scoped.data).toEqual({
+      href: '/genfeed-ai/launch-brand/publishing/posts/article-1?view=edit#body',
+    });
+  });
+
+  it('scopes every canonical next-step destination to its owning surface', async () => {
+    const destinations = Object.entries(AGENT_NEXT_STEP_DESTINATIONS);
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        success: true,
+        data: destinations.map(([key, value]) => ({ key, href: value.href })),
+      },
+      context,
+    );
+    const organizationKeys = new Set([
+      'agent',
+      'billing',
+      'brand_settings',
+      'credits',
+      'members',
+      'models',
+      'provider_keys',
+    ]);
+    expect(scoped.data).toEqual(
+      destinations.map(([key, value]) => ({
+        key,
+        href:
+          key === 'settings'
+            ? value.href
+            : `/genfeed-ai/${organizationKeys.has(key) ? '~' : 'launch-brand'}${value.href}`,
+      })),
+    );
   });
 
   it('preserves the original result when organization slug resolution fails', async () => {

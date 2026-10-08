@@ -2,7 +2,16 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactElement, ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const routeScope = vi.hoisted(() => ({ orgSlug: '', brandSlug: '' }));
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => routeScope,
+}));
+beforeEach(() => {
+  routeScope.orgSlug = '';
+  routeScope.brandSlug = '';
+});
 
 vi.mock('next/link', () => ({
   default: function MockLink(props: {
@@ -199,6 +208,35 @@ describe('NextStepsCard', () => {
       prompt: 'Walk me through brand setup.',
     });
     expect(action.nextSteps?.[0]?.ctas[0]?.label).toBe('Open brand settings');
+  });
+
+  it('repairs a saved organization-only Connections link using the current brand route', () => {
+    routeScope.orgSlug = 'acme';
+    routeScope.brandSlug = 'launch';
+    renderCard(
+      <NextStepsCard
+        action={buildAction({
+          nextSteps: [
+            {
+              id: 'connect',
+              title: 'Connect social accounts',
+              ctas: [
+                {
+                  href: '/acme/~/settings/connected-accounts?platform=x#accounts',
+                  label: 'Open connections',
+                },
+              ],
+            },
+          ],
+        })}
+      />,
+    );
+    expect(
+      screen.getByRole('link', { name: /Open connections/ }),
+    ).toHaveAttribute(
+      'href',
+      '/acme/launch/settings/connected-accounts?platform=x#accounts',
+    );
   });
 
   it('renders nothing when the card carries no steps', () => {

@@ -33,7 +33,10 @@ import {
   formatPlatformLabel,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
+import {
+  ARTIFACT_EDITOR_ROUTES,
+  GENERATE_CONTENT_TEXT_CREDITS,
+} from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   KnowledgeSelection,
@@ -440,7 +443,7 @@ export class AgentMediaTextGenerationService {
               contentFormat: 'article',
               ctas: [
                 {
-                  href: `/content/articles/${articleId}`,
+                  href: `${ARTIFACT_EDITOR_ROUTES.article}/${articleId}`,
                   label: 'Open article',
                 },
               ],

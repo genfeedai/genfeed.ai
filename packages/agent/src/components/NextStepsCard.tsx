@@ -8,6 +8,7 @@ import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-ap
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
@@ -37,11 +38,13 @@ function NextStepCtaButton({
   // Navigation goes through Link inside Button so client-side routing is
   // preserved and global `a { color }` rules cannot paint unreadable text on
   // card chrome.
+  const { orgSlug, brandSlug } = useOrgUrl();
   const className = 'h-7 px-2.5 text-xs font-medium';
   const variant = isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY;
 
   if (cta.href) {
-    const href = normalizeAgentAppHref(cta.href) ?? cta.href;
+    const href =
+      normalizeAgentAppHref(cta.href, { orgSlug, brandSlug }) ?? cta.href;
 
     return (
       <Button

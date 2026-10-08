@@ -1575,7 +1575,7 @@ describe('AgentToolExecutorService', () => {
         error: expect.stringContaining('legacy standalone draft'),
         nextActions: [
           expect.objectContaining({
-            ctas: [{ href: '/content/posts', label: 'Open posts' }],
+            ctas: [{ href: '/publishing/posts', label: 'Open posts' }],
             type: 'schedule_post_card',
           }),
         ],
@@ -1615,7 +1615,7 @@ describe('AgentToolExecutorService', () => {
         error: 'Credential cred-1 is not connected.',
         nextActions: [
           expect.objectContaining({
-            ctas: [{ href: '/content/posts', label: 'Review post setup' }],
+            ctas: [{ href: '/publishing/posts', label: 'Review post setup' }],
             type: 'schedule_post_card',
           }),
         ],

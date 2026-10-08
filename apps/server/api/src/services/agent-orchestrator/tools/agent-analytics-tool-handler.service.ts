@@ -10,6 +10,7 @@ import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { PostVisibility, TargetExecutionState } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   AgentUiAction,
@@ -170,7 +171,7 @@ export class AgentAnalyticsToolHandler {
           href: `/analytics/posts?postId=${params.postId}`,
           label: 'Open analytics',
         },
-        { href: '/content/posts', label: 'Open posts' },
+        { href: APP_ROUTES.PUBLISHING.POSTS, label: 'Open posts' },
       ],
       description: 'Latest analytics for this published content.',
       id: `post-analytics-${params.postId}-${Date.now()}`,
@@ -258,8 +259,14 @@ export class AgentAnalyticsToolHandler {
             })
           : {
               ctas: [
-                { href: '/analytics/overview', label: 'Open analytics' },
-                { href: '/content/articles', label: 'Open articles' },
+                {
+                  href: APP_ROUTES.ANALYTICS.OVERVIEW,
+                  label: 'Open analytics',
+                },
+                {
+                  href: `${APP_ROUTES.PUBLISHING.POSTS}?type=article`,
+                  label: 'Open articles',
+                },
               ],
               description:
                 'On-site analytics for this article. It has not been published to a social post yet.',
@@ -456,7 +463,9 @@ export class AgentAnalyticsToolHandler {
           // Single dashboard CTA — period switching is client-side when
           // multiple snapshots exist in the thread. Automation analytics is a
           // different surface and is not the right link for org overview cards.
-          ctas: [{ href: '/analytics/overview', label: 'Open analytics' }],
+          ctas: [
+            { href: APP_ROUTES.ANALYTICS.OVERVIEW, label: 'Open analytics' },
+          ],
           data: { overview, period },
           // Stable per org+period so tool_complete + done metadata dedupe, and
           // re-runs replace the prior snapshot instead of stacking clones.
