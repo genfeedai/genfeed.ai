@@ -154,3 +154,32 @@ export type BreakoutBaselineReceiptResult =
         | 'invalid_observation'
         | 'receipt_conflict';
     };
+export interface BreakoutOutputPlanSlot {
+  ordinal: number;
+  kind: 'follow_up' | 'quote';
+  format: LearningFormat;
+}
+export interface BreakoutOutputPlanInput
+  extends Omit<BreakoutObservationScope, 'format'> {
+  responseId: string;
+  slots: BreakoutOutputPlanSlot[];
+}
+export type BreakoutResponseRegistrationResult =
+  | {
+      status: 'registered' | 'replayed';
+      responseId: string;
+      triggerReceiptId: string;
+    }
+  | {
+      status: 'evidence_held';
+      reason: BreakoutBaselineEvaluation['status'] | 'response_source';
+    }
+  | Exclude<BreakoutBaselineReceiptResult, { receiptId: string }>
+  | { status: 'identity_conflict' };
+export type BreakoutOutputPlanResult =
+  | {
+      status: 'reserved' | 'replayed';
+      outputIds: string[];
+      generationKeys: string[];
+    }
+  | { status: 'missing_response' | 'invalid_plan' | 'plan_conflict' };

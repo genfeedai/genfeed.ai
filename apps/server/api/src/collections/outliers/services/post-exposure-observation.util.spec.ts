@@ -59,6 +59,7 @@ function harness() {
     reviewVersionPinId: 'pin-a',
     description: 'A confirmed original post',
     originalPostId: null,
+    breakoutOutputId: null as string | null,
     quoteTweetId: null,
     order: 0,
     ingredients: [] as ReturnType<typeof ingredient>[],
@@ -176,6 +177,13 @@ describe('prospective post exposure capture', () => {
     vi.setSystemTime(new Date('2026-10-08T12:10:00Z'));
   });
   afterEach(() => vi.useRealTimers());
+
+  it('preserves generated-response lineage independently of ordinary quote fields', async () => {
+    const h = harness();
+    h.post.breakoutOutputId = 'output-a';
+    const source = await loadPostExposurePublication(h.tx, scope);
+    expect(source).toMatchObject({ isResponse: true });
+  });
 
   it('binds confirmed material with explicit tenant, account and publication filters', async () => {
     const h = harness();

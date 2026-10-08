@@ -254,8 +254,9 @@ export async function loadPostExposurePublication(
       confirmed.platform,
       confirmed.externalId,
     ]),
-    // The dedicated response relation is added with connected response execution.
-    isResponse: false,
+    // The immutable output link survives response/output tombstones. Ordinary
+    // quotes without this lineage remain independent eligible publications.
+    isResponse: post.breakoutOutputId != null,
   };
 }
 

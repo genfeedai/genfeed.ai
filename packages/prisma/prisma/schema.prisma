@@ -2746,6 +2746,10 @@ model LinkClick {
 
 model Post {
   exposureObservations PostExposureObservation[]
+  breakoutResponses BreakoutResponse[] @relation("breakout_source_post")
+  breakoutOutputId String? @unique
+  breakoutOutput BreakoutResponseOutput? @relation(fields: [breakoutOutputId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "posts_breakout_output_scope_fkey")
+  @@unique([breakoutOutputId, organizationId, brandId], map: "posts_breakout_output_scope_key")
   @@unique([id, organizationId, brandId], map: "posts_id_exposure_scope_key")
 learningDecisionId String? @unique
 learningDecision ContentLearningDecision? @relation(fields: [learningDecisionId], references: [id])
@@ -8345,10 +8349,70 @@ model BreakoutBaselineReceipt {
   isDeleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  responses BreakoutResponse[]
   @@unique([id, organizationId])
+  @@unique([id, organizationId, brandId, credentialId], map: "breakout_baseline_receipts_response_scope_key")
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, brandId, credentialId, isDeleted, evaluatedAt(sort: Desc)], map: "breakout_baseline_receipts_scope_idx")
   @@map("breakout_baseline_receipts")
+}
+
+/// One durable identity per original own-account publication. Detection and
+/// output reservation confer no authority to spend credits or publish.
+model BreakoutResponse {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  credentialId String
+  platform String
+  externalId String
+  logicalPostId String
+  sourcePostId String
+  sourcePost Post @relation("breakout_source_post", fields: [sourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_source_post_scope_fkey")
+  triggerReceiptId String
+  triggerReceipt BreakoutBaselineReceipt @relation(fields: [triggerReceiptId, organizationId, brandId, credentialId], references: [id, organizationId, brandId, credentialId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_trigger_scope_fkey")
+  publicationFingerprint String
+  contentDigest String
+  detectedAt DateTime
+  state String @default("detected")
+  heldReason String?
+  expiresAt DateTime?
+  outputPlanFingerprint String?
+  outputs BreakoutResponseOutput[]
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, organizationId, brandId, credentialId], map: "breakout_responses_output_scope_key")
+  @@unique([organizationId, credentialId, platform, externalId], map: "breakout_responses_source_key")
+  @@index([organizationId, brandId, credentialId, isDeleted, state, detectedAt(sort: Desc)], map: "breakout_responses_scope_idx")
+  @@map("breakout_responses")
+}
+
+/// Slots are never recycled after deletion/failure. The same generation key
+/// must be reconciled before any ambiguous provider attempt is retried.
+model BreakoutResponseOutput {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  credentialId String
+  responseId String
+  response BreakoutResponse @relation(fields: [responseId, organizationId, brandId, credentialId], references: [id, organizationId, brandId, credentialId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_response_outputs_response_scope_fkey")
+  ordinal Int
+  kind String
+  format String
+  generationKey String
+  state String @default("reserved")
+  heldReason String?
+  workflowExecutionId String?
+  artifact Post?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, organizationId, brandId], map: "breakout_response_outputs_post_scope_key")
+  @@unique([organizationId, responseId, ordinal], map: "breakout_response_outputs_slot_key")
+  @@unique([organizationId, generationKey], map: "breakout_response_outputs_generation_key")
+  @@index([organizationId, brandId, credentialId, isDeleted, state], map: "breakout_response_outputs_scope_idx")
+  @@map("breakout_response_outputs")
 }
 
 model OutlierBaselineSnapshot {
