@@ -114,6 +114,33 @@ describe('literal MCP instruction contract', () => {
       checkReferenceSources(catalog, source('Call `get_brands`.')),
     ).toThrow();
   });
+  it('scans both default instruction surfaces and disables each independently', () => {
+    execFileSync('git', ['init', root]);
+    mkdirSync(join(root, 'skills'));
+    writeFileSync(join(root, 'skills', 'SKILL.md'), 'Call `rate_content`.');
+    execFileSync('git', ['-C', root, 'add', 'skills']);
+    mkdirSync(join(root, 'apps/desktop/app'), { recursive: true });
+    writeFileSync(join(root, 'apps/desktop/app/tsconfig.json'), '{}');
+    mkdirSync(join(root, 'scripts/architecture'), { recursive: true });
+    writeFileSync(
+      join(root, 'scripts/architecture/desktop-mcp-prompt-adapter.ts'),
+      "console.log(JSON.stringify([{ path: 'desktop-prompt', text: 'Call `missing_action`.' }]));",
+    );
+    const options = { repoRoot: root, catalogPath: catalog };
+    expect(runCheckMcpToolReferences(options).map((item) => item.name)).toEqual(
+      ['rate_content', 'missing_action'],
+    );
+    expect(
+      runCheckMcpToolReferences({ ...options, noLocalSkills: true }).map(
+        (item) => item.name,
+      ),
+    ).toEqual(['missing_action']);
+    expect(
+      runCheckMcpToolReferences({ ...options, noDesktop: true }).map(
+        (item) => item.name,
+      ),
+    ).toEqual(['rate_content']);
+  });
   it('checks every shipped Markdown surface in an explicit source checkout', () => {
     const skills = join(root, 'public-skills');
     mkdirSync(skills);
