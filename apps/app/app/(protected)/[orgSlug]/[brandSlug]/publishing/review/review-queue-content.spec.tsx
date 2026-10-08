@@ -475,6 +475,33 @@ describe('ReviewQueueContent', () => {
     expect(screen.queryByText('Review Grid')).not.toBeInTheDocument();
   });
 
+  it('shows the subscription denial instead of generic batch API advice', () => {
+    mockReviewQueries({
+      batchesError: Object.assign(new Error('Request rejected'), {
+        errors: [
+          {
+            status: '403',
+            title: 'Active subscription required',
+            detail:
+              'An active subscription is required to use this feature. Please subscribe to a plan.',
+          },
+        ],
+      }),
+    });
+    render(<ReviewQueueContent />);
+    expect(
+      screen.getByText(
+        'An active subscription is required to use this feature. Please subscribe to a plan.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'The review batches response was invalid or failed to load. Refresh the page and check the batches API.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Review Grid')).not.toBeInTheDocument();
+  });
+
   it('redirects approved manual-review drafts to the post detail page', async () => {
     const itemAction = vi.fn().mockResolvedValue({});
     const refetch = vi.fn().mockResolvedValue(undefined);
