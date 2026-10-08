@@ -1,6 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { NextIntlClientProvider } from 'next-intl';
 import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -55,16 +54,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { NextStepsCard } from './NextStepsCard';
 
 function renderCard(ui: ReactElement) {
-  return render(ui, {
-    wrapper: ({ children }: { children: ReactNode }) => (
-      <NextIntlClientProvider
-        locale="en"
-        messages={{ agent: { nextSteps: { start: 'Start' } } }}
-      >
-        {children}
-      </NextIntlClientProvider>
-    ),
-  });
+  return render(ui);
 }
 
 function buildAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
