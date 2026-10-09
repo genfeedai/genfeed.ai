@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -208,7 +209,7 @@ test('receipt requires all immutable cases and independently supplied source ide
 });
 
 test('runtime export removes machine-local agent inputs before validating runtime symlinks', (t) => {
-  const root = mkdtempSync(join(tmpdir(), 'mcp-auth-export-'));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mcp-auth-export-')));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const destination = join(root, 'export');
   mkdirSync(join(destination, 'apps/app/.agents/skills'), { recursive: true });

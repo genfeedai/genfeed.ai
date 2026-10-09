@@ -6018,6 +6018,27 @@ describe('AgentToolExecutorService', () => {
     },
   );
 
+  it('denies polling an inaccessible new brand before dispatch', async () => {
+    const { service } = createService('auto');
+    Object.assign(service, {
+      brandAccessService: brandAccessFixture({
+        member: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ role: { key: 'admin' }, brands: [] }),
+        },
+        brand: { findFirst: vi.fn().mockResolvedValue(null) },
+      } as never),
+    });
+    expect(
+      await service.executeTool(
+        'get_brand_scan_status',
+        { brandId: 'foreign-brand' },
+        scopedContext('brand-A'),
+      ),
+    ).toMatchObject({ success: false, error: 'Brand access denied' });
+  });
+
   it('preserves brand parameter isolation for other tools', async () => {
     const { service } = createService();
     expect(

@@ -632,7 +632,13 @@ export class AgentToolExecutorService implements OnModuleInit {
     const scope = context.validatedScope;
     if (!scope) return;
 
-    if (parameterBrandId && parameterBrandId !== scope.brandId) {
+    // A newly created brand can be polled without rebinding the current thread.
+    // Both the current and requested brands were authorized above.
+    if (
+      toolName !== 'get_brand_scan_status' &&
+      parameterBrandId &&
+      parameterBrandId !== scope.brandId
+    ) {
       throw new Error(
         'Tool brand parameters must match the validated thread brand scope.',
       );
