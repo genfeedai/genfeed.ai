@@ -5,6 +5,7 @@ import type { StudioGenerateResultsProps } from '@genfeedai/props/studio/studio-
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { groupStudioGenerateJobsByRun } from '@pages/studio/generate/utils/studio-generate-recipe';
+import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
@@ -20,19 +21,18 @@ const RESULTS_SKELETON_SLOTS = [
   'h',
 ] as const;
 
-const RESULTS_GRID_CLASS =
-  'grid w-full grid-cols-1 items-start gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
-
 function ResultsSkeleton(): ReactElement {
   return (
-    <div className={RESULTS_GRID_CLASS} data-testid="studio-results-skeleton">
-      {RESULTS_SKELETON_SLOTS.map((slot) => (
-        <Skeleton
-          className="aspect-[4/5] w-full rounded-card"
-          key={slot}
-          variant="rounded"
-        />
-      ))}
+    <div data-testid="studio-results-skeleton">
+      <OrderedMasonry>
+        {RESULTS_SKELETON_SLOTS.map((slot) => (
+          <Skeleton
+            className="aspect-[4/5] w-full rounded-card"
+            key={slot}
+            variant="rounded"
+          />
+        ))}
+      </OrderedMasonry>
     </div>
   );
 }
@@ -53,8 +53,8 @@ function ResultsSheet({
   }
 
   return (
-    <div className={RESULTS_GRID_CLASS} data-testid="studio-grid">
-      {children}
+    <div data-testid="studio-grid">
+      <OrderedMasonry>{children}</OrderedMasonry>
     </div>
   );
 }
