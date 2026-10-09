@@ -52,7 +52,7 @@ export class ImagesUpscaleController {
     modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
     source: ActivitySource.IMAGE_UPSCALE,
   })
-  @ValidateModel({ category: ModelCategory.IMAGE_EDIT })
+  @ValidateModel({ category: ModelCategory.IMAGE_UPSCALE })
   @ApiOperation({
     operationId: 'ImagesTransformationsController.upscaleImage',
     summary: 'upscaleImage',

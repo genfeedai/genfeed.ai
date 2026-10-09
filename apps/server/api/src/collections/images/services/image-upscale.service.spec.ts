@@ -8,7 +8,6 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -39,8 +38,6 @@ describe('ImageUpscaleService', () => {
   const metadataId = testId('metadata');
   const activityId = testId('activity');
   const generationId = 'replicate-generation-id';
-  const callerModel = 'caller-selected-upscale-model';
-  const routedModel = 'router-default-upscale-model';
   const user = {
     brandId: testId('user-brand'),
     id: testId('session-user'),
@@ -57,14 +54,14 @@ describe('ImageUpscaleService', () => {
     status: IngredientStatus.PROCESSING,
   };
   const request = {
-    selectedModel: { category: ModelCategory.IMAGE },
+    selectedModel: { category: ModelCategory.IMAGE_UPSCALE },
   } as unknown as Request;
   const body: ImageEditDto = {
     enhanceModel: 'Standard V2',
     faceEnhancement: false,
     faceEnhancementCreativity: 0.25,
     faceEnhancementStrength: 0.6,
-    model: callerModel,
+    model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
     outputFormat: ImageFormat.PNG,
     subjectDetection: 'All',
     upscaleFactor: UpscaleFactor._2X,
@@ -90,7 +87,6 @@ describe('ImageUpscaleService', () => {
   let metadataService: { patch: ReturnType<typeof vi.fn> };
   let promptBuilderService: { buildPrompt: ReturnType<typeof vi.fn> };
   let replicateService: { runModel: ReturnType<typeof vi.fn> };
-  let routerService: { getDefaultModel: ReturnType<typeof vi.fn> };
   let sharedService: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let websocketService: {
     publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
@@ -124,9 +120,6 @@ describe('ImageUpscaleService', () => {
     replicateService = {
       runModel: vi.fn().mockResolvedValue(generationId),
     };
-    routerService = {
-      getDefaultModel: vi.fn().mockResolvedValue(routedModel),
-    };
     sharedService = {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData,
@@ -148,7 +141,6 @@ describe('ImageUpscaleService', () => {
       metadataService as unknown as MetadataService,
       promptBuilderService as unknown as PromptBuilderService,
       replicateService as unknown as ReplicateService,
-      routerService as unknown as RouterService,
       sharedService as unknown as SharedService,
       websocketService as unknown as NotificationsPublisherService,
       generationBilling as never,
@@ -174,7 +166,7 @@ describe('ImageUpscaleService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('preserves caller-model upscale orchestration and returns the processing ingredient', async () => {
+  it('records the executed Topaz model throughout upscale orchestration and returns the processing ingredient', async () => {
     await expect(
       service.upscaleImage(request, imageId, user, body),
     ).resolves.toBe(ingredientData);
@@ -195,7 +187,6 @@ describe('ImageUpscaleService', () => {
       },
       [PopulatePatterns.metadataFull],
     );
-    expect(routerService.getDefaultModel).not.toHaveBeenCalled();
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(user, {
       origin: IngredientOrigin.GENERATED,
       brandId: parent.brandId,
@@ -203,7 +194,7 @@ describe('ImageUpscaleService', () => {
         IngredientCategory.IMAGE,
       ),
       extension: body.outputFormat,
-      model: callerModel,
+      model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       organizationId: parent.organizationId,
       parentId: parent.id,
       status: IngredientStatus.PROCESSING,
@@ -220,7 +211,7 @@ describe('ImageUpscaleService', () => {
         userId: user.userId,
         value: JSON.stringify({
           ingredientId: upscaledImageId,
-          model: callerModel,
+          model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
           sourceId: imageId,
           type: 'transformation',
         }),
@@ -242,7 +233,7 @@ describe('ImageUpscaleService', () => {
         face_enhancement: false,
         face_enhancement_creativity: body.faceEnhancementCreativity,
         face_enhancement_strength: body.faceEnhancementStrength,
-        modelCategory: ModelCategory.IMAGE,
+        modelCategory: ModelCategory.IMAGE_UPSCALE,
         output_format: body.outputFormat,
         prompt: '',
         references: [`https://api.example.com/ingredients/images/${imageId}`],
@@ -264,11 +255,9 @@ describe('ImageUpscaleService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('uses the router model and preserves legacy truthiness defaults', async () => {
+  it('uses the fixed Topaz model and defaults when optional settings are absent', async () => {
     const defaultedBody = {
       enhanceModel: '',
-      faceEnhancementCreativity: 0,
-      faceEnhancementStrength: 0,
       subjectDetection: '',
     } as unknown as ImageEditDto;
 
@@ -276,14 +265,11 @@ describe('ImageUpscaleService', () => {
       service.upscaleImage({} as Request, imageId, user, defaultedBody),
     ).resolves.toBe(ingredientData);
 
-    expect(routerService.getDefaultModel).toHaveBeenCalledWith(
-      ModelCategory.IMAGE_UPSCALE,
-    );
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
       user,
       expect.objectContaining({
         extension: MetadataExtension.JPG,
-        model: routedModel,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       }),
     );
     expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
@@ -300,6 +286,49 @@ describe('ImageUpscaleService', () => {
         subject_detection: 'Foreground',
         upscale_factor: '4x',
       },
+      user.organizationId,
+    );
+  });
+
+  it.each([
+    'caller-selected-upscale-model',
+    'owner/model:provider-version',
+    'fal-ai/other-model',
+    '',
+  ])(
+    'rejects unsupported model %j before creating or dispatching output',
+    async (model) => {
+      await expect(
+        service.upscaleImage(request, imageId, user, { ...body, model }),
+      ).rejects.toMatchObject({
+        response: {
+          detail: 'This operation supports Topaz image upscaling only.',
+          title: 'Unsupported image upscale model',
+        },
+        status: HttpStatus.BAD_REQUEST,
+      });
+      expect(imagesService.findOne).not.toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(activitiesService.record).not.toHaveBeenCalled();
+      expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      expect(replicateService.runModel).not.toHaveBeenCalled();
+      expect(generationBilling.bindOutput).not.toHaveBeenCalled();
+    },
+  );
+
+  it('retains explicitly requested zero enhancement strength and creativity', async () => {
+    await service.upscaleImage(request, imageId, user, {
+      ...body,
+      faceEnhancementCreativity: 0,
+      faceEnhancementStrength: 0,
+    });
+    expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      expect.objectContaining({
+        face_enhancement_creativity: 0,
+        face_enhancement_strength: 0,
+        modelCategory: ModelCategory.IMAGE_UPSCALE,
+      }),
       user.organizationId,
     );
   });
