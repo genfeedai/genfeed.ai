@@ -1,6 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { quoteTopazVideoUpscaleCredits } from '@genfeedai/pricing';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -442,6 +443,395 @@ describe('useEnhanceUpscale', () => {
       });
 
       expect(mockPostUpscale).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('transform admission', () => {
+    const image = {
+      category: IngredientCategory.IMAGE,
+      id: 'bound-image',
+    } as IIngredient;
+    const video = {
+      category: IngredientCategory.VIDEO,
+      id: 'bound-video',
+    } as IIngredient;
+
+    it.each([undefined, null, Number.NaN, Number.POSITIVE_INFINITY, -1])(
+      'blocks unknown or invalid image prices (%s) for both operations',
+      async (cost) => {
+        mockUseElements.mockReturnValue({
+          ...defaultElements,
+          imageEditModels: [{ ...defaultElements.imageEditModels[0], cost }],
+        });
+        const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+        await act(async () => {
+          await result.current.handleUpscale(image);
+        });
+        expect(result.current.upscaleConfirmData).toBeNull();
+        await act(async () => {
+          await result.current.handleEnhance(image);
+        });
+        expect(result.current.enhanceConfirmData).toBeNull();
+        expect(mockError).toHaveBeenCalledWith(
+          expect.stringContaining('price unavailable'),
+        );
+        expect(mockGetImagesService).not.toHaveBeenCalled();
+      },
+    );
+
+    it('accepts an explicit zero image price', async () => {
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        imageEditModels: [{ ...defaultElements.imageEditModels[0], cost: 0 }],
+      });
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleUpscale(image);
+      });
+      expect(result.current.upscaleConfirmData?.cost).toBe(0);
+      await act(async () => {
+        await result.current.executeUpscale();
+      });
+      expect(mockPostUpscale).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not substitute ByteDance when Topaz has unknown pricing', async () => {
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        videoEditModels: [
+          { ...defaultElements.videoEditModels[0], cost: undefined },
+          defaultElements.videoEditModels[1],
+        ],
+      });
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleUpscale(video);
+      });
+      expect(result.current.upscaleConfirmData).toBeNull();
+      expect(mockError).toHaveBeenCalledWith(
+        expect.stringContaining('price unavailable'),
+      );
+    });
+
+    it('excludes unpriced alternate video models from the confirmation', async () => {
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        videoEditModels: [
+          defaultElements.videoEditModels[0],
+          { ...defaultElements.videoEditModels[1], cost: undefined },
+        ],
+      });
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleUpscale(video);
+      });
+      expect(
+        result.current.upscaleConfirmData?.videoModelOptions?.map(
+          (model) => model.key,
+        ),
+      ).toEqual([MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE]);
+    });
+
+    it.each(['removed', 'repriced'])(
+      'rejects a %s image model at confirmation',
+      async (change) => {
+        const { result, rerender } = renderHook(() =>
+          useEnhanceUpscale(defaultParams),
+        );
+        await act(async () => {
+          await result.current.handleUpscale(image);
+        });
+        mockUseElements.mockReturnValue({
+          ...defaultElements,
+          imageEditModels:
+            change === 'removed'
+              ? []
+              : [{ ...defaultElements.imageEditModels[0], cost: 11 }],
+        });
+        rerender();
+        await act(async () => {
+          await result.current.executeUpscale();
+        });
+        expect(mockGetImagesService).not.toHaveBeenCalled();
+        expect(mockError).toHaveBeenCalledWith(
+          expect.stringContaining('model or price changed'),
+        );
+        expect(result.current.upscaleConfirmData?.ingredient?.id).toBe(
+          image.id,
+        );
+      },
+    );
+
+    it('rejects a removed video model without substituting a remaining model', async () => {
+      const { result, rerender } = renderHook(() =>
+        useEnhanceUpscale(defaultParams),
+      );
+      await act(async () => {
+        await result.current.handleUpscale(video);
+      });
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        videoEditModels: [defaultElements.videoEditModels[1]],
+      });
+      rerender();
+      await act(async () => {
+        await result.current.executeUpscale();
+      });
+      expect(mockGetVideosService).not.toHaveBeenCalled();
+      expect(mockPostUpscale).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        model: 'unregistered',
+        targetFps: 30,
+        targetResolution: '1080p',
+        cost: 20,
+      },
+      {
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        targetFps: 120,
+        targetResolution: '1080p',
+        cost: 20,
+      },
+      {
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        targetFps: 30,
+        targetResolution: '2k',
+        cost: 20,
+      },
+      {
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        targetFps: 30,
+        targetResolution: '1080p',
+        cost: Number.NaN,
+      },
+      {
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        targetFps: 60,
+        targetResolution: '4k',
+        cost: 20,
+      },
+    ])(
+      'rejects unsupported settings or an altered selected quote (%j)',
+      async (selection) => {
+        const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+        await act(async () => {
+          await result.current.handleUpscale(video);
+        });
+        await act(async () => {
+          await result.current.executeUpscale(selection);
+        });
+        expect(mockGetVideosService).not.toHaveBeenCalled();
+        expect(mockPostUpscale).not.toHaveBeenCalled();
+      },
+    );
+
+    it('accepts the shared Topaz quote for a supported 4K/60 selection', async () => {
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleUpscale(video);
+      });
+      await act(async () => {
+        await result.current.executeUpscale({
+          model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+          targetFps: 60,
+          targetResolution: '4k',
+          cost: quoteTopazVideoUpscaleCredits(20, '4k', 60),
+        });
+      });
+      expect(mockPostUpscale).toHaveBeenCalledWith(video.id, {
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        targetFps: 60,
+        targetResolution: '4k',
+      });
+    });
+
+    it('rechecks model admission after asynchronous service resolution', async () => {
+      let resolveService:
+        | ((service: { postUpscale: typeof mockPostUpscale }) => void)
+        | undefined;
+      mockGetImagesService.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveService = resolve;
+          }),
+      );
+      const { result, rerender } = renderHook(() =>
+        useEnhanceUpscale(defaultParams),
+      );
+      await act(async () => {
+        await result.current.handleUpscale(image);
+      });
+      const execute = result.current.executeUpscale;
+      let request: Promise<void> | undefined;
+      act(() => {
+        request = execute();
+      });
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        imageEditModels: [],
+      });
+      rerender();
+      await act(async () => {
+        resolveService?.({ postUpscale: mockPostUpscale });
+        await expect(request).rejects.toThrow('model or price changed');
+      });
+      expect(mockPostUpscale).not.toHaveBeenCalled();
+      mockUseElements.mockReturnValue(defaultElements);
+      rerender();
+      await act(async () => {
+        await result.current.handleUpscale(image);
+      });
+      await act(async () => {
+        await result.current.executeUpscale();
+      });
+      expect(mockPostUpscale).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['upscale', 'enhance'] as const)(
+      'consumes one %s confirmation and binds its original source',
+      async (operation) => {
+        let finish: (() => void) | undefined;
+        mockPostUpscale.mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finish = () => resolve({ id: 'derived-image' });
+            }),
+        );
+        const source = { ...image };
+        const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+        await act(async () => {
+          await (operation === 'upscale'
+            ? result.current.handleUpscale
+            : result.current.handleEnhance)(source);
+        });
+        const execute =
+          operation === 'upscale'
+            ? result.current.executeUpscale
+            : result.current.executeEnhance;
+        source.id = 'mutated-source';
+        let request: Promise<void> | undefined;
+        await act(async () => {
+          request = execute();
+          await execute();
+          await result.current.handleUpscale({
+            ...image,
+            id: 'another-source',
+          });
+        });
+        expect(mockPostUpscale).toHaveBeenCalledTimes(1);
+        expect(mockPostUpscale.mock.calls[0][0]).toBe(image.id);
+        await act(async () => {
+          finish?.();
+          await request;
+        });
+        await act(async () => {
+          await execute();
+        });
+        expect(mockPostUpscale).toHaveBeenCalledTimes(1);
+        expect(result.current.upscaleConfirmData).toBeNull();
+      },
+    );
+
+    it.each(['upscale', 'enhance'] as const)(
+      'cannot execute a dismissed %s confirmation from a captured callback',
+      async (operation) => {
+        const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+        await act(async () => {
+          await (operation === 'upscale'
+            ? result.current.handleUpscale
+            : result.current.handleEnhance)(image);
+        });
+        const execute =
+          operation === 'upscale'
+            ? result.current.executeUpscale
+            : result.current.executeEnhance;
+        act(() => {
+          (operation === 'upscale'
+            ? result.current.clearUpscaleConfirm
+            : result.current.clearEnhanceConfirm)();
+        });
+        await act(async () => {
+          await execute();
+        });
+        expect(mockGetImagesService).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects a changed Enhance price at confirmation', async () => {
+      const { result, rerender } = renderHook(() =>
+        useEnhanceUpscale(defaultParams),
+      );
+      await act(async () => {
+        await result.current.handleEnhance(image);
+      });
+      mockUseElements.mockReturnValue({
+        ...defaultElements,
+        imageEditModels: [{ ...defaultElements.imageEditModels[0], cost: 11 }],
+      });
+      rerender();
+      await act(async () => {
+        await result.current.executeEnhance();
+      });
+      expect(mockGetImagesService).not.toHaveBeenCalled();
+    });
+
+    it.each(['upscale', 'enhance'] as const)(
+      'does not dispatch %s after its owner unmounts during service lookup',
+      async (operation) => {
+        let resolveService:
+          | ((service: { postUpscale: typeof mockPostUpscale }) => void)
+          | undefined;
+        mockGetImagesService.mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveService = resolve;
+            }),
+        );
+        const { result, unmount } = renderHook(() =>
+          useEnhanceUpscale(defaultParams),
+        );
+        await act(async () => {
+          await (operation === 'upscale'
+            ? result.current.handleUpscale
+            : result.current.handleEnhance)(image);
+        });
+        const execute =
+          operation === 'upscale'
+            ? result.current.executeUpscale
+            : result.current.executeEnhance;
+        let request: Promise<void> | undefined;
+        act(() => {
+          request = execute();
+        });
+        unmount();
+        await act(async () => {
+          resolveService?.({ postUpscale: mockPostUpscale });
+          await expect(request).rejects.toThrow('model or price changed');
+        });
+        expect(mockPostUpscale).not.toHaveBeenCalled();
+      },
+    );
+
+    it('releases the request lock after a failed transformation', async () => {
+      mockPostUpscale.mockRejectedValueOnce(new Error('provider unavailable'));
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+      await act(async () => {
+        await result.current.handleEnhance(image);
+      });
+      await act(async () => {
+        await expect(result.current.executeEnhance()).rejects.toThrow(
+          'provider unavailable',
+        );
+      });
+      await act(async () => {
+        await result.current.handleEnhance(image);
+      });
+      await act(async () => {
+        await result.current.executeEnhance();
+      });
+      expect(mockPostUpscale).toHaveBeenCalledTimes(2);
     });
   });
 
