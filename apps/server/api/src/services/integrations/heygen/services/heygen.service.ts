@@ -24,6 +24,7 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import type {
+  HeyGenAvatarCatalogPage,
   HeyGenAvatarRef,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
@@ -369,6 +370,51 @@ export class HeyGenService {
     }));
   }
 
+  public async getAvatarPage(
+    organizationId: string,
+    ownership: 'public' | 'private' = 'public',
+    cursor?: string,
+  ): Promise<HeyGenAvatarCatalogPage> {
+    // Check binding storage even for public pages; lookup failure is not absence.
+    const credential = await this.byokService.lookupApiKeyWithIdentity(
+      organizationId,
+      ByokProvider.HEYGEN,
+    );
+    if (ownership === 'private' && !credential)
+      return { avatars: [], ownership, nextCursor: null };
+    const connection =
+      ownership === 'private' && credential
+        ? {
+            apiKey: credential.apiKey,
+            binding: {
+              provider: 'heygen' as const,
+              kind: 'byok' as const,
+              organizationId,
+              credentialVersionId: credential.credentialId,
+            },
+          }
+        : await this.resolveOrganizationConnection(organizationId, 'platform');
+    const page = await this.readCatalogPage(
+      '/avatars/looks',
+      connection.apiKey,
+      50,
+      { ownership },
+      cursor,
+    );
+    const refs = await this.readAvatarCatalog(connection, ownership, page.data);
+    return {
+      avatars: refs.map((avatarRef, index) => ({
+        avatarId: avatarRef.lookId,
+        index,
+        name: avatarRef.label,
+        preview: avatarRef.preview ?? '',
+        avatarRef,
+      })),
+      ownership,
+      nextCursor: page.has_more ? (page.next_token ?? null) : null,
+    };
+  }
+
   /** Catalogue sources fail independently; identity admission never falls back. */
   private async readAccessibleCatalog<T>(
     organizationId: string | undefined,
@@ -436,6 +482,8 @@ export class HeyGenService {
   private async readAvatarCatalog(
     connection: { apiKey: string; binding: HeyGenConnectionRef },
     ownership?: 'public' | 'private',
+    pageItems?: Record<string, unknown>[],
+    lookId?: string,
   ): Promise<HeyGenAvatarRef[]> {
     const partitions = ownership
       ? [ownership]
@@ -449,12 +497,15 @@ export class HeyGenService {
         throw new BadRequestException(
           'Private avatars require your personal HeyGen connection.',
         );
-      const items = await this.getCatalog(
-        '/avatars/looks',
-        connection.apiKey,
-        50,
-        { ownership: partition },
-      );
+      const items =
+        pageItems ??
+        (await this.getCatalog(
+          '/avatars/looks',
+          connection.apiKey,
+          50,
+          { ownership: partition },
+          lookId,
+        ));
       // Five look/group resolutions at a time; groups are deduplicated per request.
       for (let offset = 0; offset < items.length; offset += 5) {
         output.push(
@@ -568,6 +619,8 @@ export class HeyGenService {
     const catalog = await this.readAvatarCatalog(
       connection,
       candidate.ownership,
+      undefined,
+      candidate.lookId,
     );
     const avatarRef = catalog.find(
       (avatar) => avatar.lookId === candidate.lookId,
@@ -636,27 +689,50 @@ export class HeyGenService {
     }
   }
 
+  private async readCatalogPage(
+    path: string,
+    apiKey: string,
+    limit: number,
+    filters: Record<string, string>,
+    token?: string,
+  ): Promise<z.infer<typeof catalogPageSchema>> {
+    const response = await firstValueFrom(
+      this.httpService.get<unknown>(`${this.endpoint}${path}`, {
+        headers: this.getHeaders(apiKey),
+        params: { ...filters, limit, ...(token ? { token } : {}) },
+        timeout: 15_000,
+      }),
+    );
+    if (response.status !== 200)
+      throw new Error('HeyGen API returned non-200 status');
+    const data = catalogPageSchema.parse(response.data);
+    if (data.has_more && (!data.next_token || data.next_token === token))
+      throw new Error('HeyGen returned an invalid catalog cursor');
+    return data;
+  }
+
   private async getCatalog(
     path: string,
     apiKey: string,
     limit: number,
     filters: Record<string, string> = {},
+    findId?: string,
   ): Promise<Record<string, unknown>[]> {
     const items: Record<string, unknown>[] = [];
     const seenTokens = new Set<string>();
     let token: string | undefined;
     for (let page = 0; page < 100; page++) {
-      const response = await firstValueFrom(
-        this.httpService.get<unknown>(`${this.endpoint}${path}`, {
-          headers: this.getHeaders(apiKey),
-          params: { ...filters, limit, ...(token ? { token } : {}) },
-          timeout: 15_000,
-        }),
+      const data = await this.readCatalogPage(
+        path,
+        apiKey,
+        limit,
+        filters,
+        token,
       );
-      if (response.status !== 200)
-        throw new Error('HeyGen API returned non-200 status');
-      const data = catalogPageSchema.parse(response.data);
-      items.push(...data.data);
+      if (findId) {
+        const match = data.data.find((item) => item.id === findId);
+        if (match) return [match];
+      } else items.push(...data.data);
       if (!data.has_more) return items;
       if (!data.next_token || seenTokens.has(data.next_token))
         throw new Error('HeyGen returned an invalid catalog cursor');

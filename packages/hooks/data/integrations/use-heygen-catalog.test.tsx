@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   avatars: vi.fn(),
   voices: vi.fn(),
+  page: vi.fn(),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: mocks.organizationId }),
@@ -36,8 +37,20 @@ describe('HeyGen catalogue recovery', () => {
     mocks.organizationId = 'org-a';
     mocks.avatars.mockResolvedValue([]);
     mocks.voices.mockResolvedValue([voice]);
+    mocks.page.mockImplementation(
+      async (options: {
+        ownership: string;
+        cursor?: string;
+        signal?: AbortSignal;
+      }) => ({
+        avatars:
+          options.ownership === 'public' ? await mocks.avatars(options) : [],
+        ownership: options.ownership,
+        nextCursor: null,
+      }),
+    );
     mocks.getService.mockResolvedValue({
-      fetchAvatars: mocks.avatars,
+      fetchAvatarPage: mocks.page,
       fetchVoices: mocks.voices,
     });
   });
@@ -136,5 +149,77 @@ describe('HeyGen catalogue recovery', () => {
     const signal = mocks.voices.mock.calls[0][0] as AbortSignal;
     pending.unmount();
     expect(signal.aborted).toBe(true);
+  });
+  it('publishes a first page without waiting for voices and does not exhaust the catalogue', async () => {
+    mocks.voices.mockReturnValue(new Promise(() => {}));
+    mocks.page.mockImplementation(async ({ ownership }) => ({
+      avatars: [],
+      ownership,
+      nextCursor: ownership === 'public' ? 'next' : null,
+    }));
+    const { result } = renderHook(() => useHeyGenCatalog());
+    await waitFor(() => expect(result.current.hasMoreAvatars).toBe(true));
+    expect(mocks.page).toHaveBeenCalledTimes(2);
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it('follows an explicit cursor once and retains loaded choices on a continuation outage', async () => {
+    mocks.page.mockImplementation(async ({ ownership, cursor }) => {
+      if (cursor) throw new Error('continuation outage');
+      return {
+        avatars: [],
+        ownership,
+        nextCursor: ownership === 'public' ? 'next' : null,
+      };
+    });
+    const { result } = renderHook(() => useHeyGenCatalog());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mocks.page).toHaveBeenCalledTimes(2);
+    await act(async () => result.current.loadMoreAvatars());
+    expect(mocks.page).toHaveBeenLastCalledWith(
+      expect.objectContaining({ ownership: 'public', cursor: 'next' }),
+    );
+    expect(result.current.voices).toEqual([voice]);
+    expect(result.current.hasMoreAvatars).toBe(true);
+    expect(result.current.error).toContain('More HeyGen avatars');
+  });
+
+  it('ignores a pending continuation from the previous organization', async () => {
+    let resolvePage:
+      | ((value: {
+          avatars: HeyGenCatalogAvatar[];
+          ownership: 'public';
+          nextCursor: null;
+        }) => void)
+      | undefined;
+    mocks.page.mockImplementation(async ({ ownership, cursor }) => {
+      if (cursor)
+        return new Promise((resolve) => {
+          resolvePage = resolve;
+        });
+      return {
+        avatars: [],
+        ownership,
+        nextCursor: ownership === 'public' ? 'next' : null,
+      };
+    });
+    const { result, rerender } = renderHook(() => useHeyGenCatalog());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = result.current.loadMoreAvatars();
+    });
+    await waitFor(() => expect(resolvePage).toBeDefined());
+    const signal = mocks.page.mock.calls.at(-1)?.[0].signal as AbortSignal;
+    mocks.organizationId = 'org-b';
+    rerender();
+    expect(signal.aborted).toBe(true);
+    await act(async () => {
+      resolvePage?.({ avatars: [], ownership: 'public', nextCursor: null });
+      await pending;
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.hasMoreAvatars).toBe(true);
+    expect(result.current.voices).toEqual([voice]);
   });
 });

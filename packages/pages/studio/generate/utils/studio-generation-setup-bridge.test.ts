@@ -1,4 +1,5 @@
 import { RouterPriority } from '@genfeedai/contracts';
+import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 import type { StudioGeneratePersistedState } from '@pages/studio/generate/utils/studio-generate-storage';
 import { STUDIO_GENERATE_TYPES } from '@pages/studio/generate/utils/studio-generate-types';
@@ -11,6 +12,7 @@ import {
   splitStudioSettingsPatch,
   studioSettingsFieldsToGenerationSetupPatch,
 } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   buildStudioGenerationSetupScope,
   useGenerationSetupStore,
@@ -154,6 +156,57 @@ describe('splitStudioSettingsPatch', () => {
 
     expect(bridged).toEqual({});
     expect(residual).toEqual({});
+  });
+
+  it('preserves explicit identity clears while leaving omitted fields unchanged', () => {
+    const { residual } = splitStudioSettingsPatch({
+      avatarRef: undefined,
+      avatarPhotoUrl: undefined,
+    });
+    expect(residual).toEqual({
+      avatarRef: undefined,
+      avatarPhotoUrl: undefined,
+    });
+    expect(residual).not.toHaveProperty('voiceRef');
+    const voiceClear = splitStudioSettingsPatch({
+      voiceRef: undefined,
+      voiceId: undefined,
+    });
+    expect(voiceClear.residual).toEqual({
+      voiceRef: undefined,
+      voiceId: undefined,
+    });
+    expect(voiceClear.residual).not.toHaveProperty('avatarRef');
+  });
+
+  it('clears avatar and voice selections through the real settings hook independently', async () => {
+    const { result } = renderHook(() => useStudioGenerateSettings());
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    act(() =>
+      result.current.applyTypeSettings('avatar', {
+        avatarPhotoUrl: 'https://assets.test/photo.jpg',
+        voiceId: 'voice-a',
+      }),
+    );
+    expect(result.current.settings.avatarPhotoUrl).toBe(
+      'https://assets.test/photo.jpg',
+    );
+    act(() =>
+      result.current.updateSettings({
+        avatarPhotoUrl: undefined,
+        avatarRef: undefined,
+      }),
+    );
+    expect(result.current.settings.avatarPhotoUrl).toBeUndefined();
+    expect(result.current.settings.voiceId).toBe('voice-a');
+    act(() =>
+      result.current.updateSettings({
+        voiceId: undefined,
+        voiceRef: undefined,
+      }),
+    );
+    expect(result.current.settings.voiceId).toBeUndefined();
+    expect(result.current.settingsByType.avatar.avatarPhotoUrl).toBeUndefined();
   });
 
   it('accounts for every bridged key declared by the module', () => {

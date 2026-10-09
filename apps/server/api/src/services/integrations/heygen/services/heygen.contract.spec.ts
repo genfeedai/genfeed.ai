@@ -38,6 +38,112 @@ describe('HeyGen v3 contracts', () => {
     service = module.get(HeyGenService);
   });
 
+  it('keeps the full-catalogue limit rather than silently reporting partial results', async () => {
+    let cursor = 0;
+    http.get.mockImplementation(() =>
+      page([look({ id: `look-${cursor}` })], `cursor-${++cursor}`),
+    );
+    await expect(service.getAvatars('org-a')).rejects.toThrow(
+      'pagination limit',
+    );
+    expect(http.get).toHaveBeenCalledTimes(100);
+  });
+
+  it('returns just one public avatar page with explicit continuation', async () => {
+    http.get.mockReturnValue(page([look({ id: 'public-look' })], 'next-page'));
+    const result = await service.getAvatarPage('org-a');
+    expect(result.avatars.map((avatar) => avatar.avatarId)).toEqual([
+      'public-look',
+    ]);
+    expect(result).toMatchObject({
+      ownership: 'public',
+      nextCursor: 'next-page',
+    });
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get.mock.calls[0][1].params).toEqual({
+      ownership: 'public',
+      limit: 50,
+    });
+    expect(result.avatars[0].avatarRef.connection).toMatchObject({
+      kind: 'platform',
+      organizationId: 'org-a',
+    });
+  });
+
+  it('never substitutes the platform key for a missing private connection', async () => {
+    await expect(service.getAvatarPage('org-a', 'private')).resolves.toEqual({
+      avatars: [],
+      ownership: 'private',
+      nextCursor: null,
+    });
+    expect(http.get).not.toHaveBeenCalled();
+    byok.lookupApiKeyWithIdentity.mockRejectedValueOnce(
+      new Error('binding lookup failed'),
+    );
+    await expect(service.getAvatarPage('org-a', 'private')).rejects.toThrow(
+      'binding lookup failed',
+    );
+    expect(http.get).not.toHaveBeenCalled();
+  });
+
+  it('maps a private page with verified group readiness and its own credential', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue({
+      apiKey: 'personal-key',
+      credentialId: 'credential-a',
+    });
+    http.get
+      .mockReturnValueOnce(page([look({ group_id: 'group' })]))
+      .mockReturnValueOnce(
+        of({
+          status: 200,
+          data: {
+            data: {
+              id: 'group',
+              status: 'completed',
+              consent_status: 'accepted',
+            },
+          },
+        }),
+      );
+    const result = await service.getAvatarPage('org-a', 'private', 'cursor-a');
+    expect(http.get.mock.calls[0][1]).toMatchObject({
+      params: { ownership: 'private', limit: 50, token: 'cursor-a' },
+      headers: { 'X-Api-Key': 'personal-key' },
+    });
+    expect(result.avatars[0].avatarRef).toMatchObject({
+      ownership: 'private',
+      readiness: { usable: true },
+      connection: { kind: 'byok', credentialVersionId: 'credential-a' },
+    });
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it.each([undefined, '', 'current'])(
+    'rejects an invalid advancing page cursor %s',
+    async (next_token) => {
+      http.get.mockReturnValue(
+        of({ status: 200, data: { data: [], has_more: true, next_token } }),
+      );
+      await expect(
+        service.getAvatarPage('org-a', 'public', 'current'),
+      ).rejects.toThrow('invalid catalog cursor');
+    },
+  );
+
+  it('admits a selected look from its filtered page without exhausting the whole catalogue', async () => {
+    http.get.mockReturnValue(
+      page([look({ id: 'selected' })], 'more-than-gallery'),
+    );
+    const result = await service.resolveAvatarSelection(
+      { lookId: 'selected', ownership: 'public' },
+      'org-a',
+    );
+    expect(result.avatarRef.lookId).toBe('selected');
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get.mock.calls[0][1].params.ownership).toBe('public');
+    expect(http.post).not.toHaveBeenCalled();
+  });
+
   it('submits a native avatar with its script, voice and callback correlation', async () => {
     await expect(
       service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),

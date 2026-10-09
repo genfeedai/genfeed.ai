@@ -6,14 +6,16 @@ import {
   serializeProviderCatalog,
   throwProviderCatalogError,
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
+import { HeyGenAvatarPageDto } from '@api/services/integrations/heygen/dto/heygen-avatar-page.dto';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type {
+  HeyGenAvatarCatalogPage,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 
 type HeygenVoicesResponse = ProviderCatalogResponse<
   'voices',
@@ -72,6 +74,38 @@ export class HeyGenController {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throwProviderCatalogError('Failed to fetch HeyGen voices', error);
+    }
+  }
+
+  @Get('avatars/page')
+  async getAvatarPage(
+    @CurrentUser() user: User,
+    @Query() query: HeyGenAvatarPageDto,
+  ): Promise<
+    ProviderCatalogResponse<
+      'avatars',
+      HeyGenAvatarCatalogPage & {
+        provider: 'heygen';
+        count: number;
+      }
+    >
+  > {
+    try {
+      const page = await this.heygenService.getAvatarPage(
+        user.organizationId,
+        query.ownership ?? 'public',
+        query.cursor,
+      );
+      return serializeProviderCatalog({
+        attributes: { ...page, provider: 'heygen', count: page.avatars.length },
+        type: 'avatars',
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} getAvatarPage failed`,
+        error,
+      );
+      throwProviderCatalogError('Failed to fetch HeyGen avatars', error);
     }
   }
 

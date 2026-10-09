@@ -197,6 +197,10 @@ export function splitStudioSettingsPatch(
         'lyrics',
         'crunControls',
         'editSeed',
+        'avatarRef',
+        'avatarPhotoUrl',
+        'voiceRef',
+        'voiceId',
       ].includes(key)
     ) {
       continue;

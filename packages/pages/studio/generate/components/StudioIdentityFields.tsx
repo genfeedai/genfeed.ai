@@ -1,27 +1,24 @@
 'use client';
 
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioIdentityFieldsProps } from '@genfeedai/props/studio/studio-generate.props';
 import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
-import {
-  OptionSelect,
-  SettingRow,
-} from '@pages/studio/generate/components/StudioSettingControls';
 import { useStudioGenerateIdentities } from '@pages/studio/generate/hooks/useStudioGenerateIdentities';
 import type { StudioGenerateType } from '@pages/studio/generate/types';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Popover,
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { UserRound } from 'lucide-react';
+import { Mic, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactElement } from 'react';
+import { type ReactElement, useState } from 'react';
 
 function describeIdentitySettings(
   type: StudioGenerateType,
@@ -49,8 +46,19 @@ export default function StudioIdentityFields({
 }: StudioIdentityFieldsProps): ReactElement {
   const translate = useTranslations('agent.generationSetup');
   const translateAction = useTranslations('common.actions');
-  const { avatarOptions, error, isLoadingIdentities, retry, voiceOptions } =
-    useStudioGenerateIdentities();
+  const [query, setQuery] = useState('');
+  const [avatarLimit, setAvatarLimit] = useState(12);
+  const [voiceLimit, setVoiceLimit] = useState(12);
+  const {
+    avatarOptions,
+    error,
+    isLoadingIdentities,
+    retry,
+    voiceOptions,
+    hasMoreAvatars,
+    loadMoreAvatars,
+    isLoadingMoreAvatars,
+  } = useStudioGenerateIdentities();
 
   const avatarValue = settings.avatarRef
     ? heyGenAvatarValue(settings.avatarRef)
@@ -68,6 +76,12 @@ export default function StudioIdentityFields({
   )?.label;
   const voiceLabel = selectedVoiceOption?.label;
   const summary = describeIdentitySettings(type, avatarLabel, voiceLabel);
+  const matchingAvatars = avatarOptions.filter((option) =>
+    option.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+  const matchingVoices = voiceOptions.filter((option) =>
+    option.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
 
   return (
     <Popover>
@@ -87,8 +101,23 @@ export default function StudioIdentityFields({
           withWrapper={false}
         />
       </PopoverTrigger>
-      <PopoverPanelContent align="start" className="w-72 p-3" side="top">
-        <div className="flex flex-col gap-3">
+      <PopoverPanelContent
+        align="start"
+        className="flex max-h-[min(640px,var(--radix-popover-content-available-height,75vh))] w-[min(560px,calc(100vw-2rem))] flex-col overflow-hidden p-3"
+        side="top"
+      >
+        <Input
+          aria-label={translate('identitySearch')}
+          placeholder={translate('identitySearch')}
+          value={query}
+          className="mb-3 shrink-0"
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setAvatarLimit(12);
+            setVoiceLimit(12);
+          }}
+        />
+        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
           {error ? (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground" role="alert">
@@ -105,47 +134,198 @@ export default function StudioIdentityFields({
             </div>
           ) : null}
           {type === 'avatar' ? (
-            <SettingRow label="Avatar">
-              <OptionSelect
-                ariaLabel="Avatar"
-                isDisabled={isLoadingIdentities && !avatarOptions.length}
-                onChange={(value) => {
-                  const option = avatarOptions.find(
-                    (candidate) => candidate.value === value,
-                  );
-                  onChange({
-                    avatarRef: option?.avatarRef,
-                    avatarPhotoUrl: option?.avatarRef ? undefined : value,
-                  });
-                }}
-                options={avatarOptions}
-                placeholder="Use saved avatar default"
-                value={avatarValue}
-              />
-            </SettingRow>
+            <section
+              aria-label={translate('identityAvatarGallery')}
+              className="space-y-2"
+            >
+              <h3 className="text-sm font-medium">
+                {translate('identityAvatarGallery')}
+              </h3>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                <Button
+                  aria-pressed={!avatarValue}
+                  ariaLabel={translate('identityDefaultAvatar')}
+                  className={cn(
+                    'flex h-auto min-h-24 flex-col gap-2 rounded-md border p-2 text-xs',
+                    !avatarValue
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border',
+                  )}
+                  isDisabled={isDisabled}
+                  onClick={() =>
+                    onChange({
+                      avatarRef: undefined,
+                      avatarPhotoUrl: undefined,
+                    })
+                  }
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  <UserRound className="size-8" />
+                  <span>{translate('identityDefaultAvatar')}</span>
+                </Button>
+                {matchingAvatars.slice(0, avatarLimit).map((option) => (
+                  <Button
+                    key={option.value}
+                    aria-pressed={option.value === avatarValue}
+                    ariaLabel={option.label}
+                    title={option.label}
+                    className={cn(
+                      'flex h-auto min-w-0 flex-col gap-2 rounded-md border p-2 text-xs',
+                      option.value === avatarValue
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-muted/50',
+                    )}
+                    isDisabled={isDisabled || option.disabled}
+                    onClick={() =>
+                      onChange({
+                        avatarRef: option.avatarRef,
+                        avatarPhotoUrl: option.avatarRef
+                          ? undefined
+                          : option.value,
+                      })
+                    }
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                  >
+                    <Avatar className="aspect-square h-auto w-full rounded-md">
+                      {option.preview ? (
+                        <AvatarImage
+                          src={option.preview}
+                          alt=""
+                          className="object-cover"
+                        />
+                      ) : null}
+                      <AvatarFallback className="rounded-md">
+                        <UserRound className="size-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="w-full truncate text-left">
+                      {option.label}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+              {matchingAvatars.length > avatarLimit || hasMoreAvatars ? (
+                <Button
+                  label={translate('identityMoreAvatars')}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.SM}
+                  isDisabled={
+                    isDisabled || isLoadingIdentities || isLoadingMoreAvatars
+                  }
+                  onClick={async () => {
+                    if (matchingAvatars.length <= avatarLimit && hasMoreAvatars)
+                      await loadMoreAvatars();
+                    setAvatarLimit((limit) => limit + 12);
+                  }}
+                />
+              ) : null}
+              {avatarOptions.length > 0 && matchingAvatars.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('identityNoMatches')}
+                </p>
+              ) : null}
+              {!avatarOptions.length ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate(
+                    isLoadingIdentities
+                      ? 'identityLoading'
+                      : 'identityNoAvatars',
+                  )}
+                </p>
+              ) : null}
+            </section>
           ) : null}
-          <SettingRow label="Voice">
-            <OptionSelect
-              ariaLabel="Voice"
-              isDisabled={isLoadingIdentities && !voiceOptions.length}
-              onChange={(value) => {
-                const option = voiceOptions.find(
-                  (candidate) => candidate.value === value,
-                );
-                onChange({
-                  voiceRef: option?.voiceRef,
-                  voiceId:
-                    option?.voiceRef?.externalVoiceId ??
-                    option?.voiceRef?.internalVoiceId,
-                });
-              }}
-              options={voiceOptions}
-              placeholder={
-                type === 'avatar' ? 'Use saved voice default' : 'Choose voice'
-              }
-              value={selectedVoiceOption?.value}
-            />
-          </SettingRow>
+          <section
+            aria-label={translate('identityVoiceGallery')}
+            className="space-y-2"
+          >
+            <h3 className="text-sm font-medium">
+              {translate('identityVoiceGallery')}
+            </h3>
+            {type === 'avatar' ? (
+              <Button
+                aria-pressed={!settings.voiceId && !settings.voiceRef}
+                label={translate('identityDefaultVoice')}
+                isDisabled={isDisabled}
+                onClick={() =>
+                  onChange({ voiceRef: undefined, voiceId: undefined })
+                }
+                size={ButtonSize.SM}
+                variant={
+                  !settings.voiceId && !settings.voiceRef
+                    ? ButtonVariant.SECONDARY
+                    : ButtonVariant.GHOST
+                }
+              />
+            ) : null}
+            <div className="space-y-2">
+              {matchingVoices.slice(0, voiceLimit).map((option) => (
+                <div key={option.value} className="space-y-1">
+                  <Button
+                    ariaLabel={option.label}
+                    aria-pressed={option.value === selectedVoiceOption?.value}
+                    className="w-full justify-start gap-2 text-left text-xs"
+                    icon={<Mic className="size-4 shrink-0" />}
+                    isDisabled={isDisabled || option.disabled}
+                    label={option.label}
+                    onClick={() =>
+                      onChange({
+                        voiceRef: option.voiceRef,
+                        voiceId:
+                          option.voiceRef?.externalVoiceId ??
+                          option.voiceRef?.internalVoiceId,
+                      })
+                    }
+                    size={ButtonSize.SM}
+                    variant={
+                      option.value === selectedVoiceOption?.value
+                        ? ButtonVariant.SECONDARY
+                        : ButtonVariant.GHOST
+                    }
+                    withWrapper={false}
+                  />
+                  {option.preview ? (
+                    <AudioPreviewPlayer
+                      audioUrl={option.preview}
+                      label={option.label}
+                      className="px-2"
+                      isTimelineVisible
+                      stopOnUnmount
+                    />
+                  ) : (
+                    <p className="px-2 text-2xs text-muted-foreground">
+                      {translate('identityNoSample')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {matchingVoices.length > voiceLimit ? (
+              <Button
+                label={translate('identityMoreVoices')}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.SM}
+                onClick={() => setVoiceLimit((limit) => limit + 12)}
+              />
+            ) : null}
+            {voiceOptions.length > 0 && matchingVoices.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {translate('identityNoMatches')}
+              </p>
+            ) : null}
+            {!voiceOptions.length ? (
+              <p className="text-xs text-muted-foreground">
+                {translate(
+                  isLoadingIdentities ? 'identityLoading' : 'identityNoVoices',
+                )}
+              </p>
+            ) : null}
+          </section>
+          <p className="text-xs text-muted-foreground">
+            {translate('identityGenerateHint')}
+          </p>
         </div>
       </PopoverPanelContent>
     </Popover>
