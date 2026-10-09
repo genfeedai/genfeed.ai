@@ -271,8 +271,14 @@ export class OrganizationsService extends BaseService<
           this.applyExpertBrandDefaults(id),
         );
       }
-      // The bootstrap brand list carries `organization.accountType`, which the
-      // proxy reads to route Expert Path onboarding.
+    }
+
+    // Bootstrap brands carry organization identity and account type.
+    if (
+      normalizedDto.accountType !== undefined ||
+      normalizedDto.label !== undefined ||
+      normalizedDto.slug !== undefined
+    ) {
       await this.accessBootstrapCacheService?.invalidateForOrganization(id);
     }
 
