@@ -35,7 +35,6 @@ function reasons(
     result.push('foreign_scope');
   if (row.isDeleted) result.push('deleted');
   if (row.isPinned) result.push('pinned');
-  if (row.isPromoted) result.push('promoted');
   if (row.isResponse) result.push('response');
   if (
     !row.sourceValid ||
@@ -77,7 +76,11 @@ function reasons(
     !metric.source.trim()
   )
     result.push('invalid_metric');
-  if (metric?.scope !== 'organic') result.push('non_organic_metric');
+  if (
+    !metric ||
+    !['organic', 'paid', 'aggregate', 'unknown'].includes(metric.scope)
+  )
+    result.push('invalid_metric_scope');
   return result;
 }
 function validateInput(input: BreakoutBaselineInput): void {
@@ -127,6 +130,7 @@ export function evaluateComparableBreakout(
     status: 'insufficient_data',
     metric: input.metric,
     source: input.target.exposures[input.metric]?.source ?? null,
+    exposureScope: input.target.exposures[input.metric]?.scope ?? null,
     timeBasis: timeBasis(input.target),
     targetObservationId: input.target.id,
     targetValue: null,
@@ -162,6 +166,8 @@ export function evaluateComparableBreakout(
       excluded.push('future_observation');
     if (row.exposures[input.metric]?.source !== result.source)
       excluded.push('different_metric_source');
+    if (row.exposures[input.metric]?.scope !== result.exposureScope)
+      excluded.push('different_metric_scope');
     if (timeBasis(row) !== result.timeBasis)
       excluded.push('different_time_basis');
     if (excluded.length)
@@ -205,6 +211,8 @@ export function evaluateComparableBreakout(
       ageMs: measuredAt(row) - row.publishedAtMs,
       isPinnedUnknown: row.isPinned === null,
       isPromotedUnknown: row.isPromoted === null,
+      isPromoted: row.isPromoted,
+      exposureScope: row.exposures[input.metric]?.scope ?? 'unknown',
     });
   }
   result.sampleSize = result.contributors.length;

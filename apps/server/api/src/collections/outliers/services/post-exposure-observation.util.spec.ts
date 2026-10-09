@@ -328,6 +328,37 @@ describe('prospective post exposure capture', () => {
       isResponse: false,
     });
   });
+  it.each(['organic', 'paid', 'aggregate', 'unknown'] as const)(
+    'persists and replays observed %s exposure without relabeling it',
+    async (scope) => {
+      const h = harness();
+      const input = await h.collection();
+      const impressions = input.exposures.impressions;
+      if (!impressions) throw new Error('Missing fixture impressions');
+      impressions.scope = scope;
+      impressions.source = 'provider.impressions';
+      input.isPromoted = scope === 'paid' ? true : null;
+      expect(await capturePostExposureObservation(h.tx, input)).toEqual({
+        status: 'captured',
+        observationId: 'observation-a',
+      });
+      const retained = structuredClone(h.rows.get('attempt-a'));
+      expect(retained).toMatchObject({
+        exposures: input.exposures,
+        isPromoted: input.isPromoted,
+      });
+      expect(await capturePostExposureObservation(h.tx, input)).toEqual({
+        status: 'replayed',
+        observationId: 'observation-a',
+      });
+      expect(h.rows.get('attempt-a')).toEqual(retained);
+      impressions.scope = scope === 'organic' ? 'paid' : 'organic';
+      expect(await capturePostExposureObservation(h.tx, input)).toEqual({
+        status: 'attempt_conflict',
+      });
+      expect(h.rows.get('attempt-a')).toEqual(retained);
+    },
+  );
   it('replays an identical attempt without overwriting the original row', async () => {
     const h = harness(),
       input = await h.collection();

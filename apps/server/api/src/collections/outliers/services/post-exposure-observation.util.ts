@@ -297,7 +297,7 @@ export function validBreakoutCollection(
       ['observed', 'unavailable', 'unauthorized', 'expired', 'failed'].includes(
         metric.availability,
       ) &&
-      ['organic', 'aggregate', 'unknown'].includes(metric.scope) &&
+      ['organic', 'paid', 'aggregate', 'unknown'].includes(metric.scope) &&
       typeof metric.source === 'string' &&
       validId(metric.source) &&
       (metric.availability === 'observed'

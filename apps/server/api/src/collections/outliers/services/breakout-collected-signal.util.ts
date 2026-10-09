@@ -67,9 +67,7 @@ async function detectCapturedBreakout(
     return capture;
   if (input.source.isResponse) return capture;
   const metrics = (['views', 'impressions'] as const).filter(
-    (metric) =>
-      input.exposures[metric]?.availability === 'observed' &&
-      input.exposures[metric]?.scope === 'organic',
+    (metric) => input.exposures[metric]?.availability === 'observed',
   );
   if (!metrics.length) return capture;
   const row = await tx.outlierConfiguration.findFirst({

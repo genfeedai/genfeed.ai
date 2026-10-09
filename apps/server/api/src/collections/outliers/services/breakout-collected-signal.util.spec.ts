@@ -192,8 +192,8 @@ describe('capture to immediate durable breakout detection', () => {
     expect(h.register).toHaveBeenCalledOnce();
   });
 
-  it.each(['aggregate', 'unknown'] as const)(
-    'retains %s measurements without creating a breakout',
+  it.each(['aggregate', 'unknown', 'paid'] as const)(
+    'compares available %s measurements with their retained provenance',
     async (scope) => {
       const h = harness();
       const metric = h.input.exposures.impressions;
@@ -203,8 +203,8 @@ describe('capture to immediate durable breakout detection', () => {
         await captureAndDetectPostExposureObservation(h.tx, h.input),
       ).toMatchObject({ status: 'captured' });
       expect(h.capture).toHaveBeenCalledOnce();
-      expect(h.register).not.toHaveBeenCalled();
-      expect(h.configuration).not.toHaveBeenCalled();
+      expect(h.register).toHaveBeenCalledOnce();
+      expect(h.configuration).toHaveBeenCalledOnce();
     },
   );
 

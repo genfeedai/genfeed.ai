@@ -280,15 +280,10 @@ export class TwitterResponseMapper {
 
     return {
       breakoutExposures: {
-        impressions: this.postImpressionEvidence(tweet),
-        // X media views aggregate across posts using the same asset. They
-        // cannot establish an organic exposure count for this one post.
-        views: {
-          availability: 'unavailable',
-          value: null,
-          source: 'twitter:post:views',
-          scope: 'unknown',
-        },
+        impressions: this.postExposureEvidence(tweet, 'impression_count'),
+        // Read actual post fields. Media views measure asset reuse across
+        // posts and remain separate from this post's exposure evidence.
+        views: this.postExposureEvidence(tweet, 'view_count'),
       },
       learningMetrics,
       bookmarks: metrics.bookmark_count || 0,
@@ -304,8 +299,9 @@ export class TwitterResponseMapper {
     };
   }
 
-  private postImpressionEvidence(
+  private postExposureEvidence(
     tweet: TwitterAnalyticsTweet | undefined,
+    metric: 'impression_count' | 'view_count',
   ): BreakoutExposureEvidence {
     const groups = [
       ['organic_metrics', 'organic', tweet?.organic_metrics],
@@ -313,26 +309,26 @@ export class TwitterResponseMapper {
       ['public_metrics', 'aggregate', tweet?.public_metrics],
     ] as const;
     for (const [group, scope, metrics] of groups) {
-      if (metrics?.impression_count === undefined) continue;
-      const value = metrics.impression_count;
+      if (metrics?.[metric] === undefined) continue;
+      const value = metrics[metric];
       return Number.isSafeInteger(value) && value >= 0
         ? {
             availability: 'observed',
             value,
-            source: `twitter:post:${group}.impression_count`,
+            source: `twitter:post:${group}.${metric}`,
             scope,
           }
         : {
             availability: 'unavailable',
             value: null,
-            source: `twitter:post:${group}.impression_count`,
+            source: `twitter:post:${group}.${metric}`,
             scope,
           };
     }
     return {
       availability: 'unavailable',
       value: null,
-      source: 'twitter:post:organic_metrics.impression_count',
+      source: `twitter:post:${metric}`,
       scope: 'unknown',
     };
   }

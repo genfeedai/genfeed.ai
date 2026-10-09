@@ -5,11 +5,16 @@ import type {
 } from './content-learning.interface';
 
 export type BreakoutExposureMetric = 'views' | 'impressions';
+export type BreakoutExposureScope =
+  | 'organic'
+  | 'paid'
+  | 'aggregate'
+  | 'unknown';
 export interface BreakoutExposureEvidence {
   availability: LearningAvailability;
   value: number | null;
   source: string;
-  scope: 'organic' | 'aggregate' | 'unknown';
+  scope: BreakoutExposureScope;
 }
 export interface BreakoutObservationScope {
   organizationId: string;
@@ -131,6 +136,8 @@ export type BreakoutEvidenceExclusion =
   | 'unavailable_metric'
   | 'invalid_metric'
   | 'non_organic_metric'
+  | 'invalid_metric_scope'
+  | 'different_metric_scope'
   | 'different_metric_source'
   | 'different_time_basis'
   | 'duplicate_post'
@@ -152,6 +159,8 @@ export interface BreakoutBaselineContributor {
   ageMs: number;
   isPinnedUnknown: boolean;
   isPromotedUnknown: boolean;
+  isPromoted: boolean | null;
+  exposureScope: BreakoutExposureScope;
 }
 export interface BreakoutBaselineEvaluation {
   version: 1;
@@ -164,6 +173,7 @@ export interface BreakoutBaselineEvaluation {
     | 'truncated';
   metric: BreakoutExposureMetric;
   source: string | null;
+  exposureScope: BreakoutExposureScope | null;
   timeBasis: 'provider_as_of' | 'collection_interval';
   targetObservationId: string;
   targetValue: number | null;

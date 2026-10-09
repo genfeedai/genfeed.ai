@@ -73,6 +73,12 @@ function fixture() {
       sampleSize: 5,
       targetValue: 1000,
       source: 'twitter:post:organic_metrics.impression_count',
+      exposureScope: 'organic' as
+        | 'organic'
+        | 'paid'
+        | 'aggregate'
+        | 'unknown'
+        | undefined,
       timeBasis: 'collection_interval',
       prompts: 'must not escape',
       actorId: 'private-actor',
@@ -148,6 +154,16 @@ function fixture() {
 
 describe('authorized bounded breakout status reads', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it.each(['organic', 'paid', 'aggregate', 'unknown', undefined] as const)(
+    'exposes retained %s provenance without guessing legacy values',
+    async (scope) => {
+      const h = fixture();
+      h.receipt.evaluation.exposureScope = scope;
+      const view = await h.service.detail(actor, h.response.id);
+      expect(view.trigger?.exposureScope).toBe(scope ?? null);
+    },
+  );
 
   it('checks the real manual membership/brand authority before reading retained status', async () => {
     const h = fixture();

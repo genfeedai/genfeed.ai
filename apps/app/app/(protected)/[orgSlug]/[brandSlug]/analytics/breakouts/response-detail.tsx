@@ -122,6 +122,10 @@ export default function BreakoutResponseDetail({
               {metricValue(trigger.median)} · Prior posts: {trigger.sampleSize}
             </Text>
             <Text as="p" color="muted" size="sm">
+              Exposure provenance:{' '}
+              {trigger.exposureScope ?? 'Not retained in this legacy receipt'}
+            </Text>
+            <Text as="p" color="muted" size="sm">
               Evidence recorded: {trigger.evaluatedAt} ·{' '}
               {trigger.metricSource ?? 'Unknown metric source'}
             </Text>

@@ -23,6 +23,10 @@ const triggerSchema = z.object({
   targetValue: number.nullable(),
   sampleSize: z.number().int().nonnegative().max(50),
   source: z.string().min(1).max(2048).nullable(),
+  exposureScope: z
+    .enum(['organic', 'paid', 'aggregate', 'unknown'])
+    .nullable()
+    .optional(),
   timeBasis: z.enum(['provider_as_of', 'collection_interval']),
 });
 
@@ -230,6 +234,7 @@ export class BreakoutResponseReadsService {
               sampleSize: trigger.data.sampleSize,
               targetValue: trigger.data.targetValue,
               metricSource: trigger.data.source,
+              exposureScope: trigger.data.exposureScope ?? null,
               timeBasis: trigger.data.timeBasis,
             }
           : null,

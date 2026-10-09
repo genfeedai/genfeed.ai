@@ -194,7 +194,7 @@ describe('prospective comparable breakout evidence', () => {
     expect(result.status).toBe('invalid_target');
     expect(result.exclusions[0].reasons).toContain('invalid_metric');
   });
-  it.each(['isDeleted', 'isPinned', 'isPromoted', 'isResponse'] as const)(
+  it.each(['isDeleted', 'isPinned', 'isResponse'] as const)(
     'excludes %s evidence',
     (flag) => {
       const input = fixture();
@@ -219,18 +219,44 @@ describe('prospective comparable breakout evidence', () => {
       ),
     ).toBe(true);
   });
-  it('requires independently organic metric provenance even with a false promotion flag', () => {
+  it.each(['paid', 'aggregate', 'unknown', 'organic'] as const)(
+    'uses available %s counts without inferring another provenance',
+    (scope) => {
+      const input = fixture();
+      for (const row of [input.target, ...input.observations]) {
+        const metric = row.exposures.impressions;
+        if (!metric) throw new Error('Fixture impressions required');
+        metric.scope = scope;
+        row.isPromoted = scope === 'paid' ? true : null;
+      }
+      const result = evaluateComparableBreakout(input);
+      expect(result).toMatchObject({
+        status: 'breakout',
+        ratio: 10,
+        exposureScope: scope,
+      });
+      expect(
+        result.contributors.every((row) => row.exposureScope === scope),
+      ).toBe(true);
+      expect(
+        result.contributors.every(
+          (row) => row.isPromoted === (scope === 'paid' ? true : null),
+        ),
+      ).toBe(true);
+    },
+  );
+  it('keeps organic and paid provenance separate even when provider metric names match', () => {
     const input = fixture();
-    const target = structuredClone(input.target);
-    target.exposures.impressions = {
-      availability: 'observed',
-      value: 1000,
-      source: 'public_metrics.impression_count',
-      scope: 'aggregate',
-    };
-    const result = evaluateComparableBreakout({ ...input, target });
-    expect(result.status).toBe('invalid_target');
-    expect(result.exclusions[0].reasons).toContain('non_organic_metric');
+    const metric = input.observations[0].exposures.impressions;
+    if (!metric) throw new Error('Fixture impressions required');
+    metric.scope = 'paid';
+    const result = evaluateComparableBreakout(input);
+    expect(result).toMatchObject({
+      status: 'insufficient_data',
+      sampleSize: 4,
+      exposureScope: 'organic',
+    });
+    expect(result.exclusions[0].reasons).toContain('different_metric_scope');
   });
   it('does not substitute views for impressions', () => {
     const input = fixture();

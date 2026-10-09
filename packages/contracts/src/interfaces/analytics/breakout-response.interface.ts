@@ -1,4 +1,5 @@
 import type {
+  BreakoutExposureScope,
   BreakoutObservationScope,
   BreakoutOutputPlanResult,
   BreakoutOutputPlanSlot,
@@ -143,6 +144,8 @@ export interface BreakoutResponseView {
     sampleSize: number;
     targetValue: number | null;
     metricSource: string | null;
+    /** Null denotes a legacy receipt without retained provenance, never organic. */
+    exposureScope: BreakoutExposureScope | null;
     timeBasis: 'provider_as_of' | 'collection_interval';
   } | null;
   /** List reads omit detailed recovery; null is distinct from an empty plan. */

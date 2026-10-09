@@ -39,7 +39,7 @@ const AVAILABILITIES = [
   'expired',
   'failed',
 ] as const;
-const EXPOSURE_SCOPES = ['organic', 'aggregate', 'unknown'] as const;
+const EXPOSURE_SCOPES = ['organic', 'paid', 'aggregate', 'unknown'] as const;
 
 function hash(value: unknown): string {
   return buildArtifactContentDigest({ evidence: value });
@@ -288,7 +288,7 @@ export async function readBreakoutBaselineReceipt(
     truncated,
   });
   const optionsFingerprint = hash([
-    'breakout-baseline-options-v1',
+    'breakout-baseline-options-v2-provenance',
     input.options,
   ]);
   const idempotencyKey = hash([

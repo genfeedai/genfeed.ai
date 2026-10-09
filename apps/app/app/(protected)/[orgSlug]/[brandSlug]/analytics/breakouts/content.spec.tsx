@@ -77,6 +77,7 @@ function response(
       sampleSize: 5,
       targetValue: 100,
       metricSource: 'organic',
+      exposureScope: 'organic',
       timeBasis: 'collection_interval',
     },
     outputs: null,
@@ -349,6 +350,20 @@ describe('brand-scoped Breakouts read page', () => {
 });
 
 describe('response detail semantics', () => {
+  it.each(['organic', 'paid', 'aggregate', 'unknown', null] as const)(
+    'displays %s provenance explicitly',
+    (scope) => {
+      const item = response();
+      if (!item.trigger) throw new Error('Fixture trigger required');
+      item.trigger.exposureScope = scope;
+      render(<BreakoutResponseDetail response={item} />);
+      expect(
+        screen.getByText(
+          `Exposure provenance: ${scope ?? 'Not retained in this legacy receipt'}`,
+        ),
+      ).toBeInTheDocument();
+    },
+  );
   it('keeps observed zero distinct from unavailable metrics and quota', () => {
     const item = response();
     if (!item.trigger) throw new Error('Fixture trigger required');

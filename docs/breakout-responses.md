@@ -3,11 +3,20 @@
 Tracked in [#6526](https://github.com/genfeedai/genfeed.ai/issues/6526), a child of
 [#6472](https://github.com/genfeedai/genfeed.ai/issues/6472).
 
+## Exposure policy approved on 2026-10-09
+
+Use the views/impressions already collected. Organic, paid, aggregate and unknown
+provenance are explicit evidence values, not an organic-only eligibility gate.
+Comparisons use matching provenance and provider metric source; unknown is never
+silently upgraded to organic. Observed zero remains a measurement; unavailable or
+unauthorized counts remain missing. Paid/promotion flags alone do not disqualify a
+post. This supersedes the earlier organic-only requirement and dependency receipt.
+
 ## Current implementation boundary
 
 Analytics collectors prepare canonical publication identity before fetching provider
 measurements. PostAnalyticsService retains an immutable exposure observation and
-immediately evaluates available organic exposure in the same transaction. A positive
+immediately evaluates available observed exposure in the same transaction. A positive
 comparison records one durable detected response per account/publication. Detection
 does not queue generation, spend credits, reserve publishing quota or publish a post.
 
@@ -35,8 +44,11 @@ The observation binds organization, brand, connected credential, platform, forma
 external publication, material digest and confirmed publication/version identity.
 Views and impressions remain separate. Observed zero is a measurement; unavailable
 exposure stays null. Aggregate counts do not become organic evidence because a
-promotion flag is missing or false. X post organic impressions retain their provider
-field-group source; aggregate media views do not establish per-post exposure.
+promotion flag is missing or false. X post impressions and views retain their actual
+provider field-group source and provenance. A returned post-level `view_count` is
+eligible even when a separate media view count is also returned. Media-only views
+remain separate because asset reuse across posts does not establish this post's
+exposure; they continue to appear in the existing descriptive analytics.
 See the [X metrics documentation](https://docs.x.com/x-api/fundamentals/metrics).
 
 The comparison uses the source's measured post age, from a provider as-of timestamp
@@ -49,15 +61,19 @@ does not define when follow-up execution is permitted.
 The existing outlier configuration supplies window size, sample size and threshold.
 The breakout threshold remains at least ten; higher configured thresholds apply.
 Only distinct earlier posts from the same organization, brand, account, platform,
-format, metric source and time basis may contribute. Reads resolve current canonical
-publication material and exclude invalidated, deleted, promoted, pinned or generated
-response sources. Unknown flags remain explicit. The read is limited to 2,000 rows
+format, metric source, exposure provenance and time basis may contribute. Reads
+resolve current canonical publication material and exclude invalidated, deleted,
+pinned or generated response sources. Unknown flags remain explicit. Paid/promoted
+posts are eligible; recorded promotion flags are retained in contributors. The read
+is limited to 2,000 rows
 and 50 prior publication resolutions; saturation produces a truncated comparison.
 There is no fabricated early-history backfill from cumulative daily analytics.
 
-An immutable comparison receipt retains contributors, exclusions, metric, options,
-median and ratio. Retry cannot overwrite its original evidence. Changed evidence
-produces a held conflict. Detection identities and output identities remain distinct:
+An immutable comparison receipt retains contributors, exclusions, metric,
+provenance, options, median and ratio. Retry cannot overwrite its original evidence.
+The 2026-10-09 provenance policy has a distinct options identity so legacy
+organic-only evaluations remain immutable. Changed evidence produces a held
+conflict. Detection identities and output identities remain distinct:
 a detected response has not generated content, and a reserved output has not been
 published.
 

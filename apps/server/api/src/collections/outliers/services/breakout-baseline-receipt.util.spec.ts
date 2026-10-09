@@ -1,3 +1,4 @@
+import { buildArtifactContentDigest } from '@api/agent-artifacts/agent-artifact-material.util';
 import { readBreakoutBaselineReceipt } from '@api/collections/outliers/services/breakout-baseline-receipt.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { Platform } from '@genfeedai/contracts';
@@ -160,6 +161,82 @@ function harness() {
 
 describe('bounded immutable breakout baseline receipts', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it.each(['organic', 'paid', 'aggregate', 'unknown'] as const)(
+    'records a %s breakout from stored evidence and retains contributor provenance',
+    async (scope) => {
+      const h = harness();
+      for (const row of [h.target, ...h.candidates]) {
+        row.isPromoted = scope === 'paid' ? true : null;
+        row.exposures = {
+          impressions: {
+            availability: 'observed',
+            value: row === h.target ? 1000 : 100,
+            source: 'provider.impressions',
+            scope,
+          },
+        };
+      }
+      const result = await readBreakoutBaselineReceipt(h.tx, input);
+      expect(result).toMatchObject({
+        status: 'recorded',
+        evaluation: {
+          status: 'breakout',
+          exposureScope: scope,
+          median: 100,
+          ratio: 10,
+          sampleSize: 5,
+          contributors: h.candidates.map((row) =>
+            expect.objectContaining({
+              observationId: row.id,
+              exposureScope: scope,
+              isPromoted: row.isPromoted,
+            }),
+          ),
+        },
+      });
+      expect(await readBreakoutBaselineReceipt(h.tx, input)).toEqual({
+        ...result,
+        status: 'replayed',
+      });
+      expect(h.rows.size).toBe(1);
+    },
+  );
+
+  it('records the corrected policy alongside an immutable legacy evaluation', async () => {
+    const h = harness();
+    await readBreakoutBaselineReceipt(h.tx, input);
+    const current = [...h.rows.values()][0];
+    const legacyOptions = buildArtifactContentDigest({
+      evidence: ['breakout-baseline-options-v1', input.options],
+    });
+    const legacyKey = buildArtifactContentDigest({
+      evidence: [
+        'breakout-baseline-receipt-v1',
+        input.targetObservationId,
+        input.metric,
+        legacyOptions,
+      ],
+    });
+    const legacy = {
+      ...structuredClone(current),
+      optionsFingerprint: legacyOptions,
+      idempotencyKey: legacyKey,
+      evidenceFingerprint: 'legacy-evidence',
+    };
+    h.rows.clear();
+    h.rows.set(legacyKey, legacy);
+    expect(await readBreakoutBaselineReceipt(h.tx, input)).toMatchObject({
+      status: 'recorded',
+      evaluation: { status: 'breakout', exposureScope: 'organic' },
+    });
+    expect(h.rows.size).toBe(2);
+    expect(h.rows.get(legacyKey)).toEqual(legacy);
+    expect(await readBreakoutBaselineReceipt(h.tx, input)).toMatchObject({
+      status: 'replayed',
+    });
+    expect(h.rows.size).toBe(2);
+  });
 
   it('compares imported publications through the same immutable evidence receipt', async () => {
     const h = harness();
