@@ -9,6 +9,7 @@ import type {
   McpRuntimeActorLabel,
   McpRuntimeFixture,
 } from '@api-test/integration/mcp/mcp-auth-runtime.interface';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { hashPassword } from 'better-auth/crypto';
@@ -149,7 +150,7 @@ export async function seedMcpRuntime(
     await prisma.organizationSetting.create({
       data: {
         organizationId: id,
-        subscriptionTier: 'PRO',
+        subscriptionTier: SubscriptionTier.PRO,
         isNotificationsEmailEnabled: false,
       },
     });
