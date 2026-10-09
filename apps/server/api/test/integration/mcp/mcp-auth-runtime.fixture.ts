@@ -208,8 +208,10 @@ export async function mutationSnapshot(): Promise<string> {
     const snapshot = [];
     for (const table of [
       'workflow_executions',
+      // Images and videos both persist as ingredients; provider jobs have a
+      // separate durable task record. There is no standalone videos table.
       'ingredients',
-      'videos',
+      'crun_generation_tasks',
       'posts',
       'branded_generation_receipts',
       'credit_reservations',
