@@ -180,10 +180,58 @@ describe('breakout capacity within existing credits and publication slots', () =
     input.supportedFormats = ['video'];
     expect(planBreakoutCapacity(input).limits).toEqual(['quote_unsupported']);
     input.supportedFormats = ['text'];
-    expect(planBreakoutCapacity(input).limits).toEqual(['unsupported_format']);
+    expect(planBreakoutCapacity(input)).toMatchObject({
+      status: 'planned',
+      selectedTotalOutputs: 1,
+      limits: ['unsupported_format'],
+      slots: [{ kind: 'quote', format: 'text', quoteExternalId: 'tweet-a' }],
+    });
+    input.source = { ...input.source, platform: Platform.INSTAGRAM };
+    expect(planBreakoutCapacity(input)).toMatchObject({
+      status: 'held',
+      slots: [],
+      limits: ['unsupported_format'],
+    });
     input.source = { ...input.source, isResponse: true };
     expect(planBreakoutCapacity(input).limits).toEqual(['response_source']);
   });
+  it.each(['image', 'carousel', 'video', 'short'] as const)(
+    'keeps the useful X quote when %s follow-up generation is unavailable',
+    (format) => {
+      const input = fixture();
+      input.source = { ...input.source, format };
+      input.supportedFormats = ['text'];
+      input.costsByFormat = {
+        text: { generationCredits: 4, qualityCredits: 1 },
+      };
+      expect(planBreakoutCapacity(input)).toMatchObject({
+        status: 'planned',
+        selectedTotalOutputs: 1,
+        estimatedCredits: 5,
+        limits: ['unsupported_format'],
+        slots: [{ ordinal: 1, kind: 'quote', format: 'text' }],
+      });
+      input.budget.remainingDailyCredits = 4;
+      expect(planBreakoutCapacity(input)).toMatchObject({
+        status: 'held',
+        selectedTotalOutputs: 0,
+        limits: ['unsupported_format', 'budget_exhausted'],
+      });
+      input.budget.remainingDailyCredits = 100;
+      input.costsByFormat = {};
+      expect(planBreakoutCapacity(input)).toMatchObject({
+        status: 'held',
+        slots: [],
+        limits: ['unsupported_format', 'cost_unavailable'],
+      });
+      input.remainingPublicationSlots = 0;
+      expect(planBreakoutCapacity(input)).toMatchObject({
+        status: 'held',
+        slots: [],
+        limits: ['quota_exhausted'],
+      });
+    },
+  );
   it.each([0, 6, 1.5, Number.NaN])(
     'rejects an invalid total output request %s',
     (count) => {

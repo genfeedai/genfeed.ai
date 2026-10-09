@@ -60,8 +60,10 @@ export function planBreakoutCapacity(
   }
   if (input.source.isResponse) return held('response_source');
   const quote = input.source.platform === Platform.TWITTER;
-  if (!input.supportedFormats.includes(input.source.format))
-    return held('unsupported_format');
+  const sourceFormatSupported = input.supportedFormats.includes(
+    input.source.format,
+  );
+  if (!quote && !sourceFormatSupported) return held('unsupported_format');
   if (quote && !input.supportedFormats.includes('text'))
     return held('quote_unsupported');
   if (
@@ -78,8 +80,10 @@ export function planBreakoutCapacity(
     input.requestedTotalOutputs,
     input.remainingPublicationSlots,
   );
+  if (!sourceFormatSupported) result.limits.push('unsupported_format');
   for (let index = 0; index < maximum; index += 1) {
     const kind = quote && index === 0 ? 'quote' : 'follow_up';
+    if (kind === 'follow_up' && !sourceFormatSupported) break;
     const format = kind === 'quote' ? 'text' : input.source.format;
     const cost = input.costsByFormat[format];
     if (!usableCost(cost)) {
