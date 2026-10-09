@@ -16,6 +16,7 @@ import {
   assertChildOutcome,
   CONTRACT,
   parseOptions,
+  readProcessNetworkNamespace,
   scrubRuntimeExport,
   validateContainer,
   validateEnvironment,
@@ -233,5 +234,29 @@ test('runtime export removes machine-local agent inputs before validating runtim
   assert.throws(
     () => scrubRuntimeExport(destination),
     /OUTSIDE_EXPORT_SYMLINK/,
+  );
+});
+
+test('namespace reads use the validated root-owned PID with noninteractive privilege', () => {
+  const calls = [];
+  const run = (exe, args) => {
+    calls.push([exe, args]);
+    return 'net:[1234]';
+  };
+  assert.equal(readProcessNetworkNamespace(42, run), 'net:[1234]');
+  assert.deepEqual(calls, [['sudo', ['-n', 'readlink', '/proc/42/ns/net']]]);
+  for (const pid of [0, -1, '42', NaN, 1.5]) {
+    assert.throws(
+      () => readProcessNetworkNamespace(pid, run),
+      /INVALID_NAMESPACE_PID/,
+    );
+  }
+  assert.equal(calls.length, 1);
+  assert.throws(
+    () =>
+      readProcessNetworkNamespace(42, () => {
+        throw new Error('private host error');
+      }),
+    /NETWORK_NAMESPACE_READ/,
   );
 });

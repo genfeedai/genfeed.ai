@@ -9,7 +9,6 @@ import {
   openSync,
   readdirSync,
   readFileSync,
-  readlinkSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -332,6 +331,17 @@ const command = (exe, args, options = {}) =>
 function inspect(id) {
   return JSON.parse(command('docker', ['inspect', id]))[0];
 }
+export function readProcessNetworkNamespace(pid, runCommand = command) {
+  demand(Number.isSafeInteger(pid) && pid > 0, 'INVALID_NAMESPACE_PID');
+  // Docker's namespace owner runs as root. The runner cannot read its
+  // procfs namespace link without the same privilege used by nsenter.
+  try {
+    return runCommand('sudo', ['-n', 'readlink', `/proc/${pid}/ns/net`]);
+  } catch {
+    throw new Error('NETWORK_NAMESPACE_READ');
+  }
+}
+
 function processStart(pid) {
   const text = readFileSync(`/proc/${pid}/stat`, 'utf8');
   return text.slice(text.lastIndexOf(')') + 2).split(' ')[19];
@@ -596,7 +606,7 @@ export async function runRuntime(options) {
       pid: pgState.State.Pid,
       startedAt: pgState.State.StartedAt,
       start: processStart(pgState.State.Pid),
-      namespace: readlinkSync(`/proc/${pgState.State.Pid}/ns/net`),
+      namespace: readProcessNetworkNamespace(pgState.State.Pid),
     };
     const redis = command('docker', [
       'run',
@@ -688,8 +698,7 @@ export async function runRuntime(options) {
       validateContainer(inspect(pg), pgIdentity);
       demand(
         processStart(pgIdentity.pid) === pgIdentity.start &&
-          readlinkSync(`/proc/${pgIdentity.pid}/ns/net`) ===
-            pgIdentity.namespace,
+          readProcessNetworkNamespace(pgIdentity.pid) === pgIdentity.namespace,
         'NAMESPACE_OWNER_CHANGED',
       );
       const base = [
