@@ -15,6 +15,8 @@ import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identity.interceptor';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
+import { OrganizationModuleGuard } from '@api/common/organization-modules/organization-module.guard';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { RequestContextModule } from '@api/common/request-context.module';
 import { DevModule } from '@api/endpoints/dev/dev.module';
 import { DocsModule } from '@api/endpoints/docs/docs.module';
@@ -76,6 +78,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     }),
     SentryModule.forRoot(),
     FeatureFlagModule,
+    OrganizationModuleAccessModule,
     SystemModule,
     DocsModule,
     AgentAuthModule,
@@ -100,6 +103,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
       provide: APP_GUARD,
       useExisting: FeatureFlagGuard,
     },
+    { provide: APP_GUARD, useExisting: OrganizationModuleGuard },
     {
       provide: APP_INTERCEPTOR,
       useClass: LocalIdentityInterceptor,
