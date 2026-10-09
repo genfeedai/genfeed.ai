@@ -351,6 +351,17 @@ export function readJourneyFailure(output) {
     ),
   );
   if (principalFailure) return principalFailure.slice(0, -' failed'.length);
+  for (const id of CONTRACT.cases)
+    for (const code of [
+      'INVALID_RESPONSE_SHAPE',
+      'PROTECTED_READ_FAILED',
+      'VISIBLE_BRAND_MISSING',
+      'HIDDEN_BRAND_DISCLOSED',
+      'REST_LIST',
+      'REST_COUNT_METADATA',
+      'REST_FOREIGN_SCOPE',
+    ])
+      if (lines.includes(`${id}_${code} failed`)) return `${id}_${code}`;
   return (
     CONTRACT.cases.find((id) => lines.includes(`${id} failed`)) ??
     'JOURNEY_INFRASTRUCTURE'

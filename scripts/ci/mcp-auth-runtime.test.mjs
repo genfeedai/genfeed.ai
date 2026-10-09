@@ -97,10 +97,18 @@ test('journey diagnostics expose only the finite failure category', () => {
     'B01_REAL_PRINCIPALS_KEY_MINT_HTTP_403',
   );
   assert.equal(
+    readJourneyFailure('B04_KEY_CAP_AND_DIRECT_PARITY_REST_LIST failed'),
+    'B04_KEY_CAP_AND_DIRECT_PARITY_REST_LIST',
+  );
+  assert.equal(
     readJourneyFailure(`private output\n${CONTRACT.cases[0]} failed\n`),
     CONTRACT.cases[0],
   );
-  for (const output of ['private failure detail', 'B99_UNDECLARED failed'])
+  for (const output of [
+    'private failure detail',
+    'B99_UNDECLARED failed',
+    'B04_KEY_CAP_AND_DIRECT_PARITY_PRIVATE_MESSAGE failed',
+  ])
     assert.equal(readJourneyFailure(output), 'JOURNEY_INFRASTRUCTURE');
 });
 const container = () => ({

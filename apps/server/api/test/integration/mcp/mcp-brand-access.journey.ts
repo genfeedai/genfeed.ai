@@ -56,7 +56,21 @@ const caseRun = async (id: string, run: () => Promise<void>) => {
     await run();
     cases.push({ id, status: 'passed' });
     process.stdout.write(`${id} passed\n`);
-  } catch {
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+    if (
+      id !== 'B01_REAL_PRINCIPALS' &&
+      [
+        'INVALID_RESPONSE_SHAPE',
+        'PROTECTED_READ_FAILED',
+        'VISIBLE_BRAND_MISSING',
+        'HIDDEN_BRAND_DISCLOSED',
+        'REST_LIST',
+        'REST_COUNT_METADATA',
+        'REST_FOREIGN_SCOPE',
+      ].includes(code)
+    )
+      throw new Error(`${id}_${code}`);
     throw new Error(
       id === 'B01_REAL_PRINCIPALS' ? `${id}_${principalStage}` : id,
     );
