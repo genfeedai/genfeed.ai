@@ -9,6 +9,8 @@ import {
   isSchedulableTimezone,
 } from '@api/collections/workflows/utils/cron-schedule.util';
 import { hydrateWorkflowDefinition } from '@api/collections/workflows/workflow-version-definition';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { runWithOrganizationModule } from '@api/common/organization-modules/organization-module-execution.context';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
@@ -16,6 +18,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  HttpException,
   Inject,
   Injectable,
   type OnModuleInit,
@@ -50,6 +53,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   async onModuleInit() {
@@ -210,6 +214,19 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
+      try {
+        await this.moduleAccess.assertAccess(wOrgId, 'automation');
+      } catch (error: unknown) {
+        if (error instanceof HttpException && error.getStatus() === 403) {
+          this.logger.debug(
+            `Skipped scheduled workflow ${workflowId}: Automation access is disabled or requires a subscription`,
+            'WorkflowSchedulerService',
+          );
+          return;
+        }
+        throw error;
+      }
+
       const workflowDocument = toWorkflowDocument(workflow);
       const defaultInputValues = this.getDefaultInputValues(workflowDocument);
       const missingRequiredInputs = this.getMissingRequiredInputKeys(
@@ -240,18 +257,21 @@ export class WorkflowSchedulerService implements OnModuleInit {
         where: scopedWhere(wOrgId, { id: workflowId }),
       });
 
-      const executePromise =
-        this.workflowExecutorService.executeManualWorkflowDocument(
-          workflowDocument,
-          wUserId,
-          wOrgId,
-          defaultInputValues,
-          {
-            scheduledFireJobId,
-            triggeredBy: 'schedule',
-          },
-          WorkflowExecutionTrigger.SCHEDULED,
-        );
+      const executePromise = runWithOrganizationModule(
+        { organizationId: wOrgId, moduleId: 'automation' },
+        () =>
+          this.workflowExecutorService.executeManualWorkflowDocument(
+            workflowDocument,
+            wUserId,
+            wOrgId,
+            defaultInputValues,
+            {
+              scheduledFireJobId,
+              triggeredBy: 'schedule',
+            },
+            WorkflowExecutionTrigger.SCHEDULED,
+          ),
+      );
 
       executePromise.catch((error) => {
         this.logger.error(

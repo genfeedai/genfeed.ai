@@ -6,6 +6,7 @@ import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflo
 import { WorkflowMediaBillingPlanService } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
 import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
@@ -165,6 +166,7 @@ import { Module } from '@nestjs/common';
     YoutubeLongFormWorkflowService,
   ],
   imports: [
+    OrganizationModuleAccessModule,
     PersonasCoreModule,
     MediaUrlsModule,
     AgentStrategyPerformanceModule,

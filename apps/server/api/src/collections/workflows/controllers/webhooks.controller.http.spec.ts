@@ -27,6 +27,7 @@ import { RateLimitGuard } from '@api/shared/guards/rate-limit/rate-limit.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { INestApplication } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -166,6 +167,40 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
 
   afterEach(async () => {
     await app.close();
+  });
+
+  describe('module denial after webhook authentication', () => {
+    it('preserves a known module denial for a valid secret', async () => {
+      mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+        secretWorkflow,
+      );
+      mockWorkflowWebhookService.triggerViaWebhook.mockRejectedValueOnce(
+        new HttpException(
+          { code: 'ORGANIZATION_MODULE_DISABLED', moduleId: 'automation' },
+          403,
+        ),
+      );
+      const result = await request(app.getHttpServer())
+        .post('/webhooks/wh_secret')
+        .set('x-webhook-secret', 'my-secret-key')
+        .send({});
+      expect(result.status).toBe(403);
+      expect(result.body.code).toBe('ORGANIZATION_MODULE_DISABLED');
+    });
+
+    it('still returns generic 401 before invoking module admission for an invalid secret', async () => {
+      mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+        secretWorkflow,
+      );
+      const result = await request(app.getHttpServer())
+        .post('/webhooks/wh_secret')
+        .set('x-webhook-secret', 'wrong')
+        .send({});
+      expect(result.status).toBe(401);
+      expect(
+        mockWorkflowWebhookService.triggerViaWebhook,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   describe('secret auth type', () => {

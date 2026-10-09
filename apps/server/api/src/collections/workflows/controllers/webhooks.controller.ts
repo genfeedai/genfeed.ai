@@ -153,6 +153,25 @@ export class WebhooksController {
         },
       };
     } catch (error: unknown) {
+      // This runs only after webhook credential validation. Known module
+      // denials retain their status; arbitrary internal errors stay sanitized.
+      if (error instanceof HttpException) {
+        const response = error.getResponse();
+        if (
+          typeof response === 'object' &&
+          response !== null &&
+          'code' in response &&
+          typeof response.code === 'string' &&
+          [
+            'ORGANIZATION_MODULE_DISABLED',
+            'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
+            'ORGANIZATION_MODULE_UNAVAILABLE',
+          ].includes(response.code)
+        ) {
+          throw error;
+        }
+      }
+
       // Never return `error.message` to the caller: this is an
       // unauthenticated public endpoint, and an internal error can carry
       // details (a Prisma error, a stack fragment) that shouldn't leave the

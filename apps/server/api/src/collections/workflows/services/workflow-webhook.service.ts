@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { runWithOrganizationModule } from '@api/common/organization-modules/organization-module-execution.context';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere } from '@api/index';
@@ -26,6 +28,7 @@ export class WorkflowWebhookService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly workflowsService: WorkflowsService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
   ) {}
@@ -152,6 +155,8 @@ export class WorkflowWebhookService {
       );
     }
 
+    await this.moduleAccess.assertAccess(organizationId, 'automation');
+
     const currentWebhookTriggerCount =
       typeof workflow.webhookTriggerCount === 'number'
         ? workflow.webhookTriggerCount
@@ -167,16 +172,21 @@ export class WorkflowWebhookService {
       );
     }
 
-    const result = await this.workflowExecutorService.executeManualWorkflow(
-      String(workflow.id),
-      userId,
-      organizationId,
-      payload,
-      {
-        triggerSource: 'webhook',
-        webhookId,
-      },
-      WorkflowExecutionTrigger.API,
+    const executor = this.workflowExecutorService;
+    const result = await runWithOrganizationModule(
+      { organizationId, moduleId: 'automation' },
+      () =>
+        executor.executeManualWorkflow(
+          String(workflow.id),
+          userId,
+          organizationId,
+          payload,
+          {
+            triggerSource: 'webhook',
+            webhookId,
+          },
+          WorkflowExecutionTrigger.API,
+        ),
     );
 
     return {

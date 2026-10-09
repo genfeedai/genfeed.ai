@@ -35,7 +35,7 @@ import {
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -242,7 +242,7 @@ export class WorkflowExecutionQueueService {
   async runWithQueuedOrganizationModule<T>(
     data: WorkflowExecutionJobData,
     work: () => Promise<T>,
-  ): Promise<T> {
+  ): Promise<T | undefined> {
     const organizationId =
       data.type === 'system-run'
         ? data.systemRun?.input.organizationId
@@ -251,10 +251,19 @@ export class WorkflowExecutionQueueService {
           : data.type === 'delay-resume'
             ? data.delayResumeData?.organizationId
             : undefined;
-    const context = parseOrganizationModuleExecutionContext(
+    const persistedContext = parseOrganizationModuleExecutionContext(
       data.organizationModuleContext,
       organizationId,
     );
+    // Trigger matching executes user-authored Automation. Its producer's
+    // Publishing/Library admission cannot grant access to that separate module.
+    if (data.type === 'trigger' && !organizationId?.trim()) {
+      throw new Error('Workflow trigger is missing its organization identity');
+    }
+    const context =
+      data.type === 'trigger' && organizationId
+        ? { organizationId, moduleId: 'automation' as const }
+        : persistedContext;
     if (!context) return work();
     if (
       data.type === 'delay-resume' &&
@@ -263,10 +272,30 @@ export class WorkflowExecutionQueueService {
     ) {
       throw new Error('Invalid queued organization module execution context');
     }
-    await this.moduleAccess.assertAccess(
-      context.organizationId,
-      context.moduleId,
-    );
+    try {
+      await this.moduleAccess.assertAccess(
+        context.organizationId,
+        context.moduleId,
+      );
+    } catch (error: unknown) {
+      // An optional trigger must not fail the Publishing/Library operation
+      // that emitted it. Unavailable policy (503) still fails closed visibly.
+      if (
+        data.type === 'trigger' &&
+        error instanceof HttpException &&
+        error.getStatus() === 403
+      ) {
+        this.logger.debug(
+          `${this.logContext} skipped unavailable automation trigger`,
+          {
+            organizationId: context.organizationId,
+            triggerType: data.triggerEvent?.type,
+          },
+        );
+        return undefined;
+      }
+      throw error;
+    }
     return runWithOrganizationModule(context, work);
   }
 
