@@ -1202,6 +1202,8 @@ describe('System workflow module admission', () => {
     const h = admittedRunner();
     const action = vi.fn().mockResolvedValue(null);
     h.runner.registerAction('youtube.resolve-source', action);
+    const provider = vi.fn();
+    h.runner.registerAction('social.inbox.outbound.provider', provider);
     h.runner.registerWorkflow({
       ...definition,
       canonicalId: 'terminal',
@@ -1233,9 +1235,17 @@ describe('System workflow module admission', () => {
             executionContext(),
           ),
         ).rejects.toThrow('Messages disabled');
+        await expect(
+          h.executors.get('social.inbox.outbound.provider')?.(
+            { ...node, config: { actionId: 'social.inbox.outbound.provider' } },
+            new Map(),
+            executionContext(),
+          ),
+        ).rejects.toThrow('Messages disabled');
       },
     );
     expect(action).toHaveBeenCalledTimes(1);
+    expect(provider).not.toHaveBeenCalled();
     await expect(
       h.runner.runWithRegisteredWorkflowModule(
         { canonicalId: 'terminal', organizationId: 'org-1' },
@@ -1283,6 +1293,249 @@ describe('System workflow module admission', () => {
         moduleCompletionNodeIds: ['review-hook'],
       }),
     ).toThrow('Invalid code-owned');
+  });
+});
+
+describe('nested scheduled module admission', () => {
+  it.each([false, true])(
+    'admits a child under its own module before Redis when disabled=%s',
+    async (isDisabled) => {
+      const assertAccess = vi.fn(async (_org: string, moduleId: string) => {
+        if (moduleId === 'messages' && isDisabled)
+          throw new ForbiddenException('Messages disabled');
+      });
+      const queueSystemWorkflow = vi.fn(async () => {
+        expect(getOrganizationModuleExecutionContext()).toEqual({
+          organizationId: 'org-1',
+          moduleId: 'messages',
+        });
+        return 'queued-child';
+      });
+      const { runner, executors } = createRunner(
+        { queueSystemWorkflow },
+        {
+          workflowExecution: {
+            findFirst: vi.fn().mockResolvedValue({
+              result: {
+                metadata: {
+                  dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+                  source: 'test',
+                },
+              },
+            }),
+          },
+        },
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.onModuleInit();
+      runner.registerWorkflow({
+        ...definition,
+        organizationModule: 'messages',
+      });
+      await runWithOrganizationModule(
+        { organizationId: 'org-1', moduleId: 'publishing' },
+        async () => {
+          const run = executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+            executableForEachNode({
+              childWorkflowId: definition.canonicalId,
+              itemInputKey: 'item',
+              mode: 'scheduled',
+            }),
+            new Map([['items', ['one']]]),
+            executionContext(),
+          );
+          if (isDisabled)
+            await expect(run).rejects.toThrow('Messages disabled');
+          else
+            await expect(run).resolves.toEqual({
+              count: 1,
+              results: [{ index: 0, jobId: 'queued-child' }],
+            });
+          expect(getOrganizationModuleExecutionContext()?.moduleId).toBe(
+            'publishing',
+          );
+        },
+      );
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+      expect(queueSystemWorkflow).toHaveBeenCalledTimes(isDisabled ? 0 : 1);
+    },
+  );
+});
+
+describe('stored delay module ownership', () => {
+  const input = {
+    executionId: 'execution-1',
+    organizationId: 'org-1',
+    workflowId: 'workflow-1',
+  };
+  function harness() {
+    const workflow = {
+      id: input.workflowId,
+      isDeleted: false,
+      organizationId: 'org-1',
+      userId: 'owner-1',
+      metadata: {
+        sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+        [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+          canonicalId: definition.canonicalId,
+        }),
+      },
+    };
+    const pinned = {
+      workflowVersion: {
+        organizationId: workflow.organizationId,
+        userId: workflow.userId,
+        workflowId: input.workflowId,
+        workflow,
+      },
+    };
+    const findFirst = vi.fn().mockResolvedValue(pinned);
+    const assertAccess = vi.fn().mockResolvedValue(undefined);
+    const h = createRunner(
+      undefined,
+      { workflowExecution: { findFirst } },
+      {},
+      {},
+      { assertAccess },
+    );
+    h.runner.registerWorkflow({
+      ...definition,
+      organizationModule: 'messages',
+    });
+    return { ...h, pinned, findFirst, assertAccess };
+  }
+
+  it('binds an old queue job to its tenant and execution, and ignores tenant-authored hidden/module metadata', async () => {
+    const h = harness();
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).resolves.toEqual({ organizationId: 'org-1', moduleId: 'automation' });
+    expect(h.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'execution-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          workflowId: 'workflow-1',
+        },
+      }),
+    );
+    expect(h.assertAccess).toHaveBeenCalledWith('org-1', 'automation');
+  });
+
+  it('resolves a fixed-principal hidden execution through code-owned module policy and rejects revocation after a warmed attempt', async () => {
+    const h = harness();
+    const version = h.pinned.workflowVersion;
+    version.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).resolves.toEqual({ organizationId: 'org-1', moduleId: 'messages' });
+    h.assertAccess.mockRejectedValueOnce(
+      new ForbiddenException('Subscription expired'),
+    );
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).rejects.toThrow('Subscription expired');
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a registered global maintenance resume distinct from tenant Automation', async () => {
+    const h = harness();
+    h.runner.registerWorkflow({ ...definition, canonicalId: 'maintenance' });
+    const version = h.pinned.workflowVersion;
+    version.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.metadata[SYSTEM_WORKFLOW_METADATA_KEY] =
+      buildHiddenSystemWorkflowMetadata({ canonicalId: 'maintenance' });
+    const work = vi.fn().mockResolvedValue('reconciled');
+    await expect(
+      h.runner.runWithStoredWorkflowModule(
+        { ...input, organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID },
+        work,
+      ),
+    ).resolves.toBe('reconciled');
+    expect(h.assertAccess).not.toHaveBeenCalled();
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    'missing',
+    'wrong-version-workflow',
+    'wrong-workflow',
+    'deleted',
+    'wrong-version-tenant',
+    'wrong-version-owner',
+    'foreign-tenant',
+    'fake-principal-owner',
+    'unknown-canonical',
+  ] as const)(
+    'rejects unsafe saved execution ownership: %s',
+    async (problem) => {
+      const h = harness();
+      const version = h.pinned.workflowVersion;
+      if (problem === 'missing') h.findFirst.mockResolvedValue(null);
+      if (problem === 'wrong-version-workflow') version.workflowId = 'other';
+      if (problem === 'wrong-workflow') version.workflow.id = 'other';
+      if (problem === 'deleted') version.workflow.isDeleted = true;
+      if (problem === 'wrong-version-tenant') version.organizationId = 'other';
+      if (problem === 'wrong-version-owner') version.userId = 'other';
+      if (problem === 'foreign-tenant') {
+        version.organizationId = 'other';
+        version.workflow.organizationId = 'other';
+      }
+      if (
+        problem === 'fake-principal-owner' ||
+        problem === 'unknown-canonical'
+      ) {
+        version.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+        version.workflow.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+        if (problem === 'unknown-canonical') {
+          version.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+          version.workflow.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+          version.workflow.metadata[SYSTEM_WORKFLOW_METADATA_KEY] =
+            buildHiddenSystemWorkflowMetadata({ canonicalId: 'unknown' });
+        }
+      }
+      const work = vi.fn();
+      await expect(
+        h.runner.runWithStoredWorkflowModule(input, work),
+      ).rejects.toThrow();
+      expect(work).not.toHaveBeenCalled();
+      expect(h.assertAccess).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['executionId', 'organizationId', 'workflowId'] as const)(
+    'rejects a missing %s without reading or executing',
+    async (key) => {
+      const h = harness();
+      const work = vi.fn();
+      await expect(
+        h.runner.runWithStoredWorkflowModule({ ...input, [key]: ' ' }, work),
+      ).rejects.toThrow('requires execution ownership');
+      expect(h.findFirst).not.toHaveBeenCalled();
+      expect(work).not.toHaveBeenCalled();
+    },
+  );
+
+  it('fails closed when saved ownership cannot be read', async () => {
+    const h = harness();
+    h.findFirst.mockRejectedValueOnce(new Error('Database unavailable'));
+    const work = vi.fn();
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).rejects.toThrow('Database unavailable');
+    expect(h.assertAccess).not.toHaveBeenCalled();
+    expect(work).not.toHaveBeenCalled();
   });
 });
 
