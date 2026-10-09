@@ -9,6 +9,7 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
+import SubscriptionRequiredState from '@ui/guards/subscription/SubscriptionRequiredState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -107,6 +108,17 @@ export default function BatchNewProjectPage() {
       setBusy(false);
     }
   }
+  if (isSubscriptionRequired) {
+    return (
+      <Container label={t('new')}>
+        <SubscriptionRequiredState
+          message={error ?? t('saveFailed')}
+          manageHref={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
+          manageLabel={t('manageSubscription')}
+        />
+      </Container>
+    );
+  }
   return (
     <Container label={t('new')}>
       <div className="flex max-w-2xl flex-col gap-6">
@@ -180,27 +192,19 @@ export default function BatchNewProjectPage() {
             </div>
           ))}
         {error && <p role="alert">{error}</p>}
-        {isSubscriptionRequired ? (
-          <Button asChild>
-            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-              {t('manageSubscription')}
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            isDisabled={
-              !brandId ||
-              (kind === BatchProjectKind.WORKFLOW
-                ? loading ||
-                  !workflows.some((workflow) => workflow.id === workflowId)
-                : !isIdeasEnabled)
-            }
-            isLoading={busy}
-            onClick={() => void create()}
-          >
-            {t('create')}
-          </Button>
-        )}
+        <Button
+          isDisabled={
+            !brandId ||
+            (kind === BatchProjectKind.WORKFLOW
+              ? loading ||
+                !workflows.some((workflow) => workflow.id === workflowId)
+              : !isIdeasEnabled)
+          }
+          isLoading={busy}
+          onClick={() => void create()}
+        >
+          {t('create')}
+        </Button>
       </div>
     </Container>
   );

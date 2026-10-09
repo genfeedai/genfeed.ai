@@ -110,7 +110,7 @@ describe('BatchNewProjectPage', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
-  it('preserves the name and offers billing for a recognized subscription denial', async () => {
+  it('hides feature controls and offers centered billing for a recognized subscription denial', async () => {
     mocks.create.mockRejectedValue({
       errors: [
         {
@@ -126,9 +126,11 @@ describe('BatchNewProjectPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Please subscribe to a plan.',
     );
-    expect(screen.getByRole('textbox', { name: 'Batch name' })).toHaveValue(
-      'My draft',
-    );
+    expect(screen.queryByRole('textbox', { name: 'Batch name' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'From ideas' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'From a workflow' }),
+    ).toBeNull();
     expect(
       screen.getByRole('link', { name: 'Manage subscription' }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
