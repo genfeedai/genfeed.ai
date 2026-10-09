@@ -48,6 +48,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'defaultMusicModel',
   'agentPolicy',
   'moduleOverrides',
+  'hasOrganizationBilling',
   'fleetEvaluationPolicy',
   'onboardingJourneyMissions',
   'onboardingJourneyCompletedAt',

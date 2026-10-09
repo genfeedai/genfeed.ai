@@ -13,7 +13,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OrganizationModulesCard from './organization-modules-card';
 
 const mocks = vi.hoisted(() => ({
-  billing: true,
   clearBootstrap: vi.fn(),
   getService: vi.fn(),
   isLoading: false,
@@ -22,7 +21,10 @@ const mocks = vi.hoisted(() => ({
   patchSettings: vi.fn(),
   refresh: vi.fn(),
   role: 'owner',
-  settings: { moduleOverrides: {} } as Record<string, unknown>,
+  settings: { moduleOverrides: {}, hasOrganizationBilling: true } as Record<
+    string,
+    unknown
+  >,
 }));
 
 vi.mock('next-intl', async () => {
@@ -31,9 +33,6 @@ vi.mock('next-intl', async () => {
 });
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: mocks.organizationId }),
-}));
-vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBillingHint: () => mocks.billing,
 }));
 vi.mock(
   '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap',
@@ -84,11 +83,10 @@ const toggle = (name: string) => screen.getByRole('switch', { name });
 describe('OrganizationModulesCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.billing = true;
     mocks.isLoading = false;
     mocks.organizationId = 'org-1';
     mocks.role = MemberRole.OWNER;
-    mocks.settings = { moduleOverrides: {} };
+    mocks.settings = { moduleOverrides: {}, hasOrganizationBilling: true };
     mocks.patchSettings.mockResolvedValue({});
     mocks.refresh.mockResolvedValue(undefined);
     mocks.getService.mockResolvedValue({ patchSettings: mocks.patchSettings });
@@ -117,8 +115,10 @@ describe('OrganizationModulesCard', () => {
   });
 
   it('preserves explicit self-hosted choices while defaulting other modules on', () => {
-    mocks.billing = false;
-    mocks.settings = { moduleOverrides: { automation: false } };
+    mocks.settings = {
+      moduleOverrides: { automation: false },
+      hasOrganizationBilling: false,
+    };
     render(<OrganizationModulesCard />);
     expect(toggle('Automation')).not.toBeChecked();
     for (const name of [
@@ -139,6 +139,7 @@ describe('OrganizationModulesCard', () => {
       mocks.role = role;
       mocks.settings = {
         moduleOverrides: { analytics: false, messages: true },
+        hasOrganizationBilling: true,
       };
       render(<OrganizationModulesCard />);
       fireEvent.click(toggle('Motion'));
@@ -150,6 +151,23 @@ describe('OrganizationModulesCard', () => {
       await screen.findByText('Module settings saved.');
       expect(mocks.clearBootstrap).toHaveBeenCalledTimes(1);
       expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([undefined, 'true'])(
+    'waits for server billing metadata instead of guessing from a client build: %j',
+    (hasOrganizationBilling) => {
+      mocks.settings = { moduleOverrides: {}, hasOrganizationBilling };
+      render(<OrganizationModulesCard />);
+      for (const control of screen.getAllByRole('switch')) {
+        expect(control).toBeDisabled();
+        expect(control).not.toBeChecked();
+      }
+      expect(
+        screen.getByRole('button', { name: 'Retry loading' }),
+      ).toBeEnabled();
+      fireEvent.click(toggle('Motion'));
+      expect(mocks.patchSettings).not.toHaveBeenCalled();
     },
   );
 
@@ -218,7 +236,7 @@ describe('OrganizationModulesCard', () => {
   it.each([undefined, { motion: 'true' }, { arbitrary: true }])(
     'disables unavailable or malformed settings without granting defaults: %j',
     async (moduleOverrides) => {
-      mocks.settings = { moduleOverrides };
+      mocks.settings = { moduleOverrides, hasOrganizationBilling: true };
       render(<OrganizationModulesCard />);
       for (const control of screen.getAllByRole('switch'))
         expect(control).toBeDisabled();
@@ -267,7 +285,7 @@ describe('OrganizationModulesCard', () => {
     const view = render(<OrganizationModulesCard />);
     fireEvent.click(screen.getByRole('button', { name: 'Retry loading' }));
     mocks.organizationId = 'org-2';
-    mocks.settings = { moduleOverrides: {} };
+    mocks.settings = { moduleOverrides: {}, hasOrganizationBilling: true };
     view.rerender(<OrganizationModulesCard />);
     await act(async () => reload.reject(new Error('Old request failed')));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
