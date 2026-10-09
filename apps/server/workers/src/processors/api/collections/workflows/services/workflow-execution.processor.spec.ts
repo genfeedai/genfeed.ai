@@ -69,6 +69,7 @@ function createMockSchedulerService() {
 
 function createMockSystemWorkflowRunner() {
   return {
+    getRegisteredFailureWorkflow: vi.fn().mockReturnValue(undefined),
     runWithStoredWorkflowModule: vi.fn(
       async (_input: unknown, work: () => Promise<unknown>) => work(),
     ),
@@ -252,6 +253,79 @@ describe('WorkflowExecutionProcessor', () => {
         }),
       );
     });
+
+    it.each(['missing', 'altered'] as const)(
+      'uses registered Motion compensation for a legacy %s failure payload',
+      async (kind) => {
+        mockQueue.runWithQueuedOrganizationModule.mockRejectedValueOnce(
+          new Error('Motion disabled'),
+        );
+        const input = {
+          actionType: 'visual-code.execute',
+          canonicalId: 'visual-code.execute',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          source: 'visual-code',
+          inputValues: {
+            job: {
+              revisionId: 'revision-1',
+              organizationId: 'org-1',
+              brandId: 'brand-1',
+              userId: 'user-1',
+            },
+          },
+        };
+        mockSystemWorkflowRunner.getRegisteredFailureWorkflow.mockReturnValue({
+          canonicalId: 'visual-code.failure',
+          inputValues: input.inputValues,
+        });
+        const job = createMockJob(
+          {
+            type: 'system-run',
+            systemRun: {
+              input,
+              ...(kind === 'altered'
+                ? {
+                    failureWorkflow: {
+                      canonicalId: 'attacker',
+                      inputValues: { job: 'foreign' },
+                    },
+                  }
+                : {}),
+              priorExecution: {
+                executionId: 'motion-execution',
+                status: WorkflowExecutionStatus.PENDING,
+                userId: 'user-1',
+                workflowId: 'motion-workflow',
+                workflowLabel: 'Motion',
+              },
+            },
+          },
+          { id: 'system-workflow-motion-execution' },
+        );
+        await expect(processor.process(job as never)).rejects.toThrow(
+          'Motion disabled',
+        );
+        expect(
+          mockSystemWorkflowRunner.getRegisteredFailureWorkflow,
+        ).toHaveBeenCalledWith(input);
+        expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
+          canonicalId: 'visual-code.failure',
+          actionType: 'visual-code.failure',
+          inputValues: input.inputValues,
+          metadata: {
+            failedCanonicalId: 'visual-code.execute',
+            failedJobId: 'system-workflow-motion-execution',
+          },
+          organizationId: 'org-1',
+          userId: 'user-1',
+          source: 'workflow-failure:visual-code.execute',
+        });
+        expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+        expect(mockExecutor.continueExistingExecution).not.toHaveBeenCalled();
+        expect(job.updateData).not.toHaveBeenCalled();
+      },
+    );
 
     it('blocks a revoked delayed resume before the executor can fire another node', async () => {
       mockQueue.runWithQueuedOrganizationModule.mockRejectedValueOnce(
@@ -471,6 +545,9 @@ describe('WorkflowExecutionProcessor', () => {
         ),
       ).rejects.toThrow('QA provider ETIMEDOUT');
       expect(mockSystemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+      expect(
+        mockSystemWorkflowRunner.getRegisteredFailureWorkflow,
+      ).not.toHaveBeenCalled();
     });
 
     it('runs registered failure compensation on the terminal queue attempt', async () => {

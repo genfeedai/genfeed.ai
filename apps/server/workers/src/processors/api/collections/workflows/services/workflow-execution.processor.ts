@@ -142,14 +142,21 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       const isTerminalAttempt =
         error instanceof UnrecoverableError ||
         (job.attemptsMade ?? 0) + 1 >= attempts;
-      if (!systemRun.failureWorkflow || !isTerminalAttempt) {
+      if (!isTerminalAttempt) {
         throw error;
       }
+      // Old jobs may predate a fixed failure payload. Registered code-owned
+      // compensation also takes precedence over an editable queued payload.
+      const failureWorkflow =
+        this.systemWorkflowRunner.getRegisteredFailureWorkflow(
+          systemRun.input,
+        ) ?? systemRun.failureWorkflow;
+      if (!failureWorkflow) throw error;
       try {
         await this.systemWorkflowRunner.runWorkflow({
-          actionType: systemRun.failureWorkflow.canonicalId,
-          canonicalId: systemRun.failureWorkflow.canonicalId,
-          inputValues: systemRun.failureWorkflow.inputValues,
+          actionType: failureWorkflow.canonicalId,
+          canonicalId: failureWorkflow.canonicalId,
+          inputValues: failureWorkflow.inputValues,
           metadata: {
             failedCanonicalId: systemRun.input.canonicalId,
             failedJobId: job.id,
@@ -161,7 +168,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       } catch (compensationError: unknown) {
         throw new AggregateError(
           [error, compensationError],
-          `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${systemRun.failureWorkflow.canonicalId} both failed`,
+          `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${failureWorkflow.canonicalId} both failed`,
         );
       }
       throw error;
