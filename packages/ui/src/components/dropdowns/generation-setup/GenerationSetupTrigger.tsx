@@ -10,7 +10,6 @@ import {
 } from '@ui/constants/shell-chrome.constant';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { Button } from '@ui/primitives/button';
-import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronsUpDown, Sparkles } from 'lucide-react';
 import { type ButtonHTMLAttributes, memo, type Ref } from 'react';
 
@@ -72,7 +71,6 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
         triggerLabel ? `Generation setup: ${triggerLabel}` : 'Generation setup'
       }
       className={cn(
-        buttonVariants({ size: ButtonSize.SM, variant: ButtonVariant.GHOST }),
         SHELL_CONTROL_HEIGHT_CLASS,
         'min-w-0 max-w-full flex-nowrap gap-1.5 overflow-hidden px-2.5 font-medium text-foreground',
         isFullyAgentOwned && 'border-primary/30 bg-primary/5 text-primary',
@@ -81,9 +79,10 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
       )}
       isDisabled={isDisabled}
       ref={ref}
+      size={isIconOnly ? ButtonSize.ICON : ButtonSize.SM}
       textTransform="none"
       title={triggerLabel ?? summaryParts.join(' · ')}
-      variant={ButtonVariant.UNSTYLED}
+      variant={ButtonVariant.GHOST}
       withWrapper={false}
       {...buttonProps}
     >

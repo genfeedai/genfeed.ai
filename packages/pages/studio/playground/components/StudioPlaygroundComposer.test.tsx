@@ -345,6 +345,13 @@ describe('StudioPlaygroundComposer', () => {
     expect(
       screen.getByRole('button', { name: 'Add context' }),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('button', { name: 'Setup' })
+        .compareDocumentPosition(
+          screen.getByRole('button', { name: 'Add context' }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     fireEvent.click(
       screen.getByRole('button', { name: 'Remove Apple reference' }),
     );

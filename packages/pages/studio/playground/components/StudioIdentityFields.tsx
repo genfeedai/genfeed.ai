@@ -89,14 +89,21 @@ export default function StudioIdentityFields({
         <Button
           ariaLabel="Identity"
           className={cn(
-            'gap-1.5 border border-border bg-background px-2.5 text-xs font-medium hover:bg-accent/50',
+            'min-w-0 max-w-full gap-1.5 px-2.5 text-xs font-medium',
             SHELL_CONTROL_HEIGHT_CLASS,
           )}
-          icon={<UserRound className="size-3.5" />}
+          icon={
+            type === 'voice' ? (
+              <Mic className="size-3.5" />
+            ) : (
+              <UserRound className="size-3.5" />
+            )
+          }
           isDisabled={isDisabled}
           label={summary}
           size={ButtonSize.SM}
           textTransform="none"
+          title={summary}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         />
