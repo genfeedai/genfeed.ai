@@ -12,6 +12,22 @@ import { DEFAULT_MCP_PROFILE_TOOLSETS } from './toolset-profiles';
 import { getToolsForToolsets } from './toolsets';
 
 describe('visual-code canonical actions', () => {
+  it('keeps terminal reconciliation private with the same closed scoped job contract', () => {
+    expect(getVisualCodeActionContract('visual-code.fail-internal')).toEqual(
+      getVisualCodeActionContract('visual-code.execute-internal'),
+    );
+    expect(getActionDefinition('visual-code.fail-internal')?.visibility).toBe(
+      'internal',
+    );
+    expect(getToolByName('visual-code.fail-internal')).toBeUndefined();
+    for (const surface of ['agent', 'mcp'] as const) {
+      expect(
+        getToolsForSurface(surface).some((tool) =>
+          tool.name.includes('fail-internal'),
+        ),
+      ).toBe(false);
+    }
+  });
   it.each(['constructor', 'toString', '__proto__', 'unknown'])(
     'rejects inherited and unknown action %s',
     (name) => {

@@ -1,6 +1,9 @@
 import { isDeepStrictEqual } from 'node:util';
 import { VisualProjectWorkflowService } from '@api/collections/visual-projects/services/visual-project-workflow.service';
-import { buildVisualProjectWorkflowDefinition } from '@api/collections/visual-projects/services/visual-project-workflow-definition';
+import {
+  buildVisualProjectFailureWorkflowDefinition,
+  buildVisualProjectWorkflowDefinition,
+} from '@api/collections/visual-projects/services/visual-project-workflow-definition';
 import { buildHiddenSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
@@ -45,7 +48,7 @@ function fixture() {
   const workflow = {
     registerWorkflow: vi.fn(),
     registerAction: vi.fn((_id, handler) => {
-      executor = handler;
+      if (_id === 'visual-code.execute-internal') executor = handler;
     }),
   };
   let leaseOwner = 'owner';
@@ -142,6 +145,7 @@ function fixture() {
     renderer as never,
     assets as never,
     moduleAccess as never,
+    { reconcileFailedExecution: vi.fn() } as never,
   );
   service.onModuleInit();
   const run = async () => {
@@ -450,5 +454,231 @@ describe('visual workflow durable provider receipts', () => {
       )?.state,
     ).toBe('started');
     expect(billing.settle).not.toHaveBeenCalled();
+  });
+});
+
+function failureFixture() {
+  const job = {
+    revisionId: 'revision',
+    organizationId: 'org',
+    brandId: 'brand',
+    userId: 'user',
+  };
+  const revision = {
+    ...job,
+    id: 'revision',
+    status: 'queued',
+    workflowExecutionId: null,
+  } as unknown as VisualRevision;
+  const pin = <T extends Record<string, string>>(
+    id: string,
+    definition: ReturnType<typeof buildVisualProjectWorkflowDefinition>,
+    metadata: T,
+  ) => ({
+    id,
+    workflowId: `${id}-workflow`,
+    result: { inputValues: { job: structuredClone(job) }, metadata },
+    workflowVersion: {
+      workflowId: `${id}-workflow`,
+      contentHash: buildWorkflowVersionDefinition(definition.definition)
+        .contentHash,
+    },
+  });
+  const original = pin('original', buildVisualProjectWorkflowDefinition(), {
+    canonicalId: 'visual-code.execute',
+  });
+  const failure = pin(
+    'failure',
+    buildVisualProjectFailureWorkflowDefinition(),
+    {
+      canonicalId: 'visual-code.failure',
+      source: 'workflow-failure:visual-code.execute',
+      failedCanonicalId: 'visual-code.execute',
+      failedJobId: 'system-workflow-original',
+    },
+  );
+  const handlers = new Map<string, SystemWorkflowActionExecutor>();
+  const workflows = {
+    registerWorkflow: vi.fn(),
+    registerAction: vi.fn((id, handler) => handlers.set(id, handler)),
+  };
+  const prisma = {
+    visualRevision: { findFirstOrThrow: vi.fn(async () => revision) },
+    workflowExecution: {
+      findFirstOrThrow: vi.fn(async ({ where }) =>
+        where.id === 'failure' ? failure : original,
+      ),
+    },
+    workflow: {
+      findFirstOrThrow: vi.fn(async ({ where }) => ({
+        metadata: {
+          sourceType: 'hidden-system-workflow',
+          systemWorkflow: buildHiddenSystemWorkflowMetadata({
+            canonicalId:
+              where.id === 'failure-workflow'
+                ? 'visual-code.failure'
+                : 'visual-code.execute',
+          }),
+        },
+      })),
+    },
+    workflowNodeClaim: {
+      findFirst: vi.fn(
+        async (): Promise<{ leaseOwnerId: string } | null> => ({
+          leaseOwnerId: 'failure-owner',
+        }),
+      ),
+    },
+  };
+  const dispatch = {
+    reconcileFailedExecution: vi.fn(async (_revision, _executionId, check) => {
+      await check();
+      revision.status = 'failed';
+    }),
+  };
+  const authorization = {
+    authorizeBrand: vi
+      .fn()
+      .mockRejectedValue(new ForbiddenException('Actor revoked')),
+  };
+  const moduleAccess = {
+    assertAccess: vi
+      .fn()
+      .mockRejectedValue(new ForbiddenException('Motion disabled')),
+  };
+  const authoring = { call: vi.fn() };
+  const renderer = { execute: vi.fn() };
+  const service = new VisualProjectWorkflowService(
+    prisma as never,
+    workflows as never,
+    authorization as never,
+    authoring as never,
+    {} as never,
+    renderer as never,
+    {} as never,
+    moduleAccess as never,
+    dispatch as never,
+  );
+  service.onModuleInit();
+  const request = {
+    input: { job },
+    context: {
+      organizationId: 'org',
+      userId: 'user',
+      executionId: 'failure',
+      runId: 'failure',
+    } as never,
+    provenance: {
+      executionId: 'failure',
+      nodeId: 'fail',
+      workflowId: 'failure-workflow',
+      workflowLabel: 'Failure',
+    },
+  };
+  const run = () => handlers.get('visual-code.fail-internal')?.(request);
+  return {
+    run,
+    request,
+    prisma,
+    dispatch,
+    original,
+    failure,
+    revision,
+    authorization,
+    moduleAccess,
+    authoring,
+    renderer,
+    workflows,
+  };
+}
+
+describe('Motion internal terminal admission proof', () => {
+  it('permits only scoped terminal cleanup after access or actor revocation without provider work', async () => {
+    const f = failureFixture();
+    await expect(f.run()).resolves.toEqual({
+      revisionId: 'revision',
+      status: 'failed',
+    });
+    expect(f.dispatch.reconcileFailedExecution).toHaveBeenCalledWith(
+      f.revision,
+      'original',
+      expect.any(Function),
+    );
+    expect(f.authorization.authorizeBrand).not.toHaveBeenCalled();
+    expect(f.moduleAccess.assertAccess).not.toHaveBeenCalled();
+    expect(f.authoring.call).not.toHaveBeenCalled();
+    expect(f.renderer.execute).not.toHaveBeenCalled();
+    expect(f.prisma.workflowExecution.findFirstOrThrow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 'org',
+          userId: 'user',
+          isDeleted: false,
+          idempotencyKey: 'visual-code-revision',
+        },
+      }),
+    );
+    expect(f.prisma.visualRevision.findFirstOrThrow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'revision',
+          organizationId: 'org',
+          brandId: 'brand',
+          userId: 'user',
+          isDeleted: false,
+        },
+      }),
+    );
+  });
+  it.each(['organizationId', 'userId'] as const)(
+    'rejects conflicting request %s before lookup',
+    async (key) => {
+      const f = failureFixture();
+      f.request.input.job[key] = 'foreign';
+      await expect(f.run()).rejects.toThrow('visual_worker_scope_mismatch');
+      expect(f.prisma.visualRevision.findFirstOrThrow).not.toHaveBeenCalled();
+      expect(f.dispatch.reconcileFailedExecution).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['revisionId', 'organizationId', 'brandId', 'userId'] as const)(
+    'rejects a foreign original admitted %s',
+    async (key) => {
+      const f = failureFixture();
+      f.original.result.inputValues.job[key] = 'foreign';
+      await expect(f.run()).rejects.toThrow('visual_worker_binding_invalid');
+      expect(f.dispatch.reconcileFailedExecution).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['original', 'failure'] as const)(
+    'rejects altered immutable %s graph',
+    async (key) => {
+      const f = failureFixture();
+      f[key].workflowVersion.contentHash = 'edited';
+      await expect(f.run()).rejects.toThrow('visual_worker_binding_invalid');
+      expect(f.dispatch.reconcileFailedExecution).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects a failure attributed to another job or a different bound original execution', async () => {
+    const f = failureFixture();
+    f.failure.result.metadata.failedJobId = 'foreign-job';
+    await expect(f.run()).rejects.toThrow('visual_worker_binding_invalid');
+    f.failure.result.metadata.failedJobId = 'system-workflow-original';
+    f.revision.workflowExecutionId = 'different-original';
+    await expect(f.run()).rejects.toThrow('visual_worker_binding_invalid');
+    expect(f.dispatch.reconcileFailedExecution).not.toHaveBeenCalled();
+  });
+  it('rejects edited/nonprotected mirrors and stale or lost failure leases', async () => {
+    const f = failureFixture();
+    f.prisma.workflow.findFirstOrThrow.mockResolvedValueOnce({
+      metadata: {},
+    } as never);
+    await expect(f.run()).rejects.toThrow('visual_worker_binding_invalid');
+    f.prisma.workflowNodeClaim.findFirst.mockResolvedValueOnce(null);
+    await expect(f.run()).rejects.toThrow();
+    f.prisma.workflowNodeClaim.findFirst
+      .mockResolvedValueOnce({ leaseOwnerId: 'failure-owner' })
+      .mockResolvedValueOnce(null);
+    await expect(f.run()).rejects.toThrow();
+    expect(f.authoring.call).not.toHaveBeenCalled();
   });
 });
