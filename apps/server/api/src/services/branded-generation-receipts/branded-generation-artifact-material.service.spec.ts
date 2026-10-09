@@ -5,10 +5,17 @@ import {
   hashBrandedGenerationArtifactManifestV1,
   hashBrandedGenerationTextV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import type { BrandedPostMaterialRecord } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AssetParent, IngredientCategory } from '@genfeedai/contracts';
+import {
+  AssetParent,
+  IngredientCategory,
+  Platform,
+  PostCategory,
+  PostFormat,
+} from '@genfeedai/contracts';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import {
@@ -34,6 +41,44 @@ vi.mock('@genfeedai/prisma', async () => {
 const actor = { organizationId: 'org', brandId: 'brand', actorId: 'user' };
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
+function materialPost(
+  description = 'completed text',
+): BrandedPostMaterialRecord {
+  return {
+    id: 'artifact',
+    organizationId: 'org',
+    brandId: 'brand',
+    isDeleted: false,
+    parentId: null,
+    order: 0,
+    platform: Platform.TWITTER,
+    credentialId: 'credential',
+    targetAttachments: [],
+    targetSettings: {},
+    category: PostCategory.TEXT,
+    format: PostFormat.STANDARD,
+    description,
+    ingredients: [],
+    children: [],
+  };
+}
+function materialIngredient(
+  id: string,
+  category = IngredientCategory.IMAGE,
+): BrandedPostMaterialRecord['ingredients'][number] {
+  return {
+    id,
+    organizationId: actor.organizationId,
+    brandId: actor.brandId,
+    isDeleted: false,
+    category,
+    s3Key: `ingredients/${id}`,
+    version: 1,
+    mimeType: category === IngredientCategory.VIDEO ? 'video/mp4' : 'image/png',
+    fileSize: 5,
+    cdnUrl: `https://example.test/${id}`,
+  };
+}
 function bytesHash(bytes: Uint8Array) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
@@ -202,9 +247,7 @@ function fixture() {
       }),
     },
     post: {
-      findFirst: vi
-        .fn()
-        .mockResolvedValue({ id: 'artifact', description: 'completed text' }),
+      findFirst: vi.fn().mockResolvedValue(materialPost()),
     },
     asset: { findMany: vi.fn().mockResolvedValue([]) },
   };
@@ -261,6 +304,95 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 describe('versioned artifact material', () => {
+  it.each(['image', 'video', 'short', 'carousel', 'thread'] as const)(
+    'describes and reacquires the complete %s post material',
+    async (format) => {
+      const f = fixture();
+      const post = materialPost();
+      if (format === 'thread') {
+        post.format = PostFormat.THREAD;
+        post.children = [
+          {
+            ...materialPost('Second segment'),
+            id: 'child',
+            parentId: post.id,
+            order: 1,
+          },
+        ];
+      } else {
+        post.category =
+          format === 'short'
+            ? PostCategory.REEL
+            : format === 'video'
+              ? PostCategory.VIDEO
+              : PostCategory.IMAGE;
+        post.ingredients = [
+          materialIngredient(
+            'first',
+            format === 'short' || format === 'video'
+              ? IngredientCategory.VIDEO
+              : IngredientCategory.IMAGE,
+          ),
+        ];
+        if (format === 'carousel')
+          post.ingredients.push(materialIngredient('second'));
+      }
+      f.tx.post.findFirst.mockResolvedValue(post);
+      f.current.format = format;
+      const binding = await f.service.describePostArtifact(actor, post.id);
+      expect(binding.artifact.kind).toBe('post');
+      expect(binding.textHash).toBe(
+        hashBrandedGenerationTextV1(post.description),
+      );
+      expect(binding.artifact.parts).toHaveLength(
+        format === 'carousel' ? 2 : 1,
+      );
+      f.current.artifact = binding.artifact;
+      storage.readVersionedBytes.mockClear();
+      const result = await f.service.acquire(actor, 'receipt');
+      expect(copyBrandValidationMaterial(result.material)).toEqual(
+        result.material,
+      );
+      expect(result.material.textBytes).toEqual(Buffer.from(post.description));
+      expect(result.material.parts).toHaveLength(binding.artifact.parts.length);
+      if (format === 'thread') {
+        expect(result.material.parts[0].bytes).toEqual(
+          Buffer.from('Second segment'),
+        );
+        expect(storage.readVersionedBytes).not.toHaveBeenCalled();
+        post.children[0].description = 'Edited segment';
+      } else {
+        expect(storage.readVersionedBytes).toHaveBeenCalledWith(
+          'ingredients/first',
+          expect.objectContaining({ expectedVersion: f.version }),
+        );
+        post.ingredients[0].version += 1;
+      }
+      await expect(f.service.acquire(actor, 'receipt')).rejects.toThrow(
+        'receipt_artifact_version_mismatch',
+      );
+    },
+  );
+
+  it('detects changed composed bytes under a retained storage version', async () => {
+    const f = fixture();
+    const post = materialPost();
+    post.category = PostCategory.IMAGE;
+    post.ingredients = [materialIngredient('image')];
+    f.tx.post.findFirst.mockResolvedValue(post);
+    f.current.format = 'image';
+    f.current.artifact = (
+      await f.service.describePostArtifact(actor, post.id)
+    ).artifact;
+    storage.readVersionedBytes.mockResolvedValue({
+      bytes: Buffer.from('changed'),
+      version: f.version,
+    });
+    await expect(f.service.acquire(actor, 'receipt')).rejects.toThrow(
+      'receipt_artifact_hash_mismatch',
+    );
+  });
+
   it('describes image and video with the hash and version captured in one read', async () => {
     const f = fixture();
     expect(
@@ -310,7 +442,7 @@ describe('versioned artifact material', () => {
     await expect(
       f.service.describeIngredientArtifact(actor, 'artifact'),
     ).rejects.toThrow('receipt_artifact_unsupported');
-    f.tx.post.findFirst.mockResolvedValue({ id: 'artifact', description: '' });
+    f.tx.post.findFirst.mockResolvedValue(materialPost(''));
     await expect(
       f.service.describePostArtifact(actor, 'artifact'),
     ).rejects.toThrow('receipt_artifact_unsupported');
@@ -367,10 +499,7 @@ describe('versioned artifact material', () => {
         (await f.service.acquire(actor, 'receipt')).material,
       ).textBytes,
     ).toEqual(Buffer.from('completed text'));
-    f.tx.post.findFirst.mockResolvedValue({
-      id: 'artifact',
-      description: 'edited',
-    });
+    f.tx.post.findFirst.mockResolvedValue(materialPost('edited'));
     await expect(f.service.acquire(actor, 'receipt')).rejects.toThrow(
       'receipt_artifact_version_mismatch',
     );
@@ -450,7 +579,7 @@ describe('versioned artifact material', () => {
   it('rejects a further reference without reading when the artifact exhausts the budget', async () => {
     const f = fixture();
     const description = 'x'.repeat(STORAGE_READ_MAX_BYTES);
-    f.tx.post.findFirst.mockResolvedValue({ id: 'artifact', description });
+    f.tx.post.findFirst.mockResolvedValue(materialPost(description));
     f.current.artifact = (
       await f.service.describePostArtifact(actor, 'artifact')
     ).artifact;

@@ -71,7 +71,7 @@ function fixture() {
   const credential = {
     externalId: 'author-a',
     platform: 'TWITTER',
-    posts: [] as { breakoutOutputId: string }[],
+    posts: [] as { breakoutOutputId: string | null }[],
   };
   const findSource = vi.fn(
     async (): Promise<{ id: string } | null> => ({ id: 'source-a' }),
@@ -345,29 +345,47 @@ describe('native own-account immutable exposure binding', () => {
     expect(h.createMany).not.toHaveBeenCalled();
   });
 
-  it('retains response lineage from historical output links without treating tombstones as publication authority', async () => {
-    const h = fixture();
-    h.credential.posts = [{ breakoutOutputId: 'output-a' }];
-    expect((await h.collection()).source.isResponse).toBe(true);
-    expect(h.findCredential).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: expect.objectContaining({
-          posts: {
-            where: {
-              organizationId: reference.organizationId,
-              brandId: reference.brandId,
-              credentialId: reference.credentialId,
-              platform: reference.platform,
-              externalId: reference.externalId,
-              breakoutOutputId: { not: null },
+  it.each(['root', 'thread_segment'] as const)(
+    'retains %s response lineage from historical output links without treating tombstones as publication authority',
+    async (kind) => {
+      const h = fixture();
+      h.credential.posts = [
+        { breakoutOutputId: kind === 'root' ? 'output-a' : null },
+      ];
+      expect((await h.collection()).source.isResponse).toBe(true);
+      expect(h.findCredential).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            posts: {
+              where: {
+                organizationId: reference.organizationId,
+                brandId: reference.brandId,
+                credentialId: reference.credentialId,
+                platform: reference.platform,
+                externalId: reference.externalId,
+                OR: [
+                  { breakoutOutputId: { not: null } },
+                  {
+                    parent: {
+                      is: {
+                        organizationId: reference.organizationId,
+                        brandId: reference.brandId,
+                        credentialId: reference.credentialId,
+                        platform: reference.platform,
+                        breakoutOutputId: { not: null },
+                      },
+                    },
+                  },
+                ],
+              },
+              select: { breakoutOutputId: true },
+              take: 1,
             },
-            select: { breakoutOutputId: true },
-            take: 1,
-          },
+          }),
         }),
-      }),
-    );
-  });
+      );
+    },
+  );
 
   it('rejects two source references and invalid collection clocks without writing', async () => {
     const h = fixture();

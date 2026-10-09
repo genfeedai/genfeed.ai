@@ -65,6 +65,8 @@ export interface BreakoutCapacityPlan {
 export interface BreakoutCapacityReservationInput
   extends BreakoutCapacityInput {
   responseId: string;
+  /** Internal server clock for admission, never a customer-supplied authority. */
+  nowMs?: number;
 }
 export interface BreakoutLiveCapacityInput
   extends Omit<BreakoutObservationScope, 'format'> {
@@ -79,7 +81,9 @@ export type BreakoutLiveCapacitySnapshot =
       walletVersion: number;
       budget: BreakoutPlanningBudget;
       remainingPublicationSlots: number | null;
-      capUsageBasis: 'configured_cap_usage_unavailable';
+      capUsageBasis:
+        | 'configured_cap_usage_unavailable'
+        | 'monthly_ledger_and_reservations';
       cadenceTruncated: boolean;
     }
   | {
@@ -88,6 +92,7 @@ export type BreakoutLiveCapacitySnapshot =
         | 'missing_strategy'
         | 'account_unavailable'
         | 'wallet_unavailable'
+        | 'ledger_usage_unavailable'
         | 'policy_unreadable';
     };
 export interface BreakoutLiveCapacityReservationInput
@@ -108,7 +113,24 @@ export type BreakoutCapacityReservationResult =
     })
   | Exclude<BreakoutOutputPlanResult, { outputIds: string[] }>
   | { status: 'source_changed' }
+  | { status: 'growth_held'; reason: BreakoutGrowthHeldReason }
   | { status: 'capacity_held'; estimate: BreakoutCapacityPlan };
+
+export type BreakoutGrowthHeldReason =
+  | 'growth_evidence_unavailable'
+  | 'growth_evidence_stale'
+  | 'growth_measurements_incomparable'
+  | 'growth_faded';
+export type BreakoutGrowthResult =
+  | { status: 'held'; reason: BreakoutGrowthHeldReason }
+  | {
+      status: 'growing';
+      observationIds: string[];
+      measuredAt: string;
+      increment: number;
+      ratePerHour: number;
+      resumed: boolean;
+    };
 
 export interface BreakoutOutputRecoveryInput
   extends Omit<BreakoutObservationScope, 'format'> {
@@ -176,11 +198,11 @@ export interface BreakoutResponsePage {
   total: number;
   pages: number;
 }
-export interface BreakoutTextArtifactBindingInput
+export interface BreakoutPostArtifactBindingInput
   extends BreakoutOutputRecoveryInput {
   postId: string;
 }
-export type BreakoutTextArtifactBindingResult =
+export type BreakoutPostArtifactBindingResult =
   | { status: 'bound' | 'replayed'; outputId: string; postId: string }
   | {
       status: 'held';
@@ -193,6 +215,9 @@ export type BreakoutTextArtifactBindingResult =
         | 'review_or_publication_started'
         | 'unsupported_format';
     };
+export type BreakoutTextArtifactBindingInput = BreakoutPostArtifactBindingInput;
+export type BreakoutTextArtifactBindingResult =
+  BreakoutPostArtifactBindingResult;
 export type BreakoutOutputRecoveryState =
   | 'not_submitted'
   | 'generation_in_flight'

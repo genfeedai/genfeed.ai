@@ -1,3 +1,4 @@
+import { readBreakoutGrowth } from '@api/collections/outliers/services/breakout-growth.util';
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
 import {
   breakoutPublicationId,
@@ -35,6 +36,7 @@ export async function reserveBreakoutLiveCapacityPlan(
     ...input,
     budget: snapshot.budget,
     remainingPublicationSlots: snapshot.remainingPublicationSlots,
+    nowMs: input.nowMs,
   });
 }
 
@@ -86,6 +88,29 @@ export async function reserveBreakoutCapacityPlan(
     source.publicationFingerprint !== input.source.publicationFingerprint
   )
     return { status: 'source_changed' };
+  const trigger = await tx.breakoutBaselineReceipt.findFirst({
+    where: {
+      id: response.triggerReceiptId,
+      organizationId,
+      brandId,
+      credentialId,
+      platform,
+      isDeleted: false,
+    },
+    select: { metric: true },
+  });
+  if (
+    !trigger ||
+    (trigger.metric !== 'views' && trigger.metric !== 'impressions')
+  )
+    return { status: 'growth_held', reason: 'growth_evidence_unavailable' };
+  const growth = await readBreakoutGrowth(tx, {
+    source,
+    metric: trigger.metric,
+    nowMs: input.nowMs ?? Date.now(),
+  });
+  if (growth.status === 'held')
+    return { status: 'growth_held', reason: growth.reason };
   const scope = {
     organizationId,
     brandId,

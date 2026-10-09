@@ -4,6 +4,7 @@ import {
   getCadenceWeek,
   resolveCadencePolicy,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
+import { readBreakoutMonthlyUsage } from '@api/collections/outliers/services/breakout-monthly-usage.util';
 import { resolveBillingAccountAccess } from '@api/tenancy/billing-account-scope';
 import { billingAccountScopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -104,7 +105,12 @@ export async function readBreakoutLiveCapacity(
     b.perFormatCaps.some((row) => !formats.some((value) => value === row.key))
   )
     return { status: 'held', reason: 'policy_unreadable' };
-  const monthly = Math.max(0, b.monthlyCreditBudget - c.monthToDateCreditsUsed);
+  const usage = await readBreakoutMonthlyUsage(tx, {
+    ...input,
+    storedMonthlyUsed: c.monthToDateCreditsUsed,
+  });
+  if (usage.status === 'held') return usage;
+  const monthly = Math.max(0, b.monthlyCreditBudget - usage.usedCredits);
   const scope = await resolveBillingAccountAccess(organizationId, tx);
   const wallet = await tx.creditBalance.findFirst({
     where: billingAccountScopedWhere(scope),
@@ -127,9 +133,16 @@ export async function readBreakoutLiveCapacity(
   const formatCaps: Partial<Record<LearningFormat, number | null>> = {};
   for (const format of formats) {
     const cap = b.perFormatCaps.find((row) => row.key === format);
-    // Configured dimension caps have no authoritative period/usage contract.
-    // Keep them unknown until that contract exists; monthly total is not usage.
-    if (cap) formatCaps[format] = null;
+    if (cap)
+      formatCaps[format] = usage.dimensionUsage
+        ? Math.min(
+            monthly,
+            Math.max(
+              0,
+              cap.creditBudget - (usage.dimensionUsage.formats[format] ?? 0),
+            ),
+          )
+        : null;
   }
   const platformCap = b.perPlatformCaps.find((row) => row.key === platform);
   const policy = resolveCadencePolicy(c);
@@ -177,7 +190,9 @@ export async function readBreakoutLiveCapacity(
     capturedAt: now.toISOString(),
     strategyId,
     walletVersion: wallet.version,
-    capUsageBasis: 'configured_cap_usage_unavailable',
+    capUsageBasis: usage.dimensionUsage
+      ? 'monthly_ledger_and_reservations'
+      : 'configured_cap_usage_unavailable',
     cadenceTruncated: truncated,
     remainingPublicationSlots: truncated
       ? null
@@ -196,11 +211,20 @@ export async function readBreakoutLiveCapacity(
         0,
         wallet.balance - wallet.heldAmount,
       ),
-      remainingPlatformCredits: platformCap ? null : monthly,
+      remainingPlatformCredits: platformCap
+        ? usage.dimensionUsage
+          ? Math.min(
+              monthly,
+              Math.max(
+                0,
+                platformCap.creditBudget -
+                  (usage.dimensionUsage.platforms[platform] ?? 0),
+              ),
+            )
+          : null
+        : monthly,
       remainingPacingCredits:
-        expectedSpend > 0 && c.monthToDateCreditsUsed > expectedSpend
-          ? 0
-          : monthly,
+        expectedSpend > 0 && usage.usedCredits > expectedSpend ? 0 : monthly,
       remainingFormatCredits: formatCaps,
     },
   };

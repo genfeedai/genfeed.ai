@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { hashBrandedGenerationArtifactManifestV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import {
-  hashBrandedGenerationArtifactManifestV1,
-  hashBrandedGenerationTextV1,
-} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+  bindBrandedPostMaterialLayout,
+  brandedPostMaterialSelect,
+  describeBrandedPostMaterialLayout,
+} from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type {
@@ -13,7 +15,10 @@ import type {
 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AssetParent, IngredientCategory } from '@genfeedai/contracts';
-import type { BrandArtifactValidationMaterialV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type {
+  BrandArtifactValidationMaterialV1,
+  BrandGenerationArtifactV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import {
   assertSafeObjectKey,
   createStorageProvider,
@@ -138,29 +143,42 @@ export class BrandedGenerationArtifactMaterialService {
           brandId: actor.brandId,
           isDeleted: false,
         },
+        select: brandedPostMaterialSelect,
       });
     });
     if (!post)
       throw new NotFoundException({ message: 'receipt_artifact_not_found' });
-    if (!post.description)
-      throw new BadRequestException('receipt_artifact_unsupported');
-    this.limit(Buffer.byteLength(post.description));
-    const textHash = hashBrandedGenerationTextV1(post.description);
-    return {
-      artifact: {
-        kind: 'post',
-        id: post.id,
-        version: textHash,
-        mediaKind: 'text',
-        parts: [],
-        contentHash: hashBrandedGenerationArtifactManifestV1({
-          mediaKind: 'text',
-          textHash,
-          parts: [],
-        }),
-      },
-      textHash,
-    };
+    const layout = describeBrandedPostMaterialLayout(actor, post);
+    let materialBytes = layout.textBytes?.byteLength ?? 0;
+    this.limit(materialBytes);
+    const parts: BrandGenerationArtifactV1['parts'] = [];
+    for (const entry of layout.entries) {
+      if (entry.kind === 'text') {
+        materialBytes += entry.bytes.byteLength;
+        this.limit(materialBytes);
+        parts.push({
+          id: entry.id,
+          role: entry.role,
+          version: entry.version,
+          contentHash: entry.contentHash,
+        });
+      } else {
+        const { bytes, version } = await this.read(
+          this.key(entry.id),
+          undefined,
+          STORAGE_READ_MAX_BYTES - materialBytes,
+        );
+        materialBytes += bytes.byteLength;
+        this.limit(materialBytes);
+        parts.push({
+          id: entry.id,
+          role: entry.role,
+          version,
+          contentHash: this.hash(bytes),
+        });
+      }
+    }
+    return bindBrandedPostMaterialLayout(layout, parts);
   }
   async acquire(
     actor: BrandedGenerationActorV1,
@@ -194,17 +212,49 @@ export class BrandedGenerationArtifactMaterialService {
           brandId: actor.brandId,
           isDeleted: false,
         },
+        select: brandedPostMaterialSelect,
       });
       if (!post)
         throw new NotFoundException({ message: 'receipt_artifact_not_found' });
-      textHash = hashBrandedGenerationTextV1(post.description);
-      if (textHash !== artifact.version)
-        throw new ConflictException('receipt_artifact_version_mismatch');
-      if (!post.description)
+      const layout = describeBrandedPostMaterialLayout(actor, post);
+      if (layout.format !== receipt.format)
         throw new BadRequestException('receipt_artifact_unsupported');
-      materialBytes = Buffer.byteLength(post.description);
+      const current = bindBrandedPostMaterialLayout(layout, artifact.parts);
+      if (
+        current.artifact.version !== artifact.version ||
+        current.artifact.mediaKind !== artifact.mediaKind
+      )
+        throw new ConflictException('receipt_artifact_version_mismatch');
+      textHash = layout.textHash;
+      material.textBytes = layout.textBytes;
+      materialBytes = layout.textBytes?.byteLength ?? 0;
       this.limit(materialBytes);
-      material.textBytes = Buffer.from(post.description);
+      const acquiredParts: BrandArtifactValidationMaterialV1['parts'][number][] =
+        [];
+      for (let index = 0; index < layout.entries.length; index += 1) {
+        const entry = layout.entries[index];
+        const part = artifact.parts[index];
+        const bytes =
+          entry.kind === 'text'
+            ? entry.bytes
+            : (
+                await this.read(
+                  this.key(entry.id),
+                  part.version,
+                  STORAGE_READ_MAX_BYTES - materialBytes,
+                )
+              ).bytes;
+        materialBytes += bytes.byteLength;
+        this.limit(materialBytes);
+        if (this.hash(bytes) !== part.contentHash)
+          throw new ConflictException('receipt_artifact_hash_mismatch');
+        acquiredParts.push({
+          partId: part.id,
+          partVersion: part.version,
+          bytes,
+        });
+      }
+      material.parts = acquiredParts;
     } else if (artifact.kind === 'ingredient' && artifact.parts.length === 1) {
       const ingredient = await this.prisma.ingredient.findFirst({
         where: {

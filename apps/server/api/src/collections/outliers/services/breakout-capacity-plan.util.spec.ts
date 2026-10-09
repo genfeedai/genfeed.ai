@@ -2,6 +2,7 @@ import {
   reserveBreakoutCapacityPlan,
   reserveBreakoutLiveCapacityPlan,
 } from '@api/collections/outliers/services/breakout-capacity-plan.util';
+import { readBreakoutGrowth } from '@api/collections/outliers/services/breakout-growth.util';
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { reserveBreakoutOutputPlan } from '@api/collections/outliers/services/breakout-response-identity.util';
@@ -31,6 +32,9 @@ vi.mock(
   '@api/collections/outliers/services/breakout-live-capacity.util',
   () => ({ readBreakoutLiveCapacity: vi.fn() }),
 );
+vi.mock('@api/collections/outliers/services/breakout-growth.util', () => ({
+  readBreakoutGrowth: vi.fn(),
+}));
 
 const source: BreakoutPublicationSourceV1 = {
   version: 1,
@@ -74,6 +78,7 @@ function fixture() {
     contentDigest: source.contentDigest,
     publicationFingerprint: source.publicationFingerprint,
     outputPlanFingerprint: null as string | null,
+    triggerReceiptId: 'trigger-a',
   };
   const findResponse = vi.fn(async () => response);
   const findOutputs = vi.fn(async () => [
@@ -83,11 +88,22 @@ function fixture() {
     $queryRaw: vi.fn(async () => []),
     breakoutResponse: { findFirst: findResponse },
     breakoutResponseOutput: { findMany: findOutputs },
+    breakoutBaselineReceipt: {
+      findFirst: vi.fn(async () => ({ metric: 'views' })),
+    },
   } as unknown as Prisma.TransactionClient;
   return { input, response, findResponse, findOutputs, tx };
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(readBreakoutGrowth).mockResolvedValue({
+    status: 'growing',
+    observationIds: ['latest', 'previous'],
+    measuredAt: source.publishedAt,
+    increment: 100,
+    ratePerHour: 600,
+    resumed: false,
+  });
   vi.mocked(loadBreakoutPublication).mockResolvedValue(source);
   vi.mocked(reserveBreakoutOutputPlan).mockResolvedValue({
     status: 'reserved',
@@ -96,6 +112,23 @@ beforeEach(() => {
   });
 });
 describe('capacity snapshot to immutable output identities', () => {
+  it.each([false, true])(
+    'holds faded growth before reservation or retained plan replay (replay=%s)',
+    async (replay) => {
+      const h = fixture();
+      if (replay) h.response.outputPlanFingerprint = 'existing-plan';
+      vi.mocked(readBreakoutGrowth).mockResolvedValue({
+        status: 'held',
+        reason: 'growth_faded',
+      });
+      expect(await reserveBreakoutCapacityPlan(h.tx, h.input)).toEqual({
+        status: 'growth_held',
+        reason: 'growth_faded',
+      });
+      expect(reserveBreakoutOutputPlan).not.toHaveBeenCalled();
+      expect(h.findOutputs).not.toHaveBeenCalled();
+    },
+  );
   it('reserves from the fresh reachable wallet/cadence snapshot rather than caller-provided budget', async () => {
     const h = fixture();
     vi.mocked(readBreakoutLiveCapacity).mockResolvedValue({

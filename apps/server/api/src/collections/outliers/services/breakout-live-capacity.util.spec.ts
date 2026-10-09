@@ -1,8 +1,14 @@
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
+import { readBreakoutMonthlyUsage } from '@api/collections/outliers/services/breakout-monthly-usage.util';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import type { BreakoutLiveCapacityInput } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock(
+  '@api/collections/outliers/services/breakout-monthly-usage.util',
+  () => ({ readBreakoutMonthlyUsage: vi.fn() }),
+);
 
 const input: BreakoutLiveCapacityInput = {
   organizationId: 'org-a',
@@ -64,6 +70,60 @@ function fixture() {
   return { tx, strategy, wallet, findWallet, findPosts, findStrategy, links };
 }
 describe('read-only live breakout capacity evidence', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(readBreakoutMonthlyUsage).mockImplementation(
+      async (_tx, snapshot) => ({
+        status: 'available',
+        periodStart: '2026-10-01T00:00:00.000Z',
+        periodEnd: '2026-11-01T00:00:00.000Z',
+        spentCredits: snapshot.storedMonthlyUsed,
+        heldCredits: 0,
+        usedCredits: snapshot.storedMonthlyUsed,
+        dimensionUsage: null,
+      }),
+    );
+  });
+  it('subtracts actual monthly spend plus active holds from configured platform/format sub-budgets', async () => {
+    const h = fixture();
+    h.strategy.policies.budgetPolicy.perPlatformCaps = [
+      { key: Platform.TWITTER, creditBudget: 50 },
+    ];
+    h.strategy.policies.budgetPolicy.perFormatCaps = [
+      { key: 'text', creditBudget: 25 },
+    ];
+    vi.mocked(readBreakoutMonthlyUsage).mockResolvedValue({
+      status: 'available',
+      periodStart: '2026-10-01T00:00:00Z',
+      periodEnd: '2026-11-01T00:00:00Z',
+      spentCredits: 20,
+      heldCredits: 5,
+      usedCredits: 25,
+      dimensionUsage: {
+        platforms: { [Platform.TWITTER]: 25 },
+        formats: { text: 25 },
+      },
+    });
+    expect(await readBreakoutLiveCapacity(h.tx, input)).toMatchObject({
+      capUsageBasis: 'monthly_ledger_and_reservations',
+      budget: {
+        remainingMonthlyCredits: 475,
+        remainingPlatformCredits: 25,
+        remainingFormatCredits: { text: 0 },
+      },
+    });
+  });
+  it('holds unreadable historical ledger allocation without inventing zero spend', async () => {
+    const h = fixture();
+    vi.mocked(readBreakoutMonthlyUsage).mockResolvedValue({
+      status: 'held',
+      reason: 'ledger_usage_unavailable',
+    });
+    expect(await readBreakoutLiveCapacity(h.tx, input)).toEqual({
+      status: 'held',
+      reason: 'ledger_usage_unavailable',
+    });
+  });
   it('resolves the real billing scope and subtracts current held funds', async () => {
     const h = fixture();
     expect(await readBreakoutLiveCapacity(h.tx, input)).toMatchObject({

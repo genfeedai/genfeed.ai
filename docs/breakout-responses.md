@@ -38,7 +38,7 @@ Public/scraped counts remain aggregate, and fallback providers cannot claim orga
 authority. Reposts, changed captured material, changed account binding and generated
 responses cannot initiate a response. Ordinary collection outputs and daily analytics
 remain separate from immutable evidence. Native and generated publications share the
-bounded comparison, response identity, capacity planner and text quote binder.
+bounded comparison, response identity, capacity planner and complete post binder.
 
 The observation binds organization, brand, connected credential, platform, format,
 external publication, material digest and confirmed publication/version identity.
@@ -81,13 +81,22 @@ An output plan has at most five total slots. An X quote uses slot one and counts
 inside that limit. Slots and generation identities are never recycled after failure
 or deletion. A post's persistent breakout output link identifies generated responses
 independently of ordinary quote fields and prevents recursive response chains.
-Generation must attach that link before publication. The transaction-local
-`bindBreakoutTextArtifact` utility now verifies a completed approved-brand text
-receipt against the actual post text/version/manifest and current source identity.
+Generation must attach that link before publication. Thread segments inherit the
+parent's response lineage for recursive detection exclusion, including historical
+links; those links do not grant current publication authority. The transaction-local
+`bindBreakoutPostArtifact` utility verifies a completed approved-brand receipt
+against the complete canonical post material and current source identity.
 It attaches the existing output ID and, for an X quote, the source external ID to an
 existing draft before review starts. It never creates a post or changes its publish
-state, approval or credit accounting. Conflicting lineage, changed text, media/thread
-material and posts already entering review/publication are held. The writer is not
+state, approval or credit accounting. Text, image, carousel, video, short and thread
+material bind captions, ordered segment membership, scoped ingredients, retained
+storage versions and content hashes. Material acquisition re-reads the pinned bytes;
+changed membership, metadata, captions or bytes are held. Shapes exceeding the
+existing material bounds are held rather than truncated. Explicit attachment order and target settings are retained;
+an attachment without a matching scoped ingredient is held instead of certifying
+unread media. The text-only helper remains
+a compatibility adapter. Conflicting lineage and posts already entering
+review/publication are held. The writer is not
 yet called from generation or an authorized product endpoint.
 
 ## Capacity and recovery interfaces
@@ -102,7 +111,9 @@ have explicit reasons. Explicit zero prices remain different from unavailable
 prices. These estimates neither debit credits nor reserve future publishing slots.
 
 `reserveBreakoutCapacityPlan` revalidates the current source and serializes planning
-with the existing parent-row lock. Replays retain their original slots and generation
+with the existing parent-row lock. Initial plans and replays both require the fresh
+growth gate; a held replay preserves its identities without admitting new work.
+Replays retain their original slots and generation
 keys, even when today's budget changes. A replay reports no original price estimate
 because that price snapshot is not persisted; it does not invent one. Dispatch and
 scheduling still need fresh accounting and transactional cadence admission. This
@@ -113,9 +124,17 @@ resolves the existing billing-account authority, and reads settled wallet funds 
 held funds without creating a wallet. It retains current stored daily/weekly/monthly
 budget usage and existing pacing. Cadence uses the existing timezone/week/group
 rules, with a bounded 1,001-row read; saturation leaves quota unknown. Configured
-platform/format caps have no verified usage-period and dimension-counter contract
-in the current policy, so they remain unknown rather than assuming zero spend or
-subtracting monthly totals under an invented period. `reserveBreakoutLiveCapacityPlan`
+platform/format caps use the same UTC calendar-month period as the total monthly
+budget. `readBreakoutMonthlyUsage` reads actual deductions/refunds and current
+reserved holds with server-retained strategy/platform/format attribution. Exact
+scoped reservation attribution can explain a settlement. Terminal holds are not
+counted again; unresolved carryover holds still constrain the current month.
+Decimal sums avoid drift, and a matching stored counter is never added twice. A
+larger stored counter is a lower bound with unknown dimension allocation. Legacy
+unattributed charges, inconsistent settlement, unmatched refunds and saturated
+reads hold capacity. Missing allocation never becomes zero. New generation still
+needs to retain this attribution through its actual credit producer and perform
+transactional admission. `reserveBreakoutLiveCapacityPlan`
 feeds this fresh snapshot to the existing immutable slot registry. These reads and
 identity reservations neither debit credits nor reserve future posting capacity.
 
@@ -126,8 +145,9 @@ actor identity or a fabricated cost total. Pending generation waits; indetermina
 outcomes, missing in-flight receipts and invalid projections require reconciliation.
 Every result forbids repeating a paid request based on this read alone. Approved
 brand readiness is separate from platform quality, actor and publication permission.
-Current text material is checked before treating a bound text artifact as reusable;
-composed media still requires its own verified material-binding path.
+Complete current post material is checked before treating a bound artifact as
+reusable. This check does not replace fresh byte acquisition, render qualification
+or normal quality/review/publication admission.
 
 Draft, review, scheduled, paused, publishing, confirmed publication, suppression,
 expiry and failure remain distinct. Published status requires the existing canonical
@@ -205,8 +225,23 @@ lineage and subsequent measurements.
 Additional qualified provider exposure mappings, priority workflow execution,
 generation-to-artifact/quote workflow attachment, recovery
 workflow wiring, consolidated agent reads and connected acceptance
-remain unfinished. The human response lifetime choice and the authoritative automatic actor contract are unresolved.
-No default lifetime or synthetic owner principal grants permission to execute.
+remain unfinished. Lifetime policy is settled: older posts remain eligible when
+fresh measurements show resumed growth, with no fixed 24-hour expiry; follow-ups
+stop when growth fades. All schedules retain the authenticated configuring user/key
+and recheck current authority; old unbound Cloud schedules stay held until
+reconfigured. The shared automatic actor implementation is owned by #5147. Source
+ownership, workflow creator attribution and synthetic owner identities grant no
+permission to execute.
+
+The planning growth gate reads at most three latest prospective observations from
+the same publication. Measurements match account, material, metric provenance,
+provider source and time basis. Collection intervals must not overlap. The latest
+measurement is at most 15 minutes old and adjacent measurements are at most two
+hours apart. Current exposure must increase; when three samples exist, its rate
+must not fall below the preceding rate. Renewal after a zero-growth interval is
+explicit. These are evidence-freshness bounds, independent of publication age.
+Dispatch and publication wiring still must recheck this gate; no measurement
+alone grants authority or reserves money.
 
 ## Evidence and delivery
 

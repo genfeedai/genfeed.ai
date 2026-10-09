@@ -44,7 +44,9 @@ const EXPOSURE_SCOPES = ['organic', 'paid', 'aggregate', 'unknown'] as const;
 function hash(value: unknown): string {
   return buildArtifactContentDigest({ evidence: value });
 }
-function observation(row: PostExposureObservation): BreakoutObservation | null {
+export function readBreakoutObservation(
+  row: PostExposureObservation,
+): BreakoutObservation | null {
   if (
     !isPlatform(row.platform) ||
     Boolean(row.postId) === Boolean(row.nativeSourcePostId)
@@ -195,7 +197,7 @@ export async function readBreakoutBaselineReceipt(
     },
   });
   if (!targetRow) return { status: 'missing_target' };
-  const target = observation(targetRow);
+  const target = readBreakoutObservation(targetRow);
   if (
     !target ||
     targetRow.id !== input.targetObservationId ||
@@ -268,7 +270,7 @@ export async function readBreakoutBaselineReceipt(
   const currentByPost = new Map<string, BreakoutPublicationSource | null>();
   if (!truncated) {
     for (const row of rows) {
-      const item = observation(row);
+      const item = readBreakoutObservation(row);
       if (!item) return { status: 'invalid_observation' };
       const referenceKey = JSON.stringify([row.postId, row.nativeSourcePostId]);
       if (!currentByPost.has(referenceKey))

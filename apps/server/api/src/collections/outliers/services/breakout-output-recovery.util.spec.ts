@@ -1,4 +1,5 @@
 import {
+  bindBreakoutPostArtifact,
   bindBreakoutTextArtifact,
   readBreakoutOutputRecovery,
 } from '@api/collections/outliers/services/breakout-output-recovery.util';
@@ -8,7 +9,18 @@ import {
   hashBrandedGenerationArtifactManifestV1,
   hashBrandedGenerationTextV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
-import { Platform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  type BrandedPostMaterialRecord,
+  bindBrandedPostMaterialLayout,
+  describeBrandedPostMaterialLayout,
+} from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
+import {
+  IngredientCategory,
+  Platform,
+  PostCategory,
+  PostFormat,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type { BreakoutOutputRecoveryInput } from '@genfeedai/contracts/interfaces';
 import type {
@@ -194,6 +206,42 @@ const input: BreakoutOutputRecoveryInput = {
   responseId: 'response-a',
   outputId: 'output-a',
 };
+function materialPost(): BrandedPostMaterialRecord {
+  return {
+    id: 'post-output-a',
+    organizationId: input.organizationId,
+    brandId: input.brandId,
+    isDeleted: false,
+    parentId: null,
+    order: 0,
+    platform: input.platform,
+    credentialId: input.credentialId,
+    targetAttachments: [],
+    targetSettings: {},
+    category: PostCategory.TEXT,
+    format: PostFormat.STANDARD,
+    description: text,
+    ingredients: [],
+    children: [],
+  };
+}
+function materialIngredient(
+  id = 'image-a',
+  category = IngredientCategory.IMAGE,
+): BrandedPostMaterialRecord['ingredients'][number] {
+  return {
+    id,
+    organizationId: input.organizationId,
+    brandId: input.brandId,
+    isDeleted: false,
+    category,
+    s3Key: `media/${id}`,
+    version: 1,
+    fileSize: 5,
+    mimeType: category === IngredientCategory.VIDEO ? 'video/mp4' : 'image/png',
+    cdnUrl: `https://example.test/${id}`,
+  };
+}
 function fixture() {
   const projection = receipt();
   const response = {
@@ -233,7 +281,7 @@ function fixture() {
     projection: projection as unknown,
   };
   const post = {
-    id: 'post-output-a',
+    ...materialPost(),
     externalId: 'output-tweet',
     targetExecutionState: TargetExecutionState.DRAFT,
     quoteTweetId: response.externalId as string | null,
@@ -545,8 +593,6 @@ function bindingFixture() {
     quoteTweetId: null as string | null,
     publishApprovalId: null as string | null,
     reviewVersionPinId: null as string | null,
-    ingredients: [] as Array<{ id: string }>,
-    children: [] as Array<{ id: string }>,
   };
   h.findPost.mockImplementation(async (query) =>
     query.where?.id ? post : post.breakoutOutputId ? post : null,
@@ -566,7 +612,11 @@ function bindingFixture() {
   const update = vi.fn(async (query: Prisma.PostUpdateManyArgs) => {
     if (!query.data) throw new Error('Fixture update missing');
     post.breakoutOutputId = input.outputId;
-    post.quoteTweetId = h.response.externalId;
+    if (
+      typeof query.data.quoteTweetId === 'string' ||
+      query.data.quoteTweetId === null
+    )
+      post.quoteTweetId = query.data.quoteTweetId;
     return { count: 1 };
   });
   const tx = {
@@ -578,6 +628,177 @@ function bindingFixture() {
   } as unknown as Prisma.TransactionClient;
   return { ...h, post, update, tx, binding: { ...input, postId: post.id } };
 }
+function composedBindingFixture(
+  format: 'text' | 'image' | 'video' | 'short' | 'carousel' | 'thread',
+) {
+  const h = bindingFixture();
+  h.output.kind = 'follow_up';
+  h.output.format = format;
+  if (format === 'thread') {
+    h.post.format = PostFormat.THREAD;
+    h.post.children = [
+      {
+        ...materialPost(),
+        id: 'child-a',
+        parentId: h.post.id,
+        order: 1,
+        description: 'Another useful segment.',
+        children: [],
+      },
+    ];
+  } else if (format !== 'text') {
+    h.post.category =
+      format === 'short'
+        ? PostCategory.REEL
+        : format === 'video'
+          ? PostCategory.VIDEO
+          : PostCategory.IMAGE;
+    h.post.ingredients = [
+      materialIngredient(
+        'first',
+        format === 'video' || format === 'short'
+          ? IngredientCategory.VIDEO
+          : IngredientCategory.IMAGE,
+      ),
+    ];
+    if (format === 'carousel')
+      h.post.ingredients.push(materialIngredient('second'));
+  }
+  const layout = describeBrandedPostMaterialLayout(input, h.post);
+  const material = bindBrandedPostMaterialLayout(
+    layout,
+    layout.entries.map((entry) => ({
+      id: entry.id,
+      role: entry.role,
+      version: entry.kind === 'text' ? entry.version : 'storage-version-a',
+      contentHash: entry.kind === 'text' ? entry.contentHash : hash,
+    })),
+  );
+  const projection = {
+    ...h.projection,
+    format,
+    artifact: material.artifact,
+    learning: {
+      ...h.projection.learning,
+      global: {
+        ...h.projection.learning.global,
+        scope: { ...h.projection.learning.global.scope, format },
+      },
+    },
+  };
+  h.retain({ ...projection, state: 'needs_review' });
+  function qualifyFakeReceipt() {
+    h.retain({
+      ...projection,
+      state: 'ready',
+      compliance: 'passed',
+      validation: {
+        ...report(),
+        artifactHash: material.artifact.contentHash,
+        artifactVersion: material.artifact.version,
+        checks: report().checks.map((check) => ({
+          ...check,
+          method:
+            material.artifact.mediaKind === 'text'
+              ? ('exact_text' as const)
+              : ('deterministic_render' as const),
+        })),
+      },
+    });
+  }
+  return { ...h, qualifyFakeReceipt };
+}
+
+describe('complete output artifact lineage and recovery', () => {
+  it.each(['text', 'image', 'video', 'short', 'carousel', 'thread'] as const)(
+    'binds and recovers a complete %s output through normal review/publication states',
+    async (format) => {
+      const h = composedBindingFixture(format);
+      expect(await bindBreakoutPostArtifact(h.tx, h.binding)).toEqual({
+        status: 'bound',
+        outputId: input.outputId,
+        postId: h.post.id,
+      });
+      expect(h.post.quoteTweetId).toBeNull();
+      expect(h.post.publishApprovalId).toBeNull();
+      expect(h.post.targetExecutionState).toBe(TargetExecutionState.DRAFT);
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'awaiting_review',
+        mayRepeatPaidRequest: false,
+      });
+      expect(await bindBreakoutPostArtifact(h.tx, h.binding)).toMatchObject({
+        status: 'replayed',
+      });
+      h.qualifyFakeReceipt();
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'draft',
+        action: 'requires_admission',
+      });
+      h.post.targetExecutionState = TargetExecutionState.SCHEDULED;
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'scheduled',
+        action: 'none',
+      });
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'publishing',
+        action: 'wait',
+      });
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHED;
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'reconciliation_required',
+      });
+      vi.mocked(loadPostExposurePublication).mockResolvedValue({
+        ...input,
+        version: 1,
+        postId: h.post.id,
+        externalId: h.post.externalId,
+        format,
+        publishedAt: time,
+        logicalPostId: 'logical-output',
+        publicationFingerprint: hash,
+        contentDigest: hash,
+        isResponse: true,
+      });
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'published',
+        reason: 'confirmed_publication',
+        externalId: h.post.externalId,
+      });
+    },
+  );
+
+  it.each(['image', 'video', 'short', 'carousel', 'thread'] as const)(
+    'holds a changed complete %s artifact without another paid request',
+    async (format) => {
+      const h = composedBindingFixture(format);
+      await bindBreakoutPostArtifact(h.tx, h.binding);
+      h.qualifyFakeReceipt();
+      if (format === 'thread')
+        h.post.children[0].description = 'Changed ending';
+      else h.post.ingredients[0].version += 1;
+      expect(await bindBreakoutPostArtifact(h.tx, h.binding)).toEqual({
+        status: 'held',
+        reason: 'artifact_changed',
+      });
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'reconciliation_required',
+        reason: 'artifact_binding_missing',
+        mayRepeatPaidRequest: false,
+      });
+    },
+  );
+
+  it('does not reinterpret a non-text output as an X quote', async () => {
+    const h = composedBindingFixture('image');
+    h.output.kind = 'quote';
+    expect(await bindBreakoutPostArtifact(h.tx, h.binding)).toEqual({
+      status: 'held',
+      reason: 'unsupported_format',
+    });
+    expect(h.update).not.toHaveBeenCalled();
+  });
+});
 describe('text artifact lineage before normal review and publication', () => {
   it('binds useful X quote commentary to an imported winning source without creating a source Post', async () => {
     const h = bindingFixture();
@@ -666,7 +887,7 @@ describe('text artifact lineage before normal review and publication', () => {
     });
     expect(h.update).not.toHaveBeenCalled();
     h.output.format = 'text';
-    h.post.ingredients.push({ id: 'image-a' });
+    h.post.ingredients.push(materialIngredient());
     expect(await bindBreakoutTextArtifact(h.tx, h.binding)).toEqual({
       status: 'held',
       reason: 'artifact_changed',

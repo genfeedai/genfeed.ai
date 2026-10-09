@@ -1,24 +1,73 @@
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import {
-  hashBrandedGenerationArtifactManifestV1,
-  hashBrandedGenerationTextV1,
-} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+  type BrandedPostMaterialRecord,
+  bindBrandedPostMaterialLayout,
+  brandedPostMaterialSelect,
+  describeBrandedPostMaterialLayout,
+} from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BreakoutOutputRecoveryInput,
   BreakoutOutputRecoveryResult,
+  BreakoutPostArtifactBindingInput,
+  BreakoutPostArtifactBindingResult,
   BreakoutTextArtifactBindingInput,
   BreakoutTextArtifactBindingResult,
 } from '@genfeedai/contracts/interfaces';
+import type { BrandGenerationArtifactV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { Prisma } from '@genfeedai/prisma';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+
+/** Compare complete retained material; this does not acquire or authorize new provider work. */
+function matchesPostArtifact(
+  scope: Readonly<BreakoutOutputRecoveryInput>,
+  post: BrandedPostMaterialRecord,
+  artifact: BrandGenerationArtifactV1 | null,
+  format: string,
+): boolean {
+  if (artifact?.kind !== 'post' || artifact.id !== post.id) return false;
+  try {
+    const layout = describeBrandedPostMaterialLayout(scope, post);
+    const current = bindBrandedPostMaterialLayout(layout, artifact.parts);
+    return (
+      layout.format === format &&
+      current.artifact.version === artifact.version &&
+      current.artifact.mediaKind === artifact.mediaKind &&
+      current.artifact.contentHash === artifact.contentHash
+    );
+  } catch (error) {
+    if (
+      error instanceof BadRequestException ||
+      error instanceof ConflictException
+    )
+      return false;
+    throw error;
+  }
+}
 
 /** Attach completed text lineage before review. Caller must authorize access separately. */
 export async function bindBreakoutTextArtifact(
   tx: Prisma.TransactionClient,
   input: Readonly<BreakoutTextArtifactBindingInput>,
 ): Promise<BreakoutTextArtifactBindingResult> {
+  return bindPostArtifact(tx, input, true);
+}
+
+/** Attach a complete canonical output before normal quality/review/publication admission. */
+export async function bindBreakoutPostArtifact(
+  tx: Prisma.TransactionClient,
+  input: Readonly<BreakoutPostArtifactBindingInput>,
+): Promise<BreakoutPostArtifactBindingResult> {
+  return bindPostArtifact(tx, input, false);
+}
+
+async function bindPostArtifact(
+  tx: Prisma.TransactionClient,
+  input: Readonly<BreakoutPostArtifactBindingInput>,
+  textOnly: boolean,
+): Promise<BreakoutPostArtifactBindingResult> {
   const {
     organizationId,
     brandId,
@@ -61,10 +110,12 @@ export async function bindBreakoutTextArtifact(
   if (!response || !output || response.outputPlanFingerprint === null)
     return { status: 'held', reason: 'missing_output' };
   if (
-    output.format !== 'text' ||
+    (textOnly && output.format !== 'text') ||
     (output.kind !== 'follow_up' && output.kind !== 'quote') ||
     (output.kind === 'quote' &&
-      (platform !== Platform.TWITTER || output.ordinal !== 1))
+      (platform !== Platform.TWITTER ||
+        output.ordinal !== 1 ||
+        output.format !== 'text'))
   )
     return { status: 'held', reason: 'unsupported_format' };
   const source = await loadBreakoutPublication(tx, {
@@ -95,19 +146,12 @@ export async function bindBreakoutTextArtifact(
       isDeleted: false,
     },
     select: {
-      id: true,
-      description: true,
+      ...brandedPostMaterialSelect,
       breakoutOutputId: true,
       quoteTweetId: true,
       targetExecutionState: true,
       publishApprovalId: true,
       reviewVersionPinId: true,
-      ingredients: { select: { id: true }, take: 1 },
-      children: {
-        where: { organizationId, brandId, isDeleted: false },
-        select: { id: true },
-        take: 1,
-      },
     },
   });
   if (!post) return { status: 'held', reason: 'artifact_changed' };
@@ -151,27 +195,12 @@ export async function bindBreakoutTextArtifact(
     receipt.mode !== 'approved_brand' ||
     receipt.execution?.result !== 'completed' ||
     receipt.execution.providerAttemptRef !== row.providerAttemptRef ||
-    receipt.format !== 'text' ||
+    receipt.format !== output.format ||
     (receipt.platform !== undefined && receipt.platform !== platform)
   )
     return { status: 'held', reason: 'receipt_invalid' };
   const artifact = receipt.artifact;
-  const textHash = hashBrandedGenerationTextV1(post.description);
-  if (
-    artifact?.kind !== 'post' ||
-    artifact.id !== postId ||
-    artifact.mediaKind !== 'text' ||
-    artifact.parts.length !== 0 ||
-    artifact.version !== textHash ||
-    post.ingredients.length ||
-    post.children.length ||
-    artifact.contentHash !==
-      hashBrandedGenerationArtifactManifestV1({
-        mediaKind: 'text',
-        textHash,
-        parts: [],
-      })
-  )
+  if (!matchesPostArtifact(input, post, artifact, output.format))
     return { status: 'held', reason: 'artifact_changed' };
   const quoteTweetId = output.kind === 'quote' ? response.externalId : null;
   if (post.quoteTweetId !== null && post.quoteTweetId !== quoteTweetId)
@@ -279,11 +308,10 @@ export async function readBreakoutOutputRecovery(
       isDeleted: false,
     },
     select: {
-      id: true,
+      ...brandedPostMaterialSelect,
       externalId: true,
       targetExecutionState: true,
       quoteTweetId: true,
-      description: true,
     },
   });
   const base = {
@@ -482,19 +510,8 @@ export async function readBreakoutOutputRecovery(
       action: 'use_existing_artifact',
     };
   if (
-    receipt.artifact.kind !== 'post' ||
-    receipt.artifact.id !== post.id ||
     !quoteBound ||
-    output.format !== 'text' ||
-    receipt.artifact.mediaKind !== 'text' ||
-    receipt.artifact.parts.length !== 0 ||
-    hashBrandedGenerationTextV1(post.description) !==
-      receipt.artifact.version ||
-    hashBrandedGenerationArtifactManifestV1({
-      mediaKind: 'text',
-      textHash: hashBrandedGenerationTextV1(post.description),
-      parts: [],
-    }) !== receipt.artifact.contentHash
+    !matchesPostArtifact(input, post, receipt.artifact, output.format)
   )
     return {
       ...base,

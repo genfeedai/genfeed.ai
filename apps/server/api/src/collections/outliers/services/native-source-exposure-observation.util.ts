@@ -99,7 +99,20 @@ export async function loadNativeSourceExposurePublication(
           credentialId,
           platform,
           externalId,
-          breakoutOutputId: { not: null },
+          OR: [
+            { breakoutOutputId: { not: null } },
+            {
+              parent: {
+                is: {
+                  organizationId,
+                  brandId,
+                  credentialId,
+                  platform,
+                  breakoutOutputId: { not: null },
+                },
+              },
+            },
+          ],
         },
         select: { breakoutOutputId: true },
         take: 1,
