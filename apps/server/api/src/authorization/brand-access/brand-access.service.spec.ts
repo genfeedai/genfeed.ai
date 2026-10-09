@@ -78,8 +78,8 @@ describe('live Cloud member brand policy', () => {
             userId: 'opaque-auth-user',
             isDeleted: false,
             isActive: true,
-            organization: { isDeleted: false },
-            role: { isDeleted: false },
+            organization: { is: { isDeleted: false } },
+            role: { is: { isDeleted: false } },
           },
         }),
       );
