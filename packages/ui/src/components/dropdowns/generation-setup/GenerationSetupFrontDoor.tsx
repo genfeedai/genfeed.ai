@@ -13,6 +13,12 @@ import {
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
+import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@ui/primitives/popover';
 import {
   Bookmark,
   ChevronRight,
@@ -25,7 +31,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef } from 'react';
 
 const SECTION_ICONS: Record<
   Exclude<GenerationSetupCustomizeSectionId, 'type'>,
@@ -40,6 +46,9 @@ const SECTION_ICONS: Record<
 };
 
 export default function GenerationSetupFrontDoor({
+  activeSection,
+  onCloseSection,
+  renderSection,
   isAutoPriorityOnly = false,
   showPresets = true,
   showEnhancementSettings = false,
@@ -55,6 +64,26 @@ export default function GenerationSetupFrontDoor({
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
   const translate = useTranslations('agent.generationSetup');
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openCause = useRef<'hover' | 'activate'>('activate');
+  const submenuRef = useRef<HTMLDivElement>(null);
+  const cancelHover = useCallback((): void => {
+    if (hoverTimer.current !== null) clearTimeout(hoverTimer.current);
+    hoverTimer.current = null;
+  }, []);
+  useEffect(() => cancelHover, [cancelHover]);
+  function activate(section: GenerationSetupCustomizeSectionId): void {
+    cancelHover();
+    openCause.current = 'activate';
+    onCustomize(section);
+    // A hover-open child is already mounted, so its auto-focus event will not fire again.
+    if (activeSection === section)
+      submenuRef.current
+        ?.querySelector<HTMLElement>(
+          'input:not([disabled]),button:not([disabled]),[tabindex="0"]',
+        )
+        ?.focus();
+  }
   const isAutoModel = isAutoGenerationModelKey(setup.values.modelKey);
   const selectedModel = isAutoModel
     ? undefined
@@ -148,7 +177,7 @@ export default function GenerationSetupFrontDoor({
             const Icon = SECTION_ICONS[section.id];
             sectionIcon = <Icon className="size-3.5" />;
           }
-          return (
+          const button = (
             <Button
               key={section.id}
               ariaLabel={translate('configureSection', {
@@ -156,7 +185,32 @@ export default function GenerationSetupFrontDoor({
               })}
               className="h-9 w-full justify-between gap-3 rounded-md px-2 text-xs"
               isDisabled={isDisabled || section.isDisabled}
-              onClick={() => onCustomize(section.id)}
+              onClick={(event) => {
+                if (renderSection) event.preventDefault();
+                activate(section.id);
+              }}
+              onKeyDown={(event) => {
+                if (renderSection && event.key === 'ArrowRight') {
+                  event.preventDefault();
+                  activate(section.id);
+                }
+              }}
+              onPointerEnter={(event) => {
+                cancelHover();
+                if (
+                  !renderSection ||
+                  isDisabled ||
+                  section.isDisabled ||
+                  event.pointerType === 'touch'
+                )
+                  return;
+                hoverTimer.current = setTimeout(() => {
+                  hoverTimer.current = null;
+                  openCause.current = 'hover';
+                  onCustomize(section.id);
+                }, 120);
+              }}
+              onPointerLeave={cancelHover}
               size={ButtonSize.SM}
               textTransform="none"
               variant={ButtonVariant.GHOST}
@@ -176,6 +230,42 @@ export default function GenerationSetupFrontDoor({
                 <ChevronRight className="size-3.5 shrink-0" />
               </span>
             </Button>
+          );
+          if (!renderSection) return button;
+          return (
+            <Popover
+              key={section.id}
+              open={activeSection === section.id}
+              onOpenChange={(open) =>
+                open ? activate(section.id) : onCloseSection?.()
+              }
+            >
+              <PopoverTrigger asChild>{button}</PopoverTrigger>
+              <PopoverContent
+                ref={submenuRef}
+                data-testid="generation-setup-submenu"
+                aria-label={section.label}
+                side="right"
+                align="start"
+                sideOffset={8}
+                collisionPadding={16}
+                avoidCollisions
+                onFocusCapture={() => {
+                  openCause.current = 'activate';
+                }}
+                onOpenAutoFocus={(event) => {
+                  if (openCause.current === 'hover') event.preventDefault();
+                }}
+                onCloseAutoFocus={(event) => {
+                  if (openCause.current === 'hover') event.preventDefault();
+                }}
+                className={`${overlayMenuSurfaceClassName} flex w-[400px] max-h-[min(560px,var(--radix-popover-content-available-height,70vh))] flex-col overflow-hidden rounded-lg p-0`}
+              >
+                {activeSection === section.id
+                  ? renderSection(section.id)
+                  : null}
+              </PopoverContent>
+            </Popover>
           );
         })}
       </div>
