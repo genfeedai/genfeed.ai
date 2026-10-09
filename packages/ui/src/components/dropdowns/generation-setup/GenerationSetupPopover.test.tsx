@@ -10,7 +10,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { GenerationSetup } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
 import { describe, expect, it, vi } from 'vitest';
@@ -382,6 +382,45 @@ async function openPopover(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('GenerationSetupPopover', () => {
+  it('uses mutually exclusive Auto and Advanced buttons and keeps presets outside Studio setup', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const view = renderPopover({
+      showPresets: false,
+      advancedMode: { isEnabled: false, onChange },
+    });
+    await openPopover(user);
+    const group = within(screen.getByRole('group', { name: 'Advanced' }));
+    expect(group.getByRole('button', { name: 'Auto' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(group.getByRole('button', { name: 'Advanced' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.queryByRole('switch', { name: 'Advanced' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Configure Presets' }),
+    ).toBeNull();
+    await user.click(group.getByRole('button', { name: 'Advanced' }));
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    view.rerender(
+      <GenerationSetupPopover
+        {...popoverProps({
+          showPresets: false,
+          advancedMode: { isEnabled: true, onChange },
+        })}
+      />,
+    );
+    expect(group.getByRole('button', { name: 'Advanced' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.click(group.getByRole('button', { name: 'Auto' }));
+    expect(onChange).toHaveBeenLastCalledWith(false);
+  });
+
   it('offers an explicit editing switch inside the same setup picker', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

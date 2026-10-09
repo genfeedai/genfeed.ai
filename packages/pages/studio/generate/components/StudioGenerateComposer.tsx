@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ModelCategory } from '@genfeedai/contracts';
 import {
   FLUX_3_ASPECT_RATIOS,
   FLUX_3_RESOLUTIONS,
@@ -16,6 +16,11 @@ import {
   normalizeMusicSettings,
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
+import {
+  STUDIO_SYSTEM_PRESETS,
+  type StudioSystemPreset,
+  studioSystemPresetId,
+} from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import {
   AgentGenerationQuoteUnavailableReason,
   type IStudioLook,
@@ -33,6 +38,7 @@ import {
   getDefaultVideoResolution,
   getVideoResolutionLabel,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { getModelCapabilityByKey } from '@genfeedai/helpers/model-capability.helper';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import {
   buildStudioGenerationQuoteRequest,
@@ -63,8 +69,10 @@ import {
   resolveStudioGenerateCapabilities,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
+import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
+import GenerationSetupPresetsPopover from '@ui/dropdowns/generation-setup/GenerationSetupPresetsPopover';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
 import {
   applyGenerationSetupPreset,
@@ -237,6 +245,17 @@ export default function StudioGenerateComposer({
   // Advanced Mode only reveals manual model choice; Look, presets and
   // references stay available either way.
   const { isAdvancedMode, setAdvancedMode } = useAdvancedModePreference();
+  const { presets: presetCatalog } = usePromptBarContext();
+  const systemPresets = STUDIO_SYSTEM_PRESETS.filter(
+    (preset) =>
+      preset.type === type &&
+      presetCatalog.some(
+        (row) =>
+          row.id === studioSystemPresetId(preset.key) &&
+          row.isActive &&
+          !row.isDeleted,
+      ),
+  );
   const isModelChoiceVisible = capabilities.hasModelSelection && isAdvancedMode;
   const handleAdvancedModeChange = useCallback(
     (next: boolean) => {
@@ -498,6 +517,51 @@ export default function StudioGenerateComposer({
       void saveLook(label, setup.values);
     },
     [saveLook, setup],
+  );
+
+  const handleApplySystemPreset = useCallback(
+    (preset: StudioSystemPreset) => {
+      const values: Partial<GenerationSetupValues> = {
+        ...preset.values,
+        type: preset.type,
+      };
+      if (preset.type === 'video' && !isAutoMode) {
+        const model = getModelCapabilityByKey(settings.modelKey, selectedModel);
+        if (model?.category === ModelCategory.VIDEO) {
+          const durations = model.durations ?? [];
+          if (durations.length && !durations.includes(values.duration ?? 0)) {
+            values.duration = durations.includes(settings.duration ?? 0)
+              ? settings.duration
+              : durations.includes(model.defaultDuration ?? 0)
+                ? model.defaultDuration
+                : durations[0];
+          } else if (model.hasDurationEditing === false) {
+            if (model.defaultDuration !== undefined) {
+              values.duration = model.defaultDuration;
+            } else {
+              delete values.duration;
+            }
+          }
+        }
+      }
+      applyGenerationSetupPreset(
+        scope,
+        studioSystemPresetId(preset.key),
+        values,
+        defaults,
+      );
+      if (!prompt.trim()) onPromptChange(preset.prompt);
+    },
+    [
+      scope,
+      defaults,
+      prompt,
+      onPromptChange,
+      isAutoMode,
+      settings.modelKey,
+      settings.duration,
+      selectedModel,
+    ],
   );
 
   const handleDeletePreset = useCallback(
@@ -837,6 +901,7 @@ export default function StudioGenerateComposer({
               />
             ) : null}
             <GenerationSetupPopover
+              showPresets={false}
               showEnhancementSettings={type === 'image' || type === 'video'}
               align="start"
               isIconOnly
@@ -892,6 +957,20 @@ export default function StudioGenerateComposer({
               setup={setupForComposer}
               typeOptions={typeOptions}
             />
+            {type === 'image' || type === 'video' ? (
+              <GenerationSetupPresetsPopover
+                systemPresets={systemPresets}
+                onApplySystemPreset={handleApplySystemPreset}
+                isDisabled={isGenerating}
+                isPresetsLoading={isPresetsLoading}
+                onApplyPreset={handleApplyPreset}
+                onClearPreset={handleClearPreset}
+                onDeletePreset={handleDeletePreset}
+                onSavePreset={handleSavePreset}
+                presets={presets}
+                setup={setupForComposer}
+              />
+            ) : null}
             {inputControls?.mediaKind === 'image' ? (
               <PromptBarCrunControls
                 controls={inputControls}

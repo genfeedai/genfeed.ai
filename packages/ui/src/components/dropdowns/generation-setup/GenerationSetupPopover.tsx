@@ -27,6 +27,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   advancedMode,
   align = 'start',
   showEnhancementSettings = false,
+  showPresets = true,
   buttonRef,
   capabilities,
   inputControls,
@@ -142,16 +143,31 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {!customizeSection && advancedMode ? (
               <div className="shrink-0 border-b border-border px-3 py-2">
-                <Switch
+                <div
                   aria-label={translate('advancedMode')}
-                  description={translate('advancedModeDescription')}
-                  isChecked={advancedMode.isEnabled}
-                  isDisabled={isDisabled}
-                  label={
-                    <span className="text-xs">{translate('advancedMode')}</span>
-                  }
-                  onCheckedChange={advancedMode.onChange}
-                />
+                  className="gen-shell-segmented flex gap-0.5 rounded-md p-0.5"
+                  role="group"
+                >
+                  {[false, true].map((isAdvanced) => (
+                    <Button
+                      key={String(isAdvanced)}
+                      aria-pressed={advancedMode.isEnabled === isAdvanced}
+                      className="h-8 flex-1 text-xs"
+                      isDisabled={isDisabled}
+                      onClick={() => advancedMode.onChange(isAdvanced)}
+                      size={ButtonSize.SM}
+                      textTransform="none"
+                      variant={
+                        advancedMode.isEnabled === isAdvanced
+                          ? ButtonVariant.SECONDARY
+                          : ButtonVariant.GHOST
+                      }
+                      withWrapper={false}
+                    >
+                      {translate(isAdvanced ? 'advancedMode' : 'auto')}
+                    </Button>
+                  ))}
+                </div>
               </div>
             ) : null}
 
@@ -169,6 +185,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {!customizeSection ? (
               <GenerationSetupFrontDoor
+                showPresets={showPresets}
                 showEnhancementSettings={showEnhancementSettings}
                 capabilities={capabilities}
                 inputControls={inputControls}

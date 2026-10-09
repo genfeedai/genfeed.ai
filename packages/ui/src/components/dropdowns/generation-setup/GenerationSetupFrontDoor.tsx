@@ -37,6 +37,7 @@ const SECTION_ICONS: Record<
 };
 
 export default function GenerationSetupFrontDoor({
+  showPresets = true,
   showEnhancementSettings = false,
   capabilities,
   inputControls,
@@ -120,11 +121,12 @@ export default function GenerationSetupFrontDoor({
           ? translate('on')
           : translate('off'),
     });
-  sections.push({
-    id: 'presets',
-    label: translate('presets'),
-    value: presets.length ? String(presets.length) : undefined,
-  });
+  if (showPresets)
+    sections.push({
+      id: 'presets',
+      label: translate('presets'),
+      value: presets.length ? String(presets.length) : undefined,
+    });
   if (showEnhancementSettings)
     sections.push({ id: 'enhancement', label: translate('enhancement') });
   return (
