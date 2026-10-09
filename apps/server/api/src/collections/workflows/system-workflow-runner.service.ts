@@ -4,8 +4,12 @@ import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/serv
 import type { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import type { WorkflowExecutionResult } from '@api/collections/workflows/services/workflow-executor.types';
+import type {
+  DelayResumeJobData,
+  WorkflowExecutionResult,
+} from '@api/collections/workflows/services/workflow-executor.types';
 import {
+  getSystemWorkflowMetadata,
   isHiddenSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
@@ -199,7 +203,11 @@ export class SystemWorkflowRunnerService
                 'System action module context does not match its tenant',
               );
             }
-            if (!this.moduleCompletionNodes.getStore()?.has(node.id)) {
+            if (
+              !this.moduleCompletionNodes
+                .getStore()
+                ?.has(`${node.id}:${actionId}`)
+            ) {
               await this.getModuleAccess().assertAccess(
                 moduleContext.organizationId,
                 moduleContext.moduleId,
@@ -306,6 +314,96 @@ export class SystemWorkflowRunnerService
     return this.runWithDefinitionModule(definition, input.organizationId, work);
   }
 
+  /** Bind old delayed jobs to their tenant's actual immutable execution pin. */
+  async runWithStoredWorkflowModule<T>(
+    input: Pick<
+      DelayResumeJobData,
+      'executionId' | 'organizationId' | 'workflowId'
+    >,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    if (
+      !input.executionId?.trim() ||
+      !input.organizationId?.trim() ||
+      !input.workflowId?.trim()
+    ) {
+      throw new Error(
+        'Stored workflow module admission requires execution ownership',
+      );
+    }
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: {
+        id: input.executionId,
+        isDeleted: false,
+        organizationId: input.organizationId,
+        workflowId: input.workflowId,
+      },
+      select: {
+        workflowVersion: {
+          select: {
+            organizationId: true,
+            userId: true,
+            workflowId: true,
+            workflow: {
+              select: {
+                id: true,
+                isDeleted: true,
+                metadata: true,
+                organizationId: true,
+                userId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const version = execution?.workflowVersion;
+    const workflow = version?.workflow;
+    if (
+      !version ||
+      !workflow ||
+      workflow.isDeleted ||
+      version.workflowId !== input.workflowId ||
+      workflow.id !== input.workflowId ||
+      version.organizationId !== workflow.organizationId ||
+      version.userId !== workflow.userId
+    ) {
+      throw new Error('Stored workflow module ownership is unavailable');
+    }
+    if (
+      workflow.organizationId === input.organizationId &&
+      workflow.organizationId !== SYSTEM_WORKFLOW_PRINCIPAL_ID
+    ) {
+      // A tenant-authored or duplicated graph remains Automation even if its
+      // editable metadata imitates a hidden system graph or a credit-only module.
+      await this.getModuleAccess().assertAccess(
+        input.organizationId,
+        'automation',
+      );
+      return runWithOrganizationModule(
+        { organizationId: input.organizationId, moduleId: 'automation' },
+        () => this.moduleCompletionNodes.run(new Set(), work),
+      );
+    }
+    if (
+      workflow.organizationId !== SYSTEM_WORKFLOW_PRINCIPAL_ID ||
+      workflow.userId !== SYSTEM_WORKFLOW_PRINCIPAL_ID ||
+      !isHiddenSystemWorkflowMetadata(workflow.metadata)
+    ) {
+      throw new Error('Stored workflow module ownership is unavailable');
+    }
+    const metadata = getSystemWorkflowMetadata(workflow.metadata);
+    if (!metadata)
+      throw new Error('Stored workflow module ownership is unavailable');
+    return this.runWithRegisteredWorkflowModule(
+      {
+        canonicalId: metadata.canonicalId,
+        organizationId: input.organizationId,
+      },
+      work,
+    );
+  }
+
   private async runWithDefinitionModule<T>(
     definition: SystemWorkflowGraphDefinition,
     organizationId: string,
@@ -319,7 +417,16 @@ export class SystemWorkflowRunnerService
     await this.getModuleAccess().assertAccess(organizationId, moduleId);
     return runWithOrganizationModule({ organizationId, moduleId }, () =>
       this.moduleCompletionNodes.run(
-        new Set(definition.moduleCompletionNodeIds ?? []),
+        new Set(
+          definition.definition.nodes
+            .filter((node) =>
+              definition.moduleCompletionNodeIds?.includes(node.id),
+            )
+            .map(
+              (node) =>
+                `${node.id}:${this.readRecord(node.data?.config).actionId}`,
+            ),
+        ),
         work,
       ),
     );
@@ -520,7 +627,13 @@ export class SystemWorkflowRunnerService
     const version = buildWorkflowVersionDefinition(definition.definition);
     if (
       definition.moduleCompletionNodeIds?.some(
-        (nodeId) => !version.graph.nodes.some((node) => node.id === nodeId),
+        (nodeId) =>
+          !version.graph.nodes.some(
+            (node) =>
+              node.id === nodeId &&
+              node.type === 'genfeedAction' &&
+              typeof this.readRecord(node.data?.config).actionId === 'string',
+          ),
       ) ||
       (definition.moduleCompletionNodeIds?.length &&
         !definition.organizationModule)
@@ -613,13 +726,15 @@ export class SystemWorkflowRunnerService
         options,
         parentNodeId,
         queueSystemWorkflow: (workflow, jobId, queueOptions) =>
-          this.getWorkflowQueue().queueSystemWorkflow(workflow, jobId, {
-            ...queueOptions,
-            dispatchClass: inheritedDispatch.dispatchClass,
-            ...(inheritedDispatch.usePlatformQueue
-              ? { usePlatformQueue: true }
-              : {}),
-          }),
+          this.runWithRegisteredWorkflowModule(workflow, () =>
+            this.getWorkflowQueue().queueSystemWorkflow(workflow, jobId, {
+              ...queueOptions,
+              dispatchClass: inheritedDispatch.dispatchClass,
+              ...(inheritedDispatch.usePlatformQueue
+                ? { usePlatformQueue: true }
+                : {}),
+            }),
+          ),
         request,
       });
     }

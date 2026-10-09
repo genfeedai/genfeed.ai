@@ -69,6 +69,9 @@ function createMockSchedulerService() {
 
 function createMockSystemWorkflowRunner() {
   return {
+    runWithStoredWorkflowModule: vi.fn(
+      async (_input: unknown, work: () => Promise<unknown>) => work(),
+    ),
     runWithRegisteredWorkflowModule: vi.fn(
       async (_input: unknown, work: () => Promise<unknown>) => work(),
     ),
@@ -146,6 +149,38 @@ describe('WorkflowExecutionProcessor', () => {
   });
 
   describe('module revocation', () => {
+    it('blocks an old delay with no module envelope before resume or another queue write', async () => {
+      mockSystemWorkflowRunner.runWithStoredWorkflowModule.mockRejectedValueOnce(
+        new Error('Automation disabled'),
+      );
+      const delayResumeData = {
+        executionId: 'old-execution',
+        workflowId: 'old-workflow',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        delayNodeId: 'delay-1',
+        remainingNodeIds: ['publish'],
+        nodeOutputCache: {},
+        triggerEvent: {
+          type: 'manual',
+          platform: 'manual',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          data: {},
+        },
+      };
+      await expect(
+        processor.process(
+          createMockJob({ type: 'delay-resume', delayResumeData }) as never,
+        ),
+      ).rejects.toThrow('Automation disabled');
+      expect(
+        mockSystemWorkflowRunner.runWithStoredWorkflowModule,
+      ).toHaveBeenCalledWith(delayResumeData, expect.any(Function));
+      expect(mockExecutor.resumeAfterDelay).not.toHaveBeenCalled();
+      expect(mockQueue.queueDelayedResume).not.toHaveBeenCalled();
+    });
+
     it('checks static module ownership on a legacy job before resuming its existing execution', async () => {
       mockSystemWorkflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
         new Error('Messages disabled'),

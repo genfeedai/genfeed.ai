@@ -434,6 +434,16 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       throw new Error('Delay resume job missing delayResumeData');
     }
 
+    return this.systemWorkflowRunner.runWithStoredWorkflowModule(
+      delayResumeData,
+      () => this.resumeAdmittedDelay(job, delayResumeData),
+    );
+  }
+
+  private async resumeAdmittedDelay(
+    job: Job<WorkflowExecutionJobData>,
+    delayResumeData: DelayResumeJobData,
+  ): Promise<unknown> {
     const result = await this.executorService.resumeAfterDelay(delayResumeData);
 
     if (result._delayJobData) {
