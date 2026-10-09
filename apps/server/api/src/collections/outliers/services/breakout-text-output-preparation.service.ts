@@ -233,9 +233,14 @@ export class BreakoutTextOutputPreparationService {
     await admission.reauthorize(this.prisma);
     if (!post) throw new ConflictException('breakout_source_unavailable');
     const layout = describeBrandedPostMaterialLayout(admission.scope, post);
-    return layout.entries
-      .filter((entry) => entry.kind === 'text')
-      .map((entry) => new TextDecoder().decode(entry.bytes))
+    return [
+      layout.textBytes,
+      ...layout.entries.map((entry) =>
+        entry.kind === 'text' ? entry.bytes : null,
+      ),
+    ]
+      .filter((bytes): bytes is Uint8Array => bytes !== null)
+      .map((bytes) => new TextDecoder().decode(bytes))
       .join('\n\n');
   }
 
