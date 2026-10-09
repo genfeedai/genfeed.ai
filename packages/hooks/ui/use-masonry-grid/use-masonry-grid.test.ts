@@ -280,10 +280,11 @@ describe('useMasonryGrid', () => {
       options: IMasonryGridOptions,
     ) {
       const container = createContainer(itemHeights);
+      const initialItems: { id: string }[] = [];
       const layout = renderHook(
         ({ items }: { items: { id: string }[] }) =>
           useMasonryGrid(items, options),
-        { initialProps: { items: [] } },
+        { initialProps: { items: initialItems } },
       );
       act(() => {
         layout.result.current.containerRef.current = container;
