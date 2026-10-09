@@ -1,5 +1,8 @@
+import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
+import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
@@ -13,6 +16,8 @@ import { Module } from '@nestjs/common';
 /** Concrete generation consumers; analytics evidence and read services remain independent of this graph. */
 @Module({
   imports: [
+    AgentStrategiesCoreModule,
+    OptimizersModule,
     CreditsModule,
     PostsCoreModule,
     AgentGenerationGatewayModule,
@@ -23,10 +28,12 @@ import { Module } from '@nestjs/common';
     PrismaModule,
   ],
   providers: [
+    BreakoutOutputQualityService,
     BreakoutMediaOutputGenerationService,
     BreakoutTextOutputGenerationService,
   ],
   exports: [
+    BreakoutOutputQualityService,
     BreakoutMediaOutputGenerationService,
     BreakoutTextOutputGenerationService,
   ],

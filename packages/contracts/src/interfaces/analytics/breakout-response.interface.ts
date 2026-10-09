@@ -241,6 +241,8 @@ export type BreakoutOutputRecoveryReason =
   | 'generation_failed'
   | 'quality_or_brand_blocked'
   | 'media_brand_capability_unavailable'
+  | 'quality_evaluation_pending'
+  | 'platform_quality_blocked'
   | 'approved_brand_required'
   | 'brand_review_required'
   | 'artifact_binding_missing'

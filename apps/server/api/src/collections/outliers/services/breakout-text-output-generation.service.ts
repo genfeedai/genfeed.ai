@@ -4,6 +4,7 @@ import {
   type BreakoutGenerationAdmission,
   runWithBreakoutGenerationAdmission,
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
+import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { bindBreakoutPostArtifact } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import {
   type PostCreateInput,
@@ -62,6 +63,7 @@ export class BreakoutTextOutputGenerationService {
     private readonly textCredits: TextGenerationCreditsService,
     private readonly credits: CreditsUtilsService,
     private readonly posts: PostsService,
+    private readonly quality: BreakoutOutputQualityService,
   ) {}
 
   async generate(
@@ -195,6 +197,7 @@ export class BreakoutTextOutputGenerationService {
                 `breakout_artifact_binding_held:${result.reason}`,
               );
           });
+          await this.quality.evaluate({ admission, postId: outcome.postId });
         }
         await admission.reauthorize(this.prisma);
         return outcome;

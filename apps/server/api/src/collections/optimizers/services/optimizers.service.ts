@@ -8,6 +8,7 @@ import {
 import { SuggestHashtagsDto } from '@api/collections/optimizers/dto/hashtags.dto';
 import { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto';
 import { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
+import type { OptimizerAnalysisContinuation } from '@api/collections/optimizers/services/optimizer-analysis-continuation.types';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
@@ -54,7 +55,9 @@ export class OptimizersService {
     userId?: string,
     onBilling?: (amount: number) => void,
     creditBudget?: number,
+    continuation?: OptimizerAnalysisContinuation,
   ): Promise<Record<string, unknown>> {
+    await continuation?.reauthorize();
     this.logger.debug('Analyzing content', {
       contentType: dto.contentType,
       organizationId,
@@ -69,7 +72,9 @@ export class OptimizersService {
       dto.goals,
       onBilling,
       creditBudget,
+      continuation,
     );
+    await continuation?.reauthorize();
 
     // Get metadata
     const metadata = this.extractMetadata(dto.content);
@@ -88,9 +93,13 @@ export class OptimizersService {
           platform: dto.platform,
           suggestions: analysis.suggestions,
           userId,
+          ...(continuation
+            ? { breakoutQuality: continuation.scoreBinding }
+            : {}),
         } as Prisma.InputJsonValue,
       },
     });
+    await continuation?.reauthorize();
 
     this.logger.debug('Content analyzed successfully', {
       overallScore: analysis.overallScore,
@@ -397,6 +406,7 @@ Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason 
     goals?: string[],
     onBilling?: (amount: number) => void,
     creditBudget?: number,
+    continuation?: OptimizerAnalysisContinuation,
   ): Promise<ContentAnalysis> {
     const prompt = this.buildAnalysisPrompt(
       content,
@@ -412,6 +422,7 @@ Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason 
       CONTENT_ANALYSIS_SCHEMA_NAME,
       onBilling,
       creditBudget,
+      continuation,
     );
   }
 
@@ -624,6 +635,7 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
     schemaName: string,
     onBilling?: (amount: number) => void,
     creditBudget?: number,
+    continuation?: OptimizerAnalysisContinuation,
   ): Promise<TResult> {
     const pricedModel =
       creditBudget === undefined
@@ -634,6 +646,10 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
     if (creditBudget !== undefined && !pricedModel)
       throw new Error(
         `Model pricing is not configured for ${DEFAULT_TEXT_MODEL}`,
+      );
+    if (continuation && creditBudget === undefined)
+      throw new Error(
+        'A trusted quality continuation requires a bounded credit budget.',
       );
     if (pricedModel) {
       const rates =
@@ -661,6 +677,7 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
           creditBudget === undefined
             ? undefined
             : async (attemptInput) => {
+                await continuation?.reauthorize();
                 const quote = calculateEstimatedTextCredits(
                   pricedModel ?? {},
                   attemptInput,
@@ -675,6 +692,8 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
                   throw new Error(
                     'The quality evaluation exceeds its remaining credit budget.',
                   );
+                await continuation?.beforeAttempt(quote);
+                await continuation?.reauthorize();
               },
         onAttempt: async (attemptInput, output) => {
           const charge = pricedModel
@@ -682,6 +701,8 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
             : await this.calculateDefaultTextCharge(attemptInput, output);
           if (creditBudget !== undefined) creditBudget -= charge;
           onBilling?.(charge);
+          await continuation?.acceptedAttempt(charge);
+          await continuation?.reauthorize();
         },
         prompt,
         schema,

@@ -501,11 +501,7 @@ export async function readBreakoutOutputRecovery(
       reason: 'approved_brand_required',
       action: 'none',
     };
-  if (
-    receipt.state !== 'ready' ||
-    receipt.compliance !== 'passed' ||
-    output.state === 'awaiting_review'
-  )
+  if (receipt.state !== 'ready' || receipt.compliance !== 'passed')
     return {
       ...base,
       state: 'awaiting_review',
@@ -530,6 +526,27 @@ export async function readBreakoutOutputRecovery(
       state: 'reconciliation_required',
       reason: 'artifact_binding_missing',
       action: 'reconcile',
+    };
+  if (output.heldReason === 'quality_evaluation_pending')
+    return {
+      ...base,
+      state: 'reconciliation_required',
+      reason: 'quality_evaluation_pending',
+      action: 'reconcile',
+    };
+  if (output.heldReason === 'platform_quality_blocked')
+    return {
+      ...base,
+      state: 'awaiting_review',
+      reason: 'platform_quality_blocked',
+      action: 'none',
+    };
+  if (output.state === 'awaiting_review')
+    return {
+      ...base,
+      state: 'awaiting_review',
+      reason: 'brand_review_required',
+      action: 'none',
     };
   if (post.targetExecutionState === TargetExecutionState.PAUSED)
     return {

@@ -38,6 +38,10 @@ const REASON_LABELS: Record<BreakoutOutputRecoveryReason, string> = {
   quality_or_brand_blocked: 'Brand or quality checks are holding this output.',
   media_brand_capability_unavailable:
     'Generation is held because this media format cannot yet meet the brand requirements.',
+  quality_evaluation_pending:
+    'The quality evaluation needs reconciliation before this draft can proceed.',
+  platform_quality_blocked:
+    'This draft has not passed the account’s quality requirements.',
   approved_brand_required: 'An approved brand snapshot is required.',
   brand_review_required: 'Brand review is required.',
   artifact_binding_missing:

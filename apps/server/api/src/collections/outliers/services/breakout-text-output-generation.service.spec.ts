@@ -3,6 +3,7 @@ import {
   admitBreakoutGenerationContinuation,
   type BreakoutGenerationAdmission,
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
+import type { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { bindBreakoutPostArtifact } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import {
   type BreakoutTextOutputGenerationRequest,
@@ -135,12 +136,19 @@ function fixture(thread = false) {
     return { kind: 'completed', receipt, postId, text, hasNewDispatch: true };
   };
   const generation = { generate: vi.fn(run), generateThread: vi.fn(run) };
+  const quality = {
+    evaluate: vi.fn(async () => ({
+      state: 'approved',
+      scoreId: 'actual-score',
+    })),
+  };
   const service = new BreakoutTextOutputGenerationService(
     prisma as unknown as PrismaService,
     generation as unknown as BrandedTextGenerationService,
     textCredits as unknown as TextGenerationCreditsService,
     credits as unknown as CreditsUtilsService,
     posts as unknown as PostsService,
+    quality as unknown as BreakoutOutputQualityService,
   );
   return {
     service,
@@ -153,6 +161,7 @@ function fixture(thread = false) {
     textCredits,
     generation,
     receipt,
+    quality,
   };
 }
 
@@ -161,6 +170,10 @@ describe('breakout text provider consumer', () => {
   it('uses the original actor, deterministic paid component and ordinary draft before binding quote lineage', async () => {
     const h = fixture();
     await h.service.generate(h.request);
+    expect(h.quality.evaluate).toHaveBeenCalledWith({
+      admission: h.request.admission,
+      postId: 'post-a',
+    });
     expect(h.credits.reserveCredits).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: GENERATE_CONTENT_TEXT_CREDITS,

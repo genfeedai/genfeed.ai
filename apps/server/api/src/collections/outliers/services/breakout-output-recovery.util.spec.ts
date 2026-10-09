@@ -336,6 +336,29 @@ beforeEach(() => {
 });
 
 describe('retained generation and publication recovery facts', () => {
+  it.each([
+    ['quality_evaluation_pending', 'reconciliation_required', 'reconcile'],
+    ['platform_quality_blocked', 'awaiting_review', 'none'],
+  ])(
+    'projects the actual %s hold after complete branded material matching',
+    async (reason, state, action) => {
+      const h = fixture();
+      h.ready();
+      h.findPost.mockResolvedValue(h.post);
+      h.output.heldReason = reason;
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state,
+        reason,
+        action,
+        mayRepeatPaidRequest: false,
+      });
+      h.post.description = 'Edited material';
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'reconciliation_required',
+        reason: 'artifact_binding_missing',
+      });
+    },
+  );
   it.each(['image', 'carousel', 'video', 'short'])(
     'shows an actual %s capability hold without granting dispatch or retry',
     async (format) => {
