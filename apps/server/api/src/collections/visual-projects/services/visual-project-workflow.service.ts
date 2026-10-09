@@ -21,6 +21,7 @@ import {
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { VisualCodeStatus } from '@genfeedai/contracts';
 import type {
@@ -100,6 +101,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     private readonly billing: VisualProjectBillingService,
     private readonly renderer: VisualProjectRendererClientService,
     private readonly assets: VisualProjectAssetsService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
   onModuleInit(): void {
     this.workflows.registerWorkflow(buildVisualProjectWorkflowDefinition());
@@ -306,6 +308,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     await this.authorization.authorizeBrand(actor(current), current.brandId);
     if (current.cancelRequestedAt) throw new Error('visual_cancelled');
     if (terminal.includes(current.status)) throw new Error('visual_terminal');
+    await this.moduleAccess.assertAccess(current.organizationId, 'motion');
     return current;
   }
   private async call(
@@ -341,6 +344,9 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       kind === 'inspection'
         ? await this.authoring.inspectionParameters(current, frames ?? [])
         : await this.authoring.authorParameters(current, diagnostics);
+    // Preparation can outlive the admission that began this action. Deny
+    // before creating a started receipt, so no unsubmitted call looks spent.
+    await this.ensureActive(current);
     const started: IVisualCodeReceipt = {
       id,
       kind,
@@ -489,6 +495,10 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       bound > current.maximumCredits - current.consumedCredits + 1e-9
     )
       throw new Error('visual_credit_ceiling');
+    const staged = await this.assets.stage(actor(current), current);
+    current = await this.ensureActive(current);
+    if (!current.sourceCode || !current.sourceHash)
+      throw new Error('source_unavailable');
     if (!prior) {
       const previous = receipts(current);
       await this.assertOwnership();
@@ -520,7 +530,6 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     }
     if (!current.sourceCode || !current.sourceHash)
       throw new Error('source_unavailable');
-    const staged = await this.assets.stage(actor(current), current);
     await this.assertOwnership();
     const input: IVisualSandboxInput = {
       id,

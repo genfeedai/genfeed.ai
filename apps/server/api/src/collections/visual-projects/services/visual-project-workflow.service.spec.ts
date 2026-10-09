@@ -6,6 +6,10 @@ import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/sy
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import type { IVisualCodeReceipt } from '@genfeedai/contracts/interfaces';
 import type { VisualRevision } from '@genfeedai/prisma';
+import {
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 function fixture() {
@@ -128,6 +132,7 @@ function fixture() {
   Object.assign(billing, { reconcileStopped });
   const renderer = { execute: vi.fn() };
   const assets = { stage: vi.fn().mockResolvedValue([]) };
+  const moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
   const service = new VisualProjectWorkflowService(
     prisma as never,
     workflow as never,
@@ -136,6 +141,7 @@ function fixture() {
     billing as never,
     renderer as never,
     assets as never,
+    moduleAccess as never,
   );
   service.onModuleInit();
   const run = async () => {
@@ -172,12 +178,95 @@ function fixture() {
     billing,
     renderer,
     prisma,
+    assets,
+    moduleAccess,
     loseLease: () => {
       leaseOwner = 'new-owner';
     },
   };
 }
 describe('visual workflow durable provider receipts', () => {
+  it.each([
+    new ForbiddenException('Motion disabled'),
+    new ServiceUnavailableException('Module settings unavailable'),
+  ])(
+    'settles owned work with no paid call when Motion admission fails: %s',
+    async (error) => {
+      const {
+        run,
+        revision,
+        authoring,
+        billing,
+        renderer,
+        assets,
+        moduleAccess,
+      } = fixture();
+      moduleAccess.assertAccess.mockRejectedValue(error);
+      expect(await run()).toMatchObject({ status: 'failed' });
+      expect(moduleAccess.assertAccess).toHaveBeenCalledWith('org', 'motion');
+      expect(authoring.call).not.toHaveBeenCalled();
+      expect(renderer.execute).not.toHaveBeenCalled();
+      expect(assets.stage).not.toHaveBeenCalled();
+      expect(revision.receipts).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ state: 'started' })]),
+      );
+      expect(billing.settle).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed', consumedCredits: 0 }),
+        expect.any(Function),
+      );
+    },
+  );
+  it('rechecks Motion after asynchronous author preparation before a started receipt or provider call', async () => {
+    const { run, revision, authoring, billing, moduleAccess } = fixture();
+    authoring.authorParameters.mockImplementationOnce(async () => {
+      moduleAccess.assertAccess.mockRejectedValue(
+        new ForbiddenException('Motion disabled'),
+      );
+      return {};
+    });
+    expect(await run()).toMatchObject({ status: 'failed' });
+    expect(authoring.call).not.toHaveBeenCalled();
+    expect(revision.receipts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ state: 'started' })]),
+    );
+    expect(billing.settle).toHaveBeenCalledWith(
+      expect.objectContaining({ consumedCredits: 0 }),
+      expect.any(Function),
+    );
+  });
+  it('rechecks Motion after asynchronous media staging before a render receipt or submission', async () => {
+    const { run, revision, renderer, billing, assets, moduleAccess } =
+      fixture();
+    revision.prompt = null;
+    revision.sourceCode = 'export const VisualComposition=()=>null;';
+    revision.sourceHash = 'source-hash';
+    assets.stage.mockImplementationOnce(async () => {
+      moduleAccess.assertAccess.mockRejectedValue(
+        new ForbiddenException('Motion disabled'),
+      );
+      return [];
+    });
+    expect(await run()).toMatchObject({ status: 'failed' });
+    expect(renderer.execute).not.toHaveBeenCalled();
+    expect(revision.receipts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ state: 'started' })]),
+    );
+    expect(billing.settle).toHaveBeenCalledWith(
+      expect.objectContaining({ consumedCredits: 0 }),
+      expect.any(Function),
+    );
+  });
+  it('reconciles an already terminal revision without a new-work module grant', async () => {
+    const { run, revision, renderer, billing, moduleAccess } = fixture();
+    revision.status = 'completed';
+    moduleAccess.assertAccess.mockRejectedValue(
+      new ForbiddenException('Motion disabled'),
+    );
+    expect(await run()).toMatchObject({ status: 'completed' });
+    expect(moduleAccess.assertAccess).not.toHaveBeenCalled();
+    expect(renderer.execute).not.toHaveBeenCalled();
+    expect(billing.settle).toHaveBeenCalledOnce();
+  });
   it('cancels between provider activity check and admission CAS without a paid call', async () => {
     const { run, revision, authoring, billing, renderer } = fixture();
     authoring.authorParameters.mockImplementationOnce(async () => {
