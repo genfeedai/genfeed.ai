@@ -705,6 +705,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     if (
       !isAdvancedModeLoaded ||
       isAdvancedMode ||
+      !capabilities.hasModelSelection ||
       handoffPayload ||
       isAutoStudioModelKey(settings.modelKey)
     ) {
@@ -712,6 +713,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     }
     updateSettings({ modelKey: AUTO_MODEL_OPTION_VALUE });
   }, [
+    capabilities.hasModelSelection,
     handoffPayload,
     isAdvancedMode,
     isAdvancedModeLoaded,

@@ -1758,6 +1758,32 @@ describe('StudioPlaygroundWorkspace', () => {
     });
   });
 
+  it.each(['avatar', 'voice'] as const)(
+    'preserves the saved model for %s without model selection in simple mode',
+    async (type) => {
+      mocks.type.value = type;
+      mocks.advancedMode.value = {
+        isAdvancedMode: false,
+        isLoaded: true,
+        setAdvancedMode: vi.fn(),
+      };
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: 'saved-identity-model' },
+        setType: mocks.setType,
+        type,
+        updateSettings: vi.fn(),
+      });
+
+      render(<StudioPlaygroundWorkspace />);
+      await act(async () => {});
+
+      expect(mocks.updateSettings).not.toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    },
+  );
+
   it('keeps an Agent handoff model in simple mode', async () => {
     mocks.advancedMode.value = {
       isAdvancedMode: false,
