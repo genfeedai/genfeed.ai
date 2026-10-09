@@ -18,6 +18,12 @@ export interface IPreset extends IBaseEntity {
   platform?: Platform;
 
   camera?: string;
+  aspectRatio?: string;
+  duration?: number;
+  promptTemplate?: string;
+  lighting?: string;
+  lens?: string;
+  cameraMovement?: string;
   mood?: string;
   scene?: string;
   style?: string;

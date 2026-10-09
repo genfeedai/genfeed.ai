@@ -17,7 +17,7 @@ import {
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
 import {
-  STUDIO_SYSTEM_PRESETS,
+  resolveStudioSystemPresets,
   type StudioSystemPreset,
   studioSystemPresetId,
 } from '@genfeedai/contracts/constants/studio-system-presets.constant';
@@ -247,16 +247,7 @@ export default function StudioPlaygroundComposer({
   // references stay available either way.
   const { isAdvancedMode, setAdvancedMode } = useAdvancedModePreference();
   const { presets: presetCatalog } = usePromptBarContext();
-  const systemPresets = STUDIO_SYSTEM_PRESETS.filter(
-    (preset) =>
-      preset.type === type &&
-      presetCatalog.some(
-        (row) =>
-          row.id === studioSystemPresetId(preset.key) &&
-          row.isActive &&
-          !row.isDeleted,
-      ),
-  );
+  const systemPresets = resolveStudioSystemPresets(presetCatalog, type);
   const isModelChoiceVisible = capabilities.hasModelSelection && isAdvancedMode;
   const handleAdvancedModeChange = useCallback(
     (next: boolean) => {

@@ -135,7 +135,7 @@ const generationSetupPopoverMocks = vi.hoisted(() => ({
 }));
 
 const presetCatalogMocks = vi.hoisted(() => ({
-  presets: [] as Pick<IPreset, 'id' | 'isActive' | 'isDeleted'>[],
+  presets: [] as Partial<IPreset>[],
 }));
 vi.mock('@providers/promptbar/promptbar.context', () => ({
   usePromptBarContext: () => ({ presets: presetCatalogMocks.presets }),
@@ -303,6 +303,14 @@ describe('StudioPlaygroundComposer', () => {
       id: studioSystemPresetId(preset.key),
       isActive: true,
       isDeleted: false,
+      organizationId: null,
+      brandId: null,
+      category:
+        preset.type === 'image' ? ModelCategory.IMAGE : ModelCategory.VIDEO,
+      label: preset.label,
+      description: preset.description,
+      prompt: preset.prompt,
+      ...preset.values,
     }));
     runtimeMocks.snapshot = { status: 'web', context: null };
     storeMocks.setupByScope = {};
@@ -967,6 +975,39 @@ describe('StudioPlaygroundComposer', () => {
     expect(
       screen.queryByRole('button', { name: 'YouTube thumbnail' }),
     ).toBeNull();
+  });
+
+  it('applies persisted admin labels, prompt and settings from the first card click', async () => {
+    const row = presetCatalogMocks.presets[1];
+    Object.assign(row, {
+      label: 'Campaign banner',
+      prompt: 'A new campaign',
+      aspectRatio: '4:5',
+      lighting: 'neon',
+      style: '',
+    });
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Campaign banner' }),
+    );
+    expect(baseProps.onPromptChange).toHaveBeenCalledWith('A new campaign');
+    expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
+      type: 'image',
+      aspectRatio: '4:5',
+      lighting: 'neon',
+      style: '',
+    });
+    expect(storeMocks.applyPreset.mock.lastCall?.[2]).not.toHaveProperty(
+      'modelKey',
+    );
   });
 
   it('reconciles external music settings without mounting Output, idempotently', () => {

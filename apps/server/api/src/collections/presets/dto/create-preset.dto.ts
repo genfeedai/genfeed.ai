@@ -6,8 +6,12 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
+  Matches,
+  Max,
+  Min,
 } from 'class-validator';
 
 export class CreatePresetDto extends ElementDto {
@@ -43,6 +47,45 @@ export class CreatePresetDto extends ElementDto {
     required: false,
   })
   prompt?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^(?:[1-9]\d*)(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$|^$/)
+  @ApiProperty({
+    description: 'Output aspect ratio, such as 16:9',
+    required: false,
+  })
+  aspectRatio?: string;
+
+  @IsOptional()
+  @IsNumber({ allowInfinity: false, allowNaN: false })
+  @Min(0.01)
+  @Max(3600)
+  @ApiProperty({ description: 'Video duration in seconds', required: false })
+  duration?: number;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({ description: 'Prompt template key', required: false })
+  promptTemplate?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({ description: 'Lighting description or key', required: false })
+  lighting?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({ description: 'Lens description or key', required: false })
+  lens?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Camera movement description or key',
+    required: false,
+  })
+  cameraMovement?: string;
 
   @IsEnum(ModelCategory)
   @ApiProperty({

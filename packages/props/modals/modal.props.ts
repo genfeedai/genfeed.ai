@@ -1,6 +1,7 @@
 import type {
   MultiPostSchema,
   PostModalSchema,
+  PresetElementSchema,
   PromptTextareaSchema,
 } from '@genfeedai/client/schemas';
 import type {
@@ -48,8 +49,8 @@ import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import type { ContentProps } from '@props/layout/content.props';
 import type { GallerySelectItem } from '@props/modals/modal-gallery.props';
-import type { ReactNode } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
+import type { ChangeEvent, ReactNode } from 'react';
+import type { Control, UseFormReturn } from 'react-hook-form';
 
 /**
  * Base props for modal components
@@ -71,6 +72,23 @@ export interface ModalCrudProps<T = unknown> {
   item?: T | null;
   onConfirm: (isRefreshing?: boolean) => void;
   onClose?: () => void;
+}
+
+export interface ModalPresetFieldsProps {
+  control: Control<PresetElementSchema>;
+  watchedDescription: string | undefined;
+  isSubmitting: boolean;
+  isCopying: boolean;
+  isEnhancing: boolean;
+  previousPrompt: string | null;
+  onChange: (
+    event: ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => void;
+  onCopy: () => void;
+  onEnhance: () => void;
+  onUndo: () => void;
 }
 
 /**

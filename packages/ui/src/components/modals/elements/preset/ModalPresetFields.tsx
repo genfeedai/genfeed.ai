@@ -1,29 +1,13 @@
 'use client';
 
-import type { PresetElementSchema } from '@genfeedai/client/schemas';
 import { ModelCategory } from '@genfeedai/contracts';
+import type { ModalPresetFieldsProps } from '@genfeedai/props/modals/modal.props';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
+import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import type { ChangeEvent } from 'react';
-import type { Control } from 'react-hook-form';
-
-type ModalPresetFieldsProps = {
-  control: Control<PresetElementSchema>;
-  watchedDescription: string | undefined;
-  isSubmitting: boolean;
-  isCopying: boolean;
-  isEnhancing: boolean;
-  previousPrompt: string | null;
-  onChange: (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => void;
-  onCopy: () => void;
-  onEnhance: () => void;
-  onUndo: () => void;
-};
 
 export default function ModalPresetFields({
   control,
@@ -111,6 +95,58 @@ export default function ModalPresetFields({
           isDisabled={isSubmitting || isEnhancing}
         />
       </FormControl>
+      <FormControl label="Generation prompt">
+        <Textarea
+          name="prompt"
+          control={control}
+          onChange={onChange}
+          isDisabled={isSubmitting}
+          placeholder="Suggested prompt when the creator's prompt is empty"
+        />
+      </FormControl>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {(
+          [
+            ['aspectRatio', 'Aspect ratio', '16:9'],
+            ['promptTemplate', 'Prompt template', 'Template key'],
+            ['style', 'Style', 'Visual style'],
+            ['mood', 'Mood', 'Mood'],
+            ['scene', 'Scene', 'Scene description'],
+            ['camera', 'Camera', 'Camera angle'],
+            ['lens', 'Lens', 'Lens'],
+            ['lighting', 'Lighting', 'Lighting'],
+            ['cameraMovement', 'Camera movement', 'Camera movement'],
+          ] as const
+        ).map(([name, label, placeholder]) => (
+          <FormControl key={name} label={label}>
+            <Input
+              name={name}
+              control={control}
+              onChange={onChange}
+              placeholder={placeholder}
+              isDisabled={isSubmitting}
+            />
+          </FormControl>
+        ))}
+        <FormControl label="Video duration (seconds)">
+          <Input
+            type="number"
+            min={0.01}
+            max={3600}
+            step="any"
+            name="duration"
+            control={control}
+            onChange={onChange}
+            isDisabled={isSubmitting}
+          />
+        </FormControl>
+      </div>
+      <Checkbox
+        name="isActive"
+        label="Active"
+        control={control}
+        isDisabled={isSubmitting}
+      />
     </>
   );
 }

@@ -61,7 +61,9 @@ export class StudioPresetSeedService implements OnApplicationBootstrap {
           config,
           isActive: true,
         },
-        update: { category, config },
+        // Seed missing rows only. Admin edits, activation and deletion own
+        // the persisted record after its first creation.
+        update: {},
       });
       count += 1;
     }

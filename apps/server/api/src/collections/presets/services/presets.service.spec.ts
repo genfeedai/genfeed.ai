@@ -45,6 +45,12 @@ describe('PresetsService', () => {
     await service.create({
       brandId: 'brand-1',
       camera: 'close-up',
+      aspectRatio: '4:5',
+      lighting: 'soft',
+      lens: '35mm',
+      cameraMovement: 'static',
+      duration: 8,
+      promptTemplate: 'video-default',
       category: 'image' as never,
       description: 'Editorial portrait preset',
       key: 'editorial-portrait',
@@ -59,6 +65,12 @@ describe('PresetsService', () => {
         category: 'image',
         config: {
           camera: 'close-up',
+          aspectRatio: '4:5',
+          lighting: 'soft',
+          lens: '35mm',
+          cameraMovement: 'static',
+          duration: 8,
+          promptTemplate: 'video-default',
           description: 'Editorial portrait preset',
           key: 'editorial-portrait',
           label: 'Editorial Portrait',
@@ -160,6 +172,8 @@ describe('PresetsService', () => {
 
     await service.patch('preset-1', {
       label: 'Updated Editorial Portrait',
+      aspectRatio: '9:16',
+      style: '',
     });
 
     expect(update).toHaveBeenCalledWith({
@@ -167,6 +181,8 @@ describe('PresetsService', () => {
         config: {
           key: 'editorial-portrait',
           label: 'Updated Editorial Portrait',
+          aspectRatio: '9:16',
+          style: '',
           prompt: 'Old prompt',
         },
       },
