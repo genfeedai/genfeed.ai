@@ -1149,23 +1149,20 @@ describe('StudioPlaygroundWorkspace', () => {
 
     const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
       onAttachReference: (
-        ingredient: {
-          category: string;
-          id: string;
-          promptText: string;
-          thumbnailUrl: string;
-        },
+        ingredient: IIngredient,
         type: 'image' | 'video',
       ) => void;
     };
     act(() =>
       hookParams.onAttachReference(
         {
-          category: 'images',
+          brandId: 'brand-1',
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
           id: 'generated-1',
           promptText: 'A generated reference',
           thumbnailUrl: 'https://cdn.example/generated.png',
-        },
+        } as IIngredient,
         'video',
       ),
     );
@@ -1183,6 +1180,127 @@ describe('StudioPlaygroundWorkspace', () => {
       }),
     );
   });
+
+  it.each(['image', 'video'] as const)(
+    'prepares %s from the chosen source only after confirming draft replacement',
+    (targetType) => {
+      render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls
+          .at(-1)?.[0]
+          .onPromptChange('Keep my unrelated draft'),
+      );
+      const source = {
+        id: 'source-continuation',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        metadataLabel: 'Desk photo',
+        promptText: 'Effective recipe with brand instructions',
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, targetType),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep my unrelated draft',
+      );
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+      const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+      expect(confirmation).toBeDefined();
+      act(() => confirmation?.onConfirm());
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(mocks.clearAttachments).toHaveBeenCalledOnce();
+      expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual([
+        expect.objectContaining({
+          id: source.id,
+          role: targetType === 'video' ? 'startFrame' : 'reference',
+        }),
+      ]);
+      expect(
+        mocks.settings.mock.results.at(-1)?.value.setType,
+      ).toHaveBeenCalledWith(targetType);
+      expect(mocks.submit).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { brandId: 'other-brand' },
+    { organizationId: 'other-org' },
+    { isDeleted: true },
+    { status: IngredientStatus.PROCESSING },
+    { category: IngredientCategory.VIDEO },
+  ])(
+    'rejects an unavailable continuation source %j without changing the draft',
+    (invalid) => {
+      render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep this draft'),
+      );
+      const source = {
+        id: 'unavailable-source',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+        ...invalid,
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, 'image'),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep this draft',
+      );
+      expect(mocks.openConfirm).not.toHaveBeenCalled();
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'continuation.sourceUnavailable',
+      );
+    },
+  );
+
+  it.each(['draft', 'session'] as const)(
+    'does not apply a continuation after the %s changes during confirmation',
+    (change) => {
+      const { rerender } = render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Original draft'),
+      );
+      const source = {
+        id: 'source-stale-confirm',
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, 'video'),
+      );
+      const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+      if (change === 'session') {
+        mocks.authIdentity.value = 'identity-2';
+        rerender(<StudioPlaygroundWorkspace />);
+      }
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Latest draft'),
+      );
+      expect(confirmation).toBeDefined();
+      act(() => confirmation?.onConfirm());
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('Latest draft');
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+    },
+  );
 
   it('resubscribes stored in-flight jobs when the playground remounts', () => {
     const storedJobs = [
@@ -1297,7 +1415,9 @@ describe('StudioPlaygroundWorkspace', () => {
       createdAt: 1,
       id: 'image-9',
       ingredient: {
-        category: 'IMAGE',
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
         cdnUrl: 'https://cdn.example/still.png',
         id: 'image-9',
         promptText: 'Sunlit desk',

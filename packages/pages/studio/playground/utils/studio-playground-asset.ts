@@ -58,6 +58,25 @@ const STUDIO_REFERENCE_READY_STATUSES = new Set<IngredientStatus>([
   IngredientStatus.VALIDATED,
 ]);
 
+/** Only a completed, current-brand image can prepare an editing continuation. */
+export function isStudioImageContinuationSource(
+  ingredient: IIngredient | null | undefined,
+  brandId: string | null | undefined,
+  organizationId: string | null | undefined,
+): ingredient is IIngredient {
+  return Boolean(
+    brandId &&
+      ingredient &&
+      ingredient.brandId === brandId &&
+      !ingredient.isDeleted &&
+      (!organizationId ||
+        !ingredient.organizationId ||
+        ingredient.organizationId === organizationId) &&
+      ingredient.category === IngredientCategory.IMAGE &&
+      STUDIO_REFERENCE_READY_STATUSES.has(ingredient.status),
+  );
+}
+
 /** A clip the video composer can attach as a video reference. */
 export function isStudioVideoReferenceJob(
   job: Pick<StudioPlaygroundJob, 'type'>,

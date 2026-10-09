@@ -87,6 +87,7 @@ import {
 import {
   canUseStudioJobAsReference,
   filterStudioPlaygroundJobs,
+  isStudioImageContinuationSource,
   mergeStudioPlaygroundJobs,
   replaceStudioContentReference,
   resolveStudioAssetUrl,
@@ -508,35 +509,49 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
 
   const handleAttachGeneratedReference = useCallback(
     (ingredient: IIngredient, targetType: 'image' | 'video') => {
-      const previewUrl = resolveStudioAssetUrl(ingredient);
-      if (!previewUrl) {
-        notificationsService.info('This asset has no usable preview yet');
+      if (
+        !isStudioImageContinuationSource(ingredient, brandId, organizationId)
+      ) {
+        notificationsService.info(translate('continuation.sourceUnavailable'));
         return;
       }
-
-      setContentReferences((current) =>
-        current.some((reference) => reference.item.id === ingredient.id)
-          ? current
-          : [
-              ...current,
-              {
-                item: {
-                  brandId: ingredient.brandId ?? null,
-                  contentTitle:
-                    ingredient.metadataLabel ||
-                    ingredient.promptText ||
-                    'Generated reference',
-                  contentType: String(ingredient.category),
-                  id: ingredient.id,
-                  thumbnailUrl: previewUrl,
-                },
-                role: targetType === 'video' ? 'startFrame' : 'reference',
-              },
-            ],
+      const reference = toContentReference(
+        ingredient,
+        targetType === 'video' ? 'startFrame' : 'reference',
       );
-      setType(targetType);
+      if (!reference) {
+        notificationsService.info(translate('continuation.sourceUnavailable'));
+        return;
+      }
+      reference.item.contentTitle = translate(
+        targetType === 'video'
+          ? 'continuation.animateSource'
+          : 'continuation.variationSource',
+        {
+          name:
+            ingredient.metadataLabel || translate('continuation.unnamedSource'),
+        },
+      );
+      prepareContinuation(() => {
+        clearCrunRestore();
+        clearAttachments();
+        setRestoredAttachments(EMPTY_ATTACHMENTS);
+        restoredRolesRef.current.clear();
+        setContentReferences([reference]);
+        setPrompt('');
+        setType(targetType);
+      });
     },
-    [notificationsService, setType],
+    [
+      brandId,
+      organizationId,
+      clearAttachments,
+      clearCrunRestore,
+      notificationsService,
+      prepareContinuation,
+      setType,
+      translate,
+    ],
   );
   const { cancelJob, isGenerating, jobs, rehydratePending, removeJob, submit } =
     useStudioGeneration({
@@ -1884,7 +1899,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const handleEditJob = useCallback(
     (job: StudioPlaygroundJob) => {
       const ingredient = job.ingredient;
-      if (!ingredient) return;
+      if (
+        !isStudioImageContinuationSource(ingredient, brandId, organizationId)
+      ) {
+        notificationsService.info(translate('continuation.sourceUnavailable'));
+        return;
+      }
       const reference = toContentReference(ingredient, 'editSource');
       if (!reference) return;
       prepareContinuation(() => {
@@ -1923,6 +1943,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       clearAttachments,
       clearCrunRestore,
       applyTypeSettings,
+      brandId,
+      organizationId,
       notificationsService,
       translate,
       prepareContinuation,
@@ -1952,6 +1974,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         if (
           !ingredient ||
           ingredient.brandId !== brandId ||
+          ingredient.isDeleted ||
           ingredient.category !== IngredientCategory.IMAGE
         )
           throw new Error('Editing source not found in this brand.');

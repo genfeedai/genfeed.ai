@@ -1468,12 +1468,16 @@
     "inspectPrompt": "View prompt",
     "continuation": {
       "replaceTitle": "Replace your draft?",
-      "replaceMessage": "This action restores the selected asset's prompt, settings and sources. Your current prompt and references will be replaced.",
+      "replaceMessage": "This action prepares a draft from the selected asset. Your current prompt and references will be replaced.",
       "replaceDraft": "Replace draft",
       "cancel": "Cancel",
       "originalUnavailable": "Original prompt unavailable. Write a new instruction; the effective recipe remains available in the inspector.",
       "originalPrompt": "Original prompt",
-      "effectiveRecipe": "Effective recipe"
+      "effectiveRecipe": "Effective recipe",
+      "sourceUnavailable": "This source is unavailable. Choose a completed image from this brand.",
+      "variationSource": "Variation · {name}",
+      "animateSource": "Animate · {name}",
+      "unnamedSource": "Selected image"
     },
     "inspector": {
       "actions": "Asset actions",
