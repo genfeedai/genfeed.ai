@@ -894,12 +894,6 @@ export default function StudioPlaygroundComposer({
         trailingLabel={translateSetup('generationControls')}
         leading={
           <>
-            {referenceSources.length > 0 ? (
-              <PromptBarReferenceControls
-                density="compact"
-                sources={referenceSources}
-              />
-            ) : null}
             <GenerationSetupPopover
               showPresets={false}
               showEnhancementSettings={type === 'image' || type === 'video'}
@@ -957,6 +951,12 @@ export default function StudioPlaygroundComposer({
               setup={setupForComposer}
               typeOptions={typeOptions}
             />
+            {referenceSources.length > 0 ? (
+              <PromptBarReferenceControls
+                density="compact"
+                sources={referenceSources}
+              />
+            ) : null}
             {type === 'image' || type === 'video' ? (
               <GenerationSetupPresetsPopover
                 systemPresets={systemPresets}

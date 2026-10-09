@@ -704,6 +704,12 @@ All styled variants use `rounded-md` (6px) and `control-sm` (32px) by default.
 variants; pick the semantic role instead. Ghost is the standard for toolbar and
 topbar icon actions: transparent, no border, `hover:bg-hover`.
 
+Prompt-bar triggers use the shared `Button` directly: `ButtonSize.ICON` for
+icon-only controls and `ButtonSize.SM` for labelled controls. Neutral triggers
+use `GHOST` without background, border or hover overrides. Do not build a styled
+trigger by combining `UNSTYLED` with `buttonVariants`; icon-only mode must not
+inherit a text button's asymmetric icon padding.
+
 ### Card
 
 `bg-secondary` plane with an edge — `shadow-border` (`default`) or a `border-border`
