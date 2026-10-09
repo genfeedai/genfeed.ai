@@ -9,6 +9,7 @@ import { VisualProjectRendererClientService } from '@api/collections/visual-proj
 import { VisualProjectWorkflowService } from '@api/collections/visual-projects/services/visual-project-workflow.service';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
@@ -20,6 +21,7 @@ import { Module } from '@nestjs/common';
     CreditsModule,
     IngredientsModule,
     WorkflowsCoreModule,
+    OrganizationModuleAccessModule,
     AgentChatModelRegistryModule,
     ByokModule,
     LlmDispatcherModule,
