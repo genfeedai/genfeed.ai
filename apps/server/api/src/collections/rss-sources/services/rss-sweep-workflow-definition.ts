@@ -81,6 +81,7 @@ export function buildRssSweepWorkflowDefinition(): SystemWorkflowGraphDefinition
         ),
         actionNode('workflow.for-each-tenant', 'process-sources', 180, [], {
           childWorkflowId: RSS_SWEEP_WORKFLOW_IDS.SOURCE,
+          failureMode: 'collect',
           itemInputKey: 'request',
           maxConcurrency: 3,
           mode: 'await',
@@ -98,6 +99,8 @@ export function buildRssSweepWorkflowDefinition(): SystemWorkflowGraphDefinition
 export function buildRssSourceWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: RSS_SWEEP_WORKFLOW_IDS.SOURCE,
+    organizationModule: 'publishing',
+    moduleCompletionNodeIds: ['finalize-source'],
     definition: {
       edges: [
         {
@@ -158,6 +161,8 @@ export function buildRssSourceWorkflowDefinition(): SystemWorkflowGraphDefinitio
 export function buildRssItemWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: RSS_SWEEP_WORKFLOW_IDS.ITEM,
+    organizationModule: 'publishing',
+    moduleCompletionNodeIds: ['finalize-item'],
     definition: {
       edges: [
         {

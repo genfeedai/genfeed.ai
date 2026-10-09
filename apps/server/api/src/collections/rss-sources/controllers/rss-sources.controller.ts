@@ -5,6 +5,8 @@ import { UpdateRssSourceDto } from '@api/collections/rss-sources/dto/update-rss-
 import type { RssSourceScope } from '@api/collections/rss-sources/schemas/rss-source.schema';
 import { RssSourceWorkflowService } from '@api/collections/rss-sources/services/rss-source-workflow.service';
 import { RssSourcesService } from '@api/collections/rss-sources/services/rss-sources.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -34,11 +36,13 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('RssSources')
+@OrganizationModule('publishing')
 @Controller('rss-sources')
 export class RssSourcesController {
   constructor(
     private readonly rssSourcesService: RssSourcesService,
     private readonly rssSourceWorkflowService: RssSourceWorkflowService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   @Get()
@@ -61,7 +65,7 @@ export class RssSourcesController {
     @CurrentUser() user: User,
     @Body() body: CreateRssSourceDto,
   ) {
-    const context = this.requireScope(user);
+    const context = await this.requireWriteScope(user);
     const rssSource = await this.rssSourcesService.createScoped(body, context);
     return serializeSingle(request, RssSourceSerializer, rssSource);
   }
@@ -89,7 +93,7 @@ export class RssSourcesController {
     @Param('id') id: string,
     @Body() body: UpdateRssSourceDto,
   ) {
-    const context = this.requireScope(user, query);
+    const context = await this.requireWriteScope(user, query);
     const rssSource = await this.rssSourcesService.updateScoped(
       id,
       body,
@@ -106,7 +110,7 @@ export class RssSourcesController {
     @Query() query: RssSourcesQueryDto,
     @Param('id') id: string,
   ) {
-    const context = this.requireScope(user, query);
+    const context = await this.requireWriteScope(user, query);
     await this.rssSourcesService.removeScoped(id, context);
     return { success: true };
   }
@@ -119,13 +123,23 @@ export class RssSourcesController {
     @Query() query: RssSourcesQueryDto,
     @Param('id') id: string,
   ) {
-    const context = this.requireScope(user, query);
+    const context = await this.requireWriteScope(user, query);
     await this.rssSourcesService.findOneScoped(id, context);
     const jobId = await this.rssSourceWorkflowService.enqueueSource({
       ...context,
       sourceId: id,
     });
     return { jobId, status: 'queued' };
+  }
+
+  private async requireWriteScope(
+    user: User,
+    query?: RssSourcesQueryDto,
+  ): Promise<RssSourceScope> {
+    const context = this.requireScope(user, query);
+    // Privileged tenant queries still require the target organization's grant.
+    await this.moduleAccess.assertAccess(context.organizationId, 'publishing');
+    return context;
   }
 
   private requireScope(user: User, query?: RssSourcesQueryDto): RssSourceScope {

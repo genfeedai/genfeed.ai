@@ -7,6 +7,11 @@ import {
   buildClipGenerationChildWorkflowDefinition,
 } from '@api/collections/clip-projects/services/clip-factory-workflow-definition';
 import { buildClipGenerationWorkflowDefinition } from '@api/collections/clip-projects/services/clip-generation-workflow-definition';
+import {
+  buildRssItemWorkflowDefinition,
+  buildRssSourceWorkflowDefinition,
+  buildRssSweepWorkflowDefinition,
+} from '@api/collections/rss-sources/services/rss-sweep-workflow-definition';
 import { buildSocialSourceHistoryImportWorkflowDefinition } from '@api/collections/social-sources/services/social-source-history-import-workflow-definition';
 import {
   buildSocialSourceOwnAccountResyncItemWorkflowDefinition,
@@ -2417,6 +2422,231 @@ describe('registered tenant Discovery job admission', () => {
       expect.objectContaining({
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       }),
+    );
+  });
+});
+
+describe('registered RSS Publishing module admission', () => {
+  const definitions = [
+    buildRssSourceWorkflowDefinition(),
+    buildRssItemWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException('Publishing disabled or unavailable'),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-rss',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Publishing disabled or unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'publishing');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(
+    definitions.flatMap((graph) =>
+      graph.definition.nodes
+        .filter(
+          (node) =>
+            node.id !== graph.resultNodeId && node.type === 'genfeedAction',
+        )
+        .map((workNode) => ({ graph, workNode })),
+    ),
+  )(
+    '$graph.canonicalId projects its admitted result but blocks $workNode.id after revocation',
+    async ({ graph, workNode }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      if (!finalNode) throw new Error('RSS final/work action missing');
+      const finalAction = String(finalNode.data.config.actionId);
+      const nextAction = String(workNode.data.config.actionId);
+      const finalize = vi.fn().mockResolvedValue({ completed: true });
+      const work = vi.fn();
+      runner.registerAction(finalAction, finalize);
+      runner.registerAction(nextAction, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Publishing revoked'),
+          );
+          await expect(
+            executors.get(finalAction)?.(
+              {
+                config: { actionId: finalAction },
+                id: finalNode.id,
+                inputs: [],
+                label: 'Finalize',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).resolves.toEqual({ completed: true });
+          await expect(
+            executors.get(nextAction)?.(
+              {
+                config: { actionId: nextAction },
+                id: workNode.id,
+                inputs: [],
+                label: 'New work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Publishing revoked');
+        },
+      );
+      expect(finalize).toHaveBeenCalledTimes(1);
+      expect(work).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+    },
+  );
+  it('awaits an eligible RSS source after another tenant loses Publishing access', async () => {
+    const graph = buildRssSourceWorkflowDefinition();
+    const sweep = buildRssSweepWorkflowDefinition();
+    const assertAccess = vi.fn(async (organizationId: string) => {
+      if (organizationId === 'org-2')
+        throw new ForbiddenException('Publishing disabled');
+    });
+    const executeManualWorkflowDocument = vi.fn().mockResolvedValue({
+      executionId: 'eligible-rss-execution',
+      status: 'COMPLETED',
+      nodeResults: [
+        { nodeId: graph.resultNodeId, output: { importedCount: 1 } },
+      ],
+    });
+    const prisma = {
+      organization: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'org-2', userId: 'owner-2' },
+          { id: 'org-3', userId: 'owner-3' },
+        ]),
+      },
+      workflow: {
+        findFirst: vi.fn().mockResolvedValue({
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+              canonicalId: sweep.canonicalId,
+            }),
+          },
+        }),
+      },
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const { runner, executors } = createRunner(
+      undefined,
+      prisma,
+      { executeManualWorkflowDocument },
+      {},
+      { assertAccess },
+    );
+    runner.onModuleInit();
+    runner.registerWorkflow(graph);
+    runner.registerWorkflow(sweep);
+    const internals = runner as unknown as RunnerInternals;
+    const resolve = vi
+      .spyOn(internals, 'resolveUserId')
+      .mockImplementation(
+        async (_organizationId, userId) => userId ?? 'missing-user',
+      );
+    const mirror = vi
+      .spyOn(internals, 'ensureHiddenSystemWorkflowMirror')
+      .mockResolvedValue({
+        id: 'rss-workflow',
+        label: 'Process RSS Source',
+        currentVersion: { id: 'rss-version' },
+      });
+    const fanout = sweep.definition.nodes.find(
+      (node) => node.id === 'process-sources',
+    );
+    if (!fanout) throw new Error('RSS source fan-out missing');
+    const result = await executors.get(WORKFLOW_FOR_EACH_TENANT_ACTION_ID)?.(
+      executableForEachNode(
+        fanout.data.config.parameters as Record<string, unknown>,
+        WORKFLOW_FOR_EACH_TENANT_ACTION_ID,
+      ),
+      new Map([
+        ['items', [{ organizationId: 'org-2' }, { organizationId: 'org-3' }]],
+      ]),
+      executionContext(),
+    );
+    expect(result).toMatchObject({
+      count: 2,
+      results: [
+        { index: 0, status: 'failed', error: 'Publishing disabled' },
+        { index: 1, result: { importedCount: 1 } },
+      ],
+    });
+    expect(assertAccess).toHaveBeenNthCalledWith(1, 'org-2', 'publishing');
+    expect(assertAccess).toHaveBeenNthCalledWith(2, 'org-3', 'publishing');
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(resolve).toHaveBeenCalledWith('org-3', 'owner-3');
+    expect(mirror).toHaveBeenCalledTimes(1);
+    expect(executeManualWorkflowDocument).toHaveBeenCalledTimes(1);
+    expect(executeManualWorkflowDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-3', userId: 'owner-3' }),
+      'owner-3',
+      'org-3',
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(String),
     );
   });
 });
