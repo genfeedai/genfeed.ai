@@ -610,7 +610,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('returns focus to the asset after closing its sidebar', () => {
-    navigation.pathname = '/acme/moonrise/studio/generate';
+    navigation.pathname = '/acme/moonrise/studio/playground';
     function Surface() {
       const [selected, setSelected] = useState(false);
       return (
@@ -1250,7 +1250,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/studio/generate?sourceArtifact=ingredient%3Aingredient-1',
+      '/acme/moonrise/studio/playground?sourceArtifact=ingredient%3Aingredient-1',
     );
   });
 
@@ -1479,17 +1479,17 @@ describe('UniversalWorkspaceShell', () => {
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
     });
 
-    it.each(['/acme/moonrise/studio/generate', '/acme/moonrise/studio/clips'])(
-      'hides the chat bubble on prompt-bar page %s',
-      async (pathname) => {
-        navigation.pathname = pathname;
-        renderWithDock();
+    it.each([
+      '/acme/moonrise/studio/playground',
+      '/acme/moonrise/studio/clips',
+    ])('hides the chat bubble on prompt-bar page %s', async (pathname) => {
+      navigation.pathname = pathname;
+      renderWithDock();
 
-        await waitFor(() => expect(dock?.isAvailable).toBe(true));
-        expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
-        expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
-      },
-    );
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+      expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
+    });
 
     it('renders scope notices in the dock without the scope switchers', async () => {
       navigation.pathname = '/acme/moonrise/workspace';

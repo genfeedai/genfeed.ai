@@ -1,4 +1,5 @@
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { PromptEditorProps } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { StoryboardPlanEditorProps } from '@genfeedai/props/studio/storyboard.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,22 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    ariaLabel,
+    value,
+    isDisabled,
+    onValueChange,
+  }: PromptEditorProps) => (
+    <textarea
+      aria-label={ariaLabel}
+      value={value}
+      disabled={isDisabled}
+      onChange={(event) => onValueChange?.(event.target.value)}
+    />
+  ),
+}));
 
 const mocks = vi.hoisted(() => ({ flush: vi.fn(), push: vi.fn() }));
 vi.mock('@hooks/navigation/use-org-url', () => ({

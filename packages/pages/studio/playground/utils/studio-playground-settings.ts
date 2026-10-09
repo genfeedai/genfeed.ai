@@ -1,0 +1,304 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
+import {
+  FLUX_3_ASPECT_RATIOS,
+  FLUX_3_RESOLUTIONS,
+  isFlux3ImageModel,
+  normalizeMusicSettings,
+  resolveMusicSettings,
+  resolveStudioAspectDimensions,
+  resolveStudioLongEdge,
+} from '@genfeedai/contracts/constants';
+import {
+  getDefaultImageQuality,
+  getImageQualityOptionsByModel,
+} from '@genfeedai/helpers/media/image-quality/image-quality.helper';
+import {
+  getDefaultVideoResolution,
+  getVideoResolutionsByModel,
+} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import type { StudioPlaygroundSettings, StudioPlaygroundType } from '../types';
+import { getStudioPlaygroundTypeConfig } from './studio-playground-types';
+
+/** Aspect ladder shown in the settings popover, widest to tallest. */
+export const STUDIO_ASPECT_RATIOS = [
+  '21:9',
+  '16:9',
+  '3:2',
+  '4:3',
+  '5:4',
+  '1:1',
+  '4:5',
+  '3:4',
+  '2:3',
+  '9:16',
+] as const;
+
+export const STUDIO_IMAGE_RESOLUTIONS = ['1K', '2K'] as const;
+export const STUDIO_VIDEO_DURATIONS = [5, 8, 10] as const;
+
+export const STUDIO_MAX_OUTPUTS = 8;
+
+function parseAspectRatio(
+  aspectRatio: string,
+): { horizontal: number; vertical: number } | null {
+  const [rawHorizontal, rawVertical] = aspectRatio.split(':');
+  const horizontal = Number(rawHorizontal);
+  const vertical = Number(rawVertical);
+
+  if (
+    !Number.isFinite(horizontal) ||
+    !Number.isFinite(vertical) ||
+    horizontal <= 0 ||
+    vertical <= 0
+  ) {
+    return null;
+  }
+
+  return { horizontal, vertical };
+}
+
+export const resolveAspectDimensions = resolveStudioAspectDimensions;
+
+export function resolveIngredientFormat(aspectRatio: string): IngredientFormat {
+  const parsed = parseAspectRatio(aspectRatio);
+
+  if (!parsed || parsed.horizontal === parsed.vertical) {
+    return IngredientFormat.SQUARE;
+  }
+
+  return parsed.horizontal > parsed.vertical
+    ? IngredientFormat.LANDSCAPE
+    : IngredientFormat.PORTRAIT;
+}
+
+export const resolveLongEdge = resolveStudioLongEdge;
+
+export function getStudioAspectRatios(
+  type: StudioPlaygroundType,
+  modelKey?: string,
+): readonly string[] {
+  if (modelKey && isFlux3ImageModel(modelKey)) return FLUX_3_ASPECT_RATIOS;
+  return getStudioPlaygroundTypeConfig(type).capabilities.hasAspectRatio
+    ? STUDIO_ASPECT_RATIOS
+    : [];
+}
+
+export function getStudioResolutions(
+  type: StudioPlaygroundType,
+  modelKey?: string,
+): ReadonlyArray<{ isDraft?: boolean; label: string; value: string }> {
+  if (modelKey && isFlux3ImageModel(modelKey))
+    return FLUX_3_RESOLUTIONS.map((value) => ({
+      label: value.toUpperCase(),
+      value,
+    }));
+  if (type === 'video') {
+    return modelKey ? getVideoResolutionsByModel(modelKey) : [];
+  }
+
+  if (!getStudioPlaygroundTypeConfig(type).capabilities.hasAspectRatio) {
+    return [];
+  }
+
+  if (modelKey) {
+    const qualityOptions = getImageQualityOptionsByModel(modelKey);
+    if (qualityOptions.length > 0) {
+      return qualityOptions;
+    }
+  }
+
+  return STUDIO_IMAGE_RESOLUTIONS.map((resolution) => ({
+    label: resolution,
+    value: resolution,
+  }));
+}
+
+const DEFAULT_ASPECT_RATIO_BY_TYPE: Partial<
+  Record<StudioPlaygroundType, string>
+> = {
+  image: '1:1',
+  video: '16:9',
+};
+
+const DEFAULT_RESOLUTION_BY_TYPE: Partial<
+  Record<StudioPlaygroundType, string>
+> = {
+  image: '1K',
+  video: '720p',
+};
+
+export function getDefaultStudioResolution(
+  type: StudioPlaygroundType,
+  modelKey?: string,
+): string {
+  if (modelKey && isFlux3ImageModel(modelKey)) return '1k';
+  if (type === 'video') {
+    return (modelKey && getDefaultVideoResolution(modelKey)) || '720p';
+  }
+
+  if (type === 'image' && modelKey) {
+    return getDefaultImageQuality(modelKey) ?? '1K';
+  }
+
+  return DEFAULT_RESOLUTION_BY_TYPE[type] ?? '1K';
+}
+
+export function getStudioDurations(
+  type: StudioPlaygroundType,
+  modelKey?: string,
+): readonly number[] {
+  if (type === 'video') {
+    return STUDIO_VIDEO_DURATIONS;
+  }
+
+  if (type === 'music') {
+    return resolveMusicSettings(modelKey).durations;
+  }
+
+  return [];
+}
+
+const DEFAULT_DURATION_BY_TYPE: Partial<Record<StudioPlaygroundType, number>> =
+  {
+    video: STUDIO_VIDEO_DURATIONS[0],
+  };
+
+/**
+ * Brand enrichment is on by default — the whole point of generating inside
+ * Studio rather than hitting a raw provider playground.
+ */
+export function getDefaultStudioPlaygroundSettings(
+  type: StudioPlaygroundType,
+): StudioPlaygroundSettings {
+  return {
+    aspectRatio: DEFAULT_ASPECT_RATIO_BY_TYPE[type] ?? '1:1',
+    blacklist: [],
+    brandingMode: 'brand',
+    duration: DEFAULT_DURATION_BY_TYPE[type],
+    instrumental: undefined,
+    isAudioEnabled: false,
+    modelKey: AUTO_MODEL_OPTION_VALUE,
+    outputs: 1,
+    prioritize: RouterPriority.BALANCED,
+    resolution: DEFAULT_RESOLUTION_BY_TYPE[type] ?? '1K',
+    tags: [],
+  };
+}
+
+function optionalText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+/**
+ * Turns composer + settings state into the full `PromptTextareaSchema` the
+ * generation payload builders consume. This is where Studio regains the
+ * Genfeed enrichment the agent card path never sends: branding mode, preset
+ * template, folder targeting, and every Look element.
+ */
+export function buildStudioPromptData({
+  brandId,
+  promptText,
+  references = [],
+  settings,
+  type,
+}: {
+  brandId: string;
+  promptText: string;
+  references?: string[];
+  settings: StudioPlaygroundSettings;
+  type: StudioPlaygroundType;
+}): PromptTextareaSchema & { isValid: boolean } {
+  const config = getStudioPlaygroundTypeConfig(type);
+  const { capabilities } = config;
+
+  const text = promptText.trim();
+  const speech = optionalText(settings.speech);
+  const isAutoSelectModel =
+    !capabilities.hasModelSelection ||
+    settings.modelKey === AUTO_MODEL_OPTION_VALUE ||
+    settings.modelKey === '';
+
+  const { height, width } = resolveAspectDimensions(
+    settings.aspectRatio,
+    resolveLongEdge(settings.resolution),
+  );
+
+  const videoResolutionOptions =
+    type === 'video' && !isAutoSelectModel
+      ? getStudioResolutions(type, settings.modelKey)
+      : [];
+  const requestedVideoResolution = videoResolutionOptions.some(
+    (option) => option.value === settings.resolution,
+  )
+    ? settings.resolution
+    : getDefaultVideoResolution(settings.modelKey);
+
+  // Avatar and voice are driven by the spoken script, so speech alone is a
+  // valid submission there.
+  const isValid = capabilities.hasSpeech
+    ? Boolean(text || speech)
+    : Boolean(text);
+
+  return {
+    crunControls: settings.crunControls,
+    autoSelectModel: isAutoSelectModel,
+    // Studio posts the portrait as `photoUrl`; `avatarId` on the shared
+    // schema means a HeyGen catalog id we never hold here.
+    avatarId: undefined,
+    blacklist: settings.blacklist,
+    brand: brandId,
+    brandingMode: settings.brandingMode,
+    camera: capabilities.hasLook ? optionalText(settings.camera) : undefined,
+    cameraMovement: capabilities.hasLook
+      ? optionalText(settings.cameraMovement)
+      : undefined,
+    category: config.ingredientCategory,
+    duration:
+      type === 'music'
+        ? normalizeMusicSettings(settings.modelKey, settings).duration
+        : capabilities.hasDuration
+          ? settings.duration
+          : undefined,
+    folder: optionalText(settings.folder),
+    fontFamily: '',
+    format: resolveIngredientFormat(settings.aspectRatio),
+    height,
+    isAudioEnabled: settings.isAudioEnabled,
+    isBrandingEnabled:
+      capabilities.hasBrandEnrichment && settings.brandingMode === 'brand',
+    isValid,
+    lens: capabilities.hasLook ? optionalText(settings.lens) : undefined,
+    lighting: capabilities.hasLook
+      ? optionalText(settings.lighting)
+      : undefined,
+    models:
+      isAutoSelectModel || !capabilities.hasModelSelection
+        ? []
+        : [settings.modelKey],
+    mood: capabilities.hasLook ? optionalText(settings.mood) : undefined,
+    outputs: capabilities.hasOutputs ? settings.outputs : 1,
+    prioritize: settings.prioritize,
+    prompt_template: capabilities.hasLook
+      ? optionalText(settings.promptTemplate)
+      : undefined,
+    quality: 'standard',
+    references: capabilities.hasReferences ? references : [],
+    resolution:
+      type === 'video'
+        ? isAutoSelectModel
+          ? undefined
+          : requestedVideoResolution
+        : settings.resolution,
+    scene: capabilities.hasLook ? optionalText(settings.scene) : undefined,
+    sounds: [],
+    speech: capabilities.hasSpeech ? speech : undefined,
+    style: (capabilities.hasLook && optionalText(settings.style)) || '',
+    tags: settings.tags,
+    text,
+    voiceId: capabilities.hasIdentity ? settings.voiceId : undefined,
+    width,
+  };
+}

@@ -68,7 +68,7 @@ async function mockStudioGallery(page: Page): Promise<void> {
 }
 
 async function openStudioList(page: Page): Promise<void> {
-  await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE), {
+  await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
     waitUntil: 'domcontentloaded',
   });
   // List rows expose the prompt as plain text, a stable non-control target.
@@ -131,7 +131,7 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(
       contextSidebar.getByTestId('context-sidebar-title'),
     ).toHaveText('Image');
-    const panel = contextSidebar.getByTestId('studio-generate-inspector');
+    const panel = contextSidebar.getByTestId('studio-playground-inspector');
     await expect(panel).toBeVisible();
     await expect(
       panel.getByRole('tablist', { name: 'Generation details' }),
@@ -143,7 +143,7 @@ test.describe('Context sidebar — selection driven', () => {
     ).toBeVisible();
     // Only one right column: Studio no longer paints its own aside.
     await expect(
-      authenticatedPage.getByTestId('studio-generate-inspector'),
+      authenticatedPage.getByTestId('studio-playground-inspector'),
     ).toHaveCount(1);
 
     await contextSidebar
@@ -152,7 +152,7 @@ test.describe('Context sidebar — selection driven', () => {
 
     await expect(contextSidebar).toHaveCount(0);
     await expect(
-      authenticatedPage.getByTestId('studio-generate-inspector'),
+      authenticatedPage.getByTestId('studio-playground-inspector'),
     ).toHaveCount(0);
     await expect(card).toHaveAttribute('data-selected', 'false');
     await expectNoErrorOverlay(authenticatedPage);
@@ -193,7 +193,7 @@ test.describe('Context sidebar — selection driven', () => {
       name: 'Selection details',
     });
     await expect(
-      contextSidebar.getByTestId('studio-generate-inspector'),
+      contextSidebar.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByTestId('topbar-inspector-toggle'),
@@ -208,7 +208,7 @@ test.describe('Context sidebar — selection driven', () => {
     ).toHaveCount(0);
     await card.getByText(ASSET_PROMPT).click();
     await expect(
-      contextSidebar.getByTestId('studio-generate-inspector'),
+      contextSidebar.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
   });
 
@@ -223,7 +223,9 @@ test.describe('Context sidebar — selection driven', () => {
 
     const drawer = authenticatedPage.getByRole('dialog', { name: 'Image' });
     await expect(drawer).toBeVisible();
-    await expect(drawer.getByTestId('studio-generate-inspector')).toBeVisible();
+    await expect(
+      drawer.getByTestId('studio-playground-inspector'),
+    ).toBeVisible();
 
     await authenticatedPage.keyboard.press('Escape');
     await expect(drawer).toHaveCount(0);

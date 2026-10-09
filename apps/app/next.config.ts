@@ -429,7 +429,7 @@ const config = createAppNextConfig({
       ),
     })),
     {
-      destination: APP_ROUTES.STUDIO.GENERATE,
+      destination: APP_ROUTES.STUDIO.PLAYGROUND,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     },
@@ -438,7 +438,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.STUDIO.GENERATE,
+        APP_ROUTES.STUDIO.PLAYGROUND,
       ),
       permanent: false,
       source: createBrandAppRoute(

@@ -191,13 +191,13 @@ for (const { model, editing } of [
     await page.goto(
       brandPath(
         editing
-          ? `${APP_ROUTES.STUDIO.GENERATE}?editImage=${sourceId}`
-          : APP_ROUTES.STUDIO.GENERATE,
+          ? `${APP_ROUTES.STUDIO.PLAYGROUND}?editImage=${sourceId}`
+          : APP_ROUTES.STUDIO.PLAYGROUND,
       ),
       { waitUntil: 'domcontentloaded' },
     );
     const composer = page
-      .getByTestId('studio-generate-prompt')
+      .getByTestId('studio-playground-prompt')
       .getByRole('textbox');
     if (!editing) {
       // Trigger name is `Generation setup: {summary}`; models are Configure Model.
@@ -253,9 +253,9 @@ for (const { model, editing } of [
     expect(JSON.stringify(bodies[0])).not.toContain('prompt_template');
     if (editing)
       expect(JSON.stringify(bodies[0])).not.toContain('brandingMode');
-    await expect(page.getByTestId('studio-generate-results')).toBeVisible();
+    await expect(page.getByTestId('studio-playground-results')).toBeVisible();
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.getByTestId('studio-generate-results')).toBeVisible();
+    await expect(page.getByTestId('studio-playground-results')).toBeVisible();
     await expect(
       page
         .getByRole('article', {

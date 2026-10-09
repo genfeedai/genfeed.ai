@@ -104,7 +104,7 @@ describe('brand-scoped durable storyboard loading', () => {
     const transport = result.current.transport;
     if (!transport) throw new Error('Missing captured transport');
     unmount();
-    window.history.replaceState({}, '', '/org/brand-two/studio/generate');
+    window.history.replaceState({}, '', '/org/brand-two/studio/playground');
     const serviceLoads = mocks.serviceLoads.mock.calls.length;
     const saved = await transport.write('plan', 1, {
       plan: { ...run.config.plan, title: 'Detached title' },

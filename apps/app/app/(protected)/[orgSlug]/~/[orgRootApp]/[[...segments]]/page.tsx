@@ -315,7 +315,7 @@ export default async function OrgRootAppPage({
           createBrandAppRoute(
             orgSlug,
             lastUsedBrandSlug,
-            APP_ROUTES.STUDIO.GENERATE,
+            APP_ROUTES.STUDIO.PLAYGROUND,
           ),
         );
       }

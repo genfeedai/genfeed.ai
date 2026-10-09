@@ -414,8 +414,10 @@ describe('OrgRootAppPage', () => {
       OrgRootAppPage({
         params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
       }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/moonrise/studio/generate');
-    expect(redirectMock).toHaveBeenCalledWith('/acme/moonrise/studio/generate');
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/moonrise/studio/playground');
+    expect(redirectMock).toHaveBeenCalledWith(
+      '/acme/moonrise/studio/playground',
+    );
   });
 
   it('falls back to Agent for the bare Studio destination when there is no persisted brand (#4671)', async () => {

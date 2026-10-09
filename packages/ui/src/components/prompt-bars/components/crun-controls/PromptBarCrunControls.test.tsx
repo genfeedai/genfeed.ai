@@ -9,7 +9,7 @@ vi.mock('next-intl', async () => {
   );
   return {
     useTranslations: createTranslateFromCatalog({
-      pages: { studioGenerate: { crun: { outputFormat: 'Output format' } } },
+      pages: { studioPlayground: { crun: { outputFormat: 'Output format' } } },
     }),
   };
 });

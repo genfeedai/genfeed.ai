@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import type { CrunVideoQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { Page } from '@playwright/test';
@@ -207,6 +208,13 @@ async function installFixture(
       await route.fulfill({
         json: {
           ...bootstrap,
+          currentUser: {
+            ...bootstrap.currentUser,
+            settings: {
+              ...(bootstrap.currentUser.settings as ISetting),
+              isAdvancedMode: true,
+            },
+          },
           settings: {
             ...bootstrap.settings,
             enabledModelIds: [klingKey, veoKey],
@@ -389,10 +397,10 @@ async function installFixture(
       }),
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
-  const composer = page.getByTestId('studio-generate-composer-shell');
+  await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND));
+  const composer = page.getByTestId('studio-playground-composer-shell');
   const editor = page
-    .getByTestId('studio-generate-prompt')
+    .getByTestId('studio-playground-prompt')
     .getByRole('textbox');
   await expect(editor).toBeVisible();
   await editor.fill('A ceramic bird on a desk');
@@ -410,11 +418,11 @@ async function openConfiguration(page: Page, section: string) {
 }
 async function expectSubmitTooltip(page: Page, statusName: string) {
   const generate = page
-    .getByTestId('studio-generate-composer-shell')
+    .getByTestId('studio-playground-composer-shell')
     .getByRole('button', { name: 'Generate', exact: true });
   await expect(
     page
-      .getByTestId('studio-generate-composer-shell')
+      .getByTestId('studio-playground-composer-shell')
       .getByText(statusName, { exact: true }),
   ).toHaveCount(0);
   await generate.focus();
@@ -446,7 +454,9 @@ async function expectPlayableOwnedVideo(
   const card = page.getByTestId(`studio-asset-${ownedId}`);
   await expect(card).toBeVisible();
   await card.click();
-  const video = page.getByTestId('studio-generate-inspector').locator('video');
+  const video = page
+    .getByTestId('studio-playground-inspector')
+    .locator('video');
   await expect(video).toHaveAttribute('src', ownedUrl);
   await expect
     .poll(() =>
@@ -649,7 +659,7 @@ test('expired video admission reports the error and never retries automatically'
   await expect(fixture.editor).toHaveText('A ceramic bird on a desk');
   await expect(
     page
-      .getByTestId('studio-generate-results')
+      .getByTestId('studio-playground-results')
       .getByTestId('studio-asset-crun-owned-kling'),
   ).toHaveCount(0);
   expect(fixture.consumes).toHaveLength(1);

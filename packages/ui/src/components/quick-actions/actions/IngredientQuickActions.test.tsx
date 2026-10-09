@@ -304,7 +304,7 @@ describe('IngredientQuickActions', () => {
     });
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit image' }));
     expect(mocks.push).toHaveBeenCalledWith(
-      '/org/brand/studio/generate?editImage=ingredient-1',
+      '/org/brand/studio/playground?editImage=ingredient-1',
     );
   });
   it('offers Save as character in the image overflow menu', () => {

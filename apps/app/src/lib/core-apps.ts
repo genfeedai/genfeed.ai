@@ -29,7 +29,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Generate assets, then produce storyboards, clips, batches, and timeline edits at production scale.',
-    href: APP_ROUTES.STUDIO.GENERATE,
+    href: APP_ROUTES.STUDIO.PLAYGROUND,
     id: 'studio',
     label: APP_DISPLAY_LABELS.studio,
     shortLabel: APP_DISPLAY_LABELS.studio,

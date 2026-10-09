@@ -18,7 +18,7 @@ describe('Studio surface flags', () => {
 
   it.each([
     '/acme/brand/studio',
-    '/acme/brand/studio/generate',
+    '/acme/brand/studio/playground',
     '/acme/brand/studio/motionless',
     '/acme/brand/library/assets',
     '',
@@ -34,7 +34,7 @@ describe('Studio surface flags', () => {
     ).toBe(false);
     expect(isStudioSurfaceEnabled('/studio/motion', {})).toBe(true);
     expect(
-      isStudioSurfaceEnabled('/studio/generate', { studio_motion: false }),
+      isStudioSurfaceEnabled('/studio/playground', { studio_motion: false }),
     ).toBe(true);
   });
 });

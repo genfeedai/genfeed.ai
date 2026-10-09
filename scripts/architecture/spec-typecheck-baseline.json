@@ -7059,7 +7059,7 @@
     {
       "code": 2322,
       "count": 4,
-      "file": "packages/pages/studio/generate/StudioGenerateWorkspace.test.tsx",
+      "file": "packages/pages/studio/playground/StudioPlaygroundWorkspace.test.tsx",
       "fingerprint": "fcb86f04cd669f117590",
       "message": "Type 'string' is not assignable to type 'never'.",
       "workspace": "pages"
@@ -7067,7 +7067,7 @@
     {
       "code": 2352,
       "count": 1,
-      "file": "packages/pages/studio/generate/components/StudioGenerateInspector.test.tsx",
+      "file": "packages/pages/studio/playground/components/StudioPlaygroundInspector.test.tsx",
       "fingerprint": "f911ff1612c1d5c7934b",
       "message": "Conversion of type '{ category: IngredientCategory.IMAGE; id: string; metadata: { mood: string; style: string; }; promptText: string; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.IMAGE; id: string; metadata: { mood: string; style: string; }; promptText: string; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
       "workspace": "pages"

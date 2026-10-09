@@ -341,7 +341,7 @@ export * from './studio/storyboard-run.interface';
 export * from './studio/studio-edit.interface';
 export * from './studio/studio-edit-layout.interface';
 export * from './studio/studio-edit-topbar.interface';
-export * from './studio/studio-generate.interface';
+export * from './studio/studio-playground.interface';
 export * from './testing/breadcrumb-test.interface';
 export * from './testing/error-boundary-test.interface';
 export * from './testing/form-input-test.interface';

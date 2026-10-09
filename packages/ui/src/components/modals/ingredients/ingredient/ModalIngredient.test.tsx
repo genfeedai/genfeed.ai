@@ -212,7 +212,7 @@ describe('ModalIngredient', () => {
     );
 
     expect(navigation.push).toHaveBeenCalledWith(
-      '/acme-org/acme-brand/studio/generate?sourceArtifact=ingredient%3Aimage-ingredient&sourceVersion=7',
+      '/acme-org/acme-brand/studio/playground?sourceArtifact=ingredient%3Aimage-ingredient&sourceVersion=7',
     );
   });
 

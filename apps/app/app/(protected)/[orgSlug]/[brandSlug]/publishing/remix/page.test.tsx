@@ -33,7 +33,7 @@ describe('PostsRemixPage', () => {
     });
 
     expect(mocks.redirect).toHaveBeenCalledWith(
-      `/acme/moonrise${APP_ROUTES.STUDIO.GENERATE}`,
+      `/acme/moonrise${APP_ROUTES.STUDIO.PLAYGROUND}`,
     );
   });
 });

@@ -16,11 +16,11 @@ import {
   useStoryboardDraftOutbox,
 } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
 import { getStoryboardEditorSeed } from '@pages/studio/storyboard/utils/storyboard-editor-seed';
-import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import Field from '@ui/primitives/field';
-import { Textarea } from '@ui/primitives/textarea';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -161,7 +161,7 @@ export default function StoryboardDraftPage({
         </div>
       }
     >
-      <div className="mx-auto w-full max-w-5xl space-y-4">
+      <div className="mx-auto w-full max-w-7xl space-y-4">
         {pipeline?.state === 'ready' && !editorSeed.href ? (
           <p role="status" className="text-sm text-muted-foreground">
             {editorSeed.reason}
@@ -185,42 +185,6 @@ export default function StoryboardDraftPage({
             resolve={draft.queue.resolve}
           />
         ) : null}
-        {saveSource &&
-        sourceAutosave.value.kind === 'brief' &&
-        !run.config.scenePipeline ? (
-          <Card
-            label={translate('draft.brief')}
-            description={translate('draft.briefDescription')}
-          >
-            <Field
-              label={translate('draft.brief')}
-              helpText={translate('create.characterCount', {
-                count: sourceAutosave.value.brief.length,
-              })}
-            >
-              <Textarea
-                value={sourceAutosave.value.brief}
-                maxLength={2000}
-                disabled={leaving || !draft.queue}
-                onChange={(event) => {
-                  const brief = event.target.value;
-                  sourceAutosave.edit((source) =>
-                    source.kind === 'brief' ? { ...source, brief } : source,
-                  );
-                }}
-              />
-            </Field>
-            <div className="mt-3">
-              <StoryboardSaveIndicator
-                status={sourceAutosave.status}
-                error={sourceAutosave.error}
-                onRetry={() =>
-                  void sourceAutosave.flush().catch(() => undefined)
-                }
-              />
-            </div>
-          </Card>
-        ) : null}
         <StoryboardPlanEditor
           ref={editor}
           key={`${run.brandId}:${run.id}`}
@@ -235,6 +199,54 @@ export default function StoryboardDraftPage({
           capabilityError={capabilityError}
           refreshCapabilities={refreshCapabilities}
         />
+        {saveSource &&
+        sourceAutosave.value.kind === 'brief' &&
+        !run.config.scenePipeline ? (
+          <div className="sticky bottom-4 z-10 mx-auto w-full max-w-4xl">
+            <PromptBarComposer
+              data-testid="storyboard-source-composer"
+              density="compact"
+            >
+              <PromptEditor
+                ariaLabel={translate('draft.brief')}
+                value={sourceAutosave.value.brief}
+                isDisabled={leaving || !draft.queue}
+                onValueChange={(brief) =>
+                  sourceAutosave.edit((source) =>
+                    source.kind === 'brief'
+                      ? { ...source, brief: brief.slice(0, 2000) }
+                      : source,
+                  )
+                }
+                onSubmit={() =>
+                  void sourceAutosave.flush().catch(() => undefined)
+                }
+                className="min-h-12"
+              />
+              <PromptBarToolbar
+                leading={
+                  <StoryboardSaveIndicator
+                    status={sourceAutosave.status}
+                    error={sourceAutosave.error}
+                    onRetry={() =>
+                      void sourceAutosave.flush().catch(() => undefined)
+                    }
+                  />
+                }
+                trailing={
+                  <p className="text-xs text-muted-foreground">
+                    {translate('create.characterCount', {
+                      count: sourceAutosave.value.brief.length,
+                    })}
+                  </p>
+                }
+              />
+            </PromptBarComposer>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {translate('draft.briefDescription')}
+            </p>
+          </div>
+        ) : null}
       </div>
     </Container>
   );

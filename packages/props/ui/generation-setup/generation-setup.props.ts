@@ -3,7 +3,7 @@ import type {
   FormDropdownOption,
   IModel,
   IStudioLook,
-  StudioGenerateCapabilities,
+  StudioPlaygroundCapabilities,
 } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type {
@@ -65,7 +65,7 @@ export interface GenerationSetupPopoverProps {
   scopeKey: string;
   setup: GenerationSetup;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   /** Omitted (or a single entry) on surfaces that lock the type, e.g. agent image-only. */
   typeOptions: readonly GenerationSetupTypeOption[];
   models: readonly IModel[];
@@ -142,7 +142,7 @@ export interface GenerationSetupFieldRowProps {
 export interface GenerationSetupFrontDoorProps {
   showPresets?: boolean;
   showEnhancementSettings?: boolean;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   inputControls?: CrunInputControls;
   isDisabled?: boolean;
   lookOptions: GenerationSetupLookOptions;
@@ -203,7 +203,7 @@ export interface GenerationSetupCustomizePanelProps {
   onTypeChange?: (type: GenerationSetupType) => void;
   inputControls?: CrunInputControls;
   referenceCount?: number;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
   initialSection: GenerationSetupCustomizeSectionId;
@@ -224,7 +224,7 @@ export interface GenerationSetupCustomizePanelProps {
 }
 
 export interface GenerationSetupModelSectionProps {
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
   isDisabled?: boolean;
@@ -245,7 +245,7 @@ export interface GenerationSetupLookSectionProps {
 export interface GenerationSetupOutputSectionProps {
   inputControls?: CrunInputControls;
   referenceCount?: number;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;

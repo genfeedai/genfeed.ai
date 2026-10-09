@@ -796,7 +796,7 @@ function UniversalWorkspaceShellContent({
       }
 
       const destinationHref = buildLibraryRemixIntentHref(
-        href(APP_ROUTES.STUDIO.GENERATE),
+        href(APP_ROUTES.STUDIO.PLAYGROUND),
         reference,
       );
       const launch = resolveWorkspaceSurfaceLaunch({

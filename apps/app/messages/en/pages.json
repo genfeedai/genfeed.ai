@@ -1276,6 +1276,17 @@
       "saving": "Saving…"
     },
     "workspace": {
+      "references": "Session references",
+      "searchReferences": "Find a reference…",
+      "removeReference": "Remove {title}",
+      "noReferences": "Add a starting image or style references from your Library.",
+      "noMatchingReferences": "No references match your search.",
+      "emptyTitle": "Tell your story",
+      "emptyDescription": "Describe your video, choose its format and add references. Your saved storyboard will contain editable shots, timing and a preview.",
+      "shots": "Shots",
+      "styles": "Style references",
+      "characters": "Characters",
+      "seconds": "{seconds} s",
       "addImages": "Add images",
       "addImagesTitle": "Add images to storyboard",
       "addVideos": "Add videos",
@@ -1327,7 +1338,7 @@
     "readOnlyBadge": "(read-only)",
     "title": "This project is read-only"
   },
-  "studioGenerate": {
+  "studioPlayground": {
     "editImage": {
       "fluxResolution": "FLUX resolution",
       "fluxAspectRatio": "FLUX aspect ratio",
@@ -1533,7 +1544,7 @@
     "undo": "Undo",
     "undoPromptEnhancement": "Undo prompt enhancement",
     "videoReference": "Video Reference",
-    "title": "Generate",
+    "title": "Playground",
     "viewGrid": "Grid",
     "viewList": "List",
     "makeClips": "Make clips",
@@ -3887,8 +3898,8 @@
       "title": "Trash",
       "body": "Deleted assets stay here until they are purged. Restore anything you still need."
     },
-    "studioGenerate": {
-      "title": "Generate",
+    "studioPlayground": {
+      "title": "Playground",
       "body": "Create images, video, audio, and copy from a prompt. Results land in the Library and can go straight to a post."
     },
     "studioStoryboard": {

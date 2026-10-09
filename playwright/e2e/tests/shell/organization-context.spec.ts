@@ -231,7 +231,7 @@ test.describe('Routed organization context', () => {
     await authenticatedPage.goto('/alpha/~/workspace', {
       waitUntil: 'domcontentloaded',
     });
-    await otherTab.goto('/alpha/moonrise/studio/generate', {
+    await otherTab.goto('/alpha/moonrise/studio/playground', {
       waitUntil: 'domcontentloaded',
     });
     await expect(organizationSwitcher(otherTab)).toHaveAccessibleName(
@@ -250,6 +250,6 @@ test.describe('Routed organization context', () => {
     await expect(
       otherTab.getByText('Organization context changed'),
     ).toHaveCount(0);
-    await assertNoErrorBoundaryFallback(otherTab, '/bravo/~/studio/generate');
+    await assertNoErrorBoundaryFallback(otherTab, '/bravo/~/studio/playground');
   });
 });

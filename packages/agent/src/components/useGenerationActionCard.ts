@@ -1036,7 +1036,7 @@ export function useGenerationActionCard({
       });
       onOpenInStudio(
         activeHref(
-          `${APP_ROUTES.STUDIO.GENERATE}?handoff=${encodeURIComponent(id)}`,
+          `${APP_ROUTES.STUDIO.PLAYGROUND}?handoff=${encodeURIComponent(id)}`,
         ),
       );
     } catch {

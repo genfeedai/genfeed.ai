@@ -66,7 +66,7 @@ describe('desktop-loop-url.util', () => {
 
     const href = buildTrendSourceTwitterDraftHref(trend, source);
 
-    expect(href).toContain('/studio/generate?');
+    expect(href).toContain('/studio/playground?');
     expect(href).toContain('trendId=trend-1');
     expect(href).toContain('sourceReferenceId=source-reference-1');
     expect(href).toContain(
@@ -95,13 +95,13 @@ describe('desktop-loop-url.util', () => {
         platform: 'linkedin',
         postId: 'post-1',
       }),
-    ).toBe('/studio/generate?platform=linkedin&postId=post-1');
+    ).toBe('/studio/playground?platform=linkedin&postId=post-1');
     expect(
       buildSourcePostVariationsHref({
         platform: 'instagram',
         sourcePostId: 'source-post-1',
       }),
-    ).toBe('/studio/generate?platform=instagram&sourcePostId=source-post-1');
+    ).toBe('/studio/playground?platform=instagram&sourcePostId=source-post-1');
     expect(
       buildSourcePostVariationsHref({
         platform: 'twitter',
@@ -109,7 +109,7 @@ describe('desktop-loop-url.util', () => {
         trendId: 'trend-1',
       }),
     ).toBe(
-      '/studio/generate?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
+      '/studio/playground?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
     );
   });
 });
