@@ -84,8 +84,10 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
       },
     },
   ],
+  // Public schema and billingConfig, 2026-10-09.
   'bytedance/seedance-2.0': seedance,
   'bytedance/seedance-2.0-fast': seedance,
+  'bytedance/seedance-2.0-mini': seedance,
   'bytedance/seedance-2.5': seedance,
   'kwaivgi/kling-v2.1': [field('mode', identity('standard', 'pro'))],
   'kwaivgi/kling-v2.6': [audio],

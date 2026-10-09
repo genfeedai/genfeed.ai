@@ -26,6 +26,21 @@ export interface ProviderModelImportTarget {
 }
 
 const replicateCandidates: readonly [string, ModelCategory][] = [
+  // Official provider catalog verified 2026-10-09. Include reviewed entries so
+  // an explicit import can refresh the complete family without changing approval.
+  ...[
+    '1-lite',
+    '1-pro',
+    '1-pro-fast',
+    '1.5-pro',
+    '2.0',
+    '2.0-fast',
+    '2.0-mini',
+    '2.5',
+  ].map((version): [string, ModelCategory] => [
+    `bytedance/seedance-${version}`,
+    ModelCategory.VIDEO,
+  ]),
   ['alibaba/wan-3', ModelCategory.VIDEO],
   ['alibaba/qwen-image-3', ModelCategory.IMAGE],
   ['alibaba/qwen-image-3-pro', ModelCategory.IMAGE],
@@ -37,6 +52,28 @@ const replicateCandidates: readonly [string, ModelCategory][] = [
 ];
 
 const falFamilies: readonly [string, ModelCategory, readonly string[]][] = [
+  ...[
+    'bytedance/seedance-2.0',
+    'bytedance/seedance-2.0/fast',
+    'bytedance/seedance-2.0/mini',
+    'bytedance/seedance-2.0/us',
+    'bytedance/seedance-2.5',
+    'bytedance/seedance-2.5/us',
+  ].map((family): [string, ModelCategory, readonly string[]] => [
+    family,
+    ModelCategory.VIDEO,
+    ['text-to-video', 'image-to-video', 'reference-to-video'],
+  ]),
+  ['bytedance/seedance-2.5', ModelCategory.VIDEO_EDIT, ['draft/complete']],
+  ...[
+    'fal-ai/bytedance/seedance/v1/pro',
+    'fal-ai/bytedance/seedance/v1/pro/fast',
+    'fal-ai/bytedance/seedance/v1.5/pro',
+  ].map((family): [string, ModelCategory, readonly string[]] => [
+    family,
+    ModelCategory.VIDEO,
+    ['text-to-video', 'image-to-video'],
+  ]),
   [
     'alibaba/wan-3.0',
     ModelCategory.VIDEO,

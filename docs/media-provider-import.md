@@ -68,3 +68,27 @@ approval path after reviewing schema compatibility and pricing evidence.
 Official sources: [fal metadata](https://fal.ai/docs/platform-apis/v1/models),
 [fal pricing](https://fal.ai/docs/platform-apis/v1/models/pricing), and
 [Replicate models API](https://replicate.com/docs/reference/http#models.get).
+
+## Seedance family
+
+The manifest includes all eight official Replicate Seedance endpoints observed
+on 2026-10-09: `1-lite`, `1-pro`, `1-pro-fast`, `1.5-pro`, `2.0`, `2.0-fast`,
+`2.0-mini`, and `2.5`, under `bytedance/seedance-`. An explicit import includes
+2.5 even when it already has reviewed prices. Existing approvals remain intact.
+
+The fal manifest includes the 25 active task endpoints observed on that date:
+text/image/reference variants for 2.0, Fast, Mini, US, 2.5 and 2.5 US; the 2.5
+draft completion endpoint; and text/image variants for 1 Pro, 1 Pro Fast and
+1.5 Pro. Deprecated fal 1 Lite endpoints are excluded. Each endpoint keeps its
+own schema, pricing and review decision; provider prices are not interchangeable.
+
+Seven Replicate models have captured per-second prices, including resolution
+and video-reference conditions. Seedance 1.5 Pro remains quarantined: its public
+billing tiers vary by resolution, but the observed input schema has no resolution
+field. Do not assign an arbitrary resolution tariff. fal pricing still requires
+the intended account's authenticated price response; public model metadata alone
+does not provide an approvable billing contract.
+
+Source inventories: [Replicate ByteDance models](https://replicate.com/bytedance)
+and [fal ByteDance models](https://fal.ai/explore/bytedance). Recheck identities,
+schemas and tariffs before importing; these are dated provider observations.

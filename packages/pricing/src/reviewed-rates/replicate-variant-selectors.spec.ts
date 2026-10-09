@@ -62,6 +62,48 @@ function rules(endpoint = 'openai/gpt-image-2'): ReviewedVariantRule[] {
 const date = '2026-10-05T00:00:00Z';
 
 describe('checked-in Replicate variant selectors', () => {
+  it('derives Seedance Mini video-input tariffs from real inputs', () => {
+    const mini = mapped('bytedance/seedance-2.0-mini');
+    expect(mini.rates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          unitPriceUsd: 0.09,
+          when: { model_variant: 'non_video_in', resolution: '720p' },
+        }),
+        expect.objectContaining({
+          unitPriceUsd: 0.11,
+          when: { model_variant: 'video_in', resolution: '720p' },
+        }),
+      ]),
+    );
+    expect(
+      resolveVariantSelectors(mini.variantRules ?? [], {
+        kind: 'dispatch',
+        input: { reference_videos: [] },
+      }),
+    ).toMatchObject({
+      status: 'ok',
+      selectors: { model_variant: 'non_video_in' },
+    });
+    expect(
+      resolveVariantSelectors(mini.variantRules ?? [], {
+        kind: 'dispatch',
+        input: { reference_videos: ['https://example.test/video.mp4'] },
+      }),
+    ).toMatchObject({ status: 'ok', selectors: { model_variant: 'video_in' } });
+  });
+  it('quarantines Seedance 1.5 when billing resolution is absent from the schema', () => {
+    const fixture = REPLICATE_VARIANT_FIXTURES['bytedance/seedance-1.5-pro'];
+    if (!fixture) throw new Error('missing Seedance 1.5 evidence');
+    expect(fixture.inputProperties).not.toHaveProperty('resolution');
+    expect(
+      mapReplicateBillingTiers(
+        fixture.tiers,
+        fixture.inputProperties,
+        'bytedance/seedance-1.5-pro',
+      ).status,
+    ).toBe('failed');
+  });
   it('prices FLUX 3 draft and continuation independently of audio', () => {
     const { rates, variantRules } = mapped('black-forest-labs/flux-3');
     expect(rates).toEqual(
