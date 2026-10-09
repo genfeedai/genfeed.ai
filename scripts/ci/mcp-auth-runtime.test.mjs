@@ -87,6 +87,12 @@ test('journey diagnostics expose only the finite failure category', () => {
     'B01_REAL_PRINCIPALS_TOKEN',
   );
   assert.equal(
+    readJourneyFailure(
+      'B01_REAL_PRINCIPALS_SIGNIN_HTTP_401_INVALID_EMAIL_OR_PASSWORD failed',
+    ),
+    'B01_REAL_PRINCIPALS_SIGNIN_HTTP_401_INVALID_EMAIL_OR_PASSWORD',
+  );
+  assert.equal(
     readJourneyFailure(`private output\n${CONTRACT.cases[0]} failed\n`),
     CONTRACT.cases[0],
   );

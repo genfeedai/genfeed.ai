@@ -167,6 +167,20 @@ try {
         },
         body: JSON.stringify({ email: actor.email, password: actor.password }),
       });
+      if (signin.status !== 200) {
+        principalStage = `SIGNIN_HTTP_${signin.status}`;
+        const code = record(signin.body).code;
+        if (
+          typeof code === 'string' &&
+          [
+            'INVALID_EMAIL_OR_PASSWORD',
+            'INVALID_ORIGIN',
+            'EMAIL_NOT_VERIFIED',
+            'USER_BANNED',
+          ].includes(code)
+        )
+          principalStage += `_${code}`;
+      } else principalStage = 'SIGNIN_IDENTITY';
       requireMcpRuntime(
         signin.status === 200 &&
           record(record(signin.body).user).id === actor.id,
