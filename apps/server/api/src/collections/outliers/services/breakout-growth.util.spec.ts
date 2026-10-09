@@ -1,3 +1,4 @@
+import { readArtifactRecord } from '@api/agent-artifacts/agent-artifact-material.util';
 import { readBreakoutGrowth } from '@api/collections/outliers/services/breakout-growth.util';
 import { Platform } from '@genfeedai/contracts';
 import type { BreakoutPublicationSourceV1 } from '@genfeedai/contracts/interfaces';
@@ -56,13 +57,91 @@ function fixture(values = [1300, 1000, 1000]) {
     updatedAt: new Date(nowMs),
   }));
   const findMany = vi.fn(async () => rows);
+  const findComparison = vi.fn(
+    async (
+      _query: Prisma.BreakoutBaselineReceiptFindFirstArgs,
+    ): Promise<{ evaluation: Prisma.JsonValue } | null> => {
+      const exposure = readArtifactRecord(
+        readArtifactRecord(rows[0].exposures).views,
+      );
+      return {
+        evaluation: {
+          version: 1,
+          status: 'breakout',
+          targetObservationId: rows[0].id,
+          metric: 'views',
+          source: String(exposure.source),
+          exposureScope: String(exposure.scope),
+          timeBasis: rows[0].providerAsOf
+            ? 'provider_as_of'
+            : 'collection_interval',
+          targetValue: Number(exposure.value),
+          median: 100,
+          ratio: Number(exposure.value) / 100,
+          sampleSize: 5,
+        },
+      };
+    },
+  );
   const tx = {
     postExposureObservation: { findMany },
+    outlierConfiguration: { findFirst: vi.fn(async () => null) },
+    breakoutBaselineReceipt: { findFirst: findComparison },
   } as unknown as Prisma.TransactionClient;
   const input = { source, metric: 'views' as const, nowMs };
-  return { rows, findMany, tx, input };
+  return { rows, findMany, findComparison, tx, input };
 }
 describe('fresh prospective breakout growth', () => {
+  it('requires a fresh positive comparison under current policy instead of carrying a historic trigger forward', async () => {
+    const h = fixture();
+    h.findComparison.mockResolvedValueOnce(null);
+    expect(await readBreakoutGrowth(h.tx, h.input)).toEqual({
+      status: 'held',
+      reason: 'growth_evidence_unavailable',
+    });
+    expect(h.findComparison).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          targetObservationId: h.rows[0].id,
+          metric: 'views',
+          optionsFingerprint: expect.any(String),
+          organizationId: source.organizationId,
+          brandId: source.brandId,
+          credentialId: source.credentialId,
+          isDeleted: false,
+        }),
+      }),
+    );
+  });
+  it.each([
+    'scope',
+    'provider',
+    'value',
+    'observation',
+    'below_threshold',
+  ] as const)('rejects a current comparison mismatch (%s)', async (reason) => {
+    const h = fixture();
+    h.findComparison.mockResolvedValueOnce({
+      evaluation: {
+        version: 1,
+        status: reason === 'below_threshold' ? 'below_threshold' : 'breakout',
+        targetObservationId:
+          reason === 'observation' ? 'historic' : h.rows[0].id,
+        metric: 'views',
+        source: reason === 'provider' ? 'other' : 'post.views',
+        exposureScope: reason === 'scope' ? 'organic' : 'unknown',
+        timeBasis: 'collection_interval',
+        targetValue: reason === 'value' ? 1400 : 1300,
+        median: 100,
+        ratio: 13,
+        sampleSize: 5,
+      },
+    });
+    expect(await readBreakoutGrowth(h.tx, h.input)).toEqual({
+      status: 'held',
+      reason: 'growth_evidence_unavailable',
+    });
+  });
   it('allows a month-old publication when fresh growth resumes, without an age expiry', async () => {
     const h = fixture();
     expect(await readBreakoutGrowth(h.tx, h.input)).toMatchObject({

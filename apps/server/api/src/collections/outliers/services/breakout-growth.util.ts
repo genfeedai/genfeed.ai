@@ -1,4 +1,8 @@
-import { readBreakoutObservation } from '@api/collections/outliers/services/breakout-baseline-receipt.util';
+import {
+  breakoutBaselineOptionsFingerprint,
+  readBreakoutObservation,
+} from '@api/collections/outliers/services/breakout-baseline-receipt.util';
+import { collectedBreakoutBaselineOptions } from '@api/collections/outliers/services/breakout-collected-signal.util';
 import { breakoutPublicationId } from '@api/collections/outliers/services/breakout-publication-source.util';
 import type {
   BreakoutExposureMetric,
@@ -6,7 +10,23 @@ import type {
   BreakoutObservation,
   BreakoutPublicationSource,
 } from '@genfeedai/contracts/interfaces';
+import { outlierConfigurationSchema } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { z } from 'zod';
+
+const currentComparisonSchema = z.object({
+  version: z.literal(1),
+  status: z.literal('breakout'),
+  targetObservationId: z.string(),
+  metric: z.enum(['views', 'impressions']),
+  source: z.string().min(1),
+  exposureScope: z.enum(['organic', 'paid', 'aggregate', 'unknown']),
+  timeBasis: z.enum(['provider_as_of', 'collection_interval']),
+  targetValue: z.number().int().nonnegative(),
+  median: z.number().finite().positive(),
+  ratio: z.number().finite().min(10),
+  sampleSize: z.number().int().min(5).max(50),
+});
 
 export const BREAKOUT_GROWTH_FRESHNESS_MS = 15 * 60_000;
 export const BREAKOUT_GROWTH_MAX_SPACING_MS = 2 * 60 * 60_000;
@@ -110,6 +130,69 @@ export async function readBreakoutGrowth(
   }
   if (increments[0] <= 0 || (rates.length > 1 && rates[0] < rates[1]))
     return { status: 'held', reason: 'growth_faded' };
+  const configRow = await tx.outlierConfiguration.findFirst({
+    where: {
+      organizationId: source.organizationId,
+      isDeleted: false,
+    },
+  });
+  const configuration = outlierConfigurationSchema.parse(
+    configRow
+      ? {
+          windowSize: configRow.windowSize,
+          minimumSampleSize: configRow.minimumSampleSize,
+          outlierThreshold: configRow.outlierThreshold,
+          breakoutThreshold: configRow.breakoutThreshold,
+          maturityHoursByPlatform: configRow.maturityHoursByPlatform,
+        }
+      : {},
+  );
+  const collection = {
+    source,
+    sourceAttemptId: rows[0].sourceAttemptId,
+    requestStartedAt: rows[0].requestStartedAt,
+    receivedAt: rows[0].receivedAt,
+    providerAsOf: rows[0].providerAsOf,
+    exposures: latest.exposures,
+    isPinned: rows[0].isPinned,
+    isPromoted: rows[0].isPromoted,
+  };
+  const options = collectedBreakoutBaselineOptions(collection, configuration);
+  if (!options)
+    return { status: 'held', reason: 'growth_evidence_unavailable' };
+  const receipt = await tx.breakoutBaselineReceipt.findFirst({
+    where: {
+      organizationId: source.organizationId,
+      brandId: source.brandId,
+      credentialId: source.credentialId,
+      platform: source.platform,
+      format: source.format,
+      targetObservationId: latest.id,
+      metric,
+      isDeleted: false,
+      optionsFingerprint: breakoutBaselineOptionsFingerprint(options),
+    },
+    orderBy: { evaluatedAt: 'desc' },
+    select: { evaluation: true },
+  });
+  const comparison = currentComparisonSchema.safeParse(receipt?.evaluation);
+  if (
+    !comparison.success ||
+    comparison.data.targetObservationId !== latest.id ||
+    comparison.data.metric !== metric ||
+    comparison.data.source !== evidence.source ||
+    comparison.data.exposureScope !== evidence.scope ||
+    comparison.data.targetValue !== evidence.value ||
+    comparison.data.timeBasis !==
+      (latest.providerAsOfMs === null
+        ? 'collection_interval'
+        : 'provider_as_of') ||
+    comparison.data.ratio !==
+      comparison.data.targetValue / comparison.data.median ||
+    comparison.data.ratio < options.breakoutThreshold ||
+    comparison.data.sampleSize < options.minimumSampleSize
+  )
+    return { status: 'held', reason: 'growth_evidence_unavailable' };
   return {
     status: 'growing',
     observationIds: observations.map((row) => row.id),

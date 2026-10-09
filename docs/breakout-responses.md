@@ -245,6 +245,10 @@ measurement is at most 15 minutes old and adjacent measurements are at most two
 hours apart. Current exposure must increase; when three samples exist, its rate
 must not fall below the preceding rate. Renewal after a zero-growth interval is
 explicit. These are evidence-freshness bounds, independent of publication age.
+The latest observation also needs its own positive comparison receipt under the
+current outlier settings, with matching metric source, provenance, time basis and
+count. An old trigger cannot qualify a changed provider/provenance or a current
+below-threshold comparison.
 Dispatch and publication wiring still must recheck this gate; no measurement
 alone grants authority or reserves money.
 

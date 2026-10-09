@@ -8,6 +8,7 @@ import {
 } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { isPlatform } from '@genfeedai/contracts';
 import type {
+  BreakoutBaselineOptions,
   BreakoutBaselineReadInput,
   BreakoutBaselineReceiptResult,
   BreakoutExposureEvidence,
@@ -43,6 +44,11 @@ const EXPOSURE_SCOPES = ['organic', 'paid', 'aggregate', 'unknown'] as const;
 
 function hash(value: unknown): string {
   return buildArtifactContentDigest({ evidence: value });
+}
+export function breakoutBaselineOptionsFingerprint(
+  options: Readonly<BreakoutBaselineOptions>,
+): string {
+  return hash(['breakout-baseline-options-v2-provenance', options]);
 }
 export function readBreakoutObservation(
   row: PostExposureObservation,
@@ -289,10 +295,7 @@ export async function readBreakoutBaselineReceipt(
     observations: candidates,
     truncated,
   });
-  const optionsFingerprint = hash([
-    'breakout-baseline-options-v2-provenance',
-    input.options,
-  ]);
+  const optionsFingerprint = breakoutBaselineOptionsFingerprint(input.options);
   const idempotencyKey = hash([
     'breakout-baseline-receipt-v1',
     target.id,

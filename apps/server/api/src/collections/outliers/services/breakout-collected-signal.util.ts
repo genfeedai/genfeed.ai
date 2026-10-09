@@ -12,9 +12,16 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
+type BreakoutBaselineTimingInput = Pick<
+  BreakoutAnyCaptureInput,
+  'providerAsOf' | 'requestStartedAt' | 'receivedAt'
+> & {
+  source: Pick<BreakoutAnyCaptureInput['source'], 'publishedAt'>;
+};
+
 /** Sampling policy only. Actual response lifetime/growth is a separate execution gate. */
 export function collectedBreakoutBaselineOptions(
-  input: Readonly<BreakoutAnyCaptureInput>,
+  input: Readonly<BreakoutBaselineTimingInput>,
   configuration: Readonly<OutlierConfigurationValues>,
 ): BreakoutBaselineOptions | null {
   const measuredAt =
