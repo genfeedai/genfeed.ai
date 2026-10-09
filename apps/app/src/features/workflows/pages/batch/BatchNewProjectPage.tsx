@@ -5,6 +5,10 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import {
+  getJsonApiErrorMember,
+  getJsonApiErrorMessage,
+} from '@services/core/json-api-error-message';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -29,7 +33,7 @@ import { createBatchProjectsApi } from './batch-projects-api';
 export default function BatchNewProjectPage() {
   const t = useTranslations('pages.batchProjects');
   const { brandId } = useBrand();
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const router = useRouter();
   const isIdeasEnabled = useFeatureFlag('batch_ideas');
   const getService = useAuthedService(createBatchProjectsApi);
@@ -49,12 +53,15 @@ export default function BatchNewProjectPage() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const controller = new AbortController();
     setWorkflowId('');
     setError(null);
+    setIsSubscriptionRequired(false);
     setLoading(true);
+    if (!brandId) return () => controller.abort();
     void getWorkflows()
       .then((service) => service.list({ brandId }))
       .then((items) => {
@@ -63,7 +70,7 @@ export default function BatchNewProjectPage() {
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted)
-          setError(reason instanceof Error ? reason.message : t('loadFailed'));
+          setError(getJsonApiErrorMessage(reason, t('loadFailed')));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -74,6 +81,7 @@ export default function BatchNewProjectPage() {
     if (
       !brandId ||
       busy ||
+      isSubscriptionRequired ||
       (kind === BatchProjectKind.WORKFLOW &&
         (loading || !workflows.some((workflow) => workflow.id === workflowId)))
     )
@@ -89,7 +97,12 @@ export default function BatchNewProjectPage() {
       });
       router.push(href(`${APP_ROUTES.STUDIO.BATCH}/${project.id}`));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('saveFailed'));
+      const member = getJsonApiErrorMember(reason);
+      setIsSubscriptionRequired(
+        member?.status === 403 &&
+          member.title === 'Active subscription required',
+      );
+      setError(getJsonApiErrorMessage(reason, t('saveFailed')));
     } finally {
       setBusy(false);
     }
@@ -167,19 +180,27 @@ export default function BatchNewProjectPage() {
             </div>
           ))}
         {error && <p role="alert">{error}</p>}
-        <Button
-          isDisabled={
-            !brandId ||
-            (kind === BatchProjectKind.WORKFLOW
-              ? loading ||
-                !workflows.some((workflow) => workflow.id === workflowId)
-              : !isIdeasEnabled)
-          }
-          isLoading={busy}
-          onClick={() => void create()}
-        >
-          {t('create')}
-        </Button>
+        {isSubscriptionRequired ? (
+          <Button asChild>
+            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+              {t('manageSubscription')}
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            isDisabled={
+              !brandId ||
+              (kind === BatchProjectKind.WORKFLOW
+                ? loading ||
+                  !workflows.some((workflow) => workflow.id === workflowId)
+                : !isIdeasEnabled)
+            }
+            isLoading={busy}
+            onClick={() => void create()}
+          >
+            {t('create')}
+          </Button>
+        )}
       </div>
     </Container>
   );
