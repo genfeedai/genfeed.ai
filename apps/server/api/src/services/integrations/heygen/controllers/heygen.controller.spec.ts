@@ -1,11 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HeyGenController } from '@api/services/integrations/heygen/controllers/heygen.controller';
+import { HeyGenAvatarPageDto } from '@api/services/integrations/heygen/dto/heygen-avatar-page.dto';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { validate } from 'class-validator';
 
 const mockUser = {
   id: 'user_abc',
@@ -20,6 +22,7 @@ describe('HeyGenController', () => {
     getVoices: ReturnType<typeof vi.fn>;
     getConnectionStatus: ReturnType<typeof vi.fn>;
     getAvatars: ReturnType<typeof vi.fn>;
+    getAvatarPage: ReturnType<typeof vi.fn>;
   };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
@@ -32,6 +35,7 @@ describe('HeyGenController', () => {
         .fn()
         .mockResolvedValue({ hasCustomKey: true, isConnected: true }),
       getAvatars: vi.fn().mockResolvedValue([]),
+      getAvatarPage: vi.fn(),
       getVoices: vi.fn().mockResolvedValue([]),
     };
     loggerService = {
@@ -130,6 +134,52 @@ describe('HeyGenController', () => {
   it('should throw HttpException when getAvatars fails', async () => {
     heygenService.getAvatars.mockRejectedValue(new Error('timeout'));
     await expect(controller.getAvatars(mockUser)).rejects.toThrow(
+      HttpException,
+    );
+  });
+
+  it('rejects invalid ownership and oversized cursors at the DTO boundary', async () => {
+    const invalid = Object.assign(new HeyGenAvatarPageDto(), {
+      ownership: 'all',
+      cursor: 'x'.repeat(4097),
+    });
+    expect(
+      (await validate(invalid)).map((error) => error.property).sort(),
+    ).toEqual(['cursor', 'ownership']);
+    const valid = Object.assign(new HeyGenAvatarPageDto(), {
+      ownership: 'private',
+      cursor: 'opaque/page+2=',
+    });
+    expect(await validate(valid)).toEqual([]);
+  });
+
+  it('serializes a bounded page with its partition and opaque continuation', async () => {
+    const page = {
+      avatars: [],
+      ownership: 'private',
+      nextCursor: 'opaque-next',
+    };
+    heygenService.getAvatarPage.mockResolvedValue(page);
+    const result = await controller.getAvatarPage(mockUser, {
+      ownership: 'private',
+      cursor: 'opaque-current',
+    });
+    expect(heygenService.getAvatarPage).toHaveBeenCalledWith(
+      testId('org'),
+      'private',
+      'opaque-current',
+    );
+    expect(result.data.attributes).toEqual({
+      ...page,
+      provider: 'heygen',
+      count: 0,
+    });
+    expect(result.data.type).toBe('avatars');
+  });
+
+  it('preserves page failure rather than reporting an empty complete catalogue', async () => {
+    heygenService.getAvatarPage.mockRejectedValue(new Error('provider outage'));
+    await expect(controller.getAvatarPage(mockUser, {})).rejects.toThrow(
       HttpException,
     );
   });

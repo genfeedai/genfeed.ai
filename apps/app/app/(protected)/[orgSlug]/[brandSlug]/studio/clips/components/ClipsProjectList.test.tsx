@@ -8,7 +8,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ClipsProjectList from './ClipsProjectList';
 
 vi.mock('next-intl', async () => {
@@ -38,6 +38,7 @@ const projects: ClipProjectSummary[] = Array.from(
     readyClipCount: 2,
     progress: 100,
     status: 'completed',
+    sourceVideoUrl: 'https://www.youtube.com/watch?v=zjXzkB8z5xg',
   }),
 );
 
@@ -45,8 +46,19 @@ describe('ClipsProjectList', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
   });
-  it('defaults to rows, orders five recent projects, and persists grid only for All', async () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  it('defaults to rows, orders three recent cards, and persists grid only for All', async () => {
     const { unmount } = render(
       <ClipsProjectList projects={projects} isLoading={false} />,
     );
@@ -55,13 +67,20 @@ describe('ClipsProjectList', () => {
     expect(recent.textContent?.indexOf('Project 5')).toBeLessThan(
       recent.textContent?.indexOf('Project 4') ?? 0,
     );
-    expect(screen.queryByTestId('clips-project-card')).toBeNull();
+    expect(within(recent).getAllByTestId('clips-project-card')).toHaveLength(3);
+    expect(
+      within(recent).getByRole('img', { name: 'Project 5' }),
+    ).toHaveAttribute(
+      'src',
+      'https://img.youtube.com/vi/zjXzkB8z5xg/hqdefault.jpg',
+    );
+    expect(within(recent).queryByText('Project 2')).toBeNull();
     await userEvent.click(screen.getByRole('radio', { name: 'Grid' }));
-    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(6);
-    expect(within(recent).queryByTestId('clips-project-card')).toBeNull();
+    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(9);
+    expect(within(recent).getAllByTestId('clips-project-card')).toHaveLength(3);
     unmount();
     render(<ClipsProjectList projects={projects} isLoading={false} />);
-    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(6);
+    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(9);
   });
   it('keeps rename/delete in overflow and retains the list after mutation failure', async () => {
     const rename = vi.fn().mockResolvedValue(undefined);

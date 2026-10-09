@@ -46,7 +46,7 @@ describe('Claude connector execution boundary', () => {
         isError: true,
         structuredContent: {
           code: 'unavailable_in_connector',
-          nextStepUrl: 'https://app.genfeed.ai/studio/generate',
+          nextStepUrl: 'https://app.genfeed.ai/studio/playground',
         },
       });
       expect(client.createApproval).not.toHaveBeenCalled();

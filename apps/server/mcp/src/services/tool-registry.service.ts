@@ -352,7 +352,7 @@ export class ToolRegistryService implements OnModuleInit {
           code: 'unavailable_in_connector',
           message:
             'This tool is unavailable through the Claude connector. Create images, video and audio in Genfeed Studio, then return here to manage your content.',
-          nextStepUrl: `${getPublicAppUrl()}${APP_ROUTES.STUDIO.GENERATE}`,
+          nextStepUrl: `${getPublicAppUrl()}${APP_ROUTES.STUDIO.PLAYGROUND}`,
         });
       }
       const canonicalTool = getToolByName(name);
@@ -768,7 +768,7 @@ export class ToolRegistryService implements OnModuleInit {
           return this.requestAccessMode === 'claude'
             ? markdownResource(
                 uri,
-                `# Genfeed for Claude\nManage brands, drafts, scheduling and analytics with existing assets. Create images, video and audio in [Genfeed Studio](${getPublicAppUrl()}${APP_ROUTES.STUDIO.GENERATE}). This connector cannot run generation, workflows, batches, remix or approval redemption.`,
+                `# Genfeed for Claude\nManage brands, drafts, scheduling and analytics with existing assets. Create images, video and audio in [Genfeed Studio](${getPublicAppUrl()}${APP_ROUTES.STUDIO.PLAYGROUND}). This connector cannot run generation, workflows, batches, remix or approval redemption.`,
               )
             : agentGuideResource(uri);
 

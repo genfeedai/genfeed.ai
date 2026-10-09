@@ -18,9 +18,15 @@ const SIDEBAR_TRANSLATIONS: Record<string, string> = {
   workspace: 'Workspace',
 };
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => SIDEBAR_TRANSLATIONS[key] ?? key,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useTranslations: (namespace: string) =>
+      namespace === 'pages.organizationLanding'
+        ? translateFromCatalog(namespace)
+        : (key: string) => SIDEBAR_TRANSLATIONS[key] ?? key,
+  };
+});
 
 const {
   appLayoutSpy,
@@ -1597,7 +1603,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         items: expect.arrayContaining([
-          expect.objectContaining({ href: '/studio/generate' }),
+          expect.objectContaining({ href: '/studio/playground' }),
           expect.objectContaining({ href: '/studio/storyboard' }),
           expect.objectContaining({ href: '/studio/clips' }),
           expect.objectContaining({ href: '/studio/batch' }),
@@ -1605,7 +1611,7 @@ describe('AppProtectedLayout', () => {
       }),
     );
 
-    // One prompt bar at `/studio/generate` replaced the per-type tabs, and no
+    // One prompt bar at `/studio/playground` replaced the per-type tabs, and no
     // Studio nav entry hands the operator off to another module app.
     for (const retiredHref of [
       '/studio/image',

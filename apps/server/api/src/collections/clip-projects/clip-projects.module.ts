@@ -18,6 +18,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { UploadsModule } from '@api/services/uploads/uploads.module';
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -32,6 +33,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [ClipProjectsCoreModule],
   imports: [
+    HttpModule,
     ClipProjectsCoreModule,
     ClipResultsModule,
     CreditsModule,

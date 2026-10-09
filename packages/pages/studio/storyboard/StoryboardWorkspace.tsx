@@ -447,25 +447,22 @@ export default function StoryboardWorkspace() {
       label={translate('workspace.newTitle')}
       description={translate('workspace.newDescription')}
       right={
-        <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={href(APP_ROUTES.STUDIO.STORYBOARD)}>
-            {translate('runs.all')}
-          </Link>
-        </Button>
-      }
-    >
-      <div className="mx-auto w-full max-w-5xl space-y-4">
-        <StoryboardCreate />
-        <Card
-          label={translate('workspace.remixDiscovery')}
-          description={translate('workspace.remixDiscoveryDescription')}
-        >
+        <div className="flex flex-wrap gap-2">
           <Button asChild variant={ButtonVariant.SECONDARY}>
             <Link href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}>
               {translate('workspace.browseDiscovery')}
             </Link>
           </Button>
-        </Card>
+          <Button asChild variant={ButtonVariant.SECONDARY}>
+            <Link href={href(APP_ROUTES.STUDIO.STORYBOARD)}>
+              {translate('runs.all')}
+            </Link>
+          </Button>
+        </div>
+      }
+    >
+      <div className="mx-auto w-full max-w-7xl space-y-4">
+        <StoryboardCreate />
       </div>
     </Container>
   );

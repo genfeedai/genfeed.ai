@@ -362,7 +362,7 @@ function IngredientQuickActionsContent(
               closeModal(ModalEnum.INGREDIENT);
               push(
                 href(
-                  `${APP_ROUTES.STUDIO.GENERATE}?editImage=${encodeURIComponent(selectedIngredient.id)}`,
+                  `${APP_ROUTES.STUDIO.PLAYGROUND}?editImage=${encodeURIComponent(selectedIngredient.id)}`,
                 ),
               );
             },

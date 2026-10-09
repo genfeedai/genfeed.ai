@@ -5,7 +5,7 @@ import { isMajorPromptBarHost } from './is-major-prompt-bar-host';
 describe('isMajorPromptBarHost', () => {
   it('treats studio and edit surfaces as major prompt-bar hosts', () => {
     expect(isMajorPromptBarHost(APP_ROUTES.STUDIO.ROOT)).toBe(true);
-    expect(isMajorPromptBarHost(APP_ROUTES.STUDIO.GENERATE)).toBe(true);
+    expect(isMajorPromptBarHost(APP_ROUTES.STUDIO.PLAYGROUND)).toBe(true);
     expect(isMajorPromptBarHost(APP_ROUTES.STUDIO.CLIPS)).toBe(true);
     expect(isMajorPromptBarHost(APP_ROUTES.EDIT.ROOT)).toBe(true);
     expect(isMajorPromptBarHost(APP_ROUTES.EDIT.ARTICLE)).toBe(true);

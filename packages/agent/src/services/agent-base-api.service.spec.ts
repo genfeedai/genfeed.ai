@@ -60,6 +60,31 @@ describe('AgentBaseApiService', () => {
     vi.mocked(getGenerationEntryHeaders).mockReturnValue({});
   });
 
+  it.each([
+    { document: { data: null }, reason: 'missing-resource' },
+    { document: {}, reason: 'invalid-document' },
+  ])(
+    'classifies $reason at the resource decoder boundary',
+    async ({ document, reason }) => {
+      mockFetch.mockResolvedValueOnce({
+        json: vi.fn().mockResolvedValue(document),
+        ok: true,
+      });
+      const service = new AgentBaseApiService(baseConfig);
+      await expect(
+        service.fetchResource(
+          'https://api.genfeed.ai/execution',
+          undefined,
+          'Read failed',
+          'Decode failed',
+        ),
+      ).rejects.toMatchObject({
+        _tag: 'AgentApiDecodeError',
+        reason,
+      });
+    },
+  );
+
   describe('headers()', () => {
     it('should include Authorization header when token is present', async () => {
       const service = new AgentBaseApiService({

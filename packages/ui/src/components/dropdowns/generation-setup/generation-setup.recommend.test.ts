@@ -3,11 +3,11 @@ import type {
   GenerationSetupFieldKey,
   GenerationSetupRecommendationInput,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioPlaygroundCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { describe, expect, it } from 'vitest';
 import { recommendGenerationSetup } from './generation-setup.recommend';
 
-const FULL_CAPABILITIES: StudioGenerateCapabilities = {
+const FULL_CAPABILITIES: StudioPlaygroundCapabilities = {
   hasAspectRatio: true,
   hasBrandEnrichment: true,
   hasDuration: true,

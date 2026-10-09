@@ -261,7 +261,7 @@ describe('TrendContentCard', () => {
 
     expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
       'href',
-      '/org-1/brand-1/studio/generate?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
+      '/org-1/brand-1/studio/playground?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
     );
     expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
   });

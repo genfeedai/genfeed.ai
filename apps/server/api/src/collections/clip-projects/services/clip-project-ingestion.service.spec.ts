@@ -11,7 +11,9 @@ import type { IngredientsService } from '@api/collections/ingredients/services/i
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
+import type { HttpService } from '@nestjs/axios';
 import { BadRequestException, ConflictException } from '@nestjs/common';
+import { of, throwError } from 'rxjs';
 
 describe('ClipProjectIngestionService', () => {
   const currentUser = {
@@ -31,6 +33,7 @@ describe('ClipProjectIngestionService', () => {
     voiceProvider: 'heygen',
   };
   let service: ClipProjectIngestionService;
+  const http = { get: vi.fn() };
   let clipProjectsService: {
     claimDraft: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -65,6 +68,9 @@ describe('ClipProjectIngestionService', () => {
   };
 
   beforeEach(() => {
+    http.get
+      .mockReset()
+      .mockReturnValue(throwError(() => new Error('metadata unavailable')));
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-26T12:00:00.000Z'));
     clipProjectsService = {
@@ -124,11 +130,44 @@ describe('ClipProjectIngestionService', () => {
       creditsUtilsService as unknown as CreditsUtilsService,
       ingredientsService as unknown as IngredientsService,
       presignedUploadService as unknown as PresignedUploadService,
+      http as unknown as HttpService,
     );
   });
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('uses the actual YouTube title for an analysis project without submitting avatar generation', async () => {
+    http.get.mockReturnValue(of({ data: { title: '  Source video title  ' } }));
+    await service.analyzeYoutube(currentUser as never, {
+      youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+    });
+    expect(http.get).toHaveBeenCalledWith('https://www.youtube.com/oembed', {
+      params: {
+        format: 'json',
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      },
+      timeout: 5000,
+    });
+    expect(clipProjectsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Source video title',
+        organizationId: 'org-1',
+      }),
+    );
+    expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledOnce();
+    expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('does not call a caller-supplied metadata host or create a project for an unsupported URL', async () => {
+    await expect(
+      service.analyzeYoutube(currentUser as never, {
+        youtubeUrl: 'https://attacker.test/youtube.com/watch?v=dQw4w9WgXcQ',
+      }),
+    ).rejects.toThrow('supported public YouTube');
+    expect(http.get).not.toHaveBeenCalled();
+    expect(clipProjectsService.create).not.toHaveBeenCalled();
   });
 
   it('creates and queues an avatar project with custom values', async () => {
@@ -259,7 +298,7 @@ describe('ClipProjectIngestionService', () => {
     expect(clipProjectsService.create).toHaveBeenCalledWith({
       brandId: 'brand-1',
       language: 'en',
-      name: 'YouTube Clip Factory — 2026-08-26',
+      name: 'YouTube · dQw4w9WgXcQ',
       organizationId: 'org-1',
       settings: {
         addCaptions: true,
@@ -546,7 +585,7 @@ describe('ClipProjectIngestionService', () => {
     expect(clipProjectsService.create).toHaveBeenCalledWith({
       brandId: undefined,
       language: 'en',
-      name: 'Clip Analysis — 2026-08-26',
+      name: 'YouTube · dQw4w9WgXcQ',
       organizationId: 'org-1',
       settings: {
         addCaptions: true,

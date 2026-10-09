@@ -1,6 +1,7 @@
 import { VoiceProvider } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
+  HeyGenAvatarCatalogPage,
   HeyGenAvatarRef,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
@@ -42,6 +43,28 @@ export class HeyGenService extends BaseService<IHeyGen> {
       config,
     );
     return response.data.data.attributes.avatars;
+  }
+
+  async fetchAvatarPage(options: {
+    ownership: 'public' | 'private';
+    cursor?: string;
+    signal?: AbortSignal;
+  }): Promise<HeyGenAvatarCatalogPage> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [500, 502, 503, 504],
+      signal: options.signal,
+      params: {
+        ownership: options.ownership,
+        ...(options.cursor ? { cursor: options.cursor } : {}),
+      },
+    };
+    const response = await this.instance.get<{
+      data: { attributes: HeyGenAvatarCatalogPage };
+    }>(
+      `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/avatars/page`,
+      config,
+    );
+    return response.data.data.attributes;
   }
 
   async fetchVoices(signal?: AbortSignal): Promise<HeyGenCatalogVoice[]> {

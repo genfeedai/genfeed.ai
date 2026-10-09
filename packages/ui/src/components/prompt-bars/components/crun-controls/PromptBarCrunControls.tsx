@@ -17,7 +17,7 @@ export default function PromptBarCrunControls({
   isDisabled,
   error,
 }: PromptBarCrunControlsProps) {
-  const translate = useTranslations('pages.studioGenerate');
+  const translate = useTranslations('pages.studioPlayground');
   const field = controls.fields.output_format;
   const options =
     field?.enum?.filter(

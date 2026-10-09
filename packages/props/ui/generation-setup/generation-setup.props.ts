@@ -1,8 +1,9 @@
+import type { StudioSystemPreset } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import type {
   FormDropdownOption,
   IModel,
   IStudioLook,
-  StudioGenerateCapabilities,
+  StudioPlaygroundCapabilities,
 } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type {
@@ -52,6 +53,7 @@ export interface GenerationSetupImageEditingMode {
 }
 
 export interface GenerationSetupPopoverProps {
+  showPresets?: boolean;
   /** One compact entry point for Studio's type and settings. */
   isIconOnly?: boolean;
   /** Studio's explicit image editing override; other surfaces omit it. */
@@ -63,7 +65,7 @@ export interface GenerationSetupPopoverProps {
   scopeKey: string;
   setup: GenerationSetup;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   /** Omitted (or a single entry) on surfaces that lock the type, e.g. agent image-only. */
   typeOptions: readonly GenerationSetupTypeOption[];
   models: readonly IModel[];
@@ -91,7 +93,7 @@ export interface GenerationSetupPopoverProps {
   buttonRef?: RefObject<HTMLButtonElement | null>;
   /**
    * The user's saved Advanced Mode. When provided, the popover shows the
-   * switch; the surface decides what Advanced reveals (manual model choice).
+   * Auto/Advanced button group; the surface decides what Advanced reveals.
    */
   advancedMode?: GenerationSetupAdvancedMode;
 }
@@ -138,8 +140,10 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupFrontDoorProps {
+  isAutoPriorityOnly?: boolean;
+  showPresets?: boolean;
   showEnhancementSettings?: boolean;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   inputControls?: CrunInputControls;
   isDisabled?: boolean;
   lookOptions: GenerationSetupLookOptions;
@@ -163,6 +167,18 @@ export interface GenerationSetupPresetsSectionProps {
   setup: GenerationSetup;
 }
 
+export interface GenerationSetupPresetsPopoverProps
+  extends GenerationSetupPresetsSectionProps {
+  onClearPreset: () => void;
+  systemPresets?: readonly StudioSystemPreset[];
+  onApplySystemPreset?: (preset: StudioSystemPreset) => void;
+}
+
+export interface GenerationSetupPresetPreviewProps {
+  preset: StudioSystemPreset;
+  isAnimated?: boolean;
+}
+
 export interface GenerationSetupOptionPickerProps {
   label: string;
   value: string;
@@ -184,11 +200,12 @@ export type GenerationSetupCustomizeSectionId =
   | 'presets';
 
 export interface GenerationSetupCustomizePanelProps {
+  isAutoPriorityOnly?: boolean;
   typeOptions: readonly GenerationSetupTypeOption[];
   onTypeChange?: (type: GenerationSetupType) => void;
   inputControls?: CrunInputControls;
   referenceCount?: number;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
   initialSection: GenerationSetupCustomizeSectionId;
@@ -209,7 +226,8 @@ export interface GenerationSetupCustomizePanelProps {
 }
 
 export interface GenerationSetupModelSectionProps {
-  capabilities: StudioGenerateCapabilities;
+  isAutoPriorityOnly?: boolean;
+  capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
   isDisabled?: boolean;
@@ -230,7 +248,7 @@ export interface GenerationSetupLookSectionProps {
 export interface GenerationSetupOutputSectionProps {
   inputControls?: CrunInputControls;
   referenceCount?: number;
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;

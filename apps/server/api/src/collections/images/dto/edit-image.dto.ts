@@ -1,4 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { RouterPriority } from '@genfeedai/contracts';
 import {
   IMAGE_EDIT_SIZES,
   type ImageEditSize,
@@ -10,6 +11,7 @@ import {
   ArrayUnique,
   IsArray,
   IsBoolean,
+  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -21,6 +23,14 @@ import {
 } from 'class-validator';
 
 export class EditImageDto {
+  @IsOptional()
+  @IsBoolean()
+  readonly autoSelectModel?: boolean;
+
+  @IsOptional()
+  @IsEnum(RouterPriority)
+  readonly prioritize?: RouterPriority;
+
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )

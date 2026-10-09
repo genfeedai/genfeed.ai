@@ -36,13 +36,13 @@ test.describe('Posts — Content Types', () => {
     await authenticatedPage.goto(brandPath(APP_ROUTES.PUBLISHING.REMIX));
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(brandPath(APP_ROUTES.STUDIO.GENERATE));
+      .toBe(brandPath(APP_ROUTES.STUDIO.PLAYGROUND));
     await expect(
       authenticatedPage.getByRole('button', { name: 'Generate', exact: true }),
     ).toBeVisible();
     await assertNoErrorBoundaryFallback(
       authenticatedPage,
-      brandPath(APP_ROUTES.STUDIO.GENERATE),
+      brandPath(APP_ROUTES.STUDIO.PLAYGROUND),
     );
   });
 

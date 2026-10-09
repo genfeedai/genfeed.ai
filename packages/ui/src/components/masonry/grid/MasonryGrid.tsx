@@ -286,7 +286,7 @@ export default function MasonryGrid({
           <div
             key={ingredient.id}
             ref={registerItem(ingredient.id)}
-            className="masonry-item mb-1 break-inside-avoid transition-opacity duration-300 ease-out data-[dimmed=true]:opacity-35"
+            className="masonry-item mb-1 break-inside-avoid transition-opacity duration-300 ease-out data-[dimmed=true]:opacity-95"
             data-ingredient-id={ingredient.id}
             data-hovered="false"
             data-dimmed="false"

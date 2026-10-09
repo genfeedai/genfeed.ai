@@ -1,0 +1,594 @@
+'use client';
+
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientStatus,
+  ViewType,
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  IImage,
+  IMetadata,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
+import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import type { StudioPlaygroundCardProps } from '@genfeedai/props/studio/studio-playground.props';
+import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
+import { logger } from '@services/core/logger.service';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
+import {
+  LazyMasonryImage,
+  LazyMasonryVideo,
+} from '@ui/lazy/masonry/LazyMasonry';
+import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import {
+  AlertTriangle,
+  GitBranch,
+  ImageOff,
+  ImagePlus,
+  RotateCcw,
+  Scissors,
+  Trash2,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import {
+  type MouseEvent,
+  type ReactElement,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
+
+const AUDIO_TYPES = new Set(['music', 'voice']);
+const VIDEO_TYPES = new Set(['video', 'avatar']);
+const MODEL_GETTER_FIELDS = new Set([
+  '_ingredientUrl',
+  'aspectRatio',
+  'brandLogoUrl',
+  'ingredientFormat',
+  'ingredientUrl',
+  'metadataDescription',
+  'metadataDuration',
+  'metadataExtension',
+  'metadataHeight',
+  'metadataLabel',
+  'metadataModel',
+  'metadataModelLabel',
+  'metadataSize',
+  'metadataStyle',
+  'metadataTags',
+  'metadataWidth',
+  'primaryReference',
+  'primaryReferenceUrl',
+  'promptText',
+  'thumbnailUrl',
+]);
+
+function buildMasonryIngredient(
+  job: StudioPlaygroundCardProps['job'],
+): IImage | IVideo | null {
+  if (
+    job.type !== 'image' &&
+    job.type !== 'image-edit' &&
+    !VIDEO_TYPES.has(job.type)
+  ) {
+    return null;
+  }
+
+  const sourceMetadata =
+    typeof job.ingredient?.metadata === 'object'
+      ? job.ingredient.metadata
+      : undefined;
+  const metadata =
+    sourceMetadata?.width && sourceMetadata?.height
+      ? sourceMetadata
+      : job.width && job.height
+        ? ({
+            ...sourceMetadata,
+            height: job.height,
+            width: job.width,
+          } as IMetadata)
+        : sourceMetadata;
+  const persistedIngredient = Object.fromEntries(
+    Object.entries(job.ingredient ?? {}).filter(
+      ([key]) => !MODEL_GETTER_FIELDS.has(key),
+    ),
+  );
+  const ingredient = {
+    ...persistedIngredient,
+    cdnUrl: job.url || job.ingredient?.cdnUrl,
+    id: job.ingredient?.id || job.id,
+    status: job.ingredient?.status || job.status,
+    metadata,
+    prompt: job.ingredient?.prompt || job.prompt,
+  };
+
+  return job.type === 'image' || job.type === 'image-edit'
+    ? new IngredientImage(ingredient as IImage)
+    : new Video(ingredient as IVideo);
+}
+
+/**
+ * One asset in the results grid. A card is the whole lifecycle — queued,
+ * rendered, or failed — so a generation never disappears and reappears
+ * somewhere else once the socket resolves it.
+ */
+export default function StudioPlaygroundCard({
+  assetActions,
+  isSelected = false,
+  job,
+  isUseAsReferenceEnabled,
+  onReprompt,
+  onSelect,
+  onUseAsReference,
+  parentJob,
+  view,
+}: StudioPlaygroundCardProps): ReactElement {
+  const translate = useTranslations('pages.studioPlayground');
+  const translateRecovery = useTranslations('pages.library.recovery');
+  const { href } = useOrgUrl();
+  const { label } = getStudioPlaygroundTypeConfig(job.type);
+  const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const cancelGeneration = async () => {
+    setIsCancelling(true);
+    try {
+      await assetActions.onCancelGeneration?.(job);
+    } catch (error: unknown) {
+      // The click handler discards this promise, so a rejection here would be
+      // an unhandled rejection. The job keeps its current status and the
+      // Studio reconciler corrects it on the next pass.
+      logger.error('Failed to cancel the Studio generation', error);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+  const isFailed = job.status === IngredientStatus.FAILED;
+  const isPending =
+    job.status === IngredientStatus.PROCESSING ||
+    job.status === IngredientStatus.DRAFT;
+  const isPreviewUnavailable =
+    !isPending && !isFailed && (!job.url || failedMediaUrl === job.url);
+  const mediaState = isPending
+    ? 'processing'
+    : isFailed
+      ? 'failed'
+      : isPreviewUnavailable
+        ? 'fallback'
+        : 'ready';
+  const width = Math.max(1, job.width || 1080);
+  const height = Math.max(1, job.height || 1080);
+  const masonryIngredient = useMemo(() => buildMasonryIngredient(job), [job]);
+  const isListView = view === ViewType.LIST;
+
+  const handleMediaError = useCallback(() => {
+    if (job.url) {
+      setFailedMediaUrl(job.url);
+    }
+  }, [job.url]);
+
+  const handleCardActivate = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('a, button, input, [role="slider"]')
+      ) {
+        return;
+      }
+      onSelect(job);
+    },
+    [job, onSelect],
+  );
+
+  const canMakeClips =
+    job.type === 'video' &&
+    Boolean(job.ingredient?.id) &&
+    mediaState === 'ready';
+
+  function renderRecoveryAction(): ReactElement | null {
+    const ingredient = job.ingredient;
+    const capability = assetActions.failedRecovery;
+    if (
+      !capability ||
+      !isFailed ||
+      !ingredient ||
+      ingredient.status !== IngredientStatus.FAILED ||
+      ingredient.isDeleted ||
+      job.id !== ingredient.id ||
+      job.ingredientId !== ingredient.id
+    )
+      return null;
+    const recovery = getIngredientRecovery(ingredient);
+    const hasRetried = capability.retriedIds.includes(ingredient.id);
+    return (
+      <Button
+        label={
+          hasRetried
+            ? translateRecovery('started')
+            : translateRecovery(`actions.${recovery.action}`)
+        }
+        className="px-2 text-xs"
+        withWrapper={false}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.SECONDARY}
+        isDisabled={capability.isRecovering || hasRetried}
+        onClick={() =>
+          recovery.action === 'retry'
+            ? capability.onRetryFailedIngredient(ingredient)
+            : recovery.action === 'viewDetails'
+              ? assetActions.onSeeDetails(ingredient)
+              : capability.onReviewFailedIngredient(ingredient)
+        }
+      />
+    );
+  }
+
+  function renderMakeClipsAction(): ReactElement | null {
+    if (!canMakeClips) {
+      return null;
+    }
+    return (
+      <Link
+        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        href={href(
+          `${APP_ROUTES.STUDIO.CLIPS_NEW}?video=${job.ingredient?.id}`,
+        )}
+      >
+        <Scissors aria-hidden="true" className="size-3.5" />
+        {translate('makeClips')}
+      </Link>
+    );
+  }
+
+  // Transformations (extend, upscale, reframe, resize, GIF) point back at the
+  // asset they came from; the link selects that card's inspector.
+  function renderUseAsReferenceAction(className: string): ReactElement | null {
+    if (
+      !onUseAsReference ||
+      isUseAsReferenceEnabled === false ||
+      mediaState !== 'ready' ||
+      (job.type !== 'image' &&
+        job.type !== 'image-edit' &&
+        job.type !== 'video' &&
+        job.type !== 'avatar')
+    ) {
+      return null;
+    }
+
+    return (
+      <Button
+        ariaLabel={translate('useAsReferenceAria', {
+          prompt: job.prompt || job.id,
+          type: label.toLowerCase(),
+        })}
+        className={className}
+        data-testid={`studio-asset-reference-${job.id}`}
+        icon={<ImagePlus className="size-3.5" />}
+        label={translate('useAsReference')}
+        onClick={() => onUseAsReference(job)}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    );
+  }
+
+  function renderSourceAction(className: string): ReactElement | null {
+    if (!parentJob) {
+      return null;
+    }
+
+    return (
+      <Button
+        ariaLabel={translate('sourceAssetAria', { type: label.toLowerCase() })}
+        className={className}
+        data-testid={`studio-asset-source-${job.id}`}
+        icon={<GitBranch className="size-3.5" />}
+        label={translate('sourceAsset')}
+        onClick={() => onSelect(parentJob)}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    );
+  }
+
+  function renderDetails(showLifecycleActions = false): ReactElement {
+    const referenceAction = renderUseAsReferenceAction('px-2 text-xs');
+    const hasDetailActions =
+      Boolean(referenceAction) ||
+      showLifecycleActions ||
+      Boolean(parentJob) ||
+      canMakeClips;
+
+    return (
+      <div
+        className={`flex min-w-0 flex-col gap-3 bg-card p-3 ${
+          isListView ? 'justify-center sm:p-4' : 'border-t border-border'
+        }`}
+        data-asset-details
+      >
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <Badge
+            className="w-fit shrink-0 text-2xs uppercase tracking-wide"
+            variant="secondary"
+          >
+            {label}
+          </Badge>
+          <span className="truncate text-2xs text-muted-foreground">
+            {job.modelKey || 'Auto'}
+          </span>
+        </div>
+
+        <p
+          className={`break-words text-sm leading-relaxed text-foreground ${
+            isListView ? '' : 'line-clamp-2'
+          }`}
+        >
+          {job.prompt}
+        </p>
+
+        {hasDetailActions ? (
+          <div className="flex items-center gap-1 border-t border-border pt-2">
+            {referenceAction}
+            {renderSourceAction('px-2 text-xs')}
+            {renderMakeClipsAction()}
+            {showLifecycleActions && isFailed ? renderRecoveryAction() : null}
+            {showLifecycleActions && isFailed ? (
+              <Button
+                ariaLabel={translate('removeGenerationAria', {
+                  prompt: job.prompt || job.id,
+                  type: label,
+                })}
+                className="px-2 text-xs"
+                icon={<Trash2 className="size-3.5" />}
+                label={translate('remove')}
+                onClick={() => assetActions.onRemoveGeneration(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
+            {showLifecycleActions ? (
+              <Button
+                ariaLabel={translate('repromptGenerationAria', {
+                  prompt: job.prompt || job.id,
+                  type: label,
+                })}
+                className="px-2 text-xs"
+                icon={<RotateCcw className="size-3.5" />}
+                label={translate('reprompt')}
+                onClick={() => onReprompt(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderHoverDetails(showLifecycleActions = false): ReactElement {
+    const referenceAction = renderUseAsReferenceAction(
+      'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
+    );
+    const hasLifecycleActions =
+      showLifecycleActions || Boolean(parentJob) || canMakeClips;
+
+    return (
+      <AssetHoverDetails
+        actions={
+          referenceAction || hasLifecycleActions ? (
+            <>
+              {referenceAction}
+              {hasLifecycleActions ? (
+                <>
+                  {renderMakeClipsAction()}
+                  {renderSourceAction(
+                    'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
+                  )}
+                  {showLifecycleActions && isFailed
+                    ? renderRecoveryAction()
+                    : null}
+                  {showLifecycleActions && isFailed ? (
+                    <Button
+                      ariaLabel={translate('removeGenerationAria', {
+                        prompt: job.prompt || job.id,
+                        type: label,
+                      })}
+                      className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                      icon={<Trash2 className="size-3.5" />}
+                      label={translate('remove')}
+                      onClick={() => assetActions.onRemoveGeneration(job)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  ) : null}
+                  {showLifecycleActions ? (
+                    <Button
+                      ariaLabel={translate('repromptGenerationAria', {
+                        prompt: job.prompt || job.id,
+                        type: label,
+                      })}
+                      className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                      icon={<RotateCcw className="size-3.5" />}
+                      label={translate('reprompt')}
+                      onClick={() => onReprompt(job)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          ) : undefined
+        }
+        metadata={job.modelKey || 'Auto'}
+        typeLabel={label}
+      />
+    );
+  }
+
+  if (mediaState === 'ready' && masonryIngredient) {
+    const sharedProps = {
+      isActionsEnabled: Boolean(job.ingredient),
+      isContainerHovered: true,
+      isDragEnabled: false,
+      onClickIngredient: () => onSelect(job),
+      onCopyPrompt: assetActions.onCopyPrompt,
+      onDeleteIngredient: assetActions.onDeleteIngredient,
+      onMarkRejected: assetActions.onMarkRejected,
+      onMarkValidated: assetActions.onMarkValidated,
+      onPublishIngredient: assetActions.onPublishIngredient,
+      onRefresh: assetActions.onRefresh,
+      onReprompt: () => onReprompt(job),
+      onSeeDetails: assetActions.onSeeDetails,
+      onToggleFavorite: assetActions.onToggleFavorite,
+    };
+
+    return (
+      <article
+        aria-label={`${label} generation`}
+        className={`group relative w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
+          isListView
+            ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] overflow-hidden sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
+            : 'overflow-hidden'
+        } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+        data-asset-media-state={mediaState}
+        data-selected={isSelected ? 'true' : 'false'}
+        data-testid={`studio-asset-${job.id}`}
+        onClick={handleCardActivate}
+      >
+        <div
+          className={
+            isListView
+              ? 'relative h-32 overflow-hidden border-r border-border sm:h-40'
+              : 'relative min-w-0 overflow-hidden'
+          }
+        >
+          {job.type === 'image' || job.type === 'image-edit' ? (
+            <LazyMasonryImage
+              {...sharedProps}
+              image={masonryIngredient as IImage}
+              onConvertToVideo={assetActions.onConvertToVideo}
+              onCreateVariation={assetActions.onCreateVariation}
+              onMarkArchived={assetActions.onMarkArchived}
+              onMediaError={handleMediaError}
+              onUseAsVideoReference={assetActions.onUseAsVideoReference}
+            />
+          ) : (
+            <LazyMasonryVideo
+              {...sharedProps}
+              video={masonryIngredient as IVideo}
+              onMediaError={handleMediaError}
+              onOpenInEditor={assetActions.onOpenInEditor}
+              onResize={assetActions.onResize}
+            />
+          )}
+        </div>
+
+        {isListView
+          ? renderDetails(!job.ingredient)
+          : renderHoverDetails(!job.ingredient)}
+      </article>
+    );
+  }
+
+  return (
+    <article
+      aria-label={`${label} generation`}
+      className={`group relative w-full cursor-pointer overflow-hidden rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
+        isListView
+          ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
+          : ''
+      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      data-asset-media-state={mediaState}
+      data-selected={isSelected ? 'true' : 'false'}
+      data-testid={`studio-asset-${job.id}`}
+      onClick={handleCardActivate}
+    >
+      <div
+        className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/[0.04] ${
+          isListView ? 'h-32 border-r border-border sm:h-40' : 'w-full min-h-40'
+        }`}
+        style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
+      >
+        {isPending ? (
+          <>
+            <Skeleton
+              className="absolute inset-0 size-full rounded-card"
+              variant="rounded"
+            />
+            <GenerationStatus
+              assetLabel={label.toLowerCase()}
+              className="relative z-10"
+              detail={job.error}
+              isCancelling={isCancelling}
+              onCancel={
+                job.ingredientId && assetActions.onCancelGeneration
+                  ? () => void cancelGeneration()
+                  : undefined
+              }
+              startedAt={job.createdAt || undefined}
+              status={job.phase ?? 'generating'}
+            />
+          </>
+        ) : null}
+
+        {isFailed && job.phase === 'cancelled' ? (
+          <GenerationStatus
+            status="cancelled"
+            assetLabel={label.toLowerCase()}
+          />
+        ) : isFailed || isPreviewUnavailable ? (
+          <div
+            className={`flex flex-col items-center gap-2 px-3 text-center ${
+              isFailed ? 'text-destructive' : 'text-muted-foreground'
+            }`}
+          >
+            {isFailed ? (
+              <AlertTriangle className="size-5" />
+            ) : (
+              <ImageOff className="size-5" />
+            )}
+            <span className="text-xs">
+              {isFailed
+                ? job.error || translate('generationFailed')
+                : translate('previewUnavailable')}
+            </span>
+            {isPreviewUnavailable ? (
+              <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/75">
+                {translate('previewUnavailableDescription')}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
+        {mediaState === 'ready' && job.url && AUDIO_TYPES.has(job.type) ? (
+          <AudioPreviewPlayer
+            audioUrl={job.url}
+            className="pointer-events-auto w-full px-3"
+            isTimelineVisible
+            label={job.prompt || label}
+            onError={handleMediaError}
+          />
+        ) : null}
+      </div>
+
+      {isListView ? renderDetails(true) : renderHoverDetails(true)}
+    </article>
+  );
+}

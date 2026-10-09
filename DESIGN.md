@@ -704,6 +704,12 @@ All styled variants use `rounded-md` (6px) and `control-sm` (32px) by default.
 variants; pick the semantic role instead. Ghost is the standard for toolbar and
 topbar icon actions: transparent, no border, `hover:bg-hover`.
 
+Prompt-bar triggers use the shared `Button` directly: `ButtonSize.ICON` for
+icon-only controls and `ButtonSize.SM` for labelled controls. Neutral triggers
+use `GHOST` without background, border or hover overrides. Do not build a styled
+trigger by combining `UNSTYLED` with `buttonVariants`; icon-only mode must not
+inherit a text button's asymmetric icon padding.
+
 ### Card
 
 `bg-secondary` plane with an edge — `shadow-border` (`default`) or a `border-border`
@@ -748,6 +754,11 @@ splits into sections; a page with one reason renders only **All**.
    `HorizontalCarousel` that never auto-advances.
 4. **Browse by type** — type tiles that filter **All**.
 5. **All** — the complete collection, list by default.
+
+Studio Clips and Editor use project thumbnails in **Recent**: show only the
+three most recently updated projects in a single row of preview cards. Use
+`CollectionCarouselSection` so narrower panels scroll horizontally instead of
+adding a second row. **All projects** keeps its independent list/grid preference.
 
 A section with zero items renders nothing — no heading, no empty card. The page's
 own empty state appears only when every section is empty. A section whose request

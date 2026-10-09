@@ -101,7 +101,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     // Studio production tools require a brand. The org route hands one-off
     // generation to Agent while preserving a stable rail destination.
     route: createScopedAppRoute({
-      brandPath: '/studio/generate',
+      brandPath: '/studio/playground',
       organizationPath: '/studio',
     }),
     visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,

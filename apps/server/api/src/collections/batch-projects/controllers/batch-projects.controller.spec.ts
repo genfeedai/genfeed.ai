@@ -1,8 +1,11 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BatchProjectsController } from '@api/collections/batch-projects/controllers/batch-projects.controller';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
 
 function apiKeyUser(scopes: ApiKeyScope[]): AuthenticatedUser {
@@ -106,8 +109,17 @@ describe('BatchProjectsController publishing scopes', () => {
     );
   });
 
-  it('leaves reads to membership alone', () => {
+  it('retains role checks without requiring a subscription for list/detail', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, BatchProjectsController),
+    ).toEqual([RolesGuard]);
     for (const method of ['findAll', 'findOne'] as const) {
+      expect(
+        Reflect.getMetadata(
+          GUARDS_METADATA,
+          BatchProjectsController.prototype[method],
+        ) ?? [],
+      ).not.toContain(SubscriptionGuard);
       expect(
         Reflect.getMetadata(
           API_KEY_SCOPES_KEY,
@@ -115,6 +127,28 @@ describe('BatchProjectsController publishing scopes', () => {
         ),
       ).toBeUndefined();
     }
+  });
+
+  it.each([
+    'create',
+    'update',
+    'remove',
+    'addItems',
+    'updateItem',
+    'removeItem',
+    'generateIdeas',
+    'quote',
+    'start',
+    'retryItem',
+    'review',
+    'schedule',
+  ] as const)('requires an active subscription to %s', (method) => {
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        BatchProjectsController.prototype[method],
+      ),
+    ).toContain(SubscriptionGuard);
   });
 
   it('refuses to schedule for an API key without the schedule scope', async () => {

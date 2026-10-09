@@ -28,6 +28,12 @@ function collectRouteValues(value: unknown): string[] {
 }
 
 describe('routes.constant', () => {
+  it('hard-cuts the Studio home to Playground without an old route alias', () => {
+    expect(APP_ROUTES.STUDIO.PLAYGROUND).toBe('/studio/playground');
+    expect('GENERATE' in APP_ROUTES.STUDIO).toBe(false);
+    expect(collectRouteValues(APP_ROUTES)).not.toContain('/studio/generate');
+  });
+
   it('exports app route values as slash-prefixed paths', () => {
     for (const route of collectRouteValues(APP_ROUTES)) {
       expect(route.startsWith('/')).toBe(true);

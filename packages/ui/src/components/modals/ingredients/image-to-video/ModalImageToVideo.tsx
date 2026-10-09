@@ -29,7 +29,7 @@ export default function ModalImageToVideo({
   onSubmit,
   onClose,
 }: ModalImageToVideoProps) {
-  const translate = useTranslations('pages.studioGenerate.crun');
+  const translate = useTranslations('pages.studioPlayground.crun');
   const isVeoConversion =
     promptData.models?.includes('crun/google/veo3-1-fast-t2v') ?? false;
   const handleSubmit = () => {

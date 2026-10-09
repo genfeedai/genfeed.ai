@@ -18,6 +18,10 @@ import { ClipGenerationRequestService } from '@api/collections/clip-projects/ser
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  normalizeYoutubeUrl,
+  YOUTUBE_URL_UNSUPPORTED_DETAIL,
+} from '@api/collections/workflows/services/youtube-url.util';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
@@ -33,11 +37,13 @@ import {
   type ClipSourceContract,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/contracts/interfaces';
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { firstValueFrom } from 'rxjs';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 const DRAFT_CLAIM_ATTEMPTS = 3;
@@ -75,7 +81,29 @@ export class ClipProjectIngestionService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly ingredientsService: IngredientsService,
     private readonly presignedUploadService: PresignedUploadService,
+    private readonly httpService: HttpService,
   ) {}
+
+  private async youtubeSourceTitle(sourceUrl: string): Promise<string> {
+    const normalized = normalizeYoutubeUrl(sourceUrl);
+    if (!normalized)
+      throw new BadRequestException(YOUTUBE_URL_UNSUPPORTED_DETAIL);
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<{ title?: string }>(
+          'https://www.youtube.com/oembed',
+          {
+            params: { format: 'json', url: normalized.normalizedUrl },
+            timeout: 5_000,
+          },
+        ),
+      );
+      return response.data.title?.trim() || `YouTube · ${normalized.videoId}`;
+    } catch {
+      // A title lookup outage must not discard an otherwise valid source import.
+      return `YouTube · ${normalized.videoId}`;
+    }
+  }
 
   async createDraft(
     user: User,
@@ -157,9 +185,7 @@ export class ClipProjectIngestionService {
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId,
       language: dto.language ?? 'en',
-      name:
-        dto.name ??
-        `YouTube Clip Factory — ${new Date().toISOString().slice(0, 10)}`,
+      name: dto.name ?? (await this.youtubeSourceTitle(dto.youtubeUrl)),
       organizationId: orgId,
       settings: {
         addCaptions: true,
@@ -244,8 +270,7 @@ export class ClipProjectIngestionService {
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId,
       language: dto.language ?? 'en',
-      name:
-        dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
+      name: dto.name ?? (await this.youtubeSourceTitle(dto.youtubeUrl)),
       organizationId: orgId,
       settings: {
         addCaptions: true,
@@ -353,7 +378,7 @@ export class ClipProjectIngestionService {
     const projectInput: ClipProjectCreateInput = {
       brandId: dto.brandId,
       language: dto.language ?? 'en',
-      name: dto.name ?? `Uploaded Clip Source — ${now.slice(0, 10)}`,
+      name: dto.name ?? dto.filename,
       organizationId: user.organizationId,
       settings: {
         addCaptions: true,

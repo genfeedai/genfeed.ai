@@ -232,8 +232,9 @@ function recoverySnapshot(): AgentThreadSnapshot {
 
 function missingExecutionError() {
   return new AgentApiDecodeError({
-    cause: new TypeError('Invalid JSON:API document: expected resource data'),
+    cause: new TypeError('The legacy server returned no execution payload'),
     message: 'Failed to deserialize workflow execution',
+    reason: 'missing-resource',
   });
 }
 
@@ -393,6 +394,11 @@ it.each([
   new AgentApiDecodeError({
     cause: new SyntaxError('Unexpected HTML response'),
     message: 'Failed to decode JSON response',
+  }),
+  new AgentApiDecodeError({
+    cause: new TypeError('Invalid JSON:API document: expected resource data'),
+    message: 'Failed to deserialize workflow execution',
+    reason: 'invalid-document',
   }),
   new AgentApiDecodeError({
     cause: new TypeError('Malformed relationship data'),

@@ -1,3 +1,4 @@
+import type { RouterPriority } from '../..';
 import type { ImageEditSize } from '../../constants/image-edit-sizes.constant';
 
 /** Persisted recipe contains owned asset IDs, never provider URLs or credentials. */
@@ -17,6 +18,8 @@ export interface ImageEditingRecipe {
 }
 
 export interface ImageEditingPayload {
+  autoSelectModel?: boolean;
+  prioritize?: RouterPriority;
   prompt: string;
   brand?: string;
   model?: string;

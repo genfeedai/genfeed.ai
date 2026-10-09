@@ -39,6 +39,12 @@ export interface HeyGenCatalogAvatar {
   avatarRef: HeyGenAvatarRef;
 }
 
+export interface HeyGenAvatarCatalogPage {
+  avatars: HeyGenCatalogAvatar[];
+  ownership: 'public' | 'private';
+  nextCursor: string | null;
+}
+
 export interface HeyGenCatalogVoice {
   voiceId: string;
   name: string;

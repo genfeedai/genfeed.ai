@@ -2,7 +2,7 @@ import type { GenerationSetupLookFieldKey } from '@genfeedai/props/ui/generation
 
 /**
  * Small, self-contained option lists for the Output tab. Deliberately not
- * imported from `packages/pages/studio/generate/utils/studio-generate-settings.ts`
+ * imported from `packages/pages/studio/playground/utils/studio-playground-settings.ts`
  * (`STUDIO_ASPECT_RATIOS`, `getStudioAspectRatios`) — that would invert the
  * package dependency direction, same reasoning as
  * `GENERATION_SETUP_DEFAULT_ASPECT_RATIO_BY_TYPE` in `generation-setup.recommend.ts`.

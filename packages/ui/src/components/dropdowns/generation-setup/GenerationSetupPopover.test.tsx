@@ -6,11 +6,11 @@ import {
 import type {
   IModel,
   IStudioLook,
-  StudioGenerateCapabilities,
+  StudioPlaygroundCapabilities,
 } from '@genfeedai/contracts/interfaces';
 import type { GenerationSetup } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
 import { describe, expect, it, vi } from 'vitest';
@@ -310,7 +310,7 @@ function createPreset(
   } as IStudioLook;
 }
 
-const capabilities: StudioGenerateCapabilities = {
+const capabilities: StudioPlaygroundCapabilities = {
   hasAspectRatio: true,
   hasBrandEnrichment: true,
   hasDuration: false,
@@ -382,6 +382,45 @@ async function openPopover(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('GenerationSetupPopover', () => {
+  it('uses mutually exclusive Auto and Advanced buttons and keeps presets outside Studio setup', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const view = renderPopover({
+      showPresets: false,
+      advancedMode: { isEnabled: false, onChange },
+    });
+    await openPopover(user);
+    const group = within(screen.getByRole('group', { name: 'Advanced' }));
+    expect(group.getByRole('button', { name: 'Auto' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(group.getByRole('button', { name: 'Advanced' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.queryByRole('switch', { name: 'Advanced' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Configure Presets' }),
+    ).toBeNull();
+    await user.click(group.getByRole('button', { name: 'Advanced' }));
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    view.rerender(
+      <GenerationSetupPopover
+        {...popoverProps({
+          showPresets: false,
+          advancedMode: { isEnabled: true, onChange },
+        })}
+      />,
+    );
+    expect(group.getByRole('button', { name: 'Advanced' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.click(group.getByRole('button', { name: 'Auto' }));
+    expect(onChange).toHaveBeenLastCalledWith(false);
+  });
+
   it('offers an explicit editing switch inside the same setup picker', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -493,6 +532,34 @@ describe('GenerationSetupPopover', () => {
     expect(
       screen.getByRole('button', { name: 'Configure Type' }),
     ).toBeInTheDocument();
+  });
+
+  it('offers quality/budget priorities without a model catalogue in Auto', async () => {
+    const user = userEvent.setup();
+    const onSetField = vi.fn();
+    renderPopover({
+      onSetField,
+      advancedMode: { isEnabled: false, onChange: vi.fn() },
+    });
+    await openPopover(user);
+    await user.click(
+      screen.getByRole('button', { name: 'Configure Quality / budget' }),
+    );
+    expect(
+      screen.queryByPlaceholderText('Search models…'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+    for (const name of ['Best Quality', 'Balanced', 'Fastest', 'Lowest Cost'])
+      expect(screen.getByRole('button', { name })).toBeVisible();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Lowest Cost' }), {
+      button: 0,
+    });
+    expect(onSetField).toHaveBeenNthCalledWith(1, 'modelKey', '');
+    expect(onSetField).toHaveBeenNthCalledWith(
+      2,
+      'prioritize',
+      RouterPriority.COST,
+    );
   });
 
   it('keeps model search and Auto priorities isolated from output, brand, and presets', async () => {

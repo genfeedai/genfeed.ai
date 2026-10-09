@@ -42,6 +42,46 @@ function renderForm(
 }
 
 describe('ClipsInputForm', () => {
+  it('imports and transcribes from one explicit source-only action with a credit notice', () => {
+    const { props } = renderForm({ sourceOnly: true });
+    expect(
+      screen.queryByRole('button', { name: /start clip factory/i }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /AI Avatar/i })).toBeNull();
+    expect(screen.queryByLabelText('Max clips')).toBeNull();
+    expect(
+      screen.getByText(
+        'Uses credits to transcribe and find highlights. No avatar videos are generated.',
+      ),
+    ).toBeVisible();
+    expect(props.onAnalyze).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: /import & transcribe/i }),
+    );
+    expect(props.onAnalyze).toHaveBeenCalledOnce();
+    expect(props.onStartQuick).not.toHaveBeenCalled();
+  });
+
+  it('requires a source and prevents another import while submitting', () => {
+    const { rerender, props } = renderForm({
+      sourceOnly: true,
+      youtubeUrl: '',
+    });
+    expect(
+      screen.getByRole('button', { name: /import & transcribe/i }),
+    ).toBeDisabled();
+    rerender(
+      <ClipsInputForm
+        {...props}
+        youtubeUrl="https://youtu.be/dQw4w9WgXcQ"
+        isSubmitting
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: /importing source/i }),
+    ).toBeDisabled();
+  });
+
   it('starts the one-click clip factory from the primary action', () => {
     const { props } = renderForm();
 

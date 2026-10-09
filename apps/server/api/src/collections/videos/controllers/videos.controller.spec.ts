@@ -1100,9 +1100,11 @@ describe('VideosController', () => {
       const populate = videosService.findOne.mock.lastCall?.[1] as
         | PopulateOption[]
         | undefined;
-      expect(populate?.find((option) => option.path === 'metadata')).toEqual(
-        expect.not.objectContaining({ where: expect.anything() }),
+      const metadataOption = populate?.find(
+        (option) => option.path === 'metadata',
       );
+      expect(metadataOption).toBeDefined();
+      expect(metadataOption).not.toHaveProperty('where');
       for (const option of populate ?? []) {
         const target = ingredientFields.get(option.path);
         expect(target, `Ingredient.${option.path}`).toBeDefined();

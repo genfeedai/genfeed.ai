@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { StudioGenerateType } from '@genfeedai/contracts/interfaces';
+import type { StudioPlaygroundType } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -25,13 +25,13 @@ const MAX_HANDOFF_PROMPT_LENGTH = 8000;
  * bounds the same unvalidated-size record. */
 const MAX_HANDOFF_REFERENCES = 20;
 
-const STUDIO_GENERATE_TYPES = [
+const STUDIO_PLAYGROUND_TYPES = [
   'image',
   'video',
   'music',
   'avatar',
   'voice',
-] as const satisfies readonly StudioGenerateType[];
+] as const satisfies readonly StudioPlaygroundType[];
 
 /**
  * #4670 Agent → Studio handoff creation. `organizationId`/`userId` are never
@@ -53,9 +53,9 @@ export class CreateAgentStudioHandoffDto {
   @ApiProperty({ required: false })
   readonly harness?: boolean;
 
-  @IsIn(STUDIO_GENERATE_TYPES)
-  @ApiProperty({ enum: STUDIO_GENERATE_TYPES })
-  readonly type!: StudioGenerateType;
+  @IsIn(STUDIO_PLAYGROUND_TYPES)
+  @ApiProperty({ enum: STUDIO_PLAYGROUND_TYPES })
+  readonly type!: StudioPlaygroundType;
 
   @IsString()
   @IsNotEmpty()

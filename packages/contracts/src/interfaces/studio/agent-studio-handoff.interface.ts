@@ -1,6 +1,6 @@
 import type { HeyGenAvatarRef } from '../integrations/heygen.interface';
 import type { IBrandAgentConfig } from '../organization/brand.interface';
-import type { StudioGenerateType } from './studio-generate.interface';
+import type { StudioPlaygroundType } from './studio-playground.interface';
 
 /**
  * #4670 Agent → Studio handoff. Carries the prompt and parameters the Agent
@@ -28,7 +28,7 @@ export interface AgentStudioHandoffPayload {
   /** Asset/ingredient ids used as generation references. */
   references?: string[];
   resolution?: string;
-  type: StudioGenerateType;
+  type: StudioPlaygroundType;
   /**
    * True when the source generation used the brand identity. Studio uses this
    * (with `type`) to notice an omitted avatar/voice rather than looking like

@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import EditorProjectsPage from './editor-projects-page';
 
@@ -132,6 +132,14 @@ vi.mock('@ui/layout/container/Container', () => ({
 describe('EditorProjectsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
     mocks.hasUnstableTranslator = false;
     localStorage.clear();
     mocks.getEditorService.mockResolvedValue({
@@ -139,6 +147,39 @@ describe('EditorProjectsPage', () => {
       findAll: mocks.findAll,
       update: mocks.updateProject,
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('shows only the three latest project previews while All retains every project', async () => {
+    mocks.findAll.mockResolvedValue(
+      Array.from({ length: 6 }, (_, index) => ({
+        id: `project-${index}`,
+        name: `Cut ${index}`,
+        status: 'draft',
+        tracks: [],
+        thumbnailUrl: `https://cdn.example.com/cut-${index}.jpg`,
+        updatedAt: `2026-10-0${index + 1}T12:00:00Z`,
+      })),
+    );
+    render(<EditorProjectsPage />);
+    const recent = within(await screen.findByTestId('editor-projects-recent'));
+    expect(
+      recent
+        .getAllByRole('heading', { level: 3 })
+        .map((item) => item.textContent),
+    ).toEqual(['Cut 5', 'Cut 4', 'Cut 3']);
+    expect(
+      recent
+        .getByTestId('editor-project-thumbnail-project-5')
+        .querySelector('img'),
+    ).toHaveAttribute('src', 'https://cdn.example.com/cut-5.jpg');
+    expect(recent.queryByText('Cut 2')).toBeNull();
+    const all = within(screen.getByTestId('editor-projects-all'));
+    expect(all.getAllByRole('link', { name: /^Open Cut/ })).toHaveLength(6);
+    expect(all.queryByTestId('editor-project-thumbnail-project-5')).toBeNull();
   });
 
   it('loads video editor projects and deletes a project from the list', async () => {
@@ -182,19 +223,17 @@ describe('EditorProjectsPage', () => {
       screen.queryByRole('button', { name: 'Delete' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId('editor-project-thumbnail-project-1'),
+      all.queryByTestId('editor-project-thumbnail-project-1'),
     ).not.toBeInTheDocument();
     expect(all.getByText('30m ago')).toBeVisible();
     expect(all.getByText('2d ago')).toBeVisible();
     await userEvent.click(all.getByRole('radio', { name: 'Grid' }));
+    expect(all.getByTestId('editor-project-thumbnail-project-1')).toBeVisible();
     expect(
-      screen.getByTestId('editor-project-thumbnail-project-1'),
-    ).toBeVisible();
-    expect(
-      within(screen.getByTestId('editor-projects-recent')).queryByTestId(
+      within(screen.getByTestId('editor-projects-recent')).getByTestId(
         'editor-project-thumbnail-project-1',
       ),
-    ).toBeNull();
+    ).toBeVisible();
     await userEvent.click(
       all.getByRole('button', { name: 'More actions for Launch cut' }),
     );

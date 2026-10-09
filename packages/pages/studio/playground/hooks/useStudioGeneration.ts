@@ -1,0 +1,1107 @@
+'use client';
+
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  FLUX_3_EDIT_CONTRACT_VERSION,
+  getImageEditMaxSources,
+  IMAGE_EDIT_CONTRACT_VERSION,
+  IMAGE_EDIT_QUALITY,
+  isFlux3ImageModel,
+  isImageEditModel,
+  LIBRARY_ASSETS_REFRESH_EVENT,
+} from '@genfeedai/contracts/constants';
+import type {
+  IModel,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
+import type {
+  CrunGenerationQuoteResponse,
+  CrunImageQuoteRequest,
+  CrunVideoQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
+import type {
+  GenerationResponse,
+  SocketResult,
+} from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
+import type { AssetQueryService } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import type {
+  StudioPlaygroundJob,
+  StudioPlaygroundSettings,
+  StudioPlaygroundType,
+} from '@pages/studio/playground/types';
+import {
+  buildBaseGenerationPayload,
+  buildImagePayload,
+  buildMusicPayload,
+  buildVideoPayload,
+} from '@pages/studio/playground/utils/generation-payloads';
+import {
+  mergeStudioPlaygroundJobs,
+  resolveJsonApiIngredientId,
+  resolveStudioAssetDimensions,
+  resolveStudioAssetUrl,
+  toStudioPlaygroundJob,
+} from '@pages/studio/playground/utils/studio-playground-asset';
+import {
+  isStudioPlaygroundJobPending,
+  recipeFromPromptData,
+} from '@pages/studio/playground/utils/studio-playground-recipe';
+import {
+  readStudioPlaygroundSessionJobs,
+  writeStudioPlaygroundSessionJobs,
+} from '@pages/studio/playground/utils/studio-playground-session';
+import { buildStudioPromptData } from '@pages/studio/playground/utils/studio-playground-settings';
+import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
+import { IngredientsService } from '@services/content/ingredients.service';
+import { getPersistedVideoIngredientIds } from '@services/core/json-api-error-message';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
+import { createMediaHandler } from '@services/core/socket-manager.service';
+import { HeyGenService } from '@services/ingredients/heygen.service';
+import { ImagesService } from '@services/ingredients/images.service';
+import { MusicsService } from '@services/ingredients/musics.service';
+import { VideosService } from '@services/ingredients/videos.service';
+import { VoicesService } from '@services/ingredients/voices.service';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { getErrorStatus } from '@utils/error/json-api-status.util';
+import { resolvePendingIds } from '@utils/network/generation.util';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+export interface UseStudioGenerationParams {
+  brandId: string;
+  models: readonly IModel[];
+  onGenerated?: () => void;
+  settings: StudioPlaygroundSettings;
+  type: StudioPlaygroundType;
+}
+
+export interface UseStudioGenerationReturn {
+  cancelJob: (job: StudioPlaygroundJob) => Promise<void>;
+  clearJobs: () => void;
+  isGenerating: boolean;
+  jobs: readonly StudioPlaygroundJob[];
+  rehydratePending: (jobs: readonly StudioPlaygroundJob[]) => void;
+  removeJob: (id: string) => void;
+  /** Resolves `true` once the provider accepted the request. */
+  submit: (
+    promptText: string,
+    references?: StudioGenerationReferences,
+    options?: StudioGenerationOptions,
+  ) => Promise<boolean>;
+}
+
+export interface StudioGenerationOptions {
+  crunRequest?: CrunImageQuoteRequest;
+  crunVideoRequest?: CrunVideoQuoteRequest;
+  getCurrentCrunQuote?: () => Extract<
+    CrunGenerationQuoteResponse,
+    { isAvailable: true }
+  > | null;
+  requestedSkillSlugs?: string[];
+  harness?: boolean;
+  /** Explicit Knowledge pick from the Library picker; absent means Auto. */
+  knowledge?: KnowledgeSelection;
+  promptId?: string;
+}
+
+export interface StudioGenerationReferences {
+  editSourceIds?: string[];
+  editMaskId?: string;
+  endFrameId?: string;
+  imageReferenceIds?: string[];
+  videoReferenceIds?: string[];
+}
+
+/**
+ * Resolves the model key actually sent to the API. Auto routing and avatar
+ * both let the backend pick, so they submit an empty key.
+ */
+export function resolveModelKey(
+  settings: StudioPlaygroundSettings,
+  models: readonly IModel[],
+  hasModelSelection: boolean,
+): string {
+  if (!hasModelSelection || settings.modelKey === AUTO_MODEL_OPTION_VALUE) {
+    return '';
+  }
+
+  if (models.some((model) => model.key === settings.modelKey)) {
+    return settings.modelKey;
+  }
+
+  return models[0]?.key ?? '';
+}
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+export function useStudioGeneration({
+  brandId,
+  models,
+  onGenerated,
+  settings,
+  type,
+}: UseStudioGenerationParams): UseStudioGenerationReturn {
+  const translateCrun = useTranslations('pages.studioPlayground.crun');
+  const { subscribe, connectionState } = useSocketManager();
+  const activeBrandRef = useRef(brandId);
+  activeBrandRef.current = brandId;
+  const submittingRef = useRef(false);
+  const consumedCrunQuoteRef = useRef<string | null>(null);
+  const cancellingIds = useRef(new Set<string>());
+  const [jobs, setJobs] = useState<readonly StudioPlaygroundJob[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [jobsBrandId, setJobsBrandId] = useState(brandId);
+
+  const subscriptionsRef = useRef<Array<() => void>>([]);
+  const subscribedIdsRef = useRef(new Set<string>());
+  const restoredBrandRef = useRef<string | null>(null);
+  const onGeneratedRef = useRef(onGenerated);
+
+  useEffect(() => {
+    onGeneratedRef.current = onGenerated;
+  }, [onGenerated]);
+
+  useEffect(
+    () => () => {
+      for (const unsubscribe of subscriptionsRef.current) {
+        unsubscribe();
+      }
+      subscriptionsRef.current = [];
+      subscribedIdsRef.current.clear();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (
+      !brandId ||
+      jobsBrandId !== brandId ||
+      restoredBrandRef.current !== brandId
+    ) {
+      return;
+    }
+    writeStudioPlaygroundSessionJobs(brandId, jobs);
+  }, [brandId, jobs, jobsBrandId]);
+
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+
+  const getImagesService = useAuthedService((token: string) =>
+    ImagesService.getInstance(token),
+  );
+  const getVideosService = useAuthedService((token: string) =>
+    VideosService.getInstance(token),
+  );
+  const getMusicsService = useAuthedService((token: string) =>
+    MusicsService.getInstance(token),
+  );
+  const getVoicesService = useAuthedService((token: string) =>
+    VoicesService.getInstance(token),
+  );
+  const getHeyGenService = useAuthedService((token: string) =>
+    HeyGenService.getInstance(token),
+  );
+  const getIngredientsService = useAuthedService((token: string) =>
+    IngredientsService.getInstance(token),
+  );
+
+  const patchJob = useCallback(
+    (id: string, patch: Partial<StudioPlaygroundJob>) => {
+      setJobs((previous) =>
+        previous.map((job) =>
+          job.id === id && isStudioPlaygroundJobPending(job.status)
+            ? { ...job, ...patch }
+            : job,
+        ),
+      );
+    },
+    [],
+  );
+
+  const clearJobs = useCallback(() => {
+    setJobs([]);
+  }, []);
+
+  const removeJob = useCallback((id: string) => {
+    setJobs((previous) => previous.filter((job) => job.id !== id));
+  }, []);
+
+  const resolveFetchService = useCallback(
+    async (
+      jobType: StudioPlaygroundType,
+      category?: IngredientCategory,
+    ): Promise<AssetQueryService> => {
+      // A GIF renders as an image card, but `/images/:id` only serves images.
+      if (category === IngredientCategory.GIF) {
+        return await getIngredientsService();
+      }
+      switch (jobType) {
+        case 'image-edit':
+        case 'image':
+          return await getImagesService();
+        case 'video':
+        // An avatar clip is stored as a video ingredient.
+        case 'avatar':
+          return await getVideosService();
+        case 'music':
+          return await getMusicsService();
+        default:
+          return await getIngredientsService();
+      }
+    },
+    [
+      getImagesService,
+      getIngredientsService,
+      getMusicsService,
+      getVideosService,
+    ],
+  );
+
+  const subscribeToPendingJob = useCallback(
+    (pendingId: string, jobType: StudioPlaygroundType) => {
+      if (subscribedIdsRef.current.has(pendingId)) {
+        return;
+      }
+
+      const config = getStudioPlaygroundTypeConfig(jobType);
+      // Socket topics are the lowercase plural of the ingredient category —
+      // `categoryToPlural()` on the server. Never derive this from the
+      // SCREAMING enum member.
+      const topic = `/${config.resourceSegment}/${pendingId}`;
+      let unsubscribe: (() => void) | null = null;
+
+      const cleanup = () => {
+        subscribedIdsRef.current.delete(pendingId);
+        if (!unsubscribe) {
+          return;
+        }
+        unsubscribe();
+        subscriptionsRef.current = subscriptionsRef.current.filter(
+          (entry) => entry !== unsubscribe,
+        );
+        unsubscribe = null;
+      };
+
+      const handler = createMediaHandler<SocketResult>(
+        async (result) => {
+          if (activeBrandRef.current !== brandId) return;
+          const resolvedId =
+            typeof result === 'string'
+              ? result
+              : typeof result.id === 'string'
+                ? result.id
+                : pendingId;
+
+          try {
+            const fetchService = await resolveFetchService(jobType);
+            const ingredient = await fetchService.findOne(resolvedId);
+            if (activeBrandRef.current !== brandId) return;
+            if (
+              !ingredient?.status ||
+              isStudioPlaygroundJobPending(ingredient.status)
+            )
+              return;
+            const dimensions = resolveStudioAssetDimensions(ingredient);
+            const hydrated = ingredient.imageEdit
+              ? toStudioPlaygroundJob(ingredient)
+              : null;
+            patchJob(pendingId, {
+              ...(hydrated?.modelKey ? { modelKey: hydrated.modelKey } : {}),
+              ...(dimensions.height ? { height: dimensions.height } : {}),
+              ingredient: ingredient ?? undefined,
+              ingredientId: String(ingredient?.id ?? resolvedId),
+              phase:
+                ingredient.generationError === 'Cancelled by user'
+                  ? 'cancelled'
+                  : undefined,
+              error: ingredient.generationError ?? undefined,
+              status: ingredient.status,
+              url: resolveStudioAssetUrl(ingredient),
+              ...(dimensions.width ? { width: dimensions.width } : {}),
+            });
+            if (ingredient.status === IngredientStatus.FAILED) {
+              window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+            }
+            onGeneratedRef.current?.();
+          } catch (error) {
+            logger.error(
+              'Failed to load Studio generation result after socket event',
+              error,
+            );
+            if (activeBrandRef.current !== brandId) return;
+            patchJob(pendingId, {
+              error: 'The result could not be loaded. Reconnecting…',
+              phase: 'saving',
+            });
+            onGeneratedRef.current?.();
+          } finally {
+            cleanup();
+          }
+        },
+        (errorMessage: string) => {
+          if (activeBrandRef.current !== brandId) return;
+          const message = errorMessage || `${config.label} generation failed`;
+          patchJob(pendingId, {
+            error: message,
+            phase: message === 'Cancelled by user' ? 'cancelled' : undefined,
+            status: IngredientStatus.FAILED,
+          });
+          window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+          if (message !== 'Cancelled by user')
+            notificationsService.error(message);
+          cleanup();
+        },
+      );
+
+      subscribedIdsRef.current.add(pendingId);
+      unsubscribe = subscribe(topic, handler);
+      subscriptionsRef.current.push(unsubscribe);
+    },
+    [brandId, notificationsService, patchJob, resolveFetchService, subscribe],
+  );
+
+  const trackPendingIds = useCallback(
+    (
+      pendingIds: string[],
+      context: {
+        height?: number;
+        modelKey: string;
+        promptText: string;
+        recipe?: StudioPlaygroundJob['recipe'];
+        runId: string;
+        type: StudioPlaygroundType;
+        width?: number;
+      },
+    ) => {
+      if (activeBrandRef.current !== brandId) return;
+      setJobs((previous) => [
+        ...pendingIds.map((id) => ({
+          createdAt: Date.now(),
+          height: context.height,
+          id,
+          ingredientId: id,
+          modelKey: context.modelKey || undefined,
+          prompt: context.promptText,
+          recipe: context.recipe,
+          runId: context.runId,
+          status: IngredientStatus.PROCESSING,
+          type: context.type,
+          width: context.width,
+        })),
+        ...previous.filter(
+          (job) => job.runId !== context.runId || job.phase !== 'submitting',
+        ),
+      ]);
+
+      for (const pendingId of pendingIds) {
+        subscribeToPendingJob(pendingId, context.type);
+      }
+    },
+    [brandId, subscribeToPendingJob],
+  );
+
+  const rehydratePending = useCallback(
+    (candidates: readonly StudioPlaygroundJob[]) => {
+      const pending = candidates.filter((job) =>
+        isStudioPlaygroundJobPending(job.status),
+      );
+
+      if (pending.length === 0) {
+        return;
+      }
+
+      setJobs((previous) => mergeStudioPlaygroundJobs(previous, pending));
+
+      for (const job of pending) {
+        subscribeToPendingJob(job.id, job.type);
+      }
+    },
+    [subscribeToPendingJob],
+  );
+
+  useEffect(() => {
+    if (!brandId || restoredBrandRef.current === brandId) {
+      return;
+    }
+
+    for (const unsubscribe of subscriptionsRef.current) unsubscribe();
+    subscriptionsRef.current = [];
+    subscribedIdsRef.current.clear();
+    restoredBrandRef.current = brandId;
+    const restored = readStudioPlaygroundSessionJobs(brandId);
+
+    setJobs(restored);
+    setJobsBrandId(brandId);
+
+    for (const job of restored) {
+      if (isStudioPlaygroundJobPending(job.status)) {
+        subscribeToPendingJob(job.id, job.type);
+      }
+    }
+  }, [brandId, subscribeToPendingJob]);
+
+  const cancelJob = useCallback(
+    async (job: StudioPlaygroundJob) => {
+      if (!job.ingredientId || cancellingIds.current.has(job.id)) return;
+      cancellingIds.current.add(job.id);
+      try {
+        const service = await getIngredientsService();
+        const ingredient = await service.cancelGeneration(job.ingredientId);
+        if (activeBrandRef.current !== brandId) return;
+        patchJob(job.id, {
+          ingredient,
+          status: ingredient.status,
+          phase:
+            ingredient.generationError === 'Cancelled by user'
+              ? 'cancelled'
+              : undefined,
+          error: ingredient.generationError ?? undefined,
+          url: resolveStudioAssetUrl(ingredient),
+        });
+        onGeneratedRef.current?.();
+      } catch (error) {
+        if (activeBrandRef.current === brandId)
+          notificationsService.error(
+            toErrorMessage(error, 'Could not cancel generation'),
+          );
+      } finally {
+        cancellingIds.current.delete(job.id);
+      }
+    },
+    [brandId, getIngredientsService, notificationsService, patchJob],
+  );
+
+  useEffect(() => {
+    const pending = jobs.filter(
+      (job) => job.ingredientId && isStudioPlaygroundJobPending(job.status),
+    );
+    if (
+      jobsBrandId !== brandId ||
+      pending.length === 0 ||
+      connectionState === 'offline'
+    )
+      return;
+    const controller = new AbortController();
+    let isRefreshing = false;
+    const reconcile = async () => {
+      if (isRefreshing || document.visibilityState === 'hidden') return;
+      isRefreshing = true;
+      try {
+        for (const job of pending) {
+          if (controller.signal.aborted) return;
+          try {
+            const service = await resolveFetchService(
+              job.type,
+              job.ingredient?.category,
+            );
+            const ingredient = await service.findOne(
+              job.ingredientId ?? job.id,
+              undefined,
+              controller.signal,
+            );
+            if (controller.signal.aborted || activeBrandRef.current !== brandId)
+              return;
+            if (
+              !ingredient?.status ||
+              isStudioPlaygroundJobPending(ingredient.status)
+            )
+              continue;
+            const dimensions = resolveStudioAssetDimensions(ingredient);
+            const hydrated = ingredient.imageEdit
+              ? toStudioPlaygroundJob(ingredient)
+              : null;
+            patchJob(job.id, {
+              ...(hydrated?.modelKey ? { modelKey: hydrated.modelKey } : {}),
+              ingredient,
+              phase:
+                ingredient.generationError === 'Cancelled by user'
+                  ? 'cancelled'
+                  : undefined,
+              error: ingredient.generationError ?? undefined,
+              status: ingredient.status,
+              url: resolveStudioAssetUrl(ingredient),
+              ...(dimensions.height ? { height: dimensions.height } : {}),
+              ...(dimensions.width ? { width: dimensions.width } : {}),
+            });
+            if (ingredient.status === IngredientStatus.FAILED) {
+              window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+            }
+            onGeneratedRef.current?.();
+          } catch (error) {
+            if (!controller.signal.aborted)
+              logger.debug(
+                'Studio generation status could not be refreshed',
+                error,
+              );
+          }
+        }
+      } finally {
+        isRefreshing = false;
+      }
+    };
+    void reconcile();
+    const timer = window.setInterval(() => void reconcile(), 10000);
+    const onVisible = () => void reconcile();
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [
+    brandId,
+    connectionState,
+    jobs,
+    jobsBrandId,
+    patchJob,
+    resolveFetchService,
+  ]);
+
+  const submit = useCallback(
+    async (
+      promptText: string,
+      references: StudioGenerationReferences = {},
+      options?: StudioGenerationOptions,
+    ) => {
+      if (submittingRef.current) {
+        return false;
+      }
+
+      if (!brandId) {
+        notificationsService.error('Please set up a brand before generating');
+        return false;
+      }
+
+      const config = getStudioPlaygroundTypeConfig(type);
+      const promptData = buildStudioPromptData({
+        brandId,
+        promptText,
+        references: references.imageReferenceIds ?? [],
+        settings,
+        type,
+      });
+
+      if (!promptData.isValid) {
+        notificationsService.error(
+          config.capabilities.hasSpeech && !promptText.trim()
+            ? 'A prompt or a script is required'
+            : 'Prompt is required',
+        );
+        return false;
+      }
+
+      if (type === 'voice' && !settings.voiceId) {
+        notificationsService.error('Pick a voice before generating');
+        return false;
+      }
+
+      if (
+        type === 'image-edit' &&
+        (!references.editSourceIds?.length ||
+          (settings.modelKey !== AUTO_MODEL_OPTION_VALUE &&
+            (!isImageEditModel(settings.modelKey) ||
+              !models.some((model) => model.key === settings.modelKey))))
+      ) {
+        notificationsService.error(
+          'Choose a source image and an available editing model.',
+        );
+        return false;
+      }
+      const modelKey = resolveModelKey(
+        settings,
+        models,
+        config.capabilities.hasModelSelection,
+      );
+      const initialCrunQuote = modelKey.startsWith('crun/')
+        ? options?.getCurrentCrunQuote?.()
+        : null;
+      if (
+        modelKey.startsWith('crun/') &&
+        (!initialCrunQuote ||
+          !(type === 'video'
+            ? options?.crunVideoRequest
+            : options?.crunRequest) ||
+          consumedCrunQuoteRef.current === initialCrunQuote.quoteId)
+      )
+        return false;
+      const jobDimensions = config.capabilities.hasAspectRatio
+        ? { height: promptData.height, width: promptData.width }
+        : {};
+      const runId = crypto.randomUUID();
+      const recipe = recipeFromPromptData(promptData, type, settings);
+      const capturedCrunRequest =
+        type === 'video' ? options?.crunVideoRequest : options?.crunRequest;
+      if (modelKey.startsWith('crun/') && capturedCrunRequest) {
+        const controls = capturedCrunRequest.crunControls;
+        recipe.modelKey = capturedCrunRequest.model;
+        recipe.text = capturedCrunRequest.text;
+        recipe.outputs = capturedCrunRequest.outputs ?? 1;
+        recipe.references = [...(capturedCrunRequest.references ?? [])];
+        recipe.aspectRatio = controls.aspectRatio;
+        recipe.resolution = controls.resolution;
+        recipe.duration =
+          'duration' in controls ? controls.duration : undefined;
+        recipe.endFrameId =
+          'endFrame' in capturedCrunRequest
+            ? capturedCrunRequest.endFrame
+            : undefined;
+        if (type === 'video') recipe.isAudioEnabled = false;
+        recipe.crunControls = {
+          modelKey: capturedCrunRequest.model,
+          contractVersion: controls.contractVersion,
+          ...(controls.aspectRatio !== undefined
+            ? { aspectRatio: controls.aspectRatio }
+            : {}),
+          ...('outputFormat' in controls && controls.outputFormat !== undefined
+            ? { outputFormat: controls.outputFormat }
+            : {}),
+          ...('negativePrompt' in controls &&
+          controls.negativePrompt !== undefined
+            ? { negativePrompt: controls.negativePrompt }
+            : {}),
+          ...('guidanceScale' in controls &&
+          controls.guidanceScale !== undefined
+            ? { guidanceScale: controls.guidanceScale }
+            : {}),
+          ...('translatePrompt' in controls &&
+          controls.translatePrompt !== undefined
+            ? { translatePrompt: controls.translatePrompt }
+            : {}),
+        };
+      }
+      const editingModelKey = modelKey;
+      const flux = isFlux3ImageModel(
+        type === 'image-edit' ? editingModelKey : modelKey,
+      );
+      const editSourceLimit = modelKey
+        ? getImageEditMaxSources(modelKey)
+        : Math.max(
+            ...models
+              .filter((model) => isImageEditModel(model.key))
+              .map((model) => getImageEditMaxSources(model.key)),
+            getImageEditMaxSources(),
+          );
+      if (
+        type === 'image-edit' &&
+        (references.editSourceIds?.length ?? 0) > editSourceLimit
+      ) {
+        notificationsService.error(
+          `This editing model accepts at most ${editSourceLimit} sources.`,
+        );
+        return false;
+      }
+      if (type === 'image-edit' && modelKey) {
+        recipe.imageEdit = flux
+          ? {
+              contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model: editingModelKey,
+              sourceIds: references.editSourceIds ?? [],
+              resolution: settings.resolution,
+              aspectRatio: settings.aspectRatio,
+              grounding: false,
+              outputs: 1,
+            }
+          : {
+              contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model: modelKey,
+              sourceIds: references.editSourceIds ?? [],
+              maskId: references.editMaskId,
+              size: references.editMaskId
+                ? 'source'
+                : (settings.editSize ?? 'source'),
+              quality: IMAGE_EDIT_QUALITY,
+              outputs: settings.outputs,
+              seed: settings.editSeed,
+            };
+      }
+      if (type === 'image-edit')
+        recipe.references = references.editSourceIds ?? [];
+      const pendingContext = {
+        ...jobDimensions,
+        modelKey,
+        promptText,
+        recipe,
+        runId,
+        type,
+      };
+
+      let isAccepted = false;
+      submittingRef.current = true;
+      setIsGenerating(true);
+      setJobs((previous) => [
+        ...Array.from(
+          {
+            length: config.capabilities.hasOutputs
+              ? Math.max(1, settings.outputs)
+              : 1,
+          },
+          (_, index) => ({
+            createdAt: Date.now(),
+            id: `submitting-${runId}-${index}`,
+            modelKey,
+            prompt: promptText,
+            recipe,
+            runId,
+            status: IngredientStatus.PROCESSING,
+            phase: 'submitting' as const,
+            type,
+            ...jobDimensions,
+          }),
+        ),
+        ...previous,
+      ]);
+
+      try {
+        switch (type) {
+          case 'image-edit': {
+            const service = await getImagesService();
+            const sources = references.editSourceIds ?? [];
+            const data = (await service.postEdit(sources[0], {
+              prompt: promptText.trim(),
+              brand: brandId,
+              ...(modelKey
+                ? { model: modelKey }
+                : { autoSelectModel: true, prioritize: settings.prioritize }),
+              references: sources.slice(1),
+              ...(flux
+                ? {
+                    resolution: settings.resolution,
+                    aspectRatio: settings.aspectRatio,
+                  }
+                : {
+                    maskId: references.editMaskId,
+                    size: references.editMaskId
+                      ? 'source'
+                      : (settings.editSize ?? 'source'),
+                    seed: settings.editSeed,
+                  }),
+              outputs: flux ? 1 : settings.outputs,
+              sourceActionId: runId,
+            })) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
+            break;
+          }
+          case 'image': {
+            const service = await getImagesService();
+            if (modelKey.startsWith('crun/')) {
+              const request = options?.crunRequest;
+              const quote = options?.getCurrentCrunQuote?.();
+              if (
+                !request ||
+                !quote ||
+                quote.quoteId !== initialCrunQuote?.quoteId ||
+                request.model !== modelKey ||
+                request.text !== promptText.trim() ||
+                quote.modelKey !== modelKey ||
+                quote.contractVersion !== request.crunControls.contractVersion
+              )
+                throw new Error('CRUN_QUOTE_STALE');
+              consumedCrunQuoteRef.current = quote.quoteId;
+              const data = (await service.post({
+                ...request,
+                crunQuoteId: quote.quoteId,
+              })) as GenerationResponse;
+              trackPendingIds(resolvePendingIds(data), pendingContext);
+              isAccepted = true;
+              break;
+            }
+            const payload = buildImagePayload(
+              {
+                ...buildBaseGenerationPayload(promptData, modelKey, brandId),
+                ...(options?.requestedSkillSlugs?.length
+                  ? { requestedSkillSlugs: options.requestedSkillSlugs }
+                  : {}),
+                ...(options?.promptId ? { promptId: options.promptId } : {}),
+                ...(options?.harness !== undefined
+                  ? { harness: options.harness }
+                  : {}),
+                ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
+              },
+              promptData,
+            );
+            if (flux) payload.aspectRatio = settings.aspectRatio;
+            const data = (await service.post(payload)) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
+            break;
+          }
+
+          case 'video': {
+            const service = await getVideosService();
+            if (modelKey.startsWith('crun/')) {
+              const request = options?.crunVideoRequest;
+              const quote = options?.getCurrentCrunQuote?.();
+              if (
+                !request ||
+                !quote ||
+                quote.quoteId !== initialCrunQuote?.quoteId ||
+                request.model !== modelKey ||
+                request.text !== promptText.trim() ||
+                quote.modelKey !== modelKey ||
+                quote.contractVersion !== request.crunControls.contractVersion
+              )
+                throw new Error('CRUN_QUOTE_STALE');
+              consumedCrunQuoteRef.current = quote.quoteId;
+              const data = (await service.post({
+                ...request,
+                crunQuoteId: quote.quoteId,
+              })) as GenerationResponse;
+              trackPendingIds(resolvePendingIds(data), pendingContext);
+              isAccepted = true;
+              break;
+            }
+
+            const videoPromptData = {
+              ...promptData,
+              endFrame: references.endFrameId,
+              videoReferences: references.videoReferenceIds,
+            };
+            const payload = buildVideoPayload(
+              {
+                ...buildBaseGenerationPayload(
+                  videoPromptData,
+                  modelKey,
+                  brandId,
+                ),
+                ...(options?.requestedSkillSlugs?.length
+                  ? { requestedSkillSlugs: options.requestedSkillSlugs }
+                  : {}),
+                ...(options?.promptId ? { promptId: options.promptId } : {}),
+                ...(options?.harness !== undefined
+                  ? { harness: options.harness }
+                  : {}),
+                ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
+              },
+              videoPromptData,
+            );
+            const data = (await service.post(payload)) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
+            break;
+          }
+
+          case 'music': {
+            const service = await getMusicsService();
+            const musicPromptData = {
+              ...promptData,
+              instrumental: settings.instrumental,
+              lyrics: settings.lyrics,
+              // `buildStudioPromptData` only fills `style` for `hasLook`
+              // types (image/video) — music carries its own genre/style
+              // control (`hasStyle`), so read it straight off settings the
+              // same way instrumental/lyrics do. `PromptTextareaSchema.style`
+              // is a required string, so default the unset case the same
+              // way `buildStudioPromptData` itself does.
+              style: settings.style ?? '',
+            };
+            const payload = buildMusicPayload(
+              musicPromptData,
+              modelKey,
+              settings.duration,
+            );
+            const data = (await service.post(
+              payload as Parameters<MusicsService['post']>[0],
+            )) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
+            break;
+          }
+
+          case 'avatar': {
+            const service = await getHeyGenService();
+            // `avatarId` on this endpoint means a HeyGen catalog id. Genfeed
+            // portraits are our own ingredients, so they travel as `photoUrl`.
+            const data = await service.generate({
+              photoUrl: settings.avatarRef
+                ? undefined
+                : settings.avatarPhotoUrl,
+              avatarRef: settings.avatarRef,
+              useIdentity: true,
+              voiceRef: settings.voiceRef,
+              voiceProvider: settings.voiceRef?.provider,
+              text: promptData.speech?.trim() || promptData.text?.trim() || '',
+              voiceId: settings.voiceId,
+            });
+            trackPendingIds([resolveJsonApiIngredientId(data)], pendingContext);
+            isAccepted = true;
+            break;
+          }
+
+          case 'voice': {
+            if (!settings.voiceId) {
+              notificationsService.error('Pick a voice before generating');
+              break;
+            }
+
+            const service = await getVoicesService();
+            // Text-to-speech runs inline on the API and returns the finished
+            // ingredient, so there is no socket phase to wait on.
+            const voice = await service.generate({
+              speed: 1,
+              text: promptData.speech?.trim() || promptText.trim(),
+              voiceId: settings.voiceId,
+            });
+
+            if (activeBrandRef.current !== brandId) return false;
+            setJobs((previous) => [
+              {
+                createdAt: Date.now(),
+                id: String(voice.id),
+                ingredient: voice,
+                ingredientId: String(voice.id),
+                modelKey: modelKey || undefined,
+                prompt: promptText,
+                recipe,
+                runId,
+                status: IngredientStatus.GENERATED,
+                type,
+                url: resolveStudioAssetUrl(voice),
+              },
+              ...previous.filter((job) => job.runId !== runId),
+            ]);
+            onGeneratedRef.current?.();
+            isAccepted = true;
+            break;
+          }
+
+          default:
+            logger.error(`Unsupported Studio generation type: ${type}`);
+        }
+      } catch (error) {
+        if (activeBrandRef.current !== brandId) return false;
+        logger.error('Studio generation failed', error);
+        const message = modelKey.startsWith('crun/')
+          ? translateCrun(
+              error instanceof Error && error.message === 'CRUN_QUOTE_STALE'
+                ? 'quoteStale'
+                : 'reasons.CRUN_PROVIDER_UNAVAILABLE',
+            )
+          : toErrorMessage(error, `Failed to generate ${config.label}`);
+
+        const persistedIds =
+          type === 'video' ? getPersistedVideoIngredientIds(error) : [];
+        const reconciled: StudioPlaygroundJob[] = [];
+        const pendingIds: string[] = [];
+        for (const id of persistedIds) {
+          const shell: StudioPlaygroundJob = {
+            createdAt: Date.now(),
+            ...jobDimensions,
+            id,
+            ingredientId: id,
+            modelKey: modelKey || undefined,
+            prompt: promptText,
+            recipe,
+            runId,
+            status: IngredientStatus.PROCESSING,
+            type,
+          };
+          try {
+            const service = await getVideosService();
+            if (activeBrandRef.current !== brandId) return false;
+            const ingredient = await service.findOne(id, { brandId });
+            if (activeBrandRef.current !== brandId) return false;
+            if (
+              !ingredient ||
+              ingredient.id !== id ||
+              ingredient.brandId !== brandId ||
+              ingredient.category !== IngredientCategory.VIDEO ||
+              ingredient.isDeleted ||
+              !Object.values(IngredientStatus).includes(ingredient.status)
+            )
+              continue;
+            const hydrated = toStudioPlaygroundJob(ingredient);
+            if (!hydrated) continue;
+            reconciled.push({ ...hydrated, recipe, runId });
+            if (isStudioPlaygroundJobPending(ingredient.status))
+              pendingIds.push(id);
+          } catch (readError) {
+            if (activeBrandRef.current !== brandId) return false;
+            const status = getErrorStatus(readError);
+            if (status !== undefined && status >= 400 && status < 500) continue;
+            reconciled.push({
+              ...shell,
+              error: 'The result could not be loaded. Reconnecting…',
+              phase: 'saving',
+            });
+            pendingIds.push(id);
+          }
+        }
+        if (activeBrandRef.current !== brandId) return false;
+        // Publish only after scoped initial hydration settles, so refused IDs
+        // can never trigger the existing immediate fallback polling effect.
+        setJobs((previous) =>
+          mergeStudioPlaygroundJobs(
+            previous.filter(
+              (job) => job.runId !== runId || job.phase !== 'submitting',
+            ),
+            reconciled.length
+              ? reconciled
+              : [
+                  {
+                    createdAt: Date.now(),
+                    error: message,
+                    ...jobDimensions,
+                    id: `failed-${crypto.randomUUID()}`,
+                    modelKey: modelKey || undefined,
+                    prompt: promptText,
+                    recipe,
+                    runId,
+                    status: IngredientStatus.FAILED,
+                    type,
+                  },
+                ],
+          ),
+        );
+        for (const id of pendingIds) {
+          if (activeBrandRef.current !== brandId) return false;
+          subscribeToPendingJob(id, type);
+        }
+        onGeneratedRef.current?.();
+        window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+        notificationsService.error(message);
+      } finally {
+        submittingRef.current = false;
+        setIsGenerating(false);
+      }
+
+      return isAccepted;
+    },
+    [
+      brandId,
+      getHeyGenService,
+      getImagesService,
+      getMusicsService,
+      getVideosService,
+      getVoicesService,
+      models,
+      notificationsService,
+      settings,
+      trackPendingIds,
+      subscribeToPendingJob,
+      translateCrun,
+      type,
+    ],
+  );
+
+  return {
+    cancelJob,
+    clearJobs,
+    isGenerating,
+    jobs: jobsBrandId === brandId ? jobs : [],
+    rehydratePending,
+    removeJob,
+    submit,
+  };
+}

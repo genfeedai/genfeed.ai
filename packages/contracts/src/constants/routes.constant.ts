@@ -345,7 +345,7 @@ export const APP_ROUTES = {
      * The single-asset playground: every generatable type behind one prompt
      * bar. Asset type is composer state, never a route segment.
      */
-    GENERATE: '/studio/generate',
+    PLAYGROUND: '/studio/playground',
     ROOT: '/studio',
     STORYBOARD: '/studio/storyboard',
     STORYBOARD_NEW: '/studio/storyboard/new',

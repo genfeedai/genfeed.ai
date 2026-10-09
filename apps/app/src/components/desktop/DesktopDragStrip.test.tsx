@@ -37,13 +37,13 @@ describe('DesktopDragStrip', () => {
   });
 
   it('keeps the drag strip after sign-in', () => {
-    pathnameMock.current = '/acme/studio/generate';
+    pathnameMock.current = '/acme/studio/playground';
     render(<DesktopDragStrip />);
     expect(document.querySelector('[data-desktop-drag="true"]')).not.toBeNull();
   });
 
   it('merges with the shell: no border, no blur, opaque shell tokens', () => {
-    pathnameMock.current = '/acme/studio/generate';
+    pathnameMock.current = '/acme/studio/playground';
     render(<DesktopDragStrip />);
     const strip = document.querySelector('[data-desktop-drag="true"]');
     expect(strip).not.toBeNull();
@@ -58,7 +58,7 @@ describe('DesktopDragStrip', () => {
   });
 
   it('yields to the shell topbar when it is the window titlebar', () => {
-    pathnameMock.current = '/acme/studio/generate';
+    pathnameMock.current = '/acme/studio/playground';
     render(<DesktopDragStrip />);
     expect(
       document.querySelector('[data-desktop-drag="true"]')?.className,
@@ -70,14 +70,14 @@ describe('DesktopDragStrip', () => {
       platform: 'Win32',
       userAgentData: { platform: 'Windows' },
     });
-    pathnameMock.current = '/acme/studio/generate';
+    pathnameMock.current = '/acme/studio/playground';
     render(<DesktopDragStrip />);
     expect(document.querySelector('[data-desktop-drag="true"]')).toBeNull();
   });
 
   it('does not render in the browser app', () => {
     desktopClientMock.current = false;
-    pathnameMock.current = '/acme/studio/generate';
+    pathnameMock.current = '/acme/studio/playground';
     render(<DesktopDragStrip />);
     expect(document.querySelector('[data-desktop-drag="true"]')).toBeNull();
   });

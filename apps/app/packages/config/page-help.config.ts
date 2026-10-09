@@ -35,7 +35,7 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   },
   { key: 'library', prefix: APP_ROUTES.LIBRARY.ROOT },
   { key: 'libraryTrash', prefix: '/library/trash' },
-  { key: 'studioGenerate', prefix: APP_ROUTES.STUDIO.GENERATE },
+  { key: 'studioPlayground', prefix: APP_ROUTES.STUDIO.PLAYGROUND },
   { key: 'studioStoryboard', prefix: APP_ROUTES.STUDIO.STORYBOARD },
   { key: 'studioClips', prefix: APP_ROUTES.STUDIO.CLIPS },
   { key: 'studioBatch', prefix: APP_ROUTES.STUDIO.BATCH },
