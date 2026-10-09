@@ -30,14 +30,18 @@ function deny(reason: string): never {
 
 /** Wraps the real endpoint/provider path; its normal credit producer invokes admission in its own transaction. */
 export async function runWithBreakoutGenerationAdmission<T>(
-  prisma: Pick<Prisma.TransactionClient, 'agentStrategy'>,
+  prisma: Prisma.TransactionClient,
   admission: Readonly<BreakoutGenerationAdmission>,
   generate: () => Promise<T>,
 ): Promise<T> {
+  await admission.reauthorize(prisma);
   return runWithStrategyBudgetAttribution(
     prisma,
     admission.scope,
-    generate,
+    async () => {
+      await admission.reauthorize(prisma);
+      return generate();
+    },
     (tx, credits) => admitBreakoutGenerationCredits(tx, admission, credits),
   );
 }
@@ -93,6 +97,7 @@ export async function admitBreakoutGenerationContinuation(
       AND "credentialId" = ${admission.credentialId}
       AND "platform" = ${scope.platform} AND "isDeleted" = false FOR UPDATE
   `);
+  await admission.reauthorize(tx);
   const response = await tx.breakoutResponse.findFirst({
     where: {
       id: admission.responseId,
@@ -103,6 +108,7 @@ export async function admitBreakoutGenerationContinuation(
       isDeleted: false,
     },
   });
+  await admission.reauthorize(tx);
   if (response?.state !== 'planned') deny('response_unavailable');
   const output = await tx.breakoutResponseOutput.findFirst({
     where: {
@@ -114,6 +120,7 @@ export async function admitBreakoutGenerationContinuation(
       isDeleted: false,
     },
   });
+  await admission.reauthorize(tx);
   if (
     !output ||
     output.format !== scope.format ||
@@ -133,6 +140,7 @@ export async function admitBreakoutGenerationContinuation(
     },
     select: { id: true },
   });
+  await admission.reauthorize(tx);
   if (!execution) deny('execution_unavailable');
   const source = await loadBreakoutPublication(tx, {
     organizationId: scope.organizationId,
@@ -143,6 +151,7 @@ export async function admitBreakoutGenerationContinuation(
     nativeSourcePostId: response.nativeSourcePostId,
     externalId: response.externalId,
   });
+  await admission.reauthorize(tx);
   if (
     !source ||
     source.isResponse ||
@@ -171,6 +180,7 @@ export async function admitBreakoutGenerationContinuation(
     },
     select: { metric: true },
   });
+  await admission.reauthorize(tx);
   if (
     !trigger ||
     (trigger.metric !== 'views' && trigger.metric !== 'impressions')
@@ -181,12 +191,14 @@ export async function admitBreakoutGenerationContinuation(
     metric: trigger.metric,
     nowMs,
   });
+  await admission.reauthorize(tx);
   if (growth.status === 'held') deny(growth.reason);
   const capacity = await readBreakoutLiveCapacity(tx, {
     ...scope,
     credentialId: admission.credentialId,
     nowMs,
   });
+  await admission.reauthorize(tx);
   if (capacity.status === 'held') deny(capacity.reason);
   if (capacity.remainingPublicationSlots === null) deny('quota_unavailable');
   if (capacity.remainingPublicationSlots < 1) deny('quota_exhausted');

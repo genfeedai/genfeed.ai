@@ -1,6 +1,8 @@
 import {
+  admitBreakoutGenerationContinuation,
   admitBreakoutGenerationCredits,
   type BreakoutGenerationAdmission,
+  runWithBreakoutGenerationAdmission,
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import { readBreakoutGrowth } from '@api/collections/outliers/services/breakout-growth.util';
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
@@ -87,13 +89,19 @@ function fixture(format: LearningFormat = 'text', platform = Platform.TWITTER) {
     isResponse: false,
   };
   const lock = vi.fn(async () => []);
+  const findStrategy = vi.fn(async () => ({
+    id: 'strategy-a',
+    platforms: [platform],
+  }));
+  const findResponse = vi.fn(async () => response);
   const findOutput = vi.fn(async () => output);
   const findExecution = vi.fn(
     async (): Promise<{ id: string } | null> => ({ id: 'execution-a' }),
   );
   const tx = {
     $queryRaw: lock,
-    breakoutResponse: { findFirst: vi.fn(async () => response) },
+    agentStrategy: { findFirst: findStrategy },
+    breakoutResponse: { findFirst: findResponse },
     breakoutResponseOutput: { findFirst: findOutput },
     workflowExecution: { findFirst: findExecution },
     breakoutBaselineReceipt: {
@@ -109,6 +117,8 @@ function fixture(format: LearningFormat = 'text', platform = Platform.TWITTER) {
     output,
     source,
     lock,
+    findStrategy,
+    findResponse,
     findOutput,
     findExecution,
     reauthorize,
@@ -190,6 +200,100 @@ describe('actual breakout credit admission before the provider', () => {
     expect(h.lock).not.toHaveBeenCalled();
     expect(loadBreakoutPublication).not.toHaveBeenCalled();
   });
+  it('checks native authority around the actual attribution read before entering a provider callback', async () => {
+    const h = fixture();
+    const revoked = new Error('key_revoked_during_attribution');
+    const generate = vi.fn(async () => 'provider-result');
+    h.reauthorize.mockRejectedValueOnce(revoked);
+    await expect(
+      runWithBreakoutGenerationAdmission(h.tx, h.admission, generate),
+    ).rejects.toBe(revoked);
+    expect(h.findStrategy).not.toHaveBeenCalled();
+    h.findStrategy.mockImplementationOnce(async () => {
+      h.reauthorize.mockRejectedValueOnce(revoked);
+      return { id: 'strategy-a', platforms: [Platform.TWITTER] };
+    });
+    await expect(
+      runWithBreakoutGenerationAdmission(h.tx, h.admission, generate),
+    ).rejects.toBe(revoked);
+    expect(generate).not.toHaveBeenCalled();
+  });
+  it.each(['lock', 'response', 'output', 'execution'] as const)(
+    'propagates revocation after the %s await before later private reads or billing continuation',
+    async (stage) => {
+      const h = fixture();
+      const revoked = new Error(`key_revoked_during_${stage}`);
+      const rejectNext = () => h.reauthorize.mockRejectedValueOnce(revoked);
+      switch (stage) {
+        case 'lock':
+          h.lock.mockImplementationOnce(async () => {
+            rejectNext();
+            return [];
+          });
+          break;
+        case 'response':
+          h.findResponse.mockImplementationOnce(async () => {
+            rejectNext();
+            return h.response;
+          });
+          break;
+        case 'output':
+          h.findOutput.mockImplementationOnce(async () => {
+            rejectNext();
+            return h.output;
+          });
+          break;
+        case 'execution':
+          h.findExecution.mockImplementationOnce(async () => {
+            rejectNext();
+            return { id: 'execution-a' };
+          });
+          break;
+      }
+      await expect(
+        admitBreakoutGenerationCredits(h.tx, h.admission, h.credits, nowMs),
+      ).rejects.toBe(revoked);
+      expect(loadBreakoutPublication).not.toHaveBeenCalled();
+      expect(readBreakoutLiveCapacity).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['source', 'growth', 'capacity'] as const)(
+    'propagates native revocation after actual %s evidence for paid and zero-credit continuations',
+    async (stage) => {
+      for (const requiredCredits of [0, 5]) {
+        const h = fixture();
+        const revoked = new Error(`key_revoked_during_${stage}`);
+        if (stage === 'source') {
+          vi.mocked(loadBreakoutPublication).mockImplementationOnce(
+            async () => {
+              h.reauthorize.mockRejectedValueOnce(revoked);
+              return h.source;
+            },
+          );
+        } else if (stage === 'growth') {
+          vi.mocked(readBreakoutGrowth).mockImplementationOnce(async () => {
+            h.reauthorize.mockRejectedValueOnce(revoked);
+            return { status: 'held', reason: 'growth_evidence_stale' };
+          });
+        } else {
+          vi.mocked(readBreakoutLiveCapacity).mockImplementationOnce(
+            async () => {
+              h.reauthorize.mockRejectedValueOnce(revoked);
+              return { status: 'held', reason: 'missing_strategy' };
+            },
+          );
+        }
+        await expect(
+          admitBreakoutGenerationContinuation(
+            h.tx,
+            h.admission,
+            requiredCredits,
+            nowMs,
+          ),
+        ).rejects.toBe(revoked);
+      }
+    },
+  );
   it.each([
     'organizationId',
     'brandId',
