@@ -3,6 +3,7 @@
  * Pipes only — subscription registration is connect-later.
  */
 
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
 import { buildXActivityCrcResponseBody } from '@api/services/reply-bot/x-activity-crc.util';
 import { extractInboundCandidatesFromXActivityPayload } from '@api/services/reply-bot/x-activity-event.util';
@@ -27,6 +28,7 @@ export class XActivityWebhookService {
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
     private readonly replyInboundProcessorService: ReplyInboundProcessorService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   isEnabled(): boolean {
@@ -92,6 +94,16 @@ export class XActivityWebhookService {
           `${this.constructorName} no credential for activity user`,
           { forUserId: candidate.forUserId },
         );
+        continue;
+      }
+
+      if (
+        !(await this.moduleAccess.canStartWork(
+          resolved.organizationId,
+          'messages',
+        ))
+      ) {
+        ignored += 1;
         continue;
       }
 

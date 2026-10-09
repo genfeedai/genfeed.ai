@@ -22,6 +22,7 @@ import { ProcessedTweetsModule } from '@api/collections/processed-tweets/process
 import { ReplyBotConfigsCoreModule } from '@api/collections/reply-bot-configs/reply-bot-configs-core.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
@@ -64,6 +65,7 @@ import { Module } from '@nestjs/common';
     SocialMonitorService,
   ],
   imports: [
+    OrganizationModuleAccessModule,
     PlatformSettingsModule,
     // Configuration
     ConfigModule,
