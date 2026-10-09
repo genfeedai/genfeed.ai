@@ -87,6 +87,11 @@ export function createTestsGateJobs(env) {
       result: readResult(env, 'CLOUD_TENANT_GUARD_RESULT'),
       applicable: planned('PLAN_API_TESTS'),
     },
+    {
+      name: 'MCP Auth Runtime',
+      result: readResult(env, 'MCP_AUTH_RUNTIME_RESULT'),
+      applicable: planned('PLAN_MCP_AUTH_RUNTIME'),
+    },
     ...[...TEMPORARILY_DISABLED_TEST_GROUPS].map((group) => ({
       name: DORMANT_SURFACE_NAMES[group] ?? `${group} tests`,
       result: 'skipped',

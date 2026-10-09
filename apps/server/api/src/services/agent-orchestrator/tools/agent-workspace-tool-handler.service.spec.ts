@@ -1,21 +1,41 @@
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
-import { IngredientCategory } from '@genfeedai/contracts';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { IngredientCategory, MemberRole } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const brandRuntime = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => brandRuntime.cloud,
+}));
+beforeEach(() => {
+  brandRuntime.cloud = false;
+});
+
+function withBrandAccessFixture(
+  handler: AgentWorkspaceToolHandler,
+): AgentWorkspaceToolHandler {
+  Object.assign(handler, { brandAccessService: brandAccessFixture() });
+  return handler;
+}
 
 function createHandler(): AgentWorkspaceToolHandler {
-  return new AgentWorkspaceToolHandler(
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[1],
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[5],
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[6],
-    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[7],
+  return withBrandAccessFixture(
+    new AgentWorkspaceToolHandler(
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[1],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[5],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[6],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[7],
+    ),
   );
 }
 
@@ -69,21 +89,23 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
     const members = {
       findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
     };
-    const handler = new AgentWorkspaceToolHandler(
-      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
-      brands as unknown as ConstructorParameters<
-        typeof AgentWorkspaceToolHandler
-      >[1],
-      members as unknown as ConstructorParameters<
-        typeof AgentWorkspaceToolHandler
-      >[2],
-      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
-      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
-      uploads as unknown as ConstructorParameters<
-        typeof AgentWorkspaceToolHandler
-      >[5],
-      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[6],
-      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[7],
+    const handler = withBrandAccessFixture(
+      new AgentWorkspaceToolHandler(
+        {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
+        brands as unknown as ConstructorParameters<
+          typeof AgentWorkspaceToolHandler
+        >[1],
+        members as unknown as ConstructorParameters<
+          typeof AgentWorkspaceToolHandler
+        >[2],
+        {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
+        {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
+        uploads as unknown as ConstructorParameters<
+          typeof AgentWorkspaceToolHandler
+        >[5],
+        {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[6],
+        {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[7],
+      ),
     );
     return { brands, handler, members, uploads };
   }
@@ -218,17 +240,19 @@ function buildHandler(overrides: {
   const members = overrides.members ?? {
     findOne: vi.fn().mockResolvedValue(null),
   };
-  return new AgentWorkspaceToolHandler(
-    (overrides.credits ?? {}) as HandlerArgs[0],
-    brands as HandlerArgs[1],
-    members as HandlerArgs[2],
-    {} as HandlerArgs[3],
-    (overrides.personas ?? {}) as HandlerArgs[4],
-    {} as HandlerArgs[5],
-    (overrides.transactions ?? {}) as HandlerArgs[6],
-    (overrides.ingredients ?? {}) as HandlerArgs[7],
-    overrides.characterFilter as HandlerArgs[8],
-    overrides.users as HandlerArgs[9],
+  return withBrandAccessFixture(
+    new AgentWorkspaceToolHandler(
+      (overrides.credits ?? {}) as HandlerArgs[0],
+      brands as HandlerArgs[1],
+      members as HandlerArgs[2],
+      {} as HandlerArgs[3],
+      (overrides.personas ?? {}) as HandlerArgs[4],
+      {} as HandlerArgs[5],
+      (overrides.transactions ?? {}) as HandlerArgs[6],
+      (overrides.ingredients ?? {}) as HandlerArgs[7],
+      overrides.characterFilter as HandlerArgs[8],
+      overrides.users as HandlerArgs[9],
+    ),
   );
 }
 
@@ -830,5 +854,110 @@ describe('list_assets Library shelves', () => {
     );
     expect(result.success).toBe(false);
     expect(ingredients.listLibraryAssets).not.toHaveBeenCalled();
+  });
+});
+
+describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
+  function fixture() {
+    brandRuntime.cloud = true;
+    const membership = {
+      role: { key: MemberRole.USER },
+      roleKey: MemberRole.OWNER,
+      brands: [{ id: 'brand-a' }],
+    };
+    const findMember = vi.fn().mockImplementation(async () => membership);
+    const findAll = vi.fn().mockImplementation(async ({ where }) => {
+      expect(findMember).toHaveBeenCalled();
+      const ids = where.id?.in ?? ['brand-a', 'brand-b'];
+      return {
+        docs: ids.map((id: string) => ({ id, name: id, label: id, slug: id })),
+      };
+    });
+    const handler = new AgentWorkspaceToolHandler(
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
+      { findAll } as unknown as ConstructorParameters<
+        typeof AgentWorkspaceToolHandler
+      >[1],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[5],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[6],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[7],
+    );
+    Object.assign(handler, {
+      brandAccessService: brandAccessFixture({
+        member: { findFirst: findMember },
+      } as unknown as PrismaService),
+    });
+    return { handler, membership, findMember, findAll };
+  }
+  const actor: ToolExecutionContext = {
+    userId: 'actor',
+    organizationId: 'org-a',
+  };
+
+  it('filters ordinary discovery before querying and applies immediate assignment revocation', async () => {
+    const f = fixture();
+    const first = await f.handler.getBrands({}, actor);
+    expect(first.success).toBe(true);
+    expect(JSON.stringify(first)).toContain('brand-a');
+    expect(JSON.stringify(first)).not.toContain('brand-b');
+    expect(f.findAll).toHaveBeenCalledWith(
+      {
+        where: {
+          organizationId: 'org-a',
+          isDeleted: false,
+          id: { in: ['brand-a'] },
+        },
+      },
+      {},
+    );
+    f.membership.brands = [];
+    const revoked = await f.handler.getBrands(
+      {},
+      { ...actor, brandId: 'brand-a' },
+    );
+    expect(revoked).toEqual({
+      success: true,
+      creditsUsed: 0,
+      data: { brands: [] },
+    });
+    expect(f.findAll).toHaveBeenLastCalledWith(
+      { where: { organizationId: 'org-a', isDeleted: false, id: { in: [] } } },
+      {},
+    );
+    expect(f.findMember).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives denied selectors the same public result as nonexistent selectors', async () => {
+    const f = fixture();
+    expect(await f.handler.getBrands({ brand: 'brand-b' }, actor)).toEqual(
+      await f.handler.getBrands({ brand: 'nonexistent' }, actor),
+    );
+    expect(
+      JSON.stringify(await f.handler.getBrands({ brand: 'brand-b' }, actor)),
+    ).not.toContain('brand-b');
+  });
+
+  it('caps a canonical owner API key before granting organization-wide discovery', async () => {
+    const f = fixture();
+    f.membership.role.key = MemberRole.OWNER;
+    const result = await f.handler.getBrands(
+      {},
+      { ...actor, apiKeyContext: { isApiKey: true, scopes: [] } },
+    );
+    expect(JSON.stringify(result)).toContain('brand-a');
+    expect(JSON.stringify(result)).not.toContain('brand-b');
+    expect(f.findAll).toHaveBeenLastCalledWith(
+      {
+        where: {
+          organizationId: 'org-a',
+          isDeleted: false,
+          id: { in: ['brand-a'] },
+        },
+      },
+      {},
+    );
   });
 });

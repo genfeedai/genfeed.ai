@@ -1,4 +1,5 @@
 import { AgentScopeContextService } from '@api/index';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   ConflictException,
   ForbiddenException,
@@ -49,7 +50,11 @@ describe('AgentScopeContextService', () => {
       brand: { findFirst: vi.fn().mockResolvedValue({ id: BRAND_ID }) },
     };
     logger.log.mockClear();
-    service = new AgentScopeContextService(prisma as never, logger as never);
+    service = new AgentScopeContextService(
+      prisma as never,
+      logger as never,
+      brandAccessFixture(prisma as never as never),
+    );
   });
 
   it('resolves an authorized thread scope from immutable server authority', async () => {

@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
   KnowledgeSourceIngestService,
   type KnowledgeSourceIngestState,
@@ -6,13 +7,24 @@ import {
   buildKnowledgeSourceBackfillWorkflowDefinition,
   buildKnowledgeSourceIngestWorkflowDefinition,
   KNOWLEDGE_SOURCE_ACTION_IDS,
+  KNOWLEDGE_SOURCE_WORKFLOW_IDS,
 } from '@api/collections/contexts/services/knowledge-source-ingest-workflow-definition';
+import {
+  knowledgeWorkflowActorKey,
+  toKnowledgeWorkflowActor,
+  validateKnowledgeWorkflowAction,
+} from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   KnowledgeSourceBackfillWorkflowInput,
   KnowledgeSourceIngestWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
+import type { KnowledgeWorkflowInitiatingActor } from '@genfeedai/contracts/interfaces/automation/content-delivery-workflow.interface';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -22,48 +34,81 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
     private readonly ingest: KnowledgeSourceIngestService,
     private readonly queue: WorkflowExecutionQueueService,
     private readonly runner: SystemWorkflowRunnerService,
+    private readonly prisma: PrismaService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   onModuleInit(): void {
-    this.runner.registerAction(KNOWLEDGE_SOURCE_ACTION_IDS.LOAD, ({ input }) =>
-      this.ingest.loadSource(
-        input.request as KnowledgeSourceIngestWorkflowInput,
-      ),
-    );
-    this.runner.registerAction(KNOWLEDGE_SOURCE_ACTION_IDS.MARK, ({ input }) =>
-      this.ingest.markSource(input.state as KnowledgeSourceIngestState),
-    );
     this.runner.registerAction(
-      KNOWLEDGE_SOURCE_ACTION_IDS.EXTRACT,
-      ({ input }) =>
-        this.ingest.extractSource(input.state as KnowledgeSourceIngestState),
+      KNOWLEDGE_SOURCE_ACTION_IDS.LOAD,
+      async (action) => {
+        const request = await this.admit(
+          action,
+          KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+          action.input.request,
+        );
+        return this.ingest.loadSource(request);
+      },
     );
-    this.runner.registerAction(KNOWLEDGE_SOURCE_ACTION_IDS.CHUNK, ({ input }) =>
-      this.ingest.chunkSource(input.state as KnowledgeSourceIngestState),
-    );
-    this.runner.registerAction(
-      KNOWLEDGE_SOURCE_ACTION_IDS.REPLACE,
-      ({ input }) =>
-        this.ingest.replaceChunks(input.state as KnowledgeSourceIngestState),
-    );
+    for (const [actionId, run] of [
+      [
+        KNOWLEDGE_SOURCE_ACTION_IDS.MARK,
+        (state: KnowledgeSourceIngestState) => this.ingest.markSource(state),
+      ],
+      [
+        KNOWLEDGE_SOURCE_ACTION_IDS.EXTRACT,
+        (state: KnowledgeSourceIngestState) => this.ingest.extractSource(state),
+      ],
+      [
+        KNOWLEDGE_SOURCE_ACTION_IDS.CHUNK,
+        (state: KnowledgeSourceIngestState) => this.ingest.chunkSource(state),
+      ],
+      [
+        KNOWLEDGE_SOURCE_ACTION_IDS.REPLACE,
+        (state: KnowledgeSourceIngestState) => this.ingest.replaceChunks(state),
+      ],
+    ] as const) {
+      this.runner.registerAction(actionId, async (action) => {
+        const state = action.input.state as KnowledgeSourceIngestState;
+        const request = await this.admit(
+          action,
+          KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+          state,
+        );
+        return run({ ...state, initiatingActor: request.initiatingActor });
+      });
+    }
     this.runner.registerAction(
       KNOWLEDGE_SOURCE_ACTION_IDS.FINALIZE,
-      ({ input }) => {
-        const failure = input.failure as
+      async (action) => {
+        const failure = action.input.failure as
           | { error?: string; nodeOutputs?: Record<string, unknown> }
           | undefined;
         const state =
-          (input.state as KnowledgeSourceIngestState | undefined) ??
+          (action.input.state as KnowledgeSourceIngestState | undefined) ??
           this.lastIngestState(failure?.nodeOutputs);
-        return this.ingest.finalizeSource(state, failure?.error);
+        const request = await this.admit(
+          action,
+          KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+          state,
+        );
+        return this.ingest.finalizeSource(
+          state
+            ? { ...state, initiatingActor: request.initiatingActor }
+            : undefined,
+          failure?.error,
+        );
       },
     );
     this.runner.registerAction(
       KNOWLEDGE_SOURCE_ACTION_IDS.DISCOVER_BACKFILL,
-      async ({ input }) => {
-        const scan = await this.ingest.scanForBackfill(
-          input.request as KnowledgeSourceBackfillWorkflowInput,
+      async (action) => {
+        const request = await this.admit(
+          action,
+          KNOWLEDGE_SOURCE_WORKFLOW_IDS.BACKFILL,
+          action.input.request,
         );
+        const scan = await this.ingest.scanForBackfill(request);
         return { items: scan.queued };
       },
     );
@@ -72,6 +117,20 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
     );
     this.runner.registerWorkflow(
       buildKnowledgeSourceBackfillWorkflowDefinition(),
+    );
+  }
+
+  private admit(
+    action: SystemWorkflowActionRequest,
+    canonicalId: string,
+    input: unknown,
+  ) {
+    return validateKnowledgeWorkflowAction(
+      this.prisma,
+      this.brandAccess,
+      action,
+      canonicalId,
+      input,
     );
   }
 
@@ -94,7 +153,17 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
     return undefined;
   }
 
-  enqueueIngest(request: KnowledgeSourceIngestWorkflowInput): Promise<string> {
+  enqueueIngest(
+    input: KnowledgeSourceIngestWorkflowInput & {
+      initiatingActor: KnowledgeWorkflowInitiatingActor;
+    },
+  ): Promise<string> {
+    const request = {
+      organizationId: input.organizationId,
+      sourceId: input.sourceId,
+      versionId: input.versionId,
+      initiatingActor: toKnowledgeWorkflowActor(input.initiatingActor),
+    };
     const definition = buildKnowledgeSourceIngestWorkflowDefinition();
     return this.queue.queueSystemWorkflow(
       {
@@ -102,6 +171,7 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
         canonicalId: definition.canonicalId,
         inputValues: { request },
         organizationId: request.organizationId,
+        userId: request.initiatingActor.userId,
         source: 'knowledge-source',
       },
       `knowledge-source-ingest-${request.sourceId}-${request.versionId}`,
@@ -113,8 +183,14 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
   }
 
   enqueueBackfill(
-    request: KnowledgeSourceBackfillWorkflowInput,
+    input: KnowledgeSourceBackfillWorkflowInput & {
+      initiatingActor: KnowledgeWorkflowInitiatingActor;
+    },
   ): Promise<string> {
+    const request = {
+      organizationId: input.organizationId,
+      initiatingActor: toKnowledgeWorkflowActor(input.initiatingActor),
+    };
     const definition = buildKnowledgeSourceBackfillWorkflowDefinition();
     return this.queue.queueSystemWorkflow(
       {
@@ -122,9 +198,10 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
         canonicalId: definition.canonicalId,
         inputValues: { request },
         organizationId: request.organizationId,
+        userId: request.initiatingActor.userId,
         source: 'knowledge-source-backfill',
       },
-      `knowledge-source-backfill-${request.organizationId}`,
+      `knowledge-source-backfill-${request.organizationId}-${knowledgeWorkflowActorKey(request.initiatingActor)}`,
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,

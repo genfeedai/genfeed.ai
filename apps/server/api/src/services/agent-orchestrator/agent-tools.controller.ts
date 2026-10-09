@@ -98,10 +98,12 @@ export class AgentToolsController {
       // belongs to the authenticated organization before it reaches a tool.
       const brandId = body.context?.brandId;
       if (brandId) {
-        await this.agentScopeContextService.assertBrandAuthorized(
-          brandId,
+        await this.agentScopeContextService.assertBrandAuthorized(brandId, {
+          userId,
           organizationId,
-        );
+          isApiKey: user.isApiKey,
+          scopes: user.scopes,
+        });
       }
 
       const context: ToolExecutionContext = {

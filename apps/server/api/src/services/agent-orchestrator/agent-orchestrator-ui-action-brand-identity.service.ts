@@ -238,6 +238,8 @@ export class AgentOrchestratorUiActionBrandIdentityService {
           organizationId: input.params.context.organizationId,
           threadId: input.params.threadId,
           userId: input.params.context.userId,
+          isApiKey: input.params.context.apiKeyContext?.isApiKey,
+          scopes: input.params.context.apiKeyContext?.scopes,
         });
     if (typeof updatedThread.contextVersion !== 'number') {
       throw new InternalServerErrorException(
@@ -250,6 +252,8 @@ export class AgentOrchestratorUiActionBrandIdentityService {
       requestedBrandId: brandId,
       threadId: input.params.threadId,
       userId: input.params.context.userId,
+      isApiKey: input.params.context.apiKeyContext?.isApiKey,
+      scopes: input.params.context.apiKeyContext?.scopes,
     });
     if (!refreshed.existingScope) {
       throw new InternalServerErrorException(

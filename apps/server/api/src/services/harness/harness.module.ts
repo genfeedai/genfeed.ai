@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
@@ -17,7 +18,7 @@ import { Module } from '@nestjs/common';
     HarnessReviewFeedbackService,
     HarnessWinnerPromotionService,
   ],
-  imports: [ConfigModule, LoggerModule],
+  imports: [BrandAccessModule, ConfigModule, LoggerModule],
   providers: [
     ContentHarnessService,
     HarnessGenerationService,

@@ -1,3 +1,7 @@
+import {
+  type BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
@@ -15,13 +19,19 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class KnowledgeSelectionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly brandAccess: BrandAccessService,
+  ) {}
 
   async resolve(
     organizationId: string,
     brandId: string | undefined,
     selection: KnowledgeSelection | undefined,
+    actor: BrandAccessActor,
   ): Promise<KnowledgeRetrievalFilters | undefined> {
+    await this.brandAccess.resolve(actor);
+    if (brandId) await this.brandAccess.assert(actor, brandId);
     if (!selection) {
       return undefined;
     }

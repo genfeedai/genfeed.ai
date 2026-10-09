@@ -137,7 +137,13 @@ function AppLayoutWithDynamicMenu({
   children,
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
-  const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  const {
+    brandId,
+    brands,
+    organizationId,
+    selectedBrand,
+    isBrandScopeResolved,
+  } = useBrand();
   const sidebarPathname = usePathname();
 
   const {
@@ -544,9 +550,19 @@ function AppLayoutWithDynamicMenu({
           {isUniversalWorkspaceShell ? (
             agentApiService ? (
               <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
-                {children}
+                {brandSlug &&
+                isBrandScopeResolved &&
+                !brands.some((brand) => brand.slug === brandSlug) ? (
+                  <div className="p-6">Brand unavailable.</div>
+                ) : (
+                  children
+                )}
               </LazyUniversalWorkspaceShell>
             ) : null
+          ) : brandSlug &&
+            isBrandScopeResolved &&
+            !brands.some((brand) => brand.slug === brandSlug) ? (
+            <div className="p-6">Brand unavailable.</div>
           ) : (
             children
           )}

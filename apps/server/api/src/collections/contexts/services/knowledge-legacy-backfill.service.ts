@@ -1,3 +1,5 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { hashKnowledgeContent } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { isIngestibleKnowledgeSourceKind } from '@api/collections/contexts/services/knowledge-source-ingest.service';
@@ -12,7 +14,7 @@ import {
   titleForBookmark,
 } from '@api/collections/contexts/utils/knowledge-legacy.util';
 import { parseKnowledgeSources } from '@api/collections/contexts/utils/knowledge-source.util';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { toKnowledgeWorkflowActor } from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -31,8 +33,6 @@ import { Injectable } from '@nestjs/common';
 
 export const KNOWLEDGE_LEGACY_BACKFILL_ID_PREFIX = 'knowledge-legacy';
 
-type LegacyActor = { brandId?: string; organizationId: string; userId: string };
-
 /**
  * Moves `ContextBase.data.sources` entries and `Bookmark` rows into the
  * canonical Knowledge tables exactly once. Every migrated version records the
@@ -47,10 +47,12 @@ export class KnowledgeLegacyBackfillService {
     private readonly records: KnowledgeRecordsService,
     private readonly ingestWorkflow: KnowledgeSourceIngestWorkflowService,
     private readonly logger: LoggerService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
-  async run(organizationId: string): Promise<KnowledgeLegacyBackfillReport> {
-    const fallbackUserId = await this.resolveFallbackUser(organizationId);
+  async run(actor: KnowledgeActor): Promise<KnowledgeLegacyBackfillReport> {
+    await this.records.assertCanBackfill(actor);
+    const { organizationId } = actor;
     const report: KnowledgeLegacyBackfillReport = {
       bookmarks: { migrated: 0, quarantined: 0, skipped: 0 },
       completedAt: '',
@@ -64,10 +66,11 @@ export class KnowledgeLegacyBackfillService {
       quarantine: [],
       spacesCreated: 0,
     };
-    await this.migrateContextSources(organizationId, fallbackUserId, report);
-    await this.migrateBookmarks(organizationId, report);
+    await this.migrateContextSources(actor, report);
+    await this.migrateBookmarks(actor, report);
     report.completedAt = new Date().toISOString();
     const id = `${KNOWLEDGE_LEGACY_BACKFILL_ID_PREFIX}:${organizationId}`;
+    await this.records.assertCanBackfill(actor);
     await this.prisma.dataBackfill.upsert({
       create: { id, report: toPrismaJson(report) },
       update: { completedAt: new Date(), report: toPrismaJson(report) },
@@ -83,10 +86,11 @@ export class KnowledgeLegacyBackfillService {
   }
 
   private async migrateContextSources(
-    organizationId: string,
-    fallbackUserId: string,
+    initiatingActor: KnowledgeActor,
     report: KnowledgeLegacyBackfillReport,
   ): Promise<void> {
+    const { organizationId } = initiatingActor;
+    const brandWhere = await this.brandAccess.predicate(initiatingActor);
     const bases = await this.prisma.contextBase.findMany({
       select: {
         createdById: true,
@@ -95,9 +99,16 @@ export class KnowledgeLegacyBackfillService {
         sourceBrandId: true,
         updatedAt: true,
       },
-      where: scopedWhere(organizationId, {}),
+      where: scopedWhere(organizationId, {
+        OR: [{ sourceBrandId: null }, { sourceBrand: { is: brandWhere } }],
+      }),
     });
     for (const base of bases) {
+      const actor: KnowledgeActor = {
+        ...initiatingActor,
+        brandId: base.sourceBrandId ?? undefined,
+      };
+      await this.authorizeUnit(actor);
       for (const source of parseKnowledgeSources(base.data)) {
         if (source.isDeleted) {
           report.contextSources.skipped += 1;
@@ -125,11 +136,6 @@ export class KnowledgeLegacyBackfillService {
           continue;
         }
         const kind = kindForLegacyCategory(source.category);
-        const actor: LegacyActor = {
-          ...(base.sourceBrandId ? { brandId: base.sourceBrandId } : {}),
-          organizationId,
-          userId: base.createdById ?? fallbackUserId,
-        };
         const capture = captureForLegacyContextSource(
           base.id,
           source,
@@ -145,8 +151,16 @@ export class KnowledgeLegacyBackfillService {
           contentHash: hashKnowledgeContent(source.referenceUrl),
           observedAt: capture.provenance.capturedAt,
           payload: JSON.parse(JSON.stringify(capture.payload)),
-          provenance: JSON.parse(JSON.stringify(capture.provenance)),
+          provenance: JSON.parse(
+            JSON.stringify({
+              ...capture.provenance,
+              ...(base.createdById
+                ? { legacyCreatedById: base.createdById }
+                : {}),
+            }),
+          ),
         });
+        await this.authorizeUnit(actor);
         const relinked = await this.prisma.contextEntry.updateMany({
           data: {
             knowledgeSourceId: created.id,
@@ -162,29 +176,41 @@ export class KnowledgeLegacyBackfillService {
         report.contextSources.migrated += 1;
         if (relinked.count > 0) {
           await this.transition(
-            organizationId,
+            actor,
             created.id,
             version.id,
             KnowledgeProcessingState.READY,
           );
           continue;
         }
-        await this.enqueueOrFail(organizationId, created.id, version.id, kind);
+        await this.enqueueOrFail(actor, created.id, version.id, kind);
       }
     }
   }
 
   private async migrateBookmarks(
-    organizationId: string,
+    initiatingActor: KnowledgeActor,
     report: KnowledgeLegacyBackfillReport,
   ): Promise<void> {
+    const { organizationId } = initiatingActor;
+    const brandWhere = await this.brandAccess.predicate(initiatingActor);
     const bookmarks = await this.prisma.bookmark.findMany({
       include: { folder: { select: { id: true, label: true } } },
       orderBy: { createdAt: 'asc' },
-      where: scopedWhere(organizationId, {}),
+      where: scopedWhere(organizationId, {
+        OR: [
+          { brandId: null, userId: initiatingActor.userId },
+          { brand: { is: brandWhere } },
+        ],
+      }),
     });
     const spaceIdByKey = new Map<string, string>();
     for (const bookmark of bookmarks) {
+      const actor: KnowledgeActor = {
+        ...initiatingActor,
+        brandId: bookmark.brandId ?? undefined,
+      };
+      await this.authorizeUnit(actor);
       if (
         await this.hasMigratedVersion(organizationId, 'bookmarkId', bookmark.id)
       ) {
@@ -200,11 +226,6 @@ export class KnowledgeLegacyBackfillService {
         report.bookmarks.quarantined += 1;
         continue;
       }
-      const actor: LegacyActor = {
-        ...(bookmark.brandId ? { brandId: bookmark.brandId } : {}),
-        organizationId,
-        userId: bookmark.userId,
-      };
       const scope = bookmark.brandId
         ? KnowledgeMemoryScope.BRAND
         : KnowledgeMemoryScope.PERSONAL;
@@ -221,7 +242,12 @@ export class KnowledgeLegacyBackfillService {
         ),
         observedAt: capture.provenance.capturedAt,
         payload: JSON.parse(JSON.stringify(capture.payload)),
-        provenance: JSON.parse(JSON.stringify(capture.provenance)),
+        provenance: JSON.parse(
+          JSON.stringify({
+            ...capture.provenance,
+            legacyUserId: bookmark.userId,
+          }),
+        ),
       });
       if (bookmark.folder) {
         const spaceId = await this.ensureSpace(
@@ -234,7 +260,9 @@ export class KnowledgeLegacyBackfillService {
         await this.records.setMembership(actor, created.id, spaceId, false);
       }
       report.bookmarks.migrated += 1;
+      await this.authorizeUnit(actor);
       await this.ingestWorkflow.enqueueIngest({
+        initiatingActor: toKnowledgeWorkflowActor(actor),
         organizationId,
         sourceId: created.id,
         versionId: version.id,
@@ -244,12 +272,13 @@ export class KnowledgeLegacyBackfillService {
 
   /** One space per folder label inside the same scope; reused across runs. */
   private async ensureSpace(
-    actor: LegacyActor,
+    actor: KnowledgeActor,
     scope: KnowledgeMemoryScope,
     label: string,
     cache: Map<string, string>,
     report: KnowledgeLegacyBackfillReport,
   ): Promise<string> {
+    await this.authorizeUnit(actor);
     const title = label.trim().slice(0, 500) || 'Bookmarks';
     const key = [scope, actor.brandId ?? '', actor.userId, title].join('|');
     const cached = cache.get(key);
@@ -297,16 +326,19 @@ export class KnowledgeLegacyBackfillService {
    * PROCESSING, so the backfill walks the same two steps ingestion does.
    */
   private async transition(
-    organizationId: string,
+    actor: KnowledgeActor,
     sourceId: string,
     versionId: string,
     state: KnowledgeProcessingState.FAILED | KnowledgeProcessingState.READY,
     processingError?: string,
   ): Promise<void> {
+    await this.authorizeUnit(actor);
+    const { organizationId } = actor;
     await this.prisma.knowledgeSourceVersion.updateMany({
       data: { processingState: KnowledgeProcessingState.PROCESSING },
       where: scopedWhere(organizationId, { id: versionId, sourceId }),
     });
+    await this.authorizeUnit(actor);
     await this.prisma.knowledgeSourceVersion.updateMany({
       data: {
         processingError:
@@ -320,13 +352,17 @@ export class KnowledgeLegacyBackfillService {
   }
 
   private async enqueueOrFail(
-    organizationId: string,
+    actor: KnowledgeActor,
     sourceId: string,
     versionId: string,
     kind: KnowledgeSourceKind,
   ): Promise<void> {
+    const { organizationId } = actor;
+    await this.authorizeUnit(actor);
     if (isIngestibleKnowledgeSourceKind(kind)) {
+      await this.authorizeUnit(actor);
       await this.ingestWorkflow.enqueueIngest({
+        initiatingActor: toKnowledgeWorkflowActor(actor),
         organizationId,
         sourceId,
         versionId,
@@ -334,7 +370,7 @@ export class KnowledgeLegacyBackfillService {
       return;
     }
     await this.transition(
-      organizationId,
+      actor,
       sourceId,
       versionId,
       KnowledgeProcessingState.FAILED,
@@ -349,16 +385,8 @@ export class KnowledgeLegacyBackfillService {
     report.quarantine.push(entry);
   }
 
-  /** Legacy context bases may have no author; the oldest member owns them. */
-  private async resolveFallbackUser(organizationId: string): Promise<string> {
-    const member = await this.prisma.member.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { userId: true },
-      where: scopedWhere(organizationId, {}),
-    });
-    if (!member) {
-      throw new NotFoundException('Organization member', organizationId);
-    }
-    return member.userId;
+  private async authorizeUnit(actor: KnowledgeActor): Promise<void> {
+    await this.records.assertCanBackfill(actor);
+    if (actor.brandId) await this.brandAccess.assert(actor, actor.brandId);
   }
 }

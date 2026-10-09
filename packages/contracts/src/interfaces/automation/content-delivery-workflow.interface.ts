@@ -15,14 +15,24 @@ export interface InsightGenerationWorkflowInput {
   organizationId: string;
 }
 
+export interface KnowledgeWorkflowInitiatingActor {
+  organizationId: string;
+  userId: string;
+  isApiKey: boolean;
+  scopes: string[];
+  apiKeyId?: string;
+}
+
 /** One canonical Knowledge source version to extract, chunk and embed. */
 export interface KnowledgeSourceIngestWorkflowInput {
+  initiatingActor?: KnowledgeWorkflowInitiatingActor;
   organizationId: string;
   sourceId: string;
   versionId: string;
 }
 
 export interface KnowledgeSourceBackfillWorkflowInput {
+  initiatingActor?: KnowledgeWorkflowInitiatingActor;
   organizationId: string;
 }
 

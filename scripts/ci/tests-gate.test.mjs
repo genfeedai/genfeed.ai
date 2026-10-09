@@ -25,6 +25,8 @@ const ALL_SUCCESS_ENV = {
   TEST_APP_RESULT: 'success',
   TEST_API_RESULT: 'success',
   CLOUD_TENANT_GUARD_RESULT: 'success',
+  MCP_AUTH_RUNTIME_RESULT: 'success',
+  PLAN_MCP_AUTH_RUNTIME: 'true',
   BUILD_RESULT: 'success',
 };
 
@@ -50,6 +52,8 @@ const CANCELLED_RUN_ENV = {
   TEST_APP_RESULT: 'cancelled',
   TEST_API_RESULT: 'cancelled',
   CLOUD_TENANT_GUARD_RESULT: 'cancelled',
+  MCP_AUTH_RUNTIME_RESULT: 'cancelled',
+  PLAN_MCP_AUTH_RUNTIME: '',
   BUILD_RESULT: 'cancelled',
 };
 
@@ -269,6 +273,7 @@ test('a genuine failure keeps a superseded run red', () => {
     PLAN_API_TESTS: 'true',
     PLAN_WORKSPACE_TESTS: 'true',
     PLAN_SPEC_TYPECHECK: 'true',
+    PLAN_MCP_AUTH_RUNTIME: 'true',
     STATIC_CHECKS_RESULT: 'failure',
     RUN_SUPERSEDED: 'true',
   });
@@ -455,4 +460,18 @@ test('tenant diagnostic failure blocks gate', () => {
   for (const result of ['failure', 'cancelled']) {
     assert.equal(evaluate({ CLOUD_TENANT_GUARD_RESULT: result }).passed, false);
   }
+});
+
+test('MCP transport applicability fails closed independently of related API test counts', () => {
+  for (const result of ['skipped', 'cancelled', 'failure'])
+    assert.equal(evaluate({ MCP_AUTH_RUNTIME_RESULT: result }).passed, false);
+  for (const result of [undefined, 'unknown', ''])
+    assert.throws(() => evaluate({ MCP_AUTH_RUNTIME_RESULT: result }));
+  assert.equal(
+    evaluate({
+      PLAN_MCP_AUTH_RUNTIME: 'false',
+      MCP_AUTH_RUNTIME_RESULT: 'skipped',
+    }).passed,
+    true,
+  );
 });

@@ -1,3 +1,5 @@
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -96,6 +98,7 @@ describe('KnowledgeContentRetrievalService', () => {
     const service = new KnowledgeContentRetrievalService(
       prismaService,
       contextsService,
+      brandAccessFixture(),
     );
 
     return { contextBase, embeddings, queryRaw, service };
@@ -119,6 +122,7 @@ describe('KnowledgeContentRetrievalService', () => {
       const { contextBase, service } = buildService();
 
       const hits = await service.retrieveBrandContentMemory({
+        userId: 'user-a',
         brandId: '  ',
         organizationId: 'org-1',
         query: 'pricing',
@@ -132,6 +136,7 @@ describe('KnowledgeContentRetrievalService', () => {
       const { contextBase, service } = buildService();
 
       const hits = await service.retrieveBrandContentMemory({
+        userId: 'user-a',
         brandId: BRAND_A,
         knowledgeSourceIds: [],
         organizationId: 'org-1',
@@ -154,6 +159,7 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
 
       await service.retrieveBrandContentMemory({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',
@@ -173,6 +179,7 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
 
       await service.retrieveBrandContentMemory({
+        userId: 'user-a',
         brandId: BRAND_A,
         isKnowledgeOnly: true,
         organizationId: 'org-1',
@@ -190,6 +197,7 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
 
       await service.retrieveBrandContentMemory({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',
@@ -204,6 +212,7 @@ describe('KnowledgeContentRetrievalService', () => {
 
   describe('retrieveSelectedBrandContentMemory', () => {
     const params = {
+      userId: 'user-a',
       brandId: BRAND_A,
       organizationId: 'org-1',
       query: 'pricing',
@@ -283,7 +292,11 @@ describe('KnowledgeContentRetrievalService', () => {
         'source-truth',
       ]);
       await service.retrieveSelectedBrandContentMemory(
-        { ...params, query: 'different query', organizationId: 'org-2' },
+        {
+          ...params,
+          query: 'different query',
+          organizationId: 'org-2',
+        },
         ['source-truth'],
       );
       expect(embeddings).toHaveBeenCalledTimes(2);
@@ -489,6 +502,7 @@ describe('KnowledgeContentRetrievalService', () => {
       const { contextBase, service } = buildService();
 
       await service.retrieveBrandKnowledge({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',
@@ -542,6 +556,7 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
 
       const hits = await service.retrieveBrandKnowledge({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',
@@ -578,6 +593,7 @@ describe('KnowledgeContentRetrievalService', () => {
       ]);
 
       const hits = await service.retrieveBrandKnowledge({
+        userId: 'user-a',
         brandId: BRAND_A,
         organizationId: 'org-1',
         query: 'pricing',

@@ -15,7 +15,6 @@ import { ProductEmailTopicDto } from '@api/collections/users/dto/product-email-t
 import { UpdateWorkflowEmailNotificationPreferenceDto } from '@api/collections/users/dto/update-workflow-email-notification-preference.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
-import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -170,12 +169,6 @@ export class UsersRelationshipsController {
   }
 
   @Get('me/brands')
-  @Cache({
-    keyGenerator: (req) =>
-      `users:me:brands:org:${CollectionFilterUtil.resolveListCacheScope(req).organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
-    tags: ['accounts', 'users'],
-    ttl: 1_800,
-  })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'UsersController.findMeBrands',
@@ -212,16 +205,26 @@ export class UsersRelationshipsController {
       member = null;
     }
 
+    const authorizedWhere =
+      await this.brandsService.brandAccessService.predicate({
+        ...user,
+        organizationId: tenant.organizationId,
+      });
     const data = await this.brandsService.findAll(
       {
         include: { credentials: true },
         orderBy: handleQuerySort(query.sort),
-        where: buildMeBrandsWhere({
-          isDeleted,
-          isSuperAdmin: getIsSuperAdmin(user, request),
-          memberBrandIds: member?.brands,
-          organizationId: tenant.organizationId,
-        }),
+        where: {
+          AND: [
+            authorizedWhere,
+            buildMeBrandsWhere({
+              isDeleted,
+              isSuperAdmin: getIsSuperAdmin(user, request),
+              memberBrandIds: member?.brands,
+              organizationId: tenant.organizationId,
+            }),
+          ],
+        },
       },
       options,
     );
@@ -366,6 +369,7 @@ export class UsersRelationshipsController {
       brandId,
       user.userId ?? user.id,
       user.organizationId,
+      user,
     );
 
     if (user.userId ?? user.id) {

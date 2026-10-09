@@ -66,7 +66,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  */
 type GenerationMetadata = Pick<
   AuthenticatedUser,
-  'brandId' | 'organizationId' | 'userId'
+  'brandId' | 'organizationId' | 'userId' | 'isApiKey' | 'scopes'
 >;
 
 /**

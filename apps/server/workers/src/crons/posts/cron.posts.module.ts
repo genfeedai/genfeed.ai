@@ -1,3 +1,5 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
@@ -35,6 +37,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
 
 @Module({
   imports: [
+    BrandAccessModule,
     forwardRef(() => ActivitiesModule),
     forwardRef(() => CredentialsModule),
     forwardRef(() => OrganizationsModule),
@@ -86,10 +89,13 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
       ) => new ReleaseRecurrenceMaterializerService(prisma, logger, approvals),
     },
     {
-      inject: [PrismaService, LoggerService],
+      inject: [PrismaService, LoggerService, BrandAccessService],
       provide: AgentScopeContextService,
-      useFactory: (prisma: PrismaService, logger: LoggerService) =>
-        new AgentScopeContextService(prisma, logger),
+      useFactory: (
+        prisma: PrismaService,
+        logger: LoggerService,
+        access: BrandAccessService,
+      ) => new AgentScopeContextService(prisma, logger, access),
     },
     {
       // The media readiness gate belongs on every publish-capable construction,

@@ -372,6 +372,7 @@ DM text:`;
 
     try {
       const brief = await harnessGenerationService.resolveBrief({
+        userId: options.userId,
         brandId: options.brandId,
         contentType: 'reply',
         includeContentMemory: true,

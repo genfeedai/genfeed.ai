@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandFontAssetsQueryDto } from '@api/collections/brands/dto/brand-font-assets-query.dto';
 import {
   computeBrandFontUploadId,
@@ -9,6 +10,7 @@ import {
 } from '@api/collections/brands/utils/brand-font-upload.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import { AssetCategory, AssetParent, MemberRole } from '@genfeedai/contracts';
 import { type Asset, Prisma } from '@genfeedai/prisma';
 import {
@@ -28,6 +30,8 @@ import {
 const MAX_FONT_LIST_SCANS = 5;
 type ValidatedBrandFontUpload = ReturnType<typeof validateBrandFontUpload>;
 export interface BrandFontActor {
+  isApiKey?: boolean;
+  scopes?: string[];
   organizationId: string;
   brandId: string;
   actorId: string;
@@ -51,7 +55,10 @@ export interface BrandFontAssetListResult {
 export class BrandFontAssetsService {
   private readonly storage = createStorageProvider();
   private readonly logger = new Logger(BrandFontAssetsService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly brandAccessService: BrandAccessService,
+  ) {}
   private async assertAccess(
     client: Prisma.TransactionClient,
     actor: BrandFontActor,
@@ -63,6 +70,23 @@ export class BrandFontAssetsService {
       )
     )
       throw new ForbiddenException('font_asset_access_denied');
+    if (isCloudDeployment()) {
+      const principal = { ...actor, userId: actor.actorId };
+      try {
+        await this.brandAccessService.assert(principal, actor.brandId, client);
+        if (write) {
+          const { role } = await this.brandAccessService.resolve(
+            principal,
+            client,
+          );
+          if (role !== MemberRole.OWNER && role !== MemberRole.ADMIN)
+            throw new ForbiddenException();
+        }
+      } catch {
+        throw new ForbiddenException('font_asset_access_denied');
+      }
+      return;
+    }
     const [organization, brand, member] = await Promise.all([
       client.organization.findFirst({
         where: { id: actor.organizationId, isDeleted: false },

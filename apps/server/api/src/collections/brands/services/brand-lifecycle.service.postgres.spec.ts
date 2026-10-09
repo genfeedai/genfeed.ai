@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { MemberRole } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
@@ -24,7 +25,9 @@ const connectionString = process.env.BRAND_DELETE_SAFETY_TEST_DATABASE_URL;
 
 /**
  * Real Postgres end-to-end coverage for #5295: `BrandLifecycleService.remove()`
- * and `.selectBrandForUser()` must be atomic against each other. Before this
+ * and `.selectBrandForUser(
+,
+)` must be atomic against each other. Before this
  * fix, `BrandsService.remove()` read a fallback brand, moved members, and
  * soft-deleted across three unguarded statements — two concurrent deletes of
  * an org's last two brands could each see a live fallback and both succeed,
@@ -71,6 +74,7 @@ describe.skipIf(!connectionString)(
         cacheInvalidationService as never,
         accessBootstrapCacheService as never,
         userAccessCacheService as never,
+        brandAccessFixture(prisma as unknown as PrismaService as never),
       );
 
     let userId: string;
@@ -223,6 +227,7 @@ describe.skipIf(!connectionString)(
           brandIds[1],
           switchingUserId,
           organizationId,
+          { userId: switchingUserId, organizationId: organizationId },
         ),
       ]);
 

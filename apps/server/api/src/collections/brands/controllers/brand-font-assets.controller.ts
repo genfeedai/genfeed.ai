@@ -50,6 +50,8 @@ export class BrandFontAssetsController {
     return {
       organizationId: user.organizationId,
       actorId,
+      isApiKey: user.isApiKey,
+      scopes: user.scopes,
       brandId: InputValidationUtil.validateEntityId(brandId, 'brandId'),
     };
   }

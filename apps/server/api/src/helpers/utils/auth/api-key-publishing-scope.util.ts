@@ -11,7 +11,7 @@ export type PublishingCapability = 'approve' | 'draft' | 'publish' | 'schedule';
 
 export type ApiKeyPublishingContext = Pick<
   AuthenticatedUser,
-  'isApiKey' | 'scopes'
+  'isApiKey' | 'scopes' | 'apiKeyId'
 >;
 
 export const API_KEY_POSTING_CONFIGURATION_SCOPES = [

@@ -1,6 +1,8 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   adminUser,
   emptyPage,
@@ -8,12 +10,21 @@ import {
   memberUser,
   sessionBrandId,
   sessionOrganizationId,
-  targetBrandId,
   targetOrganizationId,
   tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
+import { MemberRole } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
+
+const rosterRuntime = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => rosterRuntime.cloud,
+}));
+beforeEach(() => {
+  rosterRuntime.cloud = false;
+});
 
 describe('MembersController tenant reads (#6176)', () => {
   function setup() {
@@ -23,6 +34,7 @@ describe('MembersController tenant reads (#6176)', () => {
     ) as MembersController;
     Object.assign(controller, {
       membersService: { findAll: mock },
+      brandAccessService: brandAccessFixture(),
       loggerService: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
     });
     return { controller, mock };
@@ -75,79 +87,127 @@ describe('MembersController tenant reads (#6176)', () => {
     );
   });
 
-  it('separates cached reads by the effective organization', () => {
-    const config = Reflect.getMetadata(
-      'cache',
-      MembersController.prototype.findAll,
+  it('reauthorizes organization reads instead of returning a cached roster', async () => {
+    expect(
+      Reflect.getMetadata('cache', MembersController.prototype.findAll),
+    ).toBeUndefined();
+    const { controller, mock } = setup();
+    await controller.findAll(
+      tenantReadQuery(BaseQueryDto, {}),
+      tenantReadRequest(memberUser),
+      memberUser,
     );
-    const first = config.keyGenerator(tenantReadRequest(adminUser));
-    const second = config.keyGenerator(
+    await controller.findAll(
+      tenantReadQuery(BaseQueryDto, { organizationId: targetOrganizationId }),
       tenantReadRequest(adminUser, { organizationId: targetOrganizationId }),
+      adminUser,
     );
-    const switched = config.keyGenerator(
-      tenantReadRequest({ ...adminUser, organizationId: targetOrganizationId }),
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock.mock.calls[1][0].include.brands.where.organizationId).toBe(
+      targetOrganizationId,
     );
-    expect(second).toContain(targetOrganizationId);
-    expect(switched).toContain(targetOrganizationId);
-    expect(second).not.toBe(first);
-    expect(switched).not.toBe(first);
   });
 });
 
-describe('members.controller.findAll cache authorization scope', () => {
-  const config: CacheOptions = Reflect.getMetadata(
-    'cache',
-    MembersController.prototype.findAll,
-  );
-
-  it('separates members with different session brands and the same query', () => {
-    const query = { brandId: sessionBrandId };
-    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
-    const second = config.keyGenerator?.(
-      tenantReadRequest(
-        {
-          ...memberUser,
-          id: 'another-member',
-          userId: 'another-member',
-          brandId: targetBrandId,
-        },
-        query,
-      ),
-    );
-    const switched = config.keyGenerator?.(
-      tenantReadRequest({ ...memberUser, brandId: targetBrandId }, query),
-    );
-    expect(first).toContain(sessionBrandId);
-    expect(second).not.toBe(first);
-    expect(switched).not.toBe(first);
-  });
-
-  it('separates session organizations under the same effective organization', () => {
-    const query = {
-      organizationId: targetOrganizationId,
-      brandId: targetBrandId,
+describe('roster live brand relation authorization', () => {
+  function setup() {
+    rosterRuntime.cloud = true;
+    const member = {
+      role: { key: MemberRole.USER },
+      roleKey: MemberRole.OWNER,
+      brands: [{ id: sessionBrandId }],
     };
-    const first = config.keyGenerator?.(tenantReadRequest(adminUser, query));
-    const second = config.keyGenerator?.(
-      tenantReadRequest(
-        { ...adminUser, organizationId: targetOrganizationId },
-        query,
-      ),
+    const findMember = vi.fn().mockImplementation(async () => member);
+    const findAll = vi.fn().mockImplementation(async () => {
+      expect(findMember).toHaveBeenCalled();
+      return emptyPage();
+    });
+    const policy = new BrandAccessService({
+      member: { findFirst: findMember },
+    } as unknown as PrismaService);
+    const controller = Object.create(
+      MembersController.prototype,
+    ) as MembersController;
+    Object.assign(controller, {
+      membersService: { findAll },
+      brandAccessService: policy,
+      loggerService: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+    return { controller, member, findMember, findAll };
+  }
+
+  it('filters included brands by the viewer before executing the roster query', async () => {
+    const f = setup();
+    await f.controller.findAll(
+      tenantReadQuery(BaseQueryDto, {}),
+      tenantReadRequest(memberUser),
+      memberUser,
     );
-    expect(first).toContain(targetOrganizationId);
-    expect(second).not.toBe(first);
+    const query = f.findAll.mock.calls[0][0];
+    expect(query.include.brands).toEqual({
+      select: { id: true, label: true, slug: true },
+      where: {
+        organizationId: sessionOrganizationId,
+        isDeleted: false,
+        id: { in: [sessionBrandId] },
+      },
+    });
+    expect(query.include.user.select).not.toHaveProperty('platformRole');
+    expect(query.include.user.select).not.toHaveProperty('settings');
+    expect(fieldValues(query.where, 'organizationId')).toContain(
+      sessionOrganizationId,
+    );
+    expect(f.findMember).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: memberUser.userId,
+          organizationId: sessionOrganizationId,
+          isActive: true,
+          isDeleted: false,
+          role: { isDeleted: false },
+        }),
+      }),
+    );
   });
 
-  it('separates callers within the same session scope', () => {
-    const query = { brandId: sessionBrandId };
-    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
-    const second = config.keyGenerator?.(
-      tenantReadRequest(
-        { ...memberUser, id: 'another-member', userId: 'another-member' },
-        query,
-      ),
+  it('immediately narrows included relations after assignment revocation with the same request', async () => {
+    const f = setup();
+    const query = tenantReadQuery(BaseQueryDto, {});
+    const request = tenantReadRequest(memberUser);
+    await f.controller.findAll(query, request, memberUser);
+    f.member.brands = [];
+    await f.controller.findAll(query, request, memberUser);
+    expect(f.findAll.mock.calls[1][0].include.brands.where.id).toEqual({
+      in: [],
+    });
+    expect(f.findMember).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses canonical privilege and preserves the API-key cap on roster brand relations', async () => {
+    const f = setup();
+    f.member.role.key = MemberRole.OWNER;
+    const query = tenantReadQuery(BaseQueryDto, {});
+    await f.controller.findAll(
+      query,
+      tenantReadRequest(memberUser),
+      memberUser,
     );
-    expect(first).toContain(memberUser.id);
-    expect(second).not.toBe(first);
+    expect(f.findAll.mock.calls[0][0].include.brands.where).not.toHaveProperty(
+      'id',
+    );
+    const capped = { ...memberUser, isApiKey: true, scopes: [] };
+    await f.controller.findAll(query, tenantReadRequest(capped), capped);
+    expect(f.findAll.mock.calls[1][0].include.brands.where.id).toEqual({
+      in: [sessionBrandId],
+    });
+    f.member.role.key = MemberRole.USER;
+    await f.controller.findAll(
+      query,
+      tenantReadRequest(memberUser),
+      memberUser,
+    );
+    expect(f.findAll.mock.calls[2][0].include.brands.where.id).toEqual({
+      in: [sessionBrandId],
+    });
   });
 });

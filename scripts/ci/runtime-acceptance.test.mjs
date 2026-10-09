@@ -2935,6 +2935,14 @@ test('committed proactive acceptance sources match the frozen manifest before al
 });
 test('prepared owner revisions retain only the exact approved source hashes', () => {
   assert.equal(
+    BRAND_SOURCE_CONTRACT.unitFiles.find(
+      (entry) =>
+        entry.path ===
+        'apps/server/api/src/services/branded-generation-receipts/branded-generation-prompt-store.service.spec.ts',
+    )?.sha256,
+    '0a5637723a9fb4390cb972d81c5bcb2e7bb70374a79674a4f19a6504f5da61a9',
+  );
+  assert.equal(
     AGENT_PRODUCTION_FILES[2].sha256,
     '96740275d53505cc99d8b3be00c2073d524af9aaee2ec69d1e6742db3f8b0778',
   );
@@ -2952,7 +2960,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
         entry.path ===
         'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
     )?.sha256,
-    'e121d769cabadc1b1601f103745013b275c20786971401c3db7feb8801456d30',
+    '46eb0387aa5f44e15b083e11351d9961affde26903bc8e9cfc9608ea468b7443',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -2976,7 +2984,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.brand.sha256,
-    'b79d6ffb8e84be00a6c6c7f610300641254c5f2b801901bca4911714964e239a',
+    '86ddc267fa96f5df2fef82b03e46a806929d75ea35265125d7b7e43ff78d22e4',
   );
 });
 test('migration diagnostics helper is an exact frozen dependency for learning and brand', () => {
@@ -3002,12 +3010,17 @@ test('migration diagnostics helper is an exact frozen dependency for learning an
       sha256:
         '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
     },
+    {
+      path: 'apps/server/api/src/shared/testing/brand-access.fixture.ts',
+      sha256:
+        '0715b4c64712ad5708cac482e000cd65f3f016a34435e879d327a3729e6e6e00',
+    },
   ]);
   assert.deepEqual(
     LEARNING_SOURCE_CONTRACT.sourceInputs[4],
     BRAND_SOURCE_CONTRACT.sourceInputs[0],
   );
-  assert.equal(BRAND_SOURCE_CONTRACT.sourceInputs.length, 2);
+  assert.equal(BRAND_SOURCE_CONTRACT.sourceInputs.length, 3);
   assert.deepEqual(
     LEARNING_SOURCE_CONTRACT.sourceInputs[5],
     BRAND_SOURCE_CONTRACT.sourceInputs[1],
@@ -3023,6 +3036,7 @@ test('changed, missing or symlinked diagnostics helper fails learning and dedica
   const root = await fixture(t);
   const entries = [
     ...LEARNING_SOURCE_CONTRACT.sourceInputs,
+    ...BRAND_SOURCE_CONTRACT.sourceInputs,
     BRAND_SOURCE_CONTRACT.brand,
     ...BRAND_SOURCE_CONTRACT.unitFiles,
   ];
@@ -3039,7 +3053,7 @@ test('changed, missing or symlinked diagnostics helper fails learning and dedica
   const env = { RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract) };
   await verifyFrozenSources(root, LEARNING_SOURCE_CONTRACT.sourceInputs);
   await verifyDedicatedSources(root, 'brand-acceptance', env);
-  for (const dependency of BRAND_SOURCE_CONTRACT.sourceInputs) {
+  for (const dependency of BRAND_SOURCE_CONTRACT.sourceInputs.slice(0, 2)) {
     const helper = path.join(root, dependency.path);
     const original = await readFile(helper);
     for (const kind of ['changed', 'missing', 'symlinked']) {
@@ -3069,6 +3083,50 @@ test('changed, missing or symlinked diagnostics helper fails learning and dedica
       await writeFile(helper, original);
     }
   }
+});
+test('changed, missing or symlinked brand policy fixture fails dedicated brand frozen verification', async (t) => {
+  const root = await fixture(t);
+  for (const entry of [
+    ...BRAND_SOURCE_CONTRACT.sourceInputs,
+    BRAND_SOURCE_CONTRACT.brand,
+    ...BRAND_SOURCE_CONTRACT.unitFiles,
+  ]) {
+    const target = path.join(root, entry.path);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(
+      target,
+      await readFile(new URL(`../../${entry.path}`, import.meta.url)),
+    );
+  }
+  const contract = ownerContract();
+  contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
+  const env = { RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract) };
+  await verifyDedicatedSources(root, 'brand-acceptance', env);
+  const helper = path.join(root, BRAND_SOURCE_CONTRACT.sourceInputs[2].path);
+  const original = await readFile(helper);
+  for (const kind of ['changed', 'missing', 'symlinked']) {
+    await rm(helper);
+    if (kind === 'changed')
+      await writeFile(helper, 'changed brand policy fixture');
+    if (kind === 'symlinked') {
+      const target = path.join(root, 'brand-policy-fixture-target.ts');
+      await writeFile(target, original);
+      await symlink(target, helper);
+    }
+    const code =
+      kind === 'missing'
+        ? 'ENOENT'
+        : kind === 'changed'
+          ? 'SOURCE_HASH_MISMATCH'
+          : 'UNSAFE_SOURCE';
+    await assert.rejects(
+      verifyDedicatedSources(root, 'brand-acceptance', env),
+      { code },
+    );
+    if (kind !== 'missing') await rm(helper);
+    await writeFile(helper, original);
+  }
+  await verifyDedicatedSources(root, 'brand-acceptance', env);
 });
 test('dedicated BRAND requires frozen integration hash and exact title inventory', () => {
   const value = ownerContract();

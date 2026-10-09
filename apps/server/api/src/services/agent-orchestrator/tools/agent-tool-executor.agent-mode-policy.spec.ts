@@ -1,3 +1,4 @@
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import {
@@ -154,6 +155,7 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       workflowRunner as never,
     );
     Object.assign(service, {
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });

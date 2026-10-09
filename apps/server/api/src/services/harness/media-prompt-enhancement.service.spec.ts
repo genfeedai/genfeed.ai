@@ -8,6 +8,7 @@ import {
   PromptEnhancementResponseError,
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -393,6 +394,7 @@ describe('MediaPromptEnhancementService', () => {
       const harness = new HarnessGenerationService(
         contentHarness,
         logger as LoggerService,
+        brandAccessFixture(),
         brands as BrandsService,
         profiles as HarnessProfilesService,
       );

@@ -8,6 +8,7 @@ import {
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { AssetParent, IngredientCategory } from '@genfeedai/contracts';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
@@ -164,7 +165,9 @@ function receipt(): BrandedGenerationReceiptV1 {
   };
 }
 function fixture() {
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   vi.spyOn(access, 'assertBrand').mockResolvedValue({ isOwnerOrAdmin: false });
   const receipts = Object.create(
     BrandedGenerationReceiptsService.prototype,

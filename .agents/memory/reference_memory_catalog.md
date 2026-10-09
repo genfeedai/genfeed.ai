@@ -205,3 +205,5 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 
 - [Image editing contract](project_image_editing.md) — issue #5808; editing sources, models and cross-surface workflow.
 - [Agent connection acquisition](feedback_agent_connection_acquisition.md) — `/agent` explains Genfeed's own agent; connection CTAs open setup in place.
+
+- [Cloud member brand authorization](adr_cloud_member_brand_authorization.md) — assigned-only Cloud access, live role/key caps and zero-brand rollout.

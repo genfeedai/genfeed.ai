@@ -4,6 +4,7 @@ import {
   agentPostPreviewPopulate,
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   type CuratedActionName,
   getActionDefinition,
@@ -1235,6 +1236,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(service, {
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
@@ -6081,7 +6083,10 @@ describe('AgentToolExecutorService', () => {
         data: { settings: {} },
         success: true,
       });
-      Object.assign(service, { generationOptionsHandler: { execute } });
+      Object.assign(service, {
+        brandAccessService: brandAccessFixture(),
+        generationOptionsHandler: { execute },
+      });
 
       const result = await service.executeTool(
         'get_generation_options',
@@ -6351,6 +6356,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(serviceWithoutScorer, {
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
