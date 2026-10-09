@@ -444,6 +444,9 @@ export class AgentToolExecutorService implements OnModuleInit {
     }
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
     try {
+      // The runner persists an execution before dispatching its tool node.
+      // Reject inaccessible brands before that write, then recheck at dispatch.
+      await this.assertToolBrandScope(toolName, parameters, context);
       return await runWithActionOrigin(
         {
           ...resolveNestedActionOrigin(ActionOrigin.AGENT),

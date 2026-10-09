@@ -6039,6 +6039,40 @@ describe('AgentToolExecutorService', () => {
     ).toMatchObject({ success: false, error: 'Brand access denied' });
   });
 
+  it.each(['context', 'parameter'] as const)(
+    'rejects an inaccessible %s brand before creating a tool workflow execution',
+    async (source) => {
+      const { service, systemWorkflowRunner } = createService();
+      Object.assign(service, {
+        brandAccessService: brandAccessFixture({
+          member: {
+            findFirst: vi
+              .fn()
+              .mockResolvedValue({ role: { key: 'admin' }, brands: [] }),
+          },
+          brand: { findFirst: vi.fn().mockResolvedValue(null) },
+        } as never),
+      });
+
+      const result = await service.executeTool(
+        'get_brand_context',
+        source === 'parameter' ? { brandId: 'foreign-brand' } : {},
+        {
+          organizationId: testId('org'),
+          userId: testId('user'),
+          ...(source === 'context' ? { brandId: 'foreign-brand' } : {}),
+        },
+      );
+
+      expect(result).toMatchObject({
+        success: false,
+        creditsUsed: 0,
+        error: 'Brand access denied',
+      });
+      expect(systemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
   it('preserves brand parameter isolation for other tools', async () => {
     const { service } = createService();
     expect(
