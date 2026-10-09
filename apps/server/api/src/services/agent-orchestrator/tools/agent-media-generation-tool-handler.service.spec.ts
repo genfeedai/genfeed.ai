@@ -756,7 +756,7 @@ describe('AgentMediaGenerationToolHandler saved article drafts', () => {
     });
     expect(result.nextActions?.[0]).toMatchObject({
       ctas: [
-        { href: '/content/articles/article-saved-1', label: 'Open article' },
+        { href: '/publishing/posts/article-saved-1', label: 'Open article' },
       ],
     });
   });
