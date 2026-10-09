@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 export default function GenerationSetupPresetPreview({
   preset,
   isAnimated = false,
+  isCompact = false,
 }: GenerationSetupPresetPreviewProps) {
   const translate = useTranslations('agent.generationSetup');
   const isProfile = preset.key === 'studio-profile-picture';
@@ -18,14 +19,22 @@ export default function GenerationSetupPresetPreview({
   const isAnimation = preset.key === 'studio-animation';
   const isDance = preset.key === 'studio-dance';
   const isMoving = isAnimated && preset.type === 'video';
+  const [width, height] = preset.values.aspectRatio.split(':').map(Number);
+  const ratio = width && height ? width / height : 1;
   return (
     <div
       role="img"
       aria-label={translate('presetPreviewAria', { label: preset.label })}
-      className="flex min-h-28 flex-col items-center justify-center gap-2 overflow-hidden rounded-md bg-background-secondary p-3"
+      className={cn(
+        'flex flex-col items-center justify-center gap-2 overflow-hidden rounded-md bg-background-secondary p-3',
+        isCompact ? 'h-40' : 'min-h-28',
+      )}
     >
       <div
-        style={{ aspectRatio: preset.values.aspectRatio.replace(':', ' / ') }}
+        style={{
+          aspectRatio: preset.values.aspectRatio.replace(':', ' / '),
+          ...(isCompact ? { width: `min(100%, calc(6rem * ${ratio}))` } : {}),
+        }}
         className={cn(
           'relative flex w-full max-h-64 items-center justify-center overflow-hidden rounded-md',
           isProfile

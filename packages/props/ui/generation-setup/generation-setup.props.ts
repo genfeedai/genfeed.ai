@@ -177,6 +177,7 @@ export interface GenerationSetupPresetsPopoverProps
 export interface GenerationSetupPresetPreviewProps {
   preset: StudioSystemPreset;
   isAnimated?: boolean;
+  isCompact?: boolean;
 }
 
 export interface GenerationSetupOptionPickerProps {
