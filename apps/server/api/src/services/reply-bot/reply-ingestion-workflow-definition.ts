@@ -85,6 +85,8 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    organizationModule: 'messages',
+    moduleCompletionNodeIds: [resultNodeId],
     definition: {
       edges,
       inputVariables: [

@@ -43,6 +43,7 @@ import {
   buildCampaignReplyPreviewWorkflowDefinition,
   buildCampaignReplyWorkflowDefinition,
 } from '@api/services/campaign/campaign-reply-workflow-definition';
+import { buildTelegramDistributionWorkflowDefinition } from '@api/services/distribution/telegram/telegram-distribution-workflow-definition';
 import {
   buildAuthorReplyDraftWorkflowDefinition,
   buildAuthorReplySendWorkflowDefinition,
@@ -54,6 +55,10 @@ import {
   buildReplyBotTestWorkflowDefinition,
   buildReplyBotWorkflowDefinition,
 } from '@api/services/reply-bot/reply-bot-workflow-definition';
+import {
+  buildReplyInboundWorkflowDefinition,
+  buildReplyPostWatchWorkflowDefinition,
+} from '@api/services/reply-bot/reply-ingestion-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
@@ -2649,4 +2654,149 @@ describe('registered RSS Publishing module admission', () => {
       expect.any(String),
     );
   });
+});
+
+describe('registered reply ingestion and Telegram module admission', () => {
+  const definitions = [
+    {
+      graph: buildReplyInboundWorkflowDefinition(),
+      moduleId: 'messages' as const,
+    },
+    {
+      graph: buildReplyPostWatchWorkflowDefinition(),
+      moduleId: 'messages' as const,
+    },
+    {
+      graph: buildTelegramDistributionWorkflowDefinition(),
+      moduleId: 'publishing' as const,
+    },
+  ];
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        moduleId,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode, moduleId }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException('Organization module disabled or unavailable'),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-reply-delivery',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Organization module disabled or unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', moduleId);
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      graph.definition.nodes
+        .filter(
+          (node) =>
+            node.id !== graph.resultNodeId && node.type === 'genfeedAction',
+        )
+        .map((workNode) => ({ graph, workNode, moduleId })),
+    ),
+  )(
+    '$graph.canonicalId projects its admitted result but blocks $workNode.id after revocation',
+    async ({ graph, workNode, moduleId }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      if (!finalNode) throw new Error('Reply/delivery final action missing');
+      const finalAction = String(finalNode.data.config.actionId);
+      const nextAction = String(workNode.data.config.actionId);
+      const finalize = vi.fn().mockResolvedValue({ completed: true });
+      const work = vi.fn();
+      runner.registerAction(finalAction, finalize);
+      runner.registerAction(nextAction, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Organization module revoked'),
+          );
+          await expect(
+            executors.get(finalAction)?.(
+              {
+                config: { actionId: finalAction },
+                id: finalNode.id,
+                inputs: [],
+                label: 'Finalize',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).resolves.toEqual({ completed: true });
+          await expect(
+            executors.get(nextAction)?.(
+              {
+                config: { actionId: nextAction },
+                id: workNode.id,
+                inputs: [],
+                label: 'New work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Organization module revoked');
+        },
+      );
+      expect(finalize).toHaveBeenCalledTimes(1);
+      expect(work).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+      expect(assertAccess).toHaveBeenLastCalledWith('org-1', moduleId);
+    },
+  );
 });
