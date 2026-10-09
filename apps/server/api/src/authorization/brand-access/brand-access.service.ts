@@ -80,10 +80,9 @@ export class BrandAccessService {
     const where = await this.predicate(actor, tx);
     const brand = await tx.brand.findFirst({
       where: {
-        id: brandId,
         organizationId: actor.organizationId,
         isDeleted: false,
-        AND: [where],
+        AND: [where, { id: brandId }],
       },
       select: { id: true },
     });
