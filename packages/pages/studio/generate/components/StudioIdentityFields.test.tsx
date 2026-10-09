@@ -36,8 +36,15 @@ const settings: StudioGenerateSettings = {
 };
 const identities: UseStudioGenerateIdentitiesReturn = {
   retry: vi.fn(),
+  hasMoreAvatars: false,
+  isLoadingMoreAvatars: false,
+  loadMoreAvatars: vi.fn().mockResolvedValue(undefined),
   avatarOptions: [
-    { label: 'Saved photo', value: 'https://assets.test/photo.jpg' },
+    {
+      label: 'Saved photo',
+      value: 'https://assets.test/photo.jpg',
+      preview: 'https://assets.test/photo.jpg',
+    },
   ],
   error:
     'HeyGen identities could not be loaded. Check your connection in Integrations.',
@@ -46,6 +53,7 @@ const identities: UseStudioGenerateIdentitiesReturn = {
     {
       label: 'Saved voice (ELEVENLABS)',
       value: 'ELEVENLABS:voice-1',
+      preview: 'https://assets.test/sample.mp3',
       voiceRef: {
         source: 'catalog',
         provider: VoiceProvider.ELEVENLABS,
@@ -103,16 +111,94 @@ describe('Studio identity catalog recovery', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       identities.error as string,
     );
-    expect(screen.getByRole('combobox', { name: 'Avatar' })).toBeEnabled();
-    expect(screen.getByRole('combobox', { name: 'Voice' })).toBeEnabled();
-    await user.click(screen.getByRole('combobox', { name: 'Voice' }));
+    expect(screen.getByRole('button', { name: 'Saved photo' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
+    ).toBeEnabled();
     await user.click(
-      screen.getByRole('option', { name: 'Saved voice (ELEVENLABS)' }),
+      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
     );
     expect(onChange).toHaveBeenCalledExactlyOnceWith({
       voiceRef: identities.voiceOptions[0].voiceRef,
       voiceId: 'voice-1',
     });
+  });
+
+  it('renders independent preview and selection controls, with explicit saved defaults', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <StudioIdentityFields
+        settings={{
+          ...settings,
+          avatarPhotoUrl: 'chosen',
+          voiceId: 'voice-1',
+          voiceRef: identities.voiceOptions[0].voiceRef,
+        }}
+        type="avatar"
+        onChange={onChange}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(
+      screen.getByRole('button', {
+        name: 'Play preview for Saved voice (ELEVENLABS)',
+      }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Pause preview for Saved voice (ELEVENLABS)',
+      }),
+    ).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Saved photo' }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      avatarRef: undefined,
+      avatarPhotoUrl: 'https://assets.test/photo.jpg',
+    });
+    await user.click(
+      screen.getByRole('button', { name: 'Use saved avatar default' }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith({
+      avatarRef: undefined,
+      avatarPhotoUrl: undefined,
+    });
+    await user.click(
+      screen.getByRole('button', { name: 'Use saved voice default' }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith({
+      voiceRef: undefined,
+      voiceId: undefined,
+    });
+  });
+
+  it('keeps unready native avatars and all identity changes disabled when required', async () => {
+    const user = userEvent.setup();
+    mocks.identities.mockReturnValue({
+      ...identities,
+      avatarOptions: [{ label: 'Not ready', value: 'look', disabled: true }],
+    });
+    const view = render(
+      <StudioIdentityFields
+        settings={settings}
+        type="avatar"
+        onChange={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    expect(screen.getByRole('button', { name: 'Not ready' })).toBeDisabled();
+    view.rerender(
+      <StudioIdentityFields
+        settings={settings}
+        type="avatar"
+        onChange={vi.fn()}
+        isDisabled
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
+    ).toBeDisabled();
   });
 
   it('removes the outage notice when the catalog recovers', async () => {
@@ -127,6 +213,42 @@ describe('Studio identity catalog recovery', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Identity' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('bounds large catalogues and searches without changing the selected identity', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    mocks.identities.mockReturnValue({
+      ...identities,
+      error: null,
+      voiceOptions: Array.from({ length: 25 }, (_, index) => ({
+        ...identities.voiceOptions[0],
+        label: `Voice ${index + 1}`,
+        value: `voice-${index + 1}`,
+      })),
+    });
+    render(
+      <StudioIdentityFields
+        settings={settings}
+        type="voice"
+        onChange={onChange}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    expect(
+      screen.queryByRole('button', { name: 'Voice 13' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'More voices' }));
+    expect(screen.getByRole('button', { name: 'Voice 13' })).toBeVisible();
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search avatars and voices' }),
+      'Voice 25',
+    );
+    expect(screen.getByRole('button', { name: 'Voice 25' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Voice 1' }),
+    ).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('retries the catalogue explicitly without changing the selected identity', async () => {
@@ -161,10 +283,32 @@ describe('Studio identity catalog recovery', () => {
       />,
     );
     await user.click(screen.getByRole('button', { name: 'Identity' }));
-    expect(screen.getByRole('combobox', { name: 'Avatar' })).toBeEnabled();
-    expect(screen.getByRole('combobox', { name: 'Voice' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Saved photo' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Saved voice (ELEVENLABS)' }),
+    ).toBeEnabled();
     expect(
       screen.getByRole('button', { name: 'Retry HeyGen identities' }),
     ).toBeDisabled();
+  });
+  it('loads another provider page only when the user requests more avatars', async () => {
+    const loadMoreAvatars = vi.fn().mockResolvedValue(undefined);
+    mocks.identities.mockReturnValue({
+      ...identities,
+      error: null,
+      hasMoreAvatars: true,
+      loadMoreAvatars,
+    });
+    render(
+      <StudioIdentityFields
+        type="avatar"
+        settings={settings}
+        onChange={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Identity' }));
+    expect(loadMoreAvatars).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'More avatars' }));
+    expect(loadMoreAvatars).toHaveBeenCalledOnce();
   });
 });
