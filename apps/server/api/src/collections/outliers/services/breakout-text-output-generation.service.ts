@@ -151,45 +151,7 @@ export class BreakoutTextOutputGenerationService {
               parts.every(request.acceptSegment)
             );
           },
-          persistText: async (text) => {
-            await reauthorize();
-            const parts = segments(text, scope.format === 'thread');
-            const drafts: PostCreateInput[] = parts.map(
-              (description, order) => ({
-                organizationId: scope.organizationId,
-                brandId: scope.brandId,
-                credentialId: admission.credentialId,
-                platform: scope.platform,
-                userId: admission.actorUserId,
-                workflowExecutionId: admission.workflowExecutionId,
-                agentStrategyId: scope.strategyId,
-                sourceActionId: `${input.requestKey}:post:${order}`,
-                label: request.label,
-                description,
-                ingredients: [],
-                category: PostCategory.TEXT,
-                format:
-                  scope.format === 'thread'
-                    ? PostFormat.THREAD
-                    : PostFormat.STANDARD,
-                targetExecutionState: TargetExecutionState.DRAFT,
-              }),
-            );
-            // Recheck before each canonical child write instead of creating a whole thread under stale authority.
-            const first = drafts[0];
-            if (!first)
-              throw new BadRequestException('breakout_text_output_empty');
-            const root = await this.posts.create({ ...first, order: 0 }, []);
-            for (const [index, draft] of drafts.slice(1).entries()) {
-              await reauthorize();
-              await this.posts.create(
-                { ...draft, parentId: root.id, order: index + 1 },
-                [],
-              );
-            }
-            await reauthorize();
-            return { postId: root.id };
-          },
+          persistText: (text) => this.persistDraft(request, text),
         };
         const outcome =
           scope.format === 'thread'
@@ -238,5 +200,44 @@ export class BreakoutTextOutputGenerationService {
         return outcome;
       },
     );
+  }
+  private async persistDraft(
+    request: Readonly<BreakoutTextOutputGenerationRequest>,
+    text: string,
+  ): Promise<{ postId: string }> {
+    const { admission, input } = request;
+    const { scope } = admission;
+    await admission.reauthorize(this.prisma);
+    const parts = segments(text, scope.format === 'thread');
+    const drafts: PostCreateInput[] = parts.map((description, order) => ({
+      organizationId: scope.organizationId,
+      brandId: scope.brandId,
+      credentialId: admission.credentialId,
+      platform: scope.platform,
+      userId: admission.actorUserId,
+      workflowExecutionId: admission.workflowExecutionId,
+      agentStrategyId: scope.strategyId,
+      sourceActionId: `${input.requestKey}:post:${order}`,
+      label: request.label,
+      description,
+      ingredients: [],
+      category: PostCategory.TEXT,
+      format:
+        scope.format === 'thread' ? PostFormat.THREAD : PostFormat.STANDARD,
+      targetExecutionState: TargetExecutionState.DRAFT,
+    }));
+    // Recheck before each canonical child write instead of creating a whole thread under stale authority.
+    const first = drafts[0];
+    if (!first) throw new BadRequestException('breakout_text_output_empty');
+    const root = await this.posts.create({ ...first, order: 0 }, []);
+    for (const [index, draft] of drafts.slice(1).entries()) {
+      await admission.reauthorize(this.prisma);
+      await this.posts.create(
+        { ...draft, parentId: root.id, order: index + 1 },
+        [],
+      );
+    }
+    await admission.reauthorize(this.prisma);
+    return { postId: root.id };
   }
 }

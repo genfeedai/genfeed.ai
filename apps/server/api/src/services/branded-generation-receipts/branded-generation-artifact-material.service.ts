@@ -284,6 +284,19 @@ export class BrandedGenerationArtifactMaterialService {
       }) !== artifact.contentHash
     )
       throw new ConflictException('receipt_artifact_hash_mismatch');
+    material.references = await this.acquireReferences(
+      actor,
+      receipt,
+      materialBytes,
+    );
+    return { receipt, material };
+  }
+
+  private async acquireReferences(
+    actor: BrandedGenerationActorV1,
+    receipt: BrandedGenerationAcquiredMaterialV1['receipt'],
+    materialBytes: number,
+  ): Promise<BrandArtifactValidationMaterialV1['references']> {
     const references =
       receipt.mode === 'raw'
         ? []
@@ -337,7 +350,6 @@ export class BrandedGenerationArtifactMaterialService {
         bytes,
       });
     }
-    material.references = acquired;
-    return { receipt, material };
+    return acquired;
   }
 }

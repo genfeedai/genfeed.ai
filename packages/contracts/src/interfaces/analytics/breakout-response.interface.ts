@@ -240,6 +240,7 @@ export type BreakoutOutputRecoveryReason =
   | 'generation_outcome_indeterminate'
   | 'generation_failed'
   | 'quality_or_brand_blocked'
+  | 'media_brand_capability_unavailable'
   | 'approved_brand_required'
   | 'brand_review_required'
   | 'artifact_binding_missing'

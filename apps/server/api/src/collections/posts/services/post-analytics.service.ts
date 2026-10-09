@@ -21,10 +21,15 @@ import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analyt
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import {
+  type InstagramPostMetrics,
   mapBreakoutExposureMetrics,
+  mapDailyPostMetrics,
+  mapInstagramPostMetrics,
   mapTikTokPostMetrics,
+  mapTwitterPostMetrics,
   mapYouTubePostMetrics,
   type TikTokPostMetrics,
+  type TwitterPostMetrics,
   type UpdateTodayAnalyticsMetrics,
   type YouTubePostMetrics,
 } from '@api/collections/posts/services/post-analytics-platform-metrics';
@@ -37,8 +42,6 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsPersistenceContext,
-  BreakoutExposureEvidence,
-  BreakoutExposureMetric,
   BreakoutPublicationSourceInput,
   BreakoutPublicationSourceV1,
 } from '@genfeedai/contracts/interfaces';
@@ -349,22 +352,7 @@ export class PostAnalyticsService extends BaseService<
     };
     await admitAnalyticsCollection(authorization);
     await this.outliersService.authorize(account);
-    const dailyMetrics = { ...metrics };
-    delete dailyMetrics.learningMetrics;
-    delete dailyMetrics.breakoutExposures;
-    const attributedMetrics = {
-      ...dailyMetrics,
-      credentialId,
-      isPinned: metrics.isPinned ?? null,
-      isPromoted: metrics.isPromoted ?? null,
-      metricAvailability: {
-        views:
-          Number.isSafeInteger(metrics.totalViews) && metrics.totalViews >= 0
-            ? 'observed'
-            : 'unavailable',
-        ...metrics.metricAvailability,
-      },
-    };
+    const attributedMetrics = mapDailyPostMetrics(metrics, credentialId);
     await admitAnalyticsCollection(authorization);
     const credential = await this.prisma.credential.findFirst({
       where: {
@@ -607,23 +595,7 @@ export class PostAnalyticsService extends BaseService<
 
   async processTwitterAnalytics(
     postId: string,
-    analytics: {
-      learningMetrics?: LearningMetrics;
-      breakoutExposures?: Partial<
-        Record<BreakoutExposureMetric, BreakoutExposureEvidence>
-      >;
-      isPinned?: boolean | null;
-      isPromoted?: boolean | null;
-      views: number;
-      likes: number;
-      comments: number;
-      retweets?: number;
-      bookmarks?: number;
-      quotes?: number;
-      impressions?: number;
-      engagementRate?: number;
-      mediaType?: 'text' | 'image' | 'video' | 'mixed';
-    },
+    analytics: TwitterPostMetrics,
     context: AnalyticsPersistenceContext,
     authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
@@ -632,28 +604,7 @@ export class PostAnalyticsService extends BaseService<
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.TWITTER,
-        {
-          learningMetrics: analytics.learningMetrics,
-          breakoutExposures: analytics.breakoutExposures,
-          impressions: analytics.impressions ?? null,
-          isPinned:
-            analytics.isPinned ?? analytics.learningMetrics?.isPinned ?? null,
-          isPromoted:
-            analytics.isPromoted ?? analytics.learningMetrics?.isPaid ?? null,
-          metricAvailability: {
-            impressions:
-              analytics.learningMetrics?.metrics.impressions?.availability ??
-              (analytics.impressions == null ? 'unavailable' : 'observed'),
-            views:
-              analytics.learningMetrics?.metrics.views?.availability ??
-              'observed',
-          },
-          totalComments: analytics.comments,
-          totalLikes: analytics.likes,
-          totalSaves: analytics.bookmarks ?? 0,
-          totalShares: analytics.retweets || 0,
-          totalViews: analytics.views,
-        },
+        mapTwitterPostMetrics(analytics),
         context,
         authorization,
       );
@@ -704,20 +655,7 @@ export class PostAnalyticsService extends BaseService<
    */
   async processInstagramAnalytics(
     postId: string,
-    analytics: {
-      learningMetrics?: LearningMetrics;
-      isPinned?: boolean | null;
-      isPromoted?: boolean | null;
-      views?: number;
-      likes: number;
-      comments: number;
-      shares?: number;
-      saves?: number;
-      impressions?: number;
-      reach?: number;
-      engagementRate?: number;
-      mediaType?: 'image' | 'video' | 'carousel' | 'reel' | 'story';
-    },
+    analytics: InstagramPostMetrics,
     context: AnalyticsPersistenceContext,
     authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
@@ -726,25 +664,7 @@ export class PostAnalyticsService extends BaseService<
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.INSTAGRAM,
-        {
-          learningMetrics: analytics.learningMetrics,
-          impressions: analytics.impressions ?? null,
-          metricAvailability: {
-            impressions:
-              analytics.impressions == null ? 'unavailable' : 'observed',
-            reach: analytics.reach == null ? 'unavailable' : 'observed',
-            views:
-              analytics.learningMetrics?.metrics.views?.availability ??
-              'unavailable',
-          },
-          reach: analytics.reach ?? null,
-          totalComments: analytics.comments,
-          totalLikes: analytics.likes,
-          totalSaves: analytics.saves || 0,
-          totalShares: analytics.shares || 0,
-          totalViews: analytics.views ?? 0,
-          videoViews: analytics.views ?? null,
-        },
+        mapInstagramPostMetrics(analytics),
         context,
         authorization,
       );

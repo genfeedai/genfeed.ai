@@ -392,6 +392,18 @@ export async function readBreakoutOutputRecovery(
     },
   });
   if (!row) {
+    if (
+      !post &&
+      output.state === 'reserved' &&
+      ['image', 'carousel', 'video', 'short'].includes(output.format) &&
+      output.heldReason === 'media_brand_capability_unavailable'
+    )
+      return {
+        ...base,
+        state: 'awaiting_review',
+        reason: 'media_brand_capability_unavailable',
+        action: 'none',
+      };
     if (!output.workflowExecutionId && output.state === 'reserved' && !post)
       return {
         ...base,

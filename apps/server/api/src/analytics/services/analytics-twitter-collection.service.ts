@@ -87,7 +87,6 @@ export class AnalyticsTwitterCollectionService {
         data,
         authorization,
       );
-      const firstPost = posts[0];
 
       await admitAnalyticsCollection(authorization);
       const credentialData = this.buildCredentialData(credential);
@@ -186,18 +185,8 @@ export class AnalyticsTwitterCollectionService {
         `Twitter analytics batch completed - processed ${readyTargets.length}/${posts.length} posts`,
       );
 
-      if (readyTargets.length > 0 && firstPost) {
-        await admitAnalyticsCollection(authorization);
-        await this.accountSnapshots.upsertDailySnapshot({
-          brandId: firstPost.brandId,
-          credentialId: data.credentialId,
-          organizationId: firstPost.organizationId,
-          platform: CredentialPlatform.TWITTER,
-          ...extractProfileCounts(
-            [...analyticsMap.values()].find((value) => value != null),
-          ),
-        });
-      }
+      if (readyTargets.length > 0)
+        await this.recordSnapshot(data, analyticsMap, authorization);
       await admitAnalyticsCollection(authorization);
       return {
         organizationId: posts[0].organizationId,
@@ -207,22 +196,7 @@ export class AnalyticsTwitterCollectionService {
     } catch (error: unknown) {
       if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       await admitAnalyticsCollection(authorization);
-      const failure = classifyAnalyticsCollectionError(error, 'Twitter');
-      const unsettledPosts = posts.filter(
-        (post) => !settledPostIds.has(post.id),
-      );
-      if (unsettledPosts.length > 0) {
-        await this.analyticsCollectionState.markFailedBatch(
-          unsettledPosts.map((post) => ({
-            attemptKey: data.attemptKey,
-            brandId: post.brandId,
-            id: post.id,
-            organizationId: post.organizationId,
-            platform: CredentialPlatform.TWITTER,
-          })),
-          failure,
-        );
-      }
+      await this.markUnsettled(data, settledPostIds, error);
       if (!this.isRateLimitError(error)) {
         this.logger.error(
           `Failed to process Twitter analytics batch for ${posts.length} posts`,
@@ -231,6 +205,50 @@ export class AnalyticsTwitterCollectionService {
       }
 
       throw error;
+    }
+  }
+
+  private async recordSnapshot(
+    data: TwitterAnalyticsCollectionInput,
+    analyticsMap: Awaited<
+      ReturnType<ServerTwitterAnalytics['getMediaAnalyticsBatch']>
+    >,
+    authorization?: AnalyticsCollectionAuthorization,
+  ): Promise<void> {
+    const firstPost = data.posts[0];
+    if (!firstPost) return;
+    await admitAnalyticsCollection(authorization);
+    await this.accountSnapshots.upsertDailySnapshot({
+      brandId: firstPost.brandId,
+      credentialId: data.credentialId,
+      organizationId: firstPost.organizationId,
+      platform: CredentialPlatform.TWITTER,
+      ...extractProfileCounts(
+        [...analyticsMap.values()].find((value) => value != null),
+      ),
+    });
+  }
+
+  private async markUnsettled(
+    data: TwitterAnalyticsCollectionInput,
+    settledPostIds: ReadonlySet<string>,
+    error: unknown,
+  ): Promise<void> {
+    const failure = classifyAnalyticsCollectionError(error, 'Twitter');
+    const unsettledPosts = data.posts.filter(
+      (post) => !settledPostIds.has(post.id),
+    );
+    if (unsettledPosts.length > 0) {
+      await this.analyticsCollectionState.markFailedBatch(
+        unsettledPosts.map((post) => ({
+          attemptKey: data.attemptKey,
+          brandId: post.brandId,
+          id: post.id,
+          organizationId: post.organizationId,
+          platform: CredentialPlatform.TWITTER,
+        })),
+        failure,
+      );
     }
   }
 

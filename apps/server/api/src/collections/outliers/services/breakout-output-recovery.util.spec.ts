@@ -267,6 +267,7 @@ function fixture() {
     format: 'text',
     state: 'reserved',
     workflowExecutionId: null as string | null,
+    heldReason: null as string | null,
   };
   const row = {
     id: projection.id,
@@ -335,6 +336,43 @@ beforeEach(() => {
 });
 
 describe('retained generation and publication recovery facts', () => {
+  it.each(['image', 'carousel', 'video', 'short'])(
+    'shows an actual %s capability hold without granting dispatch or retry',
+    async (format) => {
+      const h = fixture();
+      h.output.format = format;
+      h.output.kind = 'follow_up';
+      h.output.heldReason = 'media_brand_capability_unavailable';
+      h.output.workflowExecutionId = 'workflow-a';
+      h.findReceipt.mockResolvedValue(null);
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'awaiting_review',
+        reason: 'media_brand_capability_unavailable',
+        action: 'none',
+        mayRepeatPaidRequest: false,
+      });
+      h.output.state = 'generating';
+      expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+        state: 'reconciliation_required',
+        reason: 'generation_receipt_missing',
+      });
+    },
+  );
+  it('does not hide an actual provider outcome behind an older capability hold', async () => {
+    const h = fixture();
+    h.output.heldReason = 'media_brand_capability_unavailable';
+    const execution = h.projection.execution;
+    if (!execution) throw new Error('fixture provider execution is required');
+    h.retain({
+      ...h.projection,
+      execution: { ...execution, result: 'indeterminate' },
+    });
+    expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+      state: 'reconciliation_required',
+      reason: 'generation_outcome_indeterminate',
+      mayRepeatPaidRequest: false,
+    });
+  });
   it('never authorizes a paid request from a missing pre-dispatch receipt', async () => {
     const h = fixture();
     h.findReceipt.mockResolvedValue(null);

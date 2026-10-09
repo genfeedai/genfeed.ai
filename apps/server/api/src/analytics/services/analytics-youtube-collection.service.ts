@@ -199,27 +199,35 @@ export class AnalyticsYouTubeCollectionService {
     } catch (error: unknown) {
       if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       await admitAnalyticsCollection(authorization);
-      const failure = classifyAnalyticsCollectionError(error, 'YouTube');
-      const unsettledPosts = posts.filter(
-        (post) => !settledPostIds.has(post.id),
-      );
-      if (unsettledPosts.length > 0) {
-        await this.analyticsCollectionState.markFailedBatch(
-          unsettledPosts.map((post) => ({
-            attemptKey: data.attemptKey,
-            brandId: post.brandId,
-            id: post.id,
-            organizationId: post.organizationId,
-            platform: CredentialPlatform.YOUTUBE,
-          })),
-          failure,
-        );
-      }
+      await this.markUnsettled(data, settledPostIds, error);
       this.logger.error(
         `Failed to process YouTube analytics batch for ${posts.length} posts`,
         error,
       );
       throw error;
+    }
+  }
+
+  private async markUnsettled(
+    data: YouTubeAnalyticsCollectionInput,
+    settledPostIds: ReadonlySet<string>,
+    error: unknown,
+  ): Promise<void> {
+    const failure = classifyAnalyticsCollectionError(error, 'YouTube');
+    const unsettledPosts = data.posts.filter(
+      (post) => !settledPostIds.has(post.id),
+    );
+    if (unsettledPosts.length > 0) {
+      await this.analyticsCollectionState.markFailedBatch(
+        unsettledPosts.map((post) => ({
+          attemptKey: data.attemptKey,
+          brandId: post.brandId,
+          id: post.id,
+          organizationId: post.organizationId,
+          platform: CredentialPlatform.YOUTUBE,
+        })),
+        failure,
+      );
     }
   }
 

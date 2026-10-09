@@ -36,6 +36,8 @@ const REASON_LABELS: Record<BreakoutOutputRecoveryReason, string> = {
   generation_outcome_indeterminate: 'The generation outcome is uncertain.',
   generation_failed: 'Generation failed.',
   quality_or_brand_blocked: 'Brand or quality checks are holding this output.',
+  media_brand_capability_unavailable:
+    'Generation is held because this media format cannot yet meet the brand requirements.',
   approved_brand_required: 'An approved brand snapshot is required.',
   brand_review_required: 'Brand review is required.',
   artifact_binding_missing:

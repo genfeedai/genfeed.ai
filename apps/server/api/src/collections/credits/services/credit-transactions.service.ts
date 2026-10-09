@@ -136,24 +136,10 @@ export class CreditTransactionsService extends BaseService<
       if (existing) return this.normalizeDocument(existing);
     }
 
-    const reservation = options?.reservationId
-      ? await (tx ?? this.prisma).creditReservation.findFirst({
-          where: {
-            id: options.reservationId,
-            organizationId,
-            isDeleted: false,
-          },
-          select: { organizationId: true, brandId: true, metadata: true },
-        })
-      : null;
-    if (options?.reservationId && !reservation)
-      throw new BusinessLogicException(
-        'Credit settlement reservation is outside the organization',
-      );
-    const metadata = strategyBudgetMetadata(
+    const metadata = await this.readSettlementMetadata(
       organizationId,
-      options?.metadata,
-      reservation ?? undefined,
+      options,
+      tx,
     );
     const data: Prisma.CreditTransactionUncheckedCreateInput = {
       ...(await validatedWorkflowAccountingAttribution(
@@ -234,6 +220,32 @@ export class CreditTransactionsService extends BaseService<
     );
 
     return result;
+  }
+
+  private async readSettlementMetadata(
+    organizationId: string,
+    options?: CreateTransactionEntryOptions,
+    tx?: PrismaTransactionClient,
+  ) {
+    const reservation = options?.reservationId
+      ? await (tx ?? this.prisma).creditReservation.findFirst({
+          where: {
+            id: options.reservationId,
+            organizationId,
+            isDeleted: false,
+          },
+          select: { organizationId: true, brandId: true, metadata: true },
+        })
+      : null;
+    if (options?.reservationId && !reservation)
+      throw new BusinessLogicException(
+        'Credit settlement reservation is outside the organization',
+      );
+    return strategyBudgetMetadata(
+      organizationId,
+      options?.metadata,
+      reservation ?? undefined,
+    );
   }
 
   async getOrganizationTransactions(

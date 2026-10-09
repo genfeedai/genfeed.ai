@@ -74,11 +74,14 @@ function fixture(format: 'image' | 'carousel' | 'video' | 'short' = 'image') {
   const tx = {
     breakoutResponseOutput: {
       findFirst: vi.fn(async () => ({ generationKey: 'generation-a', state })),
-      updateMany: vi.fn(async () => {
-        const won = state === 'reserved';
-        state = 'generating';
-        return { count: won ? 1 : 0 };
-      }),
+      updateMany: vi.fn(
+        async (args: Prisma.BreakoutResponseOutputUpdateManyArgs) => {
+          const won = state === args.where?.state;
+          if (won && typeof args.data.state === 'string')
+            state = args.data.state;
+          return { count: won ? 1 : 0 };
+        },
+      ),
     },
     ingredient: {
       updateMany: vi.fn(async () => ({ count: 1 })),
@@ -160,7 +163,20 @@ describe('breakout normal media provider consumer', () => {
     await expect(h.service.generate(h.request)).rejects.toThrow(
       'brand_capability_unavailable',
     );
-    expect(h.tx.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
+    expect(h.tx.breakoutResponseOutput.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'output-a',
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        credentialId: 'account-a',
+        responseId: 'response-a',
+        workflowExecutionId: 'execution-a',
+        format: 'image',
+        isDeleted: false,
+        state: 'reserved',
+      },
+      data: { heldReason: 'media_brand_capability_unavailable' },
+    });
     expect(h.tx.ingredient.findMany).not.toHaveBeenCalled();
     expect(h.gateway.generateImage).not.toHaveBeenCalled();
   });
