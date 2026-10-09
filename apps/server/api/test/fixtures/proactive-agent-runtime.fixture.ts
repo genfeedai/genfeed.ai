@@ -238,6 +238,7 @@ export class ProactiveAgentRuntimeFixture {
       this.queues[3],
       this.queues[4],
       this.logger as never,
+      { assertAccess: vi.fn().mockResolvedValue(undefined) } as never,
     );
     this.publishQueue = new ScheduledPostWorkflowQueueService(
       this.queueService,

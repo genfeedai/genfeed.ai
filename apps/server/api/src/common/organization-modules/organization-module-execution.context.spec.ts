@@ -1,5 +1,6 @@
 import {
   getOrganizationModuleExecutionContext,
+  parseOrganizationModuleExecutionContext,
   runWithOrganizationModule,
 } from '@api/common/organization-modules/organization-module-execution.context';
 import { describe, expect, it } from 'vitest';
@@ -60,5 +61,45 @@ describe('server-owned organization module execution context', () => {
         () => undefined,
       ),
     ).toThrow('Authenticated module execution context is required');
+  });
+});
+
+describe('queued module envelope', () => {
+  it('copies only a valid matching server scope', () => {
+    const input = { organizationId: 'org-1', moduleId: 'batch' };
+    const context = parseOrganizationModuleExecutionContext(input, 'org-1');
+    input.moduleId = 'playground';
+    expect(context).toEqual({ organizationId: 'org-1', moduleId: 'batch' });
+    expect(Object.isFrozen(context)).toBe(true);
+    expect(
+      parseOrganizationModuleExecutionContext(undefined, 'org-1'),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    null,
+    true,
+    [],
+    'batch',
+    {},
+    { organizationId: 'org-1' },
+    { organizationId: 'org-1', moduleId: 'unknown' },
+    { organizationId: 'other-org', moduleId: 'batch' },
+    { organizationId: ' ', moduleId: 'batch' },
+    { organizationId: 'org-1', moduleId: 'batch', operation: 'read' },
+    { organizationId: 'org-1', moduleId: 'batch', bypass: true },
+  ])('rejects malformed or grant-expanding persisted data: %j', (input) => {
+    expect(() =>
+      parseOrganizationModuleExecutionContext(input, 'org-1'),
+    ).toThrow('Invalid queued organization module execution context');
+  });
+
+  it('requires a job-owned tenant identity', () => {
+    expect(() =>
+      parseOrganizationModuleExecutionContext(
+        { organizationId: 'org-1', moduleId: 'batch' },
+        undefined,
+      ),
+    ).toThrow('Invalid queued organization module execution context');
   });
 });
