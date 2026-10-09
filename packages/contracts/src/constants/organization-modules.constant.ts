@@ -71,6 +71,11 @@ export const ORGANIZATION_MODULES = {
 } as const;
 
 export type OrganizationModuleId = keyof typeof ORGANIZATION_MODULES;
+export type CreditBasedOrganizationModuleId = {
+  [TModule in OrganizationModuleId]: (typeof ORGANIZATION_MODULES)[TModule]['requiresSubscription'] extends false
+    ? TModule
+    : never;
+}[OrganizationModuleId];
 export type ToggleableOrganizationModuleId = {
   [TModule in OrganizationModuleId]: (typeof ORGANIZATION_MODULES)[TModule]['isToggleable'] extends true
     ? TModule

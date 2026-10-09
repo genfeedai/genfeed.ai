@@ -925,7 +925,10 @@
           "label": "Discovery",
           "description": "Explore trends and content opportunities."
         }
-      }
+      },
+      "disabledTitle": "{module} is disabled",
+      "disabledHelp": "An owner or admin can enable this module in organization settings. Existing projects remain readable and exportable.",
+      "manageModules": "Organization modules"
     }
   },
   "workspaceOverlay": {
