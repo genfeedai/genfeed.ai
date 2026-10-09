@@ -159,14 +159,33 @@ try {
     for (const label of ['U', 'V', 'W', 'Z'] as const) {
       const actor = fixture.actors[label];
       principalStage = 'SIGNIN';
-      const signin = await rest(undefined, '/v1/auth/sign-in/email', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          origin: 'http://127.0.0.1:3000',
-        },
-        body: JSON.stringify({ email: actor.email, password: actor.password }),
-      });
+      const signIn = () =>
+        rest(undefined, '/v1/auth/sign-in/email', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            origin: 'http://127.0.0.1:3000',
+          },
+          body: JSON.stringify({
+            email: actor.email,
+            password: actor.password,
+          }),
+        });
+      let signin = await signIn();
+      if (signin.status === 429) {
+        principalStage = 'SIGNIN_HTTP_429';
+        const retryAfter = Number(signin.headers.get('x-retry-after'));
+        requireMcpRuntime(
+          Number.isInteger(retryAfter) && retryAfter > 0 && retryAfter <= 10,
+          'BOUNDED_SIGNIN_RETRY',
+        );
+        // Four real principals share the production three-per-ten-second cap.
+        // Respect its response interval; never clear counters or bypass it.
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryAfter * 1000 + 100),
+        );
+        signin = await signIn();
+      }
       if (signin.status !== 200) {
         principalStage = `SIGNIN_HTTP_${signin.status}`;
         const code = record(signin.body).code;
