@@ -1004,6 +1004,9 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
       brands: [{ id: 'brand-1' }],
     };
     const findMember = vi.fn().mockImplementation(async () => membership);
+    const findKey = vi
+      .fn()
+      .mockResolvedValue({ scopes: ['read', 'write', 'admin'] });
     const findBrand = vi.fn().mockImplementation(async ({ where }) => {
       const predicate = where.AND[0];
       return !predicate.id || predicate.id.in.includes('brand-1')
@@ -1015,6 +1018,7 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
       .mockResolvedValue(makeThread({ brandId: 'brand-1' }));
     const updateThread = vi.fn();
     const prisma = {
+      apiKey: { findFirst: findKey },
       member: { findFirst: findMember },
       brand: { findFirst: findBrand },
       agentThread: { findFirst: findThread, updateMany: updateThread },
@@ -1025,7 +1029,14 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
       undefined,
       brandAccessFixture(prisma as unknown as PrismaService),
     );
-    return { service, membership, findMember, findBrand, updateThread };
+    return {
+      service,
+      membership,
+      findMember,
+      findKey,
+      findBrand,
+      updateThread,
+    };
   }
   const request = {
     organizationId: 'org-1',
@@ -1078,11 +1089,16 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
     f.membership.role.key = MemberRole.OWNER;
     f.membership.brands = [];
     await expect(
-      f.service.prepareForTurn({ ...request, isApiKey: true, scopes: [] }),
+      f.service.prepareForTurn({
+        ...request,
+        isApiKey: true,
+        apiKeyId: 'key-1',
+        scopes: [],
+      }),
     ).rejects.toThrow(ForbiddenException);
     await expect(
       f.service.assertConsequentialBoundary(
-        makeScope({ isApiKey: true, scopes: [] }),
+        makeScope({ isApiKey: true, apiKeyId: 'key-1', scopes: [] }),
         'workflow',
       ),
     ).rejects.toThrow(ForbiddenException);
@@ -1098,5 +1114,37 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
         },
       }),
     );
+  });
+
+  it('preserves authenticated key identity and rejects revoked persisted-thread reuse', async () => {
+    const f = fixture();
+    const prepared = await f.service.prepareForTurn({
+      ...request,
+      isApiKey: true,
+      apiKeyId: 'key-1',
+      scopes: ['read'],
+    });
+    expect(prepared.existingScope).toMatchObject({
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      scopes: ['read'],
+    });
+    const scope = prepared.existingScope;
+    if (!scope)
+      throw new Error('Expected authenticated persisted thread scope');
+    f.findKey.mockResolvedValue(null);
+    await expect(
+      f.service.assertConsequentialBoundary(scope, 'workflow'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.findKey).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'key-1',
+          userId: request.userId,
+          organizationId: request.organizationId,
+        }),
+      }),
+    );
+    expect(f.updateThread).not.toHaveBeenCalled();
   });
 });

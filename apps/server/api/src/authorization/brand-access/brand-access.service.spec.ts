@@ -19,6 +19,9 @@ function fixture() {
     brands: [{ id: 'brand-a' }],
   };
   const findMember = vi.fn().mockResolvedValue(member);
+  const findKey = vi
+    .fn()
+    .mockResolvedValue({ scopes: ['read', 'write', 'admin'] });
   const findBrand = vi
     .fn()
     .mockImplementation(async ({ where }: Prisma.BrandFindFirstArgs) => {
@@ -35,12 +38,14 @@ function fixture() {
         : null;
     });
   const prisma = {
+    apiKey: { findFirst: findKey },
     member: { findFirst: findMember },
     brand: { findFirst: findBrand },
   } as unknown as PrismaService;
   return {
     member,
     findMember,
+    findKey,
     findBrand,
     prisma,
     service: new BrandAccessService(prisma),
@@ -119,20 +124,76 @@ describe('live Cloud member brand policy', () => {
         await f.service.resolve({
           ...actor,
           isApiKey: true,
+          apiKeyId: 'key-a',
           scopes: ['read', 'write'],
         })
       ).role,
     ).toBe(MemberRole.USER);
     await expect(
       f.service.assert(
-        { ...actor, isApiKey: true, scopes: ['write'] },
+        { ...actor, isApiKey: true, apiKeyId: 'key-a', scopes: ['write'] },
         'brand-b',
       ),
     ).rejects.toThrow('Brand access denied');
     await f.service.assert(
-      { ...actor, isApiKey: true, scopes: ['admin'] },
+      { ...actor, isApiKey: true, apiKeyId: 'key-a', scopes: ['admin'] },
       'brand-b',
     );
+  });
+
+  it('rechecks the bound live key and current scopes on each brand admission', async () => {
+    const f = fixture();
+    f.member.role.key = MemberRole.OWNER;
+    f.member.brands = [];
+    const keyActor = {
+      ...actor,
+      isApiKey: true,
+      apiKeyId: 'key-a',
+      scopes: ['admin'],
+    };
+    await f.service.assert(keyActor, 'brand-b');
+    f.findKey.mockResolvedValue({ scopes: ['read'] });
+    await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+      'Brand access denied',
+    );
+    expect(f.findKey).toHaveBeenLastCalledWith({
+      where: {
+        id: 'key-a',
+        userId: actor.userId,
+        organizationId: actor.organizationId,
+        isRevoked: false,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
+      },
+      select: { scopes: true },
+    });
+    f.findKey.mockResolvedValue(null);
+    await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+      'Brand access denied',
+    );
+  });
+
+  it('requires key identity and uses the transaction for key admission', async () => {
+    const f = fixture();
+    await expect(
+      f.service.assert(
+        { ...actor, isApiKey: true, scopes: ['read'] },
+        'brand-a',
+      ),
+    ).rejects.toThrow('Brand access denied');
+    expect(f.findKey).not.toHaveBeenCalled();
+    expect(f.findMember).not.toHaveBeenCalled();
+    const tx = fixture();
+    tx.findKey.mockResolvedValue(null);
+    await expect(
+      f.service.assert(
+        { ...actor, isApiKey: true, apiKeyId: 'key-a', scopes: ['read'] },
+        'brand-a',
+        tx.prisma,
+      ),
+    ).rejects.toThrow('Brand access denied');
+    expect(tx.findKey).toHaveBeenCalledOnce();
+    expect(f.findKey).not.toHaveBeenCalled();
+    expect(tx.findMember).not.toHaveBeenCalled();
   });
 
   it('uses the transaction client for both canonical member and brand checks', async () => {

@@ -15,6 +15,7 @@ export type BrandScopedRetrievalParams = Pick<
   BrandContentMemoryRetrievalParams,
   | 'userId'
   | 'isApiKey'
+  | 'apiKeyId'
   | 'scopes'
   | 'brandId'
   | 'limit'
