@@ -78,6 +78,37 @@ describe('HeygenService', () => {
     expect(service.delete).toBeDefined();
   });
 
+  it.each(['fetchAvatars', 'fetchVoices'] as const)(
+    '%s lets the identity surface handle catalog outages and preserves cancellation',
+    async (method) => {
+      const failure = new Error('Catalog unavailable');
+      const abort = new AbortController();
+      mockGet.mockRejectedValueOnce(failure);
+
+      await expect(service[method](abort.signal)).rejects.toBe(failure);
+      expect(mockGet).toHaveBeenCalledWith(
+        `https://api.test.com/v1/heygen/${method === 'fetchAvatars' ? 'avatars' : 'voices'}`,
+        {
+          handledErrorStatuses: [500, 502, 503, 504],
+          signal: abort.signal,
+        },
+      );
+      expect(mockPost).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['fetchAvatars', 'fetchVoices'] as const)(
+    '%s retains the provider catalog response',
+    async (method) => {
+      const key = method === 'fetchAvatars' ? 'avatars' : 'voices';
+      const items = [{ name: 'Saved identity' }];
+      mockGet.mockResolvedValueOnce({
+        data: { data: { attributes: { [key]: items } } },
+      });
+      await expect(service[method]()).resolves.toBe(items);
+    },
+  );
+
   it('generates avatar videos through the videos avatar endpoint', async () => {
     const response: IHeyGen = {
       createdAt: '2026-06-08T00:00:00.000Z',
