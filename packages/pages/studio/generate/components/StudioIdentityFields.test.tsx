@@ -4,7 +4,15 @@ import type { UseStudioGenerateIdentitiesReturn } from '@pages/studio/generate/h
 import type { StudioGenerateSettings } from '@pages/studio/generate/types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const mocks = vi.hoisted(() => ({ identities: vi.fn() }));
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateIdentities', () => ({
@@ -47,6 +55,34 @@ const identities: UseStudioGenerateIdentitiesReturn = {
 };
 
 describe('Studio identity catalog recovery', () => {
+  const pointerApiKeys = [
+    'hasPointerCapture',
+    'setPointerCapture',
+    'releasePointerCapture',
+    'scrollIntoView',
+  ] as const;
+  const pointerApiDescriptors = pointerApiKeys.map(
+    (key) =>
+      [key, Object.getOwnPropertyDescriptor(Element.prototype, key)] as const,
+  );
+
+  beforeAll(() => {
+    for (const key of pointerApiKeys) {
+      Object.defineProperty(Element.prototype, key, {
+        configurable: true,
+        value: key === 'hasPointerCapture' ? () => false : () => undefined,
+        writable: true,
+      });
+    }
+  });
+
+  afterAll(() => {
+    for (const [key, descriptor] of pointerApiDescriptors) {
+      if (descriptor) Object.defineProperty(Element.prototype, key, descriptor);
+      else Reflect.deleteProperty(Element.prototype, key);
+    }
+  });
+
   beforeEach(() => mocks.identities.mockReturnValue(identities));
 
   it('explains a provider outage while keeping available photo and voice choices usable', async () => {
