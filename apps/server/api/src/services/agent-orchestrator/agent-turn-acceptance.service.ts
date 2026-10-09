@@ -134,6 +134,9 @@ export class AgentTurnAcceptanceService {
       requestedBrandId: request.brandId,
       threadId: request.threadId,
       userId: context.userId,
+      isApiKey: context.apiKeyContext?.isApiKey,
+      apiKeyId: context.apiKeyContext?.apiKeyId,
+      scopes: context.apiKeyContext?.scopes,
     });
     const threadId =
       preparedScope.existingScope?.threadId ??
@@ -156,6 +159,7 @@ export class AgentTurnAcceptanceService {
         threadId,
         userId: context.userId,
         isApiKey: context.apiKeyContext?.isApiKey,
+        apiKeyId: context.apiKeyContext?.apiKeyId,
         scopes: context.apiKeyContext?.scopes,
       }));
     if (existingScope)
