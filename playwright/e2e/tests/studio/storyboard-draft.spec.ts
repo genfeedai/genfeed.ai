@@ -731,7 +731,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   await expect(sidebar).toBeVisible();
   await title.fill('Saved through sidebar navigation');
   await sidebar.click();
-  await expect(page).toHaveURL(/\/studio\/generate/);
+  await expect(page).toHaveURL(/\/studio\/playground/);
   await expect
     .poll(() => current.config.plan.title)
     .toBe('Saved through sidebar navigation');
@@ -746,7 +746,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     .toBe('First in-flight title');
   await title.fill('Latest edit while saving');
   await sidebar.click();
-  await expect(page).toHaveURL(/\/studio\/generate$/);
+  await expect(page).toHaveURL(/\/studio\/playground$/);
   release?.();
   await expect
     .poll(() => current.config.plan.title)
@@ -785,7 +785,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   const writesBeforeReopen = mutations.length;
   await page.getByRole('radio', { name: 'Your edit', exact: true }).click();
   await sidebar.click();
-  await expect(page).toHaveURL(/\/studio\/generate$/);
+  await expect(page).toHaveURL(/\/studio\/playground$/);
   await page.goBack();
   await expect(
     page.getByText('Review concurrent edits', { exact: true }),

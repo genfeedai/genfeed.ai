@@ -408,7 +408,7 @@ async function installFixture(
 }
 async function openGenerationSetup(page: Page, summary: string) {
   const setup = page.getByRole('button', { name: /^Generation setup:/ });
-  await expect(setup).toContainText(summary);
+  await expect(setup).toHaveAccessibleName(`Generation setup: ${summary}`);
   await setup.click();
 }
 async function openConfiguration(page: Page, section: string) {
@@ -656,6 +656,12 @@ test('expired video admission reports the error and never retries automatically'
   await expect(errorToast).toHaveCount(1);
   await expect(errorToast).toBeVisible();
   await expect(page.getByTestId(/^studio-asset-failed-/)).toBeVisible();
+  const errorDialog = page.getByRole('dialog', {
+    name: 'Request failed',
+    exact: true,
+  });
+  await expect(errorDialog).toBeVisible();
+  await errorDialog.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(fixture.editor).toHaveText('A ceramic bird on a desk');
   await expect(
     page
