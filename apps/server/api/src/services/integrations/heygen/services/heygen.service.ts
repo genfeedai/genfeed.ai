@@ -40,7 +40,7 @@ import { z } from 'zod';
 const catalogPageSchema = z.object({
   data: z.array(z.record(z.string(), z.unknown())),
   has_more: z.boolean(),
-  next_token: z.string().nullable(),
+  next_token: z.string().nullish(),
 });
 const voiceSchema = z.object({
   voice_id: z.string().trim().min(1),
