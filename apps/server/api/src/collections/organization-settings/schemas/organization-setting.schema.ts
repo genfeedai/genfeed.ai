@@ -32,6 +32,7 @@ export interface OrganizationSettingDocument
   defaultModel: string | null;
   defaultVoiceId: string | null;
   defaultVoiceRef?: PrismaOrganizationSetting['defaultVoiceRef'];
+  readonly hasOrganizationBilling?: boolean;
   [key: string]: unknown;
 }
 

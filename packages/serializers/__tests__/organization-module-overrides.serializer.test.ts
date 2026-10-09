@@ -6,6 +6,7 @@ describe('organization module preferences serialization', () => {
     const result = OrganizationSettingSerializer.serialize({
       id: 'settings-1',
       moduleOverrides: { automation: true, batch: false },
+      hasOrganizationBilling: true,
       unrelatedInternalValue: 'hidden',
     }) as { data: { attributes: Record<string, unknown> } };
     expect(result.data.attributes.moduleOverrides).toEqual({
@@ -13,5 +14,6 @@ describe('organization module preferences serialization', () => {
       batch: false,
     });
     expect(result.data.attributes).not.toHaveProperty('unrelatedInternalValue');
+    expect(result.data.attributes.hasOrganizationBilling).toBe(true);
   });
 });

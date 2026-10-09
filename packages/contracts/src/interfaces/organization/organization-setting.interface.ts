@@ -133,6 +133,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   onboardingJourneyCompletedAt?: string | Date | null;
   agentPolicy?: IAgentPolicy;
   moduleOverrides?: OrganizationModuleOverrides;
+  /** Read-only server runtime hint for presentation; admission always rechecks. */
+  readonly hasOrganizationBilling?: boolean;
   fleetEvaluationPolicy?: IFleetEvaluationPolicy;
 
   // First-asset unlock gate: durable org signal, flips true on the org's first

@@ -18,7 +18,7 @@ import type {
   PopulateInput,
   PrismaUpdate,
 } from '@api/shared/services/base/base-query-normalization.adapter';
-import { isCloudDeployment } from '@genfeedai/config';
+import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -56,6 +56,16 @@ export class OrganizationSettingsService extends BaseService<
     private readonly configService: ConfigService,
   ) {
     super(prisma, 'organizationSetting', logger);
+  }
+
+  /** Same server runtime for settings HTTP and bootstrap; never persisted or writable. */
+  protected override normalizeDocument(
+    document: unknown,
+  ): OrganizationSettingDocument {
+    return {
+      ...super.normalizeDocument(document),
+      hasOrganizationBilling: hasOrganizationBilling(),
+    };
   }
 
   async patch(

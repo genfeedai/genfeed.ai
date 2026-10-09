@@ -1,7 +1,6 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { MemberRole } from '@genfeedai/contracts';
 import {
@@ -34,13 +33,17 @@ export default function OrganizationModulesCard() {
   const getService = useAuthedService(
     useCallback((token: string) => OrganizationsService.getInstance(token), []),
   );
-  const isBillingEnabled = hasOrganizationBillingHint();
+  const isBillingEnabled = settings?.hasOrganizationBilling;
   const canManage = role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const parsed = organizationModuleOverridesSchema.safeParse(
     settings?.moduleOverrides,
   );
   const isAvailable = Boolean(
-    organizationId && settings && parsed.success && !isLoading,
+    organizationId &&
+      settings &&
+      parsed.success &&
+      typeof isBillingEnabled === 'boolean' &&
+      !isLoading,
   );
   const [pending, setPending] = useState<ToggleableOrganizationModuleId | null>(
     null,
@@ -146,6 +149,7 @@ export default function OrganizationModulesCard() {
           const isEnabled =
             !module.isToggleable ||
             (parsed.success &&
+              typeof isBillingEnabled === 'boolean' &&
               (parsed.data[toggleable] ??
                 (!isBillingEnabled || module.isDefaultEnabled)));
           return (
