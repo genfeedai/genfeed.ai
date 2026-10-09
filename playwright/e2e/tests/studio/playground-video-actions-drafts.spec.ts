@@ -360,7 +360,11 @@ test.describe('Studio Generate — video results and composer drafts', () => {
       .click();
     const dialog = authenticatedPage.getByRole('dialog');
     await expect(
-      dialog.getByRole('heading', { name: 'Extend Video', exact: true }),
+      dialog.getByRole('heading', {
+        name: 'Extend Video',
+        exact: true,
+        level: 2,
+      }),
     ).toBeVisible();
     await dialog.getByRole('button', { exact: true, name: 'Extend' }).click();
 
