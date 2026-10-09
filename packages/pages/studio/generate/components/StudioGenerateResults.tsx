@@ -54,7 +54,9 @@ function ResultsSheet({
 
   return (
     <div data-testid="studio-grid">
-      <OrderedMasonry>{children}</OrderedMasonry>
+      <OrderedMasonry className="[&>[data-masonry-item]]:transition-opacity [&>[data-masonry-item]]:duration-200 motion-reduce:[&>[data-masonry-item]]:transition-none [@media(hover:hover)]:[&:has(>[data-masonry-item]:hover)>[data-masonry-item]:not(:hover):not(:focus-within)]:opacity-40 [&:has(>[data-masonry-item]_:focus-visible)>[data-masonry-item]:not(:focus-within):not(:hover)]:opacity-40">
+        {children}
+      </OrderedMasonry>
     </div>
   );
 }

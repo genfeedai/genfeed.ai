@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 interface AssetHoverDetailsProps {
   actions?: ReactNode;
   className?: string;
-  label: string;
   metadata?: string;
   typeLabel?: string;
 }
@@ -17,7 +16,6 @@ interface AssetHoverDetailsProps {
 export default function AssetHoverDetails({
   actions,
   className,
-  label,
   metadata,
   typeLabel,
 }: AssetHoverDetailsProps) {
@@ -26,7 +24,7 @@ export default function AssetHoverDetails({
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/90 px-3 py-3 text-foreground opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100',
+        'pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-background/90 px-3 py-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100',
         className,
       )}
       data-asset-hover-details
@@ -36,9 +34,6 @@ export default function AssetHoverDetails({
           {eyebrow}
         </p>
       ) : null}
-      <p className="mt-1 line-clamp-2 break-words text-sm leading-snug text-foreground">
-        {label}
-      </p>
       {actions ? (
         <div className="pointer-events-auto mt-2 flex items-center gap-1">
           {actions}
