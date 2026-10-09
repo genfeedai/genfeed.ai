@@ -3,7 +3,7 @@ import type { RouterPriority } from '@genfeedai/contracts';
 import type {
   IStudioLook,
   StudioLookAssetType,
-} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 
 export class StudioLook extends BaseEntity implements IStudioLook {
   declare public aspectRatio?: string | null;

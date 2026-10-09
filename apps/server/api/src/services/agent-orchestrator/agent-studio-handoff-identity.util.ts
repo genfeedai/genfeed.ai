@@ -2,7 +2,7 @@ import type {
   AgentStudioHandoffPayload,
   HeyGenAvatarRef,
   IBrandAgentConfig,
-  StudioGenerateType,
+  StudioPlaygroundType,
 } from '@genfeedai/contracts/interfaces';
 
 export interface StudioHandoffIdentityFields {
@@ -13,7 +13,7 @@ export interface StudioHandoffIdentityFields {
 }
 
 export function shouldAttachStudioHandoffIdentity(
-  type: StudioGenerateType,
+  type: StudioPlaygroundType,
   useIdentity?: boolean,
 ): boolean {
   return useIdentity === true || type === 'avatar' || type === 'voice';
@@ -24,9 +24,9 @@ export function shouldAttachStudioHandoffIdentity(
  * snapshotted portrait and voice are actually visible. Music stays music.
  */
 export function resolveStudioHandoffPayloadType(
-  type: StudioGenerateType,
+  type: StudioPlaygroundType,
   useIdentity?: boolean,
-): StudioGenerateType {
+): StudioPlaygroundType {
   if (type === 'avatar' || type === 'voice' || type === 'music') {
     return type;
   }

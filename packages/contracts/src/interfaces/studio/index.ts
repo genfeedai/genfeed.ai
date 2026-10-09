@@ -10,4 +10,4 @@ export * from './storyboard-run.interface';
 export * from './studio-edit.interface';
 export * from './studio-edit-layout.interface';
 export * from './studio-edit-topbar.interface';
-export * from './studio-generate.interface';
+export * from './studio-playground.interface';

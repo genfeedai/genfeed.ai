@@ -3,7 +3,7 @@ import {
   isFlux3ImageModel,
 } from '@genfeedai/contracts/constants';
 import type { AgentGenerationQuoteRequest } from '@genfeedai/contracts/interfaces/ai/agent-generation-quote.interface';
-import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioPlaygroundType } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { isImageQualitySupported } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
 import {
   getDefaultVideoResolution,
@@ -41,7 +41,7 @@ export interface StudioGenerationQuoteInput {
   modelKey: string | undefined;
   outputs?: number;
   resolution?: string;
-  type: StudioGenerateType;
+  type: StudioPlaygroundType;
   width?: number;
 }
 

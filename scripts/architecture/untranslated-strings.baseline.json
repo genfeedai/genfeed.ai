@@ -441,7 +441,7 @@
     "packages/pages/posts/release/release-engagement-rules.tsx": 5,
     "packages/pages/scheduler/posting-set-picker.tsx": 5,
     "packages/pages/streaks/streaks-page.tsx": 13,
-    "packages/pages/studio/generate/components/StudioIdentityFields.tsx": 1,
+    "packages/pages/studio/playground/components/StudioIdentityFields.tsx": 1,
     "packages/pages/studio/storyboard/components/MergeProgressPanel.tsx": 2,
     "packages/pages/studio/storyboard/components/MergeSettingsPanel.tsx": 7,
     "packages/pages/studio/storyboard/components/SceneFrameRow.tsx": 4,

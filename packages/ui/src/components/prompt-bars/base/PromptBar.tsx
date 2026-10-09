@@ -63,7 +63,7 @@ function PromptBar({
   onPrepareSubmit,
   banner,
 }: PromptBarProps) {
-  const translate = useTranslations('pages.studioGenerate.crun');
+  const translate = useTranslations('pages.studioPlayground.crun');
   const {
     crunQuoteLabel,
     crunInputControls,

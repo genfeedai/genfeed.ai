@@ -488,14 +488,14 @@ describe('app next.config', () => {
     );
 
     expect(studioRedirect).toEqual({
-      destination: APP_ROUTES.STUDIO.GENERATE,
+      destination: APP_ROUTES.STUDIO.PLAYGROUND,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     });
   });
 
   it('keeps no legacy redirect surface for the retired studio tabs', async () => {
-    // The one-off tabs came back as `/studio/generate`, so the 28 legacy
+    // The one-off tabs came back as `/studio/playground`, so the 28 legacy
     // `/studio/<type>` rules were hard-cut rather than repointed — there is no
     // redirect table to maintain for them.
     const redirects = (await config.redirects?.()) ?? [];

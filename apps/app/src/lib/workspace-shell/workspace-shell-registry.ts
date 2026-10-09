@@ -859,7 +859,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/studio/clips',
       '/:orgSlug/:brandSlug/studio/clips/new',
       '/:orgSlug/:brandSlug/studio/clips/:projectId',
-      '/:orgSlug/:brandSlug/studio/generate',
+      '/:orgSlug/:brandSlug/studio/playground',
       '/:orgSlug/:brandSlug/studio/motion',
       '/:orgSlug/:brandSlug/studio/storyboard',
       '/:orgSlug/:brandSlug/studio/storyboard/new',
@@ -867,7 +867,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       adapterStatus: 'ready',
-      fallback: '/:orgSlug/:brandSlug/studio/generate',
+      fallback: '/:orgSlug/:brandSlug/studio/playground',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',

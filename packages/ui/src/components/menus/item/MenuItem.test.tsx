@@ -53,7 +53,7 @@ describe('MenuItem', () => {
   it('uses the canonical 16px icon size for expanded sidebar rows', () => {
     const { container } = render(
       <MenuItem
-        href="/studio/generate"
+        href="/studio/playground"
         label="Generate"
         outline={Wand2}
         solid={Wand2}

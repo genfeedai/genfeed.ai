@@ -8,14 +8,16 @@ import {
 import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
 import { storyboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-plan';
-import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { Textarea } from '@ui/primitives/textarea';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
+import { Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -32,17 +34,29 @@ export default function StoryboardCreate() {
   const [mode, setMode] = useState<'brief' | 'video'>('brief');
   const [brief, setBrief] = useState('');
   const [format, setFormat] = useState<'9:16' | '16:9' | '1:1'>('9:16');
-  const [budget, setBudget] = useState('');
+  const [budget, setBudget] = useState('30');
   const [seed, setSeed] = useState<{
     brandId: string;
     id: string;
     title: string;
+    url?: string;
   }>();
   const image = seed?.brandId === brandId ? seed : undefined;
+  const [styleReferences, setStyleReferences] = useState<
+    NonNullable<typeof seed>[]
+  >([]);
+  const styles = styleReferences.filter(
+    (reference) => reference.brandId === brandId,
+  );
+  const translateWorkspace = useTranslations(
+    'pages.studioStoryboard.workspace',
+  );
+  const translatePlan = useTranslations('pages.studioStoryboard.plan');
   const [selected, setSelected] = useState<{
     brandId: string;
     id: string;
     title: string;
+    url?: string;
   }>();
   const validBudget =
     Number.isFinite(Number(budget)) &&
@@ -55,6 +69,26 @@ export default function StoryboardCreate() {
         brief.trim().length <= 2000 &&
         validBudget
       : Boolean(video);
+  function chooseStartingImage() {
+    openGallery({
+      category: IngredientCategory.IMAGE,
+      format,
+      maxSelectableItems: 1,
+      title: translate('startingImage'),
+      onSelect: (items) => {
+        const item = items.find(
+          (candidate) => candidate.brandId === brandId && !candidate.isDeleted,
+        );
+        if (item && brandId)
+          setSeed({
+            brandId,
+            id: item.id,
+            url: item.cdnUrl ?? undefined,
+            title: storyboardAssetLabel(item, translate('startingImage')),
+          });
+      },
+    });
+  }
   async function submit() {
     if (!valid || isCreating) return;
     const input =
@@ -69,7 +103,7 @@ export default function StoryboardCreate() {
               format,
               videoModelKey: null,
               runtimeBudgetSeconds: Number(budget),
-              styleReferenceAssetIds: [],
+              styleReferenceAssetIds: styles.map((reference) => reference.id),
               cast: [],
             },
           }
@@ -90,211 +124,313 @@ export default function StoryboardCreate() {
     }
   }
   return (
-    <Card label={translate('title')} description={translate('description')}>
-      <div
-        role="group"
-        aria-label={translate('sourceAria')}
-        className="mb-4 flex flex-wrap gap-2"
-      >
-        <Button
-          label={translate('fromBrief')}
-          aria-pressed={mode === 'brief'}
-          variant={
-            mode === 'brief' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-          }
-          disabled={isCreating}
-          onClick={() => setMode('brief')}
-        />
-        <Button
-          label={translate('remixTitle')}
-          aria-pressed={mode === 'video'}
-          variant={
-            mode === 'video' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-          }
-          disabled={isCreating}
-          onClick={() => setMode('video')}
-        />
-      </div>
-      {mode === 'brief' ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            label={translate('brief')}
-            className="sm:col-span-2"
-            helpText={translate('characterCount', { count: brief.length })}
-          >
-            <Textarea
-              value={brief}
-              maxLength={2000}
-              disabled={isCreating}
-              placeholder={translate('briefPlaceholder')}
-              onChange={(event) => setBrief(event.target.value)}
-            />
-          </Field>
-          <Field label={translate('format')}>
-            <StoryboardSelect
-              ariaLabel={translate('formatAria')}
-              value={format}
-              placeholder={translate('chooseFormat')}
-              isDisabled={isCreating}
-              options={['9:16', '16:9', '1:1'].map((value) => ({
-                value,
-                label: value,
-              }))}
-              onChange={(value) => {
-                if (value === '9:16' || value === '16:9' || value === '1:1')
-                  setFormat(value);
-              }}
-            />
-          </Field>
-          <Field
-            label={translate('runtimeBudget')}
-            helpText={translate('runtimeBudgetHelp')}
-          >
-            <Input
-              type="number"
-              min={1}
-              max={60}
-              value={budget}
-              disabled={isCreating}
-              onChange={(event) => setBudget(event.target.value)}
-            />
-          </Field>
-          <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-            <Button
-              label={translate('chooseStartingImage')}
-              variant={ButtonVariant.SECONDARY}
-              disabled={isCreating}
-              onClick={() =>
-                openGallery({
-                  category: IngredientCategory.IMAGE,
-                  maxSelectableItems: 1,
-                  title: translate('startingImage'),
-                  onSelect: (items) => {
-                    const item = items.find(
-                      (candidate) =>
-                        candidate.brandId === brandId && !candidate.isDeleted,
-                    );
-                    if (item && brandId)
-                      setSeed({
-                        brandId,
-                        id: item.id,
-                        title: storyboardAssetLabel(
-                          item,
-                          translate('startingImage'),
-                        ),
-                      });
-                  },
-                })
-              }
-            />
-            {image ? (
-              <Button
-                label={`${image.title} ×`}
-                ariaLabel={translate('removeAsset', { title: image.title })}
-                variant={ButtonVariant.SECONDARY}
-                disabled={isCreating}
-                onClick={() => setSeed(undefined)}
-              />
-            ) : null}
-            <p className="text-xs text-muted-foreground">
-              {translate('startingImageHelp')}
+    <div className="grid min-h-[calc(100dvh-12rem)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="flex min-w-0 flex-col gap-6">
+        <div
+          role="group"
+          aria-label={translate('sourceAria')}
+          className="flex flex-wrap gap-2"
+        >
+          <Button
+            label={translate('fromBrief')}
+            aria-pressed={mode === 'brief'}
+            variant={
+              mode === 'brief' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            disabled={isCreating}
+            onClick={() => setMode('brief')}
+          />
+          <Button
+            label={translate('remixTitle')}
+            aria-pressed={mode === 'video'}
+            variant={
+              mode === 'video' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            disabled={isCreating}
+            onClick={() => setMode('video')}
+          />
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
+          <h2 className="text-xl font-medium">
+            {translateWorkspace('emptyTitle')}
+          </h2>
+          <p className="max-w-md text-sm text-muted-foreground">
+            {translateWorkspace('emptyDescription')}
+          </p>
+          {mode === 'video' ? (
+            <p role="status" className="text-sm">
+              {video?.title || translate('chooseOwnedVideo')}
             </p>
-          </div>
+          ) : null}
         </div>
-      ) : (
-        <div className="space-y-3">
-          <p role="status" className="text-sm">
-            {video?.title || translate('chooseOwnedVideo')}
+        <div className="sticky bottom-4 z-10 mt-auto">
+          <PromptBarComposer
+            data-testid="storyboard-composer"
+            density="compact"
+            banner={
+              error ? (
+                <p role="alert" className="p-3 text-sm text-destructive">
+                  {error}
+                </p>
+              ) : undefined
+            }
+          >
+            {mode === 'brief' ? (
+              <PromptEditor
+                ariaLabel={translate('brief')}
+                value={brief}
+                isDisabled={isCreating}
+                placeholder={translate('briefPlaceholder')}
+                onValueChange={setBrief}
+                onSubmit={() => void submit()}
+                className="min-h-16"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {translate('videoHelp')}
+              </p>
+            )}
+            <PromptBarToolbar
+              leading={
+                mode === 'brief' ? (
+                  <>
+                    <Button
+                      ariaLabel={translateWorkspace('references')}
+                      icon={<Paperclip className="size-4" />}
+                      variant={ButtonVariant.GHOST}
+                      onClick={chooseStartingImage}
+                      disabled={isCreating}
+                    />
+                    <div className="w-28">
+                      <StoryboardSelect
+                        ariaLabel={translate('formatAria')}
+                        value={format}
+                        placeholder={translate('chooseFormat')}
+                        isDisabled={isCreating}
+                        options={['9:16', '16:9', '1:1'].map((value) => ({
+                          value,
+                          label: value,
+                        }))}
+                        onChange={(value) => {
+                          if (
+                            value === '9:16' ||
+                            value === '16:9' ||
+                            value === '1:1'
+                          )
+                            setFormat(value);
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        aria-label={translate('runtimeBudget')}
+                        className="w-20"
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={budget}
+                        disabled={isCreating}
+                        onChange={(event) => setBudget(event.target.value)}
+                      />
+                      <span
+                        aria-hidden
+                        className="text-xs text-muted-foreground"
+                      >
+                        s
+                      </span>
+                    </div>
+                  </>
+                ) : null
+              }
+              trailing={
+                <Button
+                  label={
+                    isCreating
+                      ? translate('saving')
+                      : error
+                        ? translate('retrySaving')
+                        : translate('save')
+                  }
+                  disabled={isCreating || !valid}
+                  onClick={() => void submit()}
+                />
+              }
+            />
+            {mode === 'brief' ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {translate('characterCount', { count: brief.length })}
+              </p>
+            ) : null}
+          </PromptBarComposer>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {translate('description')}
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              label={translate('chooseFromLibrary')}
-              variant={ButtonVariant.SECONDARY}
-              disabled={isCreating}
-              onClick={() =>
-                openGallery({
-                  category: IngredientCategory.VIDEO,
-                  maxSelectableItems: 1,
-                  title: translate('remixTitle'),
-                  onSelect: (items) => {
-                    const item = items.find(
-                      (candidate) =>
-                        candidate.brandId === brandId && !candidate.isDeleted,
-                    );
-                    if (item && brandId && 'brandId' in item)
-                      setSelected({
-                        brandId,
-                        id: item.id,
-                        title: storyboardAssetLabel(
-                          item,
-                          translate('uploadedVideo'),
-                        ),
-                      });
-                  },
-                })
-              }
-            />
-            <Button
-              label={translate('uploadVideo')}
-              variant={ButtonVariant.SECONDARY}
-              disabled={isCreating}
-              onClick={() =>
-                openUpload({
-                  category: IngredientCategory.VIDEO,
-                  isMultiple: false,
-                  maxFiles: 1,
-                  onComplete: (items) => {
-                    const item = items.find(
-                      (candidate) =>
-                        'brandId' in candidate &&
-                        candidate.brandId === brandId &&
-                        !candidate.isDeleted,
-                    );
-                    if (item && brandId && 'brandId' in item)
-                      setSelected({
-                        brandId,
-                        id: item.id,
-                        title: storyboardAssetLabel(
-                          item,
-                          translate('uploadedVideo'),
-                        ),
-                      });
-                  },
-                })
-              }
-            />
-            {video ? (
+        </div>
+      </div>
+      <StoryboardReferencesPanel
+        references={[
+          ...(mode === 'brief' && image
+            ? [
+                {
+                  id: `seed:${image.id}`,
+                  title: image.title,
+                  kind: 'image' as const,
+                  url: image.url,
+                  group: translate('startingImage'),
+                  onRemove: () => setSeed(undefined),
+                },
+              ]
+            : []),
+          ...(mode === 'brief'
+            ? styles.map((reference) => ({
+                id: `style:${reference.id}`,
+                title: reference.title,
+                kind: 'image' as const,
+                url: reference.url,
+                group: translateWorkspace('styles'),
+                onRemove: () =>
+                  setStyleReferences((current) =>
+                    current.filter(
+                      (item) =>
+                        item.id !== reference.id || item.brandId !== brandId,
+                    ),
+                  ),
+              }))
+            : []),
+          ...(mode === 'video' && video
+            ? [
+                {
+                  id: `video:${video.id}`,
+                  title: video.title,
+                  kind: 'video' as const,
+                  url: video.url,
+                  group: translate('uploadedVideo'),
+                  onRemove: () => setSelected(undefined),
+                },
+              ]
+            : []),
+        ]}
+        actions={
+          mode === 'brief' ? (
+            <>
               <Button
-                label={translate('clearVideo')}
+                label={translate('chooseStartingImage')}
                 variant={ButtonVariant.SECONDARY}
                 disabled={isCreating}
-                onClick={() => setSelected(undefined)}
+                onClick={chooseStartingImage}
               />
-            ) : null}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {translate('videoHelp')}
-          </p>
-        </div>
-      )}
-      {error ? (
-        <p role="alert" className="mt-3 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-      <div className="mt-4 flex justify-end">
-        <Button
-          label={
-            isCreating
-              ? translate('saving')
-              : error
-                ? translate('retrySaving')
-                : translate('save')
-          }
-          disabled={isCreating || !valid}
-          onClick={() => void submit()}
-        />
-      </div>
-    </Card>
+              <Button
+                label={translatePlan('addStyleReferences')}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating || styles.length >= 20}
+                onClick={() =>
+                  openGallery({
+                    category: IngredientCategory.IMAGE,
+                    format,
+                    maxSelectableItems: 20 - styles.length,
+                    title: translateWorkspace('styles'),
+                    onSelect: (items) => {
+                      const selected = items.filter(
+                        (item) => item.brandId === brandId && !item.isDeleted,
+                      );
+                      if (!brandId) return;
+                      setStyleReferences((current) =>
+                        [
+                          ...new Map(
+                            [
+                              ...current.filter(
+                                (item) => item.brandId === brandId,
+                              ),
+                              ...selected.map((item) => ({
+                                brandId,
+                                id: item.id,
+                                title: storyboardAssetLabel(
+                                  item,
+                                  translateWorkspace('styles'),
+                                ),
+                                url: item.cdnUrl ?? undefined,
+                              })),
+                            ].map((item) => [item.id, item]),
+                          ).values(),
+                        ].slice(0, 20),
+                      );
+                    },
+                  })
+                }
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                label={translate('chooseFromLibrary')}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating}
+                onClick={() =>
+                  openGallery({
+                    category: IngredientCategory.VIDEO,
+                    maxSelectableItems: 1,
+                    title: translate('remixTitle'),
+                    onSelect: (items) => {
+                      const item = items.find(
+                        (candidate) =>
+                          candidate.brandId === brandId && !candidate.isDeleted,
+                      );
+                      if (item && brandId && 'brandId' in item)
+                        setSelected({
+                          brandId,
+                          id: item.id,
+                          url: item.cdnUrl ?? undefined,
+                          title: storyboardAssetLabel(
+                            item,
+                            translate('uploadedVideo'),
+                          ),
+                        });
+                    },
+                  })
+                }
+              />
+              <Button
+                label={translate('uploadVideo')}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating}
+                onClick={() =>
+                  openUpload({
+                    category: IngredientCategory.VIDEO,
+                    isMultiple: false,
+                    maxFiles: 1,
+                    onComplete: (items) => {
+                      const item = items.find(
+                        (candidate) =>
+                          'brandId' in candidate &&
+                          candidate.brandId === brandId &&
+                          !candidate.isDeleted,
+                      );
+                      if (item && brandId && 'brandId' in item)
+                        setSelected({
+                          brandId,
+                          id: item.id,
+                          url: item.cdnUrl ?? undefined,
+                          title: storyboardAssetLabel(
+                            item,
+                            translate('uploadedVideo'),
+                          ),
+                        });
+                    },
+                  })
+                }
+              />
+              {video ? (
+                <Button
+                  label={translate('clearVideo')}
+                  variant={ButtonVariant.SECONDARY}
+                  disabled={isCreating}
+                  onClick={() => setSelected(undefined)}
+                />
+              ) : null}
+            </>
+          )
+        }
+      />
+    </div>
   );
 }

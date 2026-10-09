@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { StudioGenerateDraftPayload } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioGenerateDraftPayload } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { StudioGenerateDraft } from '@genfeedai/models/content/studio-generate-draft.model';
 import { StudioGenerateDraftSerializer } from '@genfeedai/serializers';
 import {

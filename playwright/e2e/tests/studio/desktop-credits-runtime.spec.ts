@@ -116,12 +116,12 @@ async function captureRuntimeState(
 
 async function openGenerationSummary(page: Page) {
   const prompt = page
-    .getByTestId('studio-generate-prompt')
+    .getByTestId('studio-playground-prompt')
     .locator('[contenteditable=true]');
   await prompt.focus();
   await expect(prompt).toBeFocused();
   const generate = page
-    .getByTestId('studio-generate-composer-shell')
+    .getByTestId('studio-playground-composer-shell')
     .getByRole('button', { name: 'Generate', exact: true });
   await generate.focus();
   await expect(generate).toBeFocused();
@@ -360,11 +360,11 @@ for (const theme of ['light', 'dark'] as const)
           generationRequests++;
           await route.fulfill({ json: { data: [] } });
         });
-        await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
+        await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND));
         await expect(page.locator('body')).toHaveClass(/gf-desktop-shell/);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         const generate = page
-          .getByTestId('studio-generate-composer-shell')
+          .getByTestId('studio-playground-composer-shell')
           .getByRole('button', { name: 'Generate', exact: true });
         let summary = await openGenerationSummary(page);
         await expect(summary.getByRole('status')).toHaveText(
@@ -373,7 +373,7 @@ for (const theme of ['light', 'dark'] as const)
         expect(walletRequests).toBe(0);
         expect(desktopNetwork.walletRequests).toBe(0);
         const prompt = page
-          .getByTestId('studio-generate-prompt')
+          .getByTestId('studio-playground-prompt')
           .locator('[contenteditable=true]');
         await expect(generate).toBeDisabled();
         await expect(generate).toHaveAttribute('aria-disabled', 'true');
@@ -505,7 +505,7 @@ for (const mode of [
         walletRequests++;
         await route.fulfill({ json: walletBody });
       });
-      await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
+      await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND));
       const summary = await openGenerationSummary(page);
       await expect(summary.getByRole('status')).toHaveText(
         mode === 'local'
@@ -532,7 +532,7 @@ for (const mode of [
         await expect(button).toBeDisabled();
         await expect(button).toHaveAttribute('aria-disabled', 'true');
         await page
-          .getByTestId('studio-generate-prompt')
+          .getByTestId('studio-playground-prompt')
           .locator('[contenteditable=true]')
           .focus();
         await page.keyboard.press('Enter');

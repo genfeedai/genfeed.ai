@@ -266,7 +266,7 @@ export function usePromptBarState({
     control: form.control,
     name: 'quality',
   }) as QualityTier | undefined;
-  const translateCrun = useTranslations('pages.studioGenerate.crun');
+  const translateCrun = useTranslations('pages.studioPlayground.crun');
   useWatch({ control: form.control });
   const crunConsumedRef = useRef<string | null>(null);
   const crunSubmittingRef = useRef(false);

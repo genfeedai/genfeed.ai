@@ -6,7 +6,7 @@ import {
 import type {
   IModel,
   IStudioLook,
-  StudioGenerateCapabilities,
+  StudioPlaygroundCapabilities,
 } from '@genfeedai/contracts/interfaces';
 import type { GenerationSetup } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
@@ -310,7 +310,7 @@ function createPreset(
   } as IStudioLook;
 }
 
-const capabilities: StudioGenerateCapabilities = {
+const capabilities: StudioPlaygroundCapabilities = {
   hasAspectRatio: true,
   hasBrandEnrichment: true,
   hasDuration: false,

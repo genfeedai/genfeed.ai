@@ -23,13 +23,13 @@ import type {
   GenerationSetupType,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioPlaygroundType } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 /** Studio scope key: one setup per generate type, e.g. `studio:image`. */
 export function buildStudioGenerationSetupScope(
-  type: StudioGenerateType,
+  type: StudioPlaygroundType,
 ): string {
   return `studio:${type}`;
 }

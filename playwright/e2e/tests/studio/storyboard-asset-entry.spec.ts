@@ -146,7 +146,7 @@ for (const kind of ['image', 'video'] as const) {
         }),
       });
     });
-    await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE), {
+    await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
       waitUntil: 'domcontentloaded',
     });
     const card = page.getByTestId(`studio-asset-${id}`);

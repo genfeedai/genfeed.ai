@@ -113,5 +113,5 @@ export const PLAYWRIGHT_E2E_CORE_PATHS = [
   'playwright/e2e/tests/shell/context-sidebar.spec.ts',
   'playwright/e2e/tests/shell/page-context-contract.spec.ts',
   'playwright/e2e/tests/studio/clips.spec.ts',
-  'playwright/e2e/tests/studio/generate-video-actions-drafts.spec.ts',
+  'playwright/e2e/tests/studio/playground-video-actions-drafts.spec.ts',
 ];

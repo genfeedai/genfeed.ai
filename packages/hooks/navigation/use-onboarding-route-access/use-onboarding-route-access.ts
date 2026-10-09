@@ -1,6 +1,9 @@
 'use client';
 
-import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
+import {
+  hasAgentFirstOnboarding,
+  isCloudDeployment,
+} from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -9,6 +12,7 @@ import {
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { MemberRole } from '@genfeedai/contracts';
 import {
   getResumeStep,
   ONBOARDING_STEPS,
@@ -36,7 +40,14 @@ export function useOnboardingRouteAccess(pathname: string) {
     isSuperAdmin,
     needsOnboarding,
   } = useAccessState();
-  const { selectedBrand, brands } = useBrand();
+  const { selectedBrand, brands, isBrandScopeResolved } = useBrand();
+  const hasNoBrandAccess =
+    isCloudDeployment() &&
+    isBrandScopeResolved &&
+    brands.length === 0 &&
+    Boolean(accessState?.memberRole) &&
+    accessState?.memberRole !== MemberRole.OWNER &&
+    accessState?.memberRole !== MemberRole.ADMIN;
   const brand = selectedBrand ?? brands[0];
   const isOnboardingRoute = pathname.startsWith('/onboarding');
   const isBillingEnabled = hasOrganizationBillingHint();
@@ -61,6 +72,8 @@ export function useOnboardingRouteAccess(pathname: string) {
     if (!accessState) {
       return null;
     }
+
+    if (hasNoBrandAccess) return null;
 
     if (needsOnboarding) {
       if (currentUser.isOnboardingCompleted === true) {
@@ -107,6 +120,7 @@ export function useOnboardingRouteAccess(pathname: string) {
     return null;
   }, [
     accessState,
+    hasNoBrandAccess,
     brand,
     pathname,
     currentUser,

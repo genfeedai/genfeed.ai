@@ -1,4 +1,4 @@
-import type { StudioGenerateType } from '@genfeedai/contracts/interfaces';
+import type { StudioPlaygroundType } from '@genfeedai/contracts/interfaces';
 
 export interface AgentStudioHandoffIdentity {
   avatarPhotoUrl?: string;
@@ -32,7 +32,7 @@ export function didGenerationUseIdentity(params: {
 export function resolveStudioHandoffType(params: {
   generationType: 'image' | 'video';
   useIdentity?: boolean;
-}): StudioGenerateType {
+}): StudioPlaygroundType {
   return didGenerationUseIdentity(params) ? 'avatar' : params.generationType;
 }
 

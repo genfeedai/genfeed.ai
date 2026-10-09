@@ -25,7 +25,7 @@ export function buildClaudeMcpServerInstructions(appUrl: string): string {
     'Call get_account and get_brands first; use onboard_brand when onboarding is incomplete.',
     'Write copy yourself, then use create_post or create_article_draft to save it for review.',
     'Never schedule anything unless the user explicitly asks. Use existing assets from list_assets.',
-    `Image, video and audio creation happens in Genfeed Studio at ${appUrl}${APP_ROUTES.STUDIO.GENERATE}. Open that link; never attempt generation, workflows, batches or remix through this connector. Opening Studio does not start generation.`,
+    `Image, video and audio creation happens in Genfeed Studio at ${appUrl}${APP_ROUTES.STUDIO.PLAYGROUND}. Open that link; never attempt generation, workflows, batches or remix through this connector. Opening Studio does not start generation.`,
     'Use find_tools to discover supported content operations. Toolset changes cannot enable generation.',
   ].join(' ');
 }

@@ -1,7 +1,7 @@
 import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import {
   STUDIO_GENERATE_DRAFT_TYPES,
-  STUDIO_GENERATE_REFERENCE_ROLES,
+  STUDIO_PLAYGROUND_REFERENCE_ROLES,
   type UpsertStudioGenerateDraftDto,
 } from '@api/collections/studio-generate-drafts/dto/upsert-studio-generate-draft.dto';
 import type { StudioGenerateDraftDocument } from '@api/collections/studio-generate-drafts/schemas/studio-generate-draft.schema';
@@ -14,7 +14,7 @@ import type {
   KnowledgeSelection,
   StudioGenerateDraftPayload,
   StudioGenerateDraftReference,
-  StudioGenerateType,
+  StudioPlaygroundType,
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -31,7 +31,7 @@ export interface StudioGenerateDraftRequestScope {
   userId: string;
 }
 
-type StudioGenerateDraftWriteData = Pick<
+type StudioPlaygroundDraftWriteData = Pick<
   Prisma.StudioGenerateDraftUncheckedCreateInput,
   | 'attachments'
   | 'knowledgeSelection'
@@ -41,7 +41,7 @@ type StudioGenerateDraftWriteData = Pick<
   | 'type'
 >;
 
-const REFERENCE_ROLES = new Set<string>(STUDIO_GENERATE_REFERENCE_ROLES);
+const REFERENCE_ROLES = new Set<string>(STUDIO_PLAYGROUND_REFERENCE_ROLES);
 const DRAFT_TYPES = new Set<string>(STUDIO_GENERATE_DRAFT_TYPES);
 
 function readReferences(value: unknown): StudioGenerateDraftReference[] {
@@ -114,9 +114,9 @@ function readSettingsByType(
   );
 }
 
-function readType(value: unknown): StudioGenerateType {
+function readType(value: unknown): StudioPlaygroundType {
   return typeof value === 'string' && DRAFT_TYPES.has(value)
-    ? (value as StudioGenerateType)
+    ? (value as StudioPlaygroundType)
     : 'image';
 }
 
@@ -198,7 +198,7 @@ export class StudioGenerateDraftsService {
         ? { purposes: dto.knowledgeSelection.purposes }
         : {}),
     };
-    const data: StudioGenerateDraftWriteData = {
+    const data: StudioPlaygroundDraftWriteData = {
       attachments: toPrismaJson(
         attachments.filter((attachment) => allowedIds.has(attachment.id)),
       ),
@@ -227,7 +227,7 @@ export class StudioGenerateDraftsService {
    */
   private async writeDraft(
     scope: StudioGenerateDraftRequestScope,
-    data: StudioGenerateDraftWriteData,
+    data: StudioPlaygroundDraftWriteData,
   ): Promise<StudioGenerateDraftDocument> {
     const { count } = await this.prisma.studioGenerateDraft.updateMany({
       data,

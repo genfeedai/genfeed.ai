@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
 }));
 vi.mock('@genfeedai/config/deployment', () => ({
   hasAgentFirstOnboarding: () => state.isAgentFirst,
+  isCloudDeployment: () => false,
 }));
 vi.mock('@genfeedai/config/license', () => ({
   hasOrganizationBillingHint: () => false,

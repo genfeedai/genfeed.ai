@@ -726,7 +726,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   await expect(title).toHaveValue(run.config.plan.title);
   await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
   const sidebar = page
-    .locator('a[href="/test-org/brand-1/studio/generate"]')
+    .locator('a[href="/test-org/brand-1/studio/playground"]')
     .first();
   await expect(sidebar).toBeVisible();
   await title.fill('Saved through sidebar navigation');

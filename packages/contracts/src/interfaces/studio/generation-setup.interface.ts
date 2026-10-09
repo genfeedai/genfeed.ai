@@ -1,8 +1,8 @@
 import type { RouterPriority } from '../..';
 import type {
-  StudioGenerateCapabilities,
-  StudioGenerateType,
-} from './studio-generate.interface';
+  StudioPlaygroundCapabilities,
+  StudioPlaygroundType,
+} from './studio-playground.interface';
 
 /**
  * Who last decided a setup field. Unset in {@link GenerationSetupSources} means
@@ -12,15 +12,15 @@ export type GenerationSetupSource = 'agent' | 'preset' | 'user';
 
 /**
  * Types the shared setup can hold. Studio produces assets, so its registry is
- * {@link StudioGenerateType}; the agent composer also offers `text`, which is a
+ * {@link StudioPlaygroundType}; the agent composer also offers `text`, which is a
  * conversation turn rather than an asset and has no Studio configuration.
  */
-export type GenerationSetupType = StudioGenerateType | 'text';
+export type GenerationSetupType = StudioPlaygroundType | 'text';
 
 /**
  * The complete generation configuration one submit runs with, shared by the
  * agent composer and Studio. Field vocabulary matches
- * {@link StudioGenerateSettings} so payload builders stay untouched.
+ * {@link StudioPlaygroundSettings} so payload builders stay untouched.
  */
 export interface GenerationSetupValues {
   aspectRatio: string;
@@ -70,7 +70,7 @@ export interface GenerationSetupRecommendation {
 }
 
 export interface GenerationSetupRecommendationInput {
-  capabilities: StudioGenerateCapabilities;
+  capabilities: StudioPlaygroundCapabilities;
   hasZeroCredits?: boolean;
   /** Surfaces that let the agent pick image vs video leave this unset. */
   lockedType?: GenerationSetupType;

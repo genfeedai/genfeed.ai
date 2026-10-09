@@ -208,7 +208,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
         }),
       );
       await page.goto(
-        new URL('/test-org/brand-1/studio/generate', baseURL).href,
+        new URL('/test-org/brand-1/studio/playground', baseURL).href,
       );
       await expect(page.getByTestId('topbar-credits-trigger')).toContainText(
         '500',
@@ -271,7 +271,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
         fullPage: true,
       });
       await page.goto(
-        new URL('/test-org/brand-1/studio/generate', baseURL).href,
+        new URL('/test-org/brand-1/studio/playground', baseURL).href,
       );
       await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
       const walletBeforeRecovery = walletRequests;

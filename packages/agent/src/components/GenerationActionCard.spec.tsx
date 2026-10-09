@@ -2342,7 +2342,7 @@ describe('GenerationActionCard', () => {
   it('opens Studio at the brand-scoped path from a route with no brand segment (#4716 P0 — the org-level Agent workspace 404ed)', async () => {
     // `/:orgSlug/~/agent` (the canonical Agent workspace route) carries no
     // brand segment — `useOrgUrl().href` falls through to the org scope
-    // there and would build `/org-1/~/studio/generate?...`, a route that
+    // there and would build `/org-1/~/studio/playground?...`, a route that
     // does not exist (Studio generate only lives under a brand slug).
     // `activeHref` falls back to the context-selected brand instead.
     orgUrlParams.brandSlug = '';
@@ -2383,7 +2383,7 @@ describe('GenerationActionCard', () => {
     await waitFor(() => expect(onOpenInStudio).toHaveBeenCalledTimes(1));
     const [studioUrl] = onOpenInStudio.mock.calls[0] as [string];
     expect(studioUrl).toBe(
-      '/test-org/brand-1/studio/generate?handoff=handoff-no-brand-route',
+      '/test-org/brand-1/studio/playground?handoff=handoff-no-brand-route',
     );
     expect(studioUrl).not.toContain('/~/');
   });

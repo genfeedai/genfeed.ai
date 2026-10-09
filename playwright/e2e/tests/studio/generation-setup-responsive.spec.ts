@@ -13,7 +13,7 @@ for (const viewport of [
   }, testInfo) => {
     await page.setViewportSize(viewport);
     await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
-    await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE), {
+    await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
       waitUntil: 'domcontentloaded',
     });
 
