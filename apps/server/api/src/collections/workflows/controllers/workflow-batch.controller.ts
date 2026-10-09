@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { ExecuteWorkflowBatchDto } from '@api/collections/workflows/dto/execute-workflow.dto';
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -18,6 +19,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @FeatureFlag('automation')
+@OrganizationModule('automation')
 @Controller('workflows')
 @UseGuards(RolesGuard)
 export class WorkflowBatchController {

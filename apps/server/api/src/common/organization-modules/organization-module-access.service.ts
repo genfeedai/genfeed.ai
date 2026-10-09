@@ -17,6 +17,20 @@ export class OrganizationModuleAccessService {
     private readonly paidAccess: OrganizationPaidAccessService,
   ) {}
 
+  /** Optional background fills must not turn a saved-data read into new work. */
+  async canStartWork(
+    organizationId: string,
+    moduleId: OrganizationModuleAccessInput['moduleId'],
+  ): Promise<boolean> {
+    try {
+      await this.assertAccess(organizationId, moduleId);
+      return true;
+    } catch (error: unknown) {
+      if (error instanceof HttpException) return false;
+      throw error;
+    }
+  }
+
   async assertAccess(
     organizationId: string,
     moduleId: OrganizationModuleAccessInput['moduleId'],

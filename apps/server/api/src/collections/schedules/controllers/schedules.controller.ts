@@ -4,6 +4,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
@@ -13,7 +14,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
@@ -43,6 +43,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('Schedules')
 @FeatureFlag('publishing')
+@OrganizationModule('publishing')
 @Controller('schedules')
 @UseInterceptors(CreditsInterceptor)
 export class SchedulesController {
@@ -82,7 +83,7 @@ export class SchedulesController {
    * Get optimal posting time
    */
   @Post('optimal')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Optimal schedule suggestion (text model)',
     source: ActivitySource.SCRIPT,

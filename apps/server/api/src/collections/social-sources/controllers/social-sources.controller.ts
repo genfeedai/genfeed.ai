@@ -8,6 +8,7 @@ import { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/updat
 import { ValidateSocialSourceDto } from '@api/collections/social-sources/dto/validate-social-source.dto';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
@@ -37,6 +38,7 @@ import type { Request } from 'express';
 
 @ApiTags('Social Sources')
 @FeatureFlag('automation')
+@OrganizationModule('discovery')
 @Controller('social-sources')
 @UseGuards(RolesGuard)
 export class SocialSourcesController {

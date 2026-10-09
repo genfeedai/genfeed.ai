@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -11,6 +12,7 @@ import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 
 @AutoSwagger()
 @FeatureFlag('analytics')
+@OrganizationModule('analytics')
 @Controller('creative-patterns')
 export class CreativePatternsController {
   constructor(

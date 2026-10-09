@@ -30,6 +30,25 @@ function createService(moduleOverrides: unknown = {}) {
 describe('OrganizationModuleAccessService', () => {
   beforeEach(() => config.hasOrganizationBilling.mockReturnValue(true));
 
+  it('skips optional background fills for disabled or unverifiable access while admitting enabled work', async () => {
+    const { service, prisma } = createService({ analytics: false });
+    await expect(service.canStartWork('org-1', 'analytics')).resolves.toBe(
+      false,
+    );
+    prisma.organizationSetting.findUnique.mockRejectedValueOnce(
+      new Error('offline'),
+    );
+    await expect(service.canStartWork('org-1', 'analytics')).resolves.toBe(
+      false,
+    );
+    prisma.organizationSetting.findUnique.mockResolvedValue({
+      moduleOverrides: { analytics: true },
+    });
+    await expect(service.canStartWork('org-1', 'analytics')).resolves.toBe(
+      true,
+    );
+  });
+
   it('blocks default-off Batch without consulting balances or paid grants', async () => {
     const { service, prisma, paidAccess } = createService();
     await expect(service.assertAccess('org-1', 'batch')).rejects.toMatchObject({

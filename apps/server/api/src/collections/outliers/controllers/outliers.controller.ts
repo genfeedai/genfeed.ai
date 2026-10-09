@@ -7,6 +7,7 @@ import {
 } from '@api/collections/outliers/dto/outlier-query.dto';
 import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -42,6 +43,7 @@ import type { Request } from 'express';
 
 @ApiTags('Outlier baselines')
 @FeatureFlag('analytics')
+@OrganizationModule('analytics')
 @Controller('outlier-baselines')
 @UseGuards(RolesGuard)
 export class OutliersController {

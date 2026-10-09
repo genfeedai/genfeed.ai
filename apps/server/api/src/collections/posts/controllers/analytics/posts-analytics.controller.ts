@@ -12,6 +12,7 @@ import {
 } from '@api/collections/posts/services/post-publication-capture.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -83,6 +84,7 @@ interface OrganizationAnalyticsRefreshAttributes {
 
 @AutoSwagger()
 @FeatureFlag('publishing')
+@OrganizationModule('analytics')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsAnalyticsController {

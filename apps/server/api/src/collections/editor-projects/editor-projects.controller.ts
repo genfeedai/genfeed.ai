@@ -8,6 +8,7 @@ import { RemotionCompositionsService } from '@api/collections/editor-projects/se
 import { buildEditorProjectListAggregate } from '@api/collections/editor-projects/utils/editor-project-list-query.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -64,6 +65,7 @@ import { v4 as uuidv4 } from 'uuid';
 @ApiTags('editor-projects')
 @ApiBearerAuth()
 @FeatureFlag('studio_editor')
+@OrganizationModule('editor')
 @Controller('editor-projects')
 @UseGuards(RolesGuard)
 export class EditorProjectsController {
@@ -475,6 +477,7 @@ export class EditorProjectsController {
   }
 
   @Post(':id/render/cancel')
+  @OrganizationModule('editor', 'read')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cancelRender(
     @Req() request: Request,
