@@ -145,7 +145,7 @@ export interface OrganizationModuleAccessInput {
   isSettingsLoaded: boolean;
   hasOrganizationBilling: boolean;
   hasPaidSubscription: boolean | null;
-  operation: 'read' | 'export' | 'write';
+  operation: 'read' | 'export' | 'cancel' | 'write';
 }
 
 /** Creation presentation only. The server still rechecks every actual write. */
