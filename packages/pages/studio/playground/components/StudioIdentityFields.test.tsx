@@ -15,6 +15,12 @@ import {
 } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ identities: vi.fn() }));
+class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+}
+
 vi.mock('@pages/studio/playground/hooks/useStudioPlaygroundIdentities', () => ({
   useStudioPlaygroundIdentities: () => mocks.identities(),
 }));
@@ -76,6 +82,7 @@ describe('Studio identity catalog recovery', () => {
   );
 
   beforeAll(() => {
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
     for (const key of pointerApiKeys) {
       Object.defineProperty(Element.prototype, key, {
         configurable: true,
@@ -86,6 +93,7 @@ describe('Studio identity catalog recovery', () => {
   });
 
   afterAll(() => {
+    vi.unstubAllGlobals();
     for (const [key, descriptor] of pointerApiDescriptors) {
       if (descriptor) Object.defineProperty(Element.prototype, key, descriptor);
       else Reflect.deleteProperty(Element.prototype, key);
