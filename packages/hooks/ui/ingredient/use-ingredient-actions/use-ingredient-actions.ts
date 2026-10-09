@@ -5,10 +5,15 @@ import {
   IngredientFormat,
   IngredientStatus,
   ModalEnum,
+  ModelCategory,
 } from '@genfeedai/contracts';
-import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
+import {
+  createLibraryAssetRoute,
+  hasNativeExtend,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
+import { getModelCapability } from '@genfeedai/helpers/model-capability.helper';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -26,6 +31,10 @@ import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
+import {
+  getVideoExtendDurationOptions,
+  getVideoExtendQuote,
+} from '@hooks/ui/ingredient/use-ingredient-actions/video-extend-admission.util';
 import {
   executeSilentWithActionState,
   executeWithActionState,
@@ -115,8 +124,23 @@ export function useIngredientActions({
     [],
   );
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
-  const { brandId } = useBrand();
+  const { brandId, organizationId } = useBrand();
   const { videoModels } = useElements();
+  const extendOwner = useRef({
+    brandId,
+    organizationId,
+    videoModels,
+    isMounted: true,
+  });
+  extendOwner.current = {
+    brandId,
+    organizationId,
+    videoModels,
+    isMounted: extendOwner.current.isMounted,
+  };
+  const activeExtendConfirmation = useRef<VideoExtendConfirmData | null>(null);
+  const isSubmittingExtension = useRef(false);
+  const confirmedExtendScope = useRef({ brandId, organizationId });
   const { href } = useOrgUrl();
   const { subscribe } = useSocketManager();
 
@@ -189,7 +213,10 @@ export function useIngredientActions({
 
   // Cleanup on unmount
   useEffect(() => {
+    extendOwner.current.isMounted = true;
     return () => {
+      extendOwner.current.isMounted = false;
+      activeExtendConfirmation.current = null;
       abortControllersRef.current.forEach((controller) => {
         controller.abort();
       });
@@ -212,60 +239,139 @@ export function useIngredientActions({
           'Only completed videos can be extended',
         );
       }
+      if (!extendOwner.current.isMounted || isSubmittingExtension.current)
+        return;
+      activeExtendConfirmation.current = null;
+      setExtendConfirmData(null);
       const modelOptions = [...videoModels]
         .sort((left, right) => {
           if (left.key === ingredient.model) return -1;
           if (right.key === ingredient.model) return 1;
           return 0;
         })
-        .map((model) => ({
-          cost: model.cost || 0,
-          costPerUnit: model.costPerUnit,
-          defaultDuration: model.defaultDuration,
-          durations: model.durations,
-          key: model.key,
-          label: model.label,
-          minCost: model.minCost,
-          pricingType: model.pricingType,
-        }));
+        .flatMap((model) => {
+          const capability = getModelCapability(model);
+          if (
+            capability?.category !== ModelCategory.VIDEO ||
+            (!hasNativeExtend(model.key, capability) &&
+              capability.maxReferences < 1)
+          )
+            return [];
+          const option: VideoExtendModelOption = {
+            cost: model.cost,
+            costPerUnit: model.costPerUnit,
+            defaultDuration: capability.defaultDuration,
+            durations: capability.durations
+              ? [...capability.durations]
+              : undefined,
+            key: model.key,
+            label: model.label,
+            minCost: model.minCost,
+            pricingType: model.pricingType,
+          };
+          const duration = getVideoExtendDurationOptions(option)[0];
+          return duration !== undefined &&
+            getVideoExtendQuote(option, duration) !== null
+            ? [option]
+            : [];
+        });
       if (modelOptions.length === 0) {
         return notificationsService.error(
-          'No video generation model is available',
+          'Video extension support or pricing unavailable. Refresh models before continuing.',
         );
       }
-      setExtendConfirmData({ ingredient, modelOptions });
+      const confirmation = { ingredient: { ...ingredient }, modelOptions };
+      confirmedExtendScope.current = { brandId, organizationId };
+      activeExtendConfirmation.current = confirmation;
+      setExtendConfirmData(confirmation);
     },
-    [notificationsService, videoModels],
+    [brandId, organizationId, notificationsService, videoModels],
   );
 
   const clearExtendConfirm = useCallback(() => {
+    activeExtendConfirmation.current = null;
     setExtendConfirmData(null);
   }, []);
 
   const executeExtend = useCallback(
     async (selection: VideoExtendSelection) => {
-      if (!extendConfirmData) {
+      if (
+        !extendConfirmData ||
+        activeExtendConfirmation.current !== extendConfirmData ||
+        isSubmittingExtension.current
+      )
         return;
-      }
       const ingredient = extendConfirmData.ingredient;
+      const { model, duration, prompt, cost } = selection;
+      const option = extendConfirmData.modelOptions.find(
+        (candidate) => candidate.key === model,
+      );
+      const expectedCost = option
+        ? getVideoExtendQuote(option, duration)
+        : null;
+      const isStillConfirmed = () => {
+        const owner = extendOwner.current;
+        const current = owner.videoModels.find(
+          (candidate) => candidate.key === model,
+        );
+        const capability = current ? getModelCapability(current) : null;
+        if (
+          !owner.isMounted ||
+          owner.brandId !== confirmedExtendScope.current.brandId ||
+          owner.organizationId !==
+            confirmedExtendScope.current.organizationId ||
+          !current ||
+          !option ||
+          capability?.category !== ModelCategory.VIDEO ||
+          (!hasNativeExtend(model, capability) && capability.maxReferences < 1)
+        )
+          return false;
+        return (
+          current.cost === option.cost &&
+          current.costPerUnit === option.costPerUnit &&
+          current.minCost === option.minCost &&
+          current.pricingType === option.pricingType &&
+          getVideoExtendDurationOptions({
+            ...option,
+            durations: capability.durations,
+          }).includes(duration) &&
+          expectedCost !== null &&
+          expectedCost === cost
+        );
+      };
+      if (!isStillConfirmed() || typeof prompt !== 'string' || !prompt.trim()) {
+        return notificationsService.error(
+          'Video extension model, settings or price changed. Review a new quote before continuing.',
+        );
+      }
+      isSubmittingExtension.current = true;
+      activeExtendConfirmation.current = null;
       setExtendConfirmData(null);
-      await executeSilentWithActionState({
-        errorMessage: 'Failed to extend video',
-        onSuccess: onRefresh,
-        operation: async () => {
-          const service = (await getVideosService()) as VideosService;
-          return service.postExtend(ingredient.id, {
-            duration: selection.duration,
-            model: selection.model,
-            prompt: selection.prompt,
-          });
-        },
-        setActionStates,
-        stateKey: 'isExtending',
-        url: `POST /videos/${ingredient.id}/extend`,
-      });
+      try {
+        await executeSilentWithActionState({
+          errorMessage: 'Failed to extend video',
+          onSuccess: onRefresh,
+          operation: async () => {
+            const service = (await getVideosService()) as VideosService;
+            if (!isStillConfirmed())
+              throw new Error(
+                'Video extension model, settings or price changed',
+              );
+            return service.postExtend(ingredient.id, {
+              duration,
+              model,
+              prompt,
+            });
+          },
+          setActionStates,
+          stateKey: 'isExtending',
+          url: `POST /videos/${ingredient.id}/extend`,
+        });
+      } finally {
+        isSubmittingExtension.current = false;
+      }
     },
-    [extendConfirmData, getVideosService, onRefresh],
+    [extendConfirmData, getVideosService, notificationsService, onRefresh],
   );
 
   // Listen for asset status updates via websocket (for set as logo/banner)

@@ -4,7 +4,9 @@ import {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
+  ModelCategory,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -12,6 +14,8 @@ import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-se
 import { useIngredientActions } from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockUseElements = vi.hoisted(() => vi.fn());
 
 const { mockCopyToClipboard, mockOpenModal, mockSubscribe } = vi.hoisted(
   () => ({
@@ -30,7 +34,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
-  useElements: vi.fn(() => ({ videoModels: [] })),
+  useElements: mockUseElements,
 }));
 
 vi.mock(
@@ -168,6 +172,7 @@ describe('useIngredientActions', () => {
   };
   let mockVideosService: {
     postUpscale: ReturnType<typeof vi.fn>;
+    postExtend: ReturnType<typeof vi.fn>;
     postReverse: ReturnType<typeof vi.fn>;
     postMirror: ReturnType<typeof vi.fn>;
     postGif: ReturnType<typeof vi.fn>;
@@ -196,6 +201,7 @@ describe('useIngredientActions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseElements.mockReturnValue({ videoModels: [] });
 
     mockIngredientsService = {
       delete: vi.fn().mockResolvedValue(undefined),
@@ -207,6 +213,7 @@ describe('useIngredientActions', () => {
     };
 
     mockVideosService = {
+      postExtend: vi.fn().mockResolvedValue({ id: 'extension-workflow' }),
       post: vi.fn().mockResolvedValue(undefined),
       postCaptions: vi.fn().mockResolvedValue(undefined),
       postGif: vi.fn().mockResolvedValue(undefined),
@@ -263,6 +270,197 @@ describe('useIngredientActions', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('video extension admission', () => {
+    const model = {
+      key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+      label: 'Veo',
+      cost: 10,
+      category: ModelCategory.VIDEO,
+      maxOutputs: 1,
+      maxReferences: 1,
+      durations: [5, 8],
+      defaultDuration: 8,
+    };
+    const selection = {
+      model: model.key,
+      duration: 8,
+      cost: 11,
+      prompt: 'Continue the scene.',
+    };
+
+    it.each([
+      { ...model, durations: undefined },
+      { ...model, durations: [] },
+      { ...model, durations: [4.5] },
+      { ...model, cost: undefined },
+      { ...model, cost: Number.NaN },
+      { ...model, maxReferences: 0 },
+      { ...model, pricingType: 'per-second', costPerUnit: undefined },
+    ])(
+      'blocks unavailable extension support or prices (%j)',
+      async (unavailable) => {
+        mockUseElements.mockReturnValue({ videoModels: [unavailable] });
+        const { result } = renderHook(() => useIngredientActions());
+        act(() => {
+          result.current.handlers.handleExtend(mockVideoIngredient);
+        });
+        expect(result.current.extendConfirmData).toBeNull();
+        expect(mockNotificationsService.error).toHaveBeenCalledWith(
+          expect.stringContaining('support or pricing unavailable'),
+        );
+        expect(mockGetVideosService).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      { ...selection, duration: 12 },
+      { ...selection, model: 'unknown' },
+      { ...selection, cost: 0 },
+      { ...selection, cost: Number.NaN },
+      { ...selection, prompt: '  ' },
+    ])('rejects an altered selection (%j)', async (altered) => {
+      mockUseElements.mockReturnValue({ videoModels: [model] });
+      const { result } = renderHook(() => useIngredientActions());
+      act(() => {
+        result.current.handlers.handleExtend(mockVideoIngredient);
+      });
+      await act(async () => {
+        await result.current.executeExtend(altered);
+      });
+      expect(mockGetVideosService).not.toHaveBeenCalled();
+      expect(result.current.extendConfirmData?.ingredient.id).toBe(
+        mockVideoIngredient.id,
+      );
+    });
+
+    it.each(['model', 'price', 'duration', 'brand'] as const)(
+      'rechecks changed %s metadata before dispatch',
+      async (change) => {
+        mockUseElements.mockReturnValue({ videoModels: [model] });
+        const { result, rerender } = renderHook(() => useIngredientActions());
+        act(() => {
+          result.current.handlers.handleExtend(mockVideoIngredient);
+        });
+        if (change === 'brand')
+          (useBrand as ReturnType<typeof vi.fn>).mockReturnValue({
+            brandId: 'brand-2',
+          });
+        else
+          mockUseElements.mockReturnValue({
+            videoModels:
+              change === 'model'
+                ? []
+                : [
+                    change === 'price'
+                      ? { ...model, cost: 12 }
+                      : { ...model, durations: [5] },
+                  ],
+          });
+        rerender();
+        await act(async () => {
+          await result.current.executeExtend(selection);
+        });
+        expect(mockGetVideosService).not.toHaveBeenCalled();
+        expect(mockVideosService.postExtend).not.toHaveBeenCalled();
+      },
+    );
+
+    it('consumes one confirmation and snapshots source/settings across asynchronous lookup', async () => {
+      mockUseElements.mockReturnValue({ videoModels: [model] });
+      let resolve: ((service: typeof mockVideosService) => void) | undefined;
+      mockGetVideosService.mockImplementationOnce(
+        () =>
+          new Promise((done) => {
+            resolve = done;
+          }),
+      );
+      const { result } = renderHook(() => useIngredientActions());
+      const source = { ...mockVideoIngredient };
+      const selected = { ...selection };
+      act(() => {
+        result.current.handlers.handleExtend(source);
+      });
+      const execute = result.current.executeExtend;
+      source.id = 'changed-source';
+      let request: Promise<void> | undefined;
+      await act(async () => {
+        request = execute(selected);
+        await execute(selected);
+        result.current.handlers.handleExtend({
+          ...mockVideoIngredient,
+          id: 'other-source',
+        });
+      });
+      selected.duration = 5;
+      await act(async () => {
+        resolve?.(mockVideosService);
+        await request;
+      });
+      await act(async () => {
+        await execute(selection);
+      });
+      expect(mockVideosService.postExtend).toHaveBeenCalledTimes(1);
+      expect(mockVideosService.postExtend).toHaveBeenCalledWith(
+        mockVideoIngredient.id,
+        {
+          model: model.key,
+          duration: 8,
+          prompt: selection.prompt,
+        },
+      );
+    });
+
+    it.each(['model', 'unmount'] as const)(
+      'blocks dispatch if %s changes while service lookup is pending',
+      async (change) => {
+        mockUseElements.mockReturnValue({ videoModels: [model] });
+        let resolve: ((service: typeof mockVideosService) => void) | undefined;
+        mockGetVideosService.mockImplementationOnce(
+          () =>
+            new Promise((done) => {
+              resolve = done;
+            }),
+        );
+        const { result, rerender, unmount } = renderHook(() =>
+          useIngredientActions(),
+        );
+        act(() => {
+          result.current.handlers.handleExtend(mockVideoIngredient);
+        });
+        let request: Promise<void> | undefined;
+        act(() => {
+          request = result.current.executeExtend(selection);
+        });
+        if (change === 'unmount') unmount();
+        else {
+          mockUseElements.mockReturnValue({ videoModels: [] });
+          rerender();
+        }
+        await act(async () => {
+          resolve?.(mockVideosService);
+          await request;
+        });
+        expect(mockVideosService.postExtend).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not dispatch a dismissed confirmation', async () => {
+      mockUseElements.mockReturnValue({ videoModels: [model] });
+      const { result } = renderHook(() => useIngredientActions());
+      act(() => {
+        result.current.handlers.handleExtend(mockVideoIngredient);
+      });
+      const execute = result.current.executeExtend;
+      act(() => {
+        result.current.clearExtendConfirm();
+      });
+      await act(async () => {
+        await execute(selection);
+      });
+      expect(mockGetVideosService).not.toHaveBeenCalled();
+    });
   });
 
   describe('initialization', () => {
