@@ -3,8 +3,8 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import type { IncomingMessage } from 'node:http';
 import { request as nativeRequest } from 'node:http';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { CloudTenantObserver } from '@api/helpers/cloud-tenant-diagnostics/cloud-tenant-diagnostics';
 import {
   CLOUD_TENANT_OBSERVER,
@@ -28,6 +28,11 @@ import type {
 import { BadRequestException, Controller, Get, Module } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { concat, NEVER, of } from 'rxjs';
+
+const TENANT_SWEEP_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../../../scripts/ci/cloud-tenant-guard-sweep',
+);
 
 let handlerCalls = 0;
 let guardRelease: (() => void) | undefined;
@@ -141,20 +146,10 @@ describe('real miniature Nest request lifecycle', () => {
   });
   it('off/on preserve real handler counts, server408, guarded boundary, emissions and native aborts', async () => {
     const { createApiObserver } = await import(
-      pathToFileURL(
-        resolve(
-          process.cwd(),
-          '../../../scripts/ci/cloud-tenant-guard-sweep/api-observer-core.mjs',
-        ),
-      ).href
+      pathToFileURL(resolve(TENANT_SWEEP_ROOT, 'api-observer-core.mjs')).href
     );
     const { joinCausalEvidence } = await import(
-      pathToFileURL(
-        resolve(
-          process.cwd(),
-          '../../../scripts/ci/cloud-tenant-guard-sweep/causal-evidence.mjs',
-        ),
-      ).href
+      pathToFileURL(resolve(TENANT_SWEEP_ROOT, 'causal-evidence.mjs')).href
     );
     for (const enabled of [false, true]) {
       guardMode = '';
@@ -372,12 +367,7 @@ describe('real miniature Nest request lifecycle', () => {
   }, 15000);
   it('actual guard throws survive catches and concurrent request scopes through the real collector', async () => {
     const source = (name: string) =>
-      pathToFileURL(
-        resolve(
-          process.cwd(),
-          `../../../scripts/ci/cloud-tenant-guard-sweep/${name}.mjs`,
-        ),
-      ).href;
+      pathToFileURL(resolve(TENANT_SWEEP_ROOT, `${name}.mjs`)).href;
     const { createApiObserver } = await import(source('api-observer-core'));
     const { collectCausalEvidence } = await import(source('causal-evidence'));
     for (const enabled of [false, true]) {
