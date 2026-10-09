@@ -41,7 +41,7 @@ export const EDITORIAL_OG_ARTWORKS = {
   'brand-os': { headline: ['Your brand', 'Everywhere'], route: '/brand-os' },
   calendar: { headline: ['Plan', 'Publish'], route: '/calendar' },
   cloud: { headline: ['Your content', 'On autopilot'], route: '/cloud' },
-  download: { headline: ['Genfeed', 'On your desk'], route: '/download' },
+  download: { headline: ['Genfeed', 'On your desk'], route: '/desktop' },
   experts: { headline: ['Learn from', 'the builders'], route: '/experts' },
   features: { headline: ['One OS', 'Every format'], route: '/features' },
   gen: { headline: ['Fuel the', 'ecosystem'], route: '/gen' },

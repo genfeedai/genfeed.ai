@@ -278,7 +278,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.6,
-      url: 'https://genfeed.ai/download',
+      url: 'https://genfeed.ai/desktop',
     },
     {
       changeFrequency: 'weekly',

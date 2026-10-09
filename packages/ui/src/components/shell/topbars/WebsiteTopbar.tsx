@@ -14,6 +14,7 @@ import {
   Cpu,
   HeartHandshake,
   Megaphone,
+  MonitorDown,
   Rocket,
   Send,
   ShieldCheck,
@@ -88,6 +89,13 @@ const PRODUCT_LINKS = [
     href: '/models',
     icon: Cpu,
     label: 'Models',
+  },
+  {
+    description: 'A native app with a local workspace',
+    group: 'Create',
+    href: '/desktop',
+    icon: MonitorDown,
+    label: 'Desktop',
   },
   {
     description: 'Review, schedule, and publish everywhere',

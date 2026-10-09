@@ -7,7 +7,7 @@ import { redirectToLatestDesktopBuild } from '@data/desktop-release.data';
  *
  * Deliberately unlinked from any page and absent from the sitemap — the SEO
  * gate (`bun run check:orphans`) fails on internal links that return 3xx, and
- * this route is a redirect by design. `/download` links straight to the release
+ * this route is a redirect by design. `/desktop` links straight to the release
  * asset instead.
  */
 /** The Location header is per-release, not per-build: never bake it into HTML. */
