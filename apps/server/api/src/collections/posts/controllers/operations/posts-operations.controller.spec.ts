@@ -1,5 +1,6 @@
 import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
+import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
@@ -44,7 +45,6 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
@@ -432,8 +432,6 @@ Tweet 3: Tech innovation is changing the world.`,
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
-      .overrideGuard(SubscriptionGuard)
-      .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
       .overrideGuard(PostVariationSourceGuard)
       .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
       .overrideGuard(CreditsGuard)
@@ -512,7 +510,6 @@ Tweet 3: Tech innovation is changing the world.`,
       const handler = PostsGenerationController.prototype[methodName];
 
       expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
-        SubscriptionGuard,
         CreditsGuard,
       ]);
       expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toEqual([
@@ -521,13 +518,15 @@ Tweet 3: Tech innovation is changing the world.`,
     },
   );
 
-  it('keeps source authorization ahead of subscription and credit guards', () => {
+  it('keeps source authorization ahead of credit guards and declares publishing ownership', () => {
     const handler =
       PostsGenerationController.prototype.generateSourceVariations;
+    expect(
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, PostsGenerationController),
+    ).toEqual({ moduleId: 'publishing', operation: undefined });
 
     expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
       PostVariationSourceGuard,
-      SubscriptionGuard,
       CreditsGuard,
     ]);
     expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toEqual([

@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -18,6 +19,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @FeatureFlag('publishing')
+@OrganizationModule('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsRetryController {

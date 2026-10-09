@@ -25,13 +25,13 @@ import type {
   SocialInboxSyncConversationType,
   SocialInboxSyncPlatform,
 } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
@@ -76,6 +76,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiBearerAuth()
 @FeatureFlag('messages')
+@OrganizationModule('messages')
 @Controller('messages')
 @UseGuards(RolesGuard)
 export class SocialInboxController {
@@ -301,7 +302,7 @@ export class SocialInboxController {
   @HttpCode(200)
   @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @UseGuards(SubscriptionGuard, SuggestedReplyCreditsGuard)
+  @UseGuards(SuggestedReplyCreditsGuard)
   @ApiOperation({ summary: 'Suggest a reply without saving or sending it' })
   async suggestedReply(
     @Req() request: Request,

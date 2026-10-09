@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 /**
  * PostsController - CRUD operations for posts
  * Handles: POST /, GET /, GET /:postId, PATCH /:postId, DELETE /:postId
@@ -68,6 +69,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @FeatureFlag('publishing')
+@OrganizationModule('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsController extends BaseCRUDController<

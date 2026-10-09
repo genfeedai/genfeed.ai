@@ -10,6 +10,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -62,6 +63,7 @@ import type { Request } from 'express';
 @ApiTags('Workflow Executions')
 @ApiBearerAuth()
 @FeatureFlag('automation')
+@OrganizationModule('automation')
 @Controller('workflow-executions')
 @UseGuards(RolesGuard)
 export class WorkflowExecutionsController {

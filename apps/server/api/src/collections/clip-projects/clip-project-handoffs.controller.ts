@@ -5,6 +5,7 @@ import {
   type ClipPublishHandoffResult,
 } from '@api/collections/clip-projects/services/clip-handoff-workflow.service';
 import type { ClipLibraryLinkResult } from '@api/collections/clip-projects/services/clip-library-link.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -25,6 +26,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 @ApiTags('clip-projects')
 @ApiBearerAuth()
 @FeatureFlag('studio_clips')
+@OrganizationModule('clips')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectHandoffsController {

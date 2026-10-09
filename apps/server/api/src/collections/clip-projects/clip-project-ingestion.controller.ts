@@ -14,6 +14,7 @@ import {
   type PrepareClipUploadResult,
 } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
 import { ClipProjectLibrarySourceService } from '@api/collections/clip-projects/services/clip-project-library-source.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -41,6 +42,7 @@ import type { Request } from 'express';
 @ApiTags('clip-projects')
 @ApiBearerAuth()
 @FeatureFlag('studio_clips')
+@OrganizationModule('clips')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectIngestionController {

@@ -33,6 +33,8 @@ describe('InsightsService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
   let workflowActions: Map<string, WorkflowActionHandler>;
+  let canStartWork: ReturnType<typeof vi.fn>;
+  let queueSystemWorkflow: ReturnType<typeof vi.fn>;
 
   const existing = {
     data: { forecast: { value: 42 }, isRead: false },
@@ -42,6 +44,8 @@ describe('InsightsService', () => {
   };
 
   beforeEach(() => {
+    canStartWork = vi.fn().mockResolvedValue(true);
+    queueSystemWorkflow = vi.fn();
     delegate = {
       count: vi.fn().mockResolvedValue(0),
       create: vi.fn().mockImplementation(({ data }) => ({
@@ -95,7 +99,7 @@ describe('InsightsService', () => {
       logger as unknown as LoggerService,
       {} as unknown as ModelsService,
       llmDispatcherService as unknown as LlmDispatcherService,
-      { queueSystemWorkflow: vi.fn() } as never,
+      { queueSystemWorkflow } as never,
       {
         registerAction: vi.fn(
           (actionId: string, handler: WorkflowActionHandler) => {
@@ -104,8 +108,26 @@ describe('InsightsService', () => {
         ),
         registerWorkflow: vi.fn(),
       } as never,
+      { canStartWork } as never,
     );
     service.onModuleInit();
+  });
+
+  it('keeps saved insights readable without enqueueing new work when Analytics is disabled or unavailable', async () => {
+    canStartWork.mockResolvedValue(false);
+    await service.getInsights('org-1', 5);
+    await service.enqueueInsightGenerationIfNeeded('org-1', 5);
+    expect(delegate.findMany).toHaveBeenCalled();
+    expect(canStartWork).toHaveBeenCalledWith('org-1', 'analytics');
+    expect(queueSystemWorkflow).not.toHaveBeenCalled();
+    expect(delegate.count).not.toHaveBeenCalled();
+    expect(llmDispatcherService.completeStructured).not.toHaveBeenCalled();
+  });
+
+  it('admits an automatic fill before enqueueing it', async () => {
+    await service.enqueueInsightGenerationIfNeeded('org-1', 5);
+    expect(canStartWork).toHaveBeenCalledWith('org-1', 'analytics');
+    expect(queueSystemWorkflow).toHaveBeenCalledTimes(1);
   });
 
   afterEach(() => {

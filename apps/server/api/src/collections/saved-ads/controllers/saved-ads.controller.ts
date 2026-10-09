@@ -5,6 +5,7 @@ import {
   UpdateSavedAdNoteDto,
 } from '@api/collections/saved-ads/dto/saved-ad.dto';
 import { SavedAdsService } from '@api/collections/saved-ads/services/saved-ads.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -37,6 +38,7 @@ const MAX_LOCAL_MUTATION_BATCH_SIZE = 50;
 
 @AutoSwagger()
 @FeatureFlag('discovery')
+@OrganizationModule('discovery')
 @Controller('saved-ads')
 @UseGuards(RolesGuard)
 export class SavedAdsController {

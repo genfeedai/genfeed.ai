@@ -110,6 +110,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
         dto: GenerateArticlesDto,
         handle: ({ dto, request, user }) =>
           this.handleGenerateArticles(dto, request, user),
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: true,
         originalUrl: '/v1/articles/generations',
@@ -297,6 +298,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
           return serializeSingle(request, IngredientSerializer, ingredient);
         },
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: false,
         hasRolesGuard: false,
         originalUrl: '/v1/videos/avatar',
@@ -326,6 +328,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
             input.onPlaceholderCreated,
           );
         },
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: true,
         modelValidation: { category: ModelCategory.IMAGE },
@@ -351,6 +354,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
         dto: CreateMusicDto,
         handle: ({ dto, request, user }) =>
           this.musicGenerationService.generateMusic(user, dto, request),
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: true,
         modelValidation: { category: ModelCategory.MUSIC },
@@ -381,6 +385,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
             input.onPlaceholderCreated,
           );
         },
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: true,
         modelValidation: { category: ModelCategory.VIDEO },
@@ -408,6 +413,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
           return serializeSingle(request, VoiceSerializer, voice);
         },
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: false,
         originalUrl: '/v1/voices/generate',
@@ -437,6 +443,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
             request,
             input.onPlaceholderCreated,
           ),
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: true,
         modelValidation: { category: ModelCategory.IMAGE_EDIT },
@@ -471,6 +478,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
           return serializeSingle(request, IngredientSerializer, reframedImage);
         },
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: false,
         modelValidation: { category: ModelCategory.IMAGE_EDIT },
@@ -505,6 +513,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
           return serializeSingle(request, IngredientSerializer, upscaledImage);
         },
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: true,
         hasRolesGuard: false,
         modelValidation: { category: ModelCategory.IMAGE_EDIT },

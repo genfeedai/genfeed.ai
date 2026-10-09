@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { appendAnalyticsPlatform } from '@api/endpoints/analytics/analytics-response.projection';
@@ -61,6 +62,7 @@ import type {
 
 @AutoSwagger()
 @FeatureFlag('analytics')
+@OrganizationModule('analytics')
 @Controller('analytics')
 @UseGuards(RolesGuard)
 @UseInterceptors(RedisCacheInterceptor)

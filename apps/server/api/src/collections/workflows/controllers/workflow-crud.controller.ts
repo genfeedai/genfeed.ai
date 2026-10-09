@@ -12,6 +12,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { buildWorkflowListWhere } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { assertCanIncludeSystemWorkflows } from '@api/collections/workflows/utils/workflow-system-access.util';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -71,6 +72,7 @@ export interface WorkflowStatisticsResponse {
  */
 @AutoSwagger()
 @FeatureFlag('automation')
+@OrganizationModule('automation')
 @Controller('workflows')
 @UseGuards(RolesGuard)
 export class WorkflowCrudController {

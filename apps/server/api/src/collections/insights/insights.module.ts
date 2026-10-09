@@ -11,6 +11,7 @@ import { InsightsController } from '@api/collections/insights/controllers/insigh
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
   controllers: [InsightsController],
   exports: [InsightsService],
   imports: [
+    OrganizationModuleAccessModule,
     PlatformSettingsModule,
     ByokModule,
     ConfigModule,

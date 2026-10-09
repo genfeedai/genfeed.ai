@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -16,6 +17,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('PublishApprovals')
 @FeatureFlag('publishing')
+@OrganizationModule('publishing')
 @Controller('publish-approvals')
 @UseGuards(RolesGuard)
 export class PublishApprovalsController {
