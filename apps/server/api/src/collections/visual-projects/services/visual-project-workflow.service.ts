@@ -5,8 +5,12 @@ import { VisualProjectAssetsService } from '@api/collections/visual-projects/ser
 import { VisualProjectAuthoringService } from '@api/collections/visual-projects/services/visual-project-authoring.service';
 import { VisualProjectAuthorizationService } from '@api/collections/visual-projects/services/visual-project-authorization.service';
 import { VisualProjectBillingService } from '@api/collections/visual-projects/services/visual-project-billing.service';
+import { VisualProjectDispatchService } from '@api/collections/visual-projects/services/visual-project-dispatch.service';
 import { VisualProjectRendererClientService } from '@api/collections/visual-projects/services/visual-project-renderer-client.service';
-import { buildVisualProjectWorkflowDefinition } from '@api/collections/visual-projects/services/visual-project-workflow-definition';
+import {
+  buildVisualProjectFailureWorkflowDefinition,
+  buildVisualProjectWorkflowDefinition,
+} from '@api/collections/visual-projects/services/visual-project-workflow-definition';
 import { visualSettingsSchema } from '@api/collections/visual-projects/utils/visual-code-validation.util';
 import {
   type WorkflowNodeClaimLease,
@@ -102,12 +106,157 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     private readonly renderer: VisualProjectRendererClientService,
     private readonly assets: VisualProjectAssetsService,
     private readonly moduleAccess: OrganizationModuleAccessService,
+    private readonly dispatch: VisualProjectDispatchService,
   ) {}
   onModuleInit(): void {
     this.workflows.registerWorkflow(buildVisualProjectWorkflowDefinition());
     this.workflows.registerAction(
       'visual-code.execute-internal',
       async (request) => this.enter(request),
+    );
+    this.workflows.registerWorkflow(
+      buildVisualProjectFailureWorkflowDefinition(),
+    );
+    this.workflows.registerAction(
+      'visual-code.fail-internal',
+      async (request) => this.failAdmittedExecution(request),
+    );
+  }
+  private async failAdmittedExecution({
+    input,
+    context,
+    provenance,
+  }: SystemWorkflowActionRequest) {
+    const jobSchema = z.strictObject({
+      revisionId: z.string().min(1),
+      organizationId: z.string().min(1),
+      brandId: z.string().min(1),
+      userId: z.string().min(1),
+    });
+    const job = jobSchema.parse(input.job);
+    const executionId = provenance.executionId;
+    const nodeId = provenance.nodeId;
+    if (
+      nodeId !== 'fail' ||
+      job.organizationId !== context.organizationId ||
+      job.userId !== context.userId ||
+      executionId !== (context.executionId ?? context.runId)
+    )
+      throw new ConflictException('visual_worker_scope_mismatch');
+    const revision = await this.prisma.visualRevision.findFirstOrThrow({
+      where: {
+        id: job.revisionId,
+        organizationId: job.organizationId,
+        brandId: job.brandId,
+        userId: job.userId,
+        isDeleted: false,
+      },
+    });
+    const failure = await this.prisma.workflowExecution.findFirstOrThrow({
+      where: {
+        id: executionId,
+        organizationId: job.organizationId,
+        userId: job.userId,
+        isDeleted: false,
+      },
+      include: { workflowVersion: true },
+    });
+    const original = await this.prisma.workflowExecution.findFirstOrThrow({
+      where: {
+        organizationId: job.organizationId,
+        userId: job.userId,
+        idempotencyKey: `visual-code-${revision.id}`,
+        isDeleted: false,
+      },
+      include: { workflowVersion: true },
+    });
+    const persisted = z
+      .object({
+        inputValues: z.object({ job: jobSchema }),
+        metadata: z.object({
+          canonicalId: z.literal('visual-code.failure'),
+          source: z.literal('workflow-failure:visual-code.execute'),
+          failedCanonicalId: z.literal('visual-code.execute'),
+          failedJobId: z.literal(`system-workflow-${original.id}`),
+        }),
+      })
+      .safeParse(failure.result);
+    const admitted = z
+      .object({
+        inputValues: z.object({ job: jobSchema }),
+        metadata: z.object({ canonicalId: z.literal('visual-code.execute') }),
+      })
+      .safeParse(original.result);
+    const sameJob = (value: z.infer<typeof jobSchema>) =>
+      value.revisionId === job.revisionId &&
+      value.organizationId === job.organizationId &&
+      value.brandId === job.brandId &&
+      value.userId === job.userId;
+    if (
+      !persisted.success ||
+      !admitted.success ||
+      !sameJob(persisted.data.inputValues.job) ||
+      !sameJob(admitted.data.inputValues.job) ||
+      failure.id === original.id ||
+      (revision.workflowExecutionId &&
+        revision.workflowExecutionId !== original.id)
+    )
+      throw new ConflictException('visual_worker_binding_invalid');
+    for (const [execution, definition] of [
+      [failure, buildVisualProjectFailureWorkflowDefinition()],
+      [original, buildVisualProjectWorkflowDefinition()],
+    ] as const) {
+      const mirror = await crossOrgUnsafe(() =>
+        this.prisma.workflow.findFirstOrThrow({
+          where: {
+            id: execution.workflowId,
+            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+            userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+            isDeleted: false,
+          },
+        }),
+      );
+      if (
+        !isHiddenSystemWorkflowMetadata(mirror.metadata) ||
+        !isProtectedSystemWorkflowMetadata(mirror.metadata) ||
+        getSystemWorkflowMetadata(mirror.metadata)?.canonicalId !==
+          definition.canonicalId ||
+        execution.workflowVersion.workflowId !== execution.workflowId ||
+        execution.workflowVersion.contentHash !==
+          buildWorkflowVersionDefinition(definition.definition).contentHash
+      )
+        throw new ConflictException('visual_worker_binding_invalid');
+    }
+    const lease = await this.prisma.workflowNodeClaim.findFirst({
+      where: {
+        organizationId: job.organizationId,
+        executionId,
+        nodeId,
+        status: 'running',
+        leaseExpiresAt: { gt: new Date() },
+      },
+    });
+    if (!lease?.leaseOwnerId || context.abortSignal?.aborted)
+      throw new WorkflowNodeClaimLeaseLostError({ executionId, nodeId });
+    return this.ownership.run(
+      {
+        executionId,
+        nodeId,
+        organizationId: job.organizationId,
+        leaseOwnerId: lease.leaseOwnerId,
+        abortSignal: context.abortSignal,
+      },
+      async () => {
+        // This grants only terminal reconciliation of the proved admitted job.
+        // Public cancellation and new work retain fresh brand/actor authorization.
+        await this.dispatch.reconcileFailedExecution(
+          revision,
+          original.id,
+          () => this.assertOwnership(),
+        );
+        const current = await this.current(revision);
+        return { revisionId: current.id, status: current.status };
+      },
     );
   }
   private async enter({

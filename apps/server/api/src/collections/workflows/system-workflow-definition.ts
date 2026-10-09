@@ -31,6 +31,8 @@ export type SystemWorkflowGraphMetadata = {
   label: string;
   /** Code-owned product admission; never read from editable mirror metadata. */
   organizationModule?: OrganizationModuleId;
+  /** Code-owned terminal compensation; callers cannot select a failure graph. */
+  failureWorkflowCanonicalId?: string;
   /** Terminal state projection after an admitted side effect; never new work. */
   moduleCompletionNodeIds?: readonly string[];
   schedule?: string;

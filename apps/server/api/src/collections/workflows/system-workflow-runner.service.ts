@@ -135,8 +135,13 @@ export class SystemWorkflowRunnerService
     );
     const missing = new Set<string>();
     const missingChildren = new Set<string>();
+    const missingCompensations = new Set<string>();
 
     for (const definition of this.workflowDefinitions.values()) {
+      const failureId = definition.failureWorkflowCanonicalId;
+      if (failureId && !this.workflowDefinitions.has(failureId)) {
+        missingCompensations.add(`${definition.canonicalId}:${failureId}`);
+      }
       for (const node of definition.definition.nodes) {
         if (node.type !== 'genfeedAction') {
           continue;
@@ -179,6 +184,11 @@ export class SystemWorkflowRunnerService
     if (missingChildren.size > 0) {
       throw new Error(
         `System workflow child definitions missing: ${[...missingChildren].sort().join(', ')}`,
+      );
+    }
+    if (missingCompensations.size > 0) {
+      throw new Error(
+        `System workflow failure definitions missing: ${[...missingCompensations].sort().join(', ')}`,
       );
     }
   }
@@ -437,6 +447,14 @@ export class SystemWorkflowRunnerService
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
     options: { dispatchClass: SystemWorkflowDispatchClass },
   ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
+    if (
+      definition.failureWorkflowCanonicalId &&
+      !this.workflowDefinitions.has(definition.failureWorkflowCanonicalId)
+    ) {
+      throw new Error(
+        `System workflow failure definitions missing: ${definition.canonicalId}:${definition.failureWorkflowCanonicalId}`,
+      );
+    }
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureHiddenSystemWorkflowMirror(definition);
     if (!workflow.currentVersion) {
@@ -481,6 +499,14 @@ export class SystemWorkflowRunnerService
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
           ...(isAgentConversation ? { attempts: 1 } : {}),
           dispatchClass: options.dispatchClass,
+          ...(definition.failureWorkflowCanonicalId
+            ? {
+                failureWorkflow: {
+                  canonicalId: definition.failureWorkflowCanonicalId,
+                  inputValues: input.inputValues ?? {},
+                },
+              }
+            : {}),
           ...(this.isPlatformOriginatedSource(input.source)
             ? { usePlatformQueue: true }
             : {}),
@@ -625,6 +651,13 @@ export class SystemWorkflowRunnerService
 
   private validateDefinition(definition: SystemWorkflowGraphDefinition): void {
     const version = buildWorkflowVersionDefinition(definition.definition);
+    if (
+      definition.failureWorkflowCanonicalId !== undefined &&
+      (!definition.failureWorkflowCanonicalId.trim() ||
+        definition.failureWorkflowCanonicalId === definition.canonicalId)
+    ) {
+      throw new Error('Invalid code-owned system workflow failure definition');
+    }
     if (
       definition.moduleCompletionNodeIds?.some(
         (nodeId) =>

@@ -1,4 +1,7 @@
-import { buildVisualProjectWorkflowDefinition } from '@api/collections/visual-projects/services/visual-project-workflow-definition';
+import {
+  buildVisualProjectFailureWorkflowDefinition,
+  buildVisualProjectWorkflowDefinition,
+} from '@api/collections/visual-projects/services/visual-project-workflow-definition';
 import {
   buildHiddenSystemWorkflowMetadata,
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
@@ -438,6 +441,78 @@ describe('SystemWorkflowRunnerService definitions', () => {
         }),
       }),
     );
+  });
+
+  it('queues only registered Motion compensation with the original input, ignoring caller policy metadata', async () => {
+    const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
+    const createExecution = vi
+      .fn()
+      .mockResolvedValue({ id: 'motion-execution' });
+    const { runner } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+      {
+        assertAccess: vi.fn().mockResolvedValue(undefined),
+      },
+    );
+    runner.registerWorkflow(buildVisualProjectWorkflowDefinition());
+    runner.registerWorkflow(buildVisualProjectFailureWorkflowDefinition());
+    const internals = runner as unknown as RunnerInternals;
+    vi.spyOn(internals, 'resolveUserId').mockResolvedValue('user');
+    vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue({
+      currentVersion: { id: 'motion-version' },
+      id: 'motion-workflow',
+      label: 'Motion',
+    });
+    const inputValues = {
+      job: {
+        revisionId: 'revision',
+        organizationId: 'org',
+        brandId: 'brand',
+        userId: 'user',
+      },
+    };
+    await runner.enqueueWorkflow(
+      {
+        canonicalId: 'visual-code.execute',
+        actionType: 'visual-code.execute',
+        organizationId: 'org',
+        userId: 'user',
+        source: 'visual-code',
+        inputValues,
+        metadata: {
+          failureWorkflow: {
+            canonicalId: 'attacker',
+            inputValues: { job: 'foreign' },
+          },
+        },
+      },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+    );
+    expect(queueSystemWorkflow.mock.calls[0][2].failureWorkflow).toEqual({
+      canonicalId: 'visual-code.failure',
+      inputValues,
+    });
+  });
+
+  it('rejects missing fixed compensation at bootstrap and rejects self-compensation', () => {
+    const { runner } = createRunner();
+    runner.registerAction('visual-code.execute-internal', vi.fn());
+    runner.registerWorkflow(buildVisualProjectWorkflowDefinition());
+    expect(() => runner.onApplicationBootstrap()).toThrow(
+      'System workflow failure definitions missing: visual-code.execute:visual-code.failure',
+    );
+    expect(() =>
+      runner.registerWorkflow({
+        ...definition,
+        failureWorkflowCanonicalId: definition.canonicalId,
+      }),
+    ).toThrow('Invalid code-owned system workflow failure definition');
+    runner.registerAction('visual-code.fail-internal', vi.fn());
+    runner.registerWorkflow(buildVisualProjectFailureWorkflowDefinition());
+    expect(() => runner.onApplicationBootstrap()).not.toThrow();
   });
 
   it.each([

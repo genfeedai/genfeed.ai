@@ -1123,6 +1123,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Execute Visual Revision',
     'Runs one bound system visual revision.',
   ),
+  internalAction(
+    'visual-code.fail-internal',
+    'Reconcile Failed Visual Revision',
+    'Reconciles one failed admitted visual execution without creating provider work.',
+  ),
   ...Object.values(VISUAL_CODE_ACTION_ALIASES).map(
     (operation): GenfeedActionDefinition => ({
       ...internalAction(
