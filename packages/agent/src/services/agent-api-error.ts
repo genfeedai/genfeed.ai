@@ -39,14 +39,22 @@ export class AgentApiRequestError extends Error {
   }
 }
 
+export type AgentApiDecodeReason = 'invalid-document' | 'missing-resource';
+
 export class AgentApiDecodeError extends Error {
   readonly _tag = 'AgentApiDecodeError';
   readonly cause: unknown;
+  readonly reason: AgentApiDecodeReason;
 
-  constructor(options: { cause: unknown; message: string }) {
+  constructor(options: {
+    cause: unknown;
+    message: string;
+    reason?: AgentApiDecodeReason;
+  }) {
     super(options.message);
     this.name = 'AgentApiDecodeError';
     this.cause = options.cause;
+    this.reason = options.reason ?? 'invalid-document';
   }
 }
 

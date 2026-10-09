@@ -99,9 +99,7 @@ async function readPersistedRun(
     const isMissingResource =
       (error instanceof AgentApiRequestError && error.status === 404) ||
       (error instanceof AgentApiDecodeError &&
-        error.cause instanceof TypeError &&
-        error.cause.message ===
-          'Invalid JSON:API document: expected resource data');
+        error.reason === 'missing-resource');
     if (!isMissingResource) throw error;
 
     // This fresh request independently authorizes access to the thread. Never
