@@ -51,6 +51,80 @@ describe('authorized media preview refresh', () => {
     vi.useRealTimers();
   });
 
+  it('explicitly retries a failed delivery through a read and hides its old URL until authorized', async () => {
+    const failed = ingredient({ ...ready, state: 'FAILED' });
+    let resolve: (grant: MediaDeliveryGrant) => void = () => {};
+    state.previewGrant.mockImplementation(
+      () =>
+        new Promise<MediaDeliveryGrant>((accept) => {
+          resolve = accept;
+        }),
+    );
+    const { result, rerender, unmount } = renderHook(
+      ({ revision }) => useAuthorizedMediaPreview(failed, revision),
+      { initialProps: { revision: 0 } },
+    );
+    expect(state.previewGrant).not.toHaveBeenCalled();
+    rerender({ revision: 1 });
+    expect(result.current?.url).toBeNull();
+    expect(result.current?.state).toBe('PENDING');
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(state.previewGrant).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolve(ready);
+    });
+    expect(result.current).toEqual(ready);
+    unmount();
+  });
+
+  it('rejects an explicit retry response for a different asset and offers another attempt after failure', async () => {
+    const failed = ingredient({ ...ready, state: 'FAILED' });
+    state.previewGrant
+      .mockResolvedValueOnce({ ...ready, id: 'foreign-asset' })
+      .mockResolvedValueOnce(ready);
+    const { result, rerender, unmount } = renderHook(
+      ({ revision }) => useAuthorizedMediaPreview(failed, revision),
+      { initialProps: { revision: 1 } },
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current?.state).toBe('FAILED');
+    expect(result.current?.url).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(state.previewGrant).toHaveBeenCalledTimes(1);
+    rerender({ revision: 2 });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current).toEqual(ready);
+    unmount();
+  });
+
+  it('hides deleted assets and aborts their pending explicit retry', async () => {
+    state.previewGrant.mockImplementation(
+      () => new Promise<MediaDeliveryGrant>(() => {}),
+    );
+    const asset = ingredient(ready);
+    const { result, rerender, unmount } = renderHook(
+      ({ value }) => useAuthorizedMediaPreview(value, 1),
+      { initialProps: { value: asset } },
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const signal = state.previewGrant.mock.calls[0][1] as AbortSignal;
+    rerender({ value: { ...asset, isDeleted: true } });
+    expect(signal.aborted).toBe(true);
+    expect(result.current).toBeNull();
+    expect(state.previewGrant).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
   it('refreshes anonymous share grants through canonical public access without requiring a login', async () => {
     state.publicGrant.mockResolvedValue({ ...ready, purpose: 'public-share' });
     const { unmount } = renderHook(() =>

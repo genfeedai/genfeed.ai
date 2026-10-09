@@ -12,6 +12,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundInspectorProps } from '@genfeedai/props/studio/studio-playground.props';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAuthorizedMediaPreview } from '@hooks/media/use-authorized-media-preview';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -34,7 +35,14 @@ import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHar
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { Download, MessageSquare, Send, Shuffle, Sparkles } from 'lucide-react';
+import {
+  Download,
+  MessageSquare,
+  RotateCcw,
+  Send,
+  Shuffle,
+  Sparkles,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -76,6 +84,7 @@ export default function StudioPlaygroundInspector({
   const { push } = useRouter();
   const agentDock = useAgentDock();
   const { brandId } = useBrand();
+  const { orgId, sessionId, userId } = useAuthIdentity();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
   const facts = resolveStudioAssetFacts(job);
   const siblingJobs = useMemo(
@@ -83,23 +92,65 @@ export default function StudioPlaygroundInspector({
     [job.id, runJobs],
   );
   const ingredientId = job.ingredientId;
-  const ingredient = job.ingredient ?? null;
-  const mediaPreview = useAuthorizedMediaPreview(ingredient);
-  const previewUrl = mediaPreview
-    ? (mediaPreview.url ?? '')
-    : (resolveStudioAssetUrl(ingredient) ?? job.url);
+  const ingredient =
+    job.ingredient?.brandId === brandId &&
+    !job.ingredient.isDeleted &&
+    (!orgId ||
+      !job.ingredient.organizationId ||
+      job.ingredient.organizationId === orgId)
+      ? job.ingredient
+      : null;
+  const isSourceUnavailable = Boolean(job.ingredient && !ingredient);
+  const previewScope = [
+    job.id,
+    ingredientId,
+    brandId,
+    orgId,
+    sessionId,
+    userId,
+  ].join('\u0001');
+  const [previewAttempt, setPreviewAttempt] = useState({
+    scope: previewScope,
+    revision: 0,
+  });
+  const previewRevision =
+    previewAttempt.scope === previewScope ? previewAttempt.revision : 0;
+  const [failedPreviewScope, setFailedPreviewScope] = useState<string | null>(
+    null,
+  );
+  const [loadingPreviewScope, setLoadingPreviewScope] = useState<string | null>(
+    null,
+  );
+  const mediaPreview = useAuthorizedMediaPreview(ingredient, previewRevision);
   const isReady =
     job.status === IngredientStatus.GENERATED ||
     job.status === IngredientStatus.UPLOADED ||
     job.status === IngredientStatus.VALIDATED;
   const [receiptAsset, setReceiptAsset] = useState<IIngredient | null>(null);
+  const [receiptScope, setReceiptScope] = useState('');
   const currentReceipt =
     receiptAsset &&
+    receiptScope === previewScope &&
     receiptAsset.id === ingredientId &&
     receiptAsset.brandId === brandId &&
     !receiptAsset.isDeleted
       ? receiptAsset
       : null;
+  const isPreviewLoading =
+    loadingPreviewScope === previewScope || mediaPreview?.state === 'PENDING';
+  const hasPreviewError =
+    failedPreviewScope === previewScope || mediaPreview?.state === 'FAILED';
+  const isPreviewUnsupported = mediaPreview?.state === 'UNSUPPORTED';
+  const previewUrl =
+    isPreviewLoading || hasPreviewError || isPreviewUnsupported
+      ? ''
+      : mediaPreview
+        ? (mediaPreview.url ?? '')
+        : (resolveStudioAssetUrl(currentReceipt ?? ingredient) ??
+          (job.ingredient ? '' : job.url));
+  // Legacy media refreshes through its category read; signed delivery uses the
+  // existing grant endpoint. Neither path starts or retries a generation.
+  const receiptRevision = ingredient?.mediaDelivery ? 0 : previewRevision;
   const continuationJob = currentReceipt
     ? { ...job, ingredient: currentReceipt }
     : job;
@@ -107,8 +158,11 @@ export default function StudioPlaygroundInspector({
   const recipeText = recipe ? formatStudioRecipePrompt(recipe) : '';
   const promptText = recipeText || job.prompt.trim();
   const [receiptError, setReceiptError] = useState(false);
-  const [posts, setPosts] = useState<IPost[]>([]);
-  const [children, setChildren] = useState<IIngredient[]>([]);
+  const [storedPosts, setPosts] = useState<IPost[]>([]);
+  const [storedChildren, setChildren] = useState<IIngredient[]>([]);
+  const [relationsScope, setRelationsScope] = useState('');
+  const posts = relationsScope === previewScope ? storedPosts : [];
+  const children = relationsScope === previewScope ? storedChildren : [];
   const [isLoadingUsedIn, setIsLoadingUsedIn] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [tabSelection, setTabSelection] = useState<{
@@ -128,7 +182,7 @@ export default function StudioPlaygroundInspector({
   );
 
   useEffect(() => {
-    if (!ingredientId) {
+    if (!ingredientId || isSourceUnavailable) {
       setPosts([]);
       setChildren([]);
       setIsLoadingUsedIn(false);
@@ -156,6 +210,7 @@ export default function StudioPlaygroundInspector({
 
         setPosts(usedIn);
         setChildren(historyChildren);
+        setRelationsScope(previewScope);
       } catch (error) {
         if (!isCancelled) {
           logger.error('Failed to load Studio inspector relations', error);
@@ -174,7 +229,7 @@ export default function StudioPlaygroundInspector({
       isCancelled = true;
       controller.abort();
     };
-  }, [getIngredientsService, ingredientId]);
+  }, [getIngredientsService, ingredientId, isSourceUnavailable, previewScope]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -189,7 +244,8 @@ export default function StudioPlaygroundInspector({
         : job.type === 'video' || job.type === 'avatar'
           ? getVideosService
           : null;
-    if (!ingredientId || !getReceiptService) return () => controller.abort();
+    if (!ingredientId || !getReceiptService || isSourceUnavailable)
+      return () => controller.abort();
     void (async () => {
       try {
         const service = await getReceiptService();
@@ -201,16 +257,46 @@ export default function StudioPlaygroundInspector({
         );
         if (
           !controller.signal.aborted &&
+          asset.id === ingredientId &&
           asset.brandId === brandId &&
+          (!orgId || !asset.organizationId || asset.organizationId === orgId) &&
           !asset.isDeleted
-        )
+        ) {
           setReceiptAsset(asset);
+          setReceiptScope(previewScope);
+          if (receiptRevision > 0) setFailedPreviewScope(null);
+        } else if (!controller.signal.aborted) {
+          setReceiptError(true);
+          if (receiptRevision > 0) setFailedPreviewScope(previewScope);
+        }
       } catch {
-        if (!controller.signal.aborted) setReceiptError(true);
+        if (!controller.signal.aborted) {
+          setReceiptError(true);
+          if (receiptRevision > 0) setFailedPreviewScope(previewScope);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoadingPreviewScope(null);
       }
     })();
     return () => controller.abort();
-  }, [brandId, getImagesService, getVideosService, ingredientId, job.type]);
+  }, [
+    brandId,
+    getImagesService,
+    getVideosService,
+    ingredientId,
+    job.type,
+    previewScope,
+    receiptRevision,
+    isSourceUnavailable,
+    orgId,
+  ]);
+
+  const handleRetryPreview = () => {
+    if (!ingredient || isPreviewLoading || isPreviewUnsupported) return;
+    setFailedPreviewScope(null);
+    if (!ingredient.mediaDelivery) setLoadingPreviewScope(previewScope);
+    setPreviewAttempt({ scope: previewScope, revision: previewRevision + 1 });
+  };
 
   // The asset rides the agent's attachment tray; nothing is sent until the
   // operator writes the question. The dock hosts it in place; without one the
@@ -300,17 +386,20 @@ export default function StudioPlaygroundInspector({
       preview = (
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-foreground/[0.04]">
           <Image
+            key={`${previewScope}:${previewRevision}`}
             alt={translate('inspector.previewAlt', { label })}
             className="object-contain"
             fill
             sizes="480px"
             src={previewUrl}
+            onError={() => setFailedPreviewScope(previewScope)}
           />
         </div>
       );
     } else {
       preview = (
         <VideoPlayer
+          key={`${previewScope}:${previewRevision}`}
           ariaLabel={translate('inspector.previewAlt', { label })}
           className="aspect-video w-full overflow-hidden rounded-md bg-foreground/[0.04]"
           config={{
@@ -321,10 +410,41 @@ export default function StudioPlaygroundInspector({
             preload: 'metadata',
           }}
           src={previewUrl}
+          mediaProps={{ onError: () => setFailedPreviewScope(previewScope) }}
+          onPlaybackError={() => setFailedPreviewScope(previewScope)}
           thumbnail={ingredient?.thumbnailUrl}
         />
       );
     }
+  }
+  if (
+    isReady &&
+    (hasPreviewError || isPreviewUnsupported || isPreviewLoading)
+  ) {
+    preview = (
+      <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-md bg-foreground/[0.04] px-4 text-center">
+        <p role="status" className="text-xs text-muted-foreground">
+          {translate(
+            isPreviewLoading
+              ? 'inspector.previewLoading'
+              : isPreviewUnsupported
+                ? 'inspector.previewUnsupported'
+                : 'inspector.previewFailed',
+          )}
+        </p>
+        {!isPreviewUnsupported ? (
+          <Button
+            icon={<RotateCcw className="size-3.5" />}
+            isDisabled={isPreviewLoading || !ingredient}
+            label={translate('inspector.retryPreview')}
+            onClick={handleRetryPreview}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+          />
+        ) : null}
+      </div>
+    );
   }
 
   const recipePanel = (
@@ -512,6 +632,14 @@ export default function StudioPlaygroundInspector({
       ) : null}
     </div>
   ) : null;
+
+  if (isSourceUnavailable) {
+    return (
+      <p role="status" className="px-4 py-3 text-xs text-muted-foreground">
+        {translate('inspector.assetUnavailable')}
+      </p>
+    );
+  }
 
   return (
     <div
