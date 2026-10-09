@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,11 +10,38 @@ const mocks = vi.hoisted(() => ({
     isReady: true,
     selectedBrand: { id: 'brand-1' } as { id: string } | undefined,
   },
+  analyze: vi.fn(),
   createDraft: vi.fn(),
   createFromIngredient: vi.fn(),
   loggerError: vi.fn(),
   replace: vi.fn(),
   searchParamsGet: vi.fn(),
+}));
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+vi.mock('../useStudioClipsPage', () => ({
+  useStudioClipsPage: () => ({
+    draftSaveState: 'idle',
+    error: null,
+    generationMode: 'avatar',
+    isSubmitting: false,
+    maxClips: 10,
+    minViralityScore: 50,
+    handleAnalyze: mocks.analyze,
+    setGenerationMode: vi.fn(),
+    handleStartFromYoutube: vi.fn(),
+    setMaxClips: vi.fn(),
+    setMinViralityScore: vi.fn(),
+    setSourceFile: vi.fn(),
+    setSourceKind: vi.fn(),
+    setYoutubeUrl: vi.fn(),
+    sourceFile: null,
+    sourceKind: 'youtube',
+    uploadProgress: 0,
+    youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+  }),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -70,36 +97,35 @@ describe('NewClipProjectPage', () => {
     mocks.searchParamsGet.mockReturnValue(null);
   });
 
-  it('creates one draft for the selected brand and opens it', async () => {
+  it('shows source import without creating an empty draft or starting work on mount', () => {
     render(<NewClipProjectPage />);
-
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/brand-1/studio/clips/draft-1',
-      );
-    });
-    expect(mocks.createDraft).toHaveBeenCalledTimes(1);
-    expect(mocks.createDraft).toHaveBeenCalledWith('brand-1');
+    expect(
+      screen.getByRole('heading', { name: 'Import a clip source' }),
+    ).toBeVisible();
+    expect(mocks.createDraft).not.toHaveBeenCalled();
+    expect(mocks.analyze).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: /import & transcribe/i }),
+    );
+    expect(mocks.analyze).toHaveBeenCalledOnce();
     expect(mocks.createFromIngredient).not.toHaveBeenCalled();
   });
 
-  it('creates a single draft when StrictMode mounts the page twice', async () => {
+  it('does not create duplicate empty projects during StrictMode remount', () => {
     render(
       <StrictMode>
         <NewClipProjectPage />
       </StrictMode>,
     );
-
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/brand-1/studio/clips/draft-1',
-      );
-    });
-    expect(mocks.createDraft).toHaveBeenCalledTimes(1);
+    expect(mocks.createDraft).not.toHaveBeenCalled();
+    expect(mocks.analyze).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('waits for the brand before creating anything', async () => {
     mocks.brand = { isReady: false, selectedBrand: undefined };
+    mocks.searchParamsGet.mockReturnValue('video-1');
 
     render(<NewClipProjectPage />);
     await new Promise((resolve) => setTimeout(resolve, 0));

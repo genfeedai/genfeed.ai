@@ -46,7 +46,7 @@ describe('ClipsProjectList', () => {
     localStorage.clear();
     vi.clearAllMocks();
   });
-  it('defaults to rows, orders five recent projects, and persists grid only for All', async () => {
+  it('defaults to rows, orders three recent cards, and persists grid only for All', async () => {
     const { unmount } = render(
       <ClipsProjectList projects={projects} isLoading={false} />,
     );
@@ -55,13 +55,14 @@ describe('ClipsProjectList', () => {
     expect(recent.textContent?.indexOf('Project 5')).toBeLessThan(
       recent.textContent?.indexOf('Project 4') ?? 0,
     );
-    expect(screen.queryByTestId('clips-project-card')).toBeNull();
+    expect(within(recent).getAllByTestId('clips-project-card')).toHaveLength(3);
+    expect(within(recent).queryByText('Project 2')).toBeNull();
     await userEvent.click(screen.getByRole('radio', { name: 'Grid' }));
-    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(6);
-    expect(within(recent).queryByTestId('clips-project-card')).toBeNull();
+    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(9);
+    expect(within(recent).getAllByTestId('clips-project-card')).toHaveLength(3);
     unmount();
     render(<ClipsProjectList projects={projects} isLoading={false} />);
-    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(6);
+    expect(screen.getAllByTestId('clips-project-card')).toHaveLength(9);
   });
   it('keeps rename/delete in overflow and retains the list after mutation failure', async () => {
     const rename = vi.fn().mockResolvedValue(undefined);
