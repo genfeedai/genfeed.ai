@@ -10,6 +10,7 @@ import type { StudioPlaygroundType } from '../types';
 
 interface LookElement {
   description?: string;
+  thumbnailUrl?: string;
   isPlatformDefault?: boolean;
   key: string;
   label: string;
@@ -17,6 +18,7 @@ interface LookElement {
 
 interface LookDropdownOption {
   description?: string;
+  thumbnailUrl?: string;
   isPlatformDefault?: boolean;
   key: string;
   label: string;
@@ -27,6 +29,7 @@ function toDropdownOptions(
 ): LookDropdownOption[] {
   return items.map((item) => ({
     description: item.description,
+    thumbnailUrl: item.thumbnailUrl,
     isPlatformDefault: item.isPlatformDefault,
     key: item.key,
     label: item.label,

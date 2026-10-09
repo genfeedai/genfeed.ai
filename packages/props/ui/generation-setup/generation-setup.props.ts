@@ -180,12 +180,17 @@ export interface GenerationSetupPresetPreviewProps {
 }
 
 export interface GenerationSetupOptionPickerProps {
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
+  previewKind?: 'style' | 'mood';
   label: string;
   value: string;
   options: readonly {
     value: string;
     label: string;
     isPlatformDefault?: boolean;
+    description?: string;
+    thumbnailUrl?: string;
   }[];
   onValueChange: (value: string) => void;
 }
