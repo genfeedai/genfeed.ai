@@ -312,9 +312,12 @@ try {
       const result = await rest(token, '/v1/brands?limit=1&page=1');
       requireMcpRuntime(result.status === 200, 'REST_LIST');
       visible(result.body, ['A']);
-      const metadata = record(result.body).meta;
+      const pagination = record(record(record(result.body).links).pagination);
       requireMcpRuntime(
-        metadata && JSON.stringify(metadata).includes('1'),
+        pagination.total === 1 &&
+          pagination.pages === 1 &&
+          pagination.page === 1 &&
+          pagination.limit === 1,
         'REST_COUNT_METADATA',
       );
       const spoof = await rest(
