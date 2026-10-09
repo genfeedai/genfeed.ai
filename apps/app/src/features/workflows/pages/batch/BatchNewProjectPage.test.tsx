@@ -1,12 +1,22 @@
 import '@testing-library/jest-dom/vitest';
 import { BatchProjectKind } from '@genfeedai/contracts';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BatchNewProjectPage from './BatchNewProjectPage';
 
 const mocks = vi.hoisted(() => ({
   isIdeasEnabled: true,
   brandId: 'brand-1',
+  settings: {
+    hasOrganizationBilling: true,
+    moduleOverrides: { automation: true },
+  } as Record<string, unknown>,
   list: vi.fn(),
   create: vi.fn(),
   getService: vi.fn(),
@@ -23,7 +33,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: mocks.brandId }),
+  useBrand: () => ({
+    brandId: mocks.brandId,
+    settings: mocks.settings,
+    settingsLoading: false,
+  }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -42,8 +56,7 @@ vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
 }));
 
 async function chooseIdeas() {
-  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
-  fireEvent.click(screen.getAllByRole('button', { name: 'From ideas' })[0]);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Generate ideas' })[0]);
   fireEvent.change(screen.getByRole('textbox', { name: 'Batch name' }), {
     target: { value: 'My draft' },
   });
@@ -54,6 +67,10 @@ describe('BatchNewProjectPage', () => {
     vi.clearAllMocks();
     mocks.brandId = 'brand-1';
     mocks.isIdeasEnabled = true;
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { automation: true },
+    };
     mocks.getService.mockResolvedValue({
       list: mocks.list,
       create: mocks.create,
@@ -66,7 +83,7 @@ describe('BatchNewProjectPage', () => {
     render(<BatchNewProjectPage />);
 
     const fromIdeasButton = await screen.findByRole('button', {
-      name: 'From ideas',
+      name: 'Generate ideas',
     });
     expect(fromIdeasButton).toBeDisabled();
     expect(
@@ -79,7 +96,7 @@ describe('BatchNewProjectPage', () => {
     render(<BatchNewProjectPage />);
 
     const fromIdeasButtons = screen.getAllByRole('button', {
-      name: 'From ideas',
+      name: 'Generate ideas',
     });
     for (const button of fromIdeasButtons) expect(button).not.toBeDisabled();
     expect(
@@ -89,6 +106,7 @@ describe('BatchNewProjectPage', () => {
   it('waits for a brand before loading workflows', async () => {
     mocks.brandId = '';
     const { rerender } = render(<BatchNewProjectPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
     expect(mocks.getService).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Create batch' })).toBeDisabled();
     mocks.brandId = 'brand-1';
@@ -99,11 +117,104 @@ describe('BatchNewProjectPage', () => {
     expect(mocks.list).toHaveBeenCalledTimes(1);
   });
 
+  it('starts with ideas and does not load unrelated workflows', () => {
+    render(<BatchNewProjectPage />);
+    expect(
+      screen.getByRole('button', { name: 'Generate ideas' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByText(
+        'Describe a topic, generate ideas, then turn them into content.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Run a saved workflow for each image or video you add.'),
+    ).toBeInTheDocument();
+    expect(mocks.list).not.toHaveBeenCalled();
+  });
+  it('keeps credit-based ideas available while Automation is off', async () => {
+    mocks.settings = { hasOrganizationBilling: true, moduleOverrides: {} };
+    render(<BatchNewProjectPage />);
+    expect(
+      screen.getByRole('button', { name: 'Saved workflow' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    expect(mocks.list).not.toHaveBeenCalled();
+    await chooseIdeas();
+    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        kind: BatchProjectKind.IDEAS,
+        name: 'My draft',
+      }),
+    );
+  });
+  it('stops loading workflow choices after disabling Automation', async () => {
+    const { rerender } = render(<BatchNewProjectPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { automation: false },
+    };
+    rerender(<BatchNewProjectPage />);
+    expect(screen.getByRole('button', { name: 'Create batch' })).toBeDisabled();
+    expect(
+      screen.queryByText(
+        'No saved workflows yet. Create a workflow or start from ideas.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(mocks.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fetch workflows after switching away while the service is resolving', async () => {
+    let resolve:
+      | ((service: {
+          list: typeof mocks.list;
+          create: typeof mocks.create;
+        }) => void)
+      | undefined;
+    mocks.getService.mockImplementationOnce(
+      () =>
+        new Promise((ready) => {
+          resolve = ready;
+        }),
+    );
+    render(<BatchNewProjectPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate ideas' }));
+    await act(async () => {
+      resolve?.({ list: mocks.list, create: mocks.create });
+    });
+    expect(mocks.list).not.toHaveBeenCalled();
+  });
+
+  it('ignores a stale workflow loading error after returning to ideas', async () => {
+    let reject: ((reason: Error) => void) | undefined;
+    mocks.list.mockImplementationOnce(
+      () =>
+        new Promise((_, fail) => {
+          reject = fail;
+        }),
+    );
+    render(<BatchNewProjectPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate ideas' }));
+    await act(async () => {
+      reject?.(new Error('Workflow unavailable'));
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create batch' })).toBeEnabled();
+  });
+
   it('shows the real workflow-loading reason', async () => {
     mocks.list.mockRejectedValue({
       errors: [{ status: '403', detail: 'Workflow access denied' }],
     });
     render(<BatchNewProjectPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Workflow access denied',
     );
@@ -127,10 +238,8 @@ describe('BatchNewProjectPage', () => {
       'Please subscribe to a plan.',
     );
     expect(screen.queryByRole('textbox', { name: 'Batch name' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'From ideas' })).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'From a workflow' }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Generate ideas' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Saved workflow' })).toBeNull();
     expect(
       screen.getByRole('link', { name: 'Manage subscription' }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
