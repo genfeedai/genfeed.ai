@@ -82,13 +82,22 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     try {
       switch (data.type) {
         case 'trigger':
-          return await this.processTrigger(job);
+          return await this.queueService.runWithQueuedOrganizationModule(
+            job.data,
+            () => this.processTrigger(job),
+          );
 
         case 'delay-resume':
-          return await this.processDelayResume(job);
+          return await this.queueService.runWithQueuedOrganizationModule(
+            job.data,
+            () => this.processDelayResume(job),
+          );
 
         case 'scheduled-fire':
-          return await this.processScheduledFire(job);
+          return await this.queueService.runWithQueuedOrganizationModule(
+            job.data,
+            () => this.processScheduledFire(job),
+          );
 
         case 'system-run':
           return await this.processSystemRun(job);
@@ -113,7 +122,10 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       throw new Error('System workflow job missing registered workflow input');
     }
     try {
-      return await this.executeSystemRun(job, systemRun);
+      return await this.queueService.runWithQueuedOrganizationModule(
+        job.data,
+        () => this.executeSystemRun(job, systemRun),
+      );
     } catch (failure: unknown) {
       // Only a transient failure is worth another attempt; anything else fails
       // once instead of multiplying load on a shared queue (#5633).

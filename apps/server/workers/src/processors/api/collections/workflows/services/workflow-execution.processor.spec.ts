@@ -54,6 +54,10 @@ function createMockQueueService() {
   return {
     queueDelayedResume: vi.fn().mockResolvedValue('job-123'),
     queueTriggerEvent: vi.fn().mockResolvedValue('job-456'),
+    runWithQueuedOrganizationModule: vi.fn(
+      async (_data: WorkflowExecutionJobData, work: () => Promise<unknown>) =>
+        work(),
+    ),
   };
 }
 
@@ -136,6 +140,50 @@ describe('WorkflowExecutionProcessor', () => {
       mockScheduler,
       mockSystemWorkflowRunner,
     );
+  });
+
+  describe('module revocation', () => {
+    it('blocks execution and runs registered failure compensation after revocation', async () => {
+      mockQueue.runWithQueuedOrganizationModule.mockRejectedValueOnce(
+        new Error('Module disabled'),
+      );
+      const job = createMockJob({
+        type: 'system-run',
+        organizationModuleContext: {
+          organizationId: 'org-1',
+          moduleId: 'clips',
+        },
+        systemRun: {
+          input: {
+            actionType: 'clip-generate',
+            canonicalId: 'clip-generate',
+            organizationId: 'org-1',
+            source: 'web',
+          },
+          failureWorkflow: { canonicalId: 'clip-failed' },
+        },
+      });
+      await expect(processor.process(job as never)).rejects.toThrow(
+        'Module disabled',
+      );
+      expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          canonicalId: 'clip-failed',
+          organizationId: 'org-1',
+        }),
+      );
+    });
+
+    it('blocks a revoked delayed resume before the executor can fire another node', async () => {
+      mockQueue.runWithQueuedOrganizationModule.mockRejectedValueOnce(
+        new Error('Module disabled'),
+      );
+      await expect(
+        processor.process(createMockJob({ type: 'delay-resume' }) as never),
+      ).rejects.toThrow('Module disabled');
+      expect(mockExecutor.resumeAfterDelay).not.toHaveBeenCalled();
+    });
   });
 
   describe('process - system workflow jobs', () => {
