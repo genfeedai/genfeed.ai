@@ -3,6 +3,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MusicsOperationsController } from '@api/collections/musics/controllers/musics-operations.controller';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
+import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import {
@@ -10,7 +11,6 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
 import type {
   CreditsConfig,
@@ -111,14 +111,17 @@ describe('MusicsOperationsController', () => {
     });
   });
 
-  it('preserves controller and endpoint guards', () => {
+  it('preserves role, credit and model guards under credit-only Playground admission', () => {
     const handler = MusicsOperationsController.prototype.create;
 
     expect(
       Reflect.getMetadata(GUARDS_METADATA, MusicsOperationsController),
     ).toEqual([RolesGuard]);
+    expect(
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, MusicsOperationsController)
+        ?.moduleId,
+    ).toBe('playground');
     expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
-      SubscriptionGuard,
       CreditsGuard,
       ModelsGuard,
     ]);

@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 /**
  * Articles Operations Controller
  * Handles the credit-billed article generation routes:
@@ -32,7 +33,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   serializeCollection,
@@ -81,6 +81,7 @@ type DeferredCreditsRequest = Request & {
 @Controller('articles')
 @UseInterceptors(CreditsInterceptor)
 @UseGuards(RolesGuard)
+@OrganizationModule('playground')
 export class ArticlesOperationsController {
   private static readonly ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS = 5;
 
@@ -97,7 +98,7 @@ export class ArticlesOperationsController {
   ) {}
 
   @Post('generations')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Article generation (text model bundle)',
     source: ActivitySource.ARTICLE_GENERATION,
@@ -216,7 +217,7 @@ export class ArticlesOperationsController {
   }
 
   @Post(':articleId/reviews')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Article review (text model)',
     source: ActivitySource.ARTICLE_ENHANCEMENT,

@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -10,7 +11,6 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
@@ -33,6 +33,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('images')
 @UseInterceptors(CreditsInterceptor)
+@OrganizationModule('playground')
 export class ImagesUpscaleController {
   constructor(
     readonly loggerService: LoggerService,
@@ -40,7 +41,7 @@ export class ImagesUpscaleController {
   ) {}
 
   @Post(':imageId/upscale')
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @Credits({
     description: 'Image upscaling',

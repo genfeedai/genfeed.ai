@@ -12,7 +12,6 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
@@ -124,7 +123,6 @@ describe('ImagesUpscaleController', () => {
       Reflect.getMetadata(INTERCEPTORS_METADATA, ImagesUpscaleController),
     ).toContain(CreditsInterceptor);
     expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
-      SubscriptionGuard,
       CreditsGuard,
       ModelsGuard,
     ]);

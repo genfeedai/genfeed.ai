@@ -7,12 +7,17 @@ import { AvatarVideoController } from '@api/collections/videos/controllers/avata
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
 import {
+  ORGANIZATION_MODULE_KEY,
+  type OrganizationModuleEndpointPolicy,
+} from '@api/common/organization-modules/organization-module.decorator';
+import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { ValidateModel } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import type { AgentEndpoint } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
@@ -284,6 +289,28 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       it(`mirrors ${controller.name}.${methodName}'s @Credits config`, () => {
         const controllerCredits = Reflect.getMetadata(CREDITS_KEY, handler);
         expect(descriptor.creditsConfig).toEqual(controllerCredits);
+      });
+
+      it('carries the same server-owned module policy as HTTP', () => {
+        const policy =
+          new Reflector().getAllAndOverride<OrganizationModuleEndpointPolicy>(
+            ORGANIZATION_MODULE_KEY,
+            [handler, controller],
+          );
+        expect(policy?.moduleId).toBe('playground');
+        expect(descriptor.organizationModule.moduleId).toBe(policy?.moduleId);
+        expect(descriptor.organizationModule.operation).toBe(policy?.operation);
+      });
+
+      it('keeps credit-only subscription admission identical to HTTP', () => {
+        const guards: unknown[] = [
+          ...getClassGuards(controller),
+          ...(Reflect.getMetadata(GUARDS_METADATA, handler) ?? []),
+        ];
+        expect(descriptor.isSubscriptionCheckSkipped).toBe(
+          !guards.includes(SubscriptionGuard),
+        );
+        expect(guards).not.toContain(SubscriptionGuard);
       });
 
       it('applies CreditsInterceptor iff the controller does', () => {

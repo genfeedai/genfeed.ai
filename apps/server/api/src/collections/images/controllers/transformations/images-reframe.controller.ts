@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -10,7 +11,6 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
@@ -37,6 +37,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('images')
 @UseInterceptors(CreditsInterceptor)
+@OrganizationModule('playground')
 export class ImagesReframeController {
   constructor(
     readonly loggerService: LoggerService,
@@ -46,7 +47,7 @@ export class ImagesReframeController {
   @Post(':imageId/reframe')
   @RateLimit(RateLimitPresets.external) // 30 requests per minute for AI generation
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   @Credits({
     description: 'Image reframe',
     settlement: 'completion',

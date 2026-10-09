@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -11,7 +12,6 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
@@ -29,6 +29,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('musics')
 @UseGuards(RolesGuard)
+@OrganizationModule('playground')
 export class MusicsOperationsController {
   constructor(
     readonly loggerService: LoggerService,
@@ -36,7 +37,7 @@ export class MusicsOperationsController {
   ) {}
 
   @Post()
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)
   @Credits({
     description: 'Music generation',
