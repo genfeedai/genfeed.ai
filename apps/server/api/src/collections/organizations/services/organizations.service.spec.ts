@@ -104,6 +104,34 @@ describe('OrganizationsService', () => {
    * removed in favor of the generic PATCH /organizations/:id. The slug
    * uniqueness guard formerly in the controller now lives in patch().
    */
+  describe('patch() identity bootstrap invalidation', () => {
+    it.each([{ label: 'Renamed' }, { slug: 'new-handle' }])(
+      'invalidates organization bootstrap after saving %o',
+      async (patch) => {
+        organizationDelegate.findFirst.mockResolvedValue(null);
+        organizationDelegate.update.mockResolvedValue({
+          id: 'org_1',
+          ...patch,
+        });
+        await service.patch('org_1', patch);
+        expect(
+          accessBootstrapCacheService.invalidateForOrganization,
+        ).toHaveBeenCalledExactlyOnceWith('org_1');
+      },
+    );
+
+    it('does not invalidate after a rejected identity update', async () => {
+      organizationDelegate.findFirst.mockResolvedValue({
+        id: 'org_other',
+        slug: 'taken',
+      });
+      await expect(service.patch('org_1', { slug: 'taken' })).rejects.toThrow();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
   describe('patch() slug uniqueness guard', () => {
     it('throws BadRequestException when the slug is taken by a different org', async () => {
       organizationDelegate.findFirst.mockResolvedValue({
@@ -388,7 +416,7 @@ describe('OrganizationsService', () => {
       ).toHaveBeenCalledWith('org_1');
     });
 
-    it('does not touch brands or caches when the account type is unchanged', async () => {
+    it('leaves brands unchanged but refreshes cached identity when only the label changes', async () => {
       organizationDelegate.findFirst.mockResolvedValue({ id: 'org_1' });
       organizationDelegate.update.mockResolvedValue({ id: 'org_1' });
 
@@ -397,7 +425,7 @@ describe('OrganizationsService', () => {
       expect(brandDelegate.update).not.toHaveBeenCalled();
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledExactlyOnceWith('org_1');
     });
   });
 });

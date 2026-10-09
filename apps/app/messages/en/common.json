@@ -401,6 +401,17 @@
       "columnMember": "Member"
     },
     "organizationIdentity": {
+      "name": "Organization name",
+      "handle": "Handle",
+      "handleHint": "Used in your organization URL. Changing it updates the URL for everyone in this organization.",
+      "nameRequired": "Enter an organization name.",
+      "handleInvalid": "Use 2–48 lowercase letters, numbers or hyphens. Start and end with a letter or number.",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "saved": "Organization updated.",
+      "savedRefreshFailed": "Organization saved. Reload the page to refresh the organization switcher.",
+      "saveFailed": "Could not save the organization. Try again.",
+      "ownerOnly": "Only the organization owner can edit its name and handle.",
       "logoAlt": "{label} logo",
       "logoHint": "Square PNG, JPG or WebP. Shown in the organization switcher.",
       "replaceLogo": "Replace logo",
