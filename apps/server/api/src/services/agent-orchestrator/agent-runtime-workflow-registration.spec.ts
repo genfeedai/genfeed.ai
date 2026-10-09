@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
-import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import {
+  AgentTurnWorkflowExecutionService,
+  type PreparedAgentTurnState,
+} from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
 import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -73,7 +76,13 @@ describe('agent runtime workflow registration contract', () => {
     vi.spyOn(service, 'execute').mockResolvedValue(final);
     service.onModuleInit();
 
-    const state = { threadId: 'thread-1' };
+    const state: PreparedAgentTurnState = {
+      executionId: 'execution-1',
+      organizationId: 'organization-1',
+      request: { content: 'Hello', threadId: 'thread-1' },
+      threadId: 'thread-1',
+      userId: 'user-1',
+    };
     const executor = actions.get(AGENT_RUNTIME_ACTION_IDS.TURN_INFER);
     expect(executor).toBeDefined();
     await expect(executor?.({ input: { state } } as never)).resolves.toEqual({
