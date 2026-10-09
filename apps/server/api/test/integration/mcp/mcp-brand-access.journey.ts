@@ -59,6 +59,13 @@ const caseRun = async (id: string, run: () => Promise<void>) => {
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
     if (
+      id === 'B11_PROVIDER_NOT_STARTED' &&
+      /^(NEGATIVE_MUTATION_STARTED|PROVIDER_SUBMISSION_ATTEMPTED|(?:MUTATION_SNAPSHOT|NEGATIVE_MUTATION)_(WORKFLOW_EXECUTIONS|INGREDIENTS|CRUN_GENERATION_TASKS|POSTS|BRANDED_GENERATION_RECEIPTS|CREDIT_RESERVATIONS|CREDIT_TRANSACTIONS|CREDIT_BALANCES|BILLING_REVENUE_EVENTS|CONTEXT_BASES|CONTEXT_ENTRIES|KNOWLEDGE_SOURCES|KNOWLEDGE_SOURCE_VERSIONS|KNOWLEDGE_CAPTURE_REQUESTS))$/.test(
+        code,
+      )
+    )
+      throw new Error(`${id}_${code}`);
+    if (
       id !== 'B01_REAL_PRINCIPALS' &&
       [
         'INVALID_RESPONSE_SHAPE',
@@ -485,15 +492,26 @@ try {
   });
   let negativeStateDigest = '';
   await caseRun('B11_PROVIDER_NOT_STARTED', async () => {
-    const before = await mutationSnapshot();
+    const beforeTables = new Map<string, string>();
+    const before = await mutationSnapshot((table, digest) =>
+      beforeTables.set(table, digest),
+    );
     for (const label of ['B', 'D', 'X', 'missing'] as const)
       await denyTool('U', 'get_brand_context', {
         brandId: fixture.brands[label],
         includeSystemPrompt: false,
         query: 'authorization-negative-fixture',
       });
-    const after = await mutationSnapshot();
-    requireMcpRuntime(before === after, 'NEGATIVE_MUTATION_STARTED');
+    let changedTable = '';
+    const after = await mutationSnapshot((table, digest) => {
+      if (beforeTables.get(table) !== digest) changedTable = table;
+    });
+    requireMcpRuntime(
+      before === after,
+      changedTable
+        ? `NEGATIVE_MUTATION_${changedTable.toUpperCase()}`
+        : 'NEGATIVE_MUTATION_STARTED',
+    );
     negativeStateDigest = after;
     const network = readFileSync(
       process.env.MCP_AUTH_NETWORK_REPORT ?? '',

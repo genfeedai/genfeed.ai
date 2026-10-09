@@ -351,6 +351,12 @@ export function readJourneyFailure(output) {
     ),
   );
   if (principalFailure) return principalFailure.slice(0, -' failed'.length);
+  const mutationFailure = lines.find((line) =>
+    /^B11_PROVIDER_NOT_STARTED_(NEGATIVE_MUTATION_STARTED|PROVIDER_SUBMISSION_ATTEMPTED|(?:MUTATION_SNAPSHOT|NEGATIVE_MUTATION)_(WORKFLOW_EXECUTIONS|INGREDIENTS|CRUN_GENERATION_TASKS|POSTS|BRANDED_GENERATION_RECEIPTS|CREDIT_RESERVATIONS|CREDIT_TRANSACTIONS|CREDIT_BALANCES|BILLING_REVENUE_EVENTS|CONTEXT_BASES|CONTEXT_ENTRIES|KNOWLEDGE_SOURCES|KNOWLEDGE_SOURCE_VERSIONS|KNOWLEDGE_CAPTURE_REQUESTS)) failed$/.test(
+      line,
+    ),
+  );
+  if (mutationFailure) return mutationFailure.slice(0, -' failed'.length);
   for (const id of CONTRACT.cases)
     for (const code of [
       'INVALID_RESPONSE_SHAPE',

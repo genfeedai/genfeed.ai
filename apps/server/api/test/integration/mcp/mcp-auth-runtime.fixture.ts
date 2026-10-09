@@ -202,7 +202,9 @@ export async function seedMcpRuntime(
     ordinaryRoleId: ordinary.id,
   };
 }
-export async function mutationSnapshot(): Promise<string> {
+export async function mutationSnapshot(
+  observe?: (table: string, digest: string) => void,
+): Promise<string> {
   const pool = new Pool({ connectionString: runtimeDatabaseUrl() });
   try {
     const snapshot = [];
@@ -224,9 +226,14 @@ export async function mutationSnapshot(): Promise<string> {
       'knowledge_source_versions',
       'knowledge_capture_requests',
     ]) {
-      const result = await pool.query(
-        `SELECT count(*)::text AS count,md5(coalesce(string_agg(row_to_json(t)::text,E'\n' ORDER BY t.id),'')) AS digest FROM "${table}" t`,
-      );
+      const result = await pool
+        .query(
+          `SELECT count(*)::text AS count,md5(coalesce(string_agg(row_to_json(t)::text,E'\n' ORDER BY t.id),'')) AS digest FROM "${table}" t`,
+        )
+        .catch(() => {
+          throw new Error(`MUTATION_SNAPSHOT_${table.toUpperCase()}`);
+        });
+      observe?.(table, JSON.stringify(result.rows[0]));
       snapshot.push([table, result.rows[0]]);
     }
     return createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');

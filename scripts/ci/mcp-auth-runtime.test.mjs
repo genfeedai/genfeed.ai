@@ -101,6 +101,12 @@ test('journey diagnostics expose only the finite failure category', () => {
     'B04_KEY_CAP_AND_DIRECT_PARITY_REST_LIST',
   );
   assert.equal(
+    readJourneyFailure(
+      'B11_PROVIDER_NOT_STARTED_MUTATION_SNAPSHOT_POSTS failed',
+    ),
+    'B11_PROVIDER_NOT_STARTED_MUTATION_SNAPSHOT_POSTS',
+  );
+  assert.equal(
     readJourneyFailure(`private output\n${CONTRACT.cases[0]} failed\n`),
     CONTRACT.cases[0],
   );
@@ -108,6 +114,7 @@ test('journey diagnostics expose only the finite failure category', () => {
     'private failure detail',
     'B99_UNDECLARED failed',
     'B04_KEY_CAP_AND_DIRECT_PARITY_PRIVATE_MESSAGE failed',
+    'B11_PROVIDER_NOT_STARTED_MUTATION_SNAPSHOT_PRIVATE_TABLE failed',
   ])
     assert.equal(readJourneyFailure(output), 'JOURNEY_INFRASTRUCTURE');
 });
