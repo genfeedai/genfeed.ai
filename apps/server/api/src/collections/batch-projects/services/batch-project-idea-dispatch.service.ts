@@ -123,6 +123,18 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
 
   /** Queue one attempt; the job id makes a repeated enqueue a no-op. */
   async enqueue(job: BatchProjectIdeaDispatchJob): Promise<void> {
+    await this.workflowRunner.runWithRegisteredWorkflowModule(
+      {
+        canonicalId: BATCH_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+        organizationId: job.organizationId,
+      },
+      () => this.enqueueAdmitted(job),
+    );
+  }
+
+  private async enqueueAdmitted(
+    job: BatchProjectIdeaDispatchJob,
+  ): Promise<void> {
     const attempt = job.key.split(':').pop() ?? '0';
     await this.workflowQueue.queueSystemWorkflow(
       {
@@ -148,6 +160,18 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
 
   /** Generate one attempt; stale or already dispatched attempts are no-ops. */
   async dispatch(
+    job: BatchProjectIdeaDispatchJob,
+  ): Promise<{ status: 'dispatched' | 'failed' | 'skipped' }> {
+    return this.workflowRunner.runWithRegisteredWorkflowModule(
+      {
+        canonicalId: BATCH_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+        organizationId: job.organizationId,
+      },
+      () => this.dispatchAdmitted(job),
+    );
+  }
+
+  private async dispatchAdmitted(
     job: BatchProjectIdeaDispatchJob,
   ): Promise<{ status: 'dispatched' | 'failed' | 'skipped' }> {
     const target = await this.loadTarget(job);

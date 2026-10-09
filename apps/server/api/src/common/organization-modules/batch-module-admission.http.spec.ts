@@ -5,6 +5,8 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { OrganizationModuleGuard } from '@api/common/organization-modules/organization-module.guard';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { BatchContentController } from '@api/services/batch-content/batch-content.controller';
+import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { type ExecutionContext, type INestApplication } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -23,12 +25,16 @@ describe('Batch HTTP organization module admission', () => {
   let actorFlags: { isApiKey?: boolean; isSuperAdmin?: boolean };
   let create: ReturnType<typeof vi.fn>;
   let findOne: ReturnType<typeof vi.fn>;
+  let queueBatch: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     isEnabled = false;
     actorFlags = {};
     create = vi.fn().mockResolvedValue({ id: 'project-1' });
     findOne = vi.fn().mockResolvedValue({ id: 'project-1' });
+    queueBatch = vi
+      .fn()
+      .mockResolvedValue({ jobId: 'job-1', status: 'queued' });
     const admission = new OrganizationModuleAccessService(
       {
         organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
@@ -58,10 +64,11 @@ describe('Batch HTTP organization module admission', () => {
       },
     };
     const module = await Test.createTestingModule({
-      controllers: [BatchProjectsController],
+      controllers: [BatchProjectsController, BatchContentController],
       providers: [
         { provide: BatchProjectsService, useValue: { create, findOne } },
         { provide: BatchProjectSchedulingService, useValue: {} },
+        { provide: BatchContentService, useValue: { queueBatch } },
         { provide: OrganizationModuleAccessService, useValue: admission },
         { provide: APP_GUARD, useValue: fixtureAuth },
         { provide: APP_GUARD, useClass: OrganizationModuleGuard },
@@ -114,5 +121,51 @@ describe('Batch HTTP organization module admission', () => {
       'project-1',
       expect.objectContaining({ organizationId: 'org-1' }),
     );
+  });
+
+  it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
+    'blocks the direct skill-batch HTTP endpoint before queueing: %j',
+    async (flags) => {
+      actorFlags = flags;
+      const result = await request(app.getHttpServer())
+        .post('/brands/brand-1/content/batch')
+        .send({
+          skillSlug: 'content-writing',
+          count: 2,
+          moduleId: 'playground',
+          organizationId: 'other-org',
+        });
+      expect(result.status).toBe(403);
+      expect(result.body.code).toBe('ORGANIZATION_MODULE_DISABLED');
+      expect(queueBatch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rechecks a previously enabled skill-batch route before the next request', async () => {
+    isEnabled = true;
+    const url = '/brands/brand-1/content/batch';
+    expect(
+      (
+        await request(app.getHttpServer())
+          .post(url)
+          .send({ skillSlug: 'content-writing', count: 2 })
+      ).status,
+    ).toBe(201);
+    expect(queueBatch).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-1',
+        count: 2,
+        organizationId: 'org-1',
+        params: undefined,
+        skillSlug: 'content-writing',
+      },
+      'user-1',
+    );
+    isEnabled = false;
+    const result = await request(app.getHttpServer())
+      .post(url)
+      .send({ skillSlug: 'content-writing', count: 2 });
+    expect(result.status).toBe(403);
+    expect(queueBatch).toHaveBeenCalledTimes(1);
   });
 });

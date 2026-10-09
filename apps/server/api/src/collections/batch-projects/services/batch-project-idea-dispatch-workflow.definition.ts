@@ -48,14 +48,17 @@ function singleActionWorkflow(input: {
 
 /** Generates one idea item of a Studio Batch project server-side (#5463). */
 export function buildBatchProjectIdeaDispatchWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  return singleActionWorkflow({
-    actionId: BATCH_PROJECT_IDEA_DISPATCH_ACTION_IDS.DISPATCH,
-    canonicalId: BATCH_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
-    description:
-      'Reserves one accepted quote line and starts generation of one batch idea.',
-    label: 'Batch Idea Generation',
-    nodeId: 'dispatch-idea',
-  });
+  return {
+    ...singleActionWorkflow({
+      actionId: BATCH_PROJECT_IDEA_DISPATCH_ACTION_IDS.DISPATCH,
+      canonicalId: BATCH_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+      description:
+        'Reserves one accepted quote line and starts generation of one batch idea.',
+      label: 'Batch Idea Generation',
+      nodeId: 'dispatch-idea',
+    }),
+    organizationModule: 'batch',
+  };
 }
 
 /** Marks an idea item failed when its dispatch job exhausts its attempts. */

@@ -7,6 +7,7 @@ import {
 describe('batch content workflow definitions', () => {
   it('fans out through the generic workflow action', () => {
     const definition = buildBatchContentWorkflowDefinition('content-writing');
+    expect(definition.organizationModule).toBe('batch');
     const fanOut = definition.definition.nodes.find(
       (node) => node.id === 'generate-items',
     );
@@ -22,6 +23,7 @@ describe('batch content workflow definitions', () => {
   it('runs each skill execution as one action-backed child workflow', () => {
     const definition =
       buildBatchContentItemWorkflowDefinition('content-writing');
+    expect(definition.organizationModule).toBe('batch');
 
     expect(definition.definition.nodes).toHaveLength(2);
     expect(definition.definition.nodes[0]?.data.config.actionId).toBe(
