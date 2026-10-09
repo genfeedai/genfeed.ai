@@ -5,6 +5,7 @@ import {
   organizationModuleOverridesSchema,
   resolveOrganizationModuleAccess,
   resolveOrganizationModulePreferences,
+  resolveOrganizationModulePresentationAccess,
 } from './organization-modules.constant';
 
 const cloud: OrganizationModuleAccessInput = {
@@ -209,5 +210,70 @@ describe('organization module access', () => {
         batch: false,
       }),
     ).toEqual({ automation: true, batch: false });
+  });
+});
+
+describe('readonly module creation presentation', () => {
+  it.each(['automation', 'messages', 'discovery'] as const)(
+    'requires a verified paid grant for %s even when enabled',
+    (moduleId) => {
+      const settings = {
+        hasOrganizationBilling: true,
+        moduleOverrides: { [moduleId]: true },
+      };
+      expect(
+        resolveOrganizationModulePresentationAccess(settings, moduleId),
+      ).toEqual({ isAllowed: false, reason: 'unavailable' });
+      expect(
+        resolveOrganizationModulePresentationAccess(
+          { ...settings, hasPaidModuleSubscription: false },
+          moduleId,
+        ),
+      ).toEqual({ isAllowed: false, reason: 'subscription-required' });
+      expect(
+        resolveOrganizationModulePresentationAccess(
+          { ...settings, hasPaidModuleSubscription: true },
+          moduleId,
+        ),
+      ).toEqual({ isAllowed: true, reason: null });
+    },
+  );
+  it('does not accept malformed paid eligibility', () => {
+    expect(
+      resolveOrganizationModulePresentationAccess(
+        {
+          hasOrganizationBilling: true,
+          moduleOverrides: {},
+          hasPaidModuleSubscription: 'true',
+        },
+        'discovery',
+      ),
+    ).toEqual({ isAllowed: false, reason: 'unavailable' });
+  });
+  it('never lets paid eligibility override a disabled module', () => {
+    expect(
+      resolveOrganizationModulePresentationAccess(
+        {
+          hasOrganizationBilling: true,
+          moduleOverrides: { discovery: false },
+          hasPaidModuleSubscription: true,
+        },
+        'discovery',
+      ),
+    ).toEqual({ isAllowed: false, reason: 'disabled' });
+  });
+  it('preserves self-hosted and credit-based work without a paid grant', () => {
+    expect(
+      resolveOrganizationModulePresentationAccess(
+        { hasOrganizationBilling: false, moduleOverrides: {} },
+        'automation',
+      ),
+    ).toEqual({ isAllowed: true, reason: null });
+    expect(
+      resolveOrganizationModulePresentationAccess(
+        { hasOrganizationBilling: true, moduleOverrides: {} },
+        'playground',
+      ),
+    ).toEqual({ isAllowed: true, reason: null });
   });
 });

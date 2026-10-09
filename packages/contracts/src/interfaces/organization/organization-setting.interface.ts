@@ -135,6 +135,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   moduleOverrides?: OrganizationModuleOverrides;
   /** Read-only server runtime hint for presentation; admission always rechecks. */
   readonly hasOrganizationBilling?: boolean;
+  /** Read-only fresh paid eligibility; null means the grant could not be verified. */
+  readonly hasPaidModuleSubscription?: boolean | null;
   fleetEvaluationPolicy?: IFleetEvaluationPolicy;
 
   // First-asset unlock gate: durable org signal, flips true on the org's first

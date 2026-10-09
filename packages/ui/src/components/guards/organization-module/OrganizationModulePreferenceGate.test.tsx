@@ -34,6 +34,10 @@ vi.mock('next-intl', async () => {
             disabledHelp:
               'An owner or admin can enable this module. Existing projects remain readable and exportable.',
             manageModules: 'Organization modules',
+            subscriptionTitle: '{module} requires an active paid subscription',
+            subscriptionHelp:
+              'Existing data remains readable and exportable. A paid plan is required to start new work.',
+            manageSubscription: 'Manage subscription',
             loading: 'Loading module settings…',
             unavailable: 'Module settings are unavailable.',
             retry: 'Retry loading',
@@ -43,6 +47,9 @@ vi.mock('next-intl', async () => {
               clips: { label: 'Clips' },
               editor: { label: 'Editor' },
               motion: { label: 'Motion' },
+              discovery: { label: 'Discovery' },
+              automation: { label: 'Automation' },
+              messages: { label: 'Messages' },
             },
           },
         },
@@ -193,5 +200,53 @@ describe('credit-based module creation gate', () => {
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(state.created).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('paid module creation presentation', () => {
+  it.each(['automation', 'messages', 'discovery'] as const)(
+    'hides all %s creation UI behind the centered subscription state',
+    (moduleId) => {
+      state.settings = {
+        hasOrganizationBilling: true,
+        hasPaidModuleSubscription: false,
+        moduleOverrides: { [moduleId]: true },
+      };
+      render(view(moduleId));
+      expect(state.created).not.toHaveBeenCalled();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'requires an active paid subscription',
+      );
+      expect(
+        screen.getByRole('link', { name: 'Manage subscription' }),
+      ).toHaveAttribute('href', '/acme/~/settings/subscription');
+    },
+  );
+  it('does not mount paid work while fresh eligibility is unavailable, even with old subscription/admin hints', () => {
+    state.settings = {
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: null,
+      moduleOverrides: {},
+      isSubscribed: true,
+      isSuperAdmin: true,
+    };
+    render(view('discovery'));
+    expect(state.created).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: 'Retry loading' }),
+    ).toBeInTheDocument();
+  });
+  it('unmounts new paid work after grant revocation without changing module preferences', () => {
+    state.settings = {
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: true,
+      moduleOverrides: {},
+    };
+    const { rerender } = render(view('discovery'));
+    expect(state.created).toHaveBeenCalledTimes(1);
+    state.settings = { ...state.settings, hasPaidModuleSubscription: false };
+    rerender(view('discovery'));
+    expect(state.disposed).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Create a project')).not.toBeInTheDocument();
   });
 });
