@@ -249,22 +249,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/agent/src/components/TimelineStreamingRow.spec.tsx",
-      "fingerprint": "96df3c8ad886147a224b",
-      "message": "Type '{ kind: \"streaming\"; id: string; streamState: { isStreaming: boolean; streamingContent: string; streamingReasoning: string; activeToolCalls: AgentToolCall[]; }; workEvents: AgentWorkEvent[]; runDurationLabel: string | null; createdAt?: string | undefined; }' is not assignable to type 'TimelineStreaming'.   Types of property 'createdAt' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2322,
-      "count": 4,
-      "file": "packages/agent/src/components/TimelineStreamingRow.spec.tsx",
-      "fingerprint": "e3ea58f764c2fb0574cf",
-      "message": "Type '{ kind: \"streaming\"; id: string; streamState: { isStreaming: boolean; streamingContent: string; streamingReasoning: string; activeToolCalls: AgentToolCall[]; }; workEvents: AgentWorkEvent[]; runDurationLabel: string | null; createdAt?: string | undefined; }' is not assignable to type 'TimelineStreaming'.   Types of property 'createdAt' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "agent"
-    },
-    {
       "code": 2741,
       "count": 2,
       "file": "packages/agent/src/components/TimelineStreamingRow.spec.tsx",
@@ -2958,14 +2942,6 @@
       "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
       "fingerprint": "f90d24feef6afad362db",
       "message": "Type '\"analytics_card\"' is not assignable to type 'AgentUiActionType'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
-      "fingerprint": "c6a627375a8dd0b6e84d",
-      "message": "Argument of type '{ data: { href: string; url: string; }; success: true; }' is not assignable to parameter of type 'AgentToolResult'.   Property 'creditsUsed' is missing in type '{ data: { href: string; url: string; }; success: true; }' but required in type 'AgentToolResult'.",
       "workspace": "api"
     },
     {
