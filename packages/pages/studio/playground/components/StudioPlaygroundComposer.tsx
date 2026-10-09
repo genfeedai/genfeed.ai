@@ -175,16 +175,17 @@ export default function StudioPlaygroundComposer({
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
   // model (see `resolveStudioPlaygroundCapabilities`).
-  const editDefaultModel =
-    type === 'image-edit'
-      ? models.find((model) => isImageEditModel(model.key) && model.isDefault)
-      : undefined;
-  const effectiveModelKey =
-    settings.modelKey === AUTO_MODEL_OPTION_VALUE && type === 'image-edit'
-      ? editDefaultModel?.key
-      : settings.modelKey;
+  const effectiveModelKey = settings.modelKey;
   const isFlux = isFlux3ImageModel(effectiveModelKey ?? '');
-  const editSourceLimit = getImageEditMaxSources(effectiveModelKey);
+  const editSourceLimit =
+    settings.modelKey === AUTO_MODEL_OPTION_VALUE
+      ? Math.max(
+          ...models
+            .filter((model) => isImageEditModel(model.key))
+            .map((model) => getImageEditMaxSources(model.key)),
+          getImageEditMaxSources(),
+        )
+      : getImageEditMaxSources(effectiveModelKey);
   const capabilities = resolveStudioPlaygroundCapabilities(
     type,
     effectiveModelKey,
@@ -269,15 +270,8 @@ export default function StudioPlaygroundComposer({
 
   const isPromptEmpty = prompt.trim().length === 0;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
-  const selectedModel = models.find((model) =>
-    type === 'image-edit' && isAutoMode
-      ? model === editDefaultModel
-      : model.key === settings.modelKey,
-  );
-  const displaySettings =
-    type === 'image-edit' && isAutoMode && selectedModel
-      ? { ...settings, modelKey: selectedModel.key }
-      : settings;
+  const selectedModel = models.find((model) => model.key === settings.modelKey);
+  const displaySettings = settings;
   const isFirstFrameMissing =
     type === 'video' &&
     !isAutoMode &&
@@ -309,15 +303,16 @@ export default function StudioPlaygroundComposer({
   const isEditingModelUnavailable =
     type === 'image-edit' &&
     !isLoadingModels &&
-    (isAutoMode ? !models.some((model) => model.isDefault) : !selectedModel);
+    (isAutoMode
+      ? !models.some((model) => isImageEditModel(model.key))
+      : !selectedModel);
   const costPromptData = buildStudioPromptData({
     brandId: '',
     promptText: '',
     settings: displaySettings,
     type,
   });
-  // Auto is judged on the user's own selection: the image-edit default that
-  // `displaySettings` substitutes is not a choice the user has made yet.
+  // Only explicitly selected models can be quoted before Auto has routed.
   const isServerPricedModel =
     !isLoadingModels &&
     !isAutoStudioModelKey(settings.modelKey) &&
@@ -577,9 +572,7 @@ export default function StudioPlaygroundComposer({
       ? translate('summary.modelLoading')
       : isAutoStudioModelKey(displaySettings.modelKey)
         ? translate('inspector.autoModel')
-        : isAutoMode && type === 'image-edit' && selectedModel
-          ? `${translate('inspector.autoModel')} (${selectedModel.label})`
-          : selectedModel?.label || translate('summary.modelUnavailable');
+        : selectedModel?.label || translate('summary.modelUnavailable');
   const resolutionLabel =
     type === 'video' && costPromptData.resolution
       ? (getVideoResolutionLabel(
@@ -920,10 +913,7 @@ export default function StudioPlaygroundComposer({
                     }
                   : undefined
               }
-              capabilities={{
-                ...capabilities,
-                hasModelSelection: isModelChoiceVisible,
-              }}
+              capabilities={capabilities}
               favoriteModelKeys={favoriteModelKeys}
               isDisabled={isGenerating}
               isPresetsLoading={isPresetsLoading}

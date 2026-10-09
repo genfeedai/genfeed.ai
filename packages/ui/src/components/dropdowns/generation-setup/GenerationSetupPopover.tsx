@@ -185,6 +185,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {!customizeSection ? (
               <GenerationSetupFrontDoor
+                isAutoPriorityOnly={advancedMode?.isEnabled === false}
                 showPresets={showPresets}
                 showEnhancementSettings={showEnhancementSettings}
                 capabilities={capabilities}
@@ -204,6 +205,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {customizeSection ? (
               <GenerationSetupCustomizePanel
+                isAutoPriorityOnly={advancedMode?.isEnabled === false}
                 typeOptions={typeOptions}
                 onTypeChange={onTypeChange}
                 inputControls={inputControls}

@@ -1,6 +1,6 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import type { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
+import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import type { ImageEditingContext } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { replaceDispatchReferenceIds } from '@api/collections/images/services/image-generation-dispatch-references.util';
@@ -22,6 +22,7 @@ import {
   FLUX_3_EDIT_CONTRACT_VERSION,
   getImageEditMaxSources,
   IMAGE_EDIT_CONTRACT_VERSION,
+  IMAGE_EDIT_MODEL_KEYS,
   IMAGE_EDIT_QUALITY,
   isFlux3AspectRatio,
   isFlux3ImageModel,
@@ -100,6 +101,56 @@ export class ImageGenerationAdmissionService {
     return grantedOwnerId
       ? crossOrgUnsafe(async () => await lookup())
       : lookup();
+  }
+
+  /** Read-only preflight: Auto can rank only fully admitted editing contracts. */
+  async admitCompatibleImageEdits(
+    sourceId: string,
+    dto: EditImageDto,
+    organizationId: string,
+    brandId: string,
+  ): Promise<ReadonlyMap<string, ImageEditingContext>> {
+    const admitted = new Map<string, ImageEditingContext>();
+    let incompatibility: BadRequestException | undefined;
+    for (const model of IMAGE_EDIT_MODEL_KEYS) {
+      const flux = isFlux3ImageModel(model);
+      // Native controls are meaningful user choices, never discarded for Auto.
+      if (
+        !flux &&
+        (dto.resolution !== undefined || dto.aspectRatio !== undefined)
+      )
+        continue;
+      const candidate = Object.assign(new EditImageDto(), dto, {
+        model,
+        // Source sizing is implicit in the native FLUX contract. Fixed sizes stay invalid.
+        ...(flux && dto.size === 'source' ? { size: undefined } : {}),
+      });
+      try {
+        admitted.set(
+          model,
+          await this.admitImageEdit(
+            sourceId,
+            candidate,
+            organizationId,
+            brandId,
+          ),
+        );
+      } catch (error) {
+        // Ownership, grants and infrastructure errors propagate; only contract
+        // incompatibility removes a candidate. No documents or credits are touched.
+        if (!(error instanceof BadRequestException)) throw error;
+        incompatibility ??= error;
+      }
+    }
+    if (admitted.size === 0) {
+      throw (
+        incompatibility ??
+        new BadRequestException(
+          'No editing model supports these sources and settings.',
+        )
+      );
+    }
+    return admitted;
   }
 
   async admitImageEdit(

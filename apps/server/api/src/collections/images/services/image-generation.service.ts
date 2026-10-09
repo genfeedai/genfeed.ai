@@ -133,23 +133,49 @@ export class ImageGenerationService {
         'This model does not support instruction-based image editing',
         HttpStatus.BAD_REQUEST,
       );
-    const resolvedModel =
-      dto.model ??
-      (
-        await this.routerService.resolveModelKey({
-          category: ModelCategory.IMAGE_EDIT,
-          organizationId: user.organizationId,
-        })
-      ).key;
+    const compatible =
+      dto.autoSelectModel === true && !dto.model
+        ? await this.admissionService.admitCompatibleImageEdits(
+            imageId,
+            dto,
+            user.organizationId,
+            brandId,
+          )
+        : undefined;
+    const resolvedModel = compatible
+      ? (
+          await this.routerService.selectModel({
+            category: ModelCategory.IMAGE_EDIT,
+            prompt: dto.prompt,
+            prioritize: dto.prioritize,
+            outputs: dto.outputs ?? 1,
+            organizationId: user.organizationId,
+            eligibleModelKeys: [...compatible.keys()],
+          })
+        ).selectedModel
+      : (dto.model ??
+        (
+          await this.routerService.resolveModelKey({
+            category: ModelCategory.IMAGE_EDIT,
+            organizationId: user.organizationId,
+          })
+        ).key);
     const admittedDto = Object.assign(new EditImageDto(), dto, {
       model: resolvedModel,
     });
-    const editing = await this.admissionService.admitImageEdit(
-      imageId,
-      admittedDto,
-      user.organizationId,
-      brandId,
-    );
+    const editing = compatible
+      ? compatible.get(resolvedModel)
+      : await this.admissionService.admitImageEdit(
+          imageId,
+          admittedDto,
+          user.organizationId,
+          brandId,
+        );
+    if (!editing)
+      throw new HttpException(
+        'The selected editing model is incompatible',
+        HttpStatus.BAD_REQUEST,
+      );
     const normalized = Object.assign(new CreateImageDto(), {
       text: dto.prompt.trim(),
       brandId,
@@ -161,8 +187,8 @@ export class ImageGenerationService {
       outputs: dto.outputs ?? 1,
       seed: dto.seed,
       quality: isFlux3ImageModel(resolvedModel) ? undefined : 'medium',
-      resolution: dto.resolution,
-      aspectRatio: dto.aspectRatio,
+      resolution: editing.recipe.resolution,
+      aspectRatio: editing.recipe.aspectRatio,
       harness: false,
       brandingMode: 'off',
       useTemplate: false,

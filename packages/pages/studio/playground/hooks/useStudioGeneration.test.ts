@@ -1112,6 +1112,62 @@ describe('canonical quote-bound Crun video submission', () => {
 
 describe('dedicated image editing submission', () => {
   const modelKey = 'ideogram-ai/ideogram-4-5';
+  it('routes Auto editing with the selected priority without discarding mask, seed or outputs', async () => {
+    const captured = captureHandler();
+    mockImagesEdit.mockResolvedValue({
+      pendingIngredientIds: ['edited-auto-1', 'edited-auto-2'],
+    });
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [
+        {
+          ...makeModel('black-forest-labs/flux-3-image-edit'),
+          isDefault: true,
+        },
+        makeModel(modelKey),
+      ],
+      settings: {
+        ...getDefaultStudioPlaygroundSettings('image-edit'),
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        prioritize: RouterPriority.COST,
+        outputs: 2,
+        editSeed: 0,
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('Change the sign', {
+          editSourceIds: ['source'],
+          editMaskId: 'mask',
+        }),
+      ).toBe(true);
+    });
+    const payload = mockImagesEdit.mock.calls[0][1];
+    expect(payload).toMatchObject({
+      autoSelectModel: true,
+      prioritize: RouterPriority.COST,
+      outputs: 2,
+      maskId: 'mask',
+      seed: 0,
+      size: 'source',
+    });
+    expect(payload).not.toHaveProperty('model');
+    expect(payload).not.toHaveProperty('resolution');
+    expect(result.current.jobs[0].recipe?.imageEdit).toBeUndefined();
+    mockImagesFindOne.mockResolvedValue({
+      id: 'edited-auto-2',
+      category: IngredientCategory.IMAGE,
+      status: IngredientStatus.GENERATED,
+      imageEdit: { model: modelKey },
+      metadata: { model: modelKey },
+    });
+    await act(async () => {
+      await captured.current?.onSuccess({ id: 'edited-auto-2' });
+    });
+    expect(
+      result.current.jobs.find((job) => job.id === 'edited-auto-2')?.modelKey,
+    ).toBe(modelKey);
+  });
   it('sends raw instructions, ordered sources, mask and seed to editing rather than generation', async () => {
     mockImagesEdit.mockResolvedValue({
       pendingIngredientIds: ['edited-1', 'edited-2'],

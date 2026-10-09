@@ -309,8 +309,11 @@ export function useStudioGeneration({
             )
               return;
             const dimensions = resolveStudioAssetDimensions(ingredient);
-
+            const hydrated = ingredient.imageEdit
+              ? toStudioPlaygroundJob(ingredient)
+              : null;
             patchJob(pendingId, {
+              ...(hydrated?.modelKey ? { modelKey: hydrated.modelKey } : {}),
               ...(dimensions.height ? { height: dimensions.height } : {}),
               ingredient: ingredient ?? undefined,
               ingredientId: String(ingredient?.id ?? resolvedId),
@@ -511,7 +514,11 @@ export function useStudioGeneration({
             )
               continue;
             const dimensions = resolveStudioAssetDimensions(ingredient);
+            const hydrated = ingredient.imageEdit
+              ? toStudioPlaygroundJob(ingredient)
+              : null;
             patchJob(job.id, {
+              ...(hydrated?.modelKey ? { modelKey: hydrated.modelKey } : {}),
               ingredient,
               phase:
                 ingredient.generationError === 'Cancelled by user'
@@ -671,22 +678,28 @@ export function useStudioGeneration({
             : {}),
         };
       }
-      const editingModelKey =
-        modelKey || models.find((model) => model.isDefault)?.key || '';
+      const editingModelKey = modelKey;
       const flux = isFlux3ImageModel(
         type === 'image-edit' ? editingModelKey : modelKey,
       );
+      const editSourceLimit = modelKey
+        ? getImageEditMaxSources(modelKey)
+        : Math.max(
+            ...models
+              .filter((model) => isImageEditModel(model.key))
+              .map((model) => getImageEditMaxSources(model.key)),
+            getImageEditMaxSources(),
+          );
       if (
         type === 'image-edit' &&
-        (references.editSourceIds?.length ?? 0) >
-          getImageEditMaxSources(editingModelKey)
+        (references.editSourceIds?.length ?? 0) > editSourceLimit
       ) {
         notificationsService.error(
-          `This editing model accepts at most ${getImageEditMaxSources(editingModelKey)} sources.`,
+          `This editing model accepts at most ${editSourceLimit} sources.`,
         );
         return false;
       }
-      if (type === 'image-edit') {
+      if (type === 'image-edit' && modelKey) {
         recipe.imageEdit = flux
           ? {
               contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
@@ -701,8 +714,7 @@ export function useStudioGeneration({
           : {
               contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
               operation: 'image-edit',
-              model:
-                modelKey || models.find((model) => model.isDefault)?.key || '',
+              model: modelKey,
               sourceIds: references.editSourceIds ?? [],
               maskId: references.editMaskId,
               size: references.editMaskId
@@ -712,8 +724,9 @@ export function useStudioGeneration({
               outputs: settings.outputs,
               seed: settings.editSeed,
             };
-        recipe.references = references.editSourceIds ?? [];
       }
+      if (type === 'image-edit')
+        recipe.references = references.editSourceIds ?? [];
       const pendingContext = {
         ...jobDimensions,
         modelKey,
@@ -757,7 +770,9 @@ export function useStudioGeneration({
             const data = (await service.postEdit(sources[0], {
               prompt: promptText.trim(),
               brand: brandId,
-              ...(modelKey ? { model: modelKey } : {}),
+              ...(modelKey
+                ? { model: modelKey }
+                : { autoSelectModel: true, prioritize: settings.prioritize }),
               references: sources.slice(1),
               ...(flux
                 ? {

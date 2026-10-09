@@ -764,13 +764,19 @@ export class RouterService {
         await this.getUsableModels(options.category, options.organizationId),
         options.organizationId,
       );
+      const eligibleModels =
+        options.eligibleModelKeys === undefined
+          ? enabledModels
+          : enabledModels.filter((model) =>
+              options.eligibleModelKeys?.includes(model.key),
+            );
       const models = await this.restrictToQuotableModels(
-        enabledModels,
+        eligibleModels,
         options.category,
         options.organizationId,
       );
 
-      if (enabledModels.length > 0 && models.length === 0) {
+      if (eligibleModels.length > 0 && models.length === 0) {
         throw new ServiceUnavailableException(
           'No Recommended model enabled for this workspace can be priced right now',
         );

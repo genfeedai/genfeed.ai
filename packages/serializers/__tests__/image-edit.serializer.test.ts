@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getDeserializer } from '@genfeedai/helpers';
 import {
+  ImageEditingRequestSerializer,
   ImageGenerationSerializer,
   ImageSerializer,
 } from '@serializers/server/ingredients/image.serializer';
@@ -21,6 +22,23 @@ const recipe = {
 };
 
 describe('image editing public serializer projection', () => {
+  it('preserves Auto priority and editing controls on the actual wire request', () => {
+    const wire = ImageEditingRequestSerializer.serialize({
+      prompt: 'Edit',
+      autoSelectModel: true,
+      prioritize: 'cost',
+      seed: 0,
+      maskId: 'mask',
+      outputs: 2,
+    });
+    expect(getDeserializer(JSON.parse(JSON.stringify(wire)))).toMatchObject({
+      autoSelectModel: true,
+      prioritize: 'cost',
+      seed: 0,
+      maskId: 'mask',
+      outputs: 2,
+    });
+  });
   it.each([
     ['image', ImageSerializer],
     ['image generation', ImageGenerationSerializer],
@@ -94,6 +112,7 @@ describe('image editing public serializer projection', () => {
     for (const serializer of [
       ImageSerializer,
       ImageGenerationSerializer,
+      ImageEditingRequestSerializer,
       IngredientSerializer,
     ]) {
       const output = getDeserializer(
