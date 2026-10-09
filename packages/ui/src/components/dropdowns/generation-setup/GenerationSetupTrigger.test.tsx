@@ -56,6 +56,28 @@ const typeOptions: GenerationSetupTypeOption[] = [
 ];
 
 describe('GenerationSetupTrigger', () => {
+  it('keeps an accessible summary while showing only one icon for Studio', () => {
+    render(
+      <GenerationSetupTrigger
+        isIconOnly
+        isOpen={false}
+        isTypeCommitted
+        models={[createModel({ key: 'image-model', label: 'Image model' })]}
+        setup={createSetup({
+          values: { ...createSetup().values, modelKey: 'image-model' },
+        })}
+        triggerLabel="Image model · 1:1"
+        typeOptions={typeOptions}
+      />,
+    );
+    const trigger = screen.getByRole('button', {
+      name: 'Generation setup: Image model · 1:1',
+    });
+    expect(trigger.textContent).toBe('');
+    expect(trigger).toHaveAttribute('title', 'Image model · 1:1');
+    expect(trigger.querySelectorAll('svg')).toHaveLength(1);
+  });
+
   it('uses the surface summary even while the type is agent-owned', () => {
     const { rerender } = render(
       <GenerationSetupTrigger
