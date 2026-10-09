@@ -6,9 +6,14 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { WORKFLOW_EXECUTOR } from '@api/collections/workflows/workflows.tokens';
+import {
+  getOrganizationModuleExecutionContext,
+  runWithOrganizationModule,
+} from '@api/common/organization-modules/organization-module-execution.context';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
+import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type SystemWorkflowGraphDefinition,
@@ -1085,11 +1090,208 @@ describe('SystemWorkflowRunnerService definitions', () => {
   });
 });
 
+describe('System workflow module admission', () => {
+  const input = {
+    actionType: definition.canonicalId,
+    canonicalId: definition.canonicalId,
+    organizationId: 'org-1',
+    source: 'test',
+    userId: 'user-1',
+  };
+  function admittedRunner() {
+    const assertAccess = vi.fn().mockResolvedValue(undefined);
+    const queueSystemWorkflow = vi.fn();
+    const createExecution = vi.fn();
+    const { runner, executors } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+      { assertAccess },
+    );
+    runner.registerWorkflow({ ...definition, organizationModule: 'messages' });
+    const internals = runner as unknown as RunnerInternals;
+    const resolveUserId = vi.spyOn(internals, 'resolveUserId');
+    const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+    return {
+      assertAccess,
+      runner,
+      executors,
+      resolveUserId,
+      mirror,
+      queueSystemWorkflow,
+      createExecution,
+    };
+  }
+
+  it.each(['start', 'enqueue'] as const)(
+    'denies %s before principal, mirror, execution or queue writes',
+    async (mode) => {
+      const h = admittedRunner();
+      h.assertAccess.mockRejectedValue(
+        new ForbiddenException('Messages disabled'),
+      );
+      await expect(
+        mode === 'start'
+          ? h.runner.startWorkflow(input)
+          : h.runner.enqueueWorkflow(input, {
+              dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+            }),
+      ).rejects.toThrow('Messages disabled');
+      expect(h.resolveUserId).not.toHaveBeenCalled();
+      expect(h.mirror).not.toHaveBeenCalled();
+      expect(h.createExecution).not.toHaveBeenCalled();
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it('uses the registered module instead of a producer context or caller metadata and rechecks a warmed run', async () => {
+    const h = admittedRunner();
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    const scope = await runWithOrganizationModule(
+      { organizationId: 'org-1', moduleId: 'publishing' },
+      () =>
+        h.runner.runWithRegisteredWorkflowModule(
+          { ...input, ...{ metadata: { organizationModule: 'playground' } } },
+          work,
+        ),
+    );
+    expect(scope).toEqual({ organizationId: 'org-1', moduleId: 'messages' });
+    expect(h.assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+    h.assertAccess.mockRejectedValueOnce(
+      new ForbiddenException('Subscription expired'),
+    );
+    await expect(
+      h.runner.runWithRegisteredWorkflowModule(input, work),
+    ).rejects.toThrow('Subscription expired');
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+
+  it('rechecks module access before the next side-effect node in an active run', async () => {
+    const h = admittedRunner();
+    const action = vi.fn().mockResolvedValue(null);
+    h.runner.registerAction('youtube.resolve-source', action);
+    const node = {
+      config: { actionId: 'youtube.resolve-source' },
+      id: 'review-hook',
+      inputs: [],
+      label: 'Resolve',
+      type: 'genfeedAction',
+    };
+    await h.runner.runWithRegisteredWorkflowModule(input, async () => {
+      await h.executors.get('youtube.resolve-source')?.(
+        node,
+        new Map(),
+        executionContext(),
+      );
+      h.assertAccess.mockRejectedValueOnce(
+        new ForbiddenException('Messages disabled'),
+      );
+      await expect(
+        h.executors.get('youtube.resolve-source')?.(
+          node,
+          new Map(),
+          executionContext(),
+        ),
+      ).rejects.toThrow('Messages disabled');
+    });
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets only code-declared terminal state nodes finish after an admitted side effect', async () => {
+    const h = admittedRunner();
+    const action = vi.fn().mockResolvedValue(null);
+    h.runner.registerAction('youtube.resolve-source', action);
+    h.runner.registerWorkflow({
+      ...definition,
+      canonicalId: 'terminal',
+      organizationModule: 'messages',
+      moduleCompletionNodeIds: ['review-hook'],
+    });
+    const node = {
+      config: { actionId: 'youtube.resolve-source' },
+      id: 'review-hook',
+      inputs: [],
+      label: 'Finalize',
+      type: 'genfeedAction',
+    };
+    await h.runner.runWithRegisteredWorkflowModule(
+      { canonicalId: 'terminal', organizationId: 'org-1' },
+      async () => {
+        h.assertAccess.mockRejectedValue(
+          new ForbiddenException('Messages disabled'),
+        );
+        await h.executors.get('youtube.resolve-source')?.(
+          node,
+          new Map(),
+          executionContext(),
+        );
+        await expect(
+          h.executors.get('youtube.resolve-source')?.(
+            { ...node, id: 'new-work' },
+            new Map(),
+            executionContext(),
+          ),
+        ).rejects.toThrow('Messages disabled');
+      },
+    );
+    expect(action).toHaveBeenCalledTimes(1);
+    await expect(
+      h.runner.runWithRegisteredWorkflowModule(
+        { canonicalId: 'terminal', organizationId: 'org-1' },
+        async () => null,
+      ),
+    ).rejects.toThrow('Messages disabled');
+  });
+
+  it('never exempts an action in another tenant', async () => {
+    const h = admittedRunner();
+    const action = vi.fn();
+    h.runner.registerAction('youtube.resolve-source', action);
+    await h.runner.runWithRegisteredWorkflowModule(input, async () => {
+      await expect(
+        h.executors.get('youtube.resolve-source')?.(
+          {
+            config: { actionId: 'youtube.resolve-source' },
+            id: 'review-hook',
+            inputs: [],
+            label: 'Resolve',
+            type: 'genfeedAction',
+          },
+          new Map(),
+          { ...executionContext(), organizationId: 'org-2' },
+        ),
+      ).rejects.toThrow('does not match its tenant');
+    });
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown completion nodes and completion policies without a module', () => {
+    const h = admittedRunner();
+    expect(() =>
+      h.runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'bad',
+        organizationModule: 'messages',
+        moduleCompletionNodeIds: ['absent'],
+      }),
+    ).toThrow('Invalid code-owned');
+    expect(() =>
+      h.runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'bad',
+        moduleCompletionNodeIds: ['review-hook'],
+      }),
+    ).toThrow('Invalid code-owned');
+  });
+});
+
 function createRunner(
   queue = { queueSystemWorkflow: vi.fn() },
   prisma: object = {},
   workflowExecutor: object = {},
   workflowExecutions: object = {},
+  moduleAccess: object = {},
 ): {
   executors: Map<string, NodeExecutor>;
   runner: SystemWorkflowRunnerService;
@@ -1104,6 +1306,7 @@ function createRunner(
   const moduleRef = {
     get: (token: unknown) => {
       const name = (token as { name?: string })?.name;
+      if (name === 'OrganizationModuleAccessService') return moduleAccess;
       if (name === 'WorkflowExecutionQueueService') {
         return queue;
       }

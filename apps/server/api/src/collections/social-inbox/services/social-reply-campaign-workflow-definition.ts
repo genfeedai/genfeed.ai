@@ -56,6 +56,8 @@ export function buildSocialReplyCampaignWorkflowDefinition(): SystemWorkflowGrap
   }));
   return {
     canonicalId: SOCIAL_REPLY_CAMPAIGN_WORKFLOW_ID,
+    organizationModule: 'messages',
+    moduleCompletionNodeIds: ['finalize-message'],
     definition: {
       edges,
       inputVariables: [

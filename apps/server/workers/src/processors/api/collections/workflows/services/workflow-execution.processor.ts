@@ -124,7 +124,11 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     try {
       return await this.queueService.runWithQueuedOrganizationModule(
         job.data,
-        () => this.executeSystemRun(job, systemRun),
+        () =>
+          this.systemWorkflowRunner.runWithRegisteredWorkflowModule(
+            systemRun.input,
+            () => this.executeSystemRun(job, systemRun),
+          ),
       );
     } catch (failure: unknown) {
       // Only a transient failure is worth another attempt; anything else fails

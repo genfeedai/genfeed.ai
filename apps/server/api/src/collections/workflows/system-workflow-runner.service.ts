@@ -29,6 +29,11 @@ import {
   WORKFLOW_ENGINE_ADAPTER,
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import {
+  getOrganizationModuleExecutionContext,
+  runWithOrganizationModule,
+} from '@api/common/organization-modules/organization-module-execution.context';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type GenfeedActionDefinition,
@@ -38,6 +43,7 @@ import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { ORGANIZATION_MODULES } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
 import {
@@ -94,6 +100,9 @@ export class SystemWorkflowRunnerService
   >();
   private readonly runtimeContext = new AsyncLocalStorage<unknown>();
   private readonly workflowDepth = new AsyncLocalStorage<number>();
+  private readonly moduleCompletionNodes = new AsyncLocalStorage<
+    ReadonlySet<string>
+  >();
   private readonly workflowDefinitions = new Map<
     string,
     SystemWorkflowGraphDefinition
@@ -183,6 +192,20 @@ export class SystemWorkflowRunnerService
       this.getEngineAdapter().registerExecutor(
         actionId,
         async (node, inputs, context) => {
+          const moduleContext = getOrganizationModuleExecutionContext();
+          if (moduleContext) {
+            if (moduleContext.organizationId !== context.organizationId) {
+              throw new Error(
+                'System action module context does not match its tenant',
+              );
+            }
+            if (!this.moduleCompletionNodes.getStore()?.has(node.id)) {
+              await this.getModuleAccess().assertAccess(
+                moduleContext.organizationId,
+                moduleContext.moduleId,
+              );
+            }
+          }
           const input = buildActionExecutionInput(node.config, inputs);
           return executor({
             context,
@@ -266,6 +289,47 @@ export class SystemWorkflowRunnerService
     if (!definition) {
       throw new Error(`Unknown system workflow: ${input.canonicalId}`);
     }
+    return this.runWithDefinitionModule(definition, input.organizationId, () =>
+      this.enqueueAdmittedWorkflow(definition, input, options),
+    );
+  }
+
+  /** Also used for old queue jobs that resume an existing execution directly. */
+  async runWithRegisteredWorkflowModule<T>(
+    input: Pick<RunSystemWorkflowInput, 'canonicalId' | 'organizationId'>,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    const definition = this.workflowDefinitions.get(input.canonicalId);
+    if (!definition) {
+      throw new Error(`Unknown system workflow: ${input.canonicalId}`);
+    }
+    return this.runWithDefinitionModule(definition, input.organizationId, work);
+  }
+
+  private async runWithDefinitionModule<T>(
+    definition: SystemWorkflowGraphDefinition,
+    organizationId: string,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    const moduleId = definition.organizationModule;
+    if (!moduleId) return this.moduleCompletionNodes.run(new Set(), work);
+    if (!Object.hasOwn(ORGANIZATION_MODULES, moduleId)) {
+      throw new Error('Invalid code-owned system workflow module');
+    }
+    await this.getModuleAccess().assertAccess(organizationId, moduleId);
+    return runWithOrganizationModule({ organizationId, moduleId }, () =>
+      this.moduleCompletionNodes.run(
+        new Set(definition.moduleCompletionNodeIds ?? []),
+        work,
+      ),
+    );
+  }
+
+  private async enqueueAdmittedWorkflow(
+    definition: SystemWorkflowGraphDefinition,
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
+    options: { dispatchClass: SystemWorkflowDispatchClass },
+  ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureHiddenSystemWorkflowMirror(definition);
     if (!workflow.currentVersion) {
@@ -374,6 +438,19 @@ export class SystemWorkflowRunnerService
     provenance: SystemWorkflowProvenance;
     userId: string;
   }> {
+    return this.runWithDefinitionModule(definition, input.organizationId, () =>
+      this.startAdmittedDefinition(definition, input),
+    );
+  }
+
+  private async startAdmittedDefinition(
+    definition: SystemWorkflowGraphDefinition,
+    input: RunSystemWorkflowInput,
+  ): Promise<{
+    execution: WorkflowExecutionResult;
+    provenance: SystemWorkflowProvenance;
+    userId: string;
+  }> {
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflowMirror =
       await this.ensureHiddenSystemWorkflowMirror(definition);
@@ -441,6 +518,15 @@ export class SystemWorkflowRunnerService
 
   private validateDefinition(definition: SystemWorkflowGraphDefinition): void {
     const version = buildWorkflowVersionDefinition(definition.definition);
+    if (
+      definition.moduleCompletionNodeIds?.some(
+        (nodeId) => !version.graph.nodes.some((node) => node.id === nodeId),
+      ) ||
+      (definition.moduleCompletionNodeIds?.length &&
+        !definition.organizationModule)
+    ) {
+      throw new Error('Invalid code-owned system workflow completion nodes');
+    }
     if (
       !version.graph.nodes.some((node) => node.id === definition.resultNodeId)
     ) {
@@ -846,6 +932,12 @@ export class SystemWorkflowRunnerService
 
   private getWorkflowQueue(): WorkflowExecutionQueueService {
     return this.moduleRef.get(WorkflowExecutionQueueService, { strict: false });
+  }
+
+  private getModuleAccess(): OrganizationModuleAccessService {
+    return this.moduleRef.get(OrganizationModuleAccessService, {
+      strict: false,
+    });
   }
 
   private getWorkflowExecutions(): WorkflowExecutionsService {
