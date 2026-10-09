@@ -6,8 +6,8 @@ import type {
   HeyGenCatalogVoice,
   IBrandAgentConfig,
   IHeyGen,
-  IHttpRequestOptions,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { HeyGen } from '@genfeedai/models/integrations/heygen.model';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
