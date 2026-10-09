@@ -11,6 +11,7 @@ import { SourcePostsService } from '@api/collections/source-posts/services/sourc
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   SocialSourcePlatform,
+  SocialSourceType,
   SourcePostActionType,
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -74,6 +75,33 @@ describe('SourcePostsService', () => {
       credentialsService as never,
       outliers as unknown as OutliersService,
     );
+  });
+
+  it('excludes timeline sources from URL import deduplication within the same live tenant and brand', async () => {
+    sourcePost.findFirst.mockResolvedValue(null);
+    await service.findByExternalIdScoped(
+      { organizationId: 'org-1', brandId: 'brand-1' },
+      SocialSourcePlatform.TWITTER,
+      '123',
+      [SocialSourceType.TIMELINE],
+    );
+    expect(sourcePost.findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        isDeleted: false,
+        externalId: '123',
+        platform: SocialSourcePlatform.TWITTER,
+        source: {
+          is: {
+            organizationId: 'org-1',
+            brandId: 'brand-1',
+            isDeleted: false,
+            sourceType: { notIn: [SocialSourceType.TIMELINE] },
+          },
+        },
+      },
+    });
   });
 
   it('propagates outlier refresh failures after storing the account batch', async () => {

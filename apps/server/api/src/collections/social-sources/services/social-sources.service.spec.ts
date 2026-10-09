@@ -609,6 +609,7 @@ describe('SocialSourcesService', () => {
         context,
         SocialSourcePlatform.TWITTER,
         '123',
+        [SocialSourceType.TIMELINE],
       );
       expect(sourcePostsService.upsertCollectedPosts).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'source-1' }),
