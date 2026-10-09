@@ -176,6 +176,36 @@ describe('BaseQueryNormalizationAdapter', () => {
     ).toEqual({ organizationId: 'org-1' });
   });
 
+  it.each([1, -1, 'asc', 'desc'] as const)(
+    'preserves nested relation ordering (%s)',
+    (direction) => {
+      expect(adapter.normalizeSort({ metadata: { label: direction } })).toEqual(
+        [
+          {
+            metadata: {
+              label: direction === 1 || direction === 'asc' ? 'asc' : 'desc',
+            },
+          },
+        ],
+      );
+    },
+  );
+
+  it('preserves nested sort precedence through explicit query normalization', () => {
+    expect(
+      adapter.resolveFindAllInput(
+        {
+          orderBy: [{ metadata: { label: 1 } }, { createdAt: -1 }],
+          where: { organizationId: 'org-1', isDeleted: false },
+        },
+        { page: 2, limit: 10 },
+      ),
+    ).toMatchObject({
+      orderBy: [{ metadata: { label: 'asc' } }, { createdAt: 'desc' }],
+      where: { organizationId: 'org-1', isDeleted: false },
+    });
+  });
+
   it('resolves explicit Prisma query input and deterministic multi-field sorting', () => {
     expect(
       adapter.resolveFindAllInput(

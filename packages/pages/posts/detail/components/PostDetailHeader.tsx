@@ -44,6 +44,8 @@ export interface PostDetailHeaderProps {
   isPublished: boolean;
   hasChildren: boolean;
   viewMode: 'edit' | 'preview';
+  headingLevel?: 1 | 2;
+  showViewModeToggle?: boolean;
   isExpandingToThread?: boolean;
   onViewModeChange: (mode: 'edit' | 'preview') => void;
   onDelete: () => void;
@@ -81,6 +83,8 @@ export default function PostDetailHeader({
   isPublished,
   hasChildren,
   viewMode,
+  headingLevel = 2,
+  showViewModeToggle = true,
   isExpandingToThread = false,
   onViewModeChange,
   onDelete,
@@ -93,6 +97,7 @@ export default function PostDetailHeader({
   isScheduleDirty = false,
   isSavingSchedule = false,
 }: PostDetailHeaderProps) {
+  const Heading = headingLevel === 1 ? 'h1' : 'h2';
   const translate = useTranslations('pages.posts.detail.header');
   const [isThreadDialogOpen, setIsThreadDialogOpen] = useState(false);
   const isEditable = scope === PageScope.PUBLISHING && !isPublished;
@@ -213,18 +218,20 @@ export default function PostDetailHeader({
     }
 
     if (isEditable) {
-      actions.push({
-        icon:
-          viewMode === 'edit' ? (
-            <Eye className="size-4" />
-          ) : (
-            <Pencil className="size-4" />
-          ),
-        id: 'toggle-view-mode',
-        label: viewMode === 'edit' ? translate('preview') : translate('edit'),
-        onSelect: () =>
-          onViewModeChange(viewMode === 'edit' ? 'preview' : 'edit'),
-      });
+      if (showViewModeToggle) {
+        actions.push({
+          icon:
+            viewMode === 'edit' ? (
+              <Eye className="size-4" />
+            ) : (
+              <Pencil className="size-4" />
+            ),
+          id: 'toggle-view-mode',
+          label: viewMode === 'edit' ? translate('preview') : translate('edit'),
+          onSelect: () =>
+            onViewModeChange(viewMode === 'edit' ? 'preview' : 'edit'),
+        });
+      }
 
       actions.push({
         icon: <Trash2 className="size-4" />,
@@ -246,6 +253,7 @@ export default function PostDetailHeader({
     onRepurpose,
     onViewModeChange,
     post,
+    showViewModeToggle,
     translate,
     viewMode,
   ]);
@@ -254,7 +262,7 @@ export default function PostDetailHeader({
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
         <p className="text-sm text-foreground/60">Post detail</p>
-        <h2 className="text-2xl font-bold">{getPostLabel(post)}</h2>
+        <Heading className="text-2xl font-bold">{getPostLabel(post)}</Heading>
       </div>
 
       <CollectionItemActions overflow={overflow} primary={primary} />

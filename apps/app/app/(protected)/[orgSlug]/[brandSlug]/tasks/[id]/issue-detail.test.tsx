@@ -75,7 +75,7 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 vi.mock('./issue-header', () => ({
-  default: ({ title }: { title: string }) => <h1>{title}</h1>,
+  default: ({ title }: { title: string }) => <h2>{title}</h2>,
 }));
 
 vi.mock('./issue-sidebar', () => ({
@@ -134,7 +134,10 @@ describe('IssueDetail', () => {
     });
 
     expect(
-      await screen.findByText('Ship shell-first loading'),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Ship shell-first loading',
+      }),
     ).toBeInTheDocument();
     expect(
       screen.queryByTestId('issue-detail-loading'),

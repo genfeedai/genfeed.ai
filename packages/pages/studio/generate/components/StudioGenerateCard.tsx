@@ -436,7 +436,6 @@ export default function StudioGenerateCard({
             </>
           ) : undefined
         }
-        label={job.prompt}
         metadata={job.modelKey || 'Auto'}
         typeLabel={label}
       />

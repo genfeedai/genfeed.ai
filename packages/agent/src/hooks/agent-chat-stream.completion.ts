@@ -11,10 +11,18 @@ import type {
   AgentThread,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { MappedSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import {
+  AgentApiDecodeError,
+  AgentApiRequestError,
+} from '@genfeedai/agent/services/agent-api-error';
+import {
+  type MappedSnapshotRunStatus,
+  readSnapshotRunError,
+} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 
 export type ResolveStreamFromMessagesDeps = {
   apiService: AgentApiService;
@@ -77,6 +85,60 @@ function readReplyScope(
   };
 }
 
+async function readPersistedRun(
+  pending: PendingStreamCompletion,
+  apiService: AgentApiService,
+): Promise<Pick<IWorkflowExecution, 'status' | 'error'> | null> {
+  if (!pending.runId) return null;
+  try {
+    return await apiService.getWorkflowExecution(pending.runId);
+  } catch (error) {
+    // Interactive agent workflows are hidden from the customer execution
+    // endpoint. Older servers serialize that absence as data:null; newer
+    // servers return 404. Neither response proves that the agent run failed.
+    const isMissingResource =
+      (error instanceof AgentApiRequestError && error.status === 404) ||
+      (error instanceof AgentApiDecodeError &&
+        error.cause instanceof TypeError &&
+        error.cause.message ===
+          'Invalid JSON:API document: expected resource data');
+    if (!isMissingResource) throw error;
+
+    // This fresh request independently authorizes access to the thread. Never
+    // infer completion from another run, cached UI state or a denied snapshot.
+    const snapshot = await apiService.getThreadSnapshot(pending.threadId);
+    if (snapshot?.threadId !== pending.threadId) throw error;
+    const actionRun = snapshot.uiActionRuns?.find(
+      (run) => run.runId === pending.runId,
+    );
+    const activeRun =
+      snapshot.activeRun?.runId === pending.runId ? snapshot.activeRun : null;
+    const status = activeRun?.status ?? actionRun?.status;
+    switch (status) {
+      case 'queued':
+      case 'pending':
+        return { status: WorkflowExecutionStatus.PENDING };
+      case 'running':
+      case 'awaiting_input':
+      case 'waiting_input':
+      case 'awaiting_confirmation':
+        return { status: WorkflowExecutionStatus.RUNNING };
+      case 'completed':
+        return { status: WorkflowExecutionStatus.COMPLETED };
+      case 'failed':
+        return {
+          error:
+            actionRun?.error ?? readSnapshotRunError(snapshot) ?? undefined,
+          status: WorkflowExecutionStatus.FAILED,
+        };
+      case 'cancelled':
+        return { status: WorkflowExecutionStatus.CANCELLED };
+      default:
+        throw error;
+    }
+  }
+}
+
 /**
  * Recovery path when the stream socket dies mid-run: poll messages until a
  * new assistant reply appears or the grace period expires.
@@ -114,7 +176,7 @@ export async function resolveStreamFromMessages(
       pending.requireRunId &&
       pending.runId &&
       hasExceededGracePeriod
-        ? await deps.apiService.getWorkflowExecution(pending.runId)
+        ? await readPersistedRun(pending, deps.apiService)
         : null;
     if (!deps.isCurrentPending(pending)) {
       return;
@@ -128,10 +190,9 @@ export async function resolveStreamFromMessages(
         return;
       }
 
-      const persistedExecution = pending.runId
-        ? (completedExecution ??
-          (await deps.apiService.getWorkflowExecution(pending.runId)))
-        : null;
+      const persistedExecution =
+        completedExecution ??
+        (await readPersistedRun(pending, deps.apiService));
       if (!deps.isCurrentPending(pending)) {
         return;
       }

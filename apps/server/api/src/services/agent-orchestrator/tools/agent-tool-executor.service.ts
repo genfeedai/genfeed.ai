@@ -82,6 +82,10 @@ import type {
   KnowledgeSelection,
   ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
+import {
+  type GenerationEntry,
+  parseGenerationEntry,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -125,6 +129,7 @@ export function agentToolCreditEstimate(
 }
 
 export interface ToolExecutionContext {
+  generationEntry?: GenerationEntry;
   isProactive?: boolean;
   /** Transient constraint issued by mutation authorization; stripped from incoming contexts. */
   proactiveTextDraftOnly?: true;
@@ -436,7 +441,12 @@ export class AgentToolExecutorService implements OnModuleInit {
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
     try {
       return await runWithActionOrigin(
-        resolveNestedActionOrigin(ActionOrigin.AGENT),
+        {
+          ...resolveNestedActionOrigin(ActionOrigin.AGENT),
+          ...(parseGenerationEntry(context.generationEntry)
+            ? { generationEntry: parseGenerationEntry(context.generationEntry) }
+            : {}),
+        },
         async () => {
           const definition = findAgentToolWorkflowDefinition(toolName);
           const { result } =

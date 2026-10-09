@@ -7,9 +7,11 @@ import type {
   IBrandAgentConfig,
   IHeyGen,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { HeyGen } from '@genfeedai/models/integrations/heygen.model';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
+import type { AxiosRequestConfig } from 'axios';
 
 /**
  * HeyGen Service - For fetching avatars/voices and generating avatar videos
@@ -29,20 +31,30 @@ export class HeyGenService extends BaseService<IHeyGen> {
   }
 
   async fetchAvatars(signal?: AbortSignal): Promise<HeyGenCatalogAvatar[]> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [500, 502, 503, 504],
+      signal,
+    };
     const response = await this.instance.get<{
       data: { attributes: { avatars: HeyGenCatalogAvatar[] } };
-    }>(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/avatars`, {
-      signal,
-    });
+    }>(
+      `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/avatars`,
+      config,
+    );
     return response.data.data.attributes.avatars;
   }
 
   async fetchVoices(signal?: AbortSignal): Promise<HeyGenCatalogVoice[]> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [500, 502, 503, 504],
+      signal,
+    };
     const response = await this.instance.get<{
       data: { attributes: { voices: HeyGenCatalogVoice[] } };
-    }>(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/voices`, {
-      signal,
-    });
+    }>(
+      `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/voices`,
+      config,
+    );
     return response.data.data.attributes.voices;
   }
 

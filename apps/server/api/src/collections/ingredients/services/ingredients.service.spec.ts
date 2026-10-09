@@ -1,3 +1,4 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -5,6 +6,7 @@ import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ActionOrigin,
   AssetScope,
   FleetReviewStatus,
   IngredientCategory,
@@ -12,6 +14,10 @@ import {
   IngredientStatus,
   LibraryShelf,
 } from '@genfeedai/contracts';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -100,6 +106,98 @@ describe('IngredientsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('persists server-captured entry with generated placeholders and preserves it through completion', async () => {
+    const generationEntry = {
+      channel: GenerationEntryChannel.MCP,
+      attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+    };
+    await runWithActionOrigin(
+      { origin: ActionOrigin.MCP, generationEntry },
+      () =>
+        service.create({
+          brandId,
+          category: IngredientCategory.IMAGE,
+          origin: IngredientOrigin.GENERATED,
+          status: IngredientStatus.PROCESSING,
+          providerData: {
+            compiler: 'v1',
+            generationEntry: { channel: 'spoof' },
+          },
+        }),
+    );
+    expect(ingredientDelegate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          providerData: { compiler: 'v1', generationEntry },
+        }),
+      }),
+    );
+    ingredientDelegate.findFirst.mockResolvedValue({
+      ...mockIngredient,
+      providerData: { generationEntry },
+    });
+    await service.patch(ingredientId, { providerData: { completed: true } });
+    expect(ingredientDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          providerData: { completed: true, generationEntry },
+        }),
+      }),
+    );
+  });
+
+  it('preserves each asset entry during bulk metadata replacement under its organization', async () => {
+    const web = {
+      channel: GenerationEntryChannel.WEB,
+      attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+    };
+    const api = {
+      channel: GenerationEntryChannel.API,
+      attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+    };
+    ingredientDelegate.findMany.mockResolvedValue([
+      {
+        ...mockIngredient,
+        id: 'asset-web',
+        providerData: { generationEntry: web },
+      },
+      {
+        ...mockIngredient,
+        id: 'asset-api',
+        providerData: { generationEntry: api },
+      },
+      { ...mockIngredient, id: 'asset-legacy', providerData: {} },
+    ]);
+    ingredientDelegate.updateMany.mockResolvedValue({ count: 1 });
+    const result = await runWithTenantContext({ organizationId }, () =>
+      service.patchAll(
+        { brandId },
+        { providerData: { completed: true, generationEntry: api } },
+      ),
+    );
+    expect(result).toEqual({ modifiedCount: 3 });
+    for (const [id, entry] of [
+      ['asset-web', web],
+      ['asset-api', api],
+      ['asset-legacy', undefined],
+    ] as const) {
+      expect(ingredientDelegate.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          id,
+          organizationId,
+          isDeleted: false,
+          AND: [expect.objectContaining({ brandId })],
+        }),
+        data: expect.objectContaining({
+          providerData: {
+            completed: true,
+            ...(entry ? { generationEntry: entry } : {}),
+          },
+        }),
+      });
+    }
   });
 
   describe('create', () => {

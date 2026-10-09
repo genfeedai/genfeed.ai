@@ -1,5 +1,19 @@
+import {
+  getActionOriginContext,
+  runWithActionOrigin,
+} from '@api/action-origin/action-origin.context';
+import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
+import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
-import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  AgentAutonomyMode,
+  AgentMessageRole,
+} from '@genfeedai/contracts';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup(source = 'proactive', priorMessageCount = 0) {
@@ -39,6 +53,13 @@ function setup(source = 'proactive', priorMessageCount = 0) {
     tryHandleRecurringTaskDraftTurnStream: vi.fn().mockResolvedValue(false),
   };
   const stream = { runStreamLoop: vi.fn().mockResolvedValue(undefined) };
+  const actions = new Map<string, SystemWorkflowActionExecutor>();
+  const workflows = {
+    registerAction: vi.fn(
+      (id: string, executor: SystemWorkflowActionExecutor) =>
+        actions.set(id, executor),
+    ),
+  };
   const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
     prisma,
     { findOne: vi.fn().mockResolvedValue({}) },
@@ -74,7 +95,7 @@ function setup(source = 'proactive', priorMessageCount = 0) {
       ),
     },
     { upsertBinding: vi.fn() },
-    {},
+    workflows,
   ]) as AgentTurnWorkflowExecutionService;
   return {
     service,
@@ -84,6 +105,7 @@ function setup(source = 'proactive', priorMessageCount = 0) {
     recurring,
     stream,
     context,
+    actions,
   };
 }
 const workflowContext = {
@@ -142,6 +164,93 @@ describe('trusted proactive turn limits and memory routing', () => {
       ),
     ).rejects.toThrow('unsupported');
   });
+  it('projects the persisted invocation entry into execution and rejects malformed labels', async () => {
+    const { service, stream } = setup();
+    const generationEntry = {
+      channel: GenerationEntryChannel.DESKTOP,
+      attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+    };
+    const prepared = await service.prepare(
+      { ...request, generationEntry },
+      workflowContext,
+    );
+    expect(prepared.state.request.generationEntry).toEqual(generationEntry);
+    await service.execute(prepared.state);
+    expect(stream.runStreamLoop.mock.calls[0][0]).toMatchObject({
+      generationEntry,
+    });
+    const legacy = await service.prepare(request, workflowContext);
+    expect(legacy.state.request).not.toHaveProperty('generationEntry');
+    const malformed = await service.prepare(
+      {
+        ...request,
+        generationEntry: { channel: 'desktop', attribution: 'server_verified' },
+      },
+      workflowContext,
+    );
+    expect(malformed.state.request).not.toHaveProperty('generationEntry');
+  });
+
+  it('restores the queued entry at the worker boundary while retaining the proven actor', async () => {
+    const { service, actions } = setup();
+    const generationEntry = {
+      channel: GenerationEntryChannel.DESKTOP,
+      attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+    };
+    const prepared = await service.prepare(
+      { ...request, generationEntry },
+      workflowContext,
+    );
+    service.onModuleInit();
+    vi.spyOn(service, 'execute').mockImplementationOnce(async (state) => {
+      expect(getActionOriginContext()).toEqual({
+        origin: ActionOrigin.API,
+        actorUserId: 'actor',
+        apiKeyId: 'key',
+        generationEntry,
+      });
+      return {
+        artifactReferences: [],
+        artifactVersionPinIds: [],
+        content: 'done',
+        creditsUsed: 0,
+        model: null,
+        summary: 'done',
+        threadId: state.threadId,
+      };
+    });
+    const infer = actions.get(AGENT_RUNTIME_ACTION_IDS.TURN_INFER);
+    if (!infer) throw new Error('Missing inference worker action');
+    await runWithActionOrigin(
+      {
+        origin: ActionOrigin.API,
+        actorUserId: 'actor',
+        apiKeyId: 'key',
+        generationEntry: {
+          channel: GenerationEntryChannel.API,
+          attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+        },
+      },
+      () =>
+        infer({
+          context: {
+            organizationId: 'org',
+            runId: 'run',
+            userId: 'user',
+            workflowId: 'workflow',
+            workflowVersionId: 'version',
+          },
+          input: { state: prepared.state },
+          provenance: {
+            executionId: 'run',
+            workflowId: 'workflow',
+            workflowLabel: 'Agent',
+          },
+        }),
+    );
+    expect(service.execute).toHaveBeenCalledOnce();
+  });
+
   it('requires trusted execution provenance and strategy scope', async () => {
     const { service, prisma } = setup('api');
     await expect(service.prepare(request, workflowContext)).rejects.toThrow(

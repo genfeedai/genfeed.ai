@@ -123,8 +123,61 @@ function handleTrackedCtaClick(event: Event): void {
   }
 }
 
-/** Signed previews carry a bearer token and are excluded from marketing analytics. */
-const protectArticlePreviews: BeforeSendFn = (event) => {
+const SENSITIVE_QUERY_PATTERN =
+  /(?:[?&#]|%3f|%26|%23)(?:ref|previewToken)(?:=|%3d)/i;
+const MAX_PROPERTY_DEPTH = 6;
+
+function scrubWebsiteAnalyticsValue(value: unknown, depth = 0): unknown {
+  if (typeof value === 'string') {
+    if (!/^(?:https?:\/\/|\/)/i.test(value)) {
+      return SENSITIVE_QUERY_PATTERN.test(value) ? undefined : value;
+    }
+    try {
+      const url = new URL(value, window.location.origin);
+      let changed = false;
+      for (const key of Array.from(url.searchParams.keys())) {
+        if (
+          /^(?:ref|previewToken)$/i.test(key) ||
+          url.searchParams
+            .getAll(key)
+            .some((item) => SENSITIVE_QUERY_PATTERN.test(item))
+        ) {
+          url.searchParams.delete(key);
+          changed = true;
+        }
+      }
+      if (SENSITIVE_QUERY_PATTERN.test(url.hash)) {
+        url.hash = '';
+        changed = true;
+      }
+      if (!changed) return value;
+      return value.startsWith('/') && !value.startsWith('//')
+        ? `${url.pathname}${url.search}${url.hash}`
+        : url.toString();
+    } catch {
+      return SENSITIVE_QUERY_PATTERN.test(value) ? undefined : value;
+    }
+  }
+  if (value === null || typeof value !== 'object') return value;
+  if (Object.prototype.toString.call(value) === '[object Date]') return value;
+  if (depth >= MAX_PROPERTY_DEPTH) return undefined;
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => {
+      const scrubbed = scrubWebsiteAnalyticsValue(item, depth + 1);
+      return scrubbed === undefined ? [] : [scrubbed];
+    });
+  }
+  const scrubbed: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (/^(?:ref|previewToken)$/i.test(key)) continue;
+    const safeValue = scrubWebsiteAnalyticsValue(item, depth + 1);
+    if (safeValue !== undefined) scrubbed[key] = safeValue;
+  }
+  return scrubbed;
+}
+
+/** Exclude signed previews and keep referral credentials out of SDK URL properties. */
+const protectWebsiteAnalytics: BeforeSendFn = (event) => {
   if (!event) return event;
   if (new URLSearchParams(window.location.search).has('previewToken'))
     return null;
@@ -136,18 +189,16 @@ const protectArticlePreviews: BeforeSendFn = (event) => {
       /* Ignore a malformed SDK URL. */
     }
   }
-  for (const key of ['$referrer', '$initial_referrer']) {
-    const value = event.properties?.[key];
-    if (typeof value !== 'string') continue;
-    try {
-      const url = new URL(value);
-      if (url.searchParams.has('previewToken')) {
-        url.searchParams.delete('previewToken');
-        event.properties[key] = url.toString();
-      }
-    } catch {
-      /* Not an absolute referrer URL. */
-    }
+  event.properties = scrubWebsiteAnalyticsValue(
+    event.properties,
+  ) as typeof event.properties;
+  if (event.$set) {
+    event.$set = scrubWebsiteAnalyticsValue(event.$set) as typeof event.$set;
+  }
+  if (event.$set_once) {
+    event.$set_once = scrubWebsiteAnalyticsValue(
+      event.$set_once,
+    ) as typeof event.$set_once;
   }
   return event;
 };
@@ -158,7 +209,10 @@ function loadWebsiteAnalyticsSdk(): void {
     .then(({ default: posthog }) => {
       posthog.init(POSTHOG_KEY as string, {
         api_host: POSTHOG_HOST,
-        before_send: protectArticlePreviews,
+        before_send: protectWebsiteAnalytics,
+        // Flags requests bypass before_send and include the unsanitized page
+        // context. This site uses no flags; capture/vitals are configured here.
+        advanced_disable_flags: true,
         // Capture every semantic navigation/action control while avoiding
         // form values and copied text. Explicit CTA events below add the
         // stable conversion taxonomy on top of this journey-level signal.

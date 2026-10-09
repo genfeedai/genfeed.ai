@@ -27,9 +27,9 @@ import {
 } from './app-layout.utils';
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
-/** Window chrome: one 32px control with equal 4px padding on each side. */
+/** Window chrome: one 32px control with equal 8px padding on each side. */
 const SHELL_CONTROL_SIZE = 32;
-const SHELL_CONTROL_INSET = 4;
+const SHELL_CONTROL_INSET = 8;
 export const APP_RAIL_WIDTH = SHELL_CONTROL_SIZE + SHELL_CONTROL_INSET * 2;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 /** Window-left edge to just past the macOS traffic lights (see main.ts). */

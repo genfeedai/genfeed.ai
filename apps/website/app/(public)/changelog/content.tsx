@@ -116,7 +116,7 @@ function ReleaseEntry({ release }: { release: Release }) {
  */
 export default function ChangelogContent({ releases }: ChangelogProps) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-20">
+    <div className="mx-auto max-w-3xl px-6 py-20">
       <header className="space-y-3 pb-10">
         <h1 className="text-4xl font-semibold tracking-tight">Changelog</h1>
         <p className="text-muted-foreground">What's new in Genfeed.</p>
@@ -126,6 +126,6 @@ export default function ChangelogContent({ releases }: ChangelogProps) {
           <ReleaseEntry key={release.tag} release={release} />
         ))}
       </div>
-    </main>
+    </div>
   );
 }

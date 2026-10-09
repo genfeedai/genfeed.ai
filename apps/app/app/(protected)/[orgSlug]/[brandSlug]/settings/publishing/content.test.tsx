@@ -1,5 +1,12 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { CardProps } from '@genfeedai/props/ui/ui.props';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 // ReactNode used by Select mock
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   findAllSets: vi.fn(),
   getBrandsService: vi.fn(),
   getCredentialsService: vi.fn(),
+  getNotificationsService: vi.fn(),
   getPostingSetsService: vi.fn(),
   getPublishingContext: vi.fn(),
   loggerError: vi.fn(),
@@ -97,10 +105,7 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({
-      error: mocks.error,
-      success: mocks.success,
-    }),
+    getInstance: mocks.getNotificationsService,
   },
 }));
 
@@ -128,10 +133,16 @@ vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
-  }: {
-    children?: ReactNode;
-    className?: string;
-  }) => <section className={className}>{children}</section>,
+    label,
+    labelAs: LabelTag = 'h3',
+    description,
+  }: CardProps) => (
+    <section className={className}>
+      {label ? <LabelTag>{label}</LabelTag> : null}
+      {description ? <p>{description}</p> : null}
+      {children}
+    </section>
+  ),
 }));
 
 vi.mock('@ui/loading/default/Loading', () => ({
@@ -256,6 +267,10 @@ vi.mock('@ui/primitives/switch', () => ({
 describe('BrandSettingsPublishingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getNotificationsService.mockReturnValue({
+      error: mocks.error,
+      success: mocks.success,
+    });
     mocks.brandDetail = {
       brand: {
         agentConfig: {
@@ -295,6 +310,25 @@ describe('BrandSettingsPublishingPage', () => {
     mocks.getPostingSetsService.mockResolvedValue(mocks.postingSetsService);
     mocks.createRss.mockResolvedValue({ id: 'rss-1' });
     mocks.rssSources = [];
+  });
+
+  it('uses Publishing defaults as its only primary heading and keeps section headings', async () => {
+    render(<BrandSettingsPublishingPage />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Publishing defaults' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    for (const name of [
+      'Posting sets',
+      'RSS sources',
+      'Connected account readiness',
+    ]) {
+      expect(screen.getByRole('heading', { level: 3, name })).toBeVisible();
+    }
+    await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
+    expect(mocks.updateAgentConfig).not.toHaveBeenCalled();
+    expect(mocks.createRss).not.toHaveBeenCalled();
   });
 
   it('loads publishing defaults and saves schedule/autopublish settings', async () => {
@@ -649,6 +683,60 @@ describe('BrandSettingsPublishingPage', () => {
         timezone: 'Europe/Malta',
       });
     });
+  });
+
+  it.each([
+    { isCancelled: true, silent: true },
+    Object.assign(new Error('Aborted request'), { name: 'AbortError' }),
+  ])('keeps cancelled posting-set loads silent: %j', async (error) => {
+    mocks.findAllSets.mockRejectedValue(error);
+    render(<BrandSettingsPublishingPage />);
+
+    await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText(
+        'No posting sets yet. Create one from connected accounts below.',
+      ),
+    ).toBeVisible();
+    expect(mocks.loggerError).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
+    expect(screen.queryByText('Loading posting sets…')).not.toBeInTheDocument();
+  });
+
+  it('ignores a stale posting-set failure after navigation aborts its signal', async () => {
+    let rejectLoad: ((error: Error) => void) | undefined;
+    mocks.findAllSets.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectLoad = reject;
+      }),
+    );
+    const view = render(<BrandSettingsPublishingPage />);
+    await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
+    const signal = mocks.findAllSets.mock.calls[0]?.[1] as AbortSignal;
+    expect(signal.aborted).toBe(false);
+
+    view.unmount();
+    expect(signal.aborted).toBe(true);
+    await act(async () => rejectLoad?.(new Error('Late request failure')));
+
+    expect(mocks.loggerError).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
+
+  it('still reports genuine active posting-set loading failures', async () => {
+    const error = new Error('Posting sets unavailable');
+    mocks.findAllSets.mockRejectedValue(error);
+    render(<BrandSettingsPublishingPage />);
+
+    await waitFor(() =>
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        'Failed to load posting sets',
+        error,
+      ),
+    );
+    expect(mocks.error).toHaveBeenCalledWith('Failed to load posting sets');
+    expect(mocks.findAllSets.mock.calls[0]?.[1].aborted).toBe(false);
+    expect(screen.queryByText('Loading posting sets…')).not.toBeInTheDocument();
   });
 
   it('renders the no-connected-account state', () => {

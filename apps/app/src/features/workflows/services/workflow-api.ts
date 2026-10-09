@@ -12,6 +12,7 @@ import {
 } from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import type {
@@ -387,7 +388,11 @@ export class WorkflowApiService extends HTTPBaseService {
 
       return response.data as ExecutionResult;
     } catch (error) {
-      logger.error('Failed to get execution', { error, executionId });
+      if (getJsonApiErrorMember(error)?.status === 404) {
+        logger.warn('Execution not found', { executionId, status: 404 });
+      } else {
+        logger.error('Failed to get execution', { error, executionId });
+      }
       throw error;
     }
   }

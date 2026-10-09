@@ -16,6 +16,7 @@ describe('usePostsLayout', () => {
     expect(() => {
       result.current.setExportNode(null);
       result.current.setFiltersNode(null);
+      result.current.setLeadingNode(null);
       result.current.setIsRefreshing(true);
       result.current.setRefresh(() => undefined);
       result.current.setScheduleActionsNode(null);
@@ -27,6 +28,7 @@ describe('usePostsLayout', () => {
     const value = {
       setExportNode: vi.fn(),
       setFiltersNode: vi.fn(),
+      setLeadingNode: vi.fn(),
       setIsRefreshing: vi.fn(),
       setRefresh: vi.fn(),
       setScheduleActionsNode: vi.fn(),

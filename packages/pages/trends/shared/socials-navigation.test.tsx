@@ -4,7 +4,13 @@ import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const scope = vi.hoisted(() => ({ prefix: '/workspace-a/brand-a' }));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `${scope.prefix}${path}` }),
+}));
 
 vi.mock('next/link', () => ({
   default: ({
@@ -36,43 +42,57 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('SocialsNavigation', () => {
+  beforeEach(() => {
+    scope.prefix = '/workspace-a/brand-a';
+  });
+
+  it('preserves a different workspace and brand for every platform link', () => {
+    scope.prefix = '/workspace-b/brand-b';
+    render(<SocialsNavigation active="youtube" />);
+
+    for (const link of screen.getAllByRole('link')) {
+      expect(link.getAttribute('href')).toMatch(
+        /^\/workspace-b\/brand-b\/discovery\/trends/,
+      );
+    }
+  });
   it('links every platform to its Discovery trends drilldown', () => {
     render(<SocialsNavigation active="overview" />);
 
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'href',
-      '/discovery/trends',
+      '/workspace-a/brand-a/discovery/trends',
     );
     expect(
       screen.queryByRole('link', { name: 'Following' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/twitter',
+      '/workspace-a/brand-a/discovery/trends/platforms/twitter',
     );
     expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/instagram',
+      '/workspace-a/brand-a/discovery/trends/platforms/instagram',
     );
     expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/youtube',
+      '/workspace-a/brand-a/discovery/trends/platforms/youtube',
     );
     expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/tiktok',
+      '/workspace-a/brand-a/discovery/trends/platforms/tiktok',
     );
     expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/linkedin',
+      '/workspace-a/brand-a/discovery/trends/platforms/linkedin',
     );
     expect(screen.getByRole('link', { name: 'Reddit' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/reddit',
+      '/workspace-a/brand-a/discovery/trends/platforms/reddit',
     );
     expect(screen.getByRole('link', { name: 'Pinterest' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/pinterest',
+      '/workspace-a/brand-a/discovery/trends/platforms/pinterest',
     );
   });
 

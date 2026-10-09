@@ -153,7 +153,7 @@ describe('Container', () => {
     ).toBe(`${pinned.offsetHeight}px`);
   });
 
-  it('keeps Help beside Refresh in the trailing ghost cluster', () => {
+  it('places Help and Refresh before the filters in the right cluster', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
@@ -172,6 +172,11 @@ describe('Container', () => {
     const help = screen.getByTestId('section-topbar-help');
     const refresh = screen.getByRole('button', { name: 'Refresh' });
     const headerActions = screen.getByTestId('container-header-actions');
+    expect(
+      refresh.compareDocumentPosition(
+        screen.getByRole('button', { name: 'Filter' }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     expect(actions).toHaveClass('justify-end');
     expect(screen.getByTestId('section-topbar-icon-actions')).toContainElement(

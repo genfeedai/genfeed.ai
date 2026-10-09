@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 export default function Modal({
   id,
   title,
+  accessibleTitle,
   children,
   isFullScreen = false,
   isError = false,
@@ -75,7 +76,9 @@ export default function Modal({
       >
         {!title && !error && (
           <CompoundModal.Header className="sr-only">
-            <CompoundModal.Title>Dialog</CompoundModal.Title>
+            <CompoundModal.Title>
+              {accessibleTitle ?? 'Dialog'}
+            </CompoundModal.Title>
           </CompoundModal.Header>
         )}
 

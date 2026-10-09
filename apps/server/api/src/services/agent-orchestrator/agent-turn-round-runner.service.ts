@@ -951,6 +951,7 @@ export class AgentTurnRoundRunnerService {
       creditGovernance: policy.creditGovernance,
       generationModelOverride: policy.generationModelOverride,
       generationMode: context.generationMode,
+      generationEntry: context.generationEntry,
       generationPriority,
       generationSettings: context.generationSettings,
       knowledgeSelection: context.knowledgeSelection,

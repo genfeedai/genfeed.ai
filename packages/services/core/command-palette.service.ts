@@ -197,8 +197,8 @@ class CommandPaletteServiceClass {
       }
     });
 
-    // Priority bonus
-    if (command.priority) {
+    // Priority ranks matching commands; it must not create a search match.
+    if (score > 0 && command.priority) {
       score += command.priority;
     }
 

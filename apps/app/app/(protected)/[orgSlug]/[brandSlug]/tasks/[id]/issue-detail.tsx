@@ -267,7 +267,7 @@ export default function IssueDetail({
   }, []);
 
   return (
-    <Container>
+    <Container label={issue?.title || 'Issue'}>
       <div className="mb-4">
         <Link
           href={href(APP_ROUTES.WORKSPACE.TASKS)}

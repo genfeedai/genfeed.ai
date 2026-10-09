@@ -108,6 +108,38 @@ describe('ExecutionDetailPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows the missing-run state for a JSON:API 404 and keeps the history link', async () => {
+    mocks.getExecution.mockRejectedValue({
+      errors: [{ status: '404', detail: 'Execution not found' }],
+    });
+    render(<ExecutionDetailPage executionId="missing-exec" />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Execution Not Found' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Back to History' }),
+    ).toHaveAttribute('href', '/demo/FUDNEWS/automation/runs');
+    expect(
+      screen.queryByText('Invalid JSON:API document: expected resource data'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps permission denial visible rather than calling the run missing', async () => {
+    mocks.getExecution.mockRejectedValue({
+      errors: [{ status: '403', detail: 'Access denied' }],
+    });
+    render(<ExecutionDetailPage executionId="denied-exec" />);
+
+    expect(await screen.findByText('Access denied')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Execution Failed To Load' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Execution Not Found' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the execution header once the run has loaded', async () => {
     render(<ExecutionDetailPage executionId="exec-1" />);
 

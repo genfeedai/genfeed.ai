@@ -186,6 +186,9 @@ function AppRailMoreRow({
         className={cn(
           'flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+          isActive
+            ? 'bg-foreground/[0.12] text-foreground'
+            : 'hover:bg-foreground/[0.06] hover:text-foreground',
           item.isLocked && 'opacity-60',
         )}
       >
@@ -250,6 +253,10 @@ function AppRailMore({
   pinnedAppIds: readonly string[];
 }) {
   const t = useTranslations('common.appRail');
+  const isActive = items.some(
+    (item) =>
+      item.app.id === activeAppId && !pinnedAppIds.includes(item.app.id),
+  );
   const overflowCount = items.reduce((sum, item) => {
     if (pinnedAppIds.includes(item.app.id)) return sum;
     const badge = badges?.[item.app.id];
@@ -260,11 +267,13 @@ function AppRailMore({
     <Popover>
       <PopoverTrigger
         aria-label={t('more')}
-        data-active="false"
+        data-active={isActive}
         data-testid="app-rail-more"
         className={cn(
-          'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
-          'hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground',
+          'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
+          isActive
+            ? 'bg-foreground/[0.12] text-foreground'
+            : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
         )}
       >
@@ -291,7 +300,10 @@ function AppRailMore({
             <AppRailMoreRow
               key={item.app.id}
               badge={badges?.[item.app.id]}
-              isActive={item.app.id === activeAppId}
+              isActive={
+                item.app.id === activeAppId &&
+                !pinnedAppIds.includes(item.app.id)
+              }
               isPinned={pinnedAppIds.includes(item.app.id)}
               item={item}
               onNavigateStart={() => onNavigateStart(item)}
@@ -424,7 +436,7 @@ export function AppRail({
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
       <nav
         aria-label={t('apps')}
-        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-1 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
+        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
         data-testid="app-rail"
       >
         {header ? (

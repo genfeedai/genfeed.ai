@@ -173,22 +173,32 @@ describe('IngredientsMediaGrid', () => {
     expect(screen.queryByText('Generated')).not.toBeInTheDocument();
   });
 
-  it('deals tiles across columns left to right so newest-first order reads across', () => {
+  it('keeps mixed formats in source order inside the shared masonry', () => {
     const { container } = render(
       <IngredientsMediaGrid {...baseProps} items={items} />,
     );
 
-    const columns = container.querySelectorAll<HTMLElement>(
-      '[data-masonry-column]',
-    );
-
-    expect(columns).toHaveLength(5);
-    expect(columns[0]).toContainElement(
+    const masonry = container.querySelector('[data-masonry-layout="ordered"]');
+    expect(masonry).toBeInTheDocument();
+    expect(masonry).toHaveStyle({ gap: '8px', width: '100%' });
+    const tiles = masonry?.querySelectorAll('[data-masonry-item]');
+    expect(tiles).toHaveLength(2);
+    expect(tiles?.[0]).toContainElement(
       screen.getByTestId('image-tile-image-1'),
     );
-    expect(columns[1]).toContainElement(
+    expect(tiles?.[1]).toContainElement(
       screen.getByTestId('video-tile-video-1'),
     );
+  });
+
+  it('uses the same masonry spacing while assets are loading', () => {
+    const { container } = render(
+      <IngredientsMediaGrid {...baseProps} isLoading />,
+    );
+    const masonry = container.querySelector('[data-masonry-layout="ordered"]');
+    expect(masonry).toHaveStyle({ gap: '8px' });
+    expect(masonry?.querySelectorAll('[data-masonry-item]')).toHaveLength(12);
+    expect(screen.queryByText('No assets found')).not.toBeInTheDocument();
   });
 
   it('reports selection toggles from a tile', () => {

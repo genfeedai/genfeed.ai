@@ -512,6 +512,7 @@ const UI_TEST_MESSAGES = {
   },
   pages: {
     library: {
+      scrollTable: 'Scroll table horizontally',
       recovery: {
         actions: {
           retry: 'Retry',

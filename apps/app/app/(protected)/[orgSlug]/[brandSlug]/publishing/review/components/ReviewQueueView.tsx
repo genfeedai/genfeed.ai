@@ -10,6 +10,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import { buildPostsHrefFromApprovalQueue } from '@pages/posts/library/approval-queue-links.helpers';
 import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
+import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
@@ -196,7 +197,10 @@ export default function ReviewQueueView({
         variant={CardVariant.DEFAULT}
         icon={TriangleAlert}
         label="Unable to load the review queue"
-        description="The review batches response was invalid or failed to load. Refresh the page and check the batches API."
+        description={getJsonApiErrorMessage(
+          batchesError,
+          'The review batches response was invalid or failed to load. Refresh the page and check the batches API.',
+        )}
         bodyClassName="items-center py-12 text-center"
         iconWrapperClassName="bg-destructive/10 text-destructive"
         className="max-w-xl mx-auto"

@@ -1,8 +1,34 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { LayoutDashboard } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
+import { ANALYTICS_MENU_ITEMS } from './analytics-menu-items.config';
+import { AUTOMATION_MENU_ITEMS } from './automation-menu-items.config';
+import { DISCOVERY_MENU_ITEMS } from './discovery-menu-items.config';
+import { APP_MENU_ITEMS } from './menu-items.config';
+import { ORG_MENU_ITEMS } from './org-menu-items.config';
 import { PUBLISHING_MENU_ITEMS } from './publishing-menu-items.config';
 
 describe('PUBLISHING_MENU_ITEMS', () => {
+  it.each([
+    ['Workspace', APP_MENU_ITEMS, APP_ROUTES.WORKSPACE.OVERVIEW],
+    ['Publishing', PUBLISHING_MENU_ITEMS, APP_ROUTES.PUBLISHING.OVERVIEW],
+    ['Analytics', ANALYTICS_MENU_ITEMS, APP_ROUTES.ANALYTICS.OVERVIEW],
+    ['Automation', AUTOMATION_MENU_ITEMS, APP_ROUTES.AUTOMATION.OVERVIEW],
+    ['Discovery', DISCOVERY_MENU_ITEMS, APP_ROUTES.DISCOVERY.OVERVIEW],
+    ['Organization workspace', ORG_MENU_ITEMS, APP_ROUTES.WORKSPACE.OVERVIEW],
+  ] as const)(
+    '%s uses the shared Overview label and icon in both selection states',
+    (_module, items, href) => {
+      expect(items.find((item) => item.href === href)).toEqual(
+        expect.objectContaining({
+          label: 'Overview',
+          outline: LayoutDashboard,
+          solid: LayoutDashboard,
+        }),
+      );
+    },
+  );
+
   it('is non-empty', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });

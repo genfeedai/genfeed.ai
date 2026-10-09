@@ -45,7 +45,17 @@ export type GenerationSetupFieldSetter = <K extends GenerationSetupFieldKey>(
   value: GenerationSetupValues[K],
 ) => void;
 
+export interface GenerationSetupImageEditingMode {
+  isEnabled: boolean;
+  label: string;
+  onChange: (next: boolean) => void;
+}
+
 export interface GenerationSetupPopoverProps {
+  /** One compact entry point for Studio's type and settings. */
+  isIconOnly?: boolean;
+  /** Studio's explicit image editing override; other surfaces omit it. */
+  imageEditing?: GenerationSetupImageEditingMode;
   showEnhancementSettings?: boolean;
   align?: 'start' | 'center' | 'end';
   inputControls?: CrunInputControls;
@@ -92,6 +102,7 @@ export interface GenerationSetupAdvancedMode {
 }
 
 export interface GenerationSetupTriggerProps {
+  isIconOnly?: boolean;
   setup: GenerationSetup;
   typeOptions: readonly GenerationSetupTypeOption[];
   models: readonly IModel[];

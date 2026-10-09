@@ -222,6 +222,60 @@ describe('SkillsService', () => {
     });
     expect(resolved.map((entry) => entry.skill.id)).toEqual(['skill-1']);
   });
+  it.each([
+    {
+      modalities: ['multi', 'video', 'text'],
+      modality: 'image',
+      expected: false,
+    },
+    {
+      modalities: ['multi', 'video', 'text'],
+      modality: 'video',
+      expected: true,
+    },
+    {
+      modalities: ['multi', 'video', 'text'],
+      modality: 'text',
+      expected: true,
+    },
+    {
+      modalities: ['multi', 'video', 'text'],
+      modality: 'multi',
+      expected: true,
+    },
+    { modalities: ['multi'], modality: 'image', expected: true },
+    { modalities: ['image'], modality: 'image', expected: true },
+    { modalities: [], modality: 'image', expected: true },
+    {
+      modalities: ['multi', 'video', 'text'],
+      modality: undefined,
+      expected: true,
+    },
+  ])(
+    'resolves declared modalities $modalities for $modality: $expected',
+    async ({ modalities, modality, expected }) => {
+      prisma.brand.findFirst.mockResolvedValue({
+        agentConfig: {
+          enabledSkills: ['hook-writer'],
+          useDefaultSkills: false,
+        },
+        id: 'brand-1',
+      });
+      prisma.skill.findMany.mockResolvedValue([
+        makeSkillRow({ config: { ...makeSkillRow().config, modalities } }),
+      ]);
+
+      const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
+        modality,
+      });
+
+      expect(resolved.map((entry) => entry.skill.slug)).toEqual(
+        expected ? ['hook-writer'] : [],
+      );
+      expect(prisma.skill.update).not.toHaveBeenCalled();
+    },
+  );
+
   it('rejects provider-ineligible explicit selections', async () => {
     prisma.brand.findFirst.mockResolvedValue({
       agentConfig: { enabledSkills: [], useDefaultSkills: false },

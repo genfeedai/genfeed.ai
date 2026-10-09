@@ -8,6 +8,10 @@ import {
 } from '@genfeedai/contracts';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  getJsonApiErrorMember,
+  getJsonApiErrorMessage,
+} from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import {
@@ -21,6 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -116,13 +121,16 @@ export function WorkflowSurfaceInspector({
   searchParams,
   threadId,
 }: WorkflowSurfaceInspectorProps) {
+  const translate = useTranslations('pages.workflows.surfaceInspector');
   const selection = useMemo(
     () => resolveWorkflowSurfaceRoute(pathname, searchParams),
     [pathname, searchParams],
   );
   const [workflow, setWorkflow] = useState<CloudWorkflowData | null>(null);
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() =>
+    Boolean(selection.executionId || selection.workflowId),
+  );
   const [isResuming, setIsResuming] = useState(false);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +144,7 @@ export function WorkflowSurfaceInspector({
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
     const load = async (): Promise<void> => {
+      let isLoadingExecution = false;
       setIsLoading(true);
       setError(null);
 
@@ -145,9 +154,11 @@ export function WorkflowSurfaceInspector({
           return;
         }
 
+        isLoadingExecution = Boolean(selection.executionId);
         const nextExecution = selection.executionId
           ? await service.getExecution(selection.executionId)
           : null;
+        isLoadingExecution = false;
         if (controller.signal.aborted) {
           return;
         }
@@ -173,15 +184,21 @@ export function WorkflowSurfaceInspector({
         }
       } catch (cause) {
         if (!controller.signal.aborted) {
+          if (
+            isLoadingExecution &&
+            getJsonApiErrorMember(cause)?.status === 404
+          ) {
+            setExecution(null);
+            setWorkflow(null);
+            return;
+          }
           logger.error('Failed to load workflow inspector', {
             cause,
             executionId: selection.executionId,
             workflowId: selection.workflowId,
           });
           setError(
-            cause instanceof Error
-              ? cause.message
-              : 'Failed to load workflow context',
+            getJsonApiErrorMessage(cause, 'Failed to load workflow context'),
           );
         }
       } finally {
@@ -341,6 +358,19 @@ export function WorkflowSurfaceInspector({
         className="animate-pulse p-4 text-sm text-muted-foreground"
       >
         Loading workflow context…
+      </div>
+    );
+  }
+
+  if (!isLoading && !error && selection.executionId && !execution) {
+    return (
+      <div className="gen-shell-empty-state p-4">
+        <p className="text-sm font-medium text-foreground">
+          {translate('executionNotFound')}
+        </p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          {translate('executionNotFoundDescription')}
+        </p>
       </div>
     );
   }

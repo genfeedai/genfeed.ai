@@ -58,7 +58,9 @@ import { CalendarDays, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import PostsListToolbar from './components/PostsListToolbar';
+import PostsListToolbar, {
+  PostsListSearch,
+} from './components/PostsListToolbar';
 import {
   buildReleasePostsListQueryKey,
   RELEASE_POSTS_SORT_OPTIONS,
@@ -130,7 +132,8 @@ export default function ReleasePostsList({
   );
   const platform = normalizePostsPlatform(platformParam);
   const platformFilter = platform === 'all' ? undefined : platform;
-  const { setFiltersNode, setRefresh, setViewToggleNode } = usePostsLayout();
+  const { setLeadingNode, setFiltersNode, setRefresh, setViewToggleNode } =
+    usePostsLayout();
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const viewMode = parsePublishingPostsViewMode(
     searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW),
@@ -391,9 +394,18 @@ export default function ReleasePostsList({
   );
 
   useEffect(() => {
+    setLeadingNode(
+      isCalendar ? null : (
+        <PostsListSearch
+          searchValue={search}
+          onSearchChange={handleSearchChange}
+        />
+      ),
+    );
     setFiltersNode(
       isCalendar ? null : (
         <PostsListToolbar
+          showSearch={false}
           onSearchChange={handleSearchChange}
           onSortChange={(nextSort) =>
             replaceSearchParams((params) => {
@@ -411,13 +423,17 @@ export default function ReleasePostsList({
         />
       ),
     );
-    return () => setFiltersNode(null);
+    return () => {
+      setFiltersNode(null);
+      setLeadingNode(null);
+    };
   }, [
     handleSearchChange,
     isCalendar,
     replaceSearchParams,
     search,
     setFiltersNode,
+    setLeadingNode,
     sort,
   ]);
 

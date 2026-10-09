@@ -449,6 +449,7 @@ export default function BrandSettingsPublishingPage() {
     <div className="space-y-4">
       <Card
         label="Publishing defaults"
+        labelAs="h1"
         description="Recurring content generation cadence and auto-publish rules for this brand."
         bodyClassName="gap-3 p-4"
       >

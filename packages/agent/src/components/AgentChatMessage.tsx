@@ -8,7 +8,6 @@ import {
   AGENT_CONVERSATION_STICKY_USER_TURN_CLASS,
   AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
-import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentUiActionHandler,
@@ -60,6 +59,8 @@ interface AgentChatMessageProps {
   onSelectIngredient?: (ingredient: { id: string; title?: string }) => void;
   onUiAction?: AgentUiActionHandler;
   isBusy?: boolean;
+  /** Current response is still arriving; offer next steps once it settles. */
+  deferNextSteps?: boolean;
   /** Archived thread — strip mutating card actions and retry/regenerate. */
   isReadOnly?: boolean;
   messageAnchorId?: string;
@@ -67,28 +68,6 @@ interface AgentChatMessageProps {
   /** Only the user turn that owns the terminal failed run may be retried. */
   isRetryableUserPrompt?: boolean;
   onRemember?: (message: AgentChatMessageType) => void;
-}
-
-const ASSISTANT_TEXT_ANIMATION_WINDOW_MS = 15_000;
-
-function shouldAnimateAssistantMessageContent(
-  createdAt: string,
-  content: string,
-): boolean {
-  if (!content.trim()) {
-    return false;
-  }
-
-  if (content.includes('```')) {
-    return false;
-  }
-
-  const createdAtMs = new Date(createdAt).getTime();
-  if (Number.isNaN(createdAtMs)) {
-    return false;
-  }
-
-  return Date.now() - createdAtMs < ASSISTANT_TEXT_ANIMATION_WINDOW_MS;
 }
 
 function formatTime(dateStr: string): string {
@@ -110,6 +89,7 @@ function AgentChatMessageInner({
   onSelectIngredient,
   onUiAction,
   isBusy = false,
+  deferNextSteps = false,
   isReadOnly = false,
   messageAnchorId,
   isHighlighted = false,
@@ -159,7 +139,9 @@ function AgentChatMessageInner({
       (action) => action.type === 'completion_summary_card',
     ) ?? null;
   const supplementalUiActions = normalizedUiActions.filter(
-    (action) => action.type !== 'completion_summary_card',
+    (action) =>
+      action.type !== 'completion_summary_card' &&
+      !(deferNextSteps && action.type === 'next_steps_card'),
   );
   const turnHasProductResultCard = useMemo(
     () => hasProductResultCard(normalizedUiActions),
@@ -231,24 +213,6 @@ function AgentChatMessageInner({
   const metaItems = useMemo(() => {
     return [formatTime(message.createdAt)];
   }, [message.createdAt]);
-  const shouldAnimateAssistantText = useMemo(
-    () =>
-      !isUser &&
-      shouldRenderMessageContent &&
-      shouldAnimateAssistantMessageContent(message.createdAt, message.content),
-    [isUser, message.content, message.createdAt, shouldRenderMessageContent],
-  );
-  const {
-    displayedText: animatedMessageContent,
-    isAnimating: isMessageAnimating,
-  } = useAnimatedText(message.content, {
-    animate: shouldAnimateAssistantText,
-    charsPerTick: 1,
-    intervalMs: 10,
-  });
-  const visibleMessageContent = shouldAnimateAssistantText
-    ? animatedMessageContent
-    : message.content;
   const handleInsertGeneratedContent = useCallback(
     (content: string) => {
       void onUiAction?.('apply_to_draft', {
@@ -306,7 +270,7 @@ function AgentChatMessageInner({
                 )}
               >
                 <SafeMarkdown
-                  content={visibleMessageContent}
+                  content={message.content}
                   enhanceStructure={!isUser}
                   className={cn(
                     // min-w-0 + anywhere: long tokens / inline code must wrap inside
@@ -317,9 +281,6 @@ function AgentChatMessageInner({
                       : AGENT_ASSISTANT_PROSE_CLASS,
                   )}
                 />
-                {isMessageAnimating && !shouldTruncateContent ? (
-                  <span className="inline-block h-4 w-0.5 animate-pulse bg-current align-middle opacity-70" />
-                ) : null}
                 {!isExpanded && shouldTruncateContent && (
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-accent to-transparent" />
                 )}

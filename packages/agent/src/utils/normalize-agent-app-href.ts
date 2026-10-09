@@ -1,9 +1,14 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import {
+  APP_ROUTE_PREFIXES,
   APP_ROUTES,
+  createBrandAppRoute,
   createLibraryAssetRoute,
+  createOrganizationAppRoute,
   createPublishingPostsFilterRoute,
+  isPersonalSettingsPath,
   LIBRARY_ASSET_QUERY_KEY,
+  parseScopedAppPath,
 } from '@genfeedai/contracts/constants';
 
 const LEGACY_GALLERY_CATEGORY: Readonly<Record<string, IngredientCategory>> = {
@@ -14,6 +19,18 @@ const LEGACY_GALLERY_CATEGORY: Readonly<Record<string, IngredientCategory>> = {
   music: IngredientCategory.MUSIC,
   video: IngredientCategory.VIDEO,
   voice: IngredientCategory.VOICE,
+};
+
+const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
+  '/calendar': APP_ROUTES.PUBLISHING.CALENDAR,
+  '/calendar/posts': APP_ROUTES.PUBLISHING.CALENDAR,
+  '/drafts': createPublishingPostsFilterRoute({
+    publicationState: 'not-posted',
+  }),
+  '/content/posts': APP_ROUTES.PUBLISHING.POSTS,
+  '/content/articles': `${APP_ROUTES.PUBLISHING.POSTS}?type=article`,
+  '/overview': APP_ROUTES.WORKSPACE.OVERVIEW,
+  '/review': APP_ROUTES.PUBLISHING.REVIEW,
 };
 
 function appendHrefSuffix(route: string, suffix: string): string {
@@ -53,6 +70,7 @@ function normalizeLegacyGalleryHref(
  */
 export function normalizeAgentAppHref(
   href: string | undefined | null,
+  routeScope?: ReturnType<typeof parseScopedAppPath>,
 ): string | undefined {
   if (!href?.trim()) {
     return undefined;
@@ -63,44 +81,94 @@ export function normalizeAgentAppHref(
   const path = queryIndex === -1 ? trimmed : trimmed.slice(0, queryIndex);
   const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
 
+  if (path.startsWith('/') && !path.startsWith('//')) {
+    const isBareLegacy =
+      /^\/(?:content\/(?:posts|articles)(?:\/.+)?|overview|review|calendar(?:\/posts)?|drafts)$/.test(
+        path,
+      );
+    const explicitScope = isBareLegacy
+      ? { orgSlug: '', brandSlug: '' }
+      : parseScopedAppPath(path);
+    const appPath = explicitScope.orgSlug
+      ? `/${path.split('/').filter(Boolean).slice(2).join('/')}`
+      : path;
+    const orgSlug = explicitScope.orgSlug || routeScope?.orgSlug;
+    if (
+      appPath === APP_ROUTES.SETTINGS.ROOT ||
+      appPath.startsWith(`${APP_ROUTES.SETTINGS.ROOT}/`)
+    ) {
+      if (
+        isPersonalSettingsPath(appPath) &&
+        !(explicitScope.orgSlug && appPath === APP_ROUTES.SETTINGS.ROOT)
+      ) {
+        return `${appPath}${suffix}`;
+      }
+      if (explicitScope.orgSlug && appPath === APP_ROUTES.SETTINGS.ROOT) {
+        return trimmed;
+      }
+      if (orgSlug) {
+        const orgRoute = createOrganizationAppRoute(orgSlug, appPath);
+        const isBrandOnly = orgRoute !== `/${orgSlug}/~${appPath}`;
+        const brandSlug =
+          explicitScope.brandSlug ||
+          (routeScope?.orgSlug === orgSlug ? routeScope.brandSlug : undefined);
+        return `${isBrandOnly && brandSlug ? createBrandAppRoute(orgSlug, brandSlug, appPath) : orgRoute}${suffix}`;
+      }
+    }
+    const contentDetail = appPath.match(
+      /^\/content\/(?:posts|articles)\/(.+)$/,
+    );
+    const legacyContent =
+      LEGACY_INTERNAL_PATH_REWRITES[appPath] ??
+      (contentDetail
+        ? `${APP_ROUTES.PUBLISHING.POSTS}/${contentDetail[1]}`
+        : undefined);
+    if (legacyContent) {
+      const scope = explicitScope.orgSlug ? explicitScope : routeScope;
+      const destination = scope?.orgSlug
+        ? scope.brandSlug
+          ? createBrandAppRoute(scope.orgSlug, scope.brandSlug, legacyContent)
+          : createOrganizationAppRoute(scope.orgSlug, legacyContent)
+        : legacyContent;
+      return appendHrefSuffix(destination, suffix);
+    }
+    const firstSegment = path.split('/').filter(Boolean)[0];
+    const scopedRoots = [
+      APP_ROUTE_PREFIXES.AGENT,
+      APP_ROUTE_PREFIXES.WORKSPACE,
+      APP_ROUTE_PREFIXES.LIBRARY,
+      APP_ROUTE_PREFIXES.PUBLISHING,
+      APP_ROUTE_PREFIXES.ANALYTICS,
+      APP_ROUTE_PREFIXES.AUTOMATION,
+      APP_ROUTE_PREFIXES.DISCOVERY,
+      APP_ROUTE_PREFIXES.STUDIO,
+    ];
+    if (
+      !explicitScope.orgSlug &&
+      routeScope?.orgSlug &&
+      scopedRoots.some((root) => root === `/${firstSegment}`)
+    ) {
+      const isOrganizationSurface = firstSegment === 'agent';
+      return `${
+        !isOrganizationSurface && routeScope.brandSlug
+          ? createBrandAppRoute(routeScope.orgSlug, routeScope.brandSlug, path)
+          : createOrganizationAppRoute(routeScope.orgSlug, path)
+      }${suffix}`;
+    }
+  }
+
   const libraryHref = normalizeLegacyGalleryHref(path, suffix);
   if (libraryHref) {
+    if (path.startsWith('/g/') && routeScope?.orgSlug) {
+      return routeScope.brandSlug
+        ? createBrandAppRoute(
+            routeScope.orgSlug,
+            routeScope.brandSlug,
+            libraryHref,
+          )
+        : createOrganizationAppRoute(routeScope.orgSlug, libraryHref);
+    }
     return libraryHref;
-  }
-
-  // Bare legacy paths
-  if (path === '/review') {
-    return `${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
-  }
-  if (path === '/calendar' || path === '/calendar/posts') {
-    return suffix.startsWith('?')
-      ? `${APP_ROUTES.PUBLISHING.CALENDAR}&${suffix.slice(1)}`
-      : `${APP_ROUTES.PUBLISHING.CALENDAR}${suffix}`;
-  }
-  if (path === '/drafts') {
-    const destination = createPublishingPostsFilterRoute({
-      publicationState: 'not-posted',
-    });
-    return suffix.startsWith('?')
-      ? `${destination}&${suffix.slice(1)}`
-      : `${destination}${suffix}`;
-  }
-
-  // Already brand-scoped dead paths: /:org/:brand/review
-  const scopedReview = path.match(/^\/([^/]+)\/([^/]+)\/review$/);
-  if (scopedReview) {
-    const [, orgSlug, brandSlug] = scopedReview;
-    if (orgSlug && brandSlug && brandSlug !== '~') {
-      return `/${orgSlug}/${brandSlug}${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
-    }
-  }
-
-  const orgReview = path.match(/^\/([^/]+)\/~\/review$/);
-  if (orgReview) {
-    const [, orgSlug] = orgReview;
-    if (orgSlug) {
-      return `/${orgSlug}/~${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
-    }
   }
 
   return trimmed;

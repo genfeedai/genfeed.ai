@@ -382,6 +382,34 @@ async function openPopover(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('GenerationSetupPopover', () => {
+  it('offers an explicit editing switch inside the same setup picker', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const view = renderPopover({
+      isIconOnly: true,
+      imageEditing: { isEnabled: false, label: 'Edit image', onChange },
+    });
+    await openPopover(user);
+    const toggle = screen.getByRole('switch', { name: 'Edit image' });
+    expect(toggle).not.toBeChecked();
+    await user.click(toggle);
+    expect(onChange).toHaveBeenCalledWith(true);
+    view.rerender(
+      <GenerationSetupPopover
+        {...popoverProps({
+          isIconOnly: true,
+          imageEditing: { isEnabled: true, label: 'Edit image', onChange },
+        })}
+      />,
+    );
+    expect(screen.getByRole('switch', { name: 'Edit image' })).toBeChecked();
+    expect(
+      screen.getByRole('button', { name: 'Configure Model' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'Edit image' }));
+    expect(onChange).toHaveBeenLastCalledWith(false);
+  });
+
   it('opens enhancement preferences inside the same picker and preserves organization and brand writes', async () => {
     const user = userEvent.setup();
     harnessMocks.reads.mockClear();

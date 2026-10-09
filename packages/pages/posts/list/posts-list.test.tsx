@@ -10,6 +10,7 @@ vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 const replaceMock = vi.fn();
 const pushMock = vi.fn();
 const setFiltersNodeMock = vi.fn();
+const setLeadingNodeMock = vi.fn();
 const setRefreshMock = vi.fn();
 const setViewToggleNodeMock = vi.fn();
 const resourceRefreshMock = vi.fn();
@@ -103,6 +104,7 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
     setExportNode: vi.fn(),
     setFiltersNode: setFiltersNodeMock,
+    setLeadingNode: setLeadingNodeMock,
     setIsRefreshing: vi.fn(),
     setRefresh: setRefreshMock,
     setScheduleActionsNode: vi.fn(),
@@ -209,6 +211,7 @@ vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
 vi.mock('@pages/posts/list/components/PostsListToolbar', () => ({
   __esModule: true,
   default: () => <div>Posts toolbar</div>,
+  PostsListSearch: () => <input aria-label="Search posts" />,
 }));
 
 vi.mock('@ui/display/table/Table', () => ({
@@ -248,6 +251,7 @@ describe('PostsList', () => {
     pushMock.mockReset();
     replaceMock.mockReset();
     setFiltersNodeMock.mockReset();
+    setLeadingNodeMock.mockReset();
     setRefreshMock.mockReset();
     setViewToggleNodeMock.mockReset();
     resourceRefreshMock.mockReset();
@@ -276,6 +280,7 @@ describe('PostsList', () => {
 
     await waitFor(() => {
       expect(setFiltersNodeMock).toHaveBeenCalled();
+      expect(setLeadingNodeMock).toHaveBeenCalled();
     });
   });
 

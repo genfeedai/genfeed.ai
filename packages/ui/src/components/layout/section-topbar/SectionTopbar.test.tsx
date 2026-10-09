@@ -58,6 +58,50 @@ describe('SectionTopbar', () => {
     },
   );
 
+  it.each(['visible', 'sr-only'] as const)(
+    'defaults to search left and Help, ghosts, filters, primary order with %s titles',
+    (titleVisibility) => {
+      render(
+        <SectionTopbar
+          title="Publishing"
+          titleVisibility={titleVisibility}
+          leading={<input aria-label="Search posts" />}
+          help={{ title: 'About Publishing', body: 'Publishing help.' }}
+          iconActions={
+            <>
+              <button type="button">Ghost action</button>
+              <button type="button">Refresh</button>
+            </>
+          }
+          actions={
+            <>
+              <button type="button">Filter</button>
+              <button type="button">New post</button>
+            </>
+          }
+        />,
+      );
+      const search = screen.getByRole('textbox', { name: 'Search posts' });
+      expect(screen.getByTestId('section-topbar-leading')).toContainElement(
+        search,
+      );
+      const controls = [
+        search,
+        screen.getByRole('button', { name: 'About this page' }),
+        screen.getByRole('button', { name: 'Ghost action' }),
+        screen.getByRole('button', { name: 'Refresh' }),
+        screen.getByRole('button', { name: 'Filter' }),
+        screen.getByRole('button', { name: 'New post' }),
+      ];
+      for (let index = 1; index < controls.length; index++) {
+        expect(
+          controls[index - 1].compareDocumentPosition(controls[index]) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      }
+    },
+  );
+
   it('keeps semantic back navigation out of the tab slot', () => {
     render(
       <SectionTopbar
@@ -307,7 +351,7 @@ describe('SectionTopbar', () => {
     );
   });
 
-  it('clusters Help with ghost actions after the bordered controls', () => {
+  it('clusters Help and ghost actions before the bordered controls by default', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
@@ -323,6 +367,11 @@ describe('SectionTopbar', () => {
     const actions = screen.getByTestId('section-topbar-actions');
     const helpSlot = screen.getByTestId('section-topbar-help');
     const refresh = screen.getByRole('button', { name: 'Refresh' });
+    const filter = screen.getByRole('button', { name: 'Filter' });
+    expect(
+      refresh.compareDocumentPosition(filter) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     expect(actions).toHaveClass('justify-end');
     expect(

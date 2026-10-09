@@ -1,6 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import { TrendingHashtags, TrendingSounds } from '@ui/analytics/trends';
@@ -17,6 +19,7 @@ import TrendsPageHeader from './TrendsPageHeader';
 import { useDiscoveryTrends } from './useDiscoveryTrends';
 
 export default function DiscoveryTrends() {
+  const { href } = useOrgUrl();
   const translate = useTranslations('pages.analytics.trends.page');
   const discovery = useTranslations('ui.discovery');
   const {
@@ -61,7 +64,7 @@ export default function DiscoveryTrends() {
         tabs={<SocialsNavigation active="overview" />}
       />
 
-      <Container bodyClassName="space-y-8">
+      <Container bodyClassName="space-y-8" moduleChrome={false}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <fieldset className="flex gap-1" aria-label={discovery('relevance')}>
             {(
@@ -123,7 +126,7 @@ export default function DiscoveryTrends() {
               trendingTopics={trendingTopics}
               platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
               getRowLink={(item) => ({
-                href: `/discovery/trends/detail/${item.id}`,
+                href: href(`${APP_ROUTES.DISCOVERY.TRENDS}/detail/${item.id}`),
                 label: `Open ${item.topic}`,
               })}
             />

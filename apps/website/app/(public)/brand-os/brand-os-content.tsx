@@ -203,7 +203,7 @@ export default function BrandOSContent(): React.ReactElement {
 
   return (
     <MarketingEntrance cards={false}>
-      <main>
+      <div>
         {/* Hero */}
         <section className="border-b border-edge/5 bg-background py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto px-6">
@@ -601,7 +601,7 @@ export default function BrandOSContent(): React.ReactElement {
             </div>
           </div>
         </section>
-      </main>
+      </div>
       <HomeFooter />
     </MarketingEntrance>
   );

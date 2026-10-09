@@ -5,6 +5,12 @@ import {
   ActionOrigin,
   MCP_ACTION_ORIGIN_PROOF_HEADER,
 } from '@genfeedai/contracts';
+import {
+  GENERATION_ENTRY_HEADER,
+  type GenerationEntry,
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { ConfigService } from '@libs/config/config.service';
 import {
   type CallHandler,
@@ -31,12 +37,15 @@ export class ActionOriginInterceptor implements NestInterceptor {
       .switchToHttp()
       .getRequest<ActionOriginRequest>();
     const metadata = request.user;
+    const origin = this.resolveOrigin(request, metadata);
+    const generationEntry = this.resolveGenerationEntry(origin, request);
     const context = {
+      ...(generationEntry ? { generationEntry } : {}),
       ...(metadata?.apiKeyId ? { apiKeyId: metadata.apiKeyId } : {}),
       ...(metadata?.userId || metadata?.id
         ? { actorUserId: metadata.userId || metadata.id }
         : {}),
-      origin: this.resolveOrigin(request, metadata),
+      origin,
     };
     const observable = next.handle();
 
@@ -50,6 +59,34 @@ export class ActionOriginInterceptor implements NestInterceptor {
         return () => subscription.unsubscribe();
       }),
     );
+  }
+
+  private resolveGenerationEntry(
+    origin: ActionOrigin,
+    request: ActionOriginRequest,
+  ): GenerationEntry | undefined {
+    if (origin === ActionOrigin.MCP)
+      return {
+        channel: GenerationEntryChannel.MCP,
+        attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+      };
+    if (origin === ActionOrigin.API || origin === ActionOrigin.CLI)
+      return {
+        channel: GenerationEntryChannel.API,
+        attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+      };
+    const hint = request.headers[GENERATION_ENTRY_HEADER];
+    if (
+      origin === ActionOrigin.UI &&
+      (hint === GenerationEntryChannel.WEB ||
+        hint === GenerationEntryChannel.DESKTOP)
+    ) {
+      return {
+        channel: hint,
+        attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+      };
+    }
+    return undefined;
   }
 
   private resolveOrigin(

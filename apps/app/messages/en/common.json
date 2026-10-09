@@ -280,6 +280,7 @@
         "desktop": "Authorize the Genfeed desktop app to access your account"
       },
       "success": {
+        "desktopTitle": "Desktop connected",
         "description": {
           "cli": "You can close this browser tab and return to the CLI.",
           "desktop": "You can close this browser tab and return to the desktop app."
@@ -671,6 +672,7 @@
       "saving": "Saving\u2026"
     },
     "profile": {
+      "appearanceAriaLabel": "Appearance",
       "fields": {
         "email": "Email",
         "name": "Name",

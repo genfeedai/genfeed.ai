@@ -1,3 +1,4 @@
+import type { BeforeSendFn, CaptureResult } from 'posthog-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -171,6 +172,7 @@ describe('initWebsiteAnalytics', () => {
       'phc_testkey',
       expect.objectContaining({
         api_host: 'https://eu.i.posthog.com',
+        advanced_disable_flags: true,
         autocapture: {
           capture_copied_text: false,
           dom_event_allowlist: ['click'],
@@ -300,5 +302,119 @@ describe('article preview analytics boundary', () => {
       'https://genfeed.ai/articles/test?source=review',
     );
     expect(JSON.stringify(result)).not.toContain('private');
+  });
+});
+
+describe('referral analytics boundary', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/?ref=ABCDEF23JKMN');
+  });
+
+  afterEach(() => {
+    window.history.replaceState({}, '', '/');
+  });
+
+  async function beforeSend(): Promise<BeforeSendFn> {
+    const client = await loadClient();
+    client.initWebsiteAnalytics();
+    await flushInit();
+    return mocks.posthogInit.mock.calls[0][1].before_send as BeforeSendFn;
+  }
+
+  it('scrubs page URLs, referrers and nested vitals without changing campaign data', async () => {
+    const scrub = await beforeSend();
+    const event: CaptureResult = {
+      uuid: 'pageview-qa',
+      event: '$web_vitals',
+      properties: {
+        $current_url: 'https://genfeed.ai/?ref=ABCDEF23JKMN&utm_source=qa',
+        $referrer: 'https://genfeed.ai/pricing?ref=ABCDEF23JKMN&source=review',
+        $initial_referrer: 'https://genfeed.ai/?REF=ABCDEF23JKMN',
+        $web_vitals_FCP_event: {
+          name: 'FCP',
+          value: 42,
+          url: 'https://genfeed.ai/?ref=ABCDEF23JKMN',
+        },
+        utm_source: 'qa',
+        token: 'phc_testkey',
+      },
+    };
+    const result = scrub(event);
+    expect(result?.properties).toEqual({
+      $current_url: 'https://genfeed.ai/?utm_source=qa',
+      $referrer: 'https://genfeed.ai/pricing?source=review',
+      $initial_referrer: 'https://genfeed.ai/',
+      $web_vitals_FCP_event: {
+        name: 'FCP',
+        value: 42,
+        url: 'https://genfeed.ai/',
+      },
+      utm_source: 'qa',
+      token: 'phc_testkey',
+    });
+    expect(JSON.stringify(result)).not.toContain('ABCDEF23JKMN');
+    expect(window.location.search).toBe('?ref=ABCDEF23JKMN');
+  });
+
+  it('scrubs autocapture attributes and person bags while preserving action identity', async () => {
+    const scrub = await beforeSend();
+    const original = { href: '/sign-up?ref=ABCDEF23JKMN&signup_landing=%2F' };
+    const result = scrub({
+      uuid: 'autocapture-qa',
+      event: '$autocapture',
+      properties: {
+        ref: 'ABCDEF23JKMN',
+        $elements: [original],
+        $elements_chain: 'a:attr__href="/sign-up?ref=ABCDEF23JKMN"',
+        trackingName: 'hero_primary',
+      },
+      $set: { ref: 'ABCDEF23JKMN', plan: 'free' },
+      $set_once: {
+        $initial_current_url: 'https://genfeed.ai/?ref=ABCDEF23JKMN',
+      },
+    });
+    expect(result?.properties).toEqual({
+      $elements: [{ href: '/sign-up?signup_landing=%2F' }],
+      trackingName: 'hero_primary',
+    });
+    expect(result?.$set).toEqual({ plan: 'free' });
+    expect(result?.$set_once).toEqual({
+      $initial_current_url: 'https://genfeed.ai/',
+    });
+    expect(original.href).toContain('ref=ABCDEF23JKMN');
+    expect(JSON.stringify(result)).not.toContain('ABCDEF23JKMN');
+  });
+
+  it('removes encoded referral callbacks and embedded URL strings', async () => {
+    const scrub = await beforeSend();
+    const result = scrub({
+      uuid: 'encoded-qa',
+      event: 'cta_click',
+      properties: {
+        href: 'https://app.genfeed.ai/login?callbackUrl=%2Fsign-up%3Fref%3DABCDEF23JKMN&source=hero',
+        embedded: 'Go to /sign-up?ref=ABCDEF23JKMN',
+        malformed: 'https://[invalid/?ref=ABCDEF23JKMN',
+        encodedKey: 'https://genfeed.ai/?%72ef=ABCDEF23JKMN&source=hero',
+        safe: 'https://genfeed.ai/pricing?source=hero#plans',
+      },
+    });
+    expect(result?.properties).toEqual({
+      href: 'https://app.genfeed.ai/login?source=hero',
+      encodedKey: 'https://genfeed.ai/?source=hero',
+      safe: 'https://genfeed.ai/pricing?source=hero#plans',
+    });
+  });
+
+  it('bounds nested property traversal without forwarding an uninspected referral', async () => {
+    const scrub = await beforeSend();
+    let nested: Record<string, unknown> = { ref: 'ABCDEF23JKMN' };
+    for (let index = 0; index < 8; index += 1) nested = { nested };
+    const result = scrub({
+      uuid: 'bounded-qa',
+      event: 'cta_click',
+      properties: { nested, trackingName: 'hero_primary' },
+    });
+    expect(result?.properties.trackingName).toBe('hero_primary');
+    expect(JSON.stringify(result)).not.toContain('ABCDEF23JKMN');
   });
 });

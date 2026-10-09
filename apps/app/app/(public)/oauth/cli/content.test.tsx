@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CliAuthPage from './page';
 
@@ -447,14 +447,139 @@ describe('CliAuthPage', () => {
       vi.advanceTimersByTime(2_600);
     });
 
-    expect(
-      await screen.findByText('Authentication complete'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Desktop connected')).toBeInTheDocument();
     expect(
       screen.getByText(
         'You can close this browser tab and return to the desktop app.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('keeps polling through a same-account session refresh and removes the consumed code', async () => {
+    let exchanged = false;
+    const statusSignals: AbortSignal[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, options?: RequestInit) => {
+        if (String(input).endsWith('/auth/desktop/status')) {
+          if (options?.signal) statusSignals.push(options.signal);
+          return new Response(
+            JSON.stringify({ status: exchanged ? 'exchanged' : 'pending' }),
+            { status: 200 },
+          );
+        }
+        return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+          status: 200,
+        });
+      },
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+    const { rerender } = render(<CliAuthPage />);
+    await waitFor(() => expect(redirectToCallbackMock).toHaveBeenCalledOnce());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_100);
+    });
+    expect(statusSignals).toHaveLength(1);
+    useUserMock.mockReturnValue({
+      user: {
+        id: 'user-123',
+        firstName: 'Desktop',
+        lastName: 'User',
+        primaryEmailAddress: { emailAddress: 'desktop@example.com' },
+      },
+    });
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: true,
+    });
+    rerender(<CliAuthPage />);
+    expect(statusSignals[0].aborted).toBe(false);
+    exchanged = true;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(await screen.findByText('Desktop connected')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign-in code')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Authorize the Genfeed desktop app to access your account',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Installed desktop builds open automatically/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Copy' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Try again' }),
+    ).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input).endsWith('/authorize'),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('completes the handoff after Strict Mode effect replay', async () => {
+    globalThis.fetch = vi.fn(
+      async (input: RequestInfo | URL) =>
+        new Response(
+          JSON.stringify(
+            String(input).endsWith('/status')
+              ? { status: 'exchanged' }
+              : { code: 'gf_desktop_code' },
+          ),
+          { status: 200 },
+        ),
+    ) as typeof fetch;
+    render(
+      <StrictMode>
+        <CliAuthPage />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(redirectToCallbackMock).toHaveBeenCalledOnce());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_600);
+    });
+    expect(await screen.findByText('Desktop connected')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign-in code')).not.toBeInTheDocument();
+  });
+
+  it('cancels polling on sign-out instead of showing a late desktop success', async () => {
+    let statusSignal: AbortSignal | null = null;
+    globalThis.fetch = vi.fn(
+      async (input: RequestInfo | URL, options?: RequestInit) => {
+        if (String(input).endsWith('/status')) {
+          statusSignal = options?.signal ?? null;
+          return new Response(JSON.stringify({ status: 'pending' }), {
+            status: 200,
+          });
+        }
+        return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+          status: 200,
+        });
+      },
+    ) as typeof fetch;
+    const { rerender } = render(<CliAuthPage />);
+    await waitFor(() => expect(redirectToCallbackMock).toHaveBeenCalledOnce());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_100);
+    });
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+    });
+    rerender(<CliAuthPage />);
+    expect(statusSignal).toEqual(expect.objectContaining({ aborted: true }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(
+      screen.getByRole('link', { name: 'Sign in to continue' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Desktop connected')).not.toBeInTheDocument();
   });
 
   it('fails only when the code expires before the desktop app uses it', async () => {

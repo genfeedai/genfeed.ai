@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { ClipboardList, Clock, Inbox, LayoutGrid } from 'lucide-react';
+import { ClipboardList, Clock, Inbox, LayoutDashboard } from 'lucide-react';
 
 /** Label after which dynamic credential items are inserted */
 export const PUBLISHING_INSERT_AFTER_LABEL = 'Approval queue';
@@ -13,10 +13,10 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: AppMenuGroup.Root,
     href: APP_ROUTES.WORKSPACE.OVERVIEW,
-    label: 'Dashboard',
+    label: 'Overview',
     matchPaths: [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
-    outline: LayoutGrid,
-    solid: LayoutGrid,
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
   },
   {
     group: AppMenuGroup.Root,

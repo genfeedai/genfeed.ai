@@ -8,6 +8,7 @@ import type {
   QualityStatus,
   TransformationCategory,
 } from '../..';
+import type { GenerationEntry } from '../content/generation-entry.interface';
 import type { GenerationHarnessReceipt } from '../content/generation-harness.interface';
 import type { MediaDeliveryGrant } from '../content/media-delivery.interface';
 import type {
@@ -25,10 +26,10 @@ import type {
   ITraining,
   IUser,
 } from '../index';
-
 import type { ImageEditingRecipe } from '../studio/image-editing.interface';
 
 export interface IIngredient extends IBaseEntity {
+  generationEntry?: GenerationEntry;
   imageEdit?: ImageEditingRecipe;
   generationHarness?: GenerationHarnessReceipt | null;
   agentWorkObject?: AgentWorkObjectMaterial;

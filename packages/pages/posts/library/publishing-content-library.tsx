@@ -38,7 +38,10 @@ import {
   type PublishingContentLibraryItem,
   parsePublishingContentType,
 } from '@pages/posts/library/publishing-content-library.helpers';
-import PublishingContentLibraryToolbar from '@pages/posts/library/publishing-content-library-toolbar';
+import PublishingContentLibraryToolbar, {
+  PublishingContentLibraryQueueLink,
+  PublishingContentLibrarySearch,
+} from '@pages/posts/library/publishing-content-library-toolbar';
 import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
 import { needsPostAttention } from '@pages/posts/list/post-attention.helpers';
 import ReleaseDetailDrawer from '@pages/posts/release/release-detail-drawer';
@@ -97,8 +100,14 @@ export default function PublishingContentLibrary({
     organizationId,
     pageScope,
   });
-  const { setFiltersNode, setIsRefreshing, setRefresh, setViewToggleNode } =
-    usePostsLayout();
+  const {
+    setLeadingNode,
+    setExportNode,
+    setFiltersNode,
+    setIsRefreshing,
+    setRefresh,
+    setViewToggleNode,
+  } = usePostsLayout();
   const { href } = useOrgUrl();
   const pathname = usePathname();
   const router = useRouter();
@@ -526,9 +535,20 @@ export default function PublishingContentLibrary({
   ];
 
   useEffect(() => {
+    setLeadingNode(
+      <PublishingContentLibrarySearch
+        searchValue={search}
+        onSearchChange={(value) => replaceQueryParam('search', value)}
+      />,
+    );
+    setExportNode(
+      <PublishingContentLibraryQueueLink
+        approvalQueueHref={href(buildApprovalQueueHref(searchParamsString))}
+      />,
+    );
     setFiltersNode(
       <PublishingContentLibraryToolbar
-        approvalQueueHref={href(buildApprovalQueueHref(searchParamsString))}
+        showSearch={false}
         channelOptions={channelOptions}
         channelValue={channel}
         searchValue={search}
@@ -542,7 +562,11 @@ export default function PublishingContentLibrary({
       />,
     );
 
-    return () => setFiltersNode(null);
+    return () => {
+      setFiltersNode(null);
+      setLeadingNode(null);
+      setExportNode(null);
+    };
   }, [
     channel,
     channelOptions,
@@ -551,6 +575,8 @@ export default function PublishingContentLibrary({
     search,
     searchParamsString,
     setFiltersNode,
+    setLeadingNode,
+    setExportNode,
     status,
     statusOptions,
     type,

@@ -155,7 +155,12 @@ export class IngredientsController {
 
     const aggregate = {
       include: IngredientFilterUtil.buildLibraryListInclude(),
-      orderBy: handleQuerySort(query.sort),
+      orderBy: Object.entries(handleQuerySort(query.sort)).map(
+        ([field, direction]) =>
+          field === 'label'
+            ? { metadata: { label: direction } }
+            : { [field]: direction },
+      ),
       where: {
         // `isDeleted` stays at the top level: BaseService.withSoftDeleteFilter
         // only honours an explicit value it can see there, and would otherwise

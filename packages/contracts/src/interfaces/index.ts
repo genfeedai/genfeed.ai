@@ -147,6 +147,7 @@ export * from './content/content-run-service.contract';
 export * from './content/crun-contract.interface';
 export * from './content/dashboard-layout.interface';
 export * from './content/enhancement-response.interface';
+export * from './content/generation-entry.interface';
 export * from './content/generation-harness.interface';
 export * from './content/generation-payload.interface';
 export * from './content/ingredient-time-group.interface';

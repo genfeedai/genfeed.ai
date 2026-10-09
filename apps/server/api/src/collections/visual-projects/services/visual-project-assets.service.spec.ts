@@ -1,6 +1,12 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { VisualProjectAssetsService } from '@api/collections/visual-projects/services/visual-project-assets.service';
+import { ActionOrigin } from '@genfeedai/contracts';
 import type { IVisualSandboxMedia } from '@genfeedai/contracts/interfaces';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import type { VisualRevision } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -112,6 +118,42 @@ function fixture() {
 }
 beforeEach(() => storage.upload.mockReset());
 describe('canonical visual output admission', () => {
+  it('stamps visual output admission once and retains the original entry on replay', async () => {
+    const { commit, ingredient } = fixture();
+    const generationEntry = {
+      channel: GenerationEntryChannel.MCP,
+      attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+    };
+    await runWithActionOrigin(
+      { origin: ActionOrigin.MCP, generationEntry },
+      () => commit(),
+    );
+    expect(ingredient.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          providerData: expect.objectContaining({
+            generationEntry,
+            revisionId: 'revision',
+            sourceHash: 'source',
+          }),
+        }),
+      }),
+    );
+    await runWithActionOrigin(
+      {
+        origin: ActionOrigin.UI,
+        generationEntry: {
+          channel: GenerationEntryChannel.WEB,
+          attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+        },
+      },
+      () => commit(),
+    );
+    expect(ingredient.create).toHaveBeenCalledOnce();
+    expect(
+      ingredient.create.mock.calls[0][0].data.providerData.generationEntry,
+    ).toEqual(generationEntry);
+  });
   it('admits immutable hashes before upload and replays the canonical stored URL', async () => {
     const { commit, ingredient } = fixture();
     const first = await commit();

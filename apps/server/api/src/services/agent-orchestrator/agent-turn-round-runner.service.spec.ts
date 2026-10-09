@@ -14,6 +14,11 @@ import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/t
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type { CuratedActionName } from '@genfeedai/actions';
 import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
+import {
+  type GenerationEntry,
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -96,6 +101,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
 
   async function executeCampaignRound(params: {
     message: string;
+    generationEntry?: GenerationEntry;
     messages?: OpenRouterMessage[];
     organizationId?: string;
     source?: AgentChatRequest['source'];
@@ -120,6 +126,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       context: {
         organizationId,
         userId: 'user-1',
+        generationEntry: params.generationEntry,
         requestedSkillSlugs: ['cinema'],
       },
       generationPriority: RouterPriority.BALANCED,
@@ -147,6 +154,28 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     });
     return { messages, state };
   }
+
+  it('carries the current invocation entry to tool execution', async () => {
+    const generationEntry = {
+      channel: GenerationEntryChannel.WEB,
+      attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+    };
+    await executeCampaignRound({
+      message: 'Show review queue',
+      toolName: 'list_review_queue',
+      toolParams: {},
+      generationEntry,
+    });
+    expect(executeTool).toHaveBeenCalledWith(
+      'list_review_queue',
+      {},
+      expect.objectContaining({
+        generationEntry,
+        userId: 'user-1',
+        organizationId: 'org-1',
+      }),
+    );
+  });
 
   it('keeps the full tool result for the model when the timeline summary is a sentence', async () => {
     const details = 'x'.repeat(1000);

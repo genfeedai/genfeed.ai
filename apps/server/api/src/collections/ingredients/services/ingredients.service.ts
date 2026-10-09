@@ -13,6 +13,11 @@ import {
   toIngredientCreateData,
   toIngredientUpdateData,
 } from '@api/collections/ingredients/utils/ingredient-create-data.util';
+import {
+  ingredientGenerationUpdateTargets,
+  preserveIngredientGenerationEntry,
+  stampIngredientGenerationEntry,
+} from '@api/collections/ingredients/utils/ingredient-generation-entry.util';
 import { canEditAssetTags } from '@api/collections/ingredients/utils/ingredient-tag-edit-access.util';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -172,9 +177,13 @@ export class IngredientsService extends BaseService<
     this.logger.debug(`${this.constructorName} create`, { createDto });
 
     const result = await super.create(
-      toIngredientCreateData(
-        createDto as unknown as Record<string, unknown>,
-      ) as CreateIngredientDto,
+      toIngredientCreateData({
+        ...createDto,
+        providerData: stampIngredientGenerationEntry(
+          createDto.origin,
+          createDto.providerData,
+        ),
+      } as unknown as Record<string, unknown>) as CreateIngredientDto,
       populate,
     );
 
@@ -386,6 +395,11 @@ export class IngredientsService extends BaseService<
       const rowWhere = organizationId ? { id, organizationId } : { id };
       const current = await this.findOne(rowWhere);
       if (!current) throw new NotFoundException('Ingredient', id);
+      if (Object.hasOwn(data, 'providerData'))
+        data.providerData = preserveIngredientGenerationEntry(
+          data.providerData,
+          current.providerData,
+        );
       if (
         current.reviewStatus &&
         (updateDto.status === IngredientStatus.VALIDATED ||
@@ -529,29 +543,43 @@ export class IngredientsService extends BaseService<
       const data = this.normalizeData(
         updateData,
       ) as Prisma.IngredientUpdateManyMutationInput;
+      const replacesProviderData = Object.hasOwn(updateData, 'providerData');
       const owners = await this.findAll(
         {
           where,
-          select: { organizationId: true },
+          select: {
+            organizationId: true,
+            ...(replacesProviderData ? { id: true, providerData: true } : {}),
+          },
         },
         { pagination: false },
         false,
       );
       // A tenant request never writes platform rows (`organizationId: null`).
       const isTenantRequest = requestOrganizationId() !== undefined;
+      const targets = ingredientGenerationUpdateTargets(
+        owners.docs,
+        replacesProviderData,
+        isTenantRequest,
+      );
       const targetOrganizationIds = [
-        ...new Set(
-          owners.docs
-            .map((row) => row.organizationId ?? null)
-            .filter(
-              (organizationId) => !isTenantRequest || organizationId !== null,
-            ),
-        ),
+        ...new Set(targets.map((target) => target.organizationId)),
       ];
       let modifiedCount = 0;
-      for (const organizationId of targetOrganizationIds) {
+      for (const target of targets) {
+        const { organizationId } = target;
+        const targetData = replacesProviderData
+          ? {
+              ...data,
+              providerData: preserveIngredientGenerationEntry(
+                data.providerData,
+                target.providerData,
+              ) as Prisma.InputJsonValue,
+            }
+          : data;
         const ownedWhere = {
           ...where,
+          ...(target.id ? { AND: [where], id: target.id } : {}),
           organizationId,
           isDeleted: where.isDeleted ?? false,
         };
@@ -559,13 +587,13 @@ export class IngredientsService extends BaseService<
           (await persistQuoteGroupDisposition(
             this.prisma,
             ownedWhere,
-            data,
+            targetData,
             update.isGenerationFailureConfirmed === true,
           )) ??
           (await persistSubmissionFailure(
             this.prisma,
             ownedWhere,
-            data,
+            targetData,
             update.isGenerationFailureConfirmed === true,
           ));
         const result =
@@ -573,10 +601,11 @@ export class IngredientsService extends BaseService<
           (await this.prisma.ingredient.updateMany({
             where: {
               AND: [where],
+              ...(target.id ? { id: target.id } : {}),
               organizationId,
               isDeleted: where.isDeleted ?? false,
             },
-            data,
+            data: targetData,
           }));
         modifiedCount += result.count;
       }

@@ -13,6 +13,7 @@ export const PostsLayoutContext = createContext<{
   setRefresh: SetRefreshFunction;
   setIsRefreshing: (isRefreshing: boolean) => void;
   setFiltersNode: (node: ReactNode) => void;
+  setLeadingNode: (node: ReactNode) => void;
   setExportNode: (node: ReactNode) => void;
   setViewToggleNode: (node: ReactNode) => void;
   setScheduleActionsNode: (node: ReactNode) => void;
@@ -20,6 +21,7 @@ export const PostsLayoutContext = createContext<{
   setExportNode: () => {},
   setFiltersNode: () => {},
   setIsRefreshing: () => {},
+  setLeadingNode: () => {},
   setRefresh: () => {},
   setScheduleActionsNode: () => {},
   setViewToggleNode: () => {},

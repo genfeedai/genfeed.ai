@@ -5,6 +5,8 @@ export interface IMasonryGridOptions {
     desktop: number;
   };
   gap?: number;
+  /** Size columns from the available panel width rather than the viewport. */
+  minColumnWidth?: number;
 }
 
 export interface IItemPosition {

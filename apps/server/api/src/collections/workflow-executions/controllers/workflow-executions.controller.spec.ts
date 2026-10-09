@@ -12,6 +12,7 @@ import { WorkflowExecutionAuthorizationService } from '@api/collections/workflow
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
   AgentFailureReason,
   WorkflowExecutionStatus,
@@ -228,6 +229,22 @@ describe('WorkflowExecutionsController', () => {
   });
 
   describe('findOne', () => {
+    it('returns a 404 before serialization when the scoped execution is missing', async () => {
+      mockService.findOneWithAccounting.mockResolvedValue(null);
+      const serializedBefore = vi.mocked(serializeSingle).mock.calls.length;
+      const result = controller.findOne(mockRequest, mockUser, 'missing-exec');
+
+      await expect(result).rejects.toBeInstanceOf(NotFoundException);
+      await expect(result).rejects.toMatchObject({ status: 404 });
+      expect(mockService.findOneWithAccounting).toHaveBeenCalledWith({
+        ...buildCustomerExecutionWhere(organizationId),
+        id: 'missing-exec',
+      });
+      expect(vi.mocked(serializeSingle).mock.calls).toHaveLength(
+        serializedBefore,
+      );
+    });
+
     it('should return a single execution by id', async () => {
       const mockExecution = {
         id: 'exec-1',

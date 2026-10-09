@@ -30,6 +30,7 @@ import {
   type AgentPublishPolicyResult,
   evaluateAgentPublishPolicy,
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   IReleaseGroup,
@@ -366,7 +367,7 @@ export async function scheduleAgentPost(
           'This legacy standalone draft cannot be scheduled safely. Open Posts and create a canonical release with an explicit platform and connected account.',
         nextActions: [
           {
-            ctas: [{ href: '/content/posts', label: 'Open posts' }],
+            ctas: [{ href: APP_ROUTES.PUBLISHING.POSTS, label: 'Open posts' }],
             description:
               'Choose the destination and connected account in the canonical release composer before scheduling.',
             id: `schedule-legacy-post-${postId}`,
@@ -398,7 +399,9 @@ export async function scheduleAgentPost(
       error: validationError ?? SAFE_AGENT_SCHEDULE_ERROR,
       nextActions: [
         {
-          ctas: [{ href: '/content/posts', label: 'Review post setup' }],
+          ctas: [
+            { href: APP_ROUTES.PUBLISHING.POSTS, label: 'Review post setup' },
+          ],
           description:
             'Verify the release brand, platform, connected account, and future schedule before retrying.',
           id: `schedule-post-failed-${postId}`,
@@ -582,7 +585,7 @@ export async function finishConfirmedPublish(input: {
     nextActions: [
       {
         ctas: [
-          { href: '/content/posts', label: 'Open posts' },
+          { href: APP_ROUTES.PUBLISHING.POSTS, label: 'Open posts' },
           ...(postIds[0]
             ? [
                 {
