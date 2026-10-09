@@ -1,3 +1,4 @@
+import { resolveOrganizationModulePreferences } from '@genfeedai/contracts/constants';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -561,6 +562,118 @@ describe('AppRail', () => {
     expect(icon).not.toBeNull();
     expect(icon?.classList.toString()).toMatch(/lucide-images/);
     expect(icon?.classList.toString()).not.toMatch(/lucide-briefcase/);
+  });
+
+  it('uses cloud module defaults in More and palette without hiding subscription-enabled Discovery', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        modulePreferences={resolveOrganizationModulePreferences({
+          hasOrganizationBilling: true,
+          moduleOverrides: {},
+        })}
+      />,
+    );
+    openMoreMenu();
+    expect(screen.getByRole('link', { name: 'Studio' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Discovery' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Automation' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Messages' }),
+    ).not.toBeInTheDocument();
+    expect(
+      commands.registerCommands.mock.lastCall?.[0].map((entry) => entry.label),
+    ).toEqual([
+      'Go to Workspace',
+      'Go to Agent',
+      'Go to Library',
+      'Go to Publishing',
+      'Go to Analytics',
+      'Go to Studio',
+      'Go to Discovery',
+    ]);
+  });
+
+  it('hides disabled saved pins and palette commands, then restores the same pins when enabled', () => {
+    const onTogglePin = vi.fn();
+    const preferences = resolveOrganizationModulePreferences({
+      hasOrganizationBilling: true,
+      moduleOverrides: {},
+    });
+    const { rerender } = render(
+      <AppRail
+        orgSlug="acme"
+        pinnedAppIds={['automation']}
+        onTogglePin={onTogglePin}
+        modulePreferences={preferences}
+      />,
+    );
+    expect(
+      screen.queryByTestId('app-rail-item-automation'),
+    ).not.toBeInTheDocument();
+    expect(
+      commands.registerCommands.mock.lastCall?.[0].some(
+        (entry) => entry.label === 'Go to Automation',
+      ),
+    ).toBe(false);
+    rerender(
+      <AppRail
+        orgSlug="acme"
+        pinnedAppIds={['automation']}
+        onTogglePin={onTogglePin}
+        modulePreferences={resolveOrganizationModulePreferences({
+          hasOrganizationBilling: true,
+          moduleOverrides: { automation: true },
+        })}
+      />,
+    );
+    expect(screen.getByTestId('app-rail-item-automation')).toBeInTheDocument();
+    expect(
+      commands.registerCommands.mock.lastCall?.[0].some(
+        (entry) => entry.label === 'Go to Automation',
+      ),
+    ).toBe(true);
+    expect(onTogglePin).not.toHaveBeenCalled();
+  });
+
+  it('keeps fixed and neutral navigation while verified preferences are unavailable', () => {
+    render(<AppRail orgSlug="acme" modulePreferences={null} />);
+    expect(screen.getByRole('link', { name: 'Workspace' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Publishing' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Analytics' }),
+    ).not.toBeInTheDocument();
+    openMoreMenu();
+    expect(screen.getByRole('link', { name: 'Studio' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Discovery' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('retains operator kill switches when organization preferences enable a module', () => {
+    featureFlags.discovery = false;
+    render(
+      <AppRail
+        orgSlug="acme"
+        modulePreferences={resolveOrganizationModulePreferences({
+          hasOrganizationBilling: false,
+          moduleOverrides: {},
+        })}
+      />,
+    );
+    openMoreMenu();
+    expect(
+      screen.queryByRole('link', { name: 'Discovery' }),
+    ).not.toBeInTheDocument();
+    expect(
+      commands.registerCommands.mock.lastCall?.[0].some(
+        (entry) => entry.label === 'Go to Discovery',
+      ),
+    ).toBe(false);
   });
 
   it('hides More when every overflow app is switched off', () => {
