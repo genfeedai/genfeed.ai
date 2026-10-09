@@ -4,7 +4,10 @@ import {
   assertRefundOrganization,
   findCreditRefundReplay,
 } from '@api/collections/credits/services/credit-refund-replay';
-import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import {
+  type CreditReservationAdmission,
+  CreditReservationService,
+} from '@api/collections/credits/services/credit-reservation.service';
 import { creditTransactionOptions } from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -424,14 +427,18 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
   async reserveCredits(
     input: IReserveCreditsInput,
+    admission?: CreditReservationAdmission,
   ): Promise<ICreditReservation> {
     const account = await this.billingAccountsService.resolveForOrganization(
       input.organizationId,
     );
-    return this.creditReservationService.reserve({
+    const request = {
       ...input,
       billingAccountId: account.id,
-    });
+    };
+    return admission
+      ? this.creditReservationService.reserve(request, admission)
+      : this.creditReservationService.reserve(request);
   }
 
   async settleReservation(

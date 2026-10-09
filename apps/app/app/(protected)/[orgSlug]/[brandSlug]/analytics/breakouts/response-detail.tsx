@@ -59,6 +59,8 @@ const CAPACITY_REASON_LABELS: Record<
   missing_strategy: 'The selected strategy is unavailable.',
   account_unavailable: 'The connected account is unavailable.',
   wallet_unavailable: 'The current credit balance is unavailable.',
+  ledger_usage_unavailable:
+    'Current spending or reserved credits could not be verified.',
   policy_unreadable:
     'The strategy budget or posting policy could not be verified.',
 };

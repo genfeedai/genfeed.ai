@@ -1,24 +1,16 @@
 import { readArtifactRecord } from '@api/agent-artifacts/agent-artifact-material.util';
-import { CreditReservationStatus, isPlatform } from '@genfeedai/contracts';
+import {
+  type StrategyBudgetAttribution,
+  strategyBudgetAttributionSchema,
+} from '@api/collections/credits/services/strategy-budget-attribution.context';
+import { CreditReservationStatus } from '@genfeedai/contracts';
 import type {
   BreakoutLiveCapacityInput,
   LearningFormat,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
-import { z } from 'zod';
 
-/** Only server credit producers write this under strategyBudgetAttribution. It grants no actor authority. */
-export const strategyBudgetAttributionSchema = z.strictObject({
-  version: z.literal(1),
-  organizationId: z.string().min(1),
-  brandId: z.string().min(1),
-  strategyId: z.string().min(1),
-  platform: z.string().refine(isPlatform),
-  format: z.enum(['text', 'image', 'carousel', 'video', 'short', 'thread']),
-});
-export type StrategyBudgetAttribution = z.infer<
-  typeof strategyBudgetAttributionSchema
->;
+export type { StrategyBudgetAttribution } from '@api/collections/credits/services/strategy-budget-attribution.context';
 export type BreakoutMonthlyUsage =
   | { status: 'held'; reason: 'ledger_usage_unavailable' }
   | {

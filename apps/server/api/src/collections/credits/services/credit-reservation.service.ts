@@ -2,6 +2,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
+import { strategyBudgetMetadata } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import {
   validatedWorkflowAccountingAttribution,
   validatedWorkflowFundingAttribution,
@@ -50,6 +51,9 @@ const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 type ReserveCreditsInput = IReserveCreditsInput & {
   billingAccountId: string;
 };
+export type CreditReservationAdmission = (
+  tx: PrismaTransactionClient,
+) => Promise<void>;
 
 @Injectable()
 export class CreditReservationService {
@@ -61,7 +65,10 @@ export class CreditReservationService {
     private readonly transactionUtil: TransactionUtil,
   ) {}
 
-  async reserve(input: ReserveCreditsInput): Promise<ICreditReservation> {
+  async reserve(
+    input: ReserveCreditsInput,
+    admission?: CreditReservationAdmission,
+  ): Promise<ICreditReservation> {
     if (!Number.isFinite(input.amount) || !(input.amount > 0)) {
       throw new BusinessLogicException('Reservation amount must be positive');
     }
@@ -78,6 +85,13 @@ export class CreditReservationService {
         if (existing) {
           return this.toReservation(existing);
         }
+
+        // Same serializable transaction as the wallet hold. A failed admission commits neither.
+        if (admission) await admission(tx);
+        const metadata = strategyBudgetMetadata(
+          input.organizationId,
+          input.metadata,
+        );
 
         await this.creditBalanceService.applyDelta(
           input.organizationId,
@@ -109,8 +123,8 @@ export class CreditReservationService {
               new Date(Date.now() + DEFAULT_RESERVATION_TTL_MS),
             description: input.description,
             idempotencyKey: input.idempotencyKey,
-            ...(input.metadata
-              ? { metadata: toPrismaJson(input.metadata) }
+            ...(Object.keys(metadata).length > 0
+              ? { metadata: toPrismaJson(metadata) }
               : {}),
             organizationId: input.organizationId,
             source: input.source,
@@ -216,10 +230,16 @@ export class CreditReservationService {
             description: pool.description,
             expiresAt: input.expiresAt,
             idempotencyKey,
-            metadata: toPrismaJson({
-              ...this.readMetadata(pool.metadata),
-              ...(input.metadata ?? {}),
-            }),
+            metadata: toPrismaJson(
+              strategyBudgetMetadata(
+                pool.organizationId,
+                {
+                  ...this.readMetadata(pool.metadata),
+                  ...(input.metadata ?? {}),
+                },
+                pool,
+              ),
+            ),
             organizationId: pool.organizationId,
             source: pool.source,
             status: CreditReservationStatus.RESERVED,

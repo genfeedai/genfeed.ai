@@ -8,6 +8,7 @@ import {
   creditUsageWhere,
   signedCreditUsage,
 } from '@api/collections/credits/services/credit-usage.util';
+import { strategyBudgetMetadata } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -135,6 +136,25 @@ export class CreditTransactionsService extends BaseService<
       if (existing) return this.normalizeDocument(existing);
     }
 
+    const reservation = options?.reservationId
+      ? await (tx ?? this.prisma).creditReservation.findFirst({
+          where: {
+            id: options.reservationId,
+            organizationId,
+            isDeleted: false,
+          },
+          select: { organizationId: true, brandId: true, metadata: true },
+        })
+      : null;
+    if (options?.reservationId && !reservation)
+      throw new BusinessLogicException(
+        'Credit settlement reservation is outside the organization',
+      );
+    const metadata = strategyBudgetMetadata(
+      organizationId,
+      options?.metadata,
+      reservation ?? undefined,
+    );
     const data: Prisma.CreditTransactionUncheckedCreateInput = {
       ...(await validatedWorkflowAccountingAttribution(
         tx ?? this.prisma,
@@ -146,7 +166,7 @@ export class CreditTransactionsService extends BaseService<
       description,
       isDeleted: false,
       metadata: toPrismaJson({
-        ...(options?.metadata ?? {}),
+        ...metadata,
         balanceBefore,
         category,
         ...(expiresAt ? { expiresAt: expiresAt.toISOString() } : {}),

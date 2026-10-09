@@ -133,8 +133,13 @@ Decimal sums avoid drift, and a matching stored counter is never added twice. A
 larger stored counter is a lower bound with unknown dimension allocation. Legacy
 unattributed charges, inconsistent settlement, unmatched refunds and saturated
 reads hold capacity. Missing allocation never becomes zero. New generation still
-needs to retain this attribution through its actual credit producer and perform
-transactional admission. `reserveBreakoutLiveCapacityPlan`
+needs to enter the server attribution context and supply its actual sub-budget
+admission. Existing hold/ledger producers retain that context, reject caller metadata
+as allocation authority, and preserve original scoped hold allocation through
+splitting/settlement. Legacy holds cannot acquire a new allocation from today's
+caller. The existing reservation service accepts an internal admission callback in
+the same serializable transaction as the wallet hold; this is not a customer field.
+`reserveBreakoutLiveCapacityPlan`
 feeds this fresh snapshot to the existing immutable slot registry. These reads and
 identity reservations neither debit credits nor reserve future posting capacity.
 
