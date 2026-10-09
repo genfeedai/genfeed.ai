@@ -68,7 +68,7 @@ export default function ModalConfirm({
   }, []);
 
   return (
-    <Modal id={ModalEnum.CONFIRM} isError={isError}>
+    <Modal id={ModalEnum.CONFIRM} accessibleTitle={label} isError={isError}>
       <div className="text-center">
         {isError && (
           <div className="mx-auto flex items-center justify-center size-12 mb-4 bg-error/10 rounded-full">
