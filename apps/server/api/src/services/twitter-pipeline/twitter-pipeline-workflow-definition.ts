@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
+import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
 
 export const TWITTER_PIPELINE_ACTION_IDS = {
   DRAFT_BUILD_PROMPT: 'twitter.pipeline.draft.build-prompt',
@@ -35,10 +36,12 @@ function requestActionNode(
 
 function definition(
   canonicalId: string,
+  organizationModule: OrganizationModuleId,
   label: string,
   description: string,
   nodes: WorkflowVisualNode[],
   edges: WorkflowEdge[],
+  moduleCompletionNodeIds?: readonly string[],
 ): SystemWorkflowGraphDefinition {
   const resultNode = nodes.at(-1);
   if (!resultNode) {
@@ -46,6 +49,8 @@ function definition(
   }
   return {
     canonicalId,
+    organizationModule,
+    ...(moduleCompletionNodeIds ? { moduleCompletionNodeIds } : {}),
     definition: {
       edges,
       inputVariables: [
@@ -67,6 +72,7 @@ function definition(
 export function buildTwitterSearchWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return definition(
     TWITTER_PIPELINE_WORKFLOW_IDS.SEARCH,
+    'discovery',
     'Search X',
     'Searches recent X posts through the registered X search action.',
     [
@@ -100,6 +106,7 @@ export function buildTwitterDraftWorkflowDefinition(): SystemWorkflowGraphDefini
   ];
   return definition(
     TWITTER_PIPELINE_WORKFLOW_IDS.DRAFT,
+    'discovery',
     'Draft X Opportunities',
     'Builds the X strategy prompt, generates draft text, and parses verified opportunities.',
     nodes,
@@ -123,6 +130,7 @@ export function buildTwitterDraftWorkflowDefinition(): SystemWorkflowGraphDefini
         targetHandle: 'generation',
       },
     ],
+    ['parse-drafts'],
   );
 }
 
@@ -141,6 +149,7 @@ export function buildTwitterPublishWorkflowDefinition(): SystemWorkflowGraphDefi
   ];
   return definition(
     TWITTER_PIPELINE_WORKFLOW_IDS.PUBLISH,
+    'publishing',
     'Publish to X',
     'Resolves the exact brand credential and executes one outbound X provider action.',
     nodes,
