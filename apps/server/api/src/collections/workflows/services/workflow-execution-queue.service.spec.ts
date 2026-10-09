@@ -24,6 +24,7 @@ import {
   SystemWorkflowDispatchClass,
   WORKFLOW_BACKGROUND_QUEUE,
 } from '@genfeedai/contracts/queue';
+import { HttpException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -198,6 +199,90 @@ describe('WorkflowExecutionQueueService', () => {
           organizationId: 'org-1',
           moduleId: 'clips',
         });
+    });
+
+    it('requires Automation for legacy triggers without a saved module envelope', async () => {
+      const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+      const result = await service.runWithQueuedOrganizationModule(
+        { type: 'trigger', triggerEvent: createTriggerEvent() },
+        work,
+      );
+      expect(result).toEqual({
+        organizationId: 'org-1',
+        moduleId: 'automation',
+      });
+      expect(mockModuleAccess.assertAccess).toHaveBeenCalledWith(
+        'org-1',
+        'automation',
+      );
+      expect(work).toHaveBeenCalledOnce();
+      expect(getOrganizationModuleExecutionContext()).toBeUndefined();
+    });
+
+    it('does not borrow Publishing admission for user-authored trigger work', async () => {
+      const data = {
+        type: 'trigger' as const,
+        triggerEvent: createTriggerEvent(),
+        organizationModuleContext: {
+          organizationId: 'org-1',
+          moduleId: 'publishing' as const,
+        },
+      };
+      const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+      expect(await service.runWithQueuedOrganizationModule(data, work)).toEqual(
+        { organizationId: 'org-1', moduleId: 'automation' },
+      );
+      expect(mockModuleAccess.assertAccess).toHaveBeenCalledWith(
+        'org-1',
+        'automation',
+      );
+    });
+
+    it.each(['disabled', 'subscription-required'])(
+      'completes an optional %s trigger without matching or creating workflows',
+      async (reason) => {
+        mockModuleAccess.assertAccess.mockRejectedValueOnce(
+          new HttpException({ reason }, 403),
+        );
+        const work = vi.fn(async () => 'executed');
+        expect(
+          await service.runWithQueuedOrganizationModule(
+            { type: 'trigger', triggerEvent: createTriggerEvent() },
+            work,
+          ),
+        ).toBeUndefined();
+        expect(work).not.toHaveBeenCalled();
+        expect(mockLogger.debug).toHaveBeenCalledWith(
+          expect.stringContaining('skipped'),
+          expect.objectContaining({ organizationId: 'org-1' }),
+        );
+      },
+    );
+
+    it('does not silently discard a trigger when access policy is unavailable', async () => {
+      mockModuleAccess.assertAccess.mockRejectedValueOnce(
+        new HttpException('Module access unavailable', 503),
+      );
+      const work = vi.fn(async () => 'executed');
+      await expect(
+        service.runWithQueuedOrganizationModule(
+          { type: 'trigger', triggerEvent: createTriggerEvent() },
+          work,
+        ),
+      ).rejects.toThrow('Module access unavailable');
+      expect(work).not.toHaveBeenCalled();
+      expect(mockLogger.debug).not.toHaveBeenCalled();
+    });
+
+    it('rejects a trigger without an organization before policy lookup', async () => {
+      const work = vi.fn(async () => 'executed');
+      await expect(
+        service.runWithQueuedOrganizationModule({ type: 'trigger' }, work),
+      ).rejects.toThrow(
+        'Workflow trigger is missing its organization identity',
+      );
+      expect(work).not.toHaveBeenCalled();
+      expect(mockModuleAccess.assertAccess).not.toHaveBeenCalled();
     });
 
     it('rechecks current policy before each queued attempt and restores child scope', async () => {

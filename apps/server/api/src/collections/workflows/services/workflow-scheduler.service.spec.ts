@@ -1,7 +1,9 @@
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { getOrganizationModuleExecutionContext } from '@api/common/organization-modules/organization-module-execution.context';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
+import { HttpException } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -72,14 +74,23 @@ function createService(
     executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
   };
   const queueService = overrides.queueService ?? createMockQueueService();
+  const moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
 
   const service = new (
     WorkflowSchedulerService as unknown as new (
       ...args: unknown[]
     ) => WorkflowSchedulerService
-  )(prisma, logger, configService, workflowExecutorService, queueService);
+  )(
+    prisma,
+    logger,
+    configService,
+    workflowExecutorService,
+    queueService,
+    moduleAccess,
+  );
 
   return {
+    moduleAccess,
     logger,
     prisma,
     queueService,
@@ -549,5 +560,107 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     expect(
       workflowExecutorService.executeManualWorkflowDocument,
     ).not.toHaveBeenCalled();
+  });
+});
+
+describe('scheduled Automation admission', () => {
+  function scheduledFixture() {
+    const fixture = createService();
+    fixture.prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        metadata: {
+          organizationModuleContext: {
+            moduleId: 'playground',
+            organizationId: 'org-1',
+          },
+        },
+      }),
+    );
+    return fixture;
+  }
+
+  it.each(['disabled', 'subscription-required'])(
+    'skips %s scheduled work before writes while preserving the schedule for later re-enabling',
+    async (reason) => {
+      const {
+        moduleAccess,
+        service,
+        prisma,
+        workflowExecutorService,
+        queueService,
+        logger,
+      } = scheduledFixture();
+      moduleAccess.assertAccess.mockRejectedValueOnce(
+        new HttpException({ reason }, 403),
+      );
+      await service.executeScheduledWorkflow('wf-1', 'job-1');
+      expect(moduleAccess.assertAccess).toHaveBeenCalledWith(
+        'org-1',
+        'automation',
+      );
+      expect(prisma.workflow.update).not.toHaveBeenCalled();
+      expect(
+        workflowExecutorService.executeManualWorkflowDocument,
+      ).not.toHaveBeenCalled();
+      expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalled();
+    },
+  );
+
+  it('rechecks after a warm successful fire instead of borrowing authored metadata', async () => {
+    const { moduleAccess, service, prisma, workflowExecutorService } =
+      scheduledFixture();
+    let observedScope: ReturnType<typeof getOrganizationModuleExecutionContext>;
+    workflowExecutorService.executeManualWorkflowDocument.mockImplementationOnce(
+      async () => {
+        await Promise.resolve();
+        observedScope = getOrganizationModuleExecutionContext();
+        return {};
+      },
+    );
+    await service.executeScheduledWorkflow('wf-1', 'job-1');
+    await Promise.resolve();
+    expect(observedScope).toEqual({
+      organizationId: 'org-1',
+      moduleId: 'automation',
+    });
+    expect(getOrganizationModuleExecutionContext()).toBeUndefined();
+    moduleAccess.assertAccess.mockRejectedValueOnce(
+      new HttpException('Subscription expired', 403),
+    );
+    await service.executeScheduledWorkflow('wf-1', 'job-2');
+    expect(moduleAccess.assertAccess).toHaveBeenCalledTimes(2);
+    expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
+    expect(
+      workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs unavailable admission without creating an execution or disabling the saved schedule', async () => {
+    const {
+      moduleAccess,
+      service,
+      prisma,
+      workflowExecutorService,
+      queueService,
+      logger,
+    } = scheduledFixture();
+    moduleAccess.assertAccess.mockRejectedValueOnce(
+      new HttpException('Module access unavailable', 503),
+    );
+    await service.executeScheduledWorkflow('wf-1', 'job-1');
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(
+      workflowExecutorService.executeManualWorkflowDocument,
+    ).not.toHaveBeenCalled();
+    expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to execute'),
+      expect.any(HttpException),
+      'WorkflowSchedulerService',
+    );
   });
 });
