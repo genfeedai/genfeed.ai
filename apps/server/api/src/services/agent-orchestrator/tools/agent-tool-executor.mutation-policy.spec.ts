@@ -243,6 +243,11 @@ describe('AgentToolExecutorService mutation policy', () => {
     );
     Object.assign(service, {
       brandAccessService: new BrandAccessService({
+        apiKey: {
+          findFirst: vi.fn().mockResolvedValue({
+            scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
+          }),
+        },
         member: { findFirst: findMember },
         brand: { findFirst: brandLookup },
       } as never),
@@ -254,6 +259,7 @@ describe('AgentToolExecutorService mutation policy', () => {
         brandId: testId('brand'),
         apiKeyContext: {
           isApiKey: true,
+          apiKeyId: testId('key'),
           scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
         },
       }),
