@@ -1,7 +1,8 @@
+import type { TableProps } from '@genfeedai/props/ui/display/table.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Table from '@ui/display/table/Table';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 vi.mock('next/dynamic', async () => {
   const { Checkbox } = await import('@ui/primitives/checkbox');
@@ -10,17 +11,17 @@ vi.mock('next/dynamic', async () => {
 
 describe('Table', () => {
   it('should render without crashing', () => {
-    const { container } = render(<Table />);
+    const { container } = render(<Table columns={[]} items={[]} />);
     expect(container.firstChild).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {
-    const { container } = render(<Table />);
+    const { container } = render(<Table columns={[]} items={[]} />);
     expect(container.firstChild).toBeInTheDocument();
   });
 
   it('should apply correct styles and classes', () => {
-    const { container } = render(<Table />);
+    const { container } = render(<Table columns={[]} items={[]} />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
   });
@@ -412,6 +413,72 @@ describe('Table', () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
   describe('opt-in horizontal drag scrolling', () => {
+    it('requires a supplied accessible name in drag-scroll props', () => {
+      expectTypeOf<
+        {
+          enableDragScroll: true;
+          items: never[];
+          columns: never[];
+        } extends TableProps<unknown>
+          ? true
+          : false
+      >().toEqualTypeOf<false>();
+    });
+
+    it.each([
+      { scrollAriaLabel: 'Asset scroll area' },
+      { ariaLabel: 'Asset scroll area' },
+      { label: 'Asset scroll area' },
+    ])('names the scroll region using the supplied label %j', (labels) => {
+      render(
+        <Table
+          {...labels}
+          enableDragScroll
+          items={[{ id: 'a', name: 'First item' }]}
+          columns={[{ header: 'Name', key: 'name' }]}
+        />,
+      );
+
+      expect(
+        screen.getByRole('region', { name: 'Asset scroll area' }),
+      ).toHaveAttribute('tabindex', '0');
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
+
+    it('falls through blank scroll labels to the supplied table name', () => {
+      render(
+        <Table
+          enableDragScroll
+          scrollAriaLabel="  "
+          ariaLabel="Assets"
+          items={[{ id: 'a', name: 'First item' }]}
+          columns={[{ header: 'Name', key: 'name' }]}
+        />,
+      );
+
+      expect(screen.getByRole('region', { name: 'Assets' })).toHaveAttribute(
+        'tabindex',
+        '0',
+      );
+    });
+
+    it('keeps blank-label scrollports focusable without an unnamed region', () => {
+      render(
+        <Table
+          enableDragScroll
+          scrollAriaLabel="  "
+          items={[{ id: 'a', name: 'First item' }]}
+          columns={[{ header: 'Name', key: 'name' }]}
+        />,
+      );
+
+      expect(screen.queryByRole('region')).not.toBeInTheDocument();
+      expect(screen.getByRole('table').parentElement).toHaveAttribute(
+        'tabindex',
+        '0',
+      );
+    });
+
     function setup() {
       const onRowClick = vi.fn();
       const onSelectionChange = vi.fn();
