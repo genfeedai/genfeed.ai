@@ -1,5 +1,6 @@
 import type { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import 'reflect-metadata';
 
@@ -135,6 +136,7 @@ describe('BrandsController', () => {
             attachBrandListRelations: vi.fn((brands: unknown[]) =>
               Promise.resolve(brands),
             ),
+            brandAccessService: brandAccessFixture(),
             buildManualBrandKitDraft: vi.fn(),
             claimBrandOsPreview: vi.fn(),
             crawlWebsiteBrandKitDraft: vi.fn(),

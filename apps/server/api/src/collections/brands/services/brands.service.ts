@@ -975,11 +975,6 @@ export class BrandsService extends BaseService<
   }
 
   /**
-   * Set the acting member's current brand (#5219). currentBrandId is a
-   * required per-member invariant — this is the single write path for it, and
-   * there is no "clear" counterpart (a member always has a current brand).
-   */
-  /**
    * Sets the acting member's current brand, atomically (#5295). Delegates to
    * `BrandLifecycleService`, which locks the target brand row before
    * validating and writing it, so this can never race a concurrent

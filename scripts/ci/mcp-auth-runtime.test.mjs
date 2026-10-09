@@ -1,10 +1,21 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import {
   assertChildOutcome,
   CONTRACT,
   parseOptions,
+  scrubRuntimeExport,
   validateContainer,
   validateEnvironment,
   validateJourney,
@@ -194,4 +205,32 @@ test('receipt requires all immutable cases and independently supplied source ide
     assert.throws(() =>
       validateReceipt({ ...receipt(), ...override }, identity),
     );
+});
+
+test('runtime export removes machine-local agent inputs before validating runtime symlinks', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'mcp-auth-export-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const destination = join(root, 'export');
+  mkdirSync(join(destination, 'apps/app/.agents/skills'), { recursive: true });
+  symlinkSync(
+    '/missing-machine-local-skill',
+    join(destination, 'apps/app/.agents/skills/local'),
+  );
+  writeFileSync(join(destination, '.env.local'), 'LOCAL_INPUT=fixture');
+  writeFileSync(
+    join(destination, 'runtime.js'),
+    'export const runtime = true;',
+  );
+  symlinkSync(join(destination, 'runtime.js'), join(destination, 'safe-link'));
+  scrubRuntimeExport(destination);
+  assert.equal(existsSync(join(destination, 'apps/app/.agents')), false);
+  assert.equal(existsSync(join(destination, '.env.local')), false);
+  assert.equal(existsSync(join(destination, 'safe-link')), true);
+  const outside = join(root, 'outside.js');
+  writeFileSync(outside, 'outside');
+  symlinkSync(outside, join(destination, 'unsafe-link'));
+  assert.throws(
+    () => scrubRuntimeExport(destination),
+    /OUTSIDE_EXPORT_SYMLINK/,
+  );
 });

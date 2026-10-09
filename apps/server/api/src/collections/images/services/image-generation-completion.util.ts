@@ -2,9 +2,11 @@ import type { GenerationBillingService } from '@api/collections/credits/services
 import type { ImageGenerationSavedIngredient } from '@api/collections/images/services/image-generation.types';
 import type { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import type { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { GenerationWebhookOutput } from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 const IMAGE_POPULATE = [
   PopulatePatterns.promptFull,
@@ -100,4 +102,34 @@ export async function completeImageGeneration(
     organizationId: context.user.organizationId,
     output,
   });
+}
+
+/**
+ * Translate a polling timeout into a 504 with the ingredient's current
+ * status. No-op (caller re-throws the original error) for any other error or
+ * when the ingredient can no longer be read.
+ */
+export async function throwImageGatewayTimeoutIfPending(
+  imagesService: ImagesService,
+  error: unknown,
+  context: ImageGenerationContext,
+): Promise<void> {
+  if (!(error instanceof PollTimeoutException)) {
+    return;
+  }
+
+  const ingredient = await imagesService.findOne(
+    { id: context.ingredientData.id },
+    IMAGE_POPULATE,
+  );
+
+  if (ingredient) {
+    throw new HttpException(
+      {
+        detail: `Image generation did not complete within 3 minutes. Current status: ${ingredient.status}`,
+        title: 'Generation timeout',
+      },
+      HttpStatus.GATEWAY_TIMEOUT,
+    );
+  }
 }

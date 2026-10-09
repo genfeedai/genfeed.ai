@@ -235,7 +235,7 @@ function jsonApiDraft(saved: Record<string, unknown>) {
 }
 
 /**
- * Serves the draft project behind "New project". Register it after a test's
+ * Serves an existing draft project. Register it after a test's
  * own project mocks: while the draft is open it answers project reads with the
  * autosaved draft; once a start request goes out, reads fall back to them.
  */
@@ -296,13 +296,13 @@ async function mockDraftProject(page: Page): Promise<DraftSession> {
   return session;
 }
 
-/** Starts a Clips project the way a creator does: New project → draft form. */
+/** Opens the source import page without creating a draft. */
 async function openNewProject(page: Page): Promise<DraftSession> {
   const session = await mockDraftProject(page);
 
   await page.goto(CLIPS_URL);
   await page.getByRole('link', { name: /new project/i }).click();
-  await expect(page).toHaveURL(new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`));
+  await expect(page).toHaveURL(new RegExp(`${CLIPS_URL}/new`));
   await expect(page.getByLabel(/youtube url/i)).toBeVisible();
 
   return session;
@@ -325,17 +325,11 @@ test.describe('Clip Factory', () => {
       'type',
       'url',
     );
-    await expect(authenticatedPage.locator('#max-clips')).toHaveAttribute(
-      'type',
-      'range',
-    );
-    await expect(authenticatedPage.locator('#min-virality')).toHaveAttribute(
-      'type',
-      'range',
-    );
+    await expect(authenticatedPage.locator('#max-clips')).toHaveCount(0);
+    await expect(authenticatedPage.locator('#min-virality')).toHaveCount(0);
     await expect(
       authenticatedPage.getByRole('button', {
-        name: /review highlights first/i,
+        name: /import and transcribe/i,
       }),
     ).toBeVisible();
   });
@@ -396,7 +390,8 @@ test.describe('Clip Factory', () => {
   test('restores a pasted YouTube URL after reload', async ({
     authenticatedPage,
   }) => {
-    const session = await openNewProject(authenticatedPage);
+    const session = await mockDraftProject(authenticatedPage);
+    await authenticatedPage.goto(`${CLIPS_URL}/${MOCK_PROJECT_ID}`);
 
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
@@ -490,7 +485,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import and transcribe/i })
       .click();
 
     await expect(
@@ -599,7 +594,7 @@ test.describe('Clip Factory', () => {
       name: 'podcast.mp4',
     });
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import and transcribe/i })
       .click();
 
     await expect.poll(() => prepareBody).not.toBeNull();
@@ -776,7 +771,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import and transcribe/i })
       .click();
 
     await expect(authenticatedPage).toHaveURL(
@@ -917,7 +912,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import and transcribe/i })
       .click();
 
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
@@ -981,7 +976,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import and transcribe/i })
       .click();
 
     await authenticatedPage
@@ -1008,7 +1003,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import and transcribe/i })
       .click();
 
     await expect(
@@ -1017,7 +1012,7 @@ test.describe('Clip Factory', () => {
     await expect(authenticatedPage.getByLabel(/youtube url/i)).toBeVisible();
   });
 
-  test('should complete a raw-cut project without avatar identity', async ({
+  test('should complete an existing raw-cut draft without avatar identity', async ({
     authenticatedPage,
   }) => {
     let createRequestBody: Record<string, unknown> | null = null;
@@ -1087,7 +1082,8 @@ test.describe('Clip Factory', () => {
       },
     );
 
-    await openNewProject(authenticatedPage);
+    await mockDraftProject(authenticatedPage);
+    await authenticatedPage.goto(`${CLIPS_URL}/${MOCK_PROJECT_ID}`);
     await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage

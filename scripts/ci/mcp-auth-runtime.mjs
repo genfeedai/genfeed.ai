@@ -368,10 +368,17 @@ function cleanInputs(source, destination) {
     }
   };
   walk(source);
+  scrubRuntimeExport(destination);
+}
+
+export function scrubRuntimeExport(destination) {
   const scrub = (directory) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const file = join(directory, entry.name);
-      if (entry.name.startsWith('.env')) {
+      if (
+        entry.name.startsWith('.env') ||
+        ['.agents', '.codex', '.claude', '.turbo'].includes(entry.name)
+      ) {
         rmSync(file, { recursive: true, force: true });
         continue;
       }

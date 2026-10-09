@@ -36,8 +36,8 @@ export class BrandAccessService {
         organizationId: actor.organizationId,
         isActive: true,
         isDeleted: false,
-        organization: { isDeleted: false },
-        role: { isDeleted: false },
+        organization: { is: { isDeleted: false } },
+        role: { is: { isDeleted: false } },
       },
       select: {
         role: { select: { key: true } },
@@ -79,7 +79,12 @@ export class BrandAccessService {
   ): Promise<void> {
     const where = await this.predicate(actor, tx);
     const brand = await tx.brand.findFirst({
-      where: { AND: [where, { id: brandId }] },
+      where: {
+        id: brandId,
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        AND: [where],
+      },
       select: { id: true },
     });
     if (!brand) throw new ForbiddenException('Brand access denied');
