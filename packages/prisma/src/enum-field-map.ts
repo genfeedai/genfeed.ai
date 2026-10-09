@@ -5415,6 +5415,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isWatermarkEnabled',
       'isWebhookEnabled',
       'isWhitelabelEnabled',
+      'moduleOverrides',
       'onboardingJourneyCompletedAt',
       'onboardingJourneyMissions',
       'organization',

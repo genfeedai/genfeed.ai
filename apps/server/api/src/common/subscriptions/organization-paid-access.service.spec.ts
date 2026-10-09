@@ -308,6 +308,40 @@ describe('OrganizationPaidAccessService', () => {
     expect(logger.warn).toHaveBeenCalled();
   });
 
+  it('fresh execution admission observes revocation inside a warm paid-grant TTL', async () => {
+    const options = {
+      ownSubscriptions: [activeSubscription()],
+      ownSubscriptionTier: SubscriptionTier.FREE,
+    };
+    const prisma = createFakePrisma(options);
+    const { service } = createService(prisma);
+    await expect(service.isSubscriptionGatedStrict('org-1')).resolves.toBe(
+      false,
+    );
+    options.ownSubscriptions = [];
+    await expect(service.isSubscriptionGatedStrict('org-1')).resolves.toBe(
+      false,
+    );
+    await expect(service.isSubscriptionGatedFresh('org-1')).resolves.toBe(true);
+    expect(prisma.subscription.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('fresh execution admission does not reuse a cached grant after a failed read', async () => {
+    const options = {
+      ownSubscriptions: [activeSubscription()],
+      ownSubscriptionReadFails: false,
+    };
+    const prisma = createFakePrisma(options);
+    const { service } = createService(prisma);
+    await expect(service.isSubscriptionGatedStrict('org-1')).resolves.toBe(
+      false,
+    );
+    options.ownSubscriptionReadFails = true;
+    await expect(service.isSubscriptionGatedFresh('org-1')).rejects.toThrow(
+      'db down',
+    );
+  });
+
   it('caches a granted decision for the TTL window', async () => {
     const prisma = createFakePrisma({
       ownSubscriptions: [activeSubscription()],

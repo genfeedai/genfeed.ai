@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BatchProjectsController } from '@api/collections/batch-projects/controllers/batch-projects.controller';
+import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -142,14 +143,20 @@ describe('BatchProjectsController publishing scopes', () => {
     'retryItem',
     'review',
     'schedule',
-  ] as const)('requires an active subscription to %s', (method) => {
-    expect(
-      Reflect.getMetadata(
-        GUARDS_METADATA,
-        BatchProjectsController.prototype[method],
-      ),
-    ).toContain(SubscriptionGuard);
-  });
+  ] as const)(
+    'uses Batch module admission rather than a subscription-only gate to %s',
+    (method) => {
+      expect(
+        Reflect.getMetadata(
+          GUARDS_METADATA,
+          BatchProjectsController.prototype[method],
+        ) ?? [],
+      ).not.toContain(SubscriptionGuard);
+      expect(
+        Reflect.getMetadata(ORGANIZATION_MODULE_KEY, BatchProjectsController),
+      ).toMatchObject({ moduleId: 'batch' });
+    },
+  );
 
   it('refuses to schedule for an API key without the schedule scope', async () => {
     await expect(

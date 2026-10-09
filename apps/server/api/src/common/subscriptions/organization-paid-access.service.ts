@@ -79,6 +79,13 @@ export class OrganizationPaidAccessService {
     return !(await this.hasPaidSubscriptionStrict(organizationId));
   }
 
+  /** Execution admission re-reads a grant even inside the normal request cache TTL. */
+  async isSubscriptionGatedFresh(organizationId: string): Promise<boolean> {
+    if (!hasOrganizationBilling()) return false;
+    this.paidGrantCache.delete(organizationId);
+    return this.isSubscriptionGatedStrict(organizationId);
+  }
+
   async hasPaidSubscription(organizationId: string): Promise<boolean> {
     try {
       return await this.hasPaidSubscriptionStrict(organizationId);
