@@ -365,11 +365,11 @@ describe('TrendsPlatformDetail', () => {
     );
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'href',
-      '/discovery/trends',
+      '/org-1/brand-1/discovery/trends',
     );
     expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
       'href',
-      '/discovery/trends/platforms/tiktok',
+      '/org-1/brand-1/discovery/trends/platforms/tiktok',
     );
   });
 });
