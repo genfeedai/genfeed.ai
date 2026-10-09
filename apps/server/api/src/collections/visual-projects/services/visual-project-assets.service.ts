@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { stampIngredientGenerationEntry } from '@api/collections/ingredients/utils/ingredient-generation-entry.util';
 import { VisualProjectAuthorizationService } from '@api/collections/visual-projects/services/visual-project-authorization.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -186,16 +187,18 @@ export class VisualProjectAssetsService {
       generationSource: `visual-code:${revision.projectId}@${revision.number}`,
       modelUsed: revision.prompt ? revision.modelKey : null,
       sourceActionId: 'visual-code.generate',
-      providerData: toPrismaJson({
-        projectId: revision.projectId,
-        revisionId: revision.id,
-        sourceHash: revision.sourceHash,
-        rendererVersion: revision.rendererVersion,
-        sourceAssetIds: revision.sourceAssetIds,
-        outputHash: createHash('sha256').update(bytes).digest('hex'),
-        authoringModel: revision.prompt ? revision.modelKey : null,
-        inspectionModel: revision.modelKey,
-      }),
+      providerData: toPrismaJson(
+        stampIngredientGenerationEntry(IngredientOrigin.GENERATED, {
+          projectId: revision.projectId,
+          revisionId: revision.id,
+          sourceHash: revision.sourceHash,
+          rendererVersion: revision.rendererVersion,
+          sourceAssetIds: revision.sourceAssetIds,
+          outputHash: createHash('sha256').update(bytes).digest('hex'),
+          authoringModel: revision.prompt ? revision.modelKey : null,
+          inspectionModel: revision.modelKey,
+        }),
+      ),
       metadata: {
         create: {
           id: visualOutputId('metadata', revision, index),

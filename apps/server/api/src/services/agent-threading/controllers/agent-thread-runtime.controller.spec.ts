@@ -1,8 +1,14 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { ActionOrigin } from '@genfeedai/contracts';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -107,7 +113,7 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
     expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'https://acme.com' }),
-      { organizationId, userId },
+      { organizationId, userId, generationEntry: undefined },
     );
   });
 
@@ -147,7 +153,28 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
     expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'Awareness, Sales' }),
-      { organizationId, userId },
+      { organizationId, userId, generationEntry: undefined },
+    );
+  });
+
+  it('captures the current desktop invocation when continuing an input answer', async () => {
+    const generationEntry = {
+      channel: GenerationEntryChannel.DESKTOP,
+      attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+    };
+    await runWithActionOrigin(
+      { origin: ActionOrigin.UI, generationEntry },
+      () =>
+        controller.respondToInputRequest(
+          threadId,
+          'req-1',
+          { answer: 'Use hybrid' },
+          mockUser,
+        ),
+    );
+    expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
+      expect.anything(),
+      { organizationId, userId, generationEntry },
     );
   });
 
@@ -172,7 +199,7 @@ describe('Threading AgentThreadRuntimeController', () => {
         content: 'Use hybrid',
         threadId,
       }),
-      { organizationId, userId },
+      { organizationId, userId, generationEntry: undefined },
     );
     expect(response).toEqual(
       expect.objectContaining({

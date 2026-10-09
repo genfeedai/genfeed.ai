@@ -1,3 +1,4 @@
+import { runWithGenerationEntry } from '@api/action-origin/action-origin.context';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -55,6 +56,7 @@ import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
+import { parseGenerationEntry } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import {
   BadRequestException,
@@ -279,6 +281,9 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
           generationMode: generationMode as AgentChatRequest['generationMode'],
         }
       : {}),
+    ...(parseGenerationEntry(request.generationEntry)
+      ? { generationEntry: parseGenerationEntry(request.generationEntry) }
+      : {}),
     ...(request.generationSettings !== undefined
       ? {
           generationSettings: projectGenerationSettings(
@@ -358,7 +363,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       const state = input.state as PreparedAgentTurnState;
       return {
         decision: 'final' as const,
-        final: await this.execute(state),
+        final: await runWithGenerationEntry(state.request.generationEntry, () =>
+          this.execute(state),
+        ),
         state,
         toolItems: [],
       };
@@ -372,31 +379,39 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     );
     registerAction(
       AGENT_RUNTIME_ACTION_IDS.UI_ACTION,
-      ({ context, input, provenance }) =>
-        this.executeUiAction(
-          readRecord(input.request) as unknown as AgentThreadUiActionRequest,
-          {
-            executionId: provenance.executionId,
-            organizationId: context.organizationId,
-            userId: context.userId,
-          },
-        ),
+      ({ context, input, provenance }) => {
+        const request = readRecord(input.request);
+        const generationEntry = parseGenerationEntry(request.generationEntry);
+        return runWithGenerationEntry(generationEntry, () =>
+          this.executeUiAction(
+            request as unknown as AgentThreadUiActionRequest,
+            {
+              executionId: provenance.executionId,
+              generationEntry,
+              organizationId: context.organizationId,
+              userId: context.userId,
+            },
+          ),
+        );
+      },
     );
     registerAction(
       AGENT_RUNTIME_ACTION_IDS.INPUT_RESPONSE,
       ({ context, input, provenance }) => {
         const request = readRecord(input.request);
-        return this.resumeInput({
-          answer: requiredString(request.answer, 'request.answer'),
-          executionId: provenance.executionId,
-          ...(optionalString(request.fieldId)
-            ? { fieldId: optionalString(request.fieldId) }
-            : {}),
-          organizationId: context.organizationId,
-          scope: readRecord(request.scope) as unknown as ValidatedAgentScope,
-          threadId: requiredString(request.threadId, 'request.threadId'),
-          userId: context.userId,
-        });
+        return runWithGenerationEntry(request.generationEntry, () =>
+          this.resumeInput({
+            answer: requiredString(request.answer, 'request.answer'),
+            executionId: provenance.executionId,
+            ...(optionalString(request.fieldId)
+              ? { fieldId: optionalString(request.fieldId) }
+              : {}),
+            organizationId: context.organizationId,
+            scope: readRecord(request.scope) as unknown as ValidatedAgentScope,
+            threadId: requiredString(request.threadId, 'request.threadId'),
+            userId: context.userId,
+          }),
+        );
       },
     );
   }
@@ -682,6 +697,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       ...baseContext,
       generationPriority,
       generationSettings: request.generationSettings,
+      generationEntry: parseGenerationEntry(request.generationEntry),
       hostSupportsApproval: request.hostSupportsApproval ?? true,
       ...(request.knowledgeSelection
         ? { knowledgeSelection: request.knowledgeSelection }
@@ -778,6 +794,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
         : {}),
       executionId: state.executionId,
       executionMode: 'background',
+      generationEntry: parseGenerationEntry(state.request.generationEntry),
       organizationId: state.organizationId,
       userId: state.userId,
       ...(state.campaignId ? { campaignId: state.campaignId } : {}),

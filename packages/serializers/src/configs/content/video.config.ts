@@ -6,10 +6,12 @@ import {
   videoGenerationRequestAttributes,
 } from '@serializers/attributes/ingredients/video.attributes';
 import { simpleConfig } from '@serializers/builders';
+import { serializeGenerationEntry } from '@serializers/helpers/generation-entry.helper';
 import { EVALUATION_REL } from '@serializers/relationships';
 
 export const videoSerializerConfig = {
   attributes: videoAttributes,
+  attributeDerivations: { generationEntry: serializeGenerationEntry },
   evaluation: EVALUATION_REL,
   metadata: { type: 'metadata' },
   publications: { type: 'publication' },
