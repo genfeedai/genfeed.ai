@@ -28,15 +28,31 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   refetchProject: vi.fn(),
   search: '',
+  settings: {
+    hasOrganizationBilling: true,
+    moduleOverrides: { motion: true, editor: true },
+  } as Record<string, unknown>,
+  projectData: undefined as Record<string, unknown> | undefined,
+  source: vi.fn(),
+  cancel: vi.fn(),
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => mocks.identity,
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ selectedBrand: mocks.brand }),
+  useBrand: () => ({
+    organizationId: mocks.identity.orgId,
+    selectedBrand: mocks.brand,
+    settings: mocks.settings,
+    settingsLoading: false,
+    refreshSettings: vi.fn(),
+  }),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => path }),
+  useOrgUrl: () => ({
+    href: (path: string) => path,
+    orgHref: (path: string) => `/org/~${path}`,
+  }),
 }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
@@ -91,7 +107,9 @@ vi.mock('@hooks/data/content/use-visual-projects', () => ({
       data: mocks.catalog,
     },
     projects: { data: { pages: [] } },
-    project: { refetch: mocks.refetchProject },
+    project: { data: mocks.projectData, refetch: mocks.refetchProject },
+    source: mocks.source,
+    cancel: mocks.cancel,
     quote: mocks.quote,
     submit: mocks.submit,
   }),
@@ -125,10 +143,132 @@ beforeEach(() => {
     ],
   };
   mocks.search = '';
+  mocks.settings = {
+    hasOrganizationBilling: true,
+    moduleOverrides: { motion: true, editor: true },
+  };
+  mocks.projectData = undefined;
+  mocks.source.mockResolvedValue('retained source');
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
 });
 describe('Motion quote review', () => {
+  it('hides creation and quote controls under disabled cloud defaults', () => {
+    mocks.settings = { hasOrganizationBilling: true, moduleOverrides: {} };
+    render(<MotionContent />);
+    expect(screen.queryByLabelText('prompt')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'getQuote' }),
+    ).not.toBeInTheDocument();
+    expect(mocks.quote).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+  it('preserves saved outputs and source reads while new Motion work is disabled', async () => {
+    mocks.settings = { hasOrganizationBilling: true, moduleOverrides: {} };
+    mocks.search = 'project=saved';
+    mocks.projectData = {
+      id: 'saved',
+      label: 'Saved motion',
+      currentRevision: 1,
+      nextRevisionCursor: null,
+      revisions: [
+        {
+          id: 'revision',
+          number: 1,
+          status: 'completed',
+          progress: 100,
+          consumedCredits: 3,
+          maximumCredits: 3,
+          rendererVersion: '1',
+          modelKey: 'model',
+          hasSource: true,
+          props: {},
+          outputRequests: [{ format: 'png', frame: 0 }],
+          outputs: [
+            {
+              format: 'png',
+              ingredientId: 'asset',
+              url: '/retained.png',
+              width: 640,
+              height: 360,
+            },
+          ],
+        },
+      ],
+    };
+    render(<MotionContent />);
+    expect(screen.getByText('Saved motion')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'download' })).toHaveAttribute(
+      'href',
+      '/retained.png',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'quoteExport' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'loadProps' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'viewSource' }));
+    await waitFor(() => expect(mocks.source).toHaveBeenCalledWith(1));
+    expect(screen.getByLabelText('retainedSource')).toHaveValue(
+      'retained source',
+    );
+    expect(mocks.quote).not.toHaveBeenCalled();
+  });
+  it('discards an acknowledged quote across a module disable and re-enable', async () => {
+    const { rerender } = render(<MotionContent />);
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Animate a title' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    await screen.findByRole('button', { name: 'confirm' });
+    fireEvent.click(screen.getByLabelText('acknowledge'));
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { motion: false },
+    };
+    rerender(<MotionContent />);
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { motion: true },
+    };
+    rerender(<MotionContent />);
+    expect(
+      screen.queryByRole('button', { name: 'confirm' }),
+    ).not.toBeInTheDocument();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+  it('discards an in-flight quote after disabling Motion', async () => {
+    let resolve: ((value: typeof quote) => void) | undefined;
+    mocks.quote.mockImplementationOnce(
+      () =>
+        new Promise((accept) => {
+          resolve = accept;
+        }),
+    );
+    const { rerender } = render(<MotionContent />);
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Animate a title' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { motion: false },
+    };
+    rerender(<MotionContent />);
+    await act(async () => {
+      resolve?.(quote);
+    });
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { motion: true },
+    };
+    rerender(<MotionContent />);
+    expect(
+      screen.queryByRole('button', { name: 'confirm' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('requires explicit cost acknowledgment before submission and clears it when input changes', async () => {
     render(<MotionContent />);
     fireEvent.change(screen.getByLabelText('label'), {
