@@ -10,6 +10,7 @@ import { VideoGenerationService } from '@api/collections/videos/services/video-g
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import {
   Credits,
@@ -24,7 +25,6 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
@@ -424,7 +424,8 @@ export class VideosController {
   })
   @DeferCreditsUntilModelResolution()
   @ValidateModel({ category: ModelCategory.VIDEO })
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @OrganizationModule('playground')
+  @UseGuards(CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)
   @RateLimit({ limit: 30, scope: 'organization', windowMs: 60 * 1000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })

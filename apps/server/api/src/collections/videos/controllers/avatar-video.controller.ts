@@ -2,11 +2,11 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { type CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
@@ -17,13 +17,12 @@ import {
   HttpStatus,
   Post,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
-@UseGuards(SubscriptionGuard)
+@OrganizationModule('playground')
 export class AvatarVideoController {
   constructor(
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
