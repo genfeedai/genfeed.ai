@@ -1777,6 +1777,7 @@ model OrganizationSetting {
   defaultImageToVideoModel       String?
   defaultMusicModel              String?
   agentPolicy                    Json              @default("{}")
+  moduleOverrides                Json              @default("{}")
   fleetEvaluationPolicy          Json              @default("{}")
   byokKeys                       Json              @default("{}")
   createdAt                      DateTime          @default(now())

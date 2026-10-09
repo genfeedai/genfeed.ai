@@ -24,6 +24,7 @@ import {
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
+  organizationModuleOverridesSchema,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
@@ -63,6 +64,7 @@ export class OrganizationSettingsService extends BaseService<
     populate: PopulateInput = [],
   ): Promise<OrganizationSettingDocument> {
     const data: PrismaUpdate = { ...updateDto };
+    this.validateModuleOverrides(data);
     if (data.defaultAvatarRef || data.defaultVoiceRef) {
       const organizationId = getTenantContext()?.organizationId;
       const existing = await this.findOne({
@@ -101,6 +103,16 @@ export class OrganizationSettingsService extends BaseService<
     } else if (data.defaultAvatarPhotoUrl || data.defaultAvatarIngredientId)
       data.defaultAvatarRef = null;
     return super.patch(id, data, populate);
+  }
+
+  private validateModuleOverrides(data: PrismaUpdate): void {
+    if (!Object.hasOwn(data, 'moduleOverrides')) return;
+    const parsed = organizationModuleOverridesSchema.safeParse(
+      data.moduleOverrides,
+    );
+    if (!parsed.success)
+      throw new BadRequestException('Invalid organization module preferences');
+    data.moduleOverrides = parsed.data;
   }
 
   private getModelsService(): ModelsService {
@@ -142,6 +154,7 @@ export class OrganizationSettingsService extends BaseService<
     >[1],
   ): Promise<OrganizationSettingDocument> {
     const data: PrismaUpdate = { ...createDto };
+    this.validateModuleOverrides(data);
     if (createDto.defaultAvatarRef || createDto.defaultVoiceRef) {
       const identities = this.moduleRef.get<HeyGenIdentityService>(
         HEYGEN_IDENTITY_SERVICE,
