@@ -71,6 +71,7 @@ const environment = () => ({
       ]),
   ),
   GITHUB_ACTIONS: 'true',
+  CHECKPOINT_DISABLE: '1',
   MCP_AUTH_RUNTIME_NONCE: identity.nonce,
   DATABASE_URL: fixtureDatabaseUrl(),
   REDIS_QUEUE_DB: '0',
@@ -115,6 +116,8 @@ test('runtime environment rejects ambient secrets, alternate databases and real 
     { AWS_SECRET_ACCESS_KEY: 'real-secret' },
     { UNDECLARED_SETTING: 'value' },
     { GENFEED_CLOUD: 'false' },
+    { CHECKPOINT_DISABLE: undefined },
+    { CHECKPOINT_DISABLE: '0' },
     { DATABASE_URL: fixtureDatabaseUrl('127.0.0.1', 'other') },
     {
       DATABASE_URL: fixtureDatabaseUrl('remote'),

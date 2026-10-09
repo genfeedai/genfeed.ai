@@ -98,6 +98,7 @@ const runtimeKeys = new Set([
   'HOME',
   'PATH',
   'SENTRY_ENABLED',
+  'CHECKPOINT_DISABLE',
 ]);
 export function validateEnvironment(env) {
   demand(
@@ -115,6 +116,7 @@ export function validateEnvironment(env) {
     env.SENTRY_ENABLED === undefined || env.SENTRY_ENABLED === 'false',
     'TELEMETRY_ENABLED',
   );
+  demand(env.CHECKPOINT_DISABLE === '1', 'PRISMA_TELEMETRY_ENABLED');
   const db = new URL(env.DATABASE_URL);
   demand(
     db.protocol === 'postgresql:' &&
@@ -661,6 +663,7 @@ export async function runRuntime(options) {
     Object.assign(env, {
       GITHUB_ACTIONS: 'true',
       SENTRY_ENABLED: 'false',
+      CHECKPOINT_DISABLE: '1',
       DATABASE_URL: `postgresql://${user}:${password}@127.0.0.1:5432/${CONTRACT.database}`,
       REDIS_URL: 'redis://127.0.0.1:6379',
       REDIS_QUEUE_DB: '0',
