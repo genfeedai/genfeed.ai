@@ -59,6 +59,11 @@ import {
   buildReplyInboundWorkflowDefinition,
   buildReplyPostWatchWorkflowDefinition,
 } from '@api/services/reply-bot/reply-ingestion-workflow-definition';
+import {
+  buildTwitterDraftWorkflowDefinition,
+  buildTwitterPublishWorkflowDefinition,
+  buildTwitterSearchWorkflowDefinition,
+} from '@api/services/twitter-pipeline/twitter-pipeline-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
@@ -2795,6 +2800,146 @@ describe('registered reply ingestion and Telegram module admission', () => {
       );
       expect(finalize).toHaveBeenCalledTimes(1);
       expect(work).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+      expect(assertAccess).toHaveBeenLastCalledWith('org-1', moduleId);
+    },
+  );
+});
+
+describe('registered X pipeline module admission', () => {
+  const definitions = [
+    {
+      graph: buildTwitterSearchWorkflowDefinition(),
+      moduleId: 'discovery' as const,
+    },
+    {
+      graph: buildTwitterDraftWorkflowDefinition(),
+      moduleId: 'discovery' as const,
+    },
+    {
+      graph: buildTwitterPublishWorkflowDefinition(),
+      moduleId: 'publishing' as const,
+    },
+  ];
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({ graph, moduleId, mode })),
+    ),
+  )(
+    'blocks $graph.canonicalId $mode before execution or provider work',
+    async ({ graph, moduleId, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(new ForbiddenException('X module unavailable'));
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'x-pipeline',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('X module unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', moduleId);
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      graph.definition.nodes
+        .filter(
+          (node) =>
+            node.type === 'genfeedAction' &&
+            !graph.moduleCompletionNodeIds?.includes(node.id),
+        )
+        .map((workNode) => ({ graph, moduleId, workNode })),
+    ),
+  )(
+    '$graph.canonicalId freshly blocks $workNode.id after revocation, including provider-capable result nodes',
+    async ({ graph, moduleId, workNode }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const actionId = String(workNode.data.config.actionId);
+      const work = vi.fn();
+      runner.registerAction(actionId, work);
+      const completion = graph.definition.nodes.find((node) =>
+        graph.moduleCompletionNodeIds?.includes(node.id),
+      );
+      const project = vi.fn().mockResolvedValue({ opportunities: [] });
+      if (completion)
+        runner.registerAction(String(completion.data.config.actionId), project);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('X module revoked'),
+          );
+          if (completion) {
+            const completionAction = String(completion.data.config.actionId);
+            await expect(
+              executors.get(completionAction)?.(
+                {
+                  config: { actionId: completionAction },
+                  id: completion.id,
+                  inputs: [],
+                  label: 'Prior draft projection',
+                  type: 'genfeedAction',
+                },
+                new Map(),
+                executionContext(),
+              ),
+            ).resolves.toEqual({ opportunities: [] });
+          }
+          await expect(
+            executors.get(actionId)?.(
+              {
+                config: { actionId },
+                id: workNode.id,
+                inputs: [],
+                label: 'New X work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('X module revoked');
+        },
+      );
+      expect(work).not.toHaveBeenCalled();
+      expect(project).toHaveBeenCalledTimes(completion ? 1 : 0);
       expect(assertAccess).toHaveBeenCalledTimes(2);
       expect(assertAccess).toHaveBeenLastCalledWith('org-1', moduleId);
     },

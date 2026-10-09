@@ -1,3 +1,4 @@
+import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterPublishType } from '@api/services/twitter-pipeline/dto/twitter-pipeline.dto';
 import { TwitterPipelineController } from '@api/services/twitter-pipeline/twitter-pipeline.controller';
@@ -35,6 +36,18 @@ describe('TwitterPipelineController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('declares Discovery for search/drafts and Publishing for outbound posts', () => {
+    expect(
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, controller.search),
+    ).toEqual({ moduleId: 'discovery', operation: undefined });
+    expect(
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, controller.draft),
+    ).toEqual({ moduleId: 'discovery', operation: undefined });
+    expect(
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, controller.publish),
+    ).toEqual({ moduleId: 'publishing', operation: undefined });
   });
 
   it('requires RolesGuard so the :organizationId path must match the caller membership', () => {
