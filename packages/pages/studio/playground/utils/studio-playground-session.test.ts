@@ -77,6 +77,24 @@ describe('studio generate session jobs', () => {
     writeStudioPlaygroundSessionJobs('brand-1', [job]);
     expect(readStudioPlaygroundSessionJobs('brand-2')).toEqual([]);
   });
+
+  it('preserves clean draft bytes and unknown brand state across reload', () => {
+    if (!job.recipe) throw new Error('Missing fixture recipe');
+    writeStudioPlaygroundSessionJobs('brand-1', [
+      {
+        ...job,
+        recipe: {
+          ...job.recipe,
+          originalText: '  Exact\nuser draft  ',
+          brandingMode: undefined,
+        },
+      },
+    ]);
+    const recipe = readStudioPlaygroundSessionJobs('brand-1')[0]?.recipe;
+    expect(recipe?.originalText).toBe('  Exact\nuser draft  ');
+    expect(recipe?.brandingMode).toBeUndefined();
+    expect(recipe?.text).toBe('A founder at a desk');
+  });
 });
 
 describe('brand-tab Crun recipe persistence', () => {

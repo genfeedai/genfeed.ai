@@ -455,6 +455,7 @@ describe('useStudioGeneration socket tracking', () => {
       outputs: 4,
       style: 'editorial',
       text: 'A founder at a desk',
+      originalText: 'A founder at a desk',
     });
     expect(mockSubscribe).toHaveBeenCalledTimes(4);
   });

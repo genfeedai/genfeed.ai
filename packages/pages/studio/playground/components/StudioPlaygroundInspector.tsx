@@ -1,6 +1,7 @@
 'use client';
 
 import { useAgentDock } from '@contexts/ui/agent-dock-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { attachContentToNewConversationDraft } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import {
   ButtonSize,
@@ -74,10 +75,8 @@ export default function StudioPlaygroundInspector({
   const { href, orgSlug } = useOrgUrl();
   const { push } = useRouter();
   const agentDock = useAgentDock();
+  const { brandId } = useBrand();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
-  const recipe = resolveRecipeForJob(job);
-  const recipeText = recipe ? formatStudioRecipePrompt(recipe) : '';
-  const promptText = recipeText || job.prompt.trim();
   const facts = resolveStudioAssetFacts(job);
   const siblingJobs = useMemo(
     () => runJobs.filter((candidate) => candidate.id !== job.id),
@@ -94,6 +93,19 @@ export default function StudioPlaygroundInspector({
     job.status === IngredientStatus.UPLOADED ||
     job.status === IngredientStatus.VALIDATED;
   const [receiptAsset, setReceiptAsset] = useState<IIngredient | null>(null);
+  const currentReceipt =
+    receiptAsset &&
+    receiptAsset.id === ingredientId &&
+    receiptAsset.brandId === brandId &&
+    !receiptAsset.isDeleted
+      ? receiptAsset
+      : null;
+  const continuationJob = currentReceipt
+    ? { ...job, ingredient: currentReceipt }
+    : job;
+  const recipe = resolveRecipeForJob(continuationJob);
+  const recipeText = recipe ? formatStudioRecipePrompt(recipe) : '';
+  const promptText = recipeText || job.prompt.trim();
   const [receiptError, setReceiptError] = useState(false);
   const [posts, setPosts] = useState<IPost[]>([]);
   const [children, setChildren] = useState<IIngredient[]>([]);
@@ -187,13 +199,18 @@ export default function StudioPlaygroundInspector({
           undefined,
           controller.signal,
         );
-        if (!controller.signal.aborted) setReceiptAsset(asset);
+        if (
+          !controller.signal.aborted &&
+          asset.brandId === brandId &&
+          !asset.isDeleted
+        )
+          setReceiptAsset(asset);
       } catch {
         if (!controller.signal.aborted) setReceiptError(true);
       }
     })();
     return () => controller.abort();
-  }, [getImagesService, getVideosService, ingredientId, job.type]);
+  }, [brandId, getImagesService, getVideosService, ingredientId, job.type]);
 
   // The asset rides the agent's attachment tray; nothing is sent until the
   // operator writes the question. The dock hosts it in place; without one the
@@ -312,10 +329,17 @@ export default function StudioPlaygroundInspector({
 
   const recipePanel = (
     <div className="flex flex-col gap-3 px-4 py-3">
-      {receiptAsset &&
-      receiptAsset.id === ingredientId &&
-      receiptAsset.generationHarness ? (
-        <GenerationHarnessReceipt receipt={receiptAsset.generationHarness} />
+      <p className="text-xs font-medium">
+        {translate('continuation.originalPrompt')}
+      </p>
+      <p className="whitespace-pre-wrap text-xs text-muted-foreground">
+        {recipe?.originalText ?? translate('continuation.originalUnavailable')}
+      </p>
+      <p className="text-xs font-medium">
+        {translate('continuation.effectiveRecipe')}
+      </p>
+      {currentReceipt?.generationHarness ? (
+        <GenerationHarnessReceipt receipt={currentReceipt.generationHarness} />
       ) : null}
       {receiptError ? (
         <p role="status" className="text-xs text-muted-foreground">
@@ -427,7 +451,7 @@ export default function StudioPlaygroundInspector({
         className="w-full"
         icon={<Sparkles className="size-3.5" />}
         label={translate('inspector.vary')}
-        onClick={() => onVary(job)}
+        onClick={() => onVary(continuationJob)}
         size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
