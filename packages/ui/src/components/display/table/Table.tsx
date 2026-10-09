@@ -131,6 +131,8 @@ export default function AppTable<T>({
   onSortChange,
 }: TableProps<T>) {
   const isCompact = density === 'compact';
+  const scrollRegionLabel =
+    scrollAriaLabel?.trim() || ariaLabel?.trim() || label?.trim();
   const hasPinnedHeader = isHeaderPinned && !enableDragScroll;
   const dragPointerId = useRef<number | null>(null);
   const dragStartX = useRef(0);
@@ -373,8 +375,8 @@ export default function AppTable<T>({
         <div
           {...(enableDragScroll
             ? {
-                'aria-label': scrollAriaLabel ?? ariaLabel ?? label,
-                role: 'region',
+                'aria-label': scrollRegionLabel,
+                role: scrollRegionLabel ? 'region' : undefined,
                 tabIndex: 0,
               }
             : {})}

@@ -37,7 +37,7 @@ export interface TableErrorState {
   onRetry?: () => unknown;
 }
 
-export interface TableProps<T> {
+interface TableBaseProps<T> {
   error?: TableErrorState;
   items: T[];
   isLoading?: boolean;
@@ -47,8 +47,6 @@ export interface TableProps<T> {
   framed?: boolean;
   /** Compact padding for dense ledgers; regular tables retain their spacing. */
   density?: 'comfortable' | 'compact';
-  /** Mouse drag scrolling. Uses a horizontal scrollport instead of viewport-pinned headers. */
-  enableDragScroll?: boolean;
   /** Localized accessible name for the optional horizontal scroll region. */
   scrollAriaLabel?: string;
 
@@ -114,6 +112,17 @@ export interface TableProps<T> {
   sortDirection?: TableSortDirection;
   onSortChange?: (key: string, direction: TableSortDirection) => void;
 }
+
+/** Drag scrolling requires a localized name for its focusable scroll region. */
+export type TableProps<T> = TableBaseProps<T> &
+  (
+    | { enableDragScroll?: false }
+    | ({ enableDragScroll: true } & (
+        | { scrollAriaLabel: string }
+        | { ariaLabel: string }
+        | { label: string }
+      ))
+  );
 
 export interface TableAction<T> {
   icon: ReactNode | ((item: T) => ReactNode);
