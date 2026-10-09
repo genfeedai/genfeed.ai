@@ -94,6 +94,7 @@ export interface UseStudioGenerationReturn {
 }
 
 export interface StudioGenerationOptions {
+  originalText?: string;
   crunRequest?: CrunImageQuoteRequest;
   crunVideoRequest?: CrunVideoQuoteRequest;
   getCurrentCrunQuote?: () => Extract<
@@ -637,7 +638,12 @@ export function useStudioGeneration({
         ? { height: promptData.height, width: promptData.width }
         : {};
       const runId = crypto.randomUUID();
-      const recipe = recipeFromPromptData(promptData, type, settings);
+      const recipe = recipeFromPromptData(
+        promptData,
+        type,
+        settings,
+        options?.originalText ?? promptText,
+      );
       const capturedCrunRequest =
         type === 'video' ? options?.crunVideoRequest : options?.crunRequest;
       if (modelKey.startsWith('crun/') && capturedCrunRequest) {

@@ -76,6 +76,10 @@ vi.mock('@contexts/ui/agent-dock-context', () => ({
   useAgentDock: () => mocks.agentDock,
 }));
 
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: 'brand-1' }),
+}));
+
 vi.mock('@genfeedai/agent/stores/conversation-composer-draft.store', () => ({
   attachContentToNewConversationDraft:
     mocks.attachContentToNewConversationDraft,
@@ -132,7 +136,7 @@ const recipeJob = {
 describe('StudioPlaygroundInspector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.findOne.mockResolvedValue({ id: 'ing-1' });
+    mocks.findOne.mockResolvedValue({ id: 'ing-1', brandId: 'brand-1' });
     mocks.getPosts.mockResolvedValue([]);
     mocks.findChildren.mockResolvedValue([]);
   });
@@ -140,6 +144,7 @@ describe('StudioPlaygroundInspector', () => {
   it('shows the stored submitted prompt receipt instead of inferring enhancement from the recipe', async () => {
     mocks.findOne.mockResolvedValue({
       id: 'ing-1',
+      brandId: 'brand-1',
       generationHarness: {
         originalPrompt: 'A founder',
         enhancedPrompt: 'A founder beside a window.',
@@ -176,6 +181,7 @@ describe('StudioPlaygroundInspector', () => {
   it('shows the Knowledge versions folded into the submitted prompt', async () => {
     mocks.findOne.mockResolvedValue({
       id: 'ing-1',
+      brandId: 'brand-1',
       generationHarness: {
         originalPrompt: 'Mascot poster',
         enhancedPrompt: 'Mascot poster with a teal heron.',
