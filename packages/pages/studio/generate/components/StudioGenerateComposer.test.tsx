@@ -7,7 +7,10 @@ import type {
   GenerationSetupFieldKey,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { GenerationSetupFieldSetter } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import type {
+  GenerationSetupFieldSetter,
+  GenerationSetupImageEditingMode,
+} from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 
@@ -511,7 +514,6 @@ describe('StudioGenerateComposer', () => {
         scopeKey: 'studio:image',
         typeOptions: [
           { label: 'Image', value: 'image' },
-          { label: 'Edit image', value: 'image-edit' },
           { label: 'Video', value: 'video' },
           { label: 'Music', value: 'music' },
           { label: 'Avatar', value: 'avatar' },
@@ -938,9 +940,9 @@ describe('StudioGenerateComposer', () => {
     ).toBeInTheDocument();
   });
 
-  it('switches Studio type from the leading type chip', async () => {
+  it('uses one leading setup picker and explicitly switches image editing', () => {
     const onTypeChange = vi.fn();
-    render(
+    const view = render(
       <StudioGenerateComposer
         {...baseProps}
         onTypeChange={onTypeChange}
@@ -953,14 +955,43 @@ describe('StudioGenerateComposer', () => {
     const promptTools = within(
       screen.getByRole('group', { name: 'Prompt tools' }),
     );
-    fireEvent.pointerDown(
-      promptTools.getByRole('button', { name: 'Generation type: Image' }),
-    );
-    fireEvent.click(
-      await screen.findByRole('menuitemradio', { name: 'Video' }),
-    );
+    expect(
+      promptTools.getByRole('button', { name: 'Setup' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^Generation type:/ }),
+    ).toBeNull();
+    expect(
+      within(
+        screen.getByRole('group', { name: 'Generation controls' }),
+      ).queryByRole('button', { name: 'Setup' }),
+    ).toBeNull();
+    expect(generationSetupPopoverMocks.props.isIconOnly).toBe(true);
 
-    expect(onTypeChange).toHaveBeenCalledWith('video');
+    const imageEditing = generationSetupPopoverMocks.props
+      .imageEditing as GenerationSetupImageEditingMode;
+    expect(imageEditing.isEnabled).toBe(false);
+    imageEditing.onChange(true);
+    expect(onTypeChange).toHaveBeenLastCalledWith('image-edit');
+
+    view.rerender(
+      <StudioGenerateComposer
+        {...baseProps}
+        onTypeChange={onTypeChange}
+        prompt=""
+        settings={getDefaultStudioGenerateSettings('image-edit')}
+        type="image-edit"
+      />,
+    );
+    const editing = generationSetupPopoverMocks.props
+      .imageEditing as typeof imageEditing;
+    expect(editing.isEnabled).toBe(true);
+    expect(generationSetupPopoverMocks.props.typeOptions).toContainEqual({
+      label: 'Image',
+      value: 'image-edit',
+    });
+    editing.onChange(false);
+    expect(onTypeChange).toHaveBeenLastCalledWith('image');
   });
 
   it('blocks a required image-to-video model with an inline first-frame error', () => {
@@ -1147,7 +1178,7 @@ describe('StudioGenerateComposer', () => {
         promptTools.queryByRole('button', { name: 'Enhance prompt' }),
       ).not.toBeInTheDocument();
       expect(
-        generationControls.getByRole('button', { name: 'Setup' }),
+        promptTools.getByRole('button', { name: 'Setup' }),
       ).toBeInTheDocument();
       expect(generationSetupPopoverMocks.props.showEnhancementSettings).toBe(
         true,

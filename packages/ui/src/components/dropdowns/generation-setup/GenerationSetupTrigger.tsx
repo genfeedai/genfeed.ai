@@ -24,6 +24,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
   className,
   hasAspectRatio = true,
   isDisabled,
+  isIconOnly = false,
   isOpen: _isOpen,
   isTypeCommitted = false,
   models,
@@ -75,6 +76,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
         SHELL_CONTROL_HEIGHT_CLASS,
         'min-w-0 max-w-full flex-nowrap gap-1.5 overflow-hidden px-2.5 font-medium text-foreground',
         isFullyAgentOwned && 'border-primary/30 bg-primary/5 text-primary',
+        isIconOnly && 'size-8 shrink-0 min-h-0 min-w-0 justify-center p-0',
         className,
       )}
       isDisabled={isDisabled}
@@ -93,15 +95,19 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
             isFullyAgentOwned ? 'text-primary' : 'text-muted-foreground',
           )}
         />
-      ) : selectedModel ? null : (
+      ) : selectedModel && !isIconOnly ? null : (
         <CategoryIcon aria-hidden="true" className={SHELL_ICON_CLASS} />
       )}
-      <span className="min-w-0 flex-1 truncate text-xs font-medium">
-        {triggerLabel ?? summaryParts.join(' · ')}
-      </span>
-      <ChevronsUpDown
-        className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
-      />
+      {!isIconOnly ? (
+        <>
+          <span className="min-w-0 flex-1 truncate text-xs font-medium">
+            {triggerLabel ?? summaryParts.join(' · ')}
+          </span>
+          <ChevronsUpDown
+            className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
+          />
+        </>
+      ) : null}
     </Button>
   );
 });
