@@ -128,7 +128,9 @@ export function WorkflowSurfaceInspector({
   );
   const [workflow, setWorkflow] = useState<CloudWorkflowData | null>(null);
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() =>
+    Boolean(selection.executionId || selection.workflowId),
+  );
   const [isResuming, setIsResuming] = useState(false);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);

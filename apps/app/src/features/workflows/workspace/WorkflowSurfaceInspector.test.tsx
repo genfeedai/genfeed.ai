@@ -1,6 +1,7 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -56,6 +57,22 @@ vi.mock('next/navigation', () => ({
 import { WorkflowSurfaceInspector } from './WorkflowSurfaceInspector';
 
 describe('WorkflowSurfaceInspector', () => {
+  it('renders selected run loading before effects can start its first lookup', () => {
+    const html = renderToString(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/run-1"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(html).toContain('Loading workflow context…');
+    expect(html).not.toContain('Execution Not Found');
+    expect(html).not.toContain('Not running');
+    expect(getService).not.toHaveBeenCalled();
+    expect(service.getExecution).not.toHaveBeenCalled();
+  });
+
   it('shows missing run context without invented status or approval controls', async () => {
     service.getExecution.mockRejectedValue({
       errors: [{ status: '404', detail: 'Execution not found' }],
