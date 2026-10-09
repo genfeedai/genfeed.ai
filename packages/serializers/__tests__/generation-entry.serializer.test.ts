@@ -41,6 +41,8 @@ describe('generation entry serializers', () => {
       id: 'historical',
       providerData: { model: 'existing' },
     });
-    expect(result).not.toHaveProperty('data.attributes.generationEntry');
+    expect(result).toHaveProperty('data.attributes.generationEntry', undefined);
+    const wireDocument: unknown = JSON.parse(JSON.stringify(result));
+    expect(wireDocument).not.toHaveProperty('data.attributes.generationEntry');
   });
 });
