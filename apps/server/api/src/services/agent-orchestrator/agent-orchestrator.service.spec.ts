@@ -4,6 +4,7 @@ import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent
 import type { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import type { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import { ActionOrigin } from '@genfeedai/contracts';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import {
   GenerationEntryAttribution,
   GenerationEntryChannel,
@@ -54,7 +55,12 @@ describe('AgentOrchestratorService.handleThreadUiAction', () => {
             organizationId: 'org-1',
             brandId: 'brand-1',
             contextVersion: 1,
-          },
+            isLegacyFallback: false,
+            isVersionExplicit: true,
+            source: 'explicit',
+            threadId: 'thread-1',
+            userId: 'user-1',
+          } satisfies ValidatedAgentScope,
         });
       },
     );
