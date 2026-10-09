@@ -54,6 +54,8 @@ function buildDefinition(
   if (!resultNode) throw new Error(`${canonicalId} requires action nodes`);
   return {
     canonicalId,
+    organizationModule: 'messages',
+    moduleCompletionNodeIds: [resultNode.id],
     definition: {
       edges,
       inputVariables: [

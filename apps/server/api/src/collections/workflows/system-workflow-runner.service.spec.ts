@@ -32,6 +32,17 @@ import {
   buildCampaignReplyPreviewWorkflowDefinition,
   buildCampaignReplyWorkflowDefinition,
 } from '@api/services/campaign/campaign-reply-workflow-definition';
+import {
+  buildAuthorReplyDraftWorkflowDefinition,
+  buildAuthorReplySendWorkflowDefinition,
+} from '@api/services/reply-bot/author-reply-workflow-definition';
+import {
+  buildReplyBotContentWorkflowDefinition,
+  buildReplyBotDmWorkflowDefinition,
+  buildReplyBotOrganizationWorkflowDefinition,
+  buildReplyBotTestWorkflowDefinition,
+  buildReplyBotWorkflowDefinition,
+} from '@api/services/reply-bot/reply-bot-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
@@ -2083,6 +2094,142 @@ describe('registered Clips module admission', () => {
       );
       expect(work).toHaveBeenCalledTimes(allowed ? 1 : 0);
       expect(assertAccess).toHaveBeenCalledTimes(allowed ? 1 : 2);
+    },
+  );
+});
+
+describe('registered reply and author-reply module admission', () => {
+  const definitions = [
+    buildReplyBotOrganizationWorkflowDefinition(),
+    buildReplyBotWorkflowDefinition(),
+    buildReplyBotContentWorkflowDefinition(),
+    buildReplyBotDmWorkflowDefinition(),
+    buildReplyBotTestWorkflowDefinition(),
+    buildAuthorReplyDraftWorkflowDefinition(),
+    buildAuthorReplySendWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException(
+            'Messages disabled or subscription unavailable',
+          ),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-reply',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Messages disabled or subscription unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(definitions)(
+    '$canonicalId projects an admitted result after revocation but blocks its next work action',
+    async (graph) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      const workNode = graph.definition.nodes.find(
+        (node) =>
+          node.id !== graph.resultNodeId && node.type === 'genfeedAction',
+      );
+      if (!finalNode || !workNode)
+        throw new Error('reply final/work action missing');
+      const finalAction = String(finalNode.data.config.actionId);
+      const nextAction = String(workNode.data.config.actionId);
+      const finalize = vi.fn().mockResolvedValue({ completed: true });
+      const work = vi.fn();
+      runner.registerAction(finalAction, finalize);
+      runner.registerAction(nextAction, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Messages revoked'),
+          );
+          await expect(
+            executors.get(finalAction)?.(
+              {
+                config: { actionId: finalAction },
+                id: finalNode.id,
+                inputs: [],
+                label: 'Finalize',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).resolves.toEqual({ completed: true });
+          await expect(
+            executors.get(nextAction)?.(
+              {
+                config: { actionId: nextAction },
+                id: workNode.id,
+                inputs: [],
+                label: 'New work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Messages revoked');
+        },
+      );
+      expect(finalize).toHaveBeenCalledTimes(1);
+      expect(work).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
     },
   );
 });
