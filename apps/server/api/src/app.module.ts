@@ -17,6 +17,7 @@ import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identit
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
 import { OrganizationModuleGuard } from '@api/common/organization-modules/organization-module.guard';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
+import { OrganizationModuleExecutionInterceptor } from '@api/common/organization-modules/organization-module-execution.interceptor';
 import { RequestContextModule } from '@api/common/request-context.module';
 import { DevModule } from '@api/endpoints/dev/dev.module';
 import { DocsModule } from '@api/endpoints/docs/docs.module';
@@ -111,6 +112,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_INTERCEPTOR,
       useClass: ActionOriginInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useExisting: OrganizationModuleExecutionInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
