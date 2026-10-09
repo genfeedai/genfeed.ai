@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { runWithOrganizationModule } from '@api/common/organization-modules/organization-module-execution.context';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -95,7 +96,13 @@ export class AgentEndpointInvoker {
     const dto = await this.validateBody(request.body, endpoint.dto);
 
     try {
-      const result = await endpoint.handle({ dto, request, user });
+      const result = await runWithOrganizationModule(
+        {
+          organizationId: user.organizationId,
+          moduleId: endpoint.organizationModule.moduleId,
+        },
+        () => endpoint.handle({ dto, request, user }),
+      );
 
       if (endpoint.hasCreditsInterceptor) {
         await this.creditsInterceptor.settle(request, result);

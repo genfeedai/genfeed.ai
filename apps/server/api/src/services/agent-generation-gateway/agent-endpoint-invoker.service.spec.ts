@@ -1,6 +1,7 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { getOrganizationModuleExecutionContext } from '@api/common/organization-modules/organization-module-execution.context';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -217,6 +218,30 @@ describe('AgentEndpointInvoker', () => {
     expect(moduleAccess.assertAccess).not.toHaveBeenCalled();
     expect(creditsGuard.admit).not.toHaveBeenCalled();
     expect(endpoint.handle).not.toHaveBeenCalled();
+  });
+
+  it('propagates only descriptor-owned module and authenticated organization into nested execution', async () => {
+    const handle = vi.fn(async () => {
+      await Promise.resolve();
+      expect(getOrganizationModuleExecutionContext()).toEqual({
+        organizationId: ORGANIZATION_ID,
+        moduleId: 'storyboard',
+      });
+      return 'generated';
+    });
+    await invoker.invoke(
+      buildEndpoint({ organizationModule: { moduleId: 'storyboard' }, handle }),
+      {
+        ...invocation,
+        body: {
+          ...invocation.body,
+          moduleId: 'automation',
+          organizationId: 'forged',
+        },
+      },
+    );
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(getOrganizationModuleExecutionContext()).toBeUndefined();
   });
 
   it('preserves explicit export admission independently of subscription-skip flags', async () => {
