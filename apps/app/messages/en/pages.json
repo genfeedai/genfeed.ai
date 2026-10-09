@@ -5018,7 +5018,9 @@
     "acceptQuote": "Accept quote and generate",
     "items": "Items",
     "scheduleResult": "{scheduled} scheduled; {failed} failed.",
-    "retryLoad": "Retry loading"
+    "retryLoad": "Retry loading",
+    "workflowSubscriptionRequired": "An active paid subscription is required to use saved workflows. You can still generate ideas with credits.",
+    "workflowUnavailable": "Workflow access could not be verified. Refresh module settings before using a saved workflow."
   },
   "studioMotion": {
     "title": "Motion",

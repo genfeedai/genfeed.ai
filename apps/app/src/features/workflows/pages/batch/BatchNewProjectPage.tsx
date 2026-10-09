@@ -3,7 +3,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { BatchProjectKind, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
-  resolveOrganizationModulePreferences,
+  resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
@@ -28,7 +28,7 @@ import { Lightbulb, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createWorkflowApiService,
   type WorkflowSummary,
@@ -37,10 +37,12 @@ import { createBatchProjectsApi } from './batch-projects-api';
 
 export default function BatchNewProjectPage() {
   const t = useTranslations('pages.batchProjects');
-  const { brandId, settings, settingsLoading } = useBrand();
-  const isWorkflowEnabled =
-    resolveOrganizationModulePreferences(settingsLoading ? null : settings)
-      ?.automation === true;
+  const { brandId, organizationId, settings, settingsLoading } = useBrand();
+  const automationAccess = resolveOrganizationModulePresentationAccess(
+    settingsLoading ? null : settings,
+    'automation',
+  );
+  const isWorkflowEnabled = automationAccess.isAllowed;
   const { href, orgHref } = useOrgUrl();
   const router = useRouter();
   const isIdeasEnabled = useFeatureFlag('batch_ideas');
@@ -65,6 +67,30 @@ export default function BatchNewProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const [loading, setLoading] = useState(true);
+  const admission = useRef({
+    organizationId,
+    brandId,
+    kind,
+    isIdeasEnabled,
+    isWorkflowEnabled,
+    workflowId,
+  });
+  admission.current = {
+    organizationId,
+    brandId,
+    kind,
+    isIdeasEnabled,
+    isWorkflowEnabled,
+    workflowId,
+  };
+  const submitting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     setWorkflowId('');
@@ -96,6 +122,7 @@ export default function BatchNewProjectPage() {
     if (
       !brandId ||
       busy ||
+      submitting.current ||
       isSubscriptionRequired ||
       (kind === BatchProjectKind.IDEAS && !isIdeasEnabled) ||
       (kind === BatchProjectKind.WORKFLOW &&
@@ -104,17 +131,43 @@ export default function BatchNewProjectPage() {
           !workflows.some((workflow) => workflow.id === workflowId)))
     )
       return;
+    submitting.current = true;
+    const intent = admission.current;
     setBusy(true);
     setError(null);
     try {
-      const project = await (await getService()).create({
+      const service = await getService();
+      const current = admission.current;
+      if (
+        !mounted.current ||
+        current.organizationId !== intent.organizationId ||
+        current.brandId !== intent.brandId ||
+        current.kind !== intent.kind ||
+        (kind === BatchProjectKind.IDEAS && !current.isIdeasEnabled) ||
+        (kind === BatchProjectKind.WORKFLOW &&
+          (!current.isWorkflowEnabled ||
+            current.workflowId !== intent.workflowId))
+      )
+        return;
+      const project = await service.create({
         brandId,
         kind,
         name: name.trim() || t('untitled'),
         ...(kind === BatchProjectKind.WORKFLOW ? { workflowId } : {}),
       });
-      router.push(href(`${APP_ROUTES.STUDIO.BATCH}/${project.id}`));
+      if (
+        mounted.current &&
+        admission.current.brandId === intent.brandId &&
+        admission.current.organizationId === intent.organizationId
+      )
+        router.push(href(`${APP_ROUTES.STUDIO.BATCH}/${project.id}`));
     } catch (reason) {
+      if (
+        !mounted.current ||
+        admission.current.brandId !== intent.brandId ||
+        admission.current.organizationId !== intent.organizationId
+      )
+        return;
       const member = getJsonApiErrorMember(reason);
       setIsSubscriptionRequired(
         member?.status === 403 &&
@@ -122,7 +175,8 @@ export default function BatchNewProjectPage() {
       );
       setError(getJsonApiErrorMessage(reason, t('saveFailed')));
     } finally {
-      setBusy(false);
+      submitting.current = false;
+      if (mounted.current) setBusy(false);
     }
   }
   if (isSubscriptionRequired) {
@@ -189,12 +243,26 @@ export default function BatchNewProjectPage() {
         </fieldset>
         {!isWorkflowEnabled && (
           <p className="text-sm text-muted-foreground">
-            {t('workflowDisabled')}{' '}
+            {t(
+              automationAccess.reason === 'subscription-required'
+                ? 'workflowSubscriptionRequired'
+                : automationAccess.reason === 'unavailable'
+                  ? 'workflowUnavailable'
+                  : 'workflowDisabled',
+            )}{' '}
             <Link
-              href={orgHref(APP_ROUTES.SETTINGS.GENERAL)}
+              href={orgHref(
+                automationAccess.reason === 'subscription-required'
+                  ? APP_ROUTES.SETTINGS.SUBSCRIPTION
+                  : APP_ROUTES.SETTINGS.GENERAL,
+              )}
               className="underline underline-offset-4"
             >
-              {t('manageModules')}
+              {t(
+                automationAccess.reason === 'subscription-required'
+                  ? 'manageSubscription'
+                  : 'manageModules',
+              )}
             </Link>
           </p>
         )}

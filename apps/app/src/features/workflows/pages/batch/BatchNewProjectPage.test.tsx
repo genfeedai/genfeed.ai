@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   brandId: 'brand-1',
   settings: {
     hasOrganizationBilling: true,
+    hasPaidModuleSubscription: true,
     moduleOverrides: { automation: true },
   } as Record<string, unknown>,
   list: vi.fn(),
@@ -69,6 +70,7 @@ describe('BatchNewProjectPage', () => {
     mocks.isIdeasEnabled = true;
     mocks.settings = {
       hasOrganizationBilling: true,
+      hasPaidModuleSubscription: true,
       moduleOverrides: { automation: true },
     };
     mocks.getService.mockResolvedValue({
@@ -284,5 +286,70 @@ describe('BatchNewProjectPage', () => {
       name: 'Corrected draft',
     });
     expect(mocks.create).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Batch workflow paid admission', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.brandId = 'brand-1';
+    mocks.isIdeasEnabled = true;
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: { automation: true },
+      hasPaidModuleSubscription: true,
+    };
+    mocks.getService.mockResolvedValue({
+      list: mocks.list,
+      create: mocks.create,
+    });
+    mocks.list.mockResolvedValue([]);
+    mocks.create.mockResolvedValue({ id: 'batch-1' });
+  });
+  it.each([false, null, undefined])(
+    'does not load unpaid/unknown workflows while ideas remain available (%s)',
+    async (grant) => {
+      mocks.settings.hasPaidModuleSubscription = grant;
+      render(<BatchNewProjectPage />);
+      expect(
+        screen.getByRole('button', { name: 'Saved workflow' }),
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Generate ideas' }),
+      ).not.toBeDisabled();
+      expect(mocks.list).not.toHaveBeenCalled();
+      if (grant === false)
+        expect(
+          screen.getByRole('link', { name: 'Manage subscription' }),
+        ).toHaveAttribute('href', '/acme/~/settings/subscription');
+      await chooseIdeas();
+      fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+      await waitFor(() =>
+        expect(mocks.create).toHaveBeenCalledWith(
+          expect.objectContaining({ kind: BatchProjectKind.IDEAS }),
+        ),
+      );
+    },
+  );
+  it('does not create against a changed brand during authenticated service lookup', async () => {
+    let resolve:
+      | ((service: { create: typeof mocks.create }) => void)
+      | undefined;
+    mocks.getService.mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const { rerender } = render(<BatchNewProjectPage />);
+    await chooseIdeas();
+    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    mocks.brandId = 'brand-2';
+    rerender(<BatchNewProjectPage />);
+    await act(async () => {
+      resolve?.({ create: mocks.create });
+    });
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 });
