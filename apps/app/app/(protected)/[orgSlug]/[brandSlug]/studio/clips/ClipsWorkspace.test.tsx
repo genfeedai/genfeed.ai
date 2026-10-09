@@ -21,7 +21,10 @@ vi.mock('./useStudioClipsPage', () => ({
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/acme/demo${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/demo${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
 }));
 
 vi.mock('next/link', () => ({
@@ -221,6 +224,9 @@ describe('ClipsWorkspace with the real page-help provider', () => {
           highlights: [],
           mode: 'avatar',
           projectId: 'draft-1',
+          name: 'Imported source',
+          sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          transcriptText: 'Transcript for the imported source.',
           status: 'draft',
         },
         step: 'input',
@@ -233,6 +239,10 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       </PageHelpProvider>,
     );
 
+    expect(screen.getByTestId('clips-source-preview')).toBeVisible();
+    expect(
+      screen.getByText('Transcript for the imported source.'),
+    ).toBeVisible();
     expect(screen.getByTestId('clips-input-form')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'All projects' })).toHaveAttribute(
       'href',

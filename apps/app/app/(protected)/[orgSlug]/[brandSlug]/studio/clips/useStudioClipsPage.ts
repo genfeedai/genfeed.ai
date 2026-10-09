@@ -83,7 +83,10 @@ export function resolveStudioClipIdentityDefaults({
   settings,
 }: StudioClipIdentityContext): StudioClipIdentityDefaults {
   const brandConfig = selectedBrand?.agentConfig;
-  const brandAvatarId = readString(brandConfig?.heygenAvatarId);
+  const brandAvatarId =
+    readString(brandConfig?.defaultAvatarRef?.lookId) ??
+    readString(brandConfig?.heygenAvatarId);
+  const organizationAvatarId = readString(settings?.defaultAvatarRef?.lookId);
   const brandVoiceId =
     readString(brandConfig?.heygenVoiceId) ??
     resolveHeygenVoiceRef(brandConfig?.defaultVoiceRef) ??
@@ -97,7 +100,7 @@ export function resolveStudioClipIdentityDefaults({
       settings?.defaultVoiceProvider,
       settings?.defaultVoiceId,
     );
-  const avatarId = brandAvatarId;
+  const avatarId = brandAvatarId ?? organizationAvatarId;
   const voiceId = brandVoiceId ?? organizationVoiceId;
   const missing: StudioClipIdentityField[] = [];
 
@@ -115,9 +118,9 @@ export function resolveStudioClipIdentityDefaults({
     isComplete: missing.length === 0,
     missing,
     source:
-      avatarId || brandVoiceId
+      brandAvatarId || brandVoiceId
         ? 'brand'
-        : organizationVoiceId
+        : organizationAvatarId || organizationVoiceId
           ? 'organization'
           : 'missing',
     voiceId,
@@ -377,6 +380,10 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
             highlights: [],
             mode,
             projectId: projectIdFromRoute,
+            name: data.name,
+            sourceVideoUrl: data.sourceVideoUrl ?? restored.youtubeUrl,
+            transcriptText: data.transcriptText,
+            source: data.source,
             status,
           });
           setStep('input');
@@ -390,6 +397,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           hookApproval,
           mode,
           projectId: projectIdFromRoute,
+          name: data.name,
+          sourceVideoUrl: data.sourceVideoUrl,
+          transcriptText: data.transcriptText,
           referenceFrames: data.referenceFrames,
           source: data.source,
           status,
@@ -609,6 +619,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         mode: generationMode,
         projectId: prepared.projectId,
         source: persistedProject.source,
+        name: persistedProject.name,
+        sourceVideoUrl: persistedProject.sourceVideoUrl,
+        transcriptText: persistedProject.transcriptText,
         status: started.status,
       });
       setSelectedIds(new Set());
@@ -848,6 +861,12 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
             prev
               ? {
                   ...prev,
+                  name: projectData.name ?? prev.name,
+                  sourceVideoUrl:
+                    projectData.sourceVideoUrl ?? prev.sourceVideoUrl,
+                  transcriptText:
+                    projectData.transcriptText ?? prev.transcriptText,
+                  source: projectData.source ?? prev.source,
                   highlights,
                   referenceFrames:
                     projectData.referenceFrames ?? prev.referenceFrames,
@@ -859,13 +878,32 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           setSelectedIds(new Set(highlights.map((h: IHighlight) => h.id)));
           clearPendingPoll();
         } else if (data.status === 'failed') {
-          setProject((prev) => (prev ? { ...prev, status: 'failed' } : prev));
+          setProject((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  name: projectData.name ?? prev.name,
+                  sourceVideoUrl:
+                    projectData.sourceVideoUrl ?? prev.sourceVideoUrl,
+                  transcriptText:
+                    projectData.transcriptText ?? prev.transcriptText,
+                  source: projectData.source ?? prev.source,
+                  status: 'failed',
+                }
+              : prev,
+          );
           clearPendingPoll();
         } else {
           setProject((prev) =>
             prev
               ? {
                   ...prev,
+                  name: projectData.name ?? prev.name,
+                  sourceVideoUrl:
+                    projectData.sourceVideoUrl ?? prev.sourceVideoUrl,
+                  transcriptText:
+                    projectData.transcriptText ?? prev.transcriptText,
+                  source: projectData.source ?? prev.source,
                   referenceFrames:
                     projectData.referenceFrames ?? prev.referenceFrames,
                 }
@@ -1170,6 +1208,11 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           prev
             ? {
                 ...prev,
+                name: projectData.name ?? prev.name,
+                sourceVideoUrl:
+                  projectData.sourceVideoUrl ?? prev.sourceVideoUrl,
+                transcriptText:
+                  projectData.transcriptText ?? prev.transcriptText,
                 clips,
                 hookApproval,
                 source: projectData.source ?? prev.source,

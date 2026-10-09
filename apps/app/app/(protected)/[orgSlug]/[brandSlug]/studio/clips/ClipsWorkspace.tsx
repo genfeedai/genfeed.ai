@@ -20,6 +20,7 @@ import ClipReferenceFrameSelector from './components/ClipReferenceFrameSelector'
 import ClipsInputForm from './components/ClipsInputForm';
 import ClipsProgressView from './components/ClipsProgressView';
 import ClipsProjectList from './components/ClipsProjectList';
+import ClipsSourcePreview from './components/ClipsSourcePreview';
 import HighlightReviewCard from './components/HighlightReviewCard';
 import { useStudioClipProjects } from './useStudioClipProjects';
 import { useStudioClipsPage } from './useStudioClipsPage';
@@ -135,7 +136,42 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
   );
 }
 
-function ClipsProjectDetail({
+function ClipsProjectDetail(props: ReturnType<typeof useStudioClipsPage>) {
+  const t = useTranslations('pages.studioClips');
+  const { orgHref } = useOrgUrl();
+  if (props.isHydrating || !props.project)
+    return <ClipsProjectControls {...props} />;
+  return (
+    <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
+      <div className="min-w-0">
+        <ClipsSourcePreview
+          name={props.project.name}
+          sourceVideoUrl={props.project.sourceVideoUrl || props.youtubeUrl}
+          transcriptText={props.project.transcriptText}
+          source={props.project.source}
+        />
+      </div>
+      <div className="min-w-0 space-y-4">
+        {props.step !== 'input' &&
+        props.generationMode === 'avatar' &&
+        !props.identityDefaults.isComplete ? (
+          <p className="text-sm text-muted-foreground">
+            {t('avatarDefaultsHint')}{' '}
+            <Link
+              href={orgHref(APP_ROUTES.SETTINGS.ORGANIZATION)}
+              className="underline"
+            >
+              {t('configureAvatarDefaults')}
+            </Link>
+          </p>
+        ) : null}
+        <ClipsProjectControls {...props} />
+      </div>
+    </div>
+  );
+}
+
+function ClipsProjectControls({
   avatarId,
   avatarProvider,
   clipsService,
@@ -192,6 +228,7 @@ function ClipsProjectDetail({
   if (step === 'input' && project) {
     return (
       <ClipsInputForm
+        sourceOnly={project.status === 'draft'}
         draftFilename={draftFilename}
         draftSaveState={draftSaveState}
         generationMode={generationMode}

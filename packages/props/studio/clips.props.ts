@@ -93,6 +93,9 @@ export interface ClipResult {
 
 export interface ProjectState {
   projectId: string;
+  name?: string;
+  sourceVideoUrl?: string;
+  transcriptText?: string;
   status: string;
   highlights: IHighlight[];
   clips: ClipResult[];
@@ -122,7 +125,15 @@ export interface ClipReferenceFrameSelectorProps {
   referenceFrames?: ClipReferenceFrameSet;
 }
 
+export interface ClipsSourcePreviewProps {
+  name?: string;
+  sourceVideoUrl?: string;
+  transcriptText?: string;
+  source?: ClipSourceContract;
+}
+
 export interface ClipsInputFormProps {
+  sourceOnly?: boolean;
   draftFilename?: string;
   draftSaveState: ClipDraftSaveState;
   error: string | null;
@@ -227,6 +238,9 @@ export interface StudioClipIdentityContext {
   selectedBrand?: Pick<IBrand, 'agentConfig'> | null;
   settings?: Pick<
     IOrganizationSetting,
-    'defaultVoiceId' | 'defaultVoiceProvider' | 'defaultVoiceRef'
+    | 'defaultVoiceId'
+    | 'defaultVoiceProvider'
+    | 'defaultVoiceRef'
+    | 'defaultAvatarRef'
   > | null;
 }
