@@ -46,7 +46,7 @@ export default function StudioIdentityFields({
   settings,
   type,
 }: StudioIdentityFieldsProps): ReactElement {
-  const { avatarOptions, isLoadingIdentities, voiceOptions } =
+  const { avatarOptions, error, isLoadingIdentities, voiceOptions } =
     useStudioGenerateIdentities();
 
   const avatarValue = settings.avatarRef
@@ -86,6 +86,11 @@ export default function StudioIdentityFields({
       </PopoverTrigger>
       <PopoverPanelContent align="start" className="w-72 p-3" side="top">
         <div className="flex flex-col gap-3">
+          {error ? (
+            <p className="text-xs text-muted-foreground" role="alert">
+              {error}
+            </p>
+          ) : null}
           {type === 'avatar' ? (
             <SettingRow label="Avatar">
               <OptionSelect
