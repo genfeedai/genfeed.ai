@@ -343,6 +343,13 @@ export function readProcessNetworkNamespace(pid, runCommand = command) {
     throw new Error('NETWORK_NAMESPACE_READ');
   }
 }
+export function readJourneyFailure(output) {
+  const lines = output.split('\n');
+  return (
+    CONTRACT.cases.find((id) => lines.includes(`${id} failed`)) ??
+    'JOURNEY_INFRASTRUCTURE'
+  );
+}
 
 function processStart(pid) {
   const text = readFileSync(`/proc/${pid}/stat`, 'utf8');
@@ -792,11 +799,14 @@ export async function runRuntime(options) {
       const handle = launch(stage, exe, args, settings);
       const result = await handle.done;
       clearTimeout(handle.timer);
-      assertChildOutcome(result);
-      return readFileSync(
+      const output = readFileSync(
         join(options.state, `${stage}.private.log`),
         'utf8',
       ).trim();
+      if (stage === 'journey' && result.code !== 0)
+        process.stderr.write(`${readJourneyFailure(output)} failed\n`);
+      assertChildOutcome(result);
+      return output;
     };
     const requireFromPrisma = createRequire(
       join(clean, 'packages/prisma/package.json'),

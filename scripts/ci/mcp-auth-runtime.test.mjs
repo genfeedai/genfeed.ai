@@ -16,6 +16,7 @@ import {
   assertChildOutcome,
   CONTRACT,
   parseOptions,
+  readJourneyFailure,
   readProcessNetworkNamespace,
   scrubRuntimeExport,
   validateContainer,
@@ -80,6 +81,14 @@ const environment = () => ({
   REDIS_SOCKET_DB: '3',
 });
 const owner = { id: 'owned-id', nonce: identity.nonce, network: 'none' };
+test('journey diagnostics expose only the finite failure category', () => {
+  assert.equal(
+    readJourneyFailure(`private output\n${CONTRACT.cases[0]} failed\n`),
+    CONTRACT.cases[0],
+  );
+  for (const output of ['private failure detail', 'B99_UNDECLARED failed'])
+    assert.equal(readJourneyFailure(output), 'JOURNEY_INFRASTRUCTURE');
+});
 const container = () => ({
   Id: owner.id,
   Config: { Labels: { 'genfeed.mcp-auth.nonce': owner.nonce } },
