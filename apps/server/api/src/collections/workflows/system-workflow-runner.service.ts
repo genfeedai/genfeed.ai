@@ -249,6 +249,22 @@ export class SystemWorkflowRunnerService
     return this.workflowDefinitions.get(canonicalId);
   }
 
+  /** Resolve trusted terminal compensation for both new and legacy queue jobs. */
+  getRegisteredFailureWorkflow(
+    input: Pick<RunSystemWorkflowInput, 'canonicalId' | 'inputValues'>,
+  ): { canonicalId: string; inputValues: Record<string, unknown> } | undefined {
+    const canonicalId = this.workflowDefinitions.get(
+      input.canonicalId,
+    )?.failureWorkflowCanonicalId;
+    if (!canonicalId) return undefined;
+    if (!this.workflowDefinitions.has(canonicalId)) {
+      throw new Error(
+        `System workflow failure definitions missing: ${input.canonicalId}:${canonicalId}`,
+      );
+    }
+    return { canonicalId, inputValues: input.inputValues ?? {} };
+  }
+
   registerWorkflow(definition: SystemWorkflowGraphDefinition): void {
     if (this.workflowDefinitions.has(definition.canonicalId)) {
       throw new Error(
@@ -447,14 +463,7 @@ export class SystemWorkflowRunnerService
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
     options: { dispatchClass: SystemWorkflowDispatchClass },
   ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
-    if (
-      definition.failureWorkflowCanonicalId &&
-      !this.workflowDefinitions.has(definition.failureWorkflowCanonicalId)
-    ) {
-      throw new Error(
-        `System workflow failure definitions missing: ${definition.canonicalId}:${definition.failureWorkflowCanonicalId}`,
-      );
-    }
+    const failureWorkflow = this.getRegisteredFailureWorkflow(input);
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureHiddenSystemWorkflowMirror(definition);
     if (!workflow.currentVersion) {
@@ -499,14 +508,7 @@ export class SystemWorkflowRunnerService
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
           ...(isAgentConversation ? { attempts: 1 } : {}),
           dispatchClass: options.dispatchClass,
-          ...(definition.failureWorkflowCanonicalId
-            ? {
-                failureWorkflow: {
-                  canonicalId: definition.failureWorkflowCanonicalId,
-                  inputValues: input.inputValues ?? {},
-                },
-              }
-            : {}),
+          ...(failureWorkflow ? { failureWorkflow } : {}),
           ...(this.isPlatformOriginatedSource(input.source)
             ? { usePlatformQueue: true }
             : {}),

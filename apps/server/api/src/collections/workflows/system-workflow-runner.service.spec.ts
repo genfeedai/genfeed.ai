@@ -515,6 +515,29 @@ describe('SystemWorkflowRunnerService definitions', () => {
     expect(() => runner.onApplicationBootstrap()).not.toThrow();
   });
 
+  it('resolves legacy compensation only from a registered graph and rejects missing targets', () => {
+    const { runner } = createRunner();
+    const input = {
+      canonicalId: 'visual-code.execute',
+      inputValues: { job: { revisionId: 'revision' } },
+    };
+    expect(runner.getRegisteredFailureWorkflow(input)).toBeUndefined();
+    runner.registerWorkflow(buildVisualProjectWorkflowDefinition());
+    expect(() => runner.getRegisteredFailureWorkflow(input)).toThrow(
+      'System workflow failure definitions missing',
+    );
+    runner.registerWorkflow(buildVisualProjectFailureWorkflowDefinition());
+    expect(runner.getRegisteredFailureWorkflow(input)).toEqual({
+      canonicalId: 'visual-code.failure',
+      inputValues: input.inputValues,
+    });
+    expect(
+      runner.getRegisteredFailureWorkflow({
+        canonicalId: 'visual-code.failure',
+      }),
+    ).toBeUndefined();
+  });
+
   it.each([
     'agent.turn.execute',
     'agent.thread.ui-action',
