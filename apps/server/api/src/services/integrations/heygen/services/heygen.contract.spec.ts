@@ -126,6 +126,26 @@ describe('HeyGen v3 contracts', () => {
     },
   );
 
+  it('accepts the terminal catalogue page when HeyGen omits next_token', async () => {
+    http.get
+      .mockReturnValueOnce(
+        page([{ voice_id: 'first', name: 'First voice' }], 'last-page'),
+      )
+      .mockReturnValueOnce(
+        of({
+          status: 200,
+          data: {
+            data: [{ voice_id: 'last', name: 'Last voice' }],
+            has_more: false,
+          },
+        }),
+      );
+    const voices = await service.getVoices();
+    expect(voices.map((voice) => voice.voiceId)).toEqual(['first', 'last']);
+    expect(http.get).toHaveBeenCalledTimes(2);
+    expect(http.get.mock.calls[1][1].params.token).toBe('last-page');
+  });
+
   it.each([
     { data: {} },
     { data: { task_id: 'legacy-task' } },
@@ -450,6 +470,7 @@ describe('HeyGen v3 contracts', () => {
   });
 
   it.each([
+    { data: [], has_more: true },
     { data: [], has_more: true, next_token: null },
     { data: 'invalid', has_more: false, next_token: null },
     { data: [], has_more: true, next_token: 'same' },
