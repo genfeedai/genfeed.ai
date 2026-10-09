@@ -94,7 +94,7 @@ const generatedJob = {
 };
 
 describe('StudioGenerateCard', () => {
-  it('keeps grid metadata in a hover and focus layer over the asset', () => {
+  it('keeps grid metadata and actions without a prompt caption', () => {
     const onSelect = vi.fn();
     const { container } = render(
       <StudioGenerateCard
@@ -106,16 +106,19 @@ describe('StudioGenerateCard', () => {
       />,
     );
 
-    expect(screen.getByText(generatedJob.prompt)).toBeInTheDocument();
+    expect(screen.queryByText(generatedJob.prompt)).not.toBeInTheDocument();
     expect(
       screen.getByText(new RegExp(generatedJob.modelKey)),
     ).toBeInTheDocument();
     expect(container.querySelector('[data-asset-details]')).toBeNull();
+    expect(container.querySelector('[data-asset-hover-details]')).toHaveClass(
+      'absolute',
+      'opacity-0',
+      'group-hover:opacity-100',
+    );
     expect(
-      screen
-        .getByText(generatedJob.prompt)
-        .closest('[data-asset-hover-details]'),
-    ).toHaveClass('absolute', 'opacity-0', 'group-hover:opacity-100');
+      container.querySelector('[data-asset-hover-details]'),
+    ).not.toHaveClass('border-t');
     expect(container.querySelector('[data-asset-caption]')).toBeNull();
     expect(container.querySelector('[data-asset-footer]')).toBeNull();
     expect(
@@ -264,10 +267,10 @@ describe('StudioGenerateCard', () => {
     );
 
     expect(screen.getByTestId('shared-masonry-image')).toBeInTheDocument();
-    expect(screen.getByText(generatedJob.prompt)).toBeInTheDocument();
+    expect(screen.queryByText(generatedJob.prompt)).not.toBeInTheDocument();
     expect(
       screen
-        .getByText(generatedJob.prompt)
+        .getByText(new RegExp(generatedJob.modelKey))
         .closest('[data-asset-hover-details]'),
     ).toHaveClass('opacity-0', 'group-focus-within:opacity-100');
 
