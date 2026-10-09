@@ -171,7 +171,7 @@ function AppRailMoreRow({
       : item.label;
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="group/app-rail-row flex items-center gap-0.5">
       <Link
         href={item.href}
         prefetch={false}
@@ -220,7 +220,13 @@ function AppRailMoreRow({
       {onTogglePin ? (
         <Button
           ariaLabel={t(isPinned ? 'unpin' : 'pin', { app: item.label })}
-          className="size-7 shrink-0 text-foreground/50 hover:text-foreground"
+          className={cn(
+            'size-8 shrink-0 text-foreground/50 transition-opacity duration-150 hover:text-foreground motion-reduce:transition-none',
+            '[@media(hover:none)]:size-11',
+            '[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0',
+            '[@media(hover:hover)]:group-hover/app-rail-row:pointer-events-auto [@media(hover:hover)]:group-hover/app-rail-row:opacity-100',
+            '[@media(hover:hover)]:group-focus-within/app-rail-row:pointer-events-auto [@media(hover:hover)]:group-focus-within/app-rail-row:opacity-100',
+          )}
           onClick={() => onTogglePin(item.app.id)}
           size={ButtonSize.ICON}
           textTransform="none"
