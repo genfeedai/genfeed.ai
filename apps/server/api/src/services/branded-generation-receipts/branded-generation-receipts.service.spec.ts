@@ -167,6 +167,24 @@ async function saved(f: ReturnType<typeof fixture>) {
   return result.receipt;
 }
 describe('real storage slice orchestration with typed transaction delegates', () => {
+  it('keeps authorization context out of receipt projections and database writes', async () => {
+    const f = fixture();
+    const authenticatedActor = { ...actor, isApiKey: true, scopes: ['read'] };
+
+    const result = await f.service.create(input(), authenticatedActor);
+
+    expect(f.access.assertBrand).toHaveBeenCalledWith(
+      expect.objectContaining(authenticatedActor),
+      expect.anything(),
+    );
+    expect(result.receipt).not.toHaveProperty('isApiKey');
+    expect(result.receipt).not.toHaveProperty('scopes');
+    const data = f.tx.brandedGenerationReceipt.create.mock.calls[0][0].data;
+    expect(data).toMatchObject(actor);
+    expect(data).not.toHaveProperty('isApiKey');
+    expect(data).not.toHaveProperty('scopes');
+  });
+
   it('creates original snapshot/event atomically with zero provider attempts and preserved lineage', async () => {
     const f = fixture();
     const result = await f.service.create(input(), {
