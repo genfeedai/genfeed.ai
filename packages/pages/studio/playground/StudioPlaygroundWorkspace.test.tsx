@@ -116,7 +116,9 @@ const mocks = vi.hoisted(() => ({
   getToken: vi.fn().mockResolvedValue('test-token'),
   composer: vi.fn(),
   crunQuote: vi.fn(),
-  findByIds: vi.fn().mockResolvedValue([]),
+  findByIds: vi
+    .fn<(ids: string[]) => Promise<unknown[]>>()
+    .mockResolvedValue([]),
   findOne: vi.fn().mockResolvedValue(null),
   gallery: vi.fn(),
   // #4716 review — the Agent -> Studio handoff pipeline (apply, model

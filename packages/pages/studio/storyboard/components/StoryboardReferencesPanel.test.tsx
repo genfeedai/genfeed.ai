@@ -32,9 +32,7 @@ describe('Storyboard references', () => {
     });
     expect(screen.getByText('Warm light')).toBeInTheDocument();
     expect(screen.queryByText('Founder')).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Remove Warm light', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Warm light' }));
     expect(remove).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByLabelText('Find a reference…'), {
       target: { value: 'missing' },
@@ -59,13 +57,12 @@ describe('Storyboard references', () => {
         ]}
       />,
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Shot 1', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Shot 1' }));
     expect(select).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByRole('button', { name: 'Shot 1', exact: true }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Shot 1' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 });
