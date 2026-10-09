@@ -31,7 +31,7 @@ const props: GenerationSetupPresetsPopoverProps = {
 };
 
 describe('GenerationSetupPresetsPopover', () => {
-  it('previews a system template before applying it and never offers system deletion', async () => {
+  it('applies a system template once on its first click and closes the picker', async () => {
     const user = userEvent.setup();
     const onApplySystemPreset = vi.fn();
     render(
@@ -43,6 +43,27 @@ describe('GenerationSetupPresetsPopover', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Presets' }));
     await user.click(screen.getByRole('button', { name: 'YouTube thumbnail' }));
+    expect(onApplySystemPreset).toHaveBeenCalledExactlyOnceWith(
+      STUDIO_SYSTEM_PRESETS[2],
+    );
+    expect(screen.queryByPlaceholderText('Search presets…')).toBeNull();
+  });
+  it('keeps a separate preview action that never applies until requested', async () => {
+    const user = userEvent.setup();
+    const onApplySystemPreset = vi.fn();
+    render(
+      <GenerationSetupPresetsPopover
+        {...props}
+        systemPresets={STUDIO_SYSTEM_PRESETS.filter((p) => p.type === 'image')}
+        onApplySystemPreset={onApplySystemPreset}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Presets' }));
+    await user.click(
+      screen.getByRole('button', {
+        name: 'YouTube thumbnail illustrative template preview',
+      }),
+    );
     expect(onApplySystemPreset).not.toHaveBeenCalled();
     expect(
       screen.getByRole('img', {

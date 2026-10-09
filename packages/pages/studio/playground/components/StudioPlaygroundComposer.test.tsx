@@ -807,7 +807,7 @@ describe('StudioPlaygroundComposer', () => {
     expect(studioLooksMocks.deleteLook).toHaveBeenCalledWith('preset-1');
   });
 
-  it('applies a system image template only after preview and preserves the existing prompt', async () => {
+  it('applies a system image template on first click and preserves the existing prompt', async () => {
     render(
       <StudioPlaygroundComposer
         {...baseProps}
@@ -818,10 +818,6 @@ describe('StudioPlaygroundComposer', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Banner' }));
-    expect(storeMocks.applyPreset).not.toHaveBeenCalled();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Apply preset Banner' }),
-    );
     expect(storeMocks.applyPreset).toHaveBeenCalledWith(
       'studio:image',
       studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
@@ -842,7 +838,6 @@ describe('StudioPlaygroundComposer', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Apply preset Dance' }));
     expect(baseProps.onPromptChange).toHaveBeenCalledWith(
       STUDIO_SYSTEM_PRESETS[5].prompt,
     );
@@ -886,9 +881,6 @@ describe('StudioPlaygroundComposer', () => {
       );
       fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Apply preset Dance' }),
-      );
       const applied =
         actual.useGenerationSetupStore.getState().setupByScope[scope];
       expect(applied).toMatchObject({
@@ -933,9 +925,6 @@ describe('StudioPlaygroundComposer', () => {
       );
       fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Apply preset Dance' }),
-      );
       expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
         duration: expected,
         type: 'video',

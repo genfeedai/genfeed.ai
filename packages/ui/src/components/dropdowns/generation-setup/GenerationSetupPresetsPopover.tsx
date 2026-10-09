@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { Bookmark, X } from 'lucide-react';
+import { Bookmark, Eye, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -24,13 +24,18 @@ export default function GenerationSetupPresetsPopover({
   const translate = useTranslations('agent.generationSetup');
   const [isOpen, setIsOpen] = useState(false);
   const [previewKey, setPreviewKey] = useState<StudioSystemPreset['key']>();
+  const [highlightedKey, setHighlightedKey] =
+    useState<StudioSystemPreset['key']>();
   const preview = systemPresets.find((preset) => preset.key === previewKey);
   return (
     <Popover
       open={props.isDisabled ? false : isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
-        if (!open) setPreviewKey(undefined);
+        if (!open) {
+          setPreviewKey(undefined);
+          setHighlightedKey(undefined);
+        }
       }}
     >
       <PopoverTrigger asChild>
@@ -98,18 +103,44 @@ export default function GenerationSetupPresetsPopover({
           ) : systemPresets.length ? (
             <div className="mb-3 grid grid-cols-3 gap-2">
               {systemPresets.map((preset) => (
-                <Button
-                  key={preset.key}
-                  ariaLabel={preset.label}
-                  className="flex h-auto min-w-0 flex-col items-stretch gap-1.5 p-1 text-xs"
-                  isDisabled={props.isDisabled}
-                  onClick={() => setPreviewKey(preset.key)}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                >
-                  <GenerationSetupPresetPreview preset={preset} />
-                  <span className="truncate px-1 pb-1">{preset.label}</span>
-                </Button>
+                <div key={preset.key} className="group/preset relative min-w-0">
+                  <Button
+                    ariaLabel={preset.label}
+                    className="flex h-full w-full min-w-0 flex-col items-stretch gap-1.5 p-1 text-xs"
+                    isDisabled={props.isDisabled || !onApplySystemPreset}
+                    onClick={() => {
+                      onApplySystemPreset?.(preset);
+                      setIsOpen(false);
+                      setPreviewKey(undefined);
+                      setHighlightedKey(undefined);
+                    }}
+                    onMouseEnter={() => setHighlightedKey(preset.key)}
+                    onMouseLeave={() => setHighlightedKey(undefined)}
+                    onFocus={() => setHighlightedKey(preset.key)}
+                    onBlur={() => setHighlightedKey(undefined)}
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  >
+                    <GenerationSetupPresetPreview
+                      preset={preset}
+                      isCompact
+                      isAnimated={highlightedKey === preset.key}
+                    />
+                    <span className="truncate px-1 pb-1">{preset.label}</span>
+                  </Button>
+                  <Button
+                    ariaLabel={translate('presetPreviewAria', {
+                      label: preset.label,
+                    })}
+                    className="absolute right-1 top-1 size-8 bg-background/90 [@media(hover:none)]:size-11 [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/preset:pointer-events-auto [@media(hover:hover)]:group-hover/preset:opacity-100 [@media(hover:hover)]:group-focus-within/preset:pointer-events-auto [@media(hover:hover)]:group-focus-within/preset:opacity-100"
+                    icon={<Eye className="size-3.5" />}
+                    isDisabled={props.isDisabled}
+                    onClick={() => setPreviewKey(preset.key)}
+                    size={ButtonSize.ICON}
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  />
+                </div>
               ))}
             </div>
           ) : null}
