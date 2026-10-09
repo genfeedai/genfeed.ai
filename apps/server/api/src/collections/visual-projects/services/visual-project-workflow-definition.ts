@@ -3,6 +3,7 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 export function buildVisualProjectWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: 'visual-code.execute',
+    organizationModule: 'motion',
     label: 'Visual code rendering',
     description:
       'Author, inspect and export one scoped immutable visual revision.',
