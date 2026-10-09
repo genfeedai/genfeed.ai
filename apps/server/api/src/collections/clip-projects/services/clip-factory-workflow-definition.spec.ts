@@ -11,6 +11,8 @@ describe('clip factory workflow definitions', () => {
     );
 
     expect(workflow.canonicalId).toBe('clip.factory');
+    expect(workflow.organizationModule).toBe('clips');
+    expect(workflow.moduleCompletionNodeIds).toBeUndefined();
     expect(workflow.resultNodeId).toBe('generate-remaining');
     expect(actionNodes?.map((node) => node.data.config.actionId)).toEqual([
       'clip.analysis.prepare-source',
@@ -53,6 +55,9 @@ describe('clip factory workflow definitions', () => {
     const child = buildClipGenerationChildWorkflowDefinition();
 
     expect(child.canonicalId).toBe('clip.generation.one');
+    expect(child.organizationModule).toBe('clips');
+    // Finalization can schedule continuity QA, so it still needs a grant.
+    expect(child.moduleCompletionNodeIds).toBeUndefined();
     expect(child.resultNodeId).toBe('finalize-child');
     expect(child.definition.nodes).toHaveLength(2);
     expect(child.definition.nodes?.[0]?.data.config.actionId).toBe(

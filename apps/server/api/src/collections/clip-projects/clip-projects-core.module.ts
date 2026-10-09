@@ -1,3 +1,4 @@
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 /**
  * ClipProjectsCoreModule
@@ -61,6 +62,7 @@ import { Module } from '@nestjs/common';
     RawCutClipService,
   ],
   imports: [
+    OrganizationModuleAccessModule,
     BrandsCoreModule,
     CaptionsModule,
     ClipResultsModule,

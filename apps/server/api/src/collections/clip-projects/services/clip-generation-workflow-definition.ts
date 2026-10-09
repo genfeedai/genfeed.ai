@@ -121,6 +121,7 @@ export function buildClipGenerationWorkflowDefinition(): SystemWorkflowGraphDefi
 
   return {
     canonicalId: CLIP_GENERATION_WORKFLOW_ID,
+    organizationModule: 'clips',
     definition: {
       edges,
       inputVariables: [

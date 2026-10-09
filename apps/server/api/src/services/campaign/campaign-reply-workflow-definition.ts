@@ -56,6 +56,8 @@ export function buildCampaignReplyWorkflowDefinition(): SystemWorkflowGraphDefin
 
   return {
     canonicalId: CAMPAIGN_REPLY_WORKFLOW_ID,
+    organizationModule: 'messages',
+    moduleCompletionNodeIds: ['finalize-target'],
     definition: {
       edges,
       inputVariables: [
@@ -94,6 +96,7 @@ export function buildCampaignReplyBatchWorkflowDefinition(): SystemWorkflowGraph
   });
   return {
     canonicalId: CAMPAIGN_REPLY_BATCH_WORKFLOW_ID,
+    organizationModule: 'messages',
     definition: {
       edges: [
         {
@@ -141,6 +144,7 @@ export function buildCampaignReplyPreviewWorkflowDefinition(): SystemWorkflowGra
   );
   return {
     canonicalId: CAMPAIGN_REPLY_PREVIEW_WORKFLOW_ID,
+    organizationModule: 'messages',
     definition: {
       edges: [
         {

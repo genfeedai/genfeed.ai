@@ -1,4 +1,13 @@
 import {
+  buildClipContinuityQaWorkflowDefinition,
+  buildClipContinuityWorkflowDefinition,
+} from '@api/collections/clip-projects/services/clip-continuity-workflow-definition';
+import {
+  buildClipFactoryWorkflowDefinition,
+  buildClipGenerationChildWorkflowDefinition,
+} from '@api/collections/clip-projects/services/clip-factory-workflow-definition';
+import { buildClipGenerationWorkflowDefinition } from '@api/collections/clip-projects/services/clip-generation-workflow-definition';
+import {
   buildVisualProjectFailureWorkflowDefinition,
   buildVisualProjectWorkflowDefinition,
 } from '@api/collections/visual-projects/services/visual-project-workflow-definition';
@@ -14,6 +23,15 @@ import {
   getOrganizationModuleExecutionContext,
   runWithOrganizationModule,
 } from '@api/common/organization-modules/organization-module-execution.context';
+import {
+  buildCampaignDmBatchWorkflowDefinition,
+  buildCampaignDmWorkflowDefinition,
+} from '@api/services/campaign/campaign-dm-workflow-definition';
+import {
+  buildCampaignReplyBatchWorkflowDefinition,
+  buildCampaignReplyPreviewWorkflowDefinition,
+  buildCampaignReplyWorkflowDefinition,
+} from '@api/services/campaign/campaign-reply-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
@@ -1818,3 +1836,253 @@ function executionContext(): Parameters<NodeExecutor>[2] {
     workflowVersionId: 'parent-version',
   };
 }
+
+describe('registered outbound campaign module admission', () => {
+  const definitions = [
+    buildCampaignDmWorkflowDefinition(),
+    buildCampaignDmBatchWorkflowDefinition(),
+    buildCampaignReplyWorkflowDefinition(),
+    buildCampaignReplyBatchWorkflowDefinition(),
+    buildCampaignReplyPreviewWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException(
+            'Messages disabled or subscription unavailable',
+          ),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-campaign',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Messages disabled or subscription unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    buildCampaignDmWorkflowDefinition(),
+    buildCampaignReplyWorkflowDefinition(),
+  ])(
+    '$canonicalId permits terminal sent-result projection after revocation but blocks another send',
+    async (graph) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalized = vi.fn().mockResolvedValue({ success: true });
+      const sent = vi.fn();
+      const finalAction = String(
+        graph.definition.nodes.find((node) => node.id === 'finalize-target')
+          ?.data.config.actionId,
+      );
+      const sendNode = graph.definition.nodes.find((node) =>
+        node.id.startsWith('send-'),
+      );
+      if (!sendNode) throw new Error('campaign send node missing');
+      const sendAction = String(sendNode.data.config.actionId);
+      runner.registerAction(finalAction, finalized);
+      runner.registerAction(sendAction, sent);
+      const input = { canonicalId: graph.canonicalId, organizationId: 'org-1' };
+      await runner.runWithRegisteredWorkflowModule(input, async () => {
+        assertAccess.mockRejectedValue(
+          new ForbiddenException('Messages revoked'),
+        );
+        await executors.get(finalAction)?.(
+          {
+            config: { actionId: finalAction },
+            id: 'finalize-target',
+            inputs: [],
+            label: 'Finalize',
+            type: 'genfeedAction',
+          },
+          new Map(),
+          executionContext(),
+        );
+        await expect(
+          executors.get(sendAction)?.(
+            {
+              config: { actionId: sendAction },
+              id: sendNode.id,
+              inputs: [],
+              label: 'Send',
+              type: 'genfeedAction',
+            },
+            new Map(),
+            executionContext(),
+          ),
+        ).rejects.toThrow('Messages revoked');
+      });
+      expect(finalized).toHaveBeenCalledTimes(1);
+      expect(sent).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+    },
+  );
+});
+
+describe('registered Clips module admission', () => {
+  const definitions = [
+    buildClipFactoryWorkflowDefinition(),
+    buildClipGenerationWorkflowDefinition(),
+    buildClipGenerationChildWorkflowDefinition(),
+    buildClipContinuityWorkflowDefinition(),
+    buildClipContinuityQaWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException('Clips disabled or unavailable'),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-clips',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Clips disabled or unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'clips');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      graph: buildClipGenerationChildWorkflowDefinition(),
+      nodeId: 'finalize-child',
+      allowed: false,
+    },
+    {
+      graph: buildClipContinuityWorkflowDefinition(),
+      nodeId: 'persist-continuity-report',
+      allowed: true,
+    },
+  ])(
+    '$graph.canonicalId $nodeId respects fresh access after revocation',
+    async ({ graph, nodeId, allowed }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const node = graph.definition.nodes.find((value) => value.id === nodeId);
+      if (!node) throw new Error('registered clip node missing');
+      const actionId = String(node.data.config.actionId);
+      const work = vi.fn().mockResolvedValue({ completed: true });
+      runner.registerAction(actionId, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Clips revoked'),
+          );
+          const result = executors.get(actionId)?.(
+            {
+              config: { actionId },
+              id: nodeId,
+              inputs: [],
+              label: nodeId,
+              type: 'genfeedAction',
+            },
+            new Map(),
+            executionContext(),
+          );
+          if (allowed)
+            await expect(result).resolves.toEqual({ completed: true });
+          else await expect(result).rejects.toThrow('Clips revoked');
+        },
+      );
+      expect(work).toHaveBeenCalledTimes(allowed ? 1 : 0);
+      expect(assertAccess).toHaveBeenCalledTimes(allowed ? 1 : 2);
+    },
+  );
+});
