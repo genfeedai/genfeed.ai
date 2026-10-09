@@ -7,6 +7,7 @@ import { OptimizersModule } from '@api/collections/optimizers/optimizers.module'
 import { BreakoutGenerationPlanService } from '@api/collections/outliers/services/breakout-generation-plan.service';
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
+import { BreakoutResponseExecutionService } from '@api/collections/outliers/services/breakout-response-execution.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
@@ -38,6 +39,7 @@ import { Module } from '@nestjs/common';
     PrismaModule,
   ],
   providers: [
+    BreakoutResponseExecutionService,
     BreakoutTextOutputPreparationService,
     BreakoutGenerationPlanService,
     BreakoutOutputQualityService,
@@ -45,6 +47,7 @@ import { Module } from '@nestjs/common';
     BreakoutTextOutputGenerationService,
   ],
   exports: [
+    BreakoutResponseExecutionService,
     BreakoutTextOutputPreparationService,
     BreakoutGenerationPlanService,
     BreakoutOutputQualityService,
