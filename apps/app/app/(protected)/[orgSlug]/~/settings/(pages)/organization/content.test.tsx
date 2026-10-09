@@ -49,6 +49,10 @@ vi.mock('./organization-publishing-caps-card', () => ({
   default: () => <div>Organization Publishing Caps</div>,
 }));
 
+vi.mock('./organization-modules-card', () => ({
+  default: () => <div>Organization Modules</div>,
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(() => ({
     data: null,
@@ -82,6 +86,11 @@ describe('SettingsOrganizationPage', () => {
   it('should render without crashing', () => {
     const { container } = render(<SettingsOrganizationPage />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('includes organization module controls', () => {
+    render(<SettingsOrganizationPage />);
+    expect(screen.getByText('Organization Modules')).toBeInTheDocument();
   });
 
   it('shows the organization identity instead of raw ids or the current brand', () => {
