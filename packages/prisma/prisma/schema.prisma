@@ -772,6 +772,7 @@ contentLearningOperations ContentLearningOperation[]
   @@index([appSource])
   @@index([stripeCustomerId])
   @@map("users")
+  botAccountLinks BotAccountLink[]
 }
 
 model Organization {
@@ -993,6 +994,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   @@index([accountType])
   @@index([billingAccountId])
   @@map("organizations")
+  botAccountLinks BotAccountLink[]
 }
 
 enum McpApprovalStatus {
@@ -1198,6 +1200,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
   @@index([organizationId, updatedAt, id], map: "brands_org_updated_at_id_idx")
   @@map("brands")
+  executionReadDependencies WorkflowExecutionReadBrandDependency[]
 }
 
 enum BrandInterviewStatus {
@@ -2103,6 +2106,7 @@ model ApiKey {
   @@index([keyFingerprint])
   @@index([defaultBrandId])
   @@map("api_keys")
+  botAccountLinks BotAccountLink[]
 }
 
 model DesktopAuthCode {
@@ -2235,6 +2239,8 @@ model OrgIntegration {
 
   @@index([organizationId, isDeleted])
   @@map("org_integrations")
+  botAccountLinks BotAccountLink[]
+  @@unique([id, organizationId], map: "org_integrations_id_organizationId_key")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4505,6 +4511,8 @@ model AgentThread {
   @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@index([organizationId, brandId, isDeleted, updatedAt(sort: Desc)], map: "agent_threads_org_brand_deleted_updated_at_idx")
   @@map("agent_threads")
+  executionReadScopes WorkflowExecutionReadScope[]
+  @@unique([id, organizationId], map: "agent_threads_id_organizationId_key")
 }
 
 model AgentMessage {
@@ -4824,6 +4832,8 @@ model AgentStrategy {
   @@index([organizationId, preferredWorkflowId])
   @@index([organizationId, preferredWorkflowTemplateId])
   @@map("agent_strategies")
+  executionReadScopes WorkflowExecutionReadScope[]
+  @@unique([id, organizationId], map: "agent_strategies_id_organizationId_key")
 }
 
 model AgentStrategyOpportunity {
@@ -5090,6 +5100,8 @@ model Workflow {
   @@index([defaultRecurringBrandId, organizationId])
   @@unique([organizationId, userId, templateInstantiationKey], map: "workflows_template_instantiation_scope_key")
   @@map("workflows")
+  /// Server-written configuring principal; never accepted from workflow DTO metadata.
+  scheduleInitiatingActor Json?
 }
 
 /// Immutable executable workflow definition. A version is append-only: edits
@@ -5115,6 +5127,8 @@ model WorkflowVersion {
   @@unique([workflowId, version])
   @@index([organizationId, workflowId, version(sort: Desc)])
   @@map("workflow_versions")
+  batchReadScopes WorkflowExecutionReadScope[]
+  @@unique([id, organizationId], map: "workflow_versions_id_organizationId_key")
 }
 
 enum AgentFailureReason {
@@ -5207,6 +5221,9 @@ model WorkflowExecution {
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
   @@map("workflow_executions")
   @@unique([id, organizationId])
+  readScope WorkflowExecutionReadScope?
+  readParentEdges WorkflowExecutionReadLineage[] @relation("read_lineage_child_execution")
+  readChildEdges WorkflowExecutionReadLineage[] @relation("read_lineage_parent_execution")
 }
 
 /// Per-node execution results, unique on (executionId, nodeId). One upsert
@@ -9381,4 +9398,86 @@ model SourcePostNativeAction {
   @@unique([organizationId, brandId, idempotencyKey], map: "source_post_native_actions_scope_key")
   @@index([organizationId, brandId, postId, isDeleted], map: "source_post_native_actions_scope_post_idx")
   @@map("source_post_native_actions")
+}
+
+
+/// Verified private bot association. Native IDs and report bindings never imply this relation.
+model BotAccountLink {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_org_fkey")
+  integrationId String
+  integration OrgIntegration @relation(fields: [integrationId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_installation_fkey")
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_user_fkey")
+  platform IntegrationPlatform
+  remoteUserId String
+  revision Int @default(1)
+  capturedIsApiKey Boolean @default(false)
+  capturedApiKeyId String?
+  capturedApiKey ApiKey? @relation(fields: [capturedApiKeyId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_key_fkey")
+  capturedScopes String[] @default([])
+  verifiedAt DateTime @default(now())
+  revokedAt DateTime?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([organizationId, integrationId, platform, remoteUserId], map: "bot_account_links_installation_identity_key")
+  @@index([organizationId, userId, isDeleted], map: "bot_account_links_user_idx")
+  @@map("bot_account_links")
+}
+
+/// A producer certificate, not a grant. Missing/unproven scope cannot authorize restricted history.
+model WorkflowExecutionReadScope {
+  executionId String @id
+  organizationId String
+  execution WorkflowExecution @relation(fields: [executionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_execution_fkey")
+  protocolVersion Int @default(1)
+  family String
+  coverage String @default("UNPROVEN")
+  scopeClass String @default("ORG_ONLY")
+  rootContentHash String
+  producer String
+  proactiveStrategyId String?
+  proactiveStrategy AgentStrategy? @relation(fields: [proactiveStrategyId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_strategy_fkey")
+  proactiveThreadId String?
+  proactiveThread AgentThread? @relation(fields: [proactiveThreadId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_thread_fkey")
+  batchChildVersionId String?
+  batchChildVersion WorkflowVersion? @relation(fields: [batchChildVersionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_batch_version_fkey")
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  dependencies WorkflowExecutionReadBrandDependency[]
+  parentEdges WorkflowExecutionReadLineage[] @relation("read_lineage_child_scope")
+  childEdges WorkflowExecutionReadLineage[] @relation("read_lineage_parent_scope")
+  @@unique([executionId, organizationId], map: "workflow_execution_read_scopes_execution_org_key")
+  @@map("workflow_execution_read_scopes")
+}
+
+/// Append-only complete private-brand dependency set, including deleted brands.
+model WorkflowExecutionReadBrandDependency {
+  executionId String
+  organizationId String
+  brandId String
+  scope WorkflowExecutionReadScope @relation(fields: [executionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_dependencies_scope_fkey")
+  brand Brand @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_dependencies_brand_fkey")
+  createdAt DateTime @default(now())
+  @@id([executionId, organizationId, brandId])
+  @@map("workflow_execution_read_brand_dependencies")
+}
+
+/// Actual persisted parent-node/item lineage; JSON parent pointers are not sufficient proof.
+model WorkflowExecutionReadLineage {
+  parentExecutionId String
+  childExecutionId String
+  organizationId String
+  parentNodeId String
+  itemIndex Int @default(-1)
+  parentExecution WorkflowExecution @relation("read_lineage_parent_execution", fields: [parentExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_parent_execution_fkey")
+  childExecution WorkflowExecution @relation("read_lineage_child_execution", fields: [childExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_child_execution_fkey")
+  parentScope WorkflowExecutionReadScope @relation("read_lineage_parent_scope", fields: [parentExecutionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_parent_scope_fkey")
+  childScope WorkflowExecutionReadScope @relation("read_lineage_child_scope", fields: [childExecutionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_child_scope_fkey")
+  createdAt DateTime @default(now())
+  @@id([parentExecutionId, childExecutionId, parentNodeId, itemIndex, organizationId])
+  @@index([childExecutionId, organizationId], map: "workflow_execution_read_lineage_child_idx")
+  @@map("workflow_execution_read_lineage")
 }
