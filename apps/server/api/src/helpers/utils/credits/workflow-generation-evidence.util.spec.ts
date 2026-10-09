@@ -60,6 +60,51 @@ function completed(
 }
 
 describe('workflow immutable financial evidence', () => {
+  it.each(['video-token', 'input-video-token'] as const)(
+    'requires real completion quantities for %s',
+    (unit) => {
+      let plan = workflowFundingFixture();
+      const quote = plan.manifest.allocations[0].quote;
+      if (!quote) throw new Error('Missing quote fixture');
+      quote.pricingProfile.reviewedPricing = {
+        currency: 'USD',
+        reviewStatus: 'approved',
+        version: 'native-v1',
+        sourceUrl:
+          'https://fal.ai/models/bytedance/seedance-2.0/reference-to-video',
+        verifiedAt: now.toISOString(),
+        rates: [{ component: 'video', unit, unitPriceUsd: 0.000014, when: {} }],
+      };
+      plan.manifestHash = quoteSnapshotHash(plan.manifest);
+      plan = submit(plan);
+      const proof = completed(plan);
+      expect(() => applyWorkflowOperationEvidence(plan, proof, now)).toThrow(
+        expect.objectContaining({
+          response: expect.objectContaining({
+            detail: expect.stringContaining(
+              'actual native video-token quantities',
+            ),
+          }),
+        }),
+      );
+      proof.completion = {
+        completedOutputs: 1,
+        successfulRequests: 1,
+        width: 1280,
+        height: 720,
+        duration: 5,
+      };
+      if (unit === 'input-video-token') {
+        expect(() =>
+          applyWorkflowOperationEvidence(plan, proof, now),
+        ).toThrow();
+        proof.completion.inputDuration = 10;
+      }
+      expect(
+        applyWorkflowOperationEvidence(plan, proof, now).operations[0].phase,
+      ).toBe('completed');
+    },
+  );
   it.each(['claimed', 'submission-intent'] as const)(
     'rejects %s evidence through the callback proof boundary',
     (phase) => {

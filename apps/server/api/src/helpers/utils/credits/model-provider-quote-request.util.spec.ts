@@ -25,6 +25,98 @@ function conditionalProfile() {
   });
 }
 describe('shared provider billable dimension normalization', () => {
+  function nativeProfile() {
+    return billableProfile({
+      provider: 'fal',
+      reviewedPricing: {
+        currency: 'USD',
+        reviewStatus: 'approved',
+        verifiedAt: '2026-10-10T00:00:00.000Z',
+        version: 'test-v1',
+        sourceUrl:
+          'https://fal.ai/models/bytedance/seedance-2.5/reference-to-video',
+        rates: [
+          {
+            component: 'output',
+            unit: 'video-token',
+            unitPriceUsd: 0.0000214,
+            when: { resolution: '720p' },
+          },
+          {
+            component: 'input',
+            unit: 'input-video-token',
+            unitPriceUsd: 0.00001284,
+            when: { resolution: '720p' },
+          },
+        ],
+      },
+    });
+  }
+  it('derives native Seedance dimensions and fixed frame rate from the final dispatch rather than the client canvas', () => {
+    expect(
+      normalizeModelProviderQuoteRequest(nativeProfile(), 'test/model', {
+        width: 1,
+        height: 1,
+        framesPerSecond: 1,
+        duration: 1,
+        inputDuration: 99,
+        providerInput: {
+          resolution: '720p',
+          aspect_ratio: '4:3',
+          duration: '8',
+          video_urls: [],
+        },
+      }),
+    ).toMatchObject({
+      width: 1112,
+      height: 834,
+      framesPerSecond: 24,
+      duration: 8,
+      inputDuration: 0,
+    });
+  });
+  it('does not substitute caller samples for automatic provider output size or duration', () => {
+    const result = normalizeModelProviderQuoteRequest(
+      nativeProfile(),
+      'test/model',
+      {
+        width: 1280,
+        height: 720,
+        duration: 5,
+        providerInput: {
+          resolution: '720p',
+          aspect_ratio: 'auto',
+          duration: 'auto',
+        },
+      },
+    );
+    expect(result).not.toHaveProperty('width');
+    expect(result).not.toHaveProperty('height');
+    expect(result).not.toHaveProperty('duration');
+  });
+  it('requires resolved input video duration when the prepared dispatch contains reference videos', () => {
+    const request = {
+      providerInput: {
+        resolution: '720p',
+        aspect_ratio: '16:9',
+        duration: '5',
+        video_urls: ['https://cdn.test/reference.mp4'],
+      },
+    };
+    expect(
+      normalizeModelProviderQuoteRequest(
+        nativeProfile(),
+        'test/model',
+        request,
+      ),
+    ).not.toHaveProperty('inputDuration');
+    expect(
+      normalizeModelProviderQuoteRequest(nativeProfile(), 'test/model', {
+        ...request,
+        inputDuration: 10,
+      }),
+    ).toMatchObject({ inputDuration: 10 });
+  });
   it('projects final prepared numeric strings and seconds over supplied estimates', () => {
     expect(
       normalizeModelProviderQuoteRequest(billableProfile(), 'test/model', {

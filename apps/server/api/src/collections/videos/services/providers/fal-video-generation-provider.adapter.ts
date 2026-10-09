@@ -49,6 +49,48 @@ export function prepareFalVideoDispatch(
   const endpoint = getFalEndpointFromModelKey(
     params.modelEndpoint ?? params.model,
   );
+  if (
+    /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/.test(endpoint) &&
+    params.modelSchemaFamily &&
+    params.modelInputSchema
+  ) {
+    const schema = params.modelInputSchema as FalJsonSchema;
+    const promptParams = { ...params.promptParams };
+    for (const field of [
+      'resolution',
+      'aspect_ratio',
+      'duration',
+      'generate_audio',
+    ]) {
+      const property = schema.properties?.[field];
+      if (property?.const !== undefined) {
+        promptParams[field] = property.const;
+        continue;
+      }
+      if (promptParams[field] === undefined && property?.default !== undefined)
+        promptParams[field] = property.default;
+    }
+    // Drafts are always 480p regardless of the requested final resolution.
+    if (promptParams.draft === true) promptParams.resolution = '480p';
+    const input = adaptFalVideoRequest(
+      params.modelSchemaFamily as FalSchemaFamily,
+      schema,
+      {
+        duration: params.duration,
+        imageUrl: params.imageUrl,
+        prompt: params.prompt,
+        promptParams,
+      },
+    );
+    if (
+      /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/.test(endpoint)
+    ) {
+      if (input.task === 'editing') input.duration = 'auto';
+      if (input.task === 'editing' || input.task === 'extension')
+        input.aspect_ratio = 'auto';
+    }
+    return { endpoint, input };
+  }
   if (endpoint === GEMINI_OMNI_FLASH_ENDPOINT) {
     const firstImage =
       optionalString(params.promptParams.image_url) ?? params.imageUrl;

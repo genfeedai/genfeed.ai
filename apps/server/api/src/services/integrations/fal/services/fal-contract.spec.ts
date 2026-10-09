@@ -6,6 +6,7 @@ import {
   adaptFalVideoRequest,
   classifyFalSchemaFamily,
   extractFalEndpointSchemas,
+  type FalJsonSchema,
   FalSchemaFamily,
 } from './fal-contract';
 
@@ -35,6 +36,79 @@ function withoutProperty(
 }
 
 describe('reviewed Fal execution contracts', () => {
+  const seedance = fixture('seedance-contracts.json') as unknown as Array<{
+    endpoint: string;
+    providerCategory: string;
+    contract: { inputSchema: FalJsonSchema; outputSchema: FalJsonSchema };
+  }>;
+  it.each(seedance)(
+    'classifies the authenticated Seedance contract $endpoint',
+    ({ endpoint, providerCategory, contract }) => {
+      const family = classifyFalSchemaFamily(
+        providerCategory,
+        contract.inputSchema,
+        contract.outputSchema,
+      );
+      expect(family).toBe(
+        endpoint.endsWith('draft/complete')
+          ? FalSchemaFamily.VIDEO_DRAFT
+          : endpoint.endsWith('reference-to-video')
+            ? FalSchemaFamily.VIDEO_REFERENCE
+            : endpoint.endsWith('image-to-video')
+              ? FalSchemaFamily.VIDEO_IMAGE
+              : FalSchemaFamily.VIDEO_TEXT,
+      );
+    },
+  );
+  it('adapts optional-prompt Seedance images and preserves schema constants', () => {
+    const schema = seedance.find(
+      ({ endpoint }) => endpoint === 'bytedance/seedance-2.5/image-to-video',
+    )?.contract.inputSchema;
+    if (!schema) throw new Error('Missing authenticated fixture');
+    expect(
+      adaptFalVideoRequest(FalSchemaFamily.VIDEO_IMAGE, schema, {
+        duration: 5,
+        imageUrl: 'https://cdn.test/start.png',
+        prompt: '',
+        promptParams: { aspect_ratio: 'auto', resolution: '720p' },
+      }),
+    ).toEqual({
+      aspect_ratio: 'auto',
+      resolution: '720p',
+      duration: '5',
+      image_url: 'https://cdn.test/start.png',
+    });
+    expect(() =>
+      adaptFalVideoRequest(FalSchemaFamily.VIDEO_IMAGE, schema, {
+        imageUrl: 'https://cdn.test/start.png',
+        prompt: '',
+        promptParams: { aspect_ratio: '16:9' },
+      }),
+    ).toThrow('reviewed field: aspect_ratio');
+  });
+  it('prepares draft completion using only the declared draft fields', () => {
+    const schema = seedance.find(({ endpoint }) =>
+      endpoint.endsWith('draft/complete'),
+    )?.contract.inputSchema;
+    if (!schema) throw new Error('Missing authenticated fixture');
+    expect(
+      adaptFalVideoRequest(FalSchemaFamily.VIDEO_DRAFT, schema, {
+        duration: 5,
+        prompt: 'excluded',
+        promptParams: {
+          draft_id: 'draft-a',
+          resolution: '1080p',
+          undeclared: true,
+        },
+      }),
+    ).toEqual({ draft_id: 'draft-a', resolution: '1080p' });
+    expect(() =>
+      adaptFalVideoRequest(FalSchemaFamily.VIDEO_DRAFT, schema, {
+        prompt: '',
+        promptParams: {},
+      }),
+    ).toThrow('required field: draft_id');
+  });
   it('extracts generated media from the matching queue result operation', () => {
     const document = fixture('video-openapi.json');
     const paths = document.paths as Record<

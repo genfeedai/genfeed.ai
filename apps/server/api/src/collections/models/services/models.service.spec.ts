@@ -891,6 +891,97 @@ describe('ModelsService', () => {
     });
   });
 
+  function structuredSeedanceContract() {
+    return {
+      id: 'contract-native',
+      provider: ModelProvider.FAL,
+      endpoint: 'bytedance/seedance-2.5/text-to-video',
+      version: 'sha256:native',
+      mappingStatus: 'supported',
+      reviewStatus: 'pending',
+      pricingType: 'conditional',
+      schemaFamily: 'video-text-v1',
+      unitPriceMicros: null,
+      discoveredAt: new Date('2026-10-10T00:00:00.000Z'),
+      lastSeenAt: new Date('2026-10-10T00:00:00.000Z'),
+      inputSchema: {
+        type: 'object',
+        properties: {
+          resolution: { type: 'string', enum: ['480p', '720p', '1080p'] },
+        },
+      },
+      pricing: {
+        currency: 'USD',
+        source: 'fal-seedance-token-tariff',
+        sourceUrl: 'https://fal.ai/models/bytedance/seedance-2.5/text-to-video',
+        verifiedAt: '2026-10-10T00:00:00.000Z',
+        rates: [
+          {
+            component: 'output',
+            unit: 'video-token',
+            unitPriceUsd: 0.0000214,
+            when: { resolution: '720p' },
+          },
+        ],
+      },
+    };
+  }
+  it('approves a verified structured Seedance tariff without converting its absent scalar to free pricing', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        category: ModelCategory.VIDEO,
+        provider: ModelProvider.FAL,
+        endpoint: 'bytedance/seedance-2.5/text-to-video',
+        pendingProviderContractVersion: 'sha256:native',
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue(
+      structuredSeedanceContract(),
+    );
+    modelDelegate.update.mockResolvedValue(
+      makeModel({ providerCostUsd: null }),
+    );
+    await service.approveRegistryModel('model-1', {}, 'operator-1');
+    expect(modelDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          providerCostUsd: null,
+          pricingType: 'conditional',
+          reviewedProviderContractVersion: 'sha256:native',
+        }),
+      }),
+    );
+    expect(providerContractDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ reviewStatus: 'approved' }),
+      }),
+    );
+  });
+  it.each(['identity', 'version', 'currency', 'rate', 'source'] as const)(
+    'rejects a scalar-free structured tariff with invalid %s evidence',
+    async (invalid) => {
+      const contract = structuredSeedanceContract();
+      if (invalid === 'identity') contract.endpoint = 'another/model';
+      if (invalid === 'version') contract.version = 'sha256:another';
+      if (invalid === 'currency') contract.pricing.currency = 'EUR';
+      if (invalid === 'rate') contract.pricing.rates[0].unitPriceUsd = 0;
+      if (invalid === 'source') contract.pricing.sourceUrl = '';
+      modelDelegate.findFirst.mockResolvedValue(
+        makeModel({
+          category: ModelCategory.VIDEO,
+          provider: ModelProvider.FAL,
+          endpoint: 'bytedance/seedance-2.5/text-to-video',
+          pendingProviderContractVersion: 'sha256:native',
+        }),
+      );
+      providerContractDelegate.findUnique.mockResolvedValue(contract);
+      await expect(
+        service.approveRegistryModel('model-1', {}, 'operator-1'),
+      ).rejects.toThrow('quarantined and cannot be activated');
+      expect(modelDelegate.update).not.toHaveBeenCalled();
+    },
+  );
+
   it('blocks activation of a quarantined Fal contract', async () => {
     modelDelegate.findFirst.mockResolvedValue(
       makeModel({

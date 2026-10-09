@@ -9,7 +9,7 @@ Synchronization is deliberately review-gated:
 
 - new and changed endpoints are inactive while their candidate contract awaits
   operator review;
-- unsupported schemas, currencies, conditional prices, and billing units are
+- unsupported schemas, currencies, unmapped conditional prices, and billing units are
   quarantined and cannot be approved;
 - a failed synchronization records freshness failure state without replacing
   the last reviewed schema family or price;
@@ -37,6 +37,13 @@ flow. Approval promotes only a supported pending contract and copies its
 reviewed adapter family and billable mapping onto the model. Quarantined
 contracts remain inactive until code adds an explicit supported mapping and a
 subsequent synchronization produces a reviewable candidate.
+
+Seedance has an explicit native video-token mapping, including conditional
+resolution/audio tariffs and reference-video billing. Its authenticated base
+observation must match the dated reviewed terms. See the
+[Seedance import and runtime constraints](../media-provider-import.md#seedance-family)
+before enabling its task endpoints. Importing all endpoints does not authorize
+unknown automatic quantities or resolve conflicting draft-completion prices.
 
 The one-shot does not replace the weekly cron; it exists for the first run after
 deployment or for an operator-controlled retry after correcting configuration.

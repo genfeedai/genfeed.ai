@@ -6,6 +6,8 @@ import {
 } from '@api/collections/images/services/image-generation-provider.util';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { getFalEndpointFromModelKey } from '@api/collections/models/utils/model-key.util';
+import { prepareFalVideoDispatch } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { buildVideoQuoteSelectors } from '@api/helpers/utils/credits/video-quote-selectors.util';
 import {
   hasProviderVideoDurationRule,
@@ -29,6 +31,8 @@ import {
   type AgentGenerationQuoteInput,
   AgentGenerationQuoteUnavailableReason,
 } from '@genfeedai/contracts/interfaces';
+import type { Model } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -36,6 +40,11 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+type VideoEstimateModel = Pick<Model, 'provider'> &
+  Partial<
+    Pick<Model, 'endpoint' | 'providerInputSchema' | 'providerSchemaFamily'>
+  >;
 
 function unavailableQuote(
   unavailableReason: AgentGenerationQuoteUnavailableReason,
@@ -184,7 +193,7 @@ export class AgentGenerationEstimateService {
   private async quoteModel(
     input: AgentGenerationQuoteInput,
     modelKey: string,
-    model: { provider: string; providerInputSchema?: unknown },
+    model: VideoEstimateModel,
   ): Promise<AgentGenerationQuote> {
     const isVideo = input.category === 'video';
     const dimensions =
@@ -250,22 +259,49 @@ export class AgentGenerationEstimateService {
     modelKey: string,
     dimensions: { height: number; width: number },
     outputs: number,
-    model: { providerInputSchema?: unknown },
+    model: VideoEstimateModel,
     provider: string,
   ) {
     if (input.category === 'video') {
       const duration = input.duration ?? DEFAULT_AGENT_VIDEO_DURATION_SECONDS;
+      let providerInput = await this.buildVideoProviderInput(modelKey, {
+        ...dimensions,
+        duration,
+        isAudioEnabled: input.isAudioEnabled,
+        modelInputSchema: isRecord(model.providerInputSchema)
+          ? model.providerInputSchema
+          : undefined,
+        outputs,
+        references: input.referenceUrls,
+        resolution: input.resolution,
+      });
+      const endpoint = getFalEndpointFromModelKey(model.endpoint ?? modelKey);
+      if (
+        provider === 'fal' &&
+        /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/.test(
+          endpoint,
+        ) &&
+        model.providerSchemaFamily &&
+        isRecord(model.providerInputSchema)
+      ) {
+        providerInput = prepareFalVideoDispatch({
+          ...dimensions,
+          duration,
+          imageUrl: input.referenceUrls?.[0],
+          model: modelKey,
+          modelEndpoint: endpoint,
+          modelInputSchema: model.providerInputSchema,
+          modelProvider: provider,
+          modelSchemaFamily: model.providerSchemaFamily,
+          prompt: input.prompt ?? 'Price estimate',
+          promptParams: providerInput ?? {},
+        }).input;
+      }
       return {
         duration,
         // The same provider input admission quotes, so a provider that
         // normalizes duration (Hailuo 5 s -> 6 s) is priced as executed.
-        providerInput: await this.buildVideoProviderInput(modelKey, {
-          ...dimensions,
-          duration,
-          isAudioEnabled: input.isAudioEnabled,
-          outputs,
-          resolution: input.resolution,
-        }),
+        providerInput,
         selectors: buildVideoQuoteSelectors({
           isAudioEnabled: input.isAudioEnabled,
           resolution: input.resolution,
@@ -333,7 +369,9 @@ export class AgentGenerationEstimateService {
       duration: number;
       height: number;
       isAudioEnabled?: boolean;
+      modelInputSchema?: Record<string, unknown>;
       outputs: number;
+      references?: string[];
       resolution?: string;
       width: number;
     },

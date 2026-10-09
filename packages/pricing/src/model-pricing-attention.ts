@@ -43,6 +43,7 @@ function sampleQuantities(
         ? defaultDuration
         : 5,
     frames: 24,
+    framesPerSecond: 24,
     height: 1024,
     inputDuration: 5,
     inputMegapixels: 1,

@@ -63,7 +63,7 @@ type FindAvailableModelsParams = {
   organizationId?: string;
 };
 
-type RegistryReviewPatch = Partial<UpdateModelDto> & {
+type RegistryReviewPatch = Omit<Partial<UpdateModelDto>, 'providerCostUsd'> & {
   // Off the public create/update contract: `createModel` derives it from the
   // lifecycle, `transitionLifecycle` owns it, review approval clears it here.
   isLegacy?: boolean;
@@ -78,7 +78,7 @@ type RegistryReviewPatch = Partial<UpdateModelDto> & {
   providerSchemaFamily?: string;
   providerSyncStatus?: string;
   pricingType?: string;
-  providerCostUsd?: number;
+  providerCostUsd?: number | null;
   succeededBy?: string;
   aspectRatios?: string[];
   defaultAspectRatio?: string;
@@ -860,7 +860,9 @@ export class ModelsService extends BaseService<
       patch.pendingProviderContractVersion = null;
       if (existing.provider !== ModelProvider.CRUN)
         patch.providerCostUsd =
-          Number(pendingContract.unitPriceMicros) / 1_000_000;
+          pendingContract.unitPriceMicros === null
+            ? null
+            : Number(pendingContract.unitPriceMicros) / 1_000_000;
       if (crunContract)
         Object.assign(patch, crunModelCatalogPatch(crunContract));
       patch.providerInputSchema = crunContract

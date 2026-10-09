@@ -7,6 +7,91 @@ import { FalSchemaFamily } from '@api/services/integrations/fal/services/fal-con
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
+  it('uses the provider fixed image aspect before validating or pricing a Seedance request', () => {
+    expect(
+      prepareFalVideoDispatch({
+        model: 'fal/bytedance/seedance-2.5/image-to-video',
+        modelEndpoint: 'bytedance/seedance-2.5/image-to-video',
+        modelSchemaFamily: FalSchemaFamily.VIDEO_IMAGE,
+        modelInputSchema: {
+          properties: {
+            prompt: { type: 'string' },
+            image_url: { type: 'string' },
+            aspect_ratio: { type: 'string', const: 'auto', default: 'auto' },
+          },
+          required: ['image_url'],
+        },
+        prompt: 'a slow pan',
+        imageUrl: 'https://cdn.test/start.png',
+        promptParams: { aspect_ratio: '16:9' },
+        width: 1920,
+        height: 1080,
+      }).input,
+    ).toMatchObject({ aspect_ratio: 'auto' });
+  });
+  it('materializes Seedance defaults in the prepared input used for pricing', () => {
+    expect(
+      prepareFalVideoDispatch({
+        model: 'fal/bytedance/seedance-2.5/text-to-video',
+        modelEndpoint: 'bytedance/seedance-2.5/text-to-video',
+        modelSchemaFamily: FalSchemaFamily.VIDEO_TEXT,
+        modelInputSchema: {
+          properties: {
+            prompt: { type: 'string' },
+            resolution: { type: 'string', default: '720p' },
+            aspect_ratio: { type: 'string', default: 'auto' },
+            generate_audio: { type: 'boolean', default: true },
+            duration: { type: 'string', enum: ['auto', '5'], default: 'auto' },
+          },
+          required: ['prompt'],
+        },
+        prompt: 'a slow pan',
+        promptParams: {},
+        duration: 5,
+        width: 1920,
+        height: 1080,
+      }).input,
+    ).toEqual({
+      prompt: 'a slow pan',
+      resolution: '720p',
+      aspect_ratio: 'auto',
+      generate_audio: true,
+      duration: '5',
+    });
+  });
+  it('projects the actual Seedance editing coercion before any quote', () => {
+    expect(
+      prepareFalVideoDispatch({
+        model: 'fal/bytedance/seedance-2.5/reference-to-video',
+        modelEndpoint: 'bytedance/seedance-2.5/reference-to-video',
+        modelSchemaFamily: FalSchemaFamily.VIDEO_REFERENCE,
+        modelInputSchema: {
+          properties: {
+            prompt: { type: 'string' },
+            resolution: { type: 'string' },
+            aspect_ratio: { type: 'string' },
+            duration: { type: 'string' },
+            task: { type: 'string' },
+            video_urls: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        prompt: 'edit the background',
+        promptParams: {
+          resolution: '720p',
+          aspect_ratio: '16:9',
+          task: 'editing',
+          video_urls: ['https://cdn.test/reference.mp4'],
+        },
+        duration: 5,
+        width: 1280,
+        height: 720,
+      }).input,
+    ).toMatchObject({
+      duration: 'auto',
+      aspect_ratio: 'auto',
+      task: 'editing',
+    });
+  });
   it('executes a reviewed image-to-video family through the contract adapter', async () => {
     const falService = {
       generateVideo: vi

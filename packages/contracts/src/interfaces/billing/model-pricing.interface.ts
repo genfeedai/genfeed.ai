@@ -8,6 +8,8 @@ export type ProviderBillingUnit =
   | 'frame'
   | 'input-token'
   | 'output-token'
+  | 'video-token'
+  | 'input-video-token'
   | 'character'
   | 'reference';
 
@@ -22,6 +24,8 @@ export interface ProviderQuoteDimensions {
   frames?: number;
   inputTokens?: number;
   outputTokens?: number;
+  /** Native video-token quantity: width × height × seconds × fps / 1024. */
+  framesPerSecond?: number;
   characters?: number;
   references?: number;
   selectors?: Record<string, string | number | boolean>;

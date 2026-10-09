@@ -44,6 +44,70 @@ describe('pending provider rate drift', () => {
   });
 });
 describe('authoritative bill-time quote snapshots', () => {
+  it('settles native video tokens from actual output evidence and rejects missing or over-reservation usage', () => {
+    const profile: ModelBillablePricingProfile = {
+      ...model,
+      requiredSelectorKeys: [],
+      rateVersion: 'native-v1',
+      reviewedPricing: {
+        currency: 'USD',
+        version: 'native-v1',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://fal.ai/models/bytedance/seedance-2.0/text-to-video',
+        verifiedAt: date,
+        rates: [
+          {
+            component: 'output',
+            unit: 'video-token',
+            unitPriceUsd: 0.000014,
+            when: {},
+            isPerOutput: true,
+          },
+        ],
+      },
+    };
+    const reserved = quoteModelBillablePricing(
+      profile,
+      { ...input, width: 1280, height: 720, framesPerSecond: 24, duration: 5 },
+      1,
+      date,
+    );
+    if (reserved.status !== 'priced') throw new Error(reserved.reason);
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+        width: 1280,
+        height: 720,
+        duration: 4,
+      }),
+    ).toMatchObject({
+      status: 'priced',
+      billableProviderCostUsd: 1.2096,
+      credits: 121,
+    });
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+        width: 1280,
+        height: 720,
+        duration: 6,
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 0,
+        successfulRequests: 0,
+      }),
+    ).toMatchObject({ status: 'priced', credits: 0 });
+  });
   it('prices actual duration, aggregates once, and conserves every allocated credit', () => {
     const quote = quoteModelBillablePricing(
       model,

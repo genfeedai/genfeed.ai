@@ -388,6 +388,19 @@ export function quoteModelBillableCompletion(
       'Request fee disposition requires the existing successful-request contract',
     );
   const rates = snapshot.pricingProfile.reviewedPricing?.rates ?? [];
+  if (
+    rates.some(
+      (rate) =>
+        rate.unit === 'video-token' || rate.unit === 'input-video-token',
+    ) &&
+    (completion.width === undefined ||
+      completion.height === undefined ||
+      completion.duration === undefined ||
+      (rates.some((rate) => rate.unit === 'input-video-token') &&
+        completion.inputDuration === undefined))
+  ) {
+    return unresolved('Completed native video-token quantities are required');
+  }
   const hasRequestComponent =
     snapshot.pricingProfile.pricingType === 'per-request' ||
     rates.some((rate) => rate.unit === 'request');
@@ -404,6 +417,7 @@ export function quoteModelBillableCompletion(
   if (successfulRequests !== reservedRequests) {
     const usageKeys = {
       'input-second': 'inputDuration',
+      'input-video-token': 'inputDuration',
       'input-megapixel': 'inputMegapixels',
       'input-token': 'inputTokens',
       'output-token': 'outputTokens',
