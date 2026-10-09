@@ -59,6 +59,7 @@ describe('AgentRouteRewriteService', () => {
           type: 'content_preview_card',
         },
       ],
+      creditsUsed: 0,
       success: true,
     };
 
@@ -83,7 +84,6 @@ describe('AgentRouteRewriteService', () => {
   it('scopes bare ads hub hrefs onto the brand and org discovery routes', async () => {
     const service = createService();
     const adsResult: AgentToolResult = {
-      creditsUsed: 0,
       nextActions: [
         {
           ctas: [
@@ -96,6 +96,7 @@ describe('AgentRouteRewriteService', () => {
           type: 'ads_search_results_card',
         },
       ],
+      creditsUsed: 0,
       success: true,
     };
 
@@ -137,6 +138,7 @@ describe('AgentRouteRewriteService', () => {
             type: 'oauth_connect_card',
           },
         ],
+        creditsUsed: 0,
         success: true,
       },
       context,
@@ -188,6 +190,7 @@ describe('AgentRouteRewriteService', () => {
           href: '/publishing/review',
           url: '/media/generated-image.png',
         },
+        creditsUsed: 0,
         success: true,
       },
       context,
@@ -242,7 +245,11 @@ describe('AgentRouteRewriteService', () => {
     'scopes brand-only Settings %s with the resolved brand',
     async (page) => {
       const scoped = await createService().scopeToolResultHrefs(
-        { success: true, data: { href: `/settings/${page}?q=1#top` } },
+        {
+          creditsUsed: 0,
+          success: true,
+          data: { href: `/settings/${page}?q=1#top` },
+        },
         context,
       );
       expect(scoped.data).toEqual({
@@ -254,6 +261,7 @@ describe('AgentRouteRewriteService', () => {
   it('repairs saved organization-only brand settings, preserves explicit brands and settings roots', async () => {
     const scoped = await createService().scopeToolResultHrefs(
       {
+        creditsUsed: 0,
         success: true,
         data: {
           href: '/genfeed-ai/~/settings/connected-accounts?platform=x#top',
@@ -273,7 +281,11 @@ describe('AgentRouteRewriteService', () => {
   it('falls back to the organization Brands hub when no brand is available', async () => {
     brandsService.findOne.mockResolvedValueOnce(null);
     const scoped = await createService().scopeToolResultHrefs(
-      { success: true, data: { href: '/settings/connected-accounts' } },
+      {
+        creditsUsed: 0,
+        success: true,
+        data: { href: '/settings/connected-accounts' },
+      },
       context,
     );
     expect(scoped.data).toEqual({ href: '/genfeed-ai/~/settings/brands' });
@@ -288,7 +300,7 @@ describe('AgentRouteRewriteService', () => {
     'brands',
   ])('keeps organization Settings %s in organization scope', async (page) => {
     const scoped = await createService().scopeToolResultHrefs(
-      { success: true, data: { href: `/settings/${page}` } },
+      { creditsUsed: 0, success: true, data: { href: `/settings/${page}` } },
       context,
     );
     expect(scoped.data).toEqual({ href: `/genfeed-ai/~/settings/${page}` });
@@ -297,6 +309,7 @@ describe('AgentRouteRewriteService', () => {
   it('keeps personal Settings unscoped and repairs retired content destinations', async () => {
     const scoped = await createService().scopeToolResultHrefs(
       {
+        creditsUsed: 0,
         success: true,
         data: {
           href: '/settings/personal',
@@ -317,6 +330,7 @@ describe('AgentRouteRewriteService', () => {
   it('repairs dynamic retired content links without changing their entity or query', async () => {
     const scoped = await createService().scopeToolResultHrefs(
       {
+        creditsUsed: 0,
         success: true,
         data: { href: '/content/articles/article-1?view=edit#body' },
       },
@@ -331,8 +345,14 @@ describe('AgentRouteRewriteService', () => {
     const destinations = Object.entries(AGENT_NEXT_STEP_DESTINATIONS);
     const scoped = await createService().scopeToolResultHrefs(
       {
+        creditsUsed: 0,
         success: true,
-        data: destinations.map(([key, value]) => ({ key, href: value.href })),
+        data: {
+          destinations: destinations.map(([key, value]) => ({
+            key,
+            href: value.href,
+          })),
+        },
       },
       context,
     );
@@ -345,7 +365,7 @@ describe('AgentRouteRewriteService', () => {
       'models',
       'provider_keys',
     ]);
-    expect(scoped.data).toEqual(
+    expect(scoped.data?.destinations).toEqual(
       destinations.map(([key, value]) => ({
         key,
         href:
@@ -367,6 +387,7 @@ describe('AgentRouteRewriteService', () => {
           type: 'oauth_connect_card',
         },
       ],
+      creditsUsed: 0,
       success: true,
     };
 
@@ -388,6 +409,7 @@ describe('AgentRouteRewriteService', () => {
             type: 'analytics_card',
           },
         ],
+        creditsUsed: 0,
         success: true,
       },
       { ...context, brandId: 'brand-1' },
