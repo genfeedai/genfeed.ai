@@ -140,6 +140,9 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupFrontDoorProps {
+  activeSection?: GenerationSetupCustomizeSectionId;
+  onCloseSection?: () => void;
+  renderSection?: (section: GenerationSetupCustomizeSectionId) => ReactNode;
   isAutoPriorityOnly?: boolean;
   showPresets?: boolean;
   showEnhancementSettings?: boolean;
