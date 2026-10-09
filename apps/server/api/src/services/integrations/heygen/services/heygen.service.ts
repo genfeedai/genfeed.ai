@@ -293,33 +293,11 @@ export class HeyGenService {
         apiKey: apiKeyOverride,
         binding: { provider: 'heygen', kind: 'byok', organizationId: orgId },
       });
-    const publicVoices = this.getApiKey()
-      ? await this.readVoiceCatalog(
-          await this.resolveOrganizationConnection(orgId, 'platform'),
-          'public',
-        )
-      : [];
-    if (!organizationId && !this.getApiKey())
-      throw new BadRequestException('Connect HeyGen to load identities.');
-    if (!organizationId) return publicVoices;
-    const credential = await this.byokService.lookupApiKeyWithIdentity(
-      orgId,
-      ByokProvider.HEYGEN,
+    const voices = await this.readAccessibleCatalog(
+      organizationId,
+      (connection, ownership) => this.readVoiceCatalog(connection, ownership),
     );
-    if (!credential) return publicVoices;
-    const privateVoices = await this.readVoiceCatalog(
-      {
-        apiKey: credential.apiKey,
-        binding: {
-          provider: 'heygen',
-          kind: 'byok',
-          organizationId: orgId,
-          credentialVersionId: credential.credentialId,
-        },
-      },
-      'private',
-    );
-    return [...publicVoices, ...privateVoices].map((voice, index) => ({
+    return voices.map((voice, index) => ({
       ...voice,
       index,
     }));
@@ -376,37 +354,12 @@ export class HeyGenService {
         apiKey: apiKeyOverride,
         binding: { provider: 'heygen', kind: 'byok', organizationId: orgId },
       });
-    else {
-      avatars = this.getApiKey()
-        ? await this.readAvatarCatalog(
-            await this.resolveOrganizationConnection(orgId, 'platform'),
-            'public',
-          )
-        : [];
-      if (!organizationId && !this.getApiKey())
-        throw new BadRequestException('Connect HeyGen to load identities.');
-      if (organizationId) {
-        const credential = await this.byokService.lookupApiKeyWithIdentity(
-          orgId,
-          ByokProvider.HEYGEN,
-        );
-        if (credential)
-          avatars.push(
-            ...(await this.readAvatarCatalog(
-              {
-                apiKey: credential.apiKey,
-                binding: {
-                  provider: 'heygen',
-                  kind: 'byok',
-                  organizationId: orgId,
-                  credentialVersionId: credential.credentialId,
-                },
-              },
-              'private',
-            )),
-          );
-      }
-    }
+    else
+      avatars = await this.readAccessibleCatalog(
+        organizationId,
+        (connection, ownership) =>
+          this.readAvatarCatalog(connection, ownership),
+      );
     return avatars.map((avatarRef, index) => ({
       avatarId: avatarRef.lookId,
       index,
@@ -414,6 +367,69 @@ export class HeyGenService {
       preview: avatarRef.preview ?? '',
       avatarRef,
     }));
+  }
+
+  /** Catalogue sources fail independently; identity admission never falls back. */
+  private async readAccessibleCatalog<T>(
+    organizationId: string | undefined,
+    read: (
+      connection: ResolvedHeyGenConnection,
+      ownership: 'public' | 'private',
+    ) => Promise<T[]>,
+  ): Promise<T[]> {
+    const orgId = organizationId ?? 'platform';
+    // Entitlement/storage failures must not be mistaken for a missing binding.
+    const credential = organizationId
+      ? await this.byokService.lookupApiKeyWithIdentity(
+          orgId,
+          ByokProvider.HEYGEN,
+        )
+      : undefined;
+    const platformKey = this.getApiKey();
+    if (!organizationId && !platformKey)
+      throw new BadRequestException('Connect HeyGen to load identities.');
+    const sources: Promise<T[]>[] = [];
+    if (platformKey)
+      sources.push(
+        read(
+          {
+            apiKey: platformKey,
+            binding: {
+              provider: 'heygen',
+              kind: 'platform',
+              organizationId: orgId,
+              credentialVersionId: this.platformCredentialVersion(platformKey),
+            },
+          },
+          'public',
+        ),
+      );
+    if (credential)
+      sources.push(
+        read(
+          {
+            apiKey: credential.apiKey,
+            binding: {
+              provider: 'heygen',
+              kind: 'byok',
+              organizationId: orgId,
+              credentialVersionId: credential.credentialId,
+            },
+          },
+          'private',
+        ),
+      );
+    const results = await Promise.allSettled(sources);
+    if (
+      results.length &&
+      results.every((result) => result.status === 'rejected')
+    ) {
+      const failure = results.find((result) => result.status === 'rejected');
+      throw failure?.reason ?? new Error('HeyGen catalogue is unavailable.');
+    }
+    return results.flatMap((result) =>
+      result.status === 'fulfilled' ? result.value : [],
+    );
   }
 
   /** Ownership comes from a filtered provider response, never from missing fields. */

@@ -35,6 +35,7 @@ const settings: StudioGenerateSettings = {
   tags: [],
 };
 const identities: UseStudioGenerateIdentitiesReturn = {
+  retry: vi.fn(),
   avatarOptions: [
     { label: 'Saved photo', value: 'https://assets.test/photo.jpg' },
   ],
@@ -83,7 +84,10 @@ describe('Studio identity catalog recovery', () => {
     }
   });
 
-  beforeEach(() => mocks.identities.mockReturnValue(identities));
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.identities.mockReturnValue(identities);
+  });
 
   it('explains a provider outage while keeping available photo and voice choices usable', async () => {
     const user = userEvent.setup();
@@ -123,5 +127,44 @@ describe('Studio identity catalog recovery', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Identity' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('retries the catalogue explicitly without changing the selected identity', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <StudioIdentityFields
+        settings={settings}
+        type="avatar"
+        onChange={onChange}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Retry HeyGen identities' }),
+    );
+    expect(identities.retry).toHaveBeenCalledOnce();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps healthy photo and voice choices usable while the remote catalogue retries', async () => {
+    mocks.identities.mockReturnValue({
+      ...identities,
+      isLoadingIdentities: true,
+    });
+    const user = userEvent.setup();
+    render(
+      <StudioIdentityFields
+        settings={settings}
+        type="avatar"
+        onChange={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Identity' }));
+    expect(screen.getByRole('combobox', { name: 'Avatar' })).toBeEnabled();
+    expect(screen.getByRole('combobox', { name: 'Voice' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Retry HeyGen identities' }),
+    ).toBeDisabled();
   });
 });

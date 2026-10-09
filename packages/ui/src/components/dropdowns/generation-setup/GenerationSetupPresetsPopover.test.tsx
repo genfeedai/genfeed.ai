@@ -42,9 +42,7 @@ describe('GenerationSetupPresetsPopover', () => {
       />,
     );
     await user.click(screen.getByRole('button', { name: 'Presets' }));
-    await user.click(
-      screen.getByRole('button', { name: 'YouTube thumbnail', exact: true }),
-    );
+    await user.click(screen.getByRole('button', { name: 'YouTube thumbnail' }));
     expect(onApplySystemPreset).not.toHaveBeenCalled();
     expect(
       screen.getByRole('img', {

@@ -20,6 +20,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { UserRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 function describeIdentitySettings(
@@ -46,7 +47,9 @@ export default function StudioIdentityFields({
   settings,
   type,
 }: StudioIdentityFieldsProps): ReactElement {
-  const { avatarOptions, error, isLoadingIdentities, voiceOptions } =
+  const translate = useTranslations('agent.generationSetup');
+  const translateAction = useTranslations('common.actions');
+  const { avatarOptions, error, isLoadingIdentities, retry, voiceOptions } =
     useStudioGenerateIdentities();
 
   const avatarValue = settings.avatarRef
@@ -87,15 +90,25 @@ export default function StudioIdentityFields({
       <PopoverPanelContent align="start" className="w-72 p-3" side="top">
         <div className="flex flex-col gap-3">
           {error ? (
-            <p className="text-xs text-muted-foreground" role="alert">
-              {error}
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground" role="alert">
+                {error}
+              </p>
+              <Button
+                ariaLabel={translate('identityRetryAria')}
+                label={translateAction('retry')}
+                isDisabled={isLoadingIdentities}
+                onClick={retry}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
           ) : null}
           {type === 'avatar' ? (
             <SettingRow label="Avatar">
               <OptionSelect
                 ariaLabel="Avatar"
-                isDisabled={isLoadingIdentities}
+                isDisabled={isLoadingIdentities && !avatarOptions.length}
                 onChange={(value) => {
                   const option = avatarOptions.find(
                     (candidate) => candidate.value === value,
@@ -114,7 +127,7 @@ export default function StudioIdentityFields({
           <SettingRow label="Voice">
             <OptionSelect
               ariaLabel="Voice"
-              isDisabled={isLoadingIdentities}
+              isDisabled={isLoadingIdentities && !voiceOptions.length}
               onChange={(value) => {
                 const option = voiceOptions.find(
                   (candidate) => candidate.value === value,
