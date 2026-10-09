@@ -2,6 +2,7 @@ import type { AgentStrategiesService } from '@api/collections/agent-strategies/s
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import type { BreakoutGenerationAdmission } from '@api/collections/outliers/services/breakout-generation-admission.util';
+import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -284,6 +285,47 @@ describe('breakout normal strategy quality consumer', () => {
       scoreId: 'score-a',
     });
     expect(h.dispatch).toHaveBeenCalledOnce();
+  });
+  it('propagates key revocation during the output lookup before claiming a quality attempt', async () => {
+    const h = fixture();
+    const denied = new Error('key_revoked_during_quality_lookup');
+    h.tx.breakoutResponseOutput.findFirst.mockImplementationOnce(async () => {
+      h.reauthorize.mockRejectedValueOnce(denied);
+      return {
+        generationKey: 'generation-a',
+        heldReason: null,
+        state: 'reserved',
+      };
+    });
+    await expect(h.service.evaluate(h.request)).rejects.toBe(denied);
+    expect(h.tx.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
+    expect(h.optimizers.analyzeContent).not.toHaveBeenCalled();
+    expect(h.credits.reserveCredits).not.toHaveBeenCalled();
+  });
+  it('propagates key revocation during the budget await before a quality provider call', async () => {
+    const h = fixture();
+    const denied = new Error('key_revoked_during_quality_budget');
+    vi.mocked(readBreakoutLiveCapacity).mockImplementationOnce(async () => {
+      h.reauthorize.mockRejectedValueOnce(denied);
+      return { status: 'held', reason: 'missing_strategy' };
+    });
+    await expect(h.service.evaluate(h.request)).rejects.toBe(denied);
+    expect(h.optimizers.analyzeContent).not.toHaveBeenCalled();
+    expect(h.credits.reserveCredits).not.toHaveBeenCalled();
+  });
+  it('rechecks native authority after the current-policy lock before reading or applying an approval', async () => {
+    const h = fixture();
+    const denied = new Error('key_revoked_during_quality_policy_lock');
+    h.tx.$queryRaw.mockImplementationOnce(async () => {
+      h.reauthorize.mockRejectedValueOnce(denied);
+      return [];
+    });
+    await expect(h.service.evaluate(h.request)).rejects.toBe(denied);
+    expect(h.tx.agentStrategy.findFirst).not.toHaveBeenCalled();
+    // Actual accepted scoring cost remains recorded; the output is never marked approved.
+    expect(h.credits.settleReservation).toHaveBeenCalledOnce();
+    expect(h.state().heldReason).toBe('quality_evaluation_pending');
+    expect(h.tx.breakoutResponseOutput.updateMany).toHaveBeenCalledOnce();
   });
   it.each(['unknown', 'repair'] as const)(
     'retains %s outcomes without blind paid retries or releasing holds',

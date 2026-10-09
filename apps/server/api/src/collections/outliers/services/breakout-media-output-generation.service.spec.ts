@@ -285,6 +285,30 @@ describe('breakout normal media provider consumer', () => {
     expect(h.tx.breakoutResponseOutput.findFirst).not.toHaveBeenCalled();
     expect(h.gateway.generateImage).not.toHaveBeenCalled();
   });
+  it('propagates revocation during the private output lookup before its dispatch claim', async () => {
+    const h = fixture();
+    const denied = new Error('key_revoked_during_media_lookup');
+    h.tx.breakoutResponseOutput.findFirst.mockImplementationOnce(async () => {
+      h.reauthorize.mockRejectedValueOnce(denied);
+      return { generationKey: 'generation-a', state: 'reserved' };
+    });
+    await expect(h.service.generate(h.request)).rejects.toBe(denied);
+    expect(h.tx.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
+    expect(h.gateway.generateImage).not.toHaveBeenCalled();
+    expect(h.tx.ingredient.findMany).not.toHaveBeenCalled();
+  });
+  it('rechecks native authority after the actual output claim before entering provider work', async () => {
+    const h = fixture();
+    const denied = new Error('key_revoked_during_media_claim');
+    h.tx.breakoutResponseOutput.updateMany.mockImplementationOnce(async () => {
+      h.reauthorize.mockRejectedValueOnce(denied);
+      return { count: 1 };
+    });
+    await expect(h.service.generate(h.request)).rejects.toBe(denied);
+    expect(h.gateway.generateImage).not.toHaveBeenCalled();
+    expect(h.gateway.generateVideo).not.toHaveBeenCalled();
+    expect(h.tx.ingredient.findMany).not.toHaveBeenCalled();
+  });
   it('never spreads customer-shaped provider, billing or authority fields into a normal generation request', async () => {
     const h = fixture();
     Object.assign(h.request.settings, {

@@ -58,6 +58,7 @@ export class BreakoutOutputQualityService {
         where: this.outputWhere(admission),
         select: { generationKey: true },
       });
+      await admission.reauthorize(tx);
       if (!output)
         throw new ConflictException('breakout_quality_output_unavailable');
       const changed = await tx.breakoutResponseOutput.updateMany({
@@ -68,6 +69,7 @@ export class BreakoutOutputQualityService {
         },
         data: { heldReason: 'quality_evaluation_pending' },
       });
+      await admission.reauthorize(tx);
       return { won: changed.count === 1, generationKey: output.generationKey };
     });
     if (!claim.won) return { state: 'reconciliation_required', scoreId: null };
@@ -77,11 +79,13 @@ export class BreakoutOutputQualityService {
     };
     const capacity = await this.prisma.$transaction(async (tx) => {
       await admission.reauthorize(tx);
-      return readBreakoutLiveCapacity(tx, {
+      const snapshot = await readBreakoutLiveCapacity(tx, {
         ...admission.scope,
         credentialId: admission.credentialId,
         nowMs: Date.now(),
       });
+      await admission.reauthorize(tx);
+      return snapshot;
     });
     if (capacity.status !== 'available')
       throw new ConflictException('breakout_quality_budget_unavailable');
@@ -323,6 +327,7 @@ export class BreakoutOutputQualityService {
       await admission.reauthorize(tx);
       const key = `agent-strategy-config:${admission.scope.strategyId}`;
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+      await admission.reauthorize(tx);
       const current = await tx.agentStrategy.findFirst({
         where: {
           id: admission.scope.strategyId,
@@ -333,6 +338,7 @@ export class BreakoutOutputQualityService {
         },
         select: { config: true, policies: true },
       });
+      await admission.reauthorize(tx);
       if (!current)
         throw new ConflictException('breakout_quality_policy_unavailable');
       const policy = {
@@ -379,6 +385,7 @@ export class BreakoutOutputQualityService {
       });
       if (changed.count !== 1)
         throw new ConflictException('breakout_quality_output_changed');
+      await admission.reauthorize(tx);
     });
     return {
       state: gate.decision === 'approved' ? 'approved' : 'held',

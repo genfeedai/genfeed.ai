@@ -151,6 +151,7 @@ export class BreakoutMediaOutputGenerationService {
         where,
         select: { generationKey: true, state: true },
       });
+      await admission.reauthorize(tx);
       if (!output)
         throw new ConflictException('breakout_media_output_unavailable');
       const first = {
@@ -169,12 +170,14 @@ export class BreakoutMediaOutputGenerationService {
           where,
           select: { generationKey: true, state: true },
         });
+        await admission.reauthorize(tx);
         if (
           retained?.state !== 'generating' ||
           retained.generationKey !== output.generationKey
         )
           throw new ConflictException('breakout_media_output_not_dispatchable');
       }
+      await admission.reauthorize(tx);
       return { generationKey: output.generationKey, won: changed.count === 1 };
     });
   }
@@ -261,6 +264,7 @@ export class BreakoutMediaOutputGenerationService {
                   throw new ConflictException(
                     'breakout_media_placeholder_changed',
                   );
+                await admission.reauthorize(tx);
               });
             },
           };
