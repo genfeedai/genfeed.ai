@@ -1,5 +1,7 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
 import {
   fireEvent,
   render,
@@ -527,12 +529,11 @@ describe('StudioPlaygroundInspector', () => {
   });
 
   it('still offers recipe when the gallery row only has ingredient metadata', () => {
-    const ingredient = {
-      category: IngredientCategory.IMAGE,
+    const ingredient = new Image({
       id: 'ing-9',
-      metadata: { mood: 'serene', style: 'cinematic' },
+      metadata: new Metadata({ mood: 'serene', style: 'cinematic' }),
       promptText: 'Stored prompt',
-    } as IIngredient;
+    });
 
     render(
       <StudioPlaygroundInspector

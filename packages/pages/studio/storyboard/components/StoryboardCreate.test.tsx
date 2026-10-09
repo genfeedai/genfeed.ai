@@ -1,4 +1,5 @@
 import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image } from '@genfeedai/models/ingredients/image.model';
 import type { GlobalModalGalleryConfig } from '@genfeedai/props/modals/global-modals.props';
 import type { PromptEditorProps } from '@genfeedai/props/prompt-bars/prompt-editor.props';
@@ -77,7 +78,7 @@ function image(id: string, brandId = mocks.brandId, isDeleted = false) {
     brandId,
     isDeleted,
     cdnUrl: `https://assets.test/${id}.jpg`,
-    metadata: { label: id },
+    metadata: new Metadata({ label: id }),
   });
 }
 
@@ -97,9 +98,7 @@ describe('Storyboard shared composer', () => {
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A founder launches a product.' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save storyboard', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith({
         source: { kind: 'brief', brief: 'A founder launches a product.' },
@@ -121,7 +120,7 @@ describe('Storyboard shared composer', () => {
   it('saves only owned, nondeleted style references and clears them when the brand changes', async () => {
     const { rerender } = render(<StoryboardCreate />);
     fireEvent.click(
-      screen.getByRole('button', { name: 'Add style references', exact: true }),
+      screen.getByRole('button', { name: 'Add style references' }),
     );
     expect(mocks.openGallery.mock.calls[0][0].format).toBe('9:16');
     act(() =>
@@ -134,9 +133,7 @@ describe('Storyboard shared composer', () => {
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'My story' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save storyboard', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -150,9 +147,7 @@ describe('Storyboard shared composer', () => {
     rerender(<StoryboardCreate />);
     expect(screen.queryByText('style-a')).not.toBeInTheDocument();
     mocks.create.mockClear();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save storyboard', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -166,7 +161,6 @@ describe('Storyboard shared composer', () => {
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Choose a starting image',
-        exact: true,
       }),
     );
     act(() =>
@@ -176,9 +170,7 @@ describe('Storyboard shared composer', () => {
       target: { value: 'Keep this story' },
     });
     mocks.create.mockRejectedValueOnce(new Error('Offline'));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save storyboard', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
     mocks.error = 'Offline';
     rerender(<StoryboardCreate />);
@@ -189,7 +181,6 @@ describe('Storyboard shared composer', () => {
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Retry saving storyboard',
-        exact: true,
       }),
     );
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
@@ -203,7 +194,7 @@ describe('Storyboard shared composer', () => {
     fireEvent.keyDown(screen.getByLabelText('Brief'), { key: 'Enter' });
     expect(mocks.create).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('button', { name: 'Save storyboard', exact: true }),
+      screen.getByRole('button', { name: 'Save storyboard' }),
     ).toBeDisabled();
   });
 });
