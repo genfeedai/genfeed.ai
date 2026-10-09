@@ -1,4 +1,5 @@
 import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
+import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -7,6 +8,7 @@ import { BreakoutGenerationPlanService } from '@api/collections/outliers/service
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
+import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
@@ -21,6 +23,7 @@ import { Module } from '@nestjs/common';
 @Module({
   imports: [
     AgentStrategiesCoreModule,
+    ContentLearningCoreModule,
     CredentialsCoreModule,
     ModelsModule,
     RouterModule,
@@ -35,12 +38,14 @@ import { Module } from '@nestjs/common';
     PrismaModule,
   ],
   providers: [
+    BreakoutTextOutputPreparationService,
     BreakoutGenerationPlanService,
     BreakoutOutputQualityService,
     BreakoutMediaOutputGenerationService,
     BreakoutTextOutputGenerationService,
   ],
   exports: [
+    BreakoutTextOutputPreparationService,
     BreakoutGenerationPlanService,
     BreakoutOutputQualityService,
     BreakoutMediaOutputGenerationService,

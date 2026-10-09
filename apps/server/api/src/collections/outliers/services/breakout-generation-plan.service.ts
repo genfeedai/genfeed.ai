@@ -3,6 +3,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import { reserveBreakoutLiveCapacityPlan } from '@api/collections/outliers/services/breakout-capacity-plan.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
+import { breakoutTextOutputLimits } from '@api/collections/outliers/services/breakout-text-output-limits.util';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/openrouter-model.util';
@@ -126,19 +127,13 @@ export class BreakoutGenerationPlanService {
     textModelKey: string,
     constraints: AccountPublishingConstraints,
   ): Promise<BreakoutGenerationPlanResult> {
-    const maximum =
-      constraints.maxCharacters ?? constraints.maxWeightedCharacters;
-    if (!maximum || !Number.isSafeInteger(maximum) || maximum < 1)
-      return { status: 'held', reason: 'account_constraints_unavailable' };
-    // This explicit output bound is enforced again by the concrete text preparation consumer.
-    const segmentCharacterLimit = Math.min(
-      maximum,
-      source.format === 'thread' ? 1500 : 16000,
+    const limits = breakoutTextOutputLimits(
+      source.format === 'thread' ? 'thread' : 'text',
+      constraints,
     );
-    const totalCharacterLimit =
-      source.format === 'thread'
-        ? segmentCharacterLimit * 9 + 16
-        : segmentCharacterLimit;
+    if (!limits)
+      return { status: 'held', reason: 'account_constraints_unavailable' };
+    const { segmentCharacterLimit, totalCharacterLimit } = limits;
     const qualityCredits = await this.optimizers.estimateAnalysisCredits(
       {
         content: 'x'.repeat(totalCharacterLimit),

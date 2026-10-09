@@ -87,7 +87,11 @@ function fixture() {
   const accounts = {
     resolveDraft: vi.fn(async () => ({
       brand: { id: source.brandId },
-      constraints: { maxWeightedCharacters: 280, supportsThreads: true },
+      constraints: {
+        maxWeightedCharacters: 280,
+        supportsThreads: true,
+        usesWeightedCharacters: true,
+      },
     })),
   };
   const optimizers = { estimateAnalysisCredits: vi.fn(async () => 2) };
