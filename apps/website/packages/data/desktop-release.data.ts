@@ -1,5 +1,5 @@
 /**
- * Desktop build lookup for /download.
+ * Desktop build lookup for /desktop and /download/mac.
  *
  * Desktop artifacts publish under `desktop-v*` tags with `make_latest: false`
  * (`.github/workflows/desktop-release.yml`) so a desktop build never displaces

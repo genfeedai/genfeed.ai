@@ -63,7 +63,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/integrations', label: 'Integrations' },
       { href: '/self-hosted', label: 'Self-hosted' },
       { href: '/cloud', label: 'Cloud' },
-      { href: '/download', label: 'Desktop app' },
+      { href: '/desktop', label: 'Desktop app' },
       { href: '/mobile', label: 'Mobile app' },
       { href: '/docs', label: 'Documentation' },
     ],

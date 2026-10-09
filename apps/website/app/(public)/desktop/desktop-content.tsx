@@ -72,7 +72,7 @@ const INSTALL_STEPS = [
   },
 ] as const;
 
-interface DownloadContentProps {
+interface DesktopContentProps {
   detectedOs: DesktopOs;
   /** Null until the first `desktop-v*` release is published. */
   downloadUrl: string | null;
@@ -81,12 +81,12 @@ interface DownloadContentProps {
   version: string | null;
 }
 
-export default function DownloadContent({
+export default function DesktopContent({
   detectedOs,
   downloadUrl,
   fileSize,
   version,
-}: DownloadContentProps) {
+}: DesktopContentProps) {
   const releasesHref = `${EnvironmentService.github.core}/releases`;
   const appHref = EnvironmentService.apps.app;
 
@@ -105,7 +105,7 @@ export default function DownloadContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/download" kind="integration" />}
+        heroMedia={<MarketingArtwork page="/desktop" kind="integration" />}
         badge="Desktop"
         badgeIcon={MonitorDown}
         title={
