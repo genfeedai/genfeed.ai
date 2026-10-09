@@ -16,6 +16,7 @@ import {
   type SettingsScope,
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
   useAgentChatStore,
@@ -23,7 +24,12 @@ import {
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  ORGANIZATION_MODULES,
+  resolveOrganizationModulePreferences,
+} from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -283,17 +289,29 @@ export function useAppProtectedLayout(
   // Studio surfaces an operator switched off in Admin → Flags drop out of the
   // nav; idea batches enforce their own flag inside Batch.
   const { flags: platformFlags } = useFeatureFlagContext();
+  const { settings: organizationSettings, settingsLoading } = useBrand();
+  const modulePreferences = useMemo(
+    () =>
+      resolveOrganizationModulePreferences(
+        settingsLoading ? null : organizationSettings,
+      ),
+    [organizationSettings, settingsLoading],
+  );
   const studioMenuItems = useMemo(
     () =>
-      STUDIO_MENU_ITEMS.filter((item) =>
-        isStudioSurfaceEnabled(item.href, platformFlags),
+      STUDIO_MENU_ITEMS.filter(
+        (item) =>
+          isStudioSurfaceEnabled(item.href, platformFlags) &&
+          (!item.organizationModule ||
+            modulePreferences?.[item.organizationModule] === true ||
+            !ORGANIZATION_MODULES[item.organizationModule].isToggleable),
       ).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [platformFlags, taskContextSearchParams],
+    [platformFlags, taskContextSearchParams, modulePreferences],
   );
 
   const publishingMenuItems = useMemo(

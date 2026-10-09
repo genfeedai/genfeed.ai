@@ -97,6 +97,35 @@ export const organizationModuleOverridesSchema = z.strictObject({
 export type OrganizationModuleOverrides = z.infer<
   typeof organizationModuleOverridesSchema
 >;
+export type OrganizationModulePreferences = Readonly<
+  Record<OrganizationModuleId, boolean>
+>;
+export interface OrganizationModulePreferenceInput {
+  moduleOverrides?: unknown;
+  hasOrganizationBilling?: unknown;
+}
+
+/** Navigation/preferences only. Enabled subscription modules still require fresh admission. */
+export function resolveOrganizationModulePreferences(
+  settings: OrganizationModulePreferenceInput | null | undefined,
+): OrganizationModulePreferences | null {
+  if (typeof settings?.hasOrganizationBilling !== 'boolean') return null;
+  const parsed = organizationModuleOverridesSchema.safeParse(
+    settings.moduleOverrides,
+  );
+  if (!parsed.success) return null;
+  return Object.fromEntries(
+    ORGANIZATION_MODULE_IDS.map((moduleId) => {
+      const module = ORGANIZATION_MODULES[moduleId];
+      return [
+        moduleId,
+        !module.isToggleable ||
+          (parsed.data[moduleId as ToggleableOrganizationModuleId] ??
+            (!settings.hasOrganizationBilling || module.isDefaultEnabled)),
+      ];
+    }),
+  ) as OrganizationModulePreferences;
+}
 export type OrganizationModuleAccess =
   | { isAllowed: true; reason: null }
   | {

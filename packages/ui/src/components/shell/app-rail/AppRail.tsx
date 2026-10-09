@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ORGANIZATION_MODULES } from '@genfeedai/contracts/constants';
 import type {
   AppRailNavigationItem,
   AppRailNavigationVia,
@@ -330,6 +331,7 @@ export function AppRail({
   footer,
   header,
   isAssetGateLocked = false,
+  modulePreferences,
   onNavigate,
   onNavigationEvent,
   onTogglePin,
@@ -348,13 +350,17 @@ export function AppRail({
   const apps = useMemo(() => {
     const visible = APP_RAIL_REGISTRY.filter(
       (app) =>
-        !app.visibilityFlagKey ||
-        (Object.hasOwn(flags, app.visibilityFlagKey)
-          ? flags[app.visibilityFlagKey] === true
-          : !isConfigured),
+        (!app.organizationModule ||
+          modulePreferences === undefined ||
+          modulePreferences?.[app.organizationModule] === true ||
+          !ORGANIZATION_MODULES[app.organizationModule].isToggleable) &&
+        (!app.visibilityFlagKey ||
+          (Object.hasOwn(flags, app.visibilityFlagKey)
+            ? flags[app.visibilityFlagKey] === true
+            : !isConfigured)),
     );
     return showAdmin ? [...visible, ADMIN_RAIL_APP] : visible;
-  }, [flags, isConfigured, showAdmin]);
+  }, [flags, isConfigured, showAdmin, modulePreferences]);
   const activeAppId = getActiveAppId(
     [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP],
     currentPath,

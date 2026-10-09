@@ -1,3 +1,4 @@
+import type { OrganizationModulePreferences } from '@genfeedai/contracts/constants';
 import type {
   AppRailItemConfig,
   AppRailNavigationEvent,
@@ -21,6 +22,8 @@ export interface AppRailBadge {
 }
 
 export interface AppRailProps {
+  /** Verified organization preferences. Null waits for settings; undefined is a neutral reusable surface. */
+  modulePreferences?: OrganizationModulePreferences | null;
   surface?: AppRailSurface;
   onNavigationEvent?: (event: AppRailNavigationEvent) => void;
   /** Count pills keyed by app id; a missing or zero count renders nothing. */

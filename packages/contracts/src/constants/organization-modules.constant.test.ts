@@ -4,6 +4,7 @@ import {
   type OrganizationModuleAccessInput,
   organizationModuleOverridesSchema,
   resolveOrganizationModuleAccess,
+  resolveOrganizationModulePreferences,
 } from './organization-modules.constant';
 
 const cloud: OrganizationModuleAccessInput = {
@@ -14,6 +15,57 @@ const cloud: OrganizationModuleAccessInput = {
   hasPaidSubscription: false,
   operation: 'write',
 };
+
+describe('organization module preference display', () => {
+  it('resolves the settled server defaults independently of subscription eligibility', () => {
+    expect(
+      resolveOrganizationModulePreferences({
+        hasOrganizationBilling: true,
+        moduleOverrides: {},
+      }),
+    ).toEqual({
+      playground: true,
+      storyboard: true,
+      publishing: true,
+      analytics: true,
+      motion: false,
+      clips: false,
+      batch: false,
+      editor: false,
+      automation: false,
+      messages: false,
+      discovery: true,
+    });
+  });
+  it('keeps explicit self-hosted choices and leaves subscription granting to admission', () => {
+    const preferences = resolveOrganizationModulePreferences({
+      hasOrganizationBilling: false,
+      moduleOverrides: { clips: false, automation: true },
+    });
+    expect(preferences?.clips).toBe(false);
+    expect(preferences?.motion).toBe(true);
+    expect(preferences?.automation).toBe(true);
+    expect(
+      resolveOrganizationModuleAccess({
+        ...cloud,
+        moduleId: 'automation',
+        moduleOverrides: { automation: true },
+      }).reason,
+    ).toBe('subscription-required');
+  });
+  it.each([
+    null,
+    undefined,
+    {},
+    { hasOrganizationBilling: 'true', moduleOverrides: {} },
+    { hasOrganizationBilling: true, moduleOverrides: { clips: 'true' } },
+  ])(
+    'does not guess a preference snapshot from unavailable data: %j',
+    (settings) => {
+      expect(resolveOrganizationModulePreferences(settings)).toBeNull();
+    },
+  );
+});
 
 describe('organization module access', () => {
   it.each(['playground', 'storyboard', 'publishing', 'analytics'] as const)(

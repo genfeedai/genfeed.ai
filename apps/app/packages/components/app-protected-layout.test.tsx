@@ -69,6 +69,12 @@ const mockPathname = vi.hoisted(() => ({
 const mockBrandState = vi.hoisted(() => ({
   brandId: 'brand-123',
   organizationId: 'org-123',
+  settingsLoading: false,
+  settings: {
+    subscriptionTier: 'scale',
+    hasOrganizationBilling: false,
+    moduleOverrides: {},
+  } as Record<string, unknown>,
 }));
 
 const mockRouteParams = vi.hoisted(() => ({
@@ -287,7 +293,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     },
     setBrandId: vi.fn(),
     setOrganizationId: vi.fn(),
-    settings: { subscriptionTier: 'scale' },
+    settings: mockBrandState.settings,
+    settingsLoading: mockBrandState.settingsLoading,
   }),
 }));
 
@@ -541,6 +548,12 @@ describe('AppProtectedLayout', () => {
     sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
     mockBrandState.organizationId = 'org-123';
+    mockBrandState.settingsLoading = false;
+    mockBrandState.settings = {
+      subscriptionTier: 'scale',
+      hasOrganizationBilling: false,
+      moduleOverrides: {},
+    };
     mockRouteParams.brandSlug = 'brand-123';
     mockRouteParams.orgSlug = 'org-123';
     appLayoutSpy.mockClear();
@@ -1590,6 +1603,72 @@ describe('AppProtectedLayout', () => {
       }),
     );
   });
+
+  it('shows the credit-only Studio surfaces under cloud defaults', () => {
+    mockPathname.value = '/studio/storyboard';
+    mockBrandState.settings.hasOrganizationBilling = true;
+    render(
+      <AppProtectedLayout>
+        <div>Existing storyboard</div>
+      </AppProtectedLayout>,
+    );
+    expect(
+      appSidebarSpy.mock.lastCall?.[0].items.map(
+        (item: MenuItemConfig) => item.href,
+      ),
+    ).toEqual(['/studio/playground', '/studio/storyboard']);
+    expect(screen.getByText('Existing storyboard')).toBeInTheDocument();
+  });
+
+  it('updates Studio navigation without discarding existing project content', () => {
+    mockPathname.value = '/studio/clips/project-123';
+    mockBrandState.settings.hasOrganizationBilling = true;
+    mockBrandState.settings.moduleOverrides = { clips: true };
+    const { rerender } = render(
+      <AppProtectedLayout>
+        <div>Existing clips</div>
+      </AppProtectedLayout>,
+    );
+    expect(
+      appSidebarSpy.mock.lastCall?.[0].items.map(
+        (item: MenuItemConfig) => item.href,
+      ),
+    ).toEqual(['/studio/playground', '/studio/storyboard', '/studio/clips']);
+    mockBrandState.settings = {
+      ...mockBrandState.settings,
+      moduleOverrides: { clips: false },
+    };
+    rerender(
+      <AppProtectedLayout>
+        <div>Existing clips</div>
+      </AppProtectedLayout>,
+    );
+    expect(
+      appSidebarSpy.mock.lastCall?.[0].items.map(
+        (item: MenuItemConfig) => item.href,
+      ),
+    ).toEqual(['/studio/playground', '/studio/storyboard']);
+    expect(screen.getByText('Existing clips')).toBeInTheDocument();
+  });
+
+  it.each([true, false])(
+    'keeps fixed Studio surfaces while preferences are unknown (loading=%s)',
+    (settingsLoading) => {
+      mockPathname.value = '/studio/storyboard';
+      mockBrandState.settingsLoading = settingsLoading;
+      mockBrandState.settings = { subscriptionTier: 'scale' };
+      render(
+        <AppProtectedLayout>
+          <div>Existing storyboard</div>
+        </AppProtectedLayout>,
+      );
+      expect(
+        appSidebarSpy.mock.lastCall?.[0].items.map(
+          (item: MenuItemConfig) => item.href,
+        ),
+      ).toEqual(['/studio/playground', '/studio/storyboard']);
+    },
+  );
 
   it('keeps the studio sidebar to production surfaces only', () => {
     mockPathname.value = '/studio/storyboard';

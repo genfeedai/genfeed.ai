@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
 import type { IconComponent } from '../../types/icon';
 import type { ILabeledItem } from '../index';
 
@@ -15,6 +16,7 @@ export type AppContext =
   | 'analytics';
 
 export interface MenuItemConfig {
+  organizationModule?: OrganizationModuleId;
   href?: string;
   hrefScope?: 'brand' | 'global' | 'organization' | 'personal';
   label: string;
