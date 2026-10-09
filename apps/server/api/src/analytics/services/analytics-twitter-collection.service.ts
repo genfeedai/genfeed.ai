@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import type { TwitterAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import type {
+  AnalyticsCollectionAuthorization,
+  TwitterAnalyticsCollectionInput,
+} from '@api/analytics/analytics-collection-action.types';
+import {
+  admitAnalyticsCollection,
+  isAnalyticsCollectionAuthorizationFailure,
+} from '@api/analytics/analytics-collection-authorization';
 import {
   exposureCollectionContext,
   prepareExposureCollectionSource,
@@ -59,7 +66,12 @@ export class AnalyticsTwitterCollectionService {
 
   async collect(
     data: TwitterAnalyticsCollectionInput,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(
+      authorization,
+      data.posts[0]?.organizationId,
+    );
     const { posts } = data;
 
     this.logger.log(
@@ -71,16 +83,21 @@ export class AnalyticsTwitterCollectionService {
     const settledPostIds = new Set<string>();
 
     try {
-      const credential = await this.resolveCollectionCredential(data);
+      const credential = await this.resolveCollectionCredential(
+        data,
+        authorization,
+      );
       const firstPost = posts[0];
 
+      await admitAnalyticsCollection(authorization);
       const credentialData = this.buildCredentialData(credential);
       const tweetIds = posts.map((post) => post.externalId);
       const observations = new Map<
         string,
         LearningPublicationSourceV1 | null
       >();
-      for (const post of posts)
+      for (const post of posts) {
+        await admitAnalyticsCollection(authorization);
         observations.set(
           post.id,
           await this.postAnalyticsService.prepareLearningObservation({
@@ -92,11 +109,13 @@ export class AnalyticsTwitterCollectionService {
             externalId: post.externalId,
           }),
         );
+      }
       const exposureSources = new Map<
         string,
         BreakoutPublicationSourceV1 | null
       >();
-      for (const post of posts)
+      for (const post of posts) {
+        await admitAnalyticsCollection(authorization);
         exposureSources.set(
           post.id,
           await prepareExposureCollectionSource(this.postAnalyticsService, {
@@ -108,6 +127,8 @@ export class AnalyticsTwitterCollectionService {
             externalId: post.externalId,
           }),
         );
+      }
+      await admitAnalyticsCollection(authorization);
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analyticsMap = await this.twitterService.getMediaAnalyticsBatch(
@@ -117,6 +138,7 @@ export class AnalyticsTwitterCollectionService {
       );
 
       const receivedAt = new Date();
+      await admitAnalyticsCollection(authorization);
       const {
         readyTargets,
         delayedTargets,
@@ -132,15 +154,19 @@ export class AnalyticsTwitterCollectionService {
         receivedAt,
         settledPostIds,
         exposureSources,
+        authorization,
       );
+      await admitAnalyticsCollection(authorization);
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
       if (delayedTargets.length > 0) {
+        await admitAnalyticsCollection(authorization);
         await this.analyticsCollectionState.markFailedBatch(
           delayedTargets,
           delayedAnalyticsCollectionFailure('Twitter'),
         );
       }
       if (failedTargets.length > 0) {
+        await admitAnalyticsCollection(authorization);
         await this.analyticsCollectionState.markFailedBatch(
           failedTargets,
           classifyAnalyticsCollectionError(firstProcessingError, 'Twitter'),
@@ -161,6 +187,7 @@ export class AnalyticsTwitterCollectionService {
       );
 
       if (readyTargets.length > 0 && firstPost) {
+        await admitAnalyticsCollection(authorization);
         await this.accountSnapshots.upsertDailySnapshot({
           brandId: firstPost.brandId,
           credentialId: data.credentialId,
@@ -171,12 +198,15 @@ export class AnalyticsTwitterCollectionService {
           ),
         });
       }
+      await admitAnalyticsCollection(authorization);
       return {
         organizationId: posts[0].organizationId,
         brandId: posts[0].brandId,
         credentialId: credential.id,
       };
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
+      await admitAnalyticsCollection(authorization);
       const failure = classifyAnalyticsCollectionError(error, 'Twitter');
       const unsettledPosts = posts.filter(
         (post) => !settledPostIds.has(post.id),
@@ -216,6 +246,7 @@ export class AnalyticsTwitterCollectionService {
     receivedAt: Date,
     settledPostIds: Set<string>,
     exposureSources: Map<string, BreakoutPublicationSourceV1 | null>,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<TwitterBatchOutcome> {
     const { posts } = data;
     const readyTargets: AnalyticsCollectionAttemptRef[] = [];
@@ -224,6 +255,7 @@ export class AnalyticsTwitterCollectionService {
     let firstProcessingError: unknown;
 
     for (const post of posts) {
+      await admitAnalyticsCollection(authorization);
       const analytics = analyticsMap.get(post.externalId);
       const target: AnalyticsCollectionAttemptRef = {
         attemptKey: data.attemptKey,
@@ -269,9 +301,11 @@ export class AnalyticsTwitterCollectionService {
             brandId: post.brandId,
             credentialId,
           },
+          authorization,
         );
         readyTargets.push(target);
       } catch (error: unknown) {
+        if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
         firstProcessingError ??= error;
         this.logger.error(
           `Failed to process Twitter analytics for post ${post.id}`,
@@ -291,7 +325,9 @@ export class AnalyticsTwitterCollectionService {
   }
   private async resolveCollectionCredential(
     data: TwitterAnalyticsCollectionInput,
+    authorization?: AnalyticsCollectionAuthorization,
   ) {
+    await admitAnalyticsCollection(authorization);
     const { posts, credentialId } = data;
     if (posts.length !== 1) {
       throw new Error('Twitter analytics action requires exactly one post');

@@ -1,3 +1,4 @@
+import { analyticsCollectionAuthorizationFixture as baseAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import type { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { registerBreakoutResponse } from '@api/collections/outliers/services/breakout-response-identity.util';
 import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
@@ -14,6 +15,14 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
+
+const analyticsCollectionAuthorizationFixture = {
+  ...baseAuthorizationFixture,
+  initiatingActor: {
+    ...baseAuthorizationFixture.initiatingActor,
+    organizationId: 'org-a',
+  },
+};
 
 vi.mock(
   '@api/collections/outliers/services/post-exposure-observation.util',
@@ -126,6 +135,7 @@ describe('PostAnalyticsService prospective capture wiring', () => {
       h.source.postId,
       analytics,
       h.context,
+      analyticsCollectionAuthorizationFixture,
     );
     expect(h.transaction).toHaveBeenCalledOnce();
     expect(h.capture).toHaveBeenCalledWith(
@@ -169,6 +179,7 @@ describe('PostAnalyticsService prospective capture wiring', () => {
         data: [{ organic_metrics: { impression_count: 1000 } }],
       }),
       h.context,
+      analyticsCollectionAuthorizationFixture,
     );
     expect(h.capture).toHaveBeenCalledOnce();
     expect(h.learningCapture).not.toHaveBeenCalled();
@@ -190,6 +201,7 @@ describe('PostAnalyticsService prospective capture wiring', () => {
           'post-a',
           { views: 100, likes: 1, comments: 0 },
           h.context,
+          analyticsCollectionAuthorizationFixture,
         ),
       ).rejects.toThrow('Exposure collection source');
       expect(h.upsert).not.toHaveBeenCalled();
@@ -210,6 +222,7 @@ describe('PostAnalyticsService prospective capture wiring', () => {
           h.source.postId,
           { views: 100, likes: 1, comments: 0 },
           h.context,
+          analyticsCollectionAuthorizationFixture,
         ),
       ).rejects.toThrow(`Exposure observation held: ${status}`);
     },
@@ -221,6 +234,7 @@ describe('PostAnalyticsService prospective capture wiring', () => {
       h.source.postId,
       { views: 100, likes: 1, comments: 0 },
       h.context,
+      analyticsCollectionAuthorizationFixture,
     );
     expect(h.upsert).toHaveBeenCalledOnce();
     expect(h.capture).not.toHaveBeenCalled();
@@ -236,6 +250,7 @@ describe('PostAnalyticsService prospective capture wiring', () => {
           data: [{ organic_metrics: { impression_count: 1000 } }],
         }),
         h.context,
+        analyticsCollectionAuthorizationFixture,
       ),
     ).rejects.toThrow('Breakout detection held: receipt_conflict');
   });

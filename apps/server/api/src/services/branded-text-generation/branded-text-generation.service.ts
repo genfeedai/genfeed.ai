@@ -76,8 +76,23 @@ export class BrandedTextGenerationService {
   async generate(
     request: BrandedTextGenerationRequestV1,
   ): Promise<BrandedTextGenerationOutcomeV1> {
+    return this.generateRequest(request, 'text');
+  }
+
+  /** Uses the normal receipt lifecycle; persistText must save every accepted segment as a complete thread. */
+  async generateThread(
+    request: BrandedTextGenerationRequestV1,
+  ): Promise<BrandedTextGenerationOutcomeV1> {
+    return this.generateRequest(request, 'thread');
+  }
+
+  private async generateRequest(
+    request: BrandedTextGenerationRequestV1,
+    format: 'text' | 'thread',
+  ): Promise<BrandedTextGenerationOutcomeV1> {
+    await request.reauthorize?.();
     const input = this.parseInput(request.input);
-    const parameters = this.assertPreconditions(input);
+    const parameters = this.assertPreconditions(input, format);
     const apiKey = await request.resolveApiKey(input.model);
     const actor: BrandedGenerationActorV1 = {
       organizationId: input.organizationId,
@@ -126,10 +141,11 @@ export class BrandedTextGenerationService {
 
   private assertPreconditions(
     input: BrandedGenerationInputV1,
+    format: 'text' | 'thread',
   ): GenerationParameters {
     if (input.mode !== 'approved_brand')
       throw new BadRequestException('brand_mode_unsupported');
-    if (input.format !== 'text')
+    if (input.format !== format)
       throw new BadRequestException('brand_format_unsupported');
     if (input.provider !== 'openrouter' || !isOpenRouterTextModel(input.model))
       throw new UnprocessableEntityException('provider_capability_unsupported');
@@ -164,6 +180,9 @@ export class BrandedTextGenerationService {
         false,
       );
     const resolved = resolution.receipt;
+    await request.reauthorize?.();
+    await request.admitDispatch?.();
+    await request.reauthorize?.();
     const dispatchClaimedAt = new Date().toISOString();
     const accepted = await this.dispatchToProvider(
       input,
@@ -216,12 +235,15 @@ export class BrandedTextGenerationService {
     if (!request.acceptText(text))
       return this.fail(actor, dispatched, 'channel_limit_exceeded', null);
     let postId: string;
+    // A revoked continuation never gets converted into an artifact-persistence failure.
+    await request.reauthorize?.();
     try {
       ({ postId } = await request.persistText(text));
     } catch {
       return this.fail(actor, dispatched, 'artifact_persist_failed', null);
     }
     let bound: Mutation;
+    await request.reauthorize?.();
     try {
       const binding = await this.material.describePostArtifact(actor, postId);
       bound = await this.receipts.bindArtifact(
@@ -393,7 +415,7 @@ export class BrandedTextGenerationService {
         status: 'unavailable',
         reasonCode: 'global_learning_unavailable',
         scope: {
-          format: 'text',
+          format: input.format,
           objective: input.objective ?? 'engagement',
           ...(input.platform ? { platform: input.platform } : {}),
         },

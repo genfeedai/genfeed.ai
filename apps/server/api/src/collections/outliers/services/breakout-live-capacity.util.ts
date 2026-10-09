@@ -4,7 +4,14 @@ import {
   getCadenceWeek,
   resolveCadencePolicy,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
-import { readBreakoutMonthlyUsage } from '@api/collections/outliers/services/breakout-monthly-usage.util';
+import {
+  readBreakoutCreditUsage,
+  readBreakoutMonthlyUsage,
+} from '@api/collections/outliers/services/breakout-monthly-usage.util';
+import {
+  getNextDailyReset,
+  getNextWeeklyReset,
+} from '@api/collections/workflows/services/agent-autopilot-time.util';
 import { resolveBillingAccountAccess } from '@api/tenancy/billing-account-scope';
 import { billingAccountScopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -28,6 +35,7 @@ const capList = z
 const policySchema = z.object({
   dailyCreditBudget: credits.default(0),
   dailyCreditsUsed: credits.default(0),
+  creditsUsedToday: credits.default(0),
   weeklyCreditBudget: credits.default(0),
   creditsUsedThisWeek: credits.default(0),
   monthToDateCreditsUsed: credits.default(0),
@@ -124,6 +132,22 @@ export async function readBreakoutLiveCapacity(
   )
     return { status: 'held', reason: 'wallet_unavailable' };
   const now = new Date(input.nowMs);
+  const dailyEnd = getNextDailyReset(now).getTime();
+  const weeklyEnd = getNextWeeklyReset(now).getTime();
+  const dailyUsage = await readBreakoutCreditUsage(tx, {
+    ...input,
+    periodStartMs: dailyEnd - 24 * 60 * 60_000,
+    periodEndMs: dailyEnd,
+    storedUsed: Math.max(c.dailyCreditsUsed, c.creditsUsedToday),
+  });
+  if (dailyUsage.status === 'held') return dailyUsage;
+  const weeklyUsage = await readBreakoutCreditUsage(tx, {
+    ...input,
+    periodStartMs: weeklyEnd - 7 * 24 * 60 * 60_000,
+    periodEndMs: weeklyEnd,
+    storedUsed: c.creditsUsedThisWeek,
+  });
+  if (weeklyUsage.status === 'held') return weeklyUsage;
   const days = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
   ).getUTCDate();
@@ -200,11 +224,11 @@ export async function readBreakoutLiveCapacity(
     budget: {
       remainingDailyCredits: Math.max(
         0,
-        c.dailyCreditBudget - c.dailyCreditsUsed,
+        c.dailyCreditBudget - dailyUsage.usedCredits,
       ),
       remainingWeeklyCredits: Math.max(
         0,
-        c.weeklyCreditBudget - c.creditsUsedThisWeek,
+        c.weeklyCreditBudget - weeklyUsage.usedCredits,
       ),
       remainingMonthlyCredits: monthly,
       availableOrganizationCredits: Math.max(

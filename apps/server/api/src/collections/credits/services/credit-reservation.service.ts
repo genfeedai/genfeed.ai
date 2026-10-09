@@ -2,7 +2,10 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
-import { strategyBudgetMetadata } from '@api/collections/credits/services/strategy-budget-attribution.context';
+import {
+  admitStrategyBudgetReservation,
+  strategyBudgetMetadata,
+} from '@api/collections/credits/services/strategy-budget-attribution.context';
 import {
   validatedWorkflowAccountingAttribution,
   validatedWorkflowFundingAttribution,
@@ -88,6 +91,7 @@ export class CreditReservationService {
 
         // Same serializable transaction as the wallet hold. A failed admission commits neither.
         if (admission) await admission(tx);
+        await admitStrategyBudgetReservation(tx, input);
         const metadata = strategyBudgetMetadata(
           input.organizationId,
           input.metadata,

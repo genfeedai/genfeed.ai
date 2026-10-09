@@ -1,9 +1,11 @@
 import {
+  admitStrategyBudgetReservation,
   runWithStrategyBudgetAttribution,
   type StrategyBudgetAttribution,
   strategyBudgetMetadata,
 } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import { Platform } from '@genfeedai/contracts';
+import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
 import type { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -27,6 +29,48 @@ function fixture() {
   return { tx, findFirst };
 }
 describe('server strategy credit attribution', () => {
+  it('carries only the internal admission closure to nested normal credit producers', async () => {
+    const h = fixture();
+    const credits: IReserveCreditsInput = {
+      organizationId: scope.organizationId,
+      brandId: scope.brandId,
+      actorUserId: 'user-a',
+      amount: 5,
+      idempotencyKey: 'key-a',
+    };
+    const tx = h.tx as unknown as Prisma.TransactionClient;
+    const admission = vi.fn(
+      async (
+        _tx: Prisma.TransactionClient,
+        _input: Readonly<IReserveCreditsInput>,
+      ) => undefined,
+    );
+    await runWithStrategyBudgetAttribution(
+      h.tx,
+      scope,
+      async () => {
+        await Promise.resolve();
+        await admitStrategyBudgetReservation(tx, credits);
+        expect(admission).toHaveBeenCalledWith(tx, credits);
+        await expect(
+          admitStrategyBudgetReservation(tx, {
+            ...credits,
+            organizationId: 'foreign',
+          }),
+        ).rejects.toThrow('scope changed');
+        await expect(
+          admitStrategyBudgetReservation(tx, {
+            ...credits,
+            brandId: 'foreign',
+          }),
+        ).rejects.toThrow('scope changed');
+        expect(admission).toHaveBeenCalledTimes(1);
+      },
+      admission,
+    );
+    await admitStrategyBudgetReservation(tx, credits);
+    expect(admission).toHaveBeenCalledTimes(1);
+  });
   it('strips caller-supplied allocation while preserving unrelated ledger metadata', () => {
     expect(
       strategyBudgetMetadata(scope.organizationId, {

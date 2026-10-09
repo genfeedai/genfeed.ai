@@ -8,7 +8,7 @@ import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditReservationStatus } from '@genfeedai/contracts';
+import { CreditReservationStatus, Platform } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -169,6 +169,39 @@ describe('CreditReservationService', () => {
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
     expect(prisma.creditReservation.create).not.toHaveBeenCalled();
   });
+  it('applies the server breakout admission to an existing media credit producer before wallet mutation', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    const reject = vi.fn(async (tx: PrismaTransactionClient) => {
+      expect(tx).toBe(txClient);
+      throw new Error('breakout_current_budget_exhausted');
+    });
+    await expect(
+      runWithStrategyBudgetAttribution(
+        txClient,
+        {
+          version: 1,
+          organizationId: 'org_1',
+          brandId: 'brand-a',
+          strategyId: 'strategy-a',
+          platform: Platform.TWITTER,
+          format: 'video',
+        },
+        async () =>
+          service.reserve({
+            organizationId: 'org_1',
+            billingAccountId: 'ba_1',
+            brandId: 'brand-a',
+            actorUserId: 'user_1',
+            amount: 20,
+            idempotencyKey: 'media-a',
+          }),
+        reject,
+      ),
+    ).rejects.toThrow('breakout_current_budget_exhausted');
+    expect(reject).toHaveBeenCalledOnce();
+    expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+  });
 
   it('captures server strategy allocation on the actual hold and strips forged producer metadata', async () => {
     const scope = {
@@ -176,7 +209,7 @@ describe('CreditReservationService', () => {
       organizationId: 'org_1',
       brandId: 'brand_1',
       strategyId: 'strategy-a',
-      platform: 'twitter',
+      platform: Platform.TWITTER,
       format: 'text' as const,
     };
     prisma.creditReservation.findFirst.mockResolvedValue(null);

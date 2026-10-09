@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import type { YouTubeAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import type {
+  AnalyticsCollectionAuthorization,
+  YouTubeAnalyticsCollectionInput,
+} from '@api/analytics/analytics-collection-action.types';
+import {
+  admitAnalyticsCollection,
+  isAnalyticsCollectionAuthorizationFailure,
+} from '@api/analytics/analytics-collection-authorization';
 import {
   attributionFailureFor,
   resolveAnalyticsCollectionCredential,
@@ -57,7 +64,12 @@ export class AnalyticsYouTubeCollectionService {
 
   async collect(
     data: YouTubeAnalyticsCollectionInput,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(
+      authorization,
+      data.posts[0]?.organizationId,
+    );
     const { posts, organizationId, brandId } = data;
 
     this.logger.log(
@@ -74,12 +86,16 @@ export class AnalyticsYouTubeCollectionService {
       }
 
       const videoIds = posts.map((post) => post.externalId);
-      const resolution = await this.resolveCollectionCredential(data);
+      const resolution = await this.resolveCollectionCredential(
+        data,
+        authorization,
+      );
       const observations = new Map<
         string,
         LearningPublicationSourceV1 | null
       >();
-      for (const post of posts)
+      for (const post of posts) {
+        await admitAnalyticsCollection(authorization);
         observations.set(
           post.id,
           await this.postAnalyticsService.prepareLearningObservation({
@@ -91,11 +107,13 @@ export class AnalyticsYouTubeCollectionService {
             externalId: post.externalId,
           }),
         );
+      }
       const exposureSources = new Map<
         string,
         BreakoutPublicationSourceV1 | null
       >();
-      for (const post of posts)
+      for (const post of posts) {
+        await admitAnalyticsCollection(authorization);
         exposureSources.set(
           post.id,
           await prepareExposureCollectionSource(this.postAnalyticsService, {
@@ -107,6 +125,8 @@ export class AnalyticsYouTubeCollectionService {
             externalId: post.externalId,
           }),
         );
+      }
+      await admitAnalyticsCollection(authorization);
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
@@ -117,6 +137,7 @@ export class AnalyticsYouTubeCollectionService {
       );
 
       const receivedAt = new Date();
+      await admitAnalyticsCollection(authorization);
       const {
         readyTargets,
         delayedTargets,
@@ -132,15 +153,19 @@ export class AnalyticsYouTubeCollectionService {
         receivedAt,
         settledPostIds,
         exposureSources,
+        authorization,
       );
+      await admitAnalyticsCollection(authorization);
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
       if (delayedTargets.length > 0) {
+        await admitAnalyticsCollection(authorization);
         await this.analyticsCollectionState.markFailedBatch(
           delayedTargets,
           delayedAnalyticsCollectionFailure('YouTube'),
         );
       }
       if (failedTargets.length > 0) {
+        await admitAnalyticsCollection(authorization);
         await this.analyticsCollectionState.markFailedBatch(
           failedTargets,
           classifyAnalyticsCollectionError(firstProcessingError, 'YouTube'),
@@ -161,10 +186,19 @@ export class AnalyticsYouTubeCollectionService {
       );
 
       if (readyTargets.length > 0) {
-        await this.recordSnapshot(data, resolution.credentialId, analyticsMap);
+        await admitAnalyticsCollection(authorization);
+        await this.recordSnapshot(
+          data,
+          resolution.credentialId,
+          analyticsMap,
+          authorization,
+        );
       }
+      await admitAnalyticsCollection(authorization);
       return { organizationId, brandId, credentialId: resolution.credentialId };
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
+      await admitAnalyticsCollection(authorization);
       const failure = classifyAnalyticsCollectionError(error, 'YouTube');
       const unsettledPosts = posts.filter(
         (post) => !settledPostIds.has(post.id),
@@ -201,6 +235,7 @@ export class AnalyticsYouTubeCollectionService {
     receivedAt: Date,
     settledPostIds: Set<string>,
     exposureSources: Map<string, BreakoutPublicationSourceV1 | null>,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<YouTubeBatchOutcome> {
     const { posts } = data;
     const readyTargets: AnalyticsCollectionAttemptRef[] = [];
@@ -209,6 +244,7 @@ export class AnalyticsYouTubeCollectionService {
     let firstProcessingError: unknown;
 
     for (const post of posts) {
+      await admitAnalyticsCollection(authorization);
       const analytics = analyticsMap.get(post.externalId);
       const target: AnalyticsCollectionAttemptRef = {
         attemptKey: data.attemptKey,
@@ -254,9 +290,11 @@ export class AnalyticsYouTubeCollectionService {
             brandId: post.brandId,
             credentialId: credentialId,
           },
+          authorization,
         );
         readyTargets.push(target);
       } catch (error: unknown) {
+        if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
         firstProcessingError ??= error;
         this.logger.error(
           `Failed to process YouTube analytics for post ${post.id}`,
@@ -276,7 +314,9 @@ export class AnalyticsYouTubeCollectionService {
   }
   private async resolveCollectionCredential(
     data: YouTubeAnalyticsCollectionInput,
+    authorization?: AnalyticsCollectionAuthorization,
   ) {
+    await admitAnalyticsCollection(authorization);
     const { organizationId, brandId } = data;
     const resolution = await resolveAnalyticsCollectionCredential({
       brandId,
@@ -305,6 +345,7 @@ export class AnalyticsYouTubeCollectionService {
     data: YouTubeAnalyticsCollectionInput,
     credentialId: string,
     analyticsMap: Map<string, unknown>,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     const counts = extractProfileCounts(
       [...analyticsMap.values()].find((value) => value != null),
@@ -314,14 +355,17 @@ export class AnalyticsYouTubeCollectionService {
       this.youtubeService.getChannelDetails
     ) {
       try {
+        await admitAnalyticsCollection(authorization);
         const details = await this.youtubeService.getChannelDetails(
           data.organizationId,
           data.brandId,
         );
+        await admitAnalyticsCollection(authorization);
         if (typeof details.subscriberCount === 'number') {
           counts.subscribers = details.subscriberCount;
         }
       } catch (error: unknown) {
+        if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
         this.logger.warn(
           `YouTube profile snapshot skipped for credential ${credentialId}`,
           error,
@@ -329,6 +373,7 @@ export class AnalyticsYouTubeCollectionService {
       }
     }
 
+    await admitAnalyticsCollection(authorization);
     await this.accountSnapshots.upsertDailySnapshot({
       brandId: data.brandId,
       credentialId,

@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  AnalyticsCollectionAuthorization,
   AnalyticsCollectionPost,
   SocialAnalyticsCollectionInput,
 } from '@api/analytics/analytics-collection-action.types';
+import {
+  admitAnalyticsCollection,
+  isAnalyticsCollectionAuthorizationFailure,
+} from '@api/analytics/analytics-collection-authorization';
 import {
   attributionFailureFor,
   isAnalyticsAttributionFailure,
@@ -62,7 +67,12 @@ export class AnalyticsSocialCollectionService {
 
   async collect(
     data: SocialAnalyticsCollectionInput,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(
+      authorization,
+      data.posts[0]?.organizationId,
+    );
     if (data.posts.length !== 1) {
       throw new Error('Social analytics action requires exactly one post');
     }
@@ -71,18 +81,23 @@ export class AnalyticsSocialCollectionService {
       throw new Error('Social analytics action requires exactly one post');
     }
     try {
-      const context = await this.collectPost(post);
+      const context = await this.collectPost(post, authorization);
+      await admitAnalyticsCollection(authorization);
       await this.analyticsCollectionState.markReady(
         this.target(data.attemptKey, post),
       );
+      await admitAnalyticsCollection(authorization);
       return context;
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
+      await admitAnalyticsCollection(authorization);
       const platform = this.platformLabel(post.platform);
       const failure = classifyAnalyticsCollectionError(error, platform);
       this.logger.error(
         `Failed to collect ${platform} analytics for post ${post.id}`,
         error,
       );
+      await admitAnalyticsCollection(authorization);
       await this.analyticsCollectionState.markFailed(
         this.target(data.attemptKey, post),
         failure,
@@ -91,6 +106,7 @@ export class AnalyticsSocialCollectionService {
         !failure.isRetryable &&
         !isAnalyticsAttributionFailure(failure.code)
       ) {
+        await admitAnalyticsCollection(authorization);
         await this.postsService.patch(post.id, { isAnalyticsEnabled: false });
       }
       throw error;
@@ -99,9 +115,15 @@ export class AnalyticsSocialCollectionService {
 
   private async collectPost(
     post: AnalyticsCollectionPost,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
-    const resolution = await this.resolveCollectionCredential(post);
+    await admitAnalyticsCollection(authorization);
+    const resolution = await this.resolveCollectionCredential(
+      post,
+      authorization,
+    );
     const credentialId = resolution.credentialId;
+    await admitAnalyticsCollection(authorization);
     const publicationSource =
       await this.postAnalyticsService.prepareLearningObservation({
         organizationId: post.organizationId,
@@ -111,6 +133,7 @@ export class AnalyticsSocialCollectionService {
         platform: post.platform,
         externalId: post.externalId,
       });
+    await admitAnalyticsCollection(authorization);
     const exposureSource = await prepareExposureCollectionSource(
       this.postAnalyticsService,
       {
@@ -134,6 +157,7 @@ export class AnalyticsSocialCollectionService {
           sourceAttemptId,
           requestStartedAt,
           exposureSource,
+          authorization,
         );
       case CredentialPlatform.TIKTOK:
         return this.collectTikTok(
@@ -143,6 +167,7 @@ export class AnalyticsSocialCollectionService {
           sourceAttemptId,
           requestStartedAt,
           exposureSource,
+          authorization,
         );
       case CredentialPlatform.PINTEREST:
         return this.collectPinterest(
@@ -152,6 +177,7 @@ export class AnalyticsSocialCollectionService {
           sourceAttemptId,
           requestStartedAt,
           exposureSource,
+          authorization,
         );
       case CredentialPlatform.LINKEDIN:
         return this.collectLinkedIn(
@@ -161,6 +187,7 @@ export class AnalyticsSocialCollectionService {
           sourceAttemptId,
           requestStartedAt,
           exposureSource,
+          authorization,
         );
       case CredentialPlatform.MASTODON:
         return this.collectMastodon(
@@ -170,6 +197,7 @@ export class AnalyticsSocialCollectionService {
           sourceAttemptId,
           requestStartedAt,
           exposureSource,
+          authorization,
         );
       default:
         throw new Error(
@@ -184,7 +212,9 @@ export class AnalyticsSocialCollectionService {
     sourceAttemptId: string,
     requestStartedAt: Date,
     exposureSource: BreakoutPublicationSourceV1 | null,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(authorization);
     const analytics = await this.instagramService.getMediaAnalytics(
       post.organizationId,
       post.brandId,
@@ -192,6 +222,7 @@ export class AnalyticsSocialCollectionService {
       credentialId,
     );
     const receivedAt = new Date();
+    await admitAnalyticsCollection(authorization);
     const mediaTypes = {
       CAROUSEL_ALBUM: 'carousel',
       IMAGE: 'image',
@@ -222,8 +253,9 @@ export class AnalyticsSocialCollectionService {
         brandId: post.brandId,
         credentialId: credentialId,
       },
+      authorization,
     );
-    await this.recordSnapshot(post, credentialId, analytics);
+    await this.recordSnapshot(post, credentialId, analytics, authorization);
     return {
       organizationId: post.organizationId,
       brandId: post.brandId,
@@ -237,7 +269,9 @@ export class AnalyticsSocialCollectionService {
     sourceAttemptId: string,
     requestStartedAt: Date,
     exposureSource: BreakoutPublicationSourceV1 | null,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(authorization);
     const analytics = await this.tiktokService.getMediaAnalytics(
       post.organizationId,
       post.brandId,
@@ -245,6 +279,7 @@ export class AnalyticsSocialCollectionService {
       credentialId,
     );
     const receivedAt = new Date();
+    await admitAnalyticsCollection(authorization);
     await this.postAnalyticsService.processTikTokAnalytics(
       post.id,
       {
@@ -267,8 +302,9 @@ export class AnalyticsSocialCollectionService {
         brandId: post.brandId,
         credentialId: credentialId,
       },
+      authorization,
     );
-    await this.recordSnapshot(post, credentialId, analytics);
+    await this.recordSnapshot(post, credentialId, analytics, authorization);
     return {
       organizationId: post.organizationId,
       brandId: post.brandId,
@@ -282,7 +318,9 @@ export class AnalyticsSocialCollectionService {
     sourceAttemptId: string,
     requestStartedAt: Date,
     exposureSource: BreakoutPublicationSourceV1 | null,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(authorization);
     const analytics = await this.pinterestService.getMediaAnalytics(
       post.organizationId,
       post.brandId,
@@ -290,6 +328,7 @@ export class AnalyticsSocialCollectionService {
       credentialId,
     );
     const receivedAt = new Date();
+    await admitAnalyticsCollection(authorization);
     await this.postAnalyticsService.processPinterestAnalytics(
       post.id,
       analytics,
@@ -309,8 +348,9 @@ export class AnalyticsSocialCollectionService {
         brandId: post.brandId,
         credentialId: credentialId,
       },
+      authorization,
     );
-    await this.recordSnapshot(post, credentialId, analytics);
+    await this.recordSnapshot(post, credentialId, analytics, authorization);
     return {
       organizationId: post.organizationId,
       brandId: post.brandId,
@@ -324,7 +364,9 @@ export class AnalyticsSocialCollectionService {
     sourceAttemptId: string,
     requestStartedAt: Date,
     exposureSource: BreakoutPublicationSourceV1 | null,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(authorization);
     const analytics = await this.linkedInService.getMediaAnalytics(
       post.organizationId,
       post.brandId,
@@ -332,6 +374,7 @@ export class AnalyticsSocialCollectionService {
       credentialId,
     );
     const receivedAt = new Date();
+    await admitAnalyticsCollection(authorization);
     await this.postAnalyticsService.processLinkedInAnalytics(
       post.id,
       {
@@ -362,8 +405,9 @@ export class AnalyticsSocialCollectionService {
         brandId: post.brandId,
         credentialId: credentialId,
       },
+      authorization,
     );
-    await this.recordSnapshot(post, credentialId, analytics);
+    await this.recordSnapshot(post, credentialId, analytics, authorization);
     return {
       organizationId: post.organizationId,
       brandId: post.brandId,
@@ -377,7 +421,9 @@ export class AnalyticsSocialCollectionService {
     sourceAttemptId: string,
     requestStartedAt: Date,
     exposureSource: BreakoutPublicationSourceV1 | null,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsPersistenceContext> {
+    await admitAnalyticsCollection(authorization);
     const analytics = await this.mastodonService.getMediaAnalytics(
       post.organizationId,
       post.brandId,
@@ -385,6 +431,7 @@ export class AnalyticsSocialCollectionService {
       credentialId,
     );
     const receivedAt = new Date();
+    await admitAnalyticsCollection(authorization);
     await this.postAnalyticsService.processMastodonAnalytics(
       post.id,
       analytics,
@@ -404,8 +451,9 @@ export class AnalyticsSocialCollectionService {
         brandId: post.brandId,
         credentialId: credentialId,
       },
+      authorization,
     );
-    await this.recordSnapshot(post, credentialId, analytics);
+    await this.recordSnapshot(post, credentialId, analytics, authorization);
     return {
       organizationId: post.organizationId,
       brandId: post.brandId,
@@ -413,7 +461,11 @@ export class AnalyticsSocialCollectionService {
     };
   }
 
-  private async resolveCollectionCredential(post: AnalyticsCollectionPost) {
+  private async resolveCollectionCredential(
+    post: AnalyticsCollectionPost,
+    authorization?: AnalyticsCollectionAuthorization,
+  ) {
+    await admitAnalyticsCollection(authorization);
     const resolution = await resolveAnalyticsCollectionCredential({
       brandId: post.brandId,
       credentialId: post.credentialId,
@@ -441,7 +493,9 @@ export class AnalyticsSocialCollectionService {
     post: AnalyticsCollectionPost,
     credentialId: string,
     analytics: unknown,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
+    await admitAnalyticsCollection(authorization);
     const counts = extractProfileCounts(analytics);
     await this.accountSnapshots.upsertDailySnapshot({
       brandId: post.brandId,
@@ -450,6 +504,7 @@ export class AnalyticsSocialCollectionService {
       platform: post.platform,
       ...counts,
     });
+    await admitAnalyticsCollection(authorization);
   }
 
   private platformLabel(platform: CredentialPlatform): string {

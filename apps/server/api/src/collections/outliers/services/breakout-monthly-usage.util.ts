@@ -25,6 +25,11 @@ export type BreakoutMonthlyUsage =
         formats: Partial<Record<LearningFormat, number>>;
       } | null;
     };
+export type BreakoutCreditUsageInput = BreakoutLiveCapacityInput & {
+  periodStartMs: number;
+  periodEndMs: number;
+  storedUsed: number;
+};
 const LIMIT = 2000;
 function attribution(metadata: unknown): StrategyBudgetAttribution | null {
   const parsed = strategyBudgetAttributionSchema.safeParse(
@@ -39,17 +44,35 @@ export async function readBreakoutMonthlyUsage(
   input: Readonly<BreakoutLiveCapacityInput & { storedMonthlyUsed: number }>,
 ): Promise<BreakoutMonthlyUsage> {
   const now = new Date(input.nowMs);
+  return readBreakoutCreditUsage(tx, {
+    ...input,
+    periodStartMs: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    periodEndMs: Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    storedUsed: input.storedMonthlyUsed,
+  });
+}
+
+/** Credit windows use the same UTC boundaries as the strategy reset scheduler. */
+export async function readBreakoutCreditUsage(
+  tx: Prisma.TransactionClient,
+  input: Readonly<BreakoutCreditUsageInput>,
+): Promise<BreakoutMonthlyUsage> {
+  const now = new Date(input.nowMs);
   if (
     !Number.isSafeInteger(input.nowMs) ||
     !Number.isFinite(now.getTime()) ||
-    !Number.isFinite(input.storedMonthlyUsed) ||
-    input.storedMonthlyUsed < 0
+    !Number.isSafeInteger(input.periodStartMs) ||
+    !Number.isSafeInteger(input.periodEndMs) ||
+    input.periodStartMs > input.nowMs ||
+    input.periodEndMs <= input.nowMs ||
+    !Number.isFinite(new Date(input.periodStartMs).getTime()) ||
+    !Number.isFinite(new Date(input.periodEndMs).getTime()) ||
+    !Number.isFinite(input.storedUsed) ||
+    input.storedUsed < 0
   )
-    throw new RangeError('Valid monthly usage inputs are required');
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const end = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
-  );
+    throw new RangeError('Valid credit usage window inputs are required');
+  const start = new Date(input.periodStartMs);
+  const end = new Date(input.periodEndMs);
   const where = {
     organizationId: input.organizationId,
     isDeleted: false,
@@ -189,12 +212,8 @@ export async function readBreakoutMonthlyUsage(
     )
   )
     return held;
-  const counterGap = new Prisma.Decimal(input.storedMonthlyUsed).greaterThan(
-    spent,
-  );
-  const used = Prisma.Decimal.max(spent, input.storedMonthlyUsed).plus(
-    reserved,
-  );
+  const counterGap = new Prisma.Decimal(input.storedUsed).greaterThan(spent);
+  const used = Prisma.Decimal.max(spent, input.storedUsed).plus(reserved);
   if (used.greaterThan(Number.MAX_SAFE_INTEGER)) return held;
   return {
     status: 'available',

@@ -1,5 +1,8 @@
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
-import { readBreakoutMonthlyUsage } from '@api/collections/outliers/services/breakout-monthly-usage.util';
+import {
+  readBreakoutCreditUsage,
+  readBreakoutMonthlyUsage,
+} from '@api/collections/outliers/services/breakout-monthly-usage.util';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import type { BreakoutLiveCapacityInput } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -7,7 +10,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock(
   '@api/collections/outliers/services/breakout-monthly-usage.util',
-  () => ({ readBreakoutMonthlyUsage: vi.fn() }),
+  () => ({
+    readBreakoutMonthlyUsage: vi.fn(),
+    readBreakoutCreditUsage: vi.fn(),
+  }),
 );
 
 const input: BreakoutLiveCapacityInput = {
@@ -72,6 +78,17 @@ function fixture() {
 describe('read-only live breakout capacity evidence', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(readBreakoutCreditUsage).mockImplementation(
+      async (_tx, snapshot) => ({
+        status: 'available',
+        periodStart: new Date(snapshot.periodStartMs).toISOString(),
+        periodEnd: new Date(snapshot.periodEndMs).toISOString(),
+        spentCredits: snapshot.storedUsed,
+        heldCredits: 0,
+        usedCredits: snapshot.storedUsed,
+        dimensionUsage: null,
+      }),
+    );
     vi.mocked(readBreakoutMonthlyUsage).mockImplementation(
       async (_tx, snapshot) => ({
         status: 'available',
@@ -81,6 +98,39 @@ describe('read-only live breakout capacity evidence', () => {
         heldCredits: 0,
         usedCredits: snapshot.storedMonthlyUsed,
         dimensionUsage: null,
+      }),
+    );
+  });
+  it('subtracts actual daily and weekly spend plus active holds using the scheduler UTC boundaries', async () => {
+    const h = fixture();
+    vi.mocked(readBreakoutCreditUsage).mockImplementation(
+      async (_tx, snapshot) => ({
+        status: 'available',
+        periodStart: new Date(snapshot.periodStartMs).toISOString(),
+        periodEnd: new Date(snapshot.periodEndMs).toISOString(),
+        spentCredits: snapshot.storedUsed,
+        heldCredits: 50,
+        usedCredits: snapshot.storedUsed + 50,
+        dimensionUsage: null,
+      }),
+    );
+    expect(await readBreakoutLiveCapacity(h.tx, input)).toMatchObject({
+      budget: { remainingDailyCredits: 45, remainingWeeklyCredits: 240 },
+    });
+    expect(readBreakoutCreditUsage).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({
+        periodStartMs: Date.parse('2026-10-15T00:00:00Z'),
+        periodEndMs: Date.parse('2026-10-16T00:00:00Z'),
+        storedUsed: 5,
+      }),
+    );
+    expect(readBreakoutCreditUsage).toHaveBeenCalledWith(
+      h.tx,
+      expect.objectContaining({
+        periodStartMs: Date.parse('2026-10-12T00:00:00Z'),
+        periodEndMs: Date.parse('2026-10-19T00:00:00Z'),
+        storedUsed: 10,
       }),
     );
   });

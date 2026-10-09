@@ -1,4 +1,5 @@
 import {
+  readBreakoutCreditUsage,
   readBreakoutMonthlyUsage,
   type StrategyBudgetAttribution,
 } from '@api/collections/outliers/services/breakout-monthly-usage.util';
@@ -90,6 +91,32 @@ function fixture() {
   return { rows, holds, findTransactions, findReservations, tx };
 }
 describe('common-month actual spend and active reservations', () => {
+  it('uses the requested UTC credit window and does not add a counter to its own ledger', async () => {
+    const h = fixture();
+    expect(
+      await readBreakoutCreditUsage(h.tx, {
+        ...input,
+        periodStartMs: Date.parse('2026-10-15T00:00:00Z'),
+        periodEndMs: Date.parse('2026-10-16T00:00:00Z'),
+        storedUsed: 10,
+      }),
+    ).toMatchObject({ spentCredits: 10, heldCredits: 5, usedCredits: 15 });
+    expect(h.findTransactions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          createdAt: {
+            gte: new Date('2026-10-15T00:00:00Z'),
+            lt: new Date('2026-10-16T00:00:00Z'),
+          },
+        }),
+      }),
+    );
+    expect(h.findReservations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.not.objectContaining({ expiresAt: expect.anything() }),
+      }),
+    );
+  });
   it('counts the ledger once and includes active holds in each monthly sub-budget', async () => {
     const h = fixture();
     expect(await readBreakoutMonthlyUsage(h.tx, input)).toEqual({

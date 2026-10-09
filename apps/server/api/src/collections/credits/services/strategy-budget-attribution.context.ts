@@ -1,7 +1,8 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { readArtifactRecord } from '@api/agent-artifacts/agent-artifact-material.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { isPlatform } from '@genfeedai/contracts';
+import { Platform } from '@genfeedai/contracts';
+import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
 import type { Prisma } from '@genfeedai/prisma';
 import { z } from 'zod';
 
@@ -10,19 +11,28 @@ export const strategyBudgetAttributionSchema = z.strictObject({
   organizationId: z.string().min(1),
   brandId: z.string().min(1),
   strategyId: z.string().min(1),
-  platform: z.string().refine(isPlatform),
+  platform: z.enum(Platform),
   format: z.enum(['text', 'image', 'carousel', 'video', 'short', 'thread']),
 });
 export type StrategyBudgetAttribution = z.infer<
   typeof strategyBudgetAttributionSchema
 >;
-const storage = new AsyncLocalStorage<Readonly<StrategyBudgetAttribution>>();
+export type StrategyBudgetReservationAdmission = (
+  tx: Prisma.TransactionClient,
+  input: Readonly<IReserveCreditsInput>,
+) => Promise<void>;
+type StrategyBudgetExecutionContext = {
+  scope: Readonly<StrategyBudgetAttribution>;
+  admission?: StrategyBudgetReservationAdmission;
+};
+const storage = new AsyncLocalStorage<StrategyBudgetExecutionContext>();
 
 /** Server execution attribution only. Caller must separately prove actor, pricing and dispatch admission. */
 export async function runWithStrategyBudgetAttribution<T>(
   tx: Pick<Prisma.TransactionClient, 'agentStrategy'>,
   scope: Readonly<StrategyBudgetAttribution>,
   callback: () => Promise<T>,
+  admission?: StrategyBudgetReservationAdmission,
 ): Promise<T> {
   const parsed = strategyBudgetAttributionSchema.parse(scope);
   const strategy = await tx.agentStrategy.findFirst({
@@ -39,7 +49,22 @@ export async function runWithStrategyBudgetAttribution<T>(
     throw new BusinessLogicException(
       'Strategy budget attribution is outside the execution scope',
     );
-  return storage.run(Object.freeze(parsed), callback);
+  return storage.run({ scope: Object.freeze(parsed), admission }, callback);
+}
+
+/** Internal execution closure; request metadata cannot supply or replace admission. */
+export async function admitStrategyBudgetReservation(
+  tx: Prisma.TransactionClient,
+  input: Readonly<IReserveCreditsInput>,
+): Promise<void> {
+  const context = storage.getStore();
+  if (!context?.admission) return;
+  if (
+    context.scope.organizationId !== input.organizationId ||
+    context.scope.brandId !== input.brandId
+  )
+    throw new BusinessLogicException('Strategy reservation scope changed');
+  await context.admission(tx, input);
 }
 
 /** Reserved metadata is stripped from input. Only an exact server-read hold or the current server context can replace it. */
@@ -67,7 +92,7 @@ export function strategyBudgetMetadata(
     return { ...safe, strategyBudgetAttribution: original.data };
   // A legacy or invalid hold cannot acquire a new allocation from today's caller.
   if (reservation) return safe;
-  const current = storage.getStore();
+  const current = storage.getStore()?.scope;
   return current?.organizationId === organizationId
     ? { ...safe, strategyBudgetAttribution: current }
     : safe;

@@ -144,36 +144,43 @@ export interface ServerPostAnalytics {
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processLinkedInAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processMastodonAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processPinterestAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processTikTokAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processTwitterAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processYouTubeAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
 }
 
@@ -326,3 +333,5 @@ export interface ServerPrisma {
     findFirst(args: unknown): Promise<{ id: string } | null>;
   };
 }
+
+import type { AnalyticsCollectionAuthorization } from '@api/analytics/analytics-collection-action.types';

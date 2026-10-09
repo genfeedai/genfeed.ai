@@ -1,3 +1,4 @@
+import { analyticsCollectionAuthorizationFixture as baseAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import { AnalyticsProviderCollectionService } from '@api/analytics/services/analytics-provider-collection.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
@@ -7,6 +8,14 @@ import {
 import { CredentialPlatform, Platform } from '@genfeedai/contracts';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+
+const analyticsCollectionAuthorizationFixture = {
+  ...baseAuthorizationFixture,
+  initiatingActor: {
+    ...baseAuthorizationFixture.initiatingActor,
+    organizationId: 'org',
+  },
+};
 
 function harness(platform: CredentialPlatform) {
   vi.spyOn(EncryptionUtil, 'decrypt').mockImplementation((value) => value);
@@ -60,6 +69,50 @@ function harness(platform: CredentialPlatform) {
 }
 describe('provider collection resolved account boundaries', () => {
   afterEach(() => vi.restoreAllMocks());
+  it.each([CredentialPlatform.FACEBOOK, CredentialPlatform.THREADS])(
+    'propagates native revocation after %s returns instead of disabling analytics',
+    async (platform) => {
+      const h = harness(platform);
+      const denied = new Error('key_revoked');
+      let revoked = false;
+      const authorization = {
+        ...analyticsCollectionAuthorizationFixture,
+        admit: vi.fn(async () => {
+          if (revoked) throw denied;
+        }),
+      };
+      const provider =
+        platform === CredentialPlatform.FACEBOOK
+          ? h.facebook.getPostAnalytics
+          : h.threads.getThreadInsights;
+      provider.mockImplementation(async () => {
+        revoked = true;
+        return { views: 42 };
+      });
+      const data = {
+        posts: [
+          {
+            id: 'post',
+            externalId: 'external',
+            brandId: 'brand',
+            organizationId: 'org',
+            platform,
+          },
+        ],
+      };
+      await expect(
+        platform === CredentialPlatform.FACEBOOK
+          ? h.service.collectFacebook(data, authorization)
+          : h.service.collectThreads(data, authorization),
+      ).rejects.toBe(denied);
+      expect(provider).toHaveBeenCalledOnce();
+      expect(h.analytics.processFacebookAnalytics).not.toHaveBeenCalled();
+      expect(h.analytics.processThreadsAnalytics).not.toHaveBeenCalled();
+      expect(h.state.markFailedTargets).not.toHaveBeenCalled();
+      expect(h.state.markReady).not.toHaveBeenCalled();
+      expect(h.posts.patch).not.toHaveBeenCalled();
+    },
+  );
   it('stops retrying a Facebook credential that needs its Page identity restored', async () => {
     const h = harness(CredentialPlatform.FACEBOOK);
     h.credentials.findOne.mockResolvedValue({
@@ -71,17 +124,20 @@ describe('provider collection resolved account boundaries', () => {
       externalId: '',
     });
     await expect(
-      h.service.collectFacebook({
-        posts: [
-          {
-            id: 'post',
-            externalId: 'external',
-            brandId: 'brand',
-            organizationId: 'org',
-            platform: CredentialPlatform.FACEBOOK,
-          },
-        ],
-      }),
+      h.service.collectFacebook(
+        {
+          posts: [
+            {
+              id: 'post',
+              externalId: 'external',
+              brandId: 'brand',
+              organizationId: 'org',
+              platform: CredentialPlatform.FACEBOOK,
+            },
+          ],
+        },
+        analyticsCollectionAuthorizationFixture,
+      ),
     ).rejects.toMatchObject({ status: 401 });
     expect(h.facebook.getPostAnalytics).not.toHaveBeenCalled();
     expect(h.state.markFailedTargets).toHaveBeenCalledWith([
@@ -96,18 +152,21 @@ describe('provider collection resolved account boundaries', () => {
 
   it('uses the selected Page token and video metrics for a published Facebook video', async () => {
     const h = harness(CredentialPlatform.FACEBOOK);
-    await h.service.collectFacebook({
-      posts: [
-        {
-          id: 'post',
-          externalId: 'video-1',
-          brandId: 'brand',
-          organizationId: 'org',
-          platform: CredentialPlatform.FACEBOOK,
-          isVideo: true,
-        },
-      ],
-    });
+    await h.service.collectFacebook(
+      {
+        posts: [
+          {
+            id: 'post',
+            externalId: 'video-1',
+            brandId: 'brand',
+            organizationId: 'org',
+            platform: CredentialPlatform.FACEBOOK,
+            isVideo: true,
+          },
+        ],
+      },
+      analyticsCollectionAuthorizationFixture,
+    );
     expect(h.facebook.getPostAnalytics).toHaveBeenCalledWith(
       'video-1',
       'token',
@@ -133,8 +192,14 @@ describe('provider collection resolved account boundaries', () => {
       };
       const result =
         platform === CredentialPlatform.FACEBOOK
-          ? await h.service.collectFacebook(input)
-          : await h.service.collectThreads(input);
+          ? await h.service.collectFacebook(
+              input,
+              analyticsCollectionAuthorizationFixture,
+            )
+          : await h.service.collectThreads(
+              input,
+              analyticsCollectionAuthorizationFixture,
+            );
       expect(result).toMatchObject({
         processed: 1,
         context: {
@@ -176,17 +241,20 @@ describe('provider collection resolved account boundaries', () => {
       new Error('database unavailable'),
     );
     await expect(
-      h.service.collectThreads({
-        posts: [
-          {
-            id: 'post',
-            externalId: 'external',
-            organizationId: 'org',
-            brandId: 'brand',
-            platform: CredentialPlatform.THREADS,
-          },
-        ],
-      }),
+      h.service.collectThreads(
+        {
+          posts: [
+            {
+              id: 'post',
+              externalId: 'external',
+              organizationId: 'org',
+              brandId: 'brand',
+              platform: CredentialPlatform.THREADS,
+            },
+          ],
+        },
+        analyticsCollectionAuthorizationFixture,
+      ),
     ).rejects.toThrow('database unavailable');
     expect(h.state.markReady).not.toHaveBeenCalled();
     expect(h.state.markFailedTargets).toHaveBeenCalledOnce();
@@ -280,8 +348,15 @@ describe('C3 Facebook/Threads pre-provider source transport', () => {
         ],
       };
       if (platform === CredentialPlatform.FACEBOOK)
-        await h.service.collectFacebook(input);
-      else await h.service.collectThreads(input);
+        await h.service.collectFacebook(
+          input,
+          analyticsCollectionAuthorizationFixture,
+        );
+      else
+        await h.service.collectThreads(
+          input,
+          analyticsCollectionAuthorizationFixture,
+        );
       expect(trace).toEqual(['prepare', 'provider']);
       expect(
         h.analytics.prepareLearningObservation,
@@ -333,8 +408,14 @@ describe('C3 Facebook/Threads pre-provider source transport', () => {
       };
       await expect(
         platform === CredentialPlatform.FACEBOOK
-          ? h.service.collectFacebook(input)
-          : h.service.collectThreads(input),
+          ? h.service.collectFacebook(
+              input,
+              analyticsCollectionAuthorizationFixture,
+            )
+          : h.service.collectThreads(
+              input,
+              analyticsCollectionAuthorizationFixture,
+            ),
       ).rejects.toBe(error);
       expect(h.facebook.getPostAnalytics).not.toHaveBeenCalled();
       expect(h.threads.getThreadInsights).not.toHaveBeenCalled();

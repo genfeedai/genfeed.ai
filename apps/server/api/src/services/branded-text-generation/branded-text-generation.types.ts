@@ -15,6 +15,10 @@ export interface BrandedTextGenerationRequestV1 {
   acceptText: (text: string) => boolean;
   /** Persists the exact accepted text as the artifact the receipt binds to. */
   persistText: (text: string) => Promise<{ postId: string }>;
+  /** Trusted continuation check before private reads, provider work and artifact writes. */
+  reauthorize?: () => Promise<void>;
+  /** Creates the actual text price hold only after receipt resolution wins, before provider dispatch. */
+  admitDispatch?: () => Promise<void>;
 }
 
 export type BrandedTextGenerationOutcomeV1 =

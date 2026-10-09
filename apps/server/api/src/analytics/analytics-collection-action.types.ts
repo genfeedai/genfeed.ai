@@ -1,4 +1,11 @@
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import type { CredentialPlatform } from '@genfeedai/contracts';
+
+/** API-only trusted argument, kept separate from metrics and provider/queue payloads. */
+export type AnalyticsCollectionAuthorization = Readonly<{
+  initiatingActor: WorkflowInitiatingActor;
+  admit: () => Promise<void>;
+}>;
 
 export type AnalyticsCollectionPost = {
   brandId: string;
