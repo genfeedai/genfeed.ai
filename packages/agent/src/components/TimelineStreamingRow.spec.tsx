@@ -26,8 +26,9 @@ vi.mock('./ToolCallDetailPanel', () => ({
 
 function buildEntry(
   overrides?: Partial<Parameters<typeof TimelineStreamingRow>[0]['entry']>,
-) {
+): Parameters<typeof TimelineStreamingRow>[0]['entry'] {
   return {
+    createdAt: '2026-03-23T12:00:00.000Z',
     id: 'streaming-entry',
     kind: 'streaming' as const,
     runDurationLabel: '4s',
