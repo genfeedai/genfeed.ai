@@ -1,7 +1,8 @@
+import type { TableProps } from '@genfeedai/props/ui/display/table.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Table from '@ui/display/table/Table';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 vi.mock('next/dynamic', async () => {
   const { Checkbox } = await import('@ui/primitives/checkbox');
@@ -10,17 +11,17 @@ vi.mock('next/dynamic', async () => {
 
 describe('Table', () => {
   it('should render without crashing', () => {
-    const { container } = render(<Table />);
+    const { container } = render(<Table columns={[]} items={[]} />);
     expect(container.firstChild).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {
-    const { container } = render(<Table />);
+    const { container } = render(<Table columns={[]} items={[]} />);
     expect(container.firstChild).toBeInTheDocument();
   });
 
   it('should apply correct styles and classes', () => {
-    const { container } = render(<Table />);
+    const { container } = render(<Table columns={[]} items={[]} />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
   });
@@ -410,5 +411,206 @@ describe('Table', () => {
     });
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
     expect(onRetry).toHaveBeenCalledOnce();
+  });
+  describe('opt-in horizontal drag scrolling', () => {
+    it('requires a supplied accessible name in drag-scroll props', () => {
+      expectTypeOf<
+        {
+          enableDragScroll: true;
+          items: never[];
+          columns: never[];
+        } extends TableProps<unknown>
+          ? true
+          : false
+      >().toEqualTypeOf<false>();
+    });
+
+    it.each([
+      { scrollAriaLabel: 'Asset scroll area' },
+      { ariaLabel: 'Asset scroll area' },
+      { label: 'Asset scroll area' },
+    ])('names the scroll region using the supplied label %j', (labels) => {
+      render(
+        <Table
+          {...labels}
+          enableDragScroll
+          items={[{ id: 'a', name: 'First item' }]}
+          columns={[{ header: 'Name', key: 'name' }]}
+        />,
+      );
+
+      expect(
+        screen.getByRole('region', { name: 'Asset scroll area' }),
+      ).toHaveAttribute('tabindex', '0');
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
+
+    it('falls through blank scroll labels to the supplied table name', () => {
+      render(
+        <Table
+          enableDragScroll
+          scrollAriaLabel="  "
+          ariaLabel="Assets"
+          items={[{ id: 'a', name: 'First item' }]}
+          columns={[{ header: 'Name', key: 'name' }]}
+        />,
+      );
+
+      expect(screen.getByRole('region', { name: 'Assets' })).toHaveAttribute(
+        'tabindex',
+        '0',
+      );
+    });
+
+    it('keeps blank-label scrollports focusable without an unnamed region', () => {
+      render(
+        <Table
+          enableDragScroll
+          scrollAriaLabel="  "
+          items={[{ id: 'a', name: 'First item' }]}
+          columns={[{ header: 'Name', key: 'name' }]}
+        />,
+      );
+
+      expect(screen.queryByRole('region')).not.toBeInTheDocument();
+      expect(screen.getByRole('table').parentElement).toHaveAttribute(
+        'tabindex',
+        '0',
+      );
+    });
+
+    function setup() {
+      const onRowClick = vi.fn();
+      const onSelectionChange = vi.fn();
+      const onAction = vi.fn();
+      render(
+        <Table
+          density="compact"
+          enableDragScroll
+          scrollAriaLabel="Scroll table horizontally"
+          isHeaderPinned
+          selectable
+          items={[{ id: 'a', name: 'First item' }]}
+          columns={[
+            {
+              header: 'Name',
+              key: 'name',
+              render: (item) => (
+                <span>
+                  {item.name}
+                  <button type="button" onClick={onAction}>
+                    <svg data-testid="nested-action-icon" aria-hidden="true" />
+                    Action
+                  </button>
+                  <a href="#item">Asset details</a>
+                  <span draggable>Drag asset</span>
+                </span>
+              ),
+            },
+          ]}
+          getRowKey={(item) => item.id}
+          getItemId={(item) => item.id}
+          onRowClick={onRowClick}
+          onSelectionChange={onSelectionChange}
+        />,
+      );
+      const viewport = screen.getByRole('region', {
+        name: 'Scroll table horizontally',
+      });
+      Object.defineProperties(viewport, {
+        clientWidth: { value: 600 },
+        scrollWidth: { value: 1200 },
+      });
+      Object.assign(viewport, {
+        setPointerCapture: vi.fn(),
+        hasPointerCapture: () => true,
+        releasePointerCapture: vi.fn(),
+      });
+      return { viewport, onRowClick, onSelectionChange, onAction };
+    }
+
+    function pointer(
+      target: Element,
+      type: string,
+      x: number,
+      pointerType = 'mouse',
+    ) {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        button: 0,
+      });
+      Object.defineProperties(event, {
+        pointerId: { value: 1 },
+        pointerType: { value: pointerType },
+      });
+      fireEvent(target, event);
+    }
+
+    it('scrolls after a real drag and preserves ordinary and keyboard row activation', () => {
+      const { viewport, onRowClick } = setup();
+      const text = screen.getByText('First item');
+      const row = text.closest('tr') as HTMLElement;
+      pointer(text, 'pointerdown', 300);
+      pointer(text, 'pointermove', 296);
+      expect(viewport.scrollLeft).toBe(0);
+      expect(viewport.setPointerCapture).not.toHaveBeenCalled();
+      pointer(text, 'pointerup', 296);
+      fireEvent.click(text, { detail: 1 });
+      expect(onRowClick).toHaveBeenCalledTimes(1);
+      pointer(text, 'pointerdown', 300);
+      pointer(text, 'pointermove', 180);
+      expect(viewport.scrollLeft).toBe(120);
+      expect(viewport).toHaveAttribute('data-dragging', 'true');
+      pointer(viewport, 'pointerup', 180);
+      fireEvent.click(text, { detail: 1 });
+      expect(onRowClick).toHaveBeenCalledTimes(1);
+      expect(viewport).not.toHaveAttribute('data-dragging');
+      fireEvent.keyDown(row, { key: 'Enter' });
+      fireEvent.keyDown(row, { key: ' ' });
+      expect(onRowClick).toHaveBeenCalledTimes(3);
+      pointer(text, 'pointerdown', 300);
+      pointer(text, 'pointerup', 300);
+      fireEvent.click(text, { detail: 1 });
+      expect(onRowClick).toHaveBeenCalledTimes(4);
+      expect(
+        screen.getByRole('columnheader', { name: 'Name' }).closest('thead'),
+      ).not.toHaveClass('sticky');
+    });
+
+    it.each(['nested-action-icon', 'checkbox', 'link', 'drag asset'])(
+      'leaves %s interaction outside drag capture',
+      (targetName) => {
+        const { viewport } = setup();
+        const target =
+          targetName === 'nested-action-icon'
+            ? screen.getByTestId(targetName)
+            : targetName === 'checkbox'
+              ? screen.getByRole('checkbox', { name: 'Select row 1' })
+              : targetName === 'link'
+                ? screen.getByRole('link', { name: 'Asset details' })
+                : screen.getByText('Drag asset');
+        pointer(target, 'pointerdown', 300);
+        pointer(target, 'pointermove', 180);
+        pointer(target, 'pointerup', 180);
+        expect(viewport.scrollLeft).toBe(0);
+        expect(viewport.setPointerCapture).not.toHaveBeenCalled();
+      },
+    );
+
+    it('leaves selection and actions clickable and touch scrolling native', () => {
+      const { viewport, onSelectionChange, onAction, onRowClick } = setup();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select row 1' }));
+      expect(onSelectionChange).toHaveBeenCalledWith(['a']);
+      fireEvent.click(screen.getByRole('button', { name: 'Action' }));
+      expect(onAction).toHaveBeenCalledOnce();
+      expect(onRowClick).not.toHaveBeenCalled();
+      pointer(screen.getByText('First item'), 'pointerdown', 300, 'touch');
+      pointer(viewport, 'pointermove', 180, 'touch');
+      pointer(viewport, 'pointercancel', 180, 'touch');
+      expect(viewport.scrollLeft).toBe(0);
+      expect(viewport.setPointerCapture).not.toHaveBeenCalled();
+    });
   });
 });

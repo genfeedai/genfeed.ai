@@ -26,6 +26,8 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   search: '',
   setFiltersNode: vi.fn(),
+  setLeadingNode: vi.fn(),
+  setExportNode: vi.fn(),
   setIsRefreshing: vi.fn(),
   setRefresh: vi.fn(),
   setViewToggleNode: vi.fn(),
@@ -82,6 +84,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
     setFiltersNode: mocks.setFiltersNode,
+    setLeadingNode: mocks.setLeadingNode,
+    setExportNode: mocks.setExportNode,
     setIsRefreshing: mocks.setIsRefreshing,
     setRefresh: mocks.setRefresh,
     setViewToggleNode: mocks.setViewToggleNode,
@@ -224,14 +228,38 @@ describe('PublishingContentLibrary', () => {
 
     render(<PublishingContentLibrary />);
 
-    await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
-    const [toolbar] = mocks.setFiltersNode.mock.calls.at(-1) ?? [];
+    await waitFor(() => expect(mocks.setExportNode).toHaveBeenCalled());
+    const [toolbar] = mocks.setExportNode.mock.calls.at(-1) ?? [];
     render(toolbar);
 
     expect(screen.getByRole('link', { name: 'approvalQueue' })).toHaveAttribute(
       'href',
       '/acme/main/publishing/review?batch=batch-1&item=item-9',
     );
+  });
+
+  it('keeps the leading search tied to the URL and out of the right filters', async () => {
+    mocks.search = 'status=draft&search=launch&page=3';
+    render(<PublishingContentLibrary />);
+    const [search] = mocks.setLeadingNode.mock.calls.at(-1) ?? [];
+    const [filters] = mocks.setFiltersNode.mock.calls.at(-1) ?? [];
+    const toolbar = render(filters);
+    expect(
+      toolbar.queryByPlaceholderText('Search posts'),
+    ).not.toBeInTheDocument();
+    const leading = render(search);
+    const input = leading.getByPlaceholderText('Search posts');
+    expect(input).toHaveValue('launch');
+    fireEvent.change(input, { target: { value: 'updated' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
+    const url = new URL(
+      mocks.replace.mock.calls.at(-1)?.[0],
+      'https://example.test',
+    );
+    expect(url.searchParams.get('search')).toBe('updated');
+    expect(url.searchParams.get('status')).toBe('draft');
+    expect(url.searchParams.has('page')).toBe(false);
   });
 
   it('combines multiple statuses with the content type', () => {

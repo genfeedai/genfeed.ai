@@ -7,6 +7,7 @@ import type { PublishingPostingSetsSectionProps } from '@props/scheduler/posting
 import { PostingSetsService } from '@services/content/posting-sets.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { isCancelledRequest } from '@services/core/operation-error';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -71,7 +72,11 @@ export default function PublishingPostingSetsSection({
           setPostingSets(sets);
         }
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (
+          signal.aborted ||
+          isCancelledRequest(error) ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
           return;
         }
         logger.error('Failed to load posting sets', error);

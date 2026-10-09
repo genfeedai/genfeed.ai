@@ -1,4 +1,13 @@
-import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
+import {
+  ActionOrigin,
+  AgentGenerationMode,
+  RouterPriority,
+} from '@genfeedai/contracts';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -136,6 +145,40 @@ describe('AgentTurnAcceptanceService', () => {
       inputValues: { request: { source: 'agent' } },
       metadata: { source: 'agent' },
     });
+  });
+
+  it('captures each invocation entry instead of caller or conversation source labels', async () => {
+    const generationEntry = {
+      channel: GenerationEntryChannel.DESKTOP,
+      attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+    };
+    await runWithActionOrigin(
+      { origin: ActionOrigin.UI, generationEntry },
+      () =>
+        service.accept(
+          {
+            clientRequestId: 'entry',
+            content: 'A coast',
+            generationEntry: {
+              channel: GenerationEntryChannel.MCP,
+              attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+            },
+          },
+          { organizationId: 'org-1', userId: 'user-1' },
+        ),
+    );
+    expect(
+      workflowRunner.enqueueWorkflow.mock.calls[0][0].inputValues.request
+        .generationEntry,
+    ).toEqual(generationEntry);
+    await service.accept(
+      { clientRequestId: 'entry-old', content: 'A forest' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(
+      workflowRunner.enqueueWorkflow.mock.calls[1][0].inputValues.request
+        .generationEntry,
+    ).toBeUndefined();
   });
 
   it('persists only the current turn normalized explicit selections', async () => {

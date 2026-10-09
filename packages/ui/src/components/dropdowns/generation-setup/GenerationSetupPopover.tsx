@@ -35,6 +35,8 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   creditsAvailable,
   favoriteModelKeys,
   isDisabled = false,
+  isIconOnly = false,
+  imageEditing,
   isPresetsLoading,
   isTypeCommitted,
   lookOptions,
@@ -90,6 +92,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
           className={className}
           hasAspectRatio={capabilities.hasAspectRatio}
           isDisabled={isDisabled}
+          isIconOnly={isIconOnly}
           isOpen={isOpen}
           isTypeCommitted={isTypeCommitted}
           models={models}
@@ -102,7 +105,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
       <PopoverContent
         align={align}
-        avoidCollisions={false}
+        avoidCollisions
         className={cn(
           overlayMenuSurfaceClassName,
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg p-0',
@@ -148,6 +151,18 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                     <span className="text-xs">{translate('advancedMode')}</span>
                   }
                   onCheckedChange={advancedMode.onChange}
+                />
+              </div>
+            ) : null}
+
+            {!customizeSection && imageEditing ? (
+              <div className="shrink-0 border-b border-border px-3 py-2">
+                <Switch
+                  aria-label={imageEditing.label}
+                  isChecked={imageEditing.isEnabled}
+                  isDisabled={isDisabled}
+                  label={<span className="text-xs">{imageEditing.label}</span>}
+                  onCheckedChange={imageEditing.onChange}
                 />
               </div>
             ) : null}

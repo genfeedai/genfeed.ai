@@ -138,6 +138,7 @@ export function AgentChatTimeline({
   const renderTimelineEntry = (
     entry: TimelineEntry,
     index: number,
+    isLiveTurn = false,
   ): ReactElement | null => {
     switch (entry.kind) {
       case 'user-message':
@@ -154,6 +155,7 @@ export function AgentChatTimeline({
               entry.message.id === retryableUserMessageId
             }
             isBusy={isBusy}
+            deferNextSteps={isLiveTurn}
             isReadOnly={isReadOnly}
             apiService={apiService}
             onCopy={onCopy}
@@ -196,10 +198,10 @@ export function AgentChatTimeline({
         );
         const renderItem = ({ entry, index }: (typeof turn.items)[number]) =>
           entry.kind === 'user-message' ? (
-            renderTimelineEntry(entry, index)
+            renderTimelineEntry(entry, index, isLiveTurn)
           ) : (
             <div className={AGENT_TIMELINE_DEFERRED_CLASS} key={entry.id}>
-              {renderTimelineEntry(entry, index)}
+              {renderTimelineEntry(entry, index, isLiveTurn)}
             </div>
           );
         return (
@@ -244,6 +246,12 @@ export function AgentChatTimeline({
           // Avoid a live pending analytics card stacking on the same card
           // already rendered from an assistant message in this thread.
           .filter((action) => {
+            if (
+              action.type === 'next_steps_card' &&
+              (isBusy || isGenerating || isStreamingActive)
+            ) {
+              return false;
+            }
             if (
               action.type !== 'analytics_snapshot_card' &&
               action.type !== 'completion_summary_card'

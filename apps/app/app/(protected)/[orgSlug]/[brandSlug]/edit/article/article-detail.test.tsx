@@ -1,3 +1,4 @@
+import { ArticleCategory } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useParams } from 'next/navigation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -121,6 +122,66 @@ describe('ArticleDetail', () => {
       summary: 'What shipped',
       tags: '',
     },
+  });
+
+  it('uses the new article title as the page heading', () => {
+    render(<ArticleDetail />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'New Article' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('uses the loaded article title as the page heading', () => {
+    useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Launch notes' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('uses the untitled fallback as the existing article page heading', () => {
+    const state = savedArticleState('draft');
+    useArticleDetailMock.mockReturnValue({
+      ...state,
+      form: { ...state.form, label: '' },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Untitled Article' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('labels the category selector and forwards category changes', () => {
+    const state = savedArticleState('draft');
+    useArticleDetailMock.mockReturnValue({
+      ...state,
+      form: { ...state.form, category: ArticleCategory.TUTORIAL },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    const trigger = screen.getByRole('button', {
+      name: 'Tutorial',
+    });
+    expect(trigger).toHaveTextContent('Category:');
+    expect(trigger).not.toHaveTextContent('articleCategory:');
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('button', { name: 'Guide' }));
+
+    expect(state.setFormField).toHaveBeenCalledWith(
+      'category',
+      ArticleCategory.GUIDE,
+    );
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('tells customer organizations their article is not hosted on genfeed.ai', () => {

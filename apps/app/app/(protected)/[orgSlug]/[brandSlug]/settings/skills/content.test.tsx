@@ -15,7 +15,16 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import BrandSettingsSkillsPage from './content';
 
 const pushMock = vi.fn();
@@ -145,6 +154,12 @@ vi.mock('@services/content/skills.service', async () => {
 });
 
 describe('BrandSettingsSkillsPage', () => {
+  beforeAll(() => {
+    Element.prototype.hasPointerCapture = vi.fn();
+    Element.prototype.setPointerCapture = vi.fn();
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
   afterEach(() => {
     closeModal(ModalEnum.SKILL);
   });
@@ -268,6 +283,78 @@ describe('BrandSettingsSkillsPage', () => {
       screen.getByRole('combobox', { name: /filter skills by source/i }),
     ).toBeInTheDocument();
   });
+
+  it.each([
+    { filter: 'Image', expected: ['Legacy Multi Skill', 'Image Skill'] },
+    { filter: 'Video', expected: ['Video Text Skill', 'Legacy Multi Skill'] },
+    { filter: 'Text', expected: ['Video Text Skill', 'Legacy Multi Skill'] },
+    {
+      filter: 'All',
+      expected: ['Video Text Skill', 'Legacy Multi Skill', 'Image Skill'],
+    },
+  ])(
+    'matches declared capabilities for the $filter modality filter',
+    async ({ filter, expected }) => {
+      const user = userEvent.setup();
+      listSkillsMock.mockResolvedValue([
+        {
+          id: 'video-text',
+          name: 'Video Text Skill',
+          description: 'Video and text',
+          slug: 'video-text',
+          source: 'built_in',
+          modalities: ['multi', 'video', 'text'],
+          workflowStage: 'creation',
+          isBuiltIn: true,
+          isEnabled: true,
+        },
+        {
+          id: 'legacy-multi',
+          name: 'Legacy Multi Skill',
+          description: 'Generic legacy skill',
+          slug: 'legacy-multi',
+          source: 'built_in',
+          modalities: ['multi'],
+          workflowStage: 'creation',
+          isBuiltIn: true,
+          isEnabled: true,
+        },
+        {
+          id: 'image',
+          name: 'Image Skill',
+          description: 'Image only',
+          slug: 'image',
+          source: 'built_in',
+          modalities: ['image'],
+          workflowStage: 'creation',
+          isBuiltIn: true,
+          isEnabled: true,
+        },
+      ]);
+      render(<BrandSettingsSkillsPage />);
+      expect(await screen.findByText('Video Text Skill')).toBeVisible();
+
+      await user.click(
+        screen.getByRole('combobox', { name: 'Filter skills by modality' }),
+      );
+      await user.click(await screen.findByRole('option', { name: filter }));
+
+      const catalog = within(screen.getByRole('table', { name: 'Catalog' }));
+      for (const name of [
+        'Video Text Skill',
+        'Legacy Multi Skill',
+        'Image Skill',
+      ]) {
+        if (expected.includes(name)) {
+          expect(catalog.getByText(name)).toBeVisible();
+        } else {
+          expect(catalog.queryByText(name)).not.toBeInTheDocument();
+        }
+      }
+      expect(toggleSkillMock).not.toHaveBeenCalled();
+      expect(setUseDefaultsMock).not.toHaveBeenCalled();
+    },
+  );
 
   it('clears the previous organization catalog while a new scope loads and fails', async () => {
     const { rerender } = render(<BrandSettingsSkillsPage />);

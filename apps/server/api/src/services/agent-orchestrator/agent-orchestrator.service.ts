@@ -1,3 +1,4 @@
+import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
@@ -58,6 +59,9 @@ export class AgentOrchestratorService {
         inputValues: {
           request: {
             action: request.action,
+            generationEntry:
+              getActionOriginContext().generationEntry ??
+              context.generationEntry,
             threadId: request.threadId,
             ...(request.brandId !== undefined
               ? { brandId: request.brandId }
@@ -123,6 +127,7 @@ export class AgentOrchestratorService {
         inputValues: {
           request: {
             answer: params.answer,
+            generationEntry: getActionOriginContext().generationEntry,
             scope: params.scope,
             threadId: params.threadId,
             ...(params.fieldId ? { fieldId: params.fieldId } : {}),

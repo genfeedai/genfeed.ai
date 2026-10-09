@@ -1,18 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import { ModalEnum } from '@genfeedai/contracts';
+import {
+  closeModal,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModalConfirm from '@ui/modals/system/confirm/ModalConfirm';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({
-    children,
-    id,
-  }: import('react').ComponentProps<
-    typeof import('@ui/modals/modal/Modal').default
-  >) => <div data-testid={`modal-${id}`}>{children}</div>,
-}));
-
 vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({
     children,
@@ -30,18 +26,25 @@ vi.mock('@ui/buttons/base/Button', () => ({
   >) => <button onClick={onClick}>{label}</button>,
 }));
 
-vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
-  closeModal: vi.fn(),
-}));
-
 describe('ModalConfirm', () => {
+  beforeEach(() => {
+    act(() => openModal(ModalEnum.CONFIRM));
+  });
+
+  afterEach(() => {
+    act(() => closeModal(ModalEnum.CONFIRM));
+  });
+
   const defaultProps = {
     onConfirm: vi.fn(),
   };
 
   it('renders with default props', () => {
     render(<ModalConfirm {...defaultProps} />);
-    expect(screen.getByText('Confirm')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Confirm' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Confirm', level: 3 }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Are you sure?')).toBeInTheDocument();
     expect(screen.getByText('Yes')).toBeInTheDocument();
     expect(screen.getByText('Cancel')).toBeInTheDocument();
@@ -57,7 +60,12 @@ describe('ModalConfirm', () => {
         cancelLabel="Keep"
       />,
     );
-    expect(screen.getByText('Delete Item')).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: 'Delete Item' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Delete Item', level: 3 }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('This action cannot be undone'),
     ).toBeInTheDocument();
@@ -76,7 +84,6 @@ describe('ModalConfirm', () => {
 
   it('renders error state when isError is true', () => {
     render(<ModalConfirm {...defaultProps} isError={true} />);
-    // Modal mock uses data-testid="modal-{id}" pattern
-    expect(screen.getByTestId('modal-modal-confirm')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Confirm' })).toBeInTheDocument();
   });
 });

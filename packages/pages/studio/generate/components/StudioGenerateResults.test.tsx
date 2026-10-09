@@ -50,11 +50,16 @@ describe('StudioGenerateResults', () => {
       />,
     );
 
-    expect(screen.getByTestId('studio-results-skeleton')).toBeInTheDocument();
+    const skeleton = screen.getByTestId('studio-results-skeleton');
+    expect(skeleton).toBeInTheDocument();
+    expect(
+      skeleton.querySelector('[data-masonry-layout="ordered"]'),
+    ).toHaveStyle({ gap: '8px' });
+    expect(skeleton.querySelectorAll('[data-masonry-item]')).toHaveLength(8);
     expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
   });
 
-  it('uses a row-based grid for generated assets', () => {
+  it('uses shared ordered masonry for generated assets', () => {
     render(
       <StudioGenerateResults
         assetActions={assetActions}
@@ -74,7 +79,11 @@ describe('StudioGenerateResults', () => {
       />,
     );
 
-    expect(screen.getByTestId('studio-grid')).toHaveClass('grid', 'gap-2');
+    const masonry = screen
+      .getByTestId('studio-grid')
+      .querySelector('[data-masonry-layout="ordered"]');
+    expect(masonry).toBeInTheDocument();
+    expect(masonry).toHaveStyle({ gap: '8px', width: '100%' });
     expect(screen.getByText('asset-1')).toBeInTheDocument();
     expect(screen.getByText('asset-1')).toHaveAttribute(
       'data-card-view',
@@ -165,10 +174,12 @@ describe('StudioGenerateResults', () => {
 
     const grid = screen.getByTestId('studio-grid');
     expect(screen.getAllByTestId('studio-grid')).toHaveLength(1);
-    expect(Array.from(grid.children, (card) => card.textContent)).toEqual([
-      'asset-1',
-      'asset-2',
-    ]);
+    expect(
+      Array.from(
+        grid.querySelectorAll('[data-masonry-item]'),
+        (card) => card.textContent,
+      ),
+    ).toEqual(['asset-1', 'asset-2']);
   });
 
   it('offers a readable list of the results sheet', () => {

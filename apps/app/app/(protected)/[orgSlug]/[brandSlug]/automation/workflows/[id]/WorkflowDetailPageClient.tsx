@@ -314,7 +314,7 @@ export default function WorkflowDetailPageClient({
           )}
 
           {isLoading ? (
-            <main
+            <section
               aria-label={translate('detail.loadingEditor')}
               className="min-h-0 flex-1 bg-background"
               data-testid="workflow-editor-loading-shell"

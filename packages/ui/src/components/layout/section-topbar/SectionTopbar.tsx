@@ -16,7 +16,7 @@ import HelpPopover from '@ui/layout/help-popover/HelpPopover';
  * **App contract for local navigation + primary actions** (Discovery Socials,
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
- * - ghost actions, Help and the inspector opener share a cluster after controls
+ * - Help leads the right cluster, then ghost actions, controls and primary actions
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
  * - when title is visible: title row, then optional tab strip under it
@@ -30,7 +30,7 @@ export default function SectionTopbar({
   icon: Icon,
   actions,
   iconActions,
-  iconActionsPlacement = 'after-controls',
+  iconActionsPlacement = 'before-controls',
   leading,
   tabs,
   titleVisibility = 'auto',
@@ -125,7 +125,10 @@ export default function SectionTopbar({
                   hasTabs
                     ? 'shrink-0 flex-wrap justify-end'
                     : actions
-                      ? 'min-w-0 flex-1 flex-wrap justify-end'
+                      ? cn(
+                          'min-w-0 flex-wrap justify-end',
+                          hasLeading ? 'flex-auto' : 'flex-1',
+                        )
                       : 'shrink-0',
                 )}
               >

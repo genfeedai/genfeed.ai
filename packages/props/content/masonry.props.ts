@@ -85,3 +85,8 @@ export interface MasonryProps {
     xl?: number;
   };
 }
+
+export interface OrderedMasonryProps {
+  children: ReactNode;
+  className?: string;
+}

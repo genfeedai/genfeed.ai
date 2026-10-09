@@ -3,10 +3,10 @@ import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-con
 import {
   AtSign,
   Building2,
-  ChartColumn,
   FileText,
   Flame,
   FlaskConical,
+  LayoutDashboard,
   Magnet,
   ScanSearch,
   Sparkles,
@@ -35,8 +35,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Overview',
     matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-    outline: ChartColumn,
-    solid: ChartColumn,
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
   },
   {
     group: '',

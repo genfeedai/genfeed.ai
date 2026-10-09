@@ -29,6 +29,7 @@ const PUBLISHING_VIEW_OPTIONS: {
 ];
 
 export interface PostsListToolbarProps {
+  showSearch?: boolean;
   searchValue: string;
   sortValue: string;
   sortOptions: PostsListToolbarOption[];
@@ -38,7 +39,27 @@ export interface PostsListToolbarProps {
   publishingView?: PublishingPostsView;
 }
 
+export function PostsListSearch({
+  searchValue,
+  onSearchChange,
+}: Pick<PostsListToolbarProps, 'searchValue' | 'onSearchChange'>) {
+  const translate = useTranslations('pages.posts.list');
+  return (
+    <div className="w-48 sm:w-56 xl:w-64">
+      <FormSearchbar
+        value={searchValue}
+        onSearch={onSearchChange}
+        placeholder={translate('toolbar.searchPlaceholder')}
+        // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
+        size={ComponentSize.SM}
+        className="w-full"
+      />
+    </div>
+  );
+}
+
 export default function PostsListToolbar({
+  showSearch = true,
   searchValue,
   sortValue,
   sortOptions,
@@ -51,16 +72,12 @@ export default function PostsListToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="w-48 sm:w-56 xl:w-64">
-        <FormSearchbar
-          value={searchValue}
-          onSearch={onSearchChange}
-          placeholder={translate('toolbar.searchPlaceholder')}
-          // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
-          size={ComponentSize.SM}
-          className="w-full"
+      {showSearch ? (
+        <PostsListSearch
+          searchValue={searchValue}
+          onSearchChange={onSearchChange}
         />
-      </div>
+      ) : null}
 
       {publishingView && onPublishingViewChange ? (
         <Select

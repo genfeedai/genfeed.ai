@@ -367,7 +367,7 @@ export default function WorkflowNewPageClient() {
           )}
 
           {isLoading ? (
-            <main
+            <section
               aria-label="Loading editor"
               className="min-h-0 flex-1 bg-background"
               data-testid="workflow-editor-loading-shell"

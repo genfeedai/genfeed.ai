@@ -741,7 +741,7 @@ describe('AppRail', () => {
 
     expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute(
       'data-active',
-      'false',
+      'true',
     );
     expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
       'aria-current',
@@ -1035,6 +1035,102 @@ describe('AppRail', () => {
     expect(
       screen.getByRole('link', { name: 'Publishing' }),
     ).not.toHaveAttribute('aria-current');
+  });
+
+  describe('active selection follows pin placement', () => {
+    it.each([
+      ['studio', '/studio/editor/project-1'],
+      ['automation', '/automation/runs/run-1'],
+      ['messages', '/messages/thread-1'],
+      ['discovery', '/discovery/ads/ad-1'],
+    ])(
+      'moves nested %s selection between More and the pinned rail',
+      (appId, path) => {
+        const props = {
+          orgSlug: 'acme',
+          brandSlug: 'my-brand',
+          currentPath: `/acme/my-brand${path}`,
+          onTogglePin: vi.fn(),
+        };
+        const view = render(<AppRail {...props} />);
+        const more = screen.getByTestId('app-rail-more');
+        expect(more).toHaveAttribute('data-active', 'true');
+        expect(more).toHaveClass('bg-foreground/[0.12]', 'text-foreground');
+        openMoreMenu();
+        const row = screen.getByTestId(`app-rail-more-item-${appId}`);
+        expect(row).toHaveAttribute('aria-current', 'page');
+        expect(row).toHaveClass('bg-foreground/[0.12]', 'text-foreground');
+        expect(screen.queryByTestId(`app-rail-item-${appId}`)).toBeNull();
+
+        view.rerender(<AppRail {...props} pinnedAppIds={[appId]} />);
+        const pinned = screen.getByTestId(`app-rail-item-${appId}`);
+        expect(pinned).toHaveAttribute('aria-current', 'page');
+        expect(pinned).toHaveClass('bg-foreground/[0.12]', 'text-foreground');
+        expect(more).toHaveAttribute('data-active', 'false');
+        expect(more).not.toHaveClass('bg-foreground/[0.12]');
+        expect(row).not.toHaveAttribute('aria-current');
+        expect(row).not.toHaveClass('bg-foreground/[0.12]');
+        expect(
+          view.container.querySelectorAll('[aria-current="page"]'),
+        ).toHaveLength(1);
+
+        view.rerender(<AppRail {...props} pinnedAppIds={[]} />);
+        expect(more).toHaveAttribute('data-active', 'true');
+        expect(row).toHaveAttribute('aria-current', 'page');
+        expect(screen.queryByTestId(`app-rail-item-${appId}`)).toBeNull();
+      },
+    );
+
+    it('recognizes nested organization-scope overflow pages', () => {
+      render(
+        <AppRail orgSlug="acme" currentPath="/acme/~/automation/runs/run-1" />,
+      );
+      expect(screen.getByTestId('app-rail-more')).toHaveAttribute(
+        'data-active',
+        'true',
+      );
+      openMoreMenu();
+      expect(
+        screen.getByTestId('app-rail-more-item-automation'),
+      ).toHaveAttribute('aria-current', 'page');
+    });
+
+    it.each([
+      '/acme/my-brand/publishing/posts/post-1',
+      '/acme/~/settings/brands',
+    ])('leaves More unselected on %s', (currentPath) => {
+      render(
+        <AppRail
+          orgSlug="acme"
+          brandSlug="my-brand"
+          currentPath={currentPath}
+        />,
+      );
+      expect(screen.getByTestId('app-rail-more')).toHaveAttribute(
+        'data-active',
+        'false',
+      );
+      expect(screen.getByTestId('app-rail-more')).not.toHaveClass(
+        'bg-foreground/[0.12]',
+      );
+      openMoreMenu();
+      for (const appId of ['studio', 'automation', 'messages', 'discovery']) {
+        expect(
+          screen.getByTestId(`app-rail-more-item-${appId}`),
+        ).not.toHaveAttribute('aria-current');
+      }
+    });
+
+    it('does not select More for a hidden current module', () => {
+      featureFlags.automation = false;
+      render(<AppRail orgSlug="acme" currentPath="/acme/~/automation/runs" />);
+      expect(screen.getByTestId('app-rail-more')).toHaveAttribute(
+        'data-active',
+        'false',
+      );
+      openMoreMenu();
+      expect(screen.queryByTestId('app-rail-more-item-automation')).toBeNull();
+    });
   });
 
   describe('route generation', () => {

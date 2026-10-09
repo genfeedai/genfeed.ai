@@ -1,3 +1,5 @@
+import type { GenerationEntry } from '../interfaces/content/generation-entry.interface';
+
 /**
  * Trusted initiating surface for consequential product actions.
  *
@@ -16,6 +18,8 @@ export enum ActionOrigin {
 }
 
 export interface ActionOriginContext {
+  /** Descriptive entry metadata, independent of actor/key authority. */
+  generationEntry?: GenerationEntry;
   actorUserId?: string;
   apiKeyId?: string;
   origin: ActionOrigin;

@@ -1,9 +1,17 @@
+import type { IMasonryGridOptions } from '@genfeedai/contracts/interfaces/components/masonry-grid.interface';
 import { useMasonryGrid } from '@hooks/ui/use-masonry-grid/use-masonry-grid';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock ResizeObserver
 class MockResizeObserver {
+  static instances: MockResizeObserver[] = [];
+  readonly callback: ResizeObserverCallback;
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+    MockResizeObserver.instances.push(this);
+  }
   observe = vi.fn();
   disconnect = vi.fn();
   unobserve = vi.fn();
@@ -20,6 +28,7 @@ describe('useMasonryGrid', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    MockResizeObserver.instances = [];
     vi.useFakeTimers();
   });
 
@@ -227,13 +236,22 @@ describe('useMasonryGrid', () => {
   describe('Layout calculation with a real container', () => {
     function createContainer(itemHeights: number[]): HTMLDivElement {
       const container = document.createElement('div');
-      Object.defineProperty(container, 'clientWidth', { value: 1000 });
+      Object.defineProperty(container, 'clientWidth', {
+        configurable: true,
+        value: 1000,
+      });
 
       for (const height of itemHeights) {
         const item = document.createElement('div');
         item.className = 'masonry-item';
-        Object.defineProperty(item, 'scrollHeight', { value: height });
-        Object.defineProperty(item, 'offsetHeight', { value: height });
+        Object.defineProperty(item, 'scrollHeight', {
+          configurable: true,
+          value: height,
+        });
+        Object.defineProperty(item, 'offsetHeight', {
+          configurable: true,
+          value: height,
+        });
         container.appendChild(item);
       }
 
@@ -255,6 +273,165 @@ describe('useMasonryGrid', () => {
     afterEach(() => {
       vi.unstubAllGlobals();
       document.body.innerHTML = '';
+    });
+
+    function mountObservedContainer(
+      itemHeights: number[],
+      options: IMasonryGridOptions,
+    ) {
+      const container = createContainer(itemHeights);
+      const initialItems: { id: string }[] = [];
+      const layout = renderHook(
+        ({ items }: { items: { id: string }[] }) =>
+          useMasonryGrid(items, options),
+        { initialProps: { items: initialItems } },
+      );
+      act(() => {
+        layout.result.current.containerRef.current = container;
+        layout.rerender({
+          items: itemHeights.map((_, index) => ({ id: String(index) })),
+        });
+      });
+      act(() => {
+        vi.runAllTimers();
+      });
+      return { container, ...layout };
+    }
+
+    function reportResize() {
+      const observer = MockResizeObserver.instances.at(-1);
+      expect(observer).toBeDefined();
+      act(() => {
+        observer?.callback([], observer as unknown as ResizeObserver);
+        vi.runAllTimers();
+      });
+    }
+
+    it('packs mixed native heights into the next shortest column without row gaps', () => {
+      const { container, result } = mountObservedContainer(
+        [400, 100, 200, 150, 80, 90],
+        {
+          columns: { desktop: 5, mobile: 1, tablet: 3 },
+          gap: 8,
+          minColumnWidth: 240,
+        },
+      );
+      const tiles = Array.from(container.children) as HTMLElement[];
+      expect(tiles.map((tile) => tile.style.top)).toEqual([
+        '0px',
+        '0px',
+        '0px',
+        '0px',
+        '108px',
+        '158px',
+      ]);
+      expect(tiles[4].style.left).toBe('252px');
+      expect(tiles[5].style.left).toBe('756px');
+      expect(
+        Number.parseFloat(tiles[3].style.left) +
+          Number.parseFloat(tiles[3].style.width),
+      ).toBe(1000);
+      expect(result.current.containerHeight).toBe(400);
+    });
+
+    it('resizes columns from the panel without changing the viewport width', () => {
+      const { container } = mountObservedContainer([100, 200, 100, 100], {
+        columns: { desktop: 5, mobile: 1, tablet: 3 },
+        gap: 8,
+        minColumnWidth: 240,
+      });
+      const viewportWidth = window.innerWidth;
+      Object.defineProperty(container, 'clientWidth', {
+        configurable: true,
+        value: 620,
+      });
+      reportResize();
+
+      const tiles = Array.from(container.children) as HTMLElement[];
+      expect(window.innerWidth).toBe(viewportWidth);
+      expect(tiles[0].style.width).toBe('306px');
+      expect(tiles[1].style.left).toBe('314px');
+      expect(tiles[2].style.top).toBe('108px');
+    });
+
+    it('observes tiles and repacks when intrinsic media heights arrive later', () => {
+      const { container, result } = mountObservedContainer([100, 200, 50], {
+        columns: { desktop: 2, mobile: 1, tablet: 2 },
+        gap: 8,
+        minColumnWidth: 240,
+      });
+      const tiles = Array.from(container.children) as HTMLElement[];
+      const observer = MockResizeObserver.instances.at(-1);
+      expect(observer?.observe).toHaveBeenCalledWith(container);
+      for (const tile of tiles)
+        expect(observer?.observe).toHaveBeenCalledWith(tile);
+      expect(tiles[2].style.top).toBe('108px');
+
+      Object.defineProperty(tiles[0], 'offsetHeight', {
+        configurable: true,
+        value: 400,
+      });
+      reportResize();
+
+      expect(tiles[2].style.top).toBe('208px');
+      expect(tiles[2].style.left).toBe('504px');
+      expect(result.current.containerHeight).toBe(400);
+    });
+
+    it('follows changed source order without moving DOM nodes into separate columns', () => {
+      const { container, rerender } = mountObservedContainer([100, 200, 50], {
+        columns: { desktop: 2, mobile: 1, tablet: 2 },
+        gap: 8,
+        minColumnWidth: 240,
+      });
+      const lastTile = container.lastElementChild as HTMLElement;
+      container.prepend(lastTile);
+      act(() => {
+        rerender({ items: [{ id: '2' }, { id: '0' }, { id: '1' }] });
+      });
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(container.firstElementChild).toBe(lastTile);
+      expect(lastTile.style.left).toBe('0px');
+      expect(lastTile.style.top).toBe('0px');
+      expect((container.children[2] as HTMLElement).style.top).toBe('58px');
+    });
+
+    it('clears the reserved height when the result set becomes empty', () => {
+      const { container, result, rerender } = mountObservedContainer(
+        [400, 200],
+        {
+          columns: { desktop: 2, mobile: 1, tablet: 2 },
+          gap: 8,
+          minColumnWidth: 240,
+        },
+      );
+      expect(result.current.containerHeight).toBe(400);
+      container.replaceChildren();
+      act(() => {
+        rerender({ items: [] });
+        vi.runAllTimers();
+      });
+      expect(result.current.containerHeight).toBe(0);
+      expect(result.current.isLayoutReady).toBe(false);
+    });
+
+    it('never positions a nested media element as another gallery tile', () => {
+      const { container, result } = mountObservedContainer([200, 100], {
+        columns: { desktop: 2, mobile: 1, tablet: 2 },
+        gap: 8,
+        minColumnWidth: 240,
+      });
+      const nested = document.createElement('div');
+      nested.className = 'masonry-item';
+      container.firstElementChild?.appendChild(nested);
+      act(() => {
+        result.current.recalculateLayout();
+        vi.runAllTimers();
+      });
+      expect(nested.style.position).toBe('');
+      expect(result.current.containerHeight).toBe(200);
     });
 
     it('positions items into columns and computes container height', () => {

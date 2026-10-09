@@ -17,9 +17,9 @@ export interface SectionTopbarProps {
   subtitle?: string;
   /** Optional leading icon next to the title */
   icon?: IconComponent;
-  /** Right-aligned controls (refresh, filters, view toggles) */
+  /** Right-aligned controls: dropdowns followed by the primary action */
   actions?: ReactNode;
-  /** Ghost icon actions grouped with Help and the inspector opener. */
+  /** Ghost icon actions grouped after Help, before controls by default. */
   iconActions?: ReactNode;
   iconActionsPlacement?: 'before-controls' | 'after-controls';
   /** Left-aligned non-tab navigation, such as a semantic back link */
@@ -34,7 +34,7 @@ export interface SectionTopbarProps {
    */
   titleVisibility?: 'auto' | 'visible' | 'sr-only';
   /**
-   * Optional help popover, rendered as a ghost icon trigger after `actions`.
+   * Optional help popover, rendered first in the right-hand ghost icon cluster.
    * Falls back to the route-level help supplied by `PageHelpProvider`.
    */
   help?: PageHelpContent | null;

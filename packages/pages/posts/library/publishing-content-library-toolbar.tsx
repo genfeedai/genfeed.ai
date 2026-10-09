@@ -26,6 +26,7 @@ interface FilterOption {
 export interface PublishingContentLibraryToolbarProps {
   /** Link to the approval queue, carrying any selected batch/item along. */
   approvalQueueHref?: string;
+  showSearch?: boolean;
   channelOptions: FilterOption[];
   channelValue: string;
   searchValue: string;
@@ -38,7 +39,49 @@ export interface PublishingContentLibraryToolbarProps {
   onTypeChange: (value: PublishingContentTypeFilter) => void;
 }
 
+export function PublishingContentLibrarySearch({
+  searchValue,
+  onSearchChange,
+}: Pick<
+  PublishingContentLibraryToolbarProps,
+  'searchValue' | 'onSearchChange'
+>) {
+  return (
+    <div className="w-40 @[56rem]/publishing:w-64">
+      <FormSearchbar
+        value={searchValue}
+        onSearch={onSearchChange}
+        placeholder="Search posts"
+        size={ComponentSize.SM}
+        className="w-full"
+      />
+    </div>
+  );
+}
+
+export function PublishingContentLibraryQueueLink({
+  approvalQueueHref,
+}: Pick<PublishingContentLibraryToolbarProps, 'approvalQueueHref'>) {
+  const translate = useTranslations('pages.posts.library');
+  return approvalQueueHref ? (
+    <Button
+      asChild
+      size={ButtonSize.SM}
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+    >
+      <Link aria-label={translate('approvalQueue')} href={approvalQueueHref}>
+        <ClipboardCheck aria-hidden="true" className="size-3.5" />
+        <span className="hidden @[64rem]/publishing:inline">
+          {translate('approvalQueue')}
+        </span>
+      </Link>
+    </Button>
+  ) : null;
+}
+
 export default function PublishingContentLibraryToolbar({
+  showSearch = true,
   approvalQueueHref,
   channelOptions,
   channelValue,
@@ -51,22 +94,18 @@ export default function PublishingContentLibraryToolbar({
   onStatusChange,
   onTypeChange,
 }: PublishingContentLibraryToolbarProps) {
-  const translate = useTranslations('pages.posts.library');
   return (
     // Tiers key off the Publishing page width (`@container/publishing` on the
     // layout Container), so opening the inspector compacts the row — narrower
     // search, icon-only Approval Queue — instead of wrapping it. Items only
     // wrap as a last resort on phone widths.
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <div className="w-40 @[56rem]/publishing:w-64">
-        <FormSearchbar
-          value={searchValue}
-          onSearch={onSearchChange}
-          placeholder="Search posts"
-          size={ComponentSize.SM}
-          className="w-full"
+      {showSearch ? (
+        <PublishingContentLibrarySearch
+          searchValue={searchValue}
+          onSearchChange={onSearchChange}
         />
-      </div>
+      ) : null}
 
       <Select
         value={typeValue}
@@ -120,24 +159,9 @@ export default function PublishingContentLibraryToolbar({
         placeholder="All statuses"
       />
 
-      {approvalQueueHref ? (
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        >
-          <Link
-            aria-label={translate('approvalQueue')}
-            href={approvalQueueHref}
-          >
-            <ClipboardCheck aria-hidden="true" className="size-3.5" />
-            <span className="hidden @[64rem]/publishing:inline">
-              {translate('approvalQueue')}
-            </span>
-          </Link>
-        </Button>
-      ) : null}
+      <PublishingContentLibraryQueueLink
+        approvalQueueHref={approvalQueueHref}
+      />
     </div>
   );
 }

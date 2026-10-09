@@ -3,7 +3,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { act, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,8 +26,9 @@ vi.mock('./ToolCallDetailPanel', () => ({
 
 function buildEntry(
   overrides?: Partial<Parameters<typeof TimelineStreamingRow>[0]['entry']>,
-) {
+): Parameters<typeof TimelineStreamingRow>[0]['entry'] {
   return {
+    createdAt: '2026-03-23T12:00:00.000Z',
     id: 'streaming-entry',
     kind: 'streaming' as const,
     runDurationLabel: '4s',
@@ -108,27 +109,33 @@ describe('TimelineStreamingRow', () => {
     expect(screen.getAllByText('Choose the export format.')).toHaveLength(1);
   });
 
-  it('reveals streaming answer text progressively', () => {
-    render(
+  it('displays each received answer chunk immediately without a second typing queue', () => {
+    const initial = buildEntry({
+      streamState: {
+        activeToolCalls: [],
+        isStreaming: true,
+        streamingContent: 'First received chunk',
+        streamingReasoning: '',
+      },
+    });
+    const view = render(<TimelineStreamingRow entry={initial} />);
+    expect(screen.getByText('First received chunk')).toBeTruthy();
+
+    const appendedContent = `First received chunk ${'Appended answer. '.repeat(100)}tail-marker`;
+    view.rerender(
       <TimelineStreamingRow
-        entry={buildEntry({
+        entry={{
+          ...initial,
           streamState: {
-            activeToolCalls: [],
-            isStreaming: true,
-            streamingContent: 'Fast streamed answer',
-            streamingReasoning: '',
+            ...initial.streamState,
+            streamingContent: appendedContent,
           },
-        })}
+        }}
       />,
     );
-
-    expect(screen.queryByText('Fast streamed answer')).toBeNull();
-
-    act(() => {
-      vi.advanceTimersByTime(220);
-    });
-
-    expect(screen.getByText('Fast streamed answer')).toBeTruthy();
+    expect(screen.getByText(/tail-marker/).textContent).toContain(
+      appendedContent,
+    );
   });
 
   it('renders thinking status with Working for duration at the end', () => {

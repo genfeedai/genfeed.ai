@@ -584,6 +584,7 @@ export default function ModalPost({
   return (
     <Modal
       id={modalId}
+      accessibleTitle={modalTitle}
       modalBoxClassName="max-w-2xl"
       onClose={handleModalClosed}
     >

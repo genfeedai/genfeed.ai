@@ -294,7 +294,7 @@ export class FFmpegMergeService {
       if (scaleFilters) {
         scaleFilters += ';';
       }
-      scaleFilters += `[${i}:v]scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p[scaled${i}]`;
+      scaleFilters += `[${i}:v]scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[scaled${i}]`;
     }
 
     let videoFilter = '';
@@ -323,7 +323,7 @@ export class FFmpegMergeService {
       for (let i = 0; i < videoPaths.length; i++) {
         if (audioStreams[i]) {
           audioFilter += audioFilter ? ';' : '';
-          audioFilter += `[${i}:a]aformat=sample_rates=48000:channel_layouts=stereo[aud${i}]`;
+          audioFilter += `[${i}:a]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[aud${i}]`;
         } else {
           const duration = durations[i] || 1;
           audioFilter += audioFilter ? ';' : '';
@@ -396,33 +396,32 @@ export class FFmpegMergeService {
     const resolutions: Array<{ width: number; height: number }> = [];
 
     for (const videoPath of videoPaths) {
-      try {
-        const probeData = await this.core.probe(videoPath);
-        const videoStream = probeData.streams.find(
-          (stream: FFprobeStream) => stream.codec_type === 'video',
-        );
-
-        const duration =
-          probeData.format?.duration ||
-          videoStream?.duration ||
-          probeData.streams[0]?.duration;
-        durations.push(duration ? parseFloat(duration) : 5);
-
-        const hasAudio = probeData.streams.some(
-          (stream: FFprobeStream) => stream.codec_type === 'audio',
-        );
-        audioStreams.push(hasAudio);
-
-        const rawWidth = videoStream?.width || 1080;
-        const rawHeight = videoStream?.height || 1920;
-        const width = rawWidth % 2 === 0 ? rawWidth : rawWidth - 1;
-        const height = rawHeight % 2 === 0 ? rawHeight : rawHeight - 1;
-        resolutions.push({ height, width });
-      } catch {
-        durations.push(5);
-        audioStreams.push(false);
-        resolutions.push({ height: 1920, width: 1080 });
+      const probeData = await this.core.probe(videoPath);
+      const videoStream = probeData.streams.find(
+        (stream: FFprobeStream) => stream.codec_type === 'video',
+      );
+      if (!videoStream) {
+        throw new Error('Transition clip has no video stream');
       }
+
+      const duration = Number(
+        probeData.format?.duration ?? videoStream.duration,
+      );
+      if (!Number.isFinite(duration) || duration <= 0) {
+        throw new Error('Transition clip duration must be positive');
+      }
+      durations.push(duration);
+      audioStreams.push(
+        probeData.streams.some(
+          (stream: FFprobeStream) => stream.codec_type === 'audio',
+        ),
+      );
+
+      const rawWidth = videoStream.width || 1080;
+      const rawHeight = videoStream.height || 1920;
+      const width = rawWidth % 2 === 0 ? rawWidth : rawWidth - 1;
+      const height = rawHeight % 2 === 0 ? rawHeight : rawHeight - 1;
+      resolutions.push({ height, width });
     }
 
     return { audioStreams, durations, resolutions };

@@ -5,11 +5,15 @@ import {
 import { generationRequestAttributes } from '@serializers/attributes/ingredients/ingredient.attributes';
 import { metadataAttributes } from '@serializers/attributes/ingredients/metadata.attributes';
 import { rel, simpleConfig } from '@serializers/builders';
+import { serializeGenerationEntry } from '@serializers/helpers/generation-entry.helper';
 import { serializeImageEdit } from '@serializers/helpers/image-edit.helper';
 
 export const imageSerializerConfig = {
   ...simpleConfig('image', imageAttributes),
-  attributeDerivations: { imageEdit: serializeImageEdit },
+  attributeDerivations: {
+    generationEntry: serializeGenerationEntry,
+    imageEdit: serializeImageEdit,
+  },
   metadata: rel('metadata', metadataAttributes),
 };
 

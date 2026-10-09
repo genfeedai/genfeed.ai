@@ -103,11 +103,14 @@ export default function AppTable<T>({
   columns,
   actions = EMPTY_ARRAY,
   framed = true,
+  density = 'comfortable',
+  enableDragScroll = false,
 
   getRowKey,
   getRowClassName,
   label,
   ariaLabel,
+  scrollAriaLabel,
   description,
   emptyLabel = EMPTY_STATES.DEFAULT,
   emptyDescription,
@@ -127,6 +130,61 @@ export default function AppTable<T>({
   sortDirection = 'asc',
   onSortChange,
 }: TableProps<T>) {
+  const isCompact = density === 'compact';
+  const scrollRegionLabel =
+    scrollAriaLabel?.trim() || ariaLabel?.trim() || label?.trim();
+  const hasPinnedHeader = isHeaderPinned && !enableDragScroll;
+  const dragPointerId = useRef<number | null>(null);
+  const dragStartX = useRef(0);
+  const dragStartScrollLeft = useRef(0);
+  const didDrag = useRef(false);
+
+  const handleScrollPointerDown = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    didDrag.current = false;
+    const viewport = event.currentTarget;
+    if (
+      event.pointerType !== 'mouse' ||
+      event.button !== 0 ||
+      viewport.scrollWidth <= viewport.clientWidth ||
+      !(event.target instanceof Element) ||
+      event.target.closest(
+        'button, a, input, textarea, select, [role="checkbox"], [role="combobox"], [contenteditable="true"], [draggable="true"]',
+      )
+    )
+      return;
+    dragPointerId.current = event.pointerId;
+    dragStartX.current = event.clientX;
+    dragStartScrollLeft.current = viewport.scrollLeft;
+  };
+
+  const handleScrollPointerMove = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (dragPointerId.current !== event.pointerId) return;
+    const distance = event.clientX - dragStartX.current;
+    if (!didDrag.current && Math.abs(distance) < 6) return;
+    if (!didDrag.current) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    didDrag.current = true;
+    event.currentTarget.dataset.dragging = 'true';
+    event.currentTarget.scrollLeft = dragStartScrollLeft.current - distance;
+    event.preventDefault();
+  };
+
+  const handleScrollPointerEnd = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (dragPointerId.current !== event.pointerId) return;
+    dragPointerId.current = null;
+    delete event.currentTarget.dataset.dragging;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   // Ref for callback to prevent re-renders
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
@@ -300,7 +358,7 @@ export default function AppTable<T>({
       <div
         className={cn(
           'relative bg-card',
-          isHeaderPinned ? 'overflow-clip' : 'overflow-hidden',
+          hasPinnedHeader ? 'overflow-clip' : 'overflow-hidden',
           framed
             ? 'rounded-card border border-border'
             : 'rounded-none border-0 shadow-none',
@@ -314,28 +372,70 @@ export default function AppTable<T>({
             resetErrorBoundary={error.onRetry}
           />
         ) : null}
-        <div className={isHeaderPinned ? undefined : 'overflow-x-auto'}>
+        <div
+          {...(enableDragScroll
+            ? {
+                'aria-label': scrollRegionLabel,
+                role: scrollRegionLabel ? 'region' : undefined,
+                tabIndex: 0,
+              }
+            : {})}
+          className={cn(
+            hasPinnedHeader ? undefined : 'overflow-x-auto',
+            enableDragScroll &&
+              'data-[dragging=true]:select-none data-[dragging=true]:cursor-grabbing',
+          )}
+          onPointerDown={enableDragScroll ? handleScrollPointerDown : undefined}
+          onPointerMove={enableDragScroll ? handleScrollPointerMove : undefined}
+          onPointerUp={enableDragScroll ? handleScrollPointerEnd : undefined}
+          onPointerCancel={
+            enableDragScroll ? handleScrollPointerEnd : undefined
+          }
+          onLostPointerCapture={
+            enableDragScroll ? handleScrollPointerEnd : undefined
+          }
+          onClickCapture={
+            enableDragScroll
+              ? (event) => {
+                  if (didDrag.current && event.detail !== 0) {
+                    didDrag.current = false;
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }
+                }
+              : undefined
+          }
+        >
           <table
             aria-label={ariaLabel}
-            className="w-full caption-bottom border-collapse"
+            className={cn(
+              'w-full caption-bottom border-collapse',
+              isCompact && 'min-w-[56rem]',
+            )}
           >
             <thead
               className={cn(
-                'sticky border-b border-border',
-                isHeaderPinned
+                'border-b border-border',
+                !enableDragScroll && 'sticky',
+                hasPinnedHeader
                   ? 'z-20 bg-background'
                   : 'top-0 z-10 bg-background-secondary/60',
                 hideHeader && 'sr-only',
               )}
               style={
-                isHeaderPinned
+                hasPinnedHeader
                   ? { top: 'var(--pinned-topbar-height, 0px)' }
                   : undefined
               }
             >
               <tr className="transition-colors">
                 {selectable && (
-                  <th className="size-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                  <th
+                    className={cn(
+                      'text-left align-middle font-medium text-muted-foreground',
+                      isCompact ? 'w-8 px-2' : 'size-12 px-4',
+                    )}
+                  >
                     <Checkbox
                       name="selectAll"
                       aria-label="Select all rows"
@@ -379,7 +479,8 @@ export default function AppTable<T>({
                           : undefined
                       }
                       className={cn(
-                        'h-10 select-none px-4 text-left align-middle text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground',
+                        'h-10 select-none text-left align-middle text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground',
+                        isCompact ? 'px-2' : 'px-4',
                         column.className,
                       )}
                     >
@@ -413,7 +514,10 @@ export default function AppTable<T>({
                 {actions.length > 0 && (
                   <th
                     aria-label="Actions"
-                    className="h-10 px-4 text-right align-middle font-medium text-muted-foreground"
+                    className={cn(
+                      'h-10 text-right align-middle font-medium text-muted-foreground',
+                      isCompact ? 'w-24 px-2' : 'px-4',
+                    )}
                   ></th>
                 )}
               </tr>
@@ -473,7 +577,12 @@ export default function AppTable<T>({
                       tabIndex={!rowLink && onRowClick ? 0 : undefined}
                     >
                       {selectable && (
-                        <td className="relative p-4 w-12 align-middle">
+                        <td
+                          className={cn(
+                            'relative align-middle',
+                            isCompact ? 'w-8 p-2' : 'p-4 w-12',
+                          )}
+                        >
                           <Checkbox
                             name={`select-${getItemId ? getItemId(item) : index}`}
                             aria-label={`Select row ${index + 1}`}
@@ -486,7 +595,8 @@ export default function AppTable<T>({
                         <td
                           key={String(column.key)}
                           className={cn(
-                            'px-4 py-3 align-middle text-foreground/80',
+                            'align-middle text-foreground/80',
+                            isCompact ? 'px-2 py-2' : 'px-4 py-3',
                             column.className,
                           )}
                         >
@@ -512,8 +622,18 @@ export default function AppTable<T>({
                       ))}
 
                       {actions.length > 0 && (
-                        <td className="px-4 py-2 relative align-middle">
-                          <div className="flex translate-x-0 justify-end opacity-100 transition-[opacity,transform] duration-200 group-focus-within:translate-x-0 group-focus-within:opacity-100 lg:translate-x-2 lg:opacity-0 lg:group-hover:translate-x-0 lg:group-hover:opacity-100">
+                        <td
+                          className={cn(
+                            'py-2 relative align-middle',
+                            isCompact ? 'px-2' : 'px-4',
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'flex translate-x-0 justify-end opacity-100 transition-[opacity,transform] duration-200 group-focus-within:translate-x-0 group-focus-within:opacity-100 lg:opacity-0 lg:group-hover:translate-x-0 lg:group-hover:opacity-100',
+                              !isCompact && 'lg:translate-x-2',
+                            )}
+                          >
                             <div className="flex items-center gap-1">
                               {keyListItems(actions, (action) =>
                                 typeof action.tooltip === 'function'

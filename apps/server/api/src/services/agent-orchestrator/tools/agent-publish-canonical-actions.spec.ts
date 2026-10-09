@@ -118,7 +118,7 @@ describe('scheduleCanonicalPostAction', () => {
       },
       nextActions: [
         {
-          ctas: [{ href: '/content/posts', label: 'Open posts' }],
+          ctas: [{ href: '/publishing/posts', label: 'Open posts' }],
           description:
             'The canonical release target is approval-backed and will enter the normal publish queue when due.',
           id: `scheduled-post-${input.postId}`,

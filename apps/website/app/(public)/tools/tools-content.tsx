@@ -1,7 +1,7 @@
 import Card from '@ui/card/Card';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
-import { FileText, Scissors } from 'lucide-react';
+import { Cpu, FileText, Scissors } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ToolsContent(): React.ReactElement {
@@ -11,11 +11,27 @@ export default function ToolsContent(): React.ReactElement {
       badge="Free tools"
       badgeIcon={Scissors}
       compact
-      description="Start with a public source, get a useful result before signup, then continue in the full Genfeed workspace."
-      title="Free AI content tools"
+      description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then continue in the full Genfeed workspace."
+      title="Free AI tools for models and content"
     >
       <section className="container mx-auto px-6 py-20">
         <div className="grid max-w-5xl gap-6 md:grid-cols-2">
+          <Card className="flex flex-col gap-5 p-8">
+            <Cpu aria-hidden="true" className="size-5" />
+            <div>
+              <h2 className="text-xl font-semibold">AI model selector</h2>
+              <p className="mt-2 text-sm leading-6 text-surface/65">
+                Find AI models for images, video, writing, voice, and music.
+                Compare live catalog matches instantly. No signup or API key.
+              </p>
+            </div>
+            <Link
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline"
+              href="/tools/ai-model-selector"
+            >
+              Choose an AI model &rarr;
+            </Link>
+          </Card>
           <Card className="flex flex-col gap-5 p-8">
             <div className="flex size-11 items-center justify-center bg-fill/[0.05]">
               <FileText aria-hidden="true" className="size-5" />

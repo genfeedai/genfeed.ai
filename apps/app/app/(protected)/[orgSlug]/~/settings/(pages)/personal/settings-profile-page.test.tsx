@@ -110,7 +110,9 @@ describe('SettingsProfilePage', () => {
     render(<SettingsProfilePage />);
 
     expect(screen.getByText('Language')).toBeInTheDocument();
-    expect(screen.getByTestId('personal-locale-trigger')).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Language' }),
+    ).toBeInTheDocument();
   });
 
   it('offers System, Light, and Dark appearance preferences', async () => {

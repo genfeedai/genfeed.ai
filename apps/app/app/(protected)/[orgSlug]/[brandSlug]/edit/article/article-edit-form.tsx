@@ -5,6 +5,7 @@ import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory)
@@ -21,6 +22,7 @@ export default function ArticleEditForm({
   form,
   setFormField,
 }: ArticleEditFormProps) {
+  const translate = useTranslations('pages.articles.edit');
   return (
     <>
       {/* Title */}
@@ -48,9 +50,10 @@ export default function ArticleEditForm({
         </FormControl>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormControl label="Category">
+          <FormControl label={translate('category')}>
             <FormDropdown
               name="articleCategory"
+              label="Category"
               value={form.category}
               options={ARTICLE_CATEGORY_OPTIONS}
               onChange={(e: ChangeEvent<HTMLSelectElement>) =>

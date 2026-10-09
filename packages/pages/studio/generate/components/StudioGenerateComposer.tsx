@@ -45,7 +45,6 @@ import { useAdvancedModePreference } from '@hooks/utils/use-advanced-mode-prefer
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import StudioGenerationSummary from '@pages/studio/generate/components/StudioGenerationSummary';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
-import StudioTypeDropdown from '@pages/studio/generate/components/StudioTypeDropdown';
 import {
   crunFieldOptions,
   useCrunInputControls,
@@ -58,6 +57,7 @@ import {
 } from '@pages/studio/generate/hooks/useStudioLooks';
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
 import {
+  getStudioGenerateTypeConfig,
   isStudioGenerateType,
   listStudioGenerateTypeConfigs,
   resolveStudioGenerateCapabilities,
@@ -410,10 +410,13 @@ export default function StudioGenerateComposer({
               })),
       }
     : incumbentLookOptions;
-  const typeOptions = listStudioGenerateTypeConfigs().map((config) => ({
-    label: config.label,
-    value: config.type,
-  }));
+  const typeOptions = listStudioGenerateTypeConfigs()
+    .filter((config) => config.type !== 'image-edit')
+    .map((config) => ({
+      label: config.label,
+      value:
+        config.type === 'image' && type === 'image-edit' ? type : config.type,
+    }));
 
   const debouncedPrompt = useDebounce(prompt, RECOMMENDATION_DEBOUNCE_MS);
 
@@ -520,7 +523,7 @@ export default function StudioGenerateComposer({
           costPromptData.resolution,
         ) ?? costPromptData.resolution)
       : costPromptData.resolution;
-  // The type has its own chip, so it names the setup only when nothing else does.
+  // Keep the full setup summary in the accessible icon trigger and tooltip.
   const setupParts = [
     modelLabel,
     capabilities.hasAspectRatio || type === 'image-edit'
@@ -833,10 +836,61 @@ export default function StudioGenerateComposer({
                 sources={referenceSources}
               />
             ) : null}
-            <StudioTypeDropdown
+            <GenerationSetupPopover
+              showEnhancementSettings={type === 'image' || type === 'video'}
+              align="start"
+              isIconOnly
+              imageEditing={
+                type === 'image' || type === 'image-edit'
+                  ? {
+                      isEnabled: type === 'image-edit',
+                      label: getStudioGenerateTypeConfig('image-edit').label,
+                      onChange: (isEditing) =>
+                        onTypeChange(isEditing ? 'image-edit' : 'image'),
+                    }
+                  : undefined
+              }
+              triggerLabel={setupLabel}
+              inputControls={inputControls}
+              referenceCount={crunReferenceCount ?? attachedAssets.length}
+              advancedMode={
+                capabilities.hasModelSelection
+                  ? {
+                      isEnabled: isAdvancedMode,
+                      onChange: handleAdvancedModeChange,
+                    }
+                  : undefined
+              }
+              capabilities={{
+                ...capabilities,
+                hasModelSelection: isModelChoiceVisible,
+              }}
+              favoriteModelKeys={favoriteModelKeys}
               isDisabled={isGenerating}
-              onChange={onTypeChange}
-              type={type}
+              isPresetsLoading={isPresetsLoading}
+              isTypeCommitted
+              lookOptions={lookOptions}
+              models={isModelChoiceVisible ? models : []}
+              onApplyPreset={handleApplyPreset}
+              onClearPreset={handleClearPreset}
+              onDeletePreset={handleDeletePreset}
+              onFavoriteToggle={onFavoriteToggle}
+              onResetAll={onResetSettings}
+              onResetField={handleResetField}
+              onSavePreset={handleSavePreset}
+              onSetField={handleSetField}
+              onTypeChange={(nextType) => {
+                // The shared popover speaks GenerationSetupType; Studio only
+                // offers its own registry, so anything else is not a Studio pick.
+                if (isStudioGenerateType(nextType)) {
+                  onTypeChange(nextType);
+                }
+              }}
+              presets={presets}
+              reasons={reasons}
+              scopeKey={scope}
+              setup={setupForComposer}
+              typeOptions={typeOptions}
             />
             {inputControls?.mediaKind === 'image' ? (
               <PromptBarCrunControls
@@ -964,52 +1018,6 @@ export default function StudioGenerateComposer({
         }
         trailing={
           <>
-            <GenerationSetupPopover
-              showEnhancementSettings={type === 'image' || type === 'video'}
-              align="end"
-              triggerLabel={setupLabel}
-              inputControls={inputControls}
-              referenceCount={crunReferenceCount ?? attachedAssets.length}
-              advancedMode={
-                capabilities.hasModelSelection
-                  ? {
-                      isEnabled: isAdvancedMode,
-                      onChange: handleAdvancedModeChange,
-                    }
-                  : undefined
-              }
-              capabilities={{
-                ...capabilities,
-                hasModelSelection: isModelChoiceVisible,
-              }}
-              favoriteModelKeys={favoriteModelKeys}
-              isDisabled={isGenerating}
-              isPresetsLoading={isPresetsLoading}
-              isTypeCommitted
-              lookOptions={lookOptions}
-              models={isModelChoiceVisible ? models : []}
-              onApplyPreset={handleApplyPreset}
-              onClearPreset={handleClearPreset}
-              onDeletePreset={handleDeletePreset}
-              onFavoriteToggle={onFavoriteToggle}
-              onResetAll={onResetSettings}
-              onResetField={handleResetField}
-              onSavePreset={handleSavePreset}
-              onSetField={handleSetField}
-              onTypeChange={(nextType) => {
-                // The shared popover speaks GenerationSetupType; Studio only
-                // offers its own registry, so anything else is not a Studio pick.
-                if (isStudioGenerateType(nextType)) {
-                  onTypeChange(nextType);
-                }
-              }}
-              presets={presets}
-              reasons={reasons}
-              scopeKey={scope}
-              setup={setupForComposer}
-              typeOptions={typeOptions}
-            />
-
             {onEnhancePrompt && type !== 'image-edit' ? (
               <Button
                 ariaLabel={

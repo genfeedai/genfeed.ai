@@ -72,9 +72,13 @@ describe('Crun original HTTP video intent', () => {
     async (jsonApi) => {
       const f = fixture();
       const values = { ...intent, brand, folder, waitForCompletion: false };
-      const body = jsonApi
-        ? VideoGenerationSerializer.serialize(values)
+      const body: unknown = jsonApi
+        ? JSON.parse(
+            JSON.stringify(VideoGenerationSerializer.serialize(values)),
+          )
         : values;
+      if (jsonApi)
+        expect(body).not.toHaveProperty('data.attributes.generationEntry');
       const dto = await dtoFrom(body);
       const result = await f.service.generate(user as never, dto, {
         body,
@@ -93,6 +97,37 @@ describe('Crun original HTTP video intent', () => {
       });
       expect(f.preview.preview).not.toHaveBeenCalled();
       expect(f.tasks.submit).not.toHaveBeenCalled();
+    },
+  );
+  it.each([false, true])(
+    'rejects response-only generation entry metadata before preparation with JSON API=%s',
+    async (jsonApi) => {
+      const f = fixture();
+      const values = {
+        ...intent,
+        generationEntry: { channel: 'api', attribution: 'server_verified' },
+      };
+      const body: unknown = jsonApi
+        ? JSON.parse(
+            JSON.stringify(VideoGenerationSerializer.serialize(values)),
+          )
+        : values;
+      expect(body).toHaveProperty(
+        jsonApi ? 'data.attributes.generationEntry' : 'generationEntry',
+        values.generationEntry,
+      );
+      const dto = await dtoFrom(body);
+      expect(dto).not.toHaveProperty('generationEntry');
+      await expect(
+        f.service.generate(user as never, dto, { body } as never),
+      ).rejects.toMatchObject({ response: { code: 'CRUN_INVALID_INPUT' } });
+      expect(f.preview.preview).not.toHaveBeenCalled();
+      expect(f.preview.consume).not.toHaveBeenCalled();
+      expect(f.prisma.model.findFirst).not.toHaveBeenCalled();
+      expect(f.prisma.prompt.findFirst).not.toHaveBeenCalled();
+      expect(f.tasks.prepareRows).not.toHaveBeenCalled();
+      expect(f.tasks.submit).not.toHaveBeenCalled();
+      expect(f.shared.createMediaDocuments).not.toHaveBeenCalled();
     },
   );
   it('rejects a root key silently removed by the real DTO pipe before any preparation', async () => {

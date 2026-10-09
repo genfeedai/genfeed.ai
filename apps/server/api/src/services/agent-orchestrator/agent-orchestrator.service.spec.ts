@@ -1,7 +1,14 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import type { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import type { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
+import { ActionOrigin } from '@genfeedai/contracts';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentOrchestratorService.handleThreadUiAction', () => {
@@ -30,6 +37,47 @@ describe('AgentOrchestratorService.handleThreadUiAction', () => {
         : undefined,
     );
   }
+
+  it('captures the invocation for queued confirmations and input responses', async () => {
+    const generationEntry = {
+      channel: GenerationEntryChannel.DESKTOP,
+      attribution: GenerationEntryAttribution.CLIENT_REPORTED,
+    };
+    await runWithActionOrigin(
+      { origin: ActionOrigin.UI, generationEntry },
+      async () => {
+        await service().handleThreadUiAction(request, context);
+        await service().resumeRecurringTaskDraftFromInput({
+          ...context,
+          answer: 'Continue',
+          threadId: 'thread-1',
+          scope: {
+            organizationId: 'org-1',
+            brandId: 'brand-1',
+            contextVersion: 1,
+            isLegacyFallback: false,
+            isVersionExplicit: true,
+            source: 'explicit',
+            threadId: 'thread-1',
+            userId: 'user-1',
+          } satisfies ValidatedAgentScope,
+        });
+      },
+    );
+    expect(
+      workflowRunner.enqueueWorkflow.mock.calls[0][0].inputValues.request
+        .generationEntry,
+    ).toEqual(generationEntry);
+    expect(
+      workflowRunner.enqueueWorkflow.mock.calls[1][0].inputValues.request
+        .generationEntry,
+    ).toEqual(generationEntry);
+    await service().handleThreadUiAction(request, context);
+    expect(
+      workflowRunner.enqueueWorkflow.mock.calls[2][0].inputValues.request
+        .generationEntry,
+    ).toBeUndefined();
+  });
 
   it('acks with the queued run after recording it on the thread log', async () => {
     await expect(

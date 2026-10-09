@@ -1,6 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { AtSign, Flame, Megaphone, Repeat, TrendingUp } from 'lucide-react';
+import {
+  AtSign,
+  Flame,
+  LayoutDashboard,
+  Megaphone,
+  Repeat,
+} from 'lucide-react';
 
 export const DISCOVERY_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -9,8 +15,8 @@ export const DISCOVERY_MENU_ITEMS: MenuItemConfig[] = [
     label: 'Overview',
     matchPaths: [APP_ROUTES.DISCOVERY.ROOT, APP_ROUTES.DISCOVERY.OVERVIEW],
     matchSearchParams: { source: null },
-    outline: TrendingUp,
-    solid: TrendingUp,
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
   },
   {
     group: '',

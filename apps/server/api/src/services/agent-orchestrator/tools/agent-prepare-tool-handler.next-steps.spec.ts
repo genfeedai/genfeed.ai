@@ -51,12 +51,12 @@ describe('AgentPrepareToolHandler.suggestNextSteps', () => {
     });
 
     expect(readSteps(result)[0]?.ctas).toEqual([
-      { href: '/settings/connected-accounts', label: 'Open connections' },
       {
         action: 'send_prompt',
-        label: 'Do it here',
+        label: 'Start',
         payload: { prompt: 'Walk me through connecting my first account.' },
       },
+      { href: '/settings/connected-accounts', label: 'Open connections' },
     ]);
     expect(result.nextActions?.[0]?.type).toBe('next_steps_card');
   });
@@ -69,7 +69,7 @@ describe('AgentPrepareToolHandler.suggestNextSteps', () => {
     expect(readSteps(result)[0]?.ctas).toEqual([
       {
         action: 'send_prompt',
-        label: 'Continue here',
+        label: 'Start',
         payload: { prompt: 'Draft three post ideas.' },
       },
     ]);
@@ -129,7 +129,7 @@ describe('AgentPrepareToolHandler.suggestNextSteps', () => {
     expect(readSteps(result)[0]?.ctas).toEqual([
       {
         action: 'send_prompt',
-        label: 'Continue here',
+        label: 'Start',
         payload: { prompt: 'Do it in the conversation.' },
       },
     ]);

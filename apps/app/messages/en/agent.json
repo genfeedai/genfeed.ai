@@ -1,4 +1,7 @@
 {
+  "nextSteps": {
+    "start": "Start"
+  },
   "timeline": {
     "steps": "Steps"
   },

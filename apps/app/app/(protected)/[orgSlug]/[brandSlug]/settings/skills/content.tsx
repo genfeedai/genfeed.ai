@@ -430,7 +430,7 @@ export default function BrandSettingsSkillsPage() {
         const modalityMatches =
           modalityFilter === 'all' ||
           skill.modalities.includes(modalityFilter) ||
-          skill.modalities.includes('multi');
+          (skill.modalities.length === 1 && skill.modalities.includes('multi'));
         const stageMatches =
           stageFilter === 'all' || skill.workflowStage === stageFilter;
         const searchMatches =

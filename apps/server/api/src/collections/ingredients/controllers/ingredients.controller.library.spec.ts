@@ -134,6 +134,50 @@ describe('IngredientsController — Library axes', () => {
   });
 
   describe('findAll', () => {
+    it.each([1, -1])(
+      'sorts asset names through metadata while preserving scope and pagination (%s)',
+      async (direction) => {
+        await controller.findAll(
+          mockRequest,
+          {
+            sort: `label: ${direction}`,
+            page: 2,
+            limit: 10,
+          } as IngredientsQueryDto,
+          mockUser,
+        );
+
+        const [aggregate, options] = ingredientsService.findAll.mock.calls[0];
+        expect(aggregate.orderBy).toEqual([{ metadata: { label: direction } }]);
+        expect(andBranches(aggregate)).toContainEqual({ organizationId });
+        expect(andBranches(aggregate)).toContainEqual({ brandId });
+        expect(aggregate.where.isDeleted).toBe(false);
+        expect(options).toMatchObject({ page: 2, limit: 10 });
+      },
+    );
+
+    it.each([
+      [undefined, [{ createdAt: -1 }]],
+      ['createdAt: 1', [{ createdAt: 1 }]],
+      ['updatedAt: -1', [{ updatedAt: -1 }]],
+      [
+        'label: 1, createdAt: -1',
+        [{ metadata: { label: 1 } }, { createdAt: -1 }],
+      ],
+    ])(
+      'retains default and compound sort precedence (%s)',
+      async (sort, orderBy) => {
+        await controller.findAll(
+          mockRequest,
+          { sort } as IngredientsQueryDto,
+          mockUser,
+        );
+        expect(ingredientsService.findAll.mock.calls[0][0].orderBy).toEqual(
+          orderBy,
+        );
+      },
+    );
+
     it('always scopes the query to the authenticated organization', async () => {
       await controller.findAll(
         mockRequest,

@@ -6,6 +6,7 @@ import { authorizeExternalPublicationBrand } from '@api/services/agent-orchestra
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   ScheduleCanonicalPostInput,
@@ -79,7 +80,7 @@ export async function scheduleCanonicalPostAction(
     },
     nextActions: [
       {
-        ctas: [{ href: '/content/posts', label: 'Open posts' }],
+        ctas: [{ href: APP_ROUTES.PUBLISHING.POSTS, label: 'Open posts' }],
         description:
           'The canonical release target is approval-backed and will enter the normal publish queue when due.',
         id: `scheduled-post-${input.postId}`,

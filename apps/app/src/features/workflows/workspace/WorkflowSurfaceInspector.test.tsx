@@ -1,8 +1,14 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 const service = vi.hoisted(() => ({
   get: vi.fn(),
@@ -51,6 +57,74 @@ vi.mock('next/navigation', () => ({
 import { WorkflowSurfaceInspector } from './WorkflowSurfaceInspector';
 
 describe('WorkflowSurfaceInspector', () => {
+  it('renders selected run loading before effects can start its first lookup', () => {
+    const html = renderToString(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/run-1"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(html).toContain('Loading workflow context…');
+    expect(html).not.toContain('Execution Not Found');
+    expect(html).not.toContain('Not running');
+    expect(getService).not.toHaveBeenCalled();
+    expect(service.getExecution).not.toHaveBeenCalled();
+  });
+
+  it('shows missing run context without invented status or approval controls', async () => {
+    service.getExecution.mockRejectedValue({
+      errors: [{ status: '404', detail: 'Execution not found' }],
+    });
+    render(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/missing-exec"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(await screen.findByText('Execution Not Found')).toBeInTheDocument();
+    expect(service.get).not.toHaveBeenCalled();
+    expect(screen.queryByText('Not running')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('No approval is currently required.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves a missing workflow failure after successfully loading the run', async () => {
+    service.get.mockRejectedValueOnce({
+      errors: [{ status: '404', detail: 'Workflow not found' }],
+    });
+    render(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/run-1"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(await screen.findByText('Workflow not found')).toBeInTheDocument();
+    expect(screen.queryByText('Execution Not Found')).not.toBeInTheDocument();
+  });
+
+  it('keeps run permission errors visible in the inspector', async () => {
+    service.getExecution.mockRejectedValue({
+      errors: [{ status: '403', detail: 'Access denied' }],
+    });
+    render(
+      <WorkflowSurfaceInspector
+        pathname="/demo/FUDNEWS/automation/runs/denied-exec"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+
+    expect(await screen.findByText('Access denied')).toBeInTheDocument();
+    expect(screen.queryByText('Execution Not Found')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     getService.mockResolvedValue(service);

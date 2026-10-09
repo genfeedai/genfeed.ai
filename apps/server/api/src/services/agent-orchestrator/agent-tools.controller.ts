@@ -1,3 +1,4 @@
+import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -104,6 +105,7 @@ export class AgentToolsController {
       }
 
       const context: ToolExecutionContext = {
+        generationEntry: getActionOriginContext().generationEntry,
         ...(brandId ? { brandId } : {}),
         apiKeyContext: user,
         approvedApprovalId,

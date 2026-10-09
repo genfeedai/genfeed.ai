@@ -5,6 +5,7 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import {
   act,
   fireEvent,
@@ -18,6 +19,25 @@ import IngredientsListContent from '@ui/ingredients/list/content/IngredientsList
 import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const previewVisibility = vi.hoisted(() => ({ visible: false }));
+
+vi.mock(
+  '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer',
+  async () => {
+    const { useRef } = await import('react');
+    return {
+      useIntersectionObserver: () => ({
+        ref: useRef<HTMLDivElement>(null),
+        isIntersecting: previewVisibility.visible,
+      }),
+    };
+  },
+);
+
+beforeEach(() => {
+  previewVisibility.visible = false;
+});
 
 const { assetSelection, setSelectedAsset, revealSidebar } = vi.hoisted(() => ({
   assetSelection: {
@@ -452,7 +472,7 @@ describe('IngredientsListContent', () => {
       screen.getByRole('columnheader', { name: 'Tags' }),
     ).toBeInTheDocument();
     expect(screen.getByText('S1E12')).toBeInTheDocument();
-    expect(screen.getByText('Launch')).toBeInTheDocument();
+    expect(screen.getByText('+1')).toHaveAttribute('title', 'Launch');
   });
 
   it('shows a dash instead of tags for an untagged row', () => {
@@ -1020,8 +1040,14 @@ describe('IngredientsListContent generation ledger columns', () => {
     expect(screen.getByText('genfeedai')).toBeInTheDocument();
     expect(screen.getByText('1920 × 1080')).toBeInTheDocument();
     expect(
-      screen.getByText(format(ledgerCreatedAt, 'd MMM yyyy')),
-    ).toBeInTheDocument();
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
+    ).toHaveAttribute('title', format(ledgerCreatedAt, 'd MMM yyyy'));
+    expect(
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
+    ).toHaveAttribute('datetime', ledgerCreatedAt.toISOString());
+    expect(
+      screen.getByRole('region', { name: 'Scroll table horizontally' }),
+    ).toHaveAttribute('tabindex', '0');
   });
 
   it('surfaces the failure reason for a FAILED asset', () => {
@@ -1138,5 +1164,209 @@ describe('Library See Details sidebar routing', () => {
       expect.objectContaining({ id: baseIngredient.id }),
     );
     expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+  describe('paused video frame thumbnails', () => {
+    function getVideoPreview() {
+      const video = screen
+        .getByTestId('ingredient-video-preview')
+        .querySelector('video');
+      if (!video) throw new Error('Video thumbnail was not mounted');
+      return video;
+    }
+
+    const withoutPoster = { ...videoIngredient, thumbnailUrl: undefined };
+
+    it('defers video loading until visible, decodes an opening frame and falls back on media errors', () => {
+      const { rerenderContent } = renderContent({
+        filteredIngredients: [withoutPoster],
+        viewMode: 'list',
+      });
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('ingredient-preview-fallback'),
+      ).toBeInTheDocument();
+      previewVisibility.visible = true;
+      rerenderContent();
+      const video = getVideoPreview();
+      expect(video).toHaveAttribute('src', videoIngredient.ingredientUrl);
+      expect(video).toHaveAttribute('preload', 'metadata');
+      expect(video.autoplay).toBe(false);
+      expect(video.controls).toBe(false);
+      expect(video.muted).toBe(true);
+      expect(video.paused).toBe(true);
+      Object.defineProperty(video, 'duration', { value: 0.04 });
+      fireEvent.loadedMetadata(video);
+      expect(video.currentTime).toBe(0.02);
+      fireEvent.seeked(video);
+      expect(
+        screen.queryByTestId('ingredient-preview-fallback'),
+      ).not.toBeInTheDocument();
+      fireEvent.error(video);
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('ingredient-preview-fallback'),
+      ).toBeInTheDocument();
+    });
+
+    it('uses only the current authorized video, clears it when access becomes pending, and resets frame state on renewal', () => {
+      previewVisibility.visible = true;
+      const readyGrant = {
+        id: videoIngredient.id,
+        purpose: 'preview' as const,
+        state: 'READY' as const,
+        url: 'https://media.test/current.mp4',
+        expiresAt: null,
+      };
+      const { rerenderContent } = renderContent({
+        filteredIngredients: [
+          { ...videoIngredient, mediaDelivery: readyGrant },
+        ],
+        viewMode: 'list',
+      });
+      const video = getVideoPreview();
+      expect(video).toHaveAttribute('src', readyGrant.url);
+      expect(document.querySelector('img')).toBeNull();
+      fireEvent.loadedData(video);
+      expect(
+        screen.queryByTestId('ingredient-preview-fallback'),
+      ).not.toBeInTheDocument();
+      rerenderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            mediaDelivery: { ...readyGrant, state: 'PENDING', url: null },
+          },
+        ],
+      });
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+      expect(document.querySelector('img')).toBeNull();
+      rerenderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            mediaDelivery: {
+              ...readyGrant,
+              url: 'https://media.test/renewed.mp4',
+            },
+          },
+        ],
+      });
+      expect(getVideoPreview()).toHaveAttribute(
+        'src',
+        'https://media.test/renewed.mp4',
+      );
+      expect(
+        screen.getByTestId('ingredient-preview-fallback'),
+      ).toBeInTheDocument();
+    });
+
+    it.each(['PENDING', 'FAILED', 'UNSUPPORTED'] as const)(
+      'never falls back to the original video or poster for a %s grant',
+      (state) => {
+        previewVisibility.visible = true;
+        renderContent({
+          filteredIngredients: [
+            {
+              ...videoIngredient,
+              mediaDelivery: {
+                id: videoIngredient.id,
+                purpose: 'preview',
+                state,
+                url: null,
+                expiresAt: null,
+              },
+            },
+          ],
+          viewMode: 'list',
+        });
+        expect(
+          screen.queryByTestId('ingredient-video-preview'),
+        ).not.toBeInTheDocument();
+        expect(document.querySelector('img')).toBeNull();
+        expect(
+          screen.getByTestId('ingredient-preview-fallback'),
+        ).toBeInTheDocument();
+      },
+    );
+
+    it('treats an extensionless authorized video endpoint as video rather than an image', () => {
+      previewVisibility.visible = true;
+      renderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            mediaDelivery: {
+              id: videoIngredient.id,
+              purpose: 'preview',
+              state: 'READY',
+              url: 'https://media.test/preview/asset',
+              expiresAt: null,
+            },
+          },
+        ],
+        viewMode: 'list',
+      });
+      expect(getVideoPreview()).toHaveAttribute(
+        'src',
+        'https://media.test/preview/asset',
+      );
+      expect(document.querySelector('img')).toBeNull();
+    });
+
+    it('ignores the model placeholder poster and loads its extensionless local video endpoint', () => {
+      previewVisibility.visible = true;
+      renderContent({
+        filteredIngredients: [
+          {
+            ...videoIngredient,
+            thumbnailUrl: `${EnvironmentService.assetsEndpoint}/placeholders/landscape.jpg`,
+            ingredientUrl: 'https://ingredients.test/videos/video-1',
+          },
+        ],
+        viewMode: 'list',
+      });
+      expect(getVideoPreview()).toHaveAttribute(
+        'src',
+        'https://ingredients.test/videos/video-1',
+      );
+      expect(document.querySelector('img')).toBeNull();
+    });
+
+    it('prefers a poster without mounting a video', () => {
+      previewVisibility.visible = true;
+      renderContent({
+        filteredIngredients: [videoIngredient],
+        viewMode: 'list',
+      });
+      expect(
+        screen.getByRole('img', { name: 'A red apple on a table' }),
+      ).toHaveAttribute('src', videoIngredient.thumbnailUrl);
+      expect(
+        screen.queryByTestId('ingredient-video-preview'),
+      ).not.toBeInTheDocument();
+    });
+
+    it.each([IngredientStatus.PROCESSING, IngredientStatus.FAILED])(
+      'leaves %s videos as placeholders',
+      (status) => {
+        previewVisibility.visible = true;
+        renderContent({
+          filteredIngredients: [{ ...withoutPoster, status }],
+          viewMode: 'list',
+        });
+        expect(
+          screen.queryByTestId('ingredient-video-preview'),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByTestId('ingredient-preview-fallback'),
+        ).toBeInTheDocument();
+      },
+    );
   });
 });

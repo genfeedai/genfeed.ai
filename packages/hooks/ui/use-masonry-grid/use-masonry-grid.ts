@@ -62,20 +62,39 @@ export function useMasonryGrid<T extends MasonryItem>(
     [options.columns],
   );
 
-  const getColumnCount = useCallback(() => {
-    if (!isClient) {
-      return options.columns?.mobile;
-    }
+  const getColumnCount = useCallback(
+    (containerWidth: number) => {
+      if (options.minColumnWidth) {
+        return Math.max(
+          1,
+          Math.min(
+            columnSettings.desktop,
+            Math.floor((containerWidth + gap) / (options.minColumnWidth + gap)),
+          ),
+        );
+      }
 
-    const width = window.innerWidth;
-    if (width >= 1024) {
-      return columnSettings.desktop;
-    }
-    if (width >= 640) {
-      return columnSettings.tablet;
-    }
-    return columnSettings.mobile;
-  }, [columnSettings, isClient, options.columns?.mobile]);
+      if (!isClient) {
+        return options.columns?.mobile;
+      }
+
+      const width = window.innerWidth;
+      if (width >= 1024) {
+        return columnSettings.desktop;
+      }
+      if (width >= 640) {
+        return columnSettings.tablet;
+      }
+      return columnSettings.mobile;
+    },
+    [
+      columnSettings,
+      gap,
+      isClient,
+      options.columns?.mobile,
+      options.minColumnWidth,
+    ],
+  );
 
   const calculateLayout = useCallback(() => {
     if (!containerRef.current || itemsCount === 0 || !isClient) {
@@ -85,13 +104,13 @@ export function useMasonryGrid<T extends MasonryItem>(
     void layoutSignature;
 
     const container = containerRef.current;
-    const columnCount = getColumnCount() ?? 1;
     const containerWidth = container.clientWidth;
 
     if (containerWidth === 0) {
       return; // Wait for container to be sized
     }
 
+    const columnCount = getColumnCount(containerWidth) ?? 1;
     const itemWidth = (containerWidth - (columnCount - 1) * gap) / columnCount;
 
     // Initialize column heights
@@ -99,7 +118,7 @@ export function useMasonryGrid<T extends MasonryItem>(
 
     // Get all masonry items
     const masonryItems = Array.from(
-      container.querySelectorAll('.masonry-item'),
+      container.querySelectorAll(':scope > .masonry-item'),
     ) as HTMLElement[];
 
     if (masonryItems.length === 0) {
@@ -110,7 +129,10 @@ export function useMasonryGrid<T extends MasonryItem>(
 
     masonryItems.forEach((item, index) => {
       item.style.width = `${itemWidth}px`;
-      const itemHeight = item.scrollHeight || item.offsetHeight;
+      const itemHeight =
+        item.getBoundingClientRect().height ||
+        item.offsetHeight ||
+        item.scrollHeight;
 
       // First row: maintain horizontal ordering, subsequent: find shortest column
       const targetColumn =
@@ -143,7 +165,7 @@ export function useMasonryGrid<T extends MasonryItem>(
     });
 
     const maxHeight = Math.max(...columnHeights) - gap;
-    setContainerHeight(Math.max(maxHeight, 200));
+    setContainerHeight(Math.max(maxHeight, 0));
 
     if (!isLayoutReady) {
       setIsLayoutReady(true);
@@ -183,6 +205,13 @@ export function useMasonryGrid<T extends MasonryItem>(
 
   // Layout on items change - only when client is ready
   useEffect(() => {
+    if (itemsCount === 0) {
+      cancelScheduledLayout();
+      setContainerHeight(0);
+      setIsLayoutReady(false);
+      return;
+    }
+
     if (itemsCount > 0 && isClient) {
       scheduleLayout(100);
 
@@ -209,9 +238,13 @@ export function useMasonryGrid<T extends MasonryItem>(
     };
   }, [scheduleLayout, isClient, cancelScheduledLayout]);
 
-  // Observe container size changes - only after client hydration
+  // Intrinsic media dimensions can change after loading without a window resize.
   useEffect(() => {
-    if (!containerRef.current || !isClient) {
+    if (
+      !containerRef.current ||
+      !isClient ||
+      typeof ResizeObserver === 'undefined'
+    ) {
       return;
     }
 
@@ -220,6 +253,11 @@ export function useMasonryGrid<T extends MasonryItem>(
     });
 
     resizeObserverRef.current.observe(containerRef.current);
+    for (const item of containerRef.current.querySelectorAll(
+      ':scope > .masonry-item',
+    )) {
+      resizeObserverRef.current.observe(item);
+    }
 
     return () => {
       if (resizeObserverRef.current) {

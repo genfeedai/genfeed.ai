@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { ActionOrigin, type ActionOriginContext } from '@genfeedai/contracts';
+import { parseGenerationEntry } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 
 const storage = new AsyncLocalStorage<ActionOriginContext>();
 
@@ -19,7 +20,9 @@ export function normalizeActionOrigin(value: unknown): ActionOrigin {
 export function sanitizeActionOriginContext(
   value: Partial<ActionOriginContext> | null | undefined,
 ): ActionOriginContext {
+  const generationEntry = parseGenerationEntry(value?.generationEntry);
   return {
+    ...(generationEntry ? { generationEntry } : {}),
     ...(typeof value?.actorUserId === 'string' && value.actorUserId.length > 0
       ? { actorUserId: value.actorUserId }
       : {}),
@@ -45,6 +48,20 @@ export function runWithActionOrigin<T>(
   return storage.run(sanitizeActionOriginContext(context), callback);
 }
 
+/** Restore durable entry metadata without replacing the current actor or origin. */
+export function runWithGenerationEntry<T>(
+  entry: unknown,
+  callback: () => T,
+): T {
+  return runWithActionOrigin(
+    {
+      ...getActionOriginContext(),
+      generationEntry: parseGenerationEntry(entry),
+    },
+    callback,
+  );
+}
+
 /**
  * Reclassify UI/unknown work at a trusted internal execution boundary while
  * retaining an already-proven external initiator across nested work.
@@ -64,6 +81,7 @@ export function withActionOriginMetadata(
 ): Record<string, unknown> {
   const normalized = sanitizeActionOriginContext(context);
   const {
+    generationEntry: _untrustedGenerationEntry,
     actorUserId: _untrustedActorUserId,
     apiKeyId: _untrustedApiKeyId,
     origin: _untrustedOrigin,
@@ -71,6 +89,9 @@ export function withActionOriginMetadata(
   } = metadata ?? {};
   return {
     ...safeMetadata,
+    ...(normalized.generationEntry
+      ? { generationEntry: normalized.generationEntry }
+      : {}),
     ...(normalized.actorUserId ? { actorUserId: normalized.actorUserId } : {}),
     ...(normalized.apiKeyId ? { apiKeyId: normalized.apiKeyId } : {}),
     origin: normalized.origin,

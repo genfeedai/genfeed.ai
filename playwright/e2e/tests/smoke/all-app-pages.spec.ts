@@ -1,14 +1,21 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
+import type { SocialTimelineResponse } from '@genfeedai/contracts/interfaces';
 import type { Page, Response } from '@playwright/test';
-import { playwrightApiEndpoint } from '../../config/environment';
+import {
+  createPlaywrightApiRoutePattern,
+  playwrightApiEndpoint,
+} from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import {
   buildReferralProgramMockBody,
   buildUnhandledApiMockBody,
 } from '../../utils/api-interceptor';
-import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
+import {
+  assertNoErrorBoundaryFallback,
+  FRAMEWORK_ERROR_OVERLAY_SELECTOR,
+} from '../../utils/route-assertions';
 
 const appRoot = path.join(process.cwd(), 'apps/app/app');
 const routeFilter = process.env.GENFEED_E2E_ROUTE_FILTER;
@@ -196,6 +203,24 @@ function jsonResponse(response: ServerResponse, body: unknown) {
   response.end(JSON.stringify(body));
 }
 
+function socialTimelinePayload(): SocialTimelineResponse {
+  return { accounts: [] };
+}
+
+async function mockSocialTimelines(page: Page): Promise<void> {
+  // This endpoint returns raw account data, not a JSON:API document.
+  await page.route(
+    createPlaywrightApiRoutePattern('social-timelines/?(?:\\?.*)?$'),
+    async (route) => {
+      await route.fulfill({
+        body: JSON.stringify(socialTimelinePayload()),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
+}
+
 function collection(type: string) {
   return { data: [], meta: { page: 1, pageSize: 0, totalCount: 0 }, type };
 }
@@ -341,6 +366,15 @@ async function startMockApiServer(): Promise<Server | null> {
       /^\/v1\/referrals\/me\/?$/.test(new URL(url, 'http://localhost').pathname)
     ) {
       jsonResponse(response, buildReferralProgramMockBody());
+      return;
+    }
+
+    if (
+      new URL(url, 'http://localhost').pathname.match(
+        /^\/v1\/social-timelines\/?$/,
+      )
+    ) {
+      jsonResponse(response, socialTimelinePayload());
       return;
     }
 
@@ -501,7 +535,7 @@ async function assertRouteLoads(
   await page.locator('body').waitFor({ state: 'attached', timeout: 10_000 });
 
   await expect(
-    page.locator('[data-nextjs-dialog]'),
+    page.locator(FRAMEWORK_ERROR_OVERLAY_SELECTOR),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
 
@@ -611,6 +645,31 @@ test.describe('All App Pages', () => {
     });
   });
 
+  test('Following shows the empty raw-timeline response without an error boundary', async ({
+    authenticatedPage,
+  }) => {
+    await mockSocialTimelines(authenticatedPage);
+    const timelineResponse = authenticatedPage.waitForResponse((response) =>
+      /\/social-timelines\/?$/.test(new URL(response.url()).pathname),
+    );
+    await assertRouteLoads(
+      authenticatedPage,
+      '/test-org/brand-1/discovery/following',
+    );
+    const body: unknown = await (await timelineResponse).json();
+    expect(body).toEqual(socialTimelinePayload());
+    await test.info().attach('raw-timeline-response', {
+      body: JSON.stringify(body),
+      contentType: 'application/json',
+    });
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Refresh feeds' }),
+    ).toBeDisabled();
+    await expect(
+      authenticatedPage.getByText('Connect an account'),
+    ).toBeVisible();
+  });
+
   test('public pages render', async ({ unauthenticatedPage }) => {
     await sweepRoutes(unauthenticatedPage, publicRoutes, {
       allowRedirectToLogin: true,
@@ -635,6 +694,7 @@ test.describe('All App Pages', () => {
 
   for (const bucket of protectedRouteBuckets) {
     test(`${bucket.name} pages render`, async ({ authenticatedPage }) => {
+      await mockSocialTimelines(authenticatedPage);
       await sweepRoutes(authenticatedPage, bucket.routes);
     });
   }
