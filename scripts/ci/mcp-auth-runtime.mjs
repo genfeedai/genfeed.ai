@@ -346,7 +346,7 @@ export function readProcessNetworkNamespace(pid, runCommand = command) {
 export function readJourneyFailure(output) {
   const lines = output.split('\n');
   const principalFailure = lines.find((line) =>
-    /^B01_REAL_PRINCIPALS_(SIGNIN|SIGNIN_IDENTITY|SIGNIN_HTTP_[1-5][0-9]{2}(?:_(INVALID_EMAIL_OR_PASSWORD|INVALID_ORIGIN|EMAIL_NOT_VERIFIED|USER_BANNED))?|COOKIE|TOKEN|CONTEXT|TRANSPORT|KEY_MINT|KEY_BINDING) failed$/.test(
+    /^B01_REAL_PRINCIPALS_(SIGNIN|SIGNIN_IDENTITY|SIGNIN_HTTP_[1-5][0-9]{2}(?:_(INVALID_EMAIL_OR_PASSWORD|INVALID_ORIGIN|EMAIL_NOT_VERIFIED|USER_BANNED))?|COOKIE|TOKEN|CONTEXT|TRANSPORT|KEY_MINT|KEY_MINT_HTTP_[1-5][0-9]{2}|KEY_SERIALIZER|KEY_BINDING) failed$/.test(
       line,
     ),
   );

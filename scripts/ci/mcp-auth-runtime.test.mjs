@@ -93,6 +93,10 @@ test('journey diagnostics expose only the finite failure category', () => {
     'B01_REAL_PRINCIPALS_SIGNIN_HTTP_401_INVALID_EMAIL_OR_PASSWORD',
   );
   assert.equal(
+    readJourneyFailure('B01_REAL_PRINCIPALS_KEY_MINT_HTTP_403 failed'),
+    'B01_REAL_PRINCIPALS_KEY_MINT_HTTP_403',
+  );
+  assert.equal(
     readJourneyFailure(`private output\n${CONTRACT.cases[0]} failed\n`),
     CONTRACT.cases[0],
   );

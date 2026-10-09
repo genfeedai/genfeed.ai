@@ -247,10 +247,12 @@ try {
         defaultBrandId: fixture.brands.A,
       }),
     });
+    principalStage = `KEY_MINT_HTTP_${minted.status}`;
     requireMcpRuntime(
       minted.status === 201 || minted.status === 200,
       'REAL_KEY_MINT',
     );
+    principalStage = 'KEY_SERIALIZER';
     const data = record(record(minted.body).data);
     const attributes = record(data.attributes ?? data);
     requireMcpRuntime(
