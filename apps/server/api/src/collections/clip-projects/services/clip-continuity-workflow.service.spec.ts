@@ -49,6 +49,7 @@ function createHarness() {
     ]),
   };
   const queue = { queueSystemWorkflow: vi.fn() };
+  const moduleAccess = { canStartWork: vi.fn().mockResolvedValue(true) };
   const runner = {
     registerAction: vi.fn(
       (actionId: string, executor: SystemWorkflowActionExecutor) => {
@@ -63,9 +64,10 @@ function createHarness() {
     clipResults as unknown as ClipResultsService,
     queue as unknown as WorkflowExecutionQueueService,
     runner as unknown as SystemWorkflowRunnerService,
+    moduleAccess as never,
   );
   service.onModuleInit();
-  return { actions, clipResults, prisma, queue, service };
+  return { actions, clipResults, moduleAccess, prisma, queue, service };
 }
 
 const project = {
@@ -78,6 +80,48 @@ const project = {
 } as unknown as ClipProjectDocument;
 
 describe('ClipContinuityWorkflowService', () => {
+  it('keeps optional QA pending and saved reads available when Clips access cannot start work', async () => {
+    const { moduleAccess, prisma, clipResults, queue, service } =
+      createHarness();
+    moduleAccess.canStartWork.mockResolvedValue(false);
+    await expect(service.queueIfReady(project)).resolves.toBe(false);
+    expect(moduleAccess.canStartWork).toHaveBeenCalledWith('org-1', 'clips');
+    expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
+    expect(clipResults.findByProject).not.toHaveBeenCalled();
+    expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
+    expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+  it('restores a pending claim when access changes during preparation without queuing QA', async () => {
+    const { moduleAccess, prisma, queue, service } = createHarness();
+    moduleAccess.canStartWork
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    await expect(service.queueIfReady(project)).resolves.toBe(false);
+    expect(moduleAccess.canStartWork).toHaveBeenCalledTimes(2);
+    expect(prisma.clipProject.updateMany).toHaveBeenLastCalledWith({
+      data: { continuityQaStatus: 'pending' },
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        continuityQaStatus: 'queued',
+        id: 'project-1',
+      },
+    });
+    expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+  it('restores a claimed status and propagates an unexpected queue failure', async () => {
+    const { prisma, queue, service } = createHarness();
+    queue.queueSystemWorkflow.mockRejectedValueOnce(
+      new Error('Queue unavailable'),
+    );
+    await expect(service.queueIfReady(project)).rejects.toThrow(
+      'Queue unavailable',
+    );
+    expect(prisma.clipProject.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { continuityQaStatus: 'pending' } }),
+    );
+  });
+
   it('atomically claims and queues one action-backed continuity graph', async () => {
     const { prisma, queue, service } = createHarness();
 

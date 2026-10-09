@@ -40,6 +40,7 @@ function forEachNode(
 export function buildClipGenerationChildWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: CLIP_GENERATION_CHILD_WORKFLOW_ID,
+    organizationModule: 'clips',
     definition: {
       inputVariables: [
         {
@@ -207,6 +208,7 @@ export function buildClipFactoryWorkflowDefinition(): SystemWorkflowGraphDefinit
 
   return {
     canonicalId: CLIP_FACTORY_WORKFLOW_ID,
+    organizationModule: 'clips',
     definition: {
       edges,
       inputVariables: [

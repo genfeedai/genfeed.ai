@@ -13,6 +13,7 @@ import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -47,6 +48,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     private readonly clipResults: ClipResultsService,
     private readonly queue: WorkflowExecutionQueueService,
     private readonly runner: SystemWorkflowRunnerService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   onModuleInit(): void {
@@ -83,6 +85,10 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     ) {
       return false;
     }
+
+    // Saved-data reads can reconcile state without starting optional new QA.
+    if (!(await this.moduleAccess.canStartWork(organizationId, 'clips')))
+      return false;
 
     const execution = await this.prisma.workflowExecution.findFirst({
       include: { nodeResults: true },
@@ -183,6 +189,16 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       return false;
     }
     try {
+      if (!(await this.moduleAccess.canStartWork(organizationId, 'clips'))) {
+        await this.prisma.clipProject.updateMany({
+          data: { continuityQaStatus: 'pending' },
+          where: scopedWhere(organizationId, {
+            continuityQaStatus: 'queued',
+            id: projectId,
+          }),
+        });
+        return false;
+      }
       await this.queue.queueSystemWorkflow(
         {
           actionType: 'clip-continuity',

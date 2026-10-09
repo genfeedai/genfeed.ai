@@ -12,6 +12,8 @@ describe('buildClipGenerationWorkflowDefinition', () => {
     const workflow = buildClipGenerationWorkflowDefinition();
 
     expect(workflow.canonicalId).toBe(CLIP_GENERATION_WORKFLOW_ID);
+    expect(workflow.organizationModule).toBe('clips');
+    expect(workflow.moduleCompletionNodeIds).toBeUndefined();
     expect(workflow.resultNodeId).toBe('generate-remaining');
     expect(workflow.definition.nodes.map((node) => node.id)).toEqual([
       'plan-generation',
