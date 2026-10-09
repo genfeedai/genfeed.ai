@@ -245,6 +245,11 @@ const UI_TEST_MESSAGES = {
       referenceLibrary: 'Reference library content',
     },
     generationSetup: {
+      lookPreviewAria: '{field} preview',
+      lookPreviewImageAlt: '{label} example',
+      lookPreviewExample: 'Illustrative example',
+      lookPreviewHint: 'Highlight an option to preview it.',
+      lookPreviewUnavailable: 'No example image saved for this option.',
       agentPick: 'Agent pick',
       applyPreset: 'Apply preset {label}',
       aspectRatio: 'Aspect ratio',
