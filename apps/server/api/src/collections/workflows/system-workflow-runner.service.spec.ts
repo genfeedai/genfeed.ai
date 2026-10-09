@@ -1,3 +1,4 @@
+import { buildVisualProjectWorkflowDefinition } from '@api/collections/visual-projects/services/visual-project-workflow-definition';
 import {
   buildHiddenSystemWorkflowMetadata,
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
@@ -1087,6 +1088,110 @@ describe('SystemWorkflowRunnerService definitions', () => {
     ).rejects.toThrow(
       'workflow.for-each-tenant requires a hidden system workflow parent',
     );
+  });
+});
+
+describe('registered Motion graph admission', () => {
+  const motion = buildVisualProjectWorkflowDefinition();
+  const input = {
+    actionType: motion.canonicalId,
+    canonicalId: motion.canonicalId,
+    organizationId: 'org-1',
+    source: 'visual-code',
+    userId: 'user-1',
+  };
+  function fixture() {
+    const assertAccess = vi.fn().mockResolvedValue(undefined);
+    const queueSystemWorkflow = vi.fn();
+    const createExecution = vi.fn();
+    const { runner, executors } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+      { assertAccess },
+    );
+    runner.registerWorkflow(motion);
+    const internals = runner as unknown as RunnerInternals;
+    const resolveUserId = vi.spyOn(internals, 'resolveUserId');
+    const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+    return {
+      runner,
+      executors,
+      assertAccess,
+      queueSystemWorkflow,
+      createExecution,
+      resolveUserId,
+      mirror,
+    };
+  }
+  it.each(['start', 'enqueue'] as const)(
+    'denies Motion %s before any execution or queue writes',
+    async (mode) => {
+      const h = fixture();
+      h.assertAccess.mockRejectedValue(
+        new ForbiddenException('Motion disabled'),
+      );
+      await expect(
+        mode === 'start'
+          ? h.runner.startWorkflow(input)
+          : h.runner.enqueueWorkflow(input, {
+              dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+            }),
+      ).rejects.toThrow('Motion disabled');
+      expect(h.assertAccess).toHaveBeenCalledWith('org-1', 'motion');
+      expect(h.resolveUserId).not.toHaveBeenCalled();
+      expect(h.mirror).not.toHaveBeenCalled();
+      expect(h.createExecution).not.toHaveBeenCalled();
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    },
+  );
+  it('uses registered Motion ownership for legacy resume and rechecks revocation after a warmed run', async () => {
+    const h = fixture();
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    await expect(
+      runWithOrganizationModule(
+        { organizationId: 'org-1', moduleId: 'playground' },
+        () => h.runner.runWithRegisteredWorkflowModule(input, work),
+      ),
+    ).resolves.toEqual({ organizationId: 'org-1', moduleId: 'motion' });
+    h.assertAccess.mockRejectedValueOnce(
+      new ForbiddenException('Motion disabled'),
+    );
+    await expect(
+      h.runner.runWithRegisteredWorkflowModule(input, work),
+    ).rejects.toThrow('Motion disabled');
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+  it('does not exempt the provider-capable execute node from fresh module admission', async () => {
+    const h = fixture();
+    const action = vi.fn().mockResolvedValue(null);
+    h.runner.registerAction('visual-code.execute-internal', action);
+    const node = {
+      config: { actionId: 'visual-code.execute-internal' },
+      id: 'execute',
+      inputs: [],
+      label: 'Execute visual revision',
+      type: 'genfeedAction',
+    };
+    await h.runner.runWithRegisteredWorkflowModule(input, async () => {
+      await h.executors.get('visual-code.execute-internal')?.(
+        node,
+        new Map(),
+        executionContext(),
+      );
+      h.assertAccess.mockRejectedValueOnce(
+        new ForbiddenException('Motion disabled'),
+      );
+      await expect(
+        h.executors.get('visual-code.execute-internal')?.(
+          node,
+          new Map(),
+          executionContext(),
+        ),
+      ).rejects.toThrow('Motion disabled');
+    });
+    expect(action).toHaveBeenCalledTimes(1);
   });
 });
 
