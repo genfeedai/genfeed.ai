@@ -363,7 +363,7 @@ describe('StudioPlaygroundComposer', () => {
       advancedModeMocks.isAdvancedMode = true;
     });
 
-    it('hides model choice and the model name in simple mode', () => {
+    it('keeps Auto priorities available while hiding the manual catalogue in simple mode', () => {
       advancedModeMocks.isAdvancedMode = false;
       render(
         <StudioPlaygroundComposer
@@ -380,7 +380,7 @@ describe('StudioPlaygroundComposer', () => {
       );
       expect(generationSetupPopoverMocks.props.models).toEqual([]);
       expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
-        hasModelSelection: false,
+        hasModelSelection: true,
       });
       expect(generationSetupPopoverMocks.props.advancedMode).toMatchObject({
         isEnabled: false,
@@ -1749,7 +1749,7 @@ describe('StudioPlaygroundComposer', () => {
         screen.getByLabelText('Estimate available after model selection'),
       ).toBeVisible();
       expect(estimateMocks.resolve).not.toHaveBeenCalled();
-      expect(screen.getByText('Auto (Ideogram 4.5) · 1:1 · x3')).toBeVisible();
+      expect(screen.getByText('Auto · 1:1 · x3')).toBeVisible();
     });
     it('shows the source ratio and does not label Auto with an image-generation default', () => {
       const imageDefault = {
@@ -1772,8 +1772,42 @@ describe('StudioPlaygroundComposer', () => {
           type="image-edit"
         />,
       );
-      expect(screen.getByText('Auto (Ideogram 4.5) · 16:9 · x1')).toBeVisible();
+      expect(screen.getByText('Auto · 16:9 · x1')).toBeVisible();
       expect(screen.queryByText(/Nano Banana/)).not.toBeInTheDocument();
+    });
+    it('does not inherit the default FLUX restrictions in Auto', () => {
+      render(
+        <StudioPlaygroundComposer
+          {...baseProps}
+          models={[
+            {
+              ...editModel,
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+            },
+          ]}
+          prompt="Edit"
+          settings={{
+            ...settings,
+            modelKey: AUTO_MODEL_OPTION_VALUE,
+            outputs: 3,
+            editSeed: 0,
+          }}
+          attachedAssets={[
+            {
+              id: 'mask',
+              name: 'Mask',
+              kind: 'image',
+              source: 'library',
+              role: 'editMask',
+            },
+          ]}
+          type="image-edit"
+        />,
+      );
+      expect(baseProps.onRemoveAttachedAsset).not.toHaveBeenCalled();
+      expect(baseProps.onSettingsChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({ outputs: 1 }),
+      );
     });
     it('blocks submission without a source and never offers prompt enhancement', () => {
       render(

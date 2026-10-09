@@ -299,6 +299,7 @@ const UI_TEST_MESSAGES = {
       searchField: 'Search {field}',
       searchFieldPlaceholder: 'Search {field}…',
       searchFields: 'Search fields…',
+      qualityBudget: 'Quality / budget',
       searchModels: 'Search models',
       searchModelsPlaceholder: 'Search models…',
       searchPresets: 'Search presets',

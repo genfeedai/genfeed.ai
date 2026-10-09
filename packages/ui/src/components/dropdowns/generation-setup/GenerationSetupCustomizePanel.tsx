@@ -14,6 +14,7 @@ import { ArrowLeft, Check, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export default function GenerationSetupCustomizePanel({
+  isAutoPriorityOnly = false,
   typeOptions,
   onTypeChange,
   capabilities,
@@ -64,7 +65,11 @@ export default function GenerationSetupCustomizePanel({
           />
         ) : null}
         <span className="text-xs font-medium">
-          {translate(resolvedSection)}
+          {translate(
+            resolvedSection === 'model' && isAutoPriorityOnly
+              ? 'qualityBudget'
+              : resolvedSection,
+          )}
         </span>
         {resolvedSection === 'model' &&
         setup.sources.modelKey &&
@@ -131,6 +136,7 @@ export default function GenerationSetupCustomizePanel({
 
         {resolvedSection === 'model' ? (
           <GenerationSetupModelSection
+            isAutoPriorityOnly={isAutoPriorityOnly}
             capabilities={capabilities}
             creditsAvailable={creditsAvailable}
             favoriteModelKeys={favoriteModelKeys}

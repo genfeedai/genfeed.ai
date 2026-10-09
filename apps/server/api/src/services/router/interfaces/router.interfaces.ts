@@ -11,6 +11,8 @@ export interface PromptAnalysis {
 }
 
 export interface ModelSelectionOptions {
+  /** Admission restricts ranking and alternatives to compatible models. Empty means none. */
+  eligibleModelKeys?: readonly string[];
   category: ModelCategory;
   prompt: string;
   prioritize?: 'quality' | 'speed' | 'cost' | 'balanced';

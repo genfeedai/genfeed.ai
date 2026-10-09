@@ -34,6 +34,7 @@ import { useState } from 'react';
  * the model-selector dropdown so the two pickers never visually diverge.
  */
 export default function GenerationSetupModelSection({
+  isAutoPriorityOnly = false,
   capabilities,
   creditsAvailable,
   favoriteModelKeys,
@@ -52,13 +53,15 @@ export default function GenerationSetupModelSection({
   }
 
   const isAutoSelected = isAutoGenerationModelKey(setup.values.modelKey);
-  const options = sortModelOptions(
-    transformModelsToOptions(models, favoriteModelKeys),
-  ).filter((option) =>
-    `${option.model.label} ${option.brandLabel} ${option.model.key} ${option.model.description ?? ''}`
-      .toLowerCase()
-      .includes(query),
-  );
+  const options = isAutoPriorityOnly
+    ? []
+    : sortModelOptions(
+        transformModelsToOptions(models, favoriteModelKeys),
+      ).filter((option) =>
+        `${option.model.label} ${option.brandLabel} ${option.model.key} ${option.model.description ?? ''}`
+          .toLowerCase()
+          .includes(query),
+      );
   const priorities = AUTO_PRIORITY_OPTIONS.filter((priority) =>
     `auto ${AUTO_PRIORITY_LABELS[priority]}`.toLowerCase().includes(query),
   );
@@ -74,16 +77,20 @@ export default function GenerationSetupModelSection({
   return (
     <div className="flex flex-col gap-2">
       <Command
-        label={translate('searchModels')}
+        label={translate(isAutoPriorityOnly ? 'qualityBudget' : 'searchModels')}
         className="flex min-h-0 flex-col bg-transparent text-foreground"
         shouldFilter={false}
       >
-        <CommandInput
-          aria-label={translate('searchModels')}
-          placeholder={translate('searchModelsPlaceholder')}
-          value={search}
-          onValueChange={setSearch}
-        />
+        {!isAutoPriorityOnly ? (
+          <CommandInput
+            aria-label={translate(
+              isAutoPriorityOnly ? 'qualityBudget' : 'searchModels',
+            )}
+            placeholder={translate('searchModelsPlaceholder')}
+            value={search}
+            onValueChange={setSearch}
+          />
+        ) : null}
         <CommandList
           className={cn(
             'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-0.5 py-0.5',

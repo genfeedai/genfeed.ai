@@ -123,6 +123,48 @@ describe('RouterService', () => {
   });
 
   describe('selectModel', () => {
+    it('ranks and offers alternatives only inside the admitted set, with no fallback for an empty set', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          key: 'incompatible',
+          qualityTier: 'ultra',
+          costTier: 'low',
+        }),
+        createMockModel({
+          key: 'compatible-quality',
+          qualityTier: 'ultra',
+          costTier: 'high',
+          speedTier: 'slow',
+        }),
+        createMockModel({
+          key: 'compatible-cheap',
+          qualityTier: 'basic',
+          costTier: 'low',
+          speedTier: 'fast',
+        }),
+      ]);
+      const options: ModelSelectionOptions = {
+        category: ModelCategory.IMAGE_EDIT,
+        prompt: 'Edit the image',
+        eligibleModelKeys: ['compatible-quality', 'compatible-cheap'],
+      };
+      const quality = await service.selectModel({
+        ...options,
+        prioritize: 'quality',
+      });
+      expect(quality.selectedModel).toBe('compatible-quality');
+      expect(quality.alternatives.map((row) => row.model)).not.toContain(
+        'incompatible',
+      );
+      const cheap = await service.selectModel({
+        ...options,
+        prioritize: 'cost',
+      });
+      expect(cheap.selectedModel).toBe('compatible-cheap');
+      await expect(
+        service.selectModel({ ...options, eligibleModelKeys: [] }),
+      ).rejects.toThrow(ForbiddenException);
+    });
     describe('admission quote filter', () => {
       it('skips an Auto candidate whose tariff admission would refuse', async () => {
         const unpriced = createMockModel({

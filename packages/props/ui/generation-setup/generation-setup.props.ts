@@ -140,6 +140,7 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupFrontDoorProps {
+  isAutoPriorityOnly?: boolean;
   showPresets?: boolean;
   showEnhancementSettings?: boolean;
   capabilities: StudioPlaygroundCapabilities;
@@ -199,6 +200,7 @@ export type GenerationSetupCustomizeSectionId =
   | 'presets';
 
 export interface GenerationSetupCustomizePanelProps {
+  isAutoPriorityOnly?: boolean;
   typeOptions: readonly GenerationSetupTypeOption[];
   onTypeChange?: (type: GenerationSetupType) => void;
   inputControls?: CrunInputControls;
@@ -224,6 +226,7 @@ export interface GenerationSetupCustomizePanelProps {
 }
 
 export interface GenerationSetupModelSectionProps {
+  isAutoPriorityOnly?: boolean;
   capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];

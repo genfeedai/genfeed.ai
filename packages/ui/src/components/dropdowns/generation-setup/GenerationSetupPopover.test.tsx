@@ -534,6 +534,34 @@ describe('GenerationSetupPopover', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers quality/budget priorities without a model catalogue in Auto', async () => {
+    const user = userEvent.setup();
+    const onSetField = vi.fn();
+    renderPopover({
+      onSetField,
+      advancedMode: { isEnabled: false, onChange: vi.fn() },
+    });
+    await openPopover(user);
+    await user.click(
+      screen.getByRole('button', { name: 'Configure Quality / budget' }),
+    );
+    expect(
+      screen.queryByPlaceholderText('Search models…'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+    for (const name of ['Best Quality', 'Balanced', 'Fastest', 'Lowest Cost'])
+      expect(screen.getByRole('button', { name })).toBeVisible();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Lowest Cost' }), {
+      button: 0,
+    });
+    expect(onSetField).toHaveBeenNthCalledWith(1, 'modelKey', '');
+    expect(onSetField).toHaveBeenNthCalledWith(
+      2,
+      'prioritize',
+      RouterPriority.COST,
+    );
+  });
+
   it('keeps model search and Auto priorities isolated from output, brand, and presets', async () => {
     const user = userEvent.setup();
     const onSetField = vi.fn();

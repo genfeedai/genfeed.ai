@@ -7,7 +7,10 @@ import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  AUTO_PRIORITY_LABELS,
+  isAutoGenerationModelKey,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
 import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import {
@@ -37,6 +40,7 @@ const SECTION_ICONS: Record<
 };
 
 export default function GenerationSetupFrontDoor({
+  isAutoPriorityOnly = false,
   showPresets = true,
   showEnhancementSettings = false,
   capabilities,
@@ -95,8 +99,10 @@ export default function GenerationSetupFrontDoor({
   if (capabilities.hasModelSelection)
     sections.push({
       id: 'model',
-      label: translate('model'),
-      value: modelLabel,
+      label: translate(isAutoPriorityOnly ? 'qualityBudget' : 'model'),
+      value: isAutoPriorityOnly
+        ? AUTO_PRIORITY_LABELS[setup.values.prioritize]
+        : modelLabel,
     });
   if (
     capabilities.hasAspectRatio ||
