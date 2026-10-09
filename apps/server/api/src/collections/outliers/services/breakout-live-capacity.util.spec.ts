@@ -255,6 +255,64 @@ describe('read-only live breakout capacity evidence', () => {
       remainingPublicationSlots: null,
     });
   });
+  it('excludes the canonical current logical group while retaining ungrouped publications', async () => {
+    const h = fixture();
+    h.findPosts.mockResolvedValue([]);
+    expect(
+      await readBreakoutLiveCapacity(h.tx, input, {
+        postId: 'current-a',
+        groupId: 'current-group',
+      }),
+    ).toMatchObject({ remainingPublicationSlots: 10 });
+    expect(h.findPosts).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [
+            { id: { not: 'current-a' } },
+            { OR: [{ groupId: null }, { groupId: { not: 'current-group' } }] },
+          ],
+        }),
+      }),
+    );
+    await readBreakoutLiveCapacity(h.tx, input, {
+      postId: 'ungrouped-a',
+      groupId: null,
+    });
+    expect(h.findPosts).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ id: { not: 'ungrouped-a' } }],
+        }),
+      }),
+    );
+  });
+  it('does not add a slot back to clamped zero after the ceiling is lowered below other publications', async () => {
+    const h = fixture();
+    h.strategy.config.publishingCeilingPerWeek = 1;
+    h.strategy.config.postsPerWeek = 1;
+    h.findPosts.mockResolvedValue([
+      {
+        id: 'other-a',
+        groupId: 'other-group-a',
+        publishedAt: new Date(input.nowMs),
+        scheduledDate: null,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      },
+      {
+        id: 'other-b',
+        groupId: 'other-group-b',
+        publishedAt: new Date(input.nowMs),
+        scheduledDate: null,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      },
+    ]);
+    expect(
+      await readBreakoutLiveCapacity(h.tx, input, {
+        postId: 'current-a',
+        groupId: 'current-group',
+      }),
+    ).toMatchObject({ remainingPublicationSlots: 0 });
+  });
   it('does not invent a period or zero spend for configured dimensional caps', async () => {
     const h = fixture();
     h.strategy.policies.budgetPolicy.perPlatformCaps = [

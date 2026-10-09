@@ -62,6 +62,8 @@ const formats: LearningFormat[] = [
 export async function readBreakoutLiveCapacity(
   tx: Prisma.TransactionClient,
   input: Readonly<BreakoutLiveCapacityInput>,
+  /** Native publication caller supplies the canonical current root/group, never client input. */
+  currentPublication?: Readonly<{ postId: string; groupId: string | null }>,
 ): Promise<BreakoutLiveCapacitySnapshot> {
   if (
     !Number.isSafeInteger(input.nowMs) ||
@@ -176,6 +178,23 @@ export async function readBreakoutLiveCapacity(
       organizationId,
       brandId,
       agentStrategyId: strategyId,
+      ...(currentPublication
+        ? {
+            AND: [
+              { id: { not: currentPublication.postId } },
+              ...(currentPublication.groupId === null
+                ? []
+                : [
+                    {
+                      OR: [
+                        { groupId: null },
+                        { groupId: { not: currentPublication.groupId } },
+                      ],
+                    },
+                  ]),
+            ],
+          }
+        : {}),
       parentId: null,
       isDeleted: false,
       targetExecutionState: {
