@@ -4941,6 +4941,7 @@
     "create": "Create batch",
     "loading": "Loading batch…",
     "loadFailed": "Could not load batches.",
+    "manageSubscription": "Manage subscription",
     "saveFailed": "Could not save the batch. Try again.",
     "saving": "Saving…",
     "saved": "Saved",
