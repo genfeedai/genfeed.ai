@@ -243,7 +243,7 @@ test.describe('Routed organization context', () => {
       window.localStorage.setItem(storageKey, `${Date.now()}:${Math.random()}`);
     }, ROUTED_ORGANIZATION_STORAGE_KEY);
 
-    await expect(otherTab).toHaveURL(/\/bravo\/~\/studio\/generate$/);
+    await expect(otherTab).toHaveURL(/\/bravo\/~\/studio\/playground$/);
     await expect(organizationSwitcher(otherTab)).toHaveAccessibleName(
       'Switch organization, Bravo Organization',
     );
