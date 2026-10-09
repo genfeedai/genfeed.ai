@@ -30,6 +30,7 @@ export interface StudioIdentityOption {
 }
 
 export interface UseStudioGenerateIdentitiesReturn {
+  retry: () => void;
   avatarOptions: readonly StudioIdentityOption[];
   error: string | null;
   isLoadingIdentities: boolean;
@@ -96,6 +97,7 @@ export function useStudioGenerateIdentities(): UseStudioGenerateIdentitiesReturn
     [voices, heygen.voices],
   );
   return {
+    retry: heygen.retry,
     avatarOptions,
     error: heygen.error,
     voiceOptions,

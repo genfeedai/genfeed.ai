@@ -1,12 +1,16 @@
+'use client';
+
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupPresetPreviewProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { UserRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /** Illustrative layout/motion examples, never presented as provider samples. */
 export default function GenerationSetupPresetPreview({
   preset,
   isAnimated = false,
 }: GenerationSetupPresetPreviewProps) {
+  const translate = useTranslations('agent.generationSetup');
   const isProfile = preset.key === 'studio-profile-picture';
   const isBanner = preset.key === 'studio-banner';
   const isThumbnail = preset.key === 'studio-youtube-thumbnail';
@@ -17,7 +21,7 @@ export default function GenerationSetupPresetPreview({
   return (
     <div
       role="img"
-      aria-label={`${preset.label} illustrative template preview`}
+      aria-label={translate('presetPreviewAria', { label: preset.label })}
       className="flex min-h-28 flex-col items-center justify-center gap-2 overflow-hidden rounded-md bg-background-secondary p-3"
     >
       <div
@@ -49,15 +53,17 @@ export default function GenerationSetupPresetPreview({
         ) : null}
         {isThumbnail ? (
           <div className="flex w-full items-center justify-around p-3">
-            <span className="text-2xl font-black text-black">WOW!</span>
+            <span className="text-2xl font-black text-black">
+              {translate('presetPreviewThumbnail')}
+            </span>
             <UserRound className="size-12 text-black" />
           </div>
         ) : null}
         {isProfile || isMeme || isDance ? (
           <div className="flex h-full min-h-24 flex-col items-center justify-center gap-3 p-3">
             {isMeme ? (
-              <span className="text-[9px] font-bold text-white">
-                WHEN IT FINALLY WORKS
+              <span className="text-2xs font-bold text-white">
+                {translate('presetPreviewMemeSetup')}
               </span>
             ) : null}
             <div
@@ -69,7 +75,9 @@ export default function GenerationSetupPresetPreview({
               <UserRound className="size-10" />
             </div>
             {isMeme ? (
-              <span className="text-[9px] text-white/70">THE REACTION</span>
+              <span className="text-2xs text-white/70">
+                {translate('presetPreviewMemeReaction')}
+              </span>
             ) : null}
           </div>
         ) : null}
@@ -82,8 +90,8 @@ export default function GenerationSetupPresetPreview({
           />
         ) : null}
       </div>
-      <span className="text-[10px] text-muted-foreground">
-        Illustrative preview
+      <span className="text-2xs text-muted-foreground">
+        {translate('presetPreviewIllustrative')}
       </span>
     </div>
   );

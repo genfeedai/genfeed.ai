@@ -59,6 +59,13 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// cmdk measures the real preset list; jsdom does not implement ResizeObserver.
+class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+}
+
 // Admission and composer tests inspect quote states independently of hover timing.
 // StudioGenerationSummary.test.tsx covers the real focus/hover tooltip behavior.
 vi.mock('@ui/primitives/tooltip', async (importOriginal) => {
@@ -289,6 +296,9 @@ const baseProps = {
 
 describe('StudioGenerateComposer', () => {
   beforeEach(() => {
+    globalThis.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
+    Element.prototype.scrollIntoView = vi.fn();
     presetCatalogMocks.presets = STUDIO_SYSTEM_PRESETS.map((preset) => ({
       id: studioSystemPresetId(preset.key),
       isActive: true,
@@ -800,9 +810,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Banner', exact: true }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Banner' }));
     expect(storeMocks.applyPreset).not.toHaveBeenCalled();
     fireEvent.click(
       screen.getByRole('button', { name: 'Apply preset Banner' }),
@@ -826,9 +834,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Dance', exact: true }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply preset Dance' }));
     expect(baseProps.onPromptChange).toHaveBeenCalledWith(
       STUDIO_SYSTEM_PRESETS[5].prompt,
@@ -872,9 +878,7 @@ describe('StudioGenerateComposer', () => {
         />,
       );
       fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-      fireEvent.click(
-        await screen.findByRole('button', { name: 'Dance', exact: true }),
-      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
       fireEvent.click(
         screen.getByRole('button', { name: 'Apply preset Dance' }),
       );
@@ -921,9 +925,7 @@ describe('StudioGenerateComposer', () => {
         />,
       );
       fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
-      fireEvent.click(
-        await screen.findByRole('button', { name: 'Dance', exact: true }),
-      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Dance' }));
       fireEvent.click(
         screen.getByRole('button', { name: 'Apply preset Dance' }),
       );

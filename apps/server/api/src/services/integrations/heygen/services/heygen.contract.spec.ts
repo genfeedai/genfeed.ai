@@ -339,6 +339,116 @@ describe('HeyGen v3 contracts', () => {
     expect(http.get).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['avatars', 'voices'] as const)(
+    'loads the authorized private %s when the platform catalogue rejects its key',
+    async (catalog) => {
+      byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+      http.get.mockImplementation((_url, config) =>
+        config.headers['X-Api-Key'] === 'platform-key'
+          ? throwError(() => new Error('platform unauthorized'))
+          : page(
+              catalog === 'avatars'
+                ? [look()]
+                : [{ voice_id: 'mine', name: 'Personal voice' }],
+            ),
+      );
+      const result =
+        catalog === 'avatars'
+          ? await service.getAvatars('org')
+          : await service.getVoices('org');
+      expect(result).toHaveLength(1);
+      const identity =
+        'avatarRef' in result[0] ? result[0].avatarRef : result[0];
+      expect(identity).toMatchObject({
+        ownership: 'private',
+        connection: {
+          kind: 'byok',
+          organizationId: 'org',
+          credentialVersionId: 'version-2',
+        },
+      });
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not hide a platform failure as an empty catalogue when the tenant has no binding', async () => {
+    http.get.mockReturnValue(
+      throwError(() => new Error('platform unauthorized')),
+    );
+    await expect(service.getAvatars('org')).rejects.toThrow(
+      'platform unauthorized',
+    );
+    expect(byok.lookupApiKeyWithIdentity).toHaveBeenCalledWith('org', 'heygen');
+  });
+
+  it('loads a configured private catalogue when no platform key exists', async () => {
+    keys.getApiKey.mockReturnValue('');
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+    http.get.mockReturnValue(
+      page([{ voice_id: 'mine', name: 'Personal voice' }]),
+    );
+    expect(await service.getVoices('org')).toMatchObject([
+      {
+        ownership: 'private',
+        connection: { kind: 'byok', credentialVersionId: 'version-2' },
+      },
+    ]);
+    expect(http.get).toHaveBeenCalledOnce();
+    expect(http.get.mock.calls[0][1].headers['X-Api-Key']).toBe('tenant-key');
+  });
+
+  it('preserves explicit override public and private partitions without a tenant lookup', async () => {
+    byok.lookupApiKeyWithIdentity.mockRejectedValue(new Error('unused lookup'));
+    http.get.mockReturnValue(page([{ voice_id: 'voice', name: 'Voice' }]));
+    expect(
+      await service.getVoices('org', undefined, 'override-key'),
+    ).toMatchObject([
+      {
+        ownership: 'public',
+        connection: { kind: 'byok', organizationId: 'org' },
+      },
+      {
+        ownership: 'private',
+        connection: { kind: 'byok', organizationId: 'org' },
+      },
+    ]);
+    expect(byok.lookupApiKeyWithIdentity).not.toHaveBeenCalled();
+    expect(keys.getApiKey).not.toHaveBeenCalled();
+    expect(
+      http.get.mock.calls.every(
+        ([, config]) => config.headers['X-Api-Key'] === 'override-key',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not reinterpret a strict tenant lookup failure as permission to use platform identities', async () => {
+    byok.lookupApiKeyWithIdentity.mockRejectedValue(
+      new Error('credential lookup failed'),
+    );
+    await expect(service.getVoices('org')).rejects.toThrow(
+      'credential lookup failed',
+    );
+    expect(http.get).not.toHaveBeenCalled();
+  });
+
+  it('keeps the authorized public catalogue when only the private provider request fails', async () => {
+    byok.lookupApiKeyWithIdentity.mockResolvedValue(credential);
+    http.get.mockImplementation((_url, config) =>
+      config.headers['X-Api-Key'] === 'platform-key'
+        ? page([{ voice_id: 'public', name: 'Public voice' }])
+        : throwError(() => new Error('personal unauthorized')),
+    );
+    expect(await service.getVoices('org')).toMatchObject([
+      { ownership: 'public', connection: { kind: 'platform' } },
+    ]);
+    await expect(
+      service.resolveAvatarSelection(
+        { lookId: 'look', ownership: 'private' },
+        'org',
+      ),
+    ).rejects.toThrow('personal unauthorized');
+  });
+
   it.each([
     { data: [], has_more: true, next_token: null },
     { data: 'invalid', has_more: false, next_token: null },
