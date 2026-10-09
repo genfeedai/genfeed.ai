@@ -1,6 +1,9 @@
 import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { ModelsModule } from '@api/collections/models/models.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
+import { BreakoutGenerationPlanService } from '@api/collections/outliers/services/breakout-generation-plan.service';
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
@@ -10,6 +13,7 @@ import { BrandValidationModule } from '@api/services/brand-validation/brand-vali
 import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { RouterModule } from '@api/services/router/router.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { Module } from '@nestjs/common';
 
@@ -17,6 +21,9 @@ import { Module } from '@nestjs/common';
 @Module({
   imports: [
     AgentStrategiesCoreModule,
+    CredentialsCoreModule,
+    ModelsModule,
+    RouterModule,
     OptimizersModule,
     CreditsModule,
     PostsCoreModule,
@@ -28,11 +35,13 @@ import { Module } from '@nestjs/common';
     PrismaModule,
   ],
   providers: [
+    BreakoutGenerationPlanService,
     BreakoutOutputQualityService,
     BreakoutMediaOutputGenerationService,
     BreakoutTextOutputGenerationService,
   ],
   exports: [
+    BreakoutGenerationPlanService,
     BreakoutOutputQualityService,
     BreakoutMediaOutputGenerationService,
     BreakoutTextOutputGenerationService,

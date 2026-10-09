@@ -13,6 +13,7 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
+import { buildReplicateStructuredPrompt } from '@api/services/integrations/llm/replicate-structured-prompt.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -44,6 +45,34 @@ export class OptimizersService {
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
   ) {}
+
+  /** Read-only first-attempt estimate using the same prompt, schema, model and output bound as analysis. */
+  async estimateAnalysisCredits(
+    dto: AnalyzeContentDto,
+    reauthorize: () => Promise<void>,
+  ): Promise<number> {
+    await reauthorize();
+    const model = await this.readPricedDefaultTextModel();
+    await reauthorize();
+    const prompt = buildReplicateStructuredPrompt(
+      this.buildAnalysisPrompt(
+        dto.content,
+        dto.contentType,
+        dto.platform,
+        dto.goals,
+      ),
+      contentAnalysisSchema,
+      CONTENT_ANALYSIS_SCHEMA_NAME,
+    );
+    const quote = calculateEstimatedTextCredits(
+      model,
+      { max_completion_tokens: 2048, prompt },
+      'x'.repeat(2048 * 4),
+    );
+    if (!Number.isFinite(quote) || quote < 0)
+      throw new Error('The quality evaluation price is unavailable.');
+    return quote;
+  }
 
   /**
    * Analyze content and return score + suggestions
@@ -640,35 +669,11 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
     const pricedModel =
       creditBudget === undefined
         ? undefined
-        : await this.modelsService.findOne({
-            key: baseModelKey(DEFAULT_TEXT_MODEL),
-          });
-    if (creditBudget !== undefined && !pricedModel)
-      throw new Error(
-        `Model pricing is not configured for ${DEFAULT_TEXT_MODEL}`,
-      );
+        : await this.readPricedDefaultTextModel();
     if (continuation && creditBudget === undefined)
       throw new Error(
         'A trusted quality continuation requires a bounded credit budget.',
       );
-    if (pricedModel) {
-      const rates =
-        pricedModel.pricingType === 'per-token'
-          ? [
-              pricedModel.inputCostPerMillionTokens,
-              pricedModel.outputCostPerMillionTokens,
-            ]
-          : [pricedModel.cost];
-      if (
-        rates.some(
-          (value) =>
-            typeof value !== 'number' || !Number.isFinite(value) || value < 0,
-        )
-      )
-        throw new Error(
-          `Model pricing is incomplete for ${DEFAULT_TEXT_MODEL}`,
-        );
-    }
     return this.replicateService.generateStructuredTextSync(
       DEFAULT_TEXT_MODEL,
       {
@@ -709,6 +714,28 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
         schemaName,
       },
     );
+  }
+
+  private async readPricedDefaultTextModel() {
+    const model = await this.modelsService.findOne({
+      key: baseModelKey(DEFAULT_TEXT_MODEL),
+    });
+    if (!model)
+      throw new Error(
+        `Model pricing is not configured for ${DEFAULT_TEXT_MODEL}`,
+      );
+    const rates =
+      model.pricingType === 'per-token'
+        ? [model.inputCostPerMillionTokens, model.outputCostPerMillionTokens]
+        : [model.cost];
+    if (
+      rates.some(
+        (value) =>
+          typeof value !== 'number' || !Number.isFinite(value) || value < 0,
+      )
+    )
+      throw new Error(`Model pricing is incomplete for ${DEFAULT_TEXT_MODEL}`);
+    return model;
   }
 
   private async calculateDefaultTextCharge(
