@@ -44,6 +44,7 @@ export class OrganizationSetting
   declare public quotaTwitter?: number;
   declare public quotaInstagram?: number;
 
+  declare public moduleOverrides?: IOrganizationSetting['moduleOverrides'];
   declare public enabledModelIds?: string[];
   declare public defaultAvatarPhotoUrl?: string | null;
   declare public defaultVoiceId?: string | null;
