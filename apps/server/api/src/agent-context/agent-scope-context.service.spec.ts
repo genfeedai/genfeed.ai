@@ -110,6 +110,8 @@ describe('AgentScopeContextService', () => {
       expect(brandFindFirst).toHaveBeenCalledWith({
         select: { id: true },
         where: {
+          organizationId: 'org-1',
+          isDeleted: false,
           AND: [
             { isDeleted: false, organizationId: 'org-1' },
             { id: 'brand-1' },
@@ -684,6 +686,8 @@ describe('AgentScopeContextService', () => {
       expect(brandFindFirst).toHaveBeenCalledWith({
         select: { id: true },
         where: {
+          organizationId: 'org-1',
+          isDeleted: false,
           AND: [
             { isDeleted: false, organizationId: 'org-1' },
             { id: 'brand-old' },
@@ -1049,7 +1053,8 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
           organizationId: request.organizationId,
           isActive: true,
           isDeleted: false,
-          role: { isDeleted: false },
+          organization: { is: { isDeleted: false } },
+          role: { is: { isDeleted: false } },
         },
       });
     }
@@ -1084,6 +1089,8 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
     expect(f.findBrand).toHaveBeenLastCalledWith(
       expect.objectContaining({
         where: {
+          organizationId: 'org-1',
+          isDeleted: false,
           AND: [
             { organizationId: 'org-1', isDeleted: false, id: { in: [] } },
             { id: 'brand-1' },

@@ -264,6 +264,8 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(brandLookup).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          organizationId: testId('org'),
+          isDeleted: false,
           AND: [
             { organizationId: testId('org'), isDeleted: false, id: { in: [] } },
             { id: testId('brand') },

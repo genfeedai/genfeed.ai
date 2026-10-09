@@ -822,8 +822,6 @@ export async function runRuntime(options) {
         [
           '--preload',
           guard,
-          '--tsconfig-override',
-          join(clean, 'apps/server/api/tsconfig.json'),
           join(
             clean,
             'apps/server/api/test/integration/mcp/mcp-auth-runtime.fixture.ts',
@@ -893,8 +891,6 @@ export async function runRuntime(options) {
         [
           '--preload',
           guard,
-          '--tsconfig-override',
-          join(clean, 'apps/server/api/tsconfig.json'),
           join(
             clean,
             'apps/server/api/test/integration/mcp/mcp-brand-access.journey.ts',

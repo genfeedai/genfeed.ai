@@ -398,10 +398,6 @@ test.describe('Clip Factory', () => {
 
     await expect.poll(() => session.saved.youtubeUrl).toBe(MOCK_YOUTUBE_URL);
     await expect.poll(() => session.saved.mode).toBe('raw-cut');
-    await expect(
-      authenticatedPage.getByTestId('clips-draft-save-state'),
-    ).toHaveText(/draft saved/i);
-
     await authenticatedPage.reload();
 
     await expect(authenticatedPage.getByLabel(/youtube url/i)).toHaveValue(

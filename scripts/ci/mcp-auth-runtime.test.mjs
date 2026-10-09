@@ -28,6 +28,15 @@ import {
 const sha = 'a'.repeat(40);
 const identity = { candidateSha: sha, testedSha: sha, nonce: 'b'.repeat(32) };
 const digest = 'c'.repeat(64);
+const fixtureDatabaseUrl = (
+  hostname = '127.0.0.1',
+  database = CONTRACT.database,
+) => {
+  const url = new URL(`postgresql://${hostname}:5432/${database}`);
+  url.username = 'fixture';
+  url.password = 'ephemeral';
+  return url.href;
+};
 const receipt = () => ({
   version: 1,
   ...identity,
@@ -63,7 +72,7 @@ const environment = () => ({
   ),
   GITHUB_ACTIONS: 'true',
   MCP_AUTH_RUNTIME_NONCE: identity.nonce,
-  DATABASE_URL: `postgresql://fixture:ephemeral@127.0.0.1:5432/${CONTRACT.database}`,
+  DATABASE_URL: fixtureDatabaseUrl(),
   REDIS_QUEUE_DB: '0',
   REDIS_CACHE_DB: '1',
   REDIS_RATELIMIT_DB: '2',
@@ -106,9 +115,9 @@ test('runtime environment rejects ambient secrets, alternate databases and real 
     { AWS_SECRET_ACCESS_KEY: 'real-secret' },
     { UNDECLARED_SETTING: 'value' },
     { GENFEED_CLOUD: 'false' },
-    { DATABASE_URL: 'postgresql://fixture:ephemeral@127.0.0.1:5432/other' },
+    { DATABASE_URL: fixtureDatabaseUrl('127.0.0.1', 'other') },
     {
-      DATABASE_URL: `postgresql://fixture:ephemeral@remote:5432/${CONTRACT.database}`,
+      DATABASE_URL: fixtureDatabaseUrl('remote'),
     },
     { DATABASE_URL: `${environment().DATABASE_URL}?schema=other` },
     { GENFEEDAI_API_URL: 'https://remote.invalid' },

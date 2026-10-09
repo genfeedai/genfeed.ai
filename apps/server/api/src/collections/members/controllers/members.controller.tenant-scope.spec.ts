@@ -164,7 +164,8 @@ describe('roster live brand relation authorization', () => {
           organizationId: sessionOrganizationId,
           isActive: true,
           isDeleted: false,
-          role: { isDeleted: false },
+          organization: { is: { isDeleted: false } },
+          role: { is: { isDeleted: false } },
         }),
       }),
     );
