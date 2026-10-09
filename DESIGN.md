@@ -749,6 +749,11 @@ splits into sections; a page with one reason renders only **All**.
 4. **Browse by type** — type tiles that filter **All**.
 5. **All** — the complete collection, list by default.
 
+Studio Clips and Editor use project thumbnails in **Recent**: show only the
+three most recently updated projects in a single row of preview cards. Use
+`CollectionCarouselSection` so narrower panels scroll horizontally instead of
+adding a second row. **All projects** keeps its independent list/grid preference.
+
 A section with zero items renders nothing — no heading, no empty card. The page's
 own empty state appears only when every section is empty. A section whose request
 fails shows its own error; the other sections stay interactive.

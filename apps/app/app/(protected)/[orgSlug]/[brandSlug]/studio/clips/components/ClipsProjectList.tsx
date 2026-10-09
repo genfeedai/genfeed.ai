@@ -10,6 +10,7 @@ import type {
   ClipsProjectListProps,
 } from '@props/studio/clips.props';
 import { NotificationsService } from '@services/core/notifications.service';
+import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
@@ -172,22 +173,24 @@ export default function ClipsProjectList({
   return (
     <div className="flex flex-col gap-8" data-testid="clips-project-list">
       {!isLoading && (
-        <CollectionSection
+        <CollectionCarouselSection
           data-testid="clips-projects-recent"
           title={t('recent')}
           itemCount={recent.length}
         >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {recent.map((project) => (
+          {recent.map((project) => (
+            <div
+              key={project.id}
+              className="min-w-64 shrink-0 basis-[calc((100%_-_2rem)/3)]"
+            >
               <ClipsProjectCard
-                key={project.id}
                 project={project}
                 href={projectHref(project)}
                 actions={actions(project)}
               />
-            ))}
-          </div>
-        </CollectionSection>
+            </div>
+          ))}
+        </CollectionCarouselSection>
       )}
       <CollectionSection
         data-testid="clips-projects-all"

@@ -18,8 +18,8 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
@@ -53,7 +53,7 @@ import {
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const COLLECTION_SURFACE = 'studio.editor';
-const RECENT_PROJECT_LIMIT = 5;
+const RECENT_PROJECT_LIMIT = 3;
 
 type EditorProjectsTranslate = ReturnType<typeof useTranslations>;
 
@@ -373,17 +373,20 @@ export default function EditorProjectsPage() {
         />
       ) : hasProjects ? (
         <div className="flex flex-col gap-8">
-          <CollectionSection
+          <CollectionCarouselSection
             data-testid="editor-projects-recent"
             itemCount={recentProjects.length}
             title={translate('recent')}
           >
-            <CollectionList>
-              {recentProjects.map((project) => (
-                <div key={project.id}>{renderProjectRow(project)}</div>
-              ))}
-            </CollectionList>
-          </CollectionSection>
+            {recentProjects.map((project) => (
+              <div
+                key={project.id}
+                className="min-w-64 shrink-0 basis-[calc((100%_-_2rem)/3)]"
+              >
+                {renderProjectCard(project)}
+              </div>
+            ))}
+          </CollectionCarouselSection>
 
           <CollectionSection
             actions={viewToolbar}
