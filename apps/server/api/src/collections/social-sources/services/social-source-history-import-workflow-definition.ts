@@ -14,6 +14,7 @@ export const SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_LABEL =
 export function buildSocialSourceHistoryImportWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_ID,
+    organizationModule: 'discovery',
     definition: {
       edges: [],
       inputVariables: [

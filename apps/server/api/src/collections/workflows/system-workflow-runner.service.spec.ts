@@ -7,6 +7,12 @@ import {
   buildClipGenerationChildWorkflowDefinition,
 } from '@api/collections/clip-projects/services/clip-factory-workflow-definition';
 import { buildClipGenerationWorkflowDefinition } from '@api/collections/clip-projects/services/clip-generation-workflow-definition';
+import { buildSocialSourceHistoryImportWorkflowDefinition } from '@api/collections/social-sources/services/social-source-history-import-workflow-definition';
+import {
+  buildSocialSourceOwnAccountResyncItemWorkflowDefinition,
+  buildSocialSourceOwnAccountResyncSweepWorkflowDefinition,
+} from '@api/collections/social-sources/services/social-source-own-account-resync-workflow-definition';
+import { buildScopedTrendTaskWorkflowDefinition } from '@api/collections/trends/services/trends-maintenance-workflow-definition';
 import {
   buildVisualProjectFailureWorkflowDefinition,
   buildVisualProjectWorkflowDefinition,
@@ -2232,4 +2238,185 @@ describe('registered reply and author-reply module admission', () => {
       expect(assertAccess).toHaveBeenCalledTimes(2);
     },
   );
+});
+
+describe('registered tenant Discovery job admission', () => {
+  const definitions = [
+    buildScopedTrendTaskWorkflowDefinition(),
+    buildSocialSourceHistoryImportWorkflowDefinition(),
+    buildSocialSourceOwnAccountResyncItemWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException(
+            'Discovery disabled or subscription unavailable',
+          ),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-discovery',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Discovery disabled or subscription unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'discovery');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(definitions)(
+    '$canonicalId keeps its provider-capable result node gated after a warmed attempt',
+    async (graph) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const resultNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      if (!resultNode) throw new Error('Discovery provider node missing');
+      const actionId = String(resultNode.data.config.actionId);
+      const provider = vi.fn();
+      runner.registerAction(actionId, provider);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Discovery revoked'),
+          );
+          await expect(
+            executors.get(actionId)?.(
+              {
+                config: { actionId },
+                id: resultNode.id,
+                inputs: [],
+                label: 'Fetch/import',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Discovery revoked');
+        },
+      );
+      expect(provider).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+    },
+  );
+  it('schedules an eligible tenant after another tenant loses Discovery access', async () => {
+    const graph = buildSocialSourceOwnAccountResyncItemWorkflowDefinition();
+    const sweep = buildSocialSourceOwnAccountResyncSweepWorkflowDefinition();
+    const assertAccess = vi.fn(async (organizationId: string) => {
+      if (organizationId === 'org-2')
+        throw new ForbiddenException('Discovery disabled');
+    });
+    const queueSystemWorkflow = vi.fn(
+      async (_input: { organizationId: string }, jobId: string) => jobId,
+    );
+    const prisma = {
+      organization: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'org-2', userId: 'owner-2' },
+          { id: 'org-3', userId: 'owner-3' },
+        ]),
+      },
+      workflow: {
+        findFirst: vi.fn().mockResolvedValue({
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+              canonicalId: sweep.canonicalId,
+            }),
+          },
+        }),
+      },
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const { runner, executors } = createRunner(
+      { queueSystemWorkflow },
+      prisma,
+      {},
+      {},
+      { assertAccess },
+    );
+    runner.onModuleInit();
+    runner.registerWorkflow(graph);
+    runner.registerWorkflow(sweep);
+    const schedule = sweep.definition.nodes.find(
+      (node) => node.id === 'resync-sources',
+    );
+    if (!schedule) throw new Error('Resync scheduling node missing');
+    const result = await executors.get(WORKFLOW_FOR_EACH_TENANT_ACTION_ID)?.(
+      executableForEachNode(
+        schedule.data.config.parameters as Record<string, unknown>,
+        WORKFLOW_FOR_EACH_TENANT_ACTION_ID,
+      ),
+      new Map([
+        ['items', [{ organizationId: 'org-2' }, { organizationId: 'org-3' }]],
+      ]),
+      executionContext(),
+    );
+    expect(result).toMatchObject({
+      count: 2,
+      results: [
+        { index: 0, status: 'failed', error: 'Discovery disabled' },
+        { index: 1, jobId: expect.any(String) },
+      ],
+    });
+    expect(assertAccess).toHaveBeenNthCalledWith(1, 'org-2', 'discovery');
+    expect(assertAccess).toHaveBeenNthCalledWith(2, 'org-3', 'discovery');
+    expect(queueSystemWorkflow).toHaveBeenCalledTimes(1);
+    expect(queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-3', userId: 'owner-3' }),
+      expect.any(String),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      }),
+    );
+  });
 });

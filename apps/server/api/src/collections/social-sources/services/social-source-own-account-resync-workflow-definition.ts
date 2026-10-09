@@ -42,6 +42,7 @@ export function buildSocialSourceOwnAccountResyncSweepWorkflowDefinition(): Syst
           id: 'resync-sources',
           parameters: {
             childWorkflowId: SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_ITEM_WORKFLOW_ID,
+            failureMode: 'collect',
             itemInputKey: 'request',
             maxConcurrency: 3,
             mode: 'scheduled',
@@ -60,6 +61,7 @@ export function buildSocialSourceOwnAccountResyncSweepWorkflowDefinition(): Syst
 export function buildSocialSourceOwnAccountResyncItemWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_ITEM_WORKFLOW_ID,
+    organizationModule: 'discovery',
     definition: {
       edges: [],
       inputVariables: [

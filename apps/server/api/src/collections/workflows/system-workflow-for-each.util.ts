@@ -195,6 +195,10 @@ export async function executeAwaitedForEach(input: {
   return { count: results.length, results };
 }
 
+type ScheduledForEachResult =
+  | { index: number; jobId: string }
+  | Extract<AwaitedForEachResult, { status: 'failed' }>;
+
 export async function scheduleForEach(input: {
   childContexts: ForEachChildContext[];
   options: ForEachOptions;
@@ -216,48 +220,60 @@ export async function scheduleForEach(input: {
   request: SystemWorkflowActionRequest;
 }): Promise<{
   count: number;
-  results: Array<{ index: number; jobId: string }>;
+  results: ScheduledForEachResult[];
 }> {
-  const jobs: Array<{ index: number; jobId: string }> = [];
+  const jobs: ScheduledForEachResult[] = [];
   for (const [index, item] of input.options.items.entries()) {
-    const childContext = input.childContexts[index];
-    if (!childContext) {
-      throw new Error(
-        `${WORKFLOW_FOR_EACH_ACTION_ID} could not resolve child context for item ${index}`,
+    try {
+      const childContext = input.childContexts[index];
+      if (!childContext) {
+        throw new Error(
+          `${WORKFLOW_FOR_EACH_ACTION_ID} could not resolve child context for item ${index}`,
+        );
+      }
+      const identity = createHash('sha256')
+        .update(
+          `${input.request.provenance.executionId}:${input.parentNodeId}:${input.options.childWorkflowId}:${index}`,
+        )
+        .digest('hex')
+        .slice(0, 32);
+      const jobId = await input.queueSystemWorkflow(
+        {
+          actionType: input.options.childWorkflowId,
+          canonicalId: input.options.childWorkflowId,
+          inputValues: {
+            ...input.options.baseInput,
+            [input.options.itemInputKey]: item,
+          },
+          metadata: {
+            parentExecutionId: input.request.provenance.executionId,
+            parentNodeId: input.parentNodeId,
+            parentWorkflowId: input.request.provenance.workflowId,
+            workflowForEachIndex: index,
+          },
+          organizationId: childContext.organizationId,
+          source: `${WORKFLOW_FOR_EACH_ACTION_ID}:${input.request.provenance.executionId}:${input.parentNodeId}`,
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+          userId: childContext.userId,
+        },
+        `${WORKFLOW_FOR_EACH_ACTION_ID}-${identity}`,
+        {
+          delayMs:
+            input.options.initialDelayMs +
+            index * input.options.interItemDelayMs,
+        },
       );
+      jobs.push({ index, jobId });
+    } catch (error: unknown) {
+      if (input.options.failureMode === 'fail-fast') throw error;
+      const executionId = optionalString(readRecord(error).workflowExecutionId);
+      jobs.push({
+        error: error instanceof Error ? error.message : String(error),
+        ...(executionId ? { executionId } : {}),
+        index,
+        status: 'failed',
+      });
     }
-    const identity = createHash('sha256')
-      .update(
-        `${input.request.provenance.executionId}:${input.parentNodeId}:${input.options.childWorkflowId}:${index}`,
-      )
-      .digest('hex')
-      .slice(0, 32);
-    const jobId = await input.queueSystemWorkflow(
-      {
-        actionType: input.options.childWorkflowId,
-        canonicalId: input.options.childWorkflowId,
-        inputValues: {
-          ...input.options.baseInput,
-          [input.options.itemInputKey]: item,
-        },
-        metadata: {
-          parentExecutionId: input.request.provenance.executionId,
-          parentNodeId: input.parentNodeId,
-          parentWorkflowId: input.request.provenance.workflowId,
-          workflowForEachIndex: index,
-        },
-        organizationId: childContext.organizationId,
-        source: `${WORKFLOW_FOR_EACH_ACTION_ID}:${input.request.provenance.executionId}:${input.parentNodeId}`,
-        trigger: WorkflowExecutionTrigger.SCHEDULED,
-        userId: childContext.userId,
-      },
-      `${WORKFLOW_FOR_EACH_ACTION_ID}-${identity}`,
-      {
-        delayMs:
-          input.options.initialDelayMs + index * input.options.interItemDelayMs,
-      },
-    );
-    jobs.push({ index, jobId });
   }
   return { count: jobs.length, results: jobs };
 }
