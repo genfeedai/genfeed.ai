@@ -70,6 +70,17 @@ export class BatchContentService implements OnModuleInit {
       throw new NotFoundException(`Skill not found: ${request.skillSlug}`);
     }
     const canonicalId = getBatchContentWorkflowId(request.skillSlug);
+    return this.workflowRunner.runWithRegisteredWorkflowModule(
+      { canonicalId, organizationId: request.organizationId },
+      () => this.queueAdmittedBatch(request, canonicalId, userId),
+    );
+  }
+
+  private async queueAdmittedBatch(
+    request: BatchContentRequest,
+    canonicalId: string,
+    userId?: string,
+  ): Promise<QueuedBatchContentResult> {
     const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: canonicalId,

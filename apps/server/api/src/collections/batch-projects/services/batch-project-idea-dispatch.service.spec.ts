@@ -81,6 +81,16 @@ describe('BatchProjectIdeaDispatchService', () => {
   const videoGeneration = { generateVideo: vi.fn() };
   const avatarGeneration = { generateAvatarVideo: vi.fn() };
   const workflowQueue = { queueSystemWorkflow: vi.fn() };
+  const workflowRunner = {
+    registerAction: vi.fn(),
+    registerWorkflow: vi.fn(),
+    runWithRegisteredWorkflowModule: vi.fn(
+      async <T>(
+        _input: { canonicalId: string; organizationId: string },
+        work: () => Promise<T>,
+      ) => work(),
+    ),
+  };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const service = new BatchProjectIdeaDispatchService(
     prisma as never,
@@ -91,7 +101,7 @@ describe('BatchProjectIdeaDispatchService', () => {
     videoGeneration as never,
     avatarGeneration as never,
     workflowQueue as never,
-    { registerAction: vi.fn(), registerWorkflow: vi.fn() } as never,
+    workflowRunner as never,
   );
 
   /**
@@ -145,6 +155,26 @@ describe('BatchProjectIdeaDispatchService', () => {
       id: 'avatar-reservation',
       status: CreditReservationStatus.RESERVED,
     });
+  });
+
+  it('denies a direct idea dispatch before loading, reserving or calling a provider', async () => {
+    workflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
+      new Error('Batch disabled'),
+    );
+    await expect(service.dispatch(job)).rejects.toThrow('Batch disabled');
+    expect(prisma.batchProject.findFirst).not.toHaveBeenCalled();
+    expect(creditsUtils.reserveCredits).not.toHaveBeenCalled();
+    expect(imageGeneration.generateImage).not.toHaveBeenCalled();
+    expect(videoGeneration.generateVideo).not.toHaveBeenCalled();
+    expect(avatarGeneration.generateAvatarVideo).not.toHaveBeenCalled();
+  });
+
+  it('denies enqueue before writing a durable dispatch job', async () => {
+    workflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
+      new Error('Batch disabled'),
+    );
+    await expect(service.enqueue(job)).rejects.toThrow('Batch disabled');
+    expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 
   it('records the reservation the generation made before the provider runs', async () => {

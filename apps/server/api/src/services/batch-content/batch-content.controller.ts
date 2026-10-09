@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import { CreateBatchContentDto } from '@api/services/batch-content/dto/create-batch-content.dto';
@@ -7,6 +8,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Batch Content')
 @Controller('brands/:brandId/content/batch')
+@OrganizationModule('batch')
 export class BatchContentController {
   constructor(private readonly batchContentService: BatchContentService) {}
 
