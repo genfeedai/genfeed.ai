@@ -529,10 +529,14 @@ describe('StudioPlaygroundInspector', () => {
   });
 
   it('still offers recipe when the gallery row only has ingredient metadata', () => {
+    const metadata = {
+      ...new Metadata({ style: 'cinematic' }),
+      mood: 'serene',
+    };
     const ingredient = new Image({
       id: 'ing-9',
-      metadata: new Metadata({ mood: 'serene', style: 'cinematic' }),
-      promptText: 'Stored prompt',
+      metadata,
+      prompt: 'Stored prompt',
     });
 
     render(

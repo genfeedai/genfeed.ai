@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
+import type { PrepareCrunGenerationIntentProps } from '@genfeedai/props/studio/studio-playground.props';
 import type { StudioPlaygroundJob } from '@pages/studio/playground/types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
 import {
@@ -145,7 +146,9 @@ const mocks = vi.hoisted(() => ({
   enhancePrompt: vi.fn(),
   undoEnhance: vi.fn(),
   promptCommandExtensions: [{ name: 'promptCommands' }],
-  resolvePromptCommands: vi.fn((text: string) => ({
+  resolvePromptCommands: vi.fn<
+    PrepareCrunGenerationIntentProps['resolvePromptCommands']
+  >((text) => ({
     content: text.replace('/cinema ', ''),
     skillSlugs: [],
   })),
