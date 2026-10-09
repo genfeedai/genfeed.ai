@@ -21,6 +21,18 @@ export class Preset extends BaseEntity implements IPreset {
   declare public model?: string;
   declare public provider?: ModelProvider;
   declare public platform?: Platform;
+  declare public organizationId?: string | null;
+  declare public brandId?: string | null;
+  declare public aspectRatio?: string;
+  declare public duration?: number;
+  declare public promptTemplate?: string;
+  declare public lighting?: string;
+  declare public lens?: string;
+  declare public cameraMovement?: string;
+  declare public camera?: string;
+  declare public mood?: string;
+  declare public scene?: string;
+  declare public style?: string;
   declare public defaultCamera?: string;
   declare public defaultMoods?: string[];
   declare public defaultScene?: string;

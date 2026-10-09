@@ -40,6 +40,53 @@ describe('element schemas', () => {
   });
 
   describe('elementPresetSchema', () => {
+    it('accepts absent JSON:API controls without turning them into invalid form values', () => {
+      const output = elementPresetSchema.parse({
+        category: ModelCategory.IMAGE,
+        isActive: true,
+        key: 'preset',
+        label: 'Preset',
+        duration: null,
+        camera: null,
+        lighting: null,
+      });
+      expect(output.duration).toBeUndefined();
+      expect(output.camera).toBeUndefined();
+    });
+    it('preserves editable prompt and generation settings through form validation', () => {
+      const input = {
+        category: ModelCategory.VIDEO,
+        isActive: false,
+        key: 'studio-animation',
+        label: 'Campaign animation',
+        prompt: 'Animate the campaign',
+        aspectRatio: '9:16',
+        duration: 8,
+        promptTemplate: 'video-default',
+        camera: 'wide',
+        cameraMovement: 'pan',
+        lens: '35mm',
+        lighting: 'soft',
+        mood: 'joyful',
+        scene: 'park',
+        style: 'watercolor',
+      };
+      expect(elementPresetSchema.parse(input)).toEqual(input);
+    });
+    it.each([0, -1, Number.POSITIVE_INFINITY, 3601])(
+      'rejects an invalid duration %s',
+      (duration) => {
+        expect(
+          elementPresetSchema.safeParse({
+            category: ModelCategory.VIDEO,
+            isActive: true,
+            key: 'p',
+            label: 'Preset',
+            duration,
+          }).success,
+        ).toBe(false);
+      },
+    );
     it('accepts valid preset', () => {
       expect(
         elementPresetSchema.safeParse({

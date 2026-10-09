@@ -29,6 +29,62 @@ export const elementPresetSchema: z.ZodType<Partial<IPreset>> =
     ),
     isActive: z.boolean(),
     organizationId: z.string().optional(),
+    prompt: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    model: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    aspectRatio: z
+      .string()
+      .regex(/^(?:[1-9]\d*)(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$/)
+      .or(z.literal(''))
+      .nullish()
+      .transform((value) => value ?? undefined),
+    duration: z
+      .number()
+      .min(0.01)
+      .max(3600)
+      .nullish()
+      .transform((value) => value ?? undefined),
+    promptTemplate: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    camera: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    cameraMovement: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    lighting: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    lens: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    mood: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    scene: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    style: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? undefined),
+    blacklists: z
+      .array(z.string())
+      .nullish()
+      .transform((value) => value ?? undefined),
   });
 
 // Schema for style elements
