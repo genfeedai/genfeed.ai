@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { PageHelpProvider } from '@genfeedai/contexts/ui/page-help-context';
 import { Platform, Timeframe } from '@genfeedai/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -26,6 +27,10 @@ const mocks = vi.hoisted(() => ({
   open: vi.fn(),
   push: vi.fn(),
   viralVideoProps: vi.fn(),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/org-1/brand-1${path}` }),
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
@@ -396,7 +401,13 @@ describe('DiscoveryTrends', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const content = <DiscoveryTrends />;
+    const content = (
+      <PageHelpProvider
+        help={{ title: 'Trends', body: 'Browse saved trends.' }}
+      >
+        <DiscoveryTrends />
+      </PageHelpProvider>
+    );
 
     const rendered = render(
       <QueryClientProvider client={queryClient}>
@@ -416,6 +427,9 @@ describe('DiscoveryTrends', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(
+      screen.getAllByRole('button', { name: 'About this page' }),
+    ).toHaveLength(1);
     expect(screen.getByTestId('socials-platform-filter')).toBeInTheDocument();
     expect(screen.getByTestId('container')).toBeInTheDocument();
     expect(await screen.findByText('AI video')).toBeInTheDocument();
@@ -431,7 +445,7 @@ describe('DiscoveryTrends', () => {
     // detail route before the click and cmd-click opens it in a new tab.
     expect(screen.getByRole('link', { name: 'Open AI video' })).toHaveAttribute(
       'href',
-      '/discovery/trends/detail/trend-1',
+      '/org-1/brand-1/discovery/trends/detail/trend-1',
     );
 
     // Market viral videos, not the brand's own uploads.

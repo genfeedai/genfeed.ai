@@ -1,3 +1,4 @@
+import { PageHelpProvider } from '@genfeedai/contexts/ui/page-help-context';
 import { render, screen } from '@testing-library/react';
 import TrendsPlatformDetail from './trends-platform-detail';
 import '@testing-library/jest-dom/vitest';
@@ -172,6 +173,24 @@ describe('TrendsPlatformDetail', () => {
     expect(screen.getByText('Related viral videos')).toBeInTheDocument();
     expect(screen.getByText('Trending hashtags')).toBeInTheDocument();
     expect(screen.getByText('Trending sounds')).toBeInTheDocument();
+  });
+
+  it('renders one heading and Help control when route help is available', () => {
+    render(
+      <PageHelpProvider
+        help={{ title: 'Trends', body: 'Browse saved trends.' }}
+      >
+        <TrendsPlatformDetail platform="tiktok" />
+      </PageHelpProvider>,
+    );
+
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'TikTok Trends' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'About this page' }),
+    ).toHaveLength(1);
   });
 
   it('resolves feed and related-section columns from the panel width', () => {

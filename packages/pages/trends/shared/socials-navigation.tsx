@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
   InstagramIcon,
@@ -10,11 +11,12 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { LayoutGrid } from 'lucide-react';
 
-const TRENDS_BASE_PATH = '/discovery/trends';
+const TRENDS_BASE_PATH = APP_ROUTES.DISCOVERY.TRENDS;
 
 interface SocialsNavigationItem {
   href: string;
@@ -76,6 +78,7 @@ export function SocialsNavigation({
 }: {
   active: SocialsNavigationValue;
 }) {
+  const { href } = useOrgUrl();
   const items = buildSocialsNavItems();
 
   return (
@@ -87,6 +90,7 @@ export function SocialsNavigation({
       testId="socials-platform-filter"
       items={items.map((item) => ({
         ...item,
+        href: href(item.href),
         icon: item.id === 'overview' ? LayoutGrid : PLATFORM_ICONS[item.id],
       }))}
     />
