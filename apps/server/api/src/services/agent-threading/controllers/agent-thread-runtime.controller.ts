@@ -1,3 +1,4 @@
+import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
@@ -273,7 +274,11 @@ export class AgentThreadRuntimeController {
             expectedContextVersion: scope.contextVersion,
             hostSupportsApproval: true,
           },
-          { organizationId, userId },
+          {
+            organizationId,
+            userId,
+            generationEntry: getActionOriginContext().generationEntry,
+          },
         );
       }
 

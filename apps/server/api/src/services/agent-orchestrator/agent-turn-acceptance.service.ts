@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
@@ -174,6 +175,9 @@ export class AgentTurnAcceptanceService {
         inputValues: {
           request: {
             content: request.content,
+            generationEntry:
+              getActionOriginContext().generationEntry ??
+              context.generationEntry,
             hostSupportsApproval: request.hostSupportsApproval === true,
             clientRequestId: request.clientRequestId,
             threadId,

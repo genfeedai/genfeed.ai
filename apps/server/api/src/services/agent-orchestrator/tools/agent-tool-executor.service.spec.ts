@@ -1,3 +1,4 @@
+import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import {
   agentPostPreviewInclude,
   agentPostPreviewPopulate,
@@ -8,6 +9,10 @@ import {
   getActionDefinition,
 } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import {
   type ActionContractJsonSchema,
   compileActionContract,
@@ -1284,6 +1289,7 @@ describe('AgentToolExecutorService', () => {
       credentialsService,
       creditsUtilsService,
       generationGateway,
+      systemWorkflowRunner,
       imagesService,
       ingredientsService,
       workflowSchedulerService,
@@ -1317,6 +1323,26 @@ describe('AgentToolExecutorService', () => {
       xActionsHandler,
     };
   };
+
+  it('executes the media/tool gateway under the invocation entry context', async () => {
+    const { service, systemWorkflowRunner } = createService();
+    const generationEntry = {
+      channel: GenerationEntryChannel.API,
+      attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+    };
+    const original = systemWorkflowRunner.runWorkflow.getMockImplementation();
+    if (!original) throw new Error('Workflow fixture is missing');
+    systemWorkflowRunner.runWorkflow.mockImplementationOnce((request) => {
+      expect(getActionOriginContext().generationEntry).toEqual(generationEntry);
+      return original(request);
+    });
+    await service.executeTool(
+      'list_review_queue',
+      {},
+      { organizationId: 'org-1', userId: 'user-1', generationEntry },
+    );
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalled();
+  });
 
   it('enforces an explicit generation mode over the model tool arguments', async () => {
     const { service } = createService();

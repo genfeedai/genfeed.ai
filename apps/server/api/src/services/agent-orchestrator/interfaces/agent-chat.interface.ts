@@ -18,6 +18,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 
+import type { GenerationEntry } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
+
 export type { AgentGenerationMode };
 
 export interface AgentChatAttachment {
@@ -57,6 +59,8 @@ export interface AgentGenerationSettings {
 }
 
 export interface AgentChatRequest {
+  /** Captured by server acceptance; not a public request authority. */
+  generationEntry?: GenerationEntry;
   creditBudget?: number;
   autonomyMode?: AgentAutonomyMode;
   agentType?: AgentType;
@@ -98,6 +102,7 @@ export interface AgentTurnAcknowledgement {
 }
 
 export interface AgentChatContext {
+  generationEntry?: GenerationEntry;
   creditBudget?: number;
   autonomyMode?: AgentAutonomyMode;
   requestedSkillSlugs?: string[];

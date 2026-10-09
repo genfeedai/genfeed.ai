@@ -1,3 +1,10 @@
+import { GENERATION_ENTRY_HEADER } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
+import { getGenerationEntryHeaders } from '@services/core/generation-entry-headers';
+
+vi.mock('@services/core/generation-entry-headers', () => ({
+  getGenerationEntryHeaders: vi.fn(() => ({})),
+}));
+
 import {
   ORGANIZATION_CONTEXT_HEADER,
   UNATTRIBUTED_FORWARDED_HEADER,
@@ -87,6 +94,18 @@ describe('HTTPBaseService (InterceptorService)', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('sends the renderer entry header alongside existing authorization', () => {
+    vi.mocked(getGenerationEntryHeaders).mockReturnValue({
+      [GENERATION_ENTRY_HEADER]: 'desktop',
+    });
+    const result = runRequestInterceptor(service, {
+      headers: {},
+    } as InternalAxiosRequestConfig);
+    expect(result.headers[GENERATION_ENTRY_HEADER]).toBe('desktop');
+    expect(result.headers.Authorization).toBe(`Bearer ${mockToken}`);
+    vi.mocked(getGenerationEntryHeaders).mockReturnValue({});
   });
 
   describe('constructor', () => {

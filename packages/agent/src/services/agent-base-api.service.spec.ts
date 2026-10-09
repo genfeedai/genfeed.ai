@@ -1,3 +1,10 @@
+import { GENERATION_ENTRY_HEADER } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
+import { getGenerationEntryHeaders } from '@services/core/generation-entry-headers';
+
+vi.mock('@services/core/generation-entry-headers', () => ({
+  getGenerationEntryHeaders: vi.fn(() => ({})),
+}));
+
 import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
 import {
   clearRequestOrganizationId,
@@ -39,6 +46,18 @@ describe('AgentBaseApiService', () => {
         baseConfig,
       );
     });
+  });
+
+  it('keeps the invocation entry on raw-fetch agent headers', async () => {
+    vi.mocked(getGenerationEntryHeaders).mockReturnValue({
+      [GENERATION_ENTRY_HEADER]: 'web',
+    });
+    const service = new AgentBaseApiService(baseConfig);
+    expect(await service.headers()).toMatchObject({
+      [GENERATION_ENTRY_HEADER]: 'web',
+      Authorization: 'Bearer test-token',
+    });
+    vi.mocked(getGenerationEntryHeaders).mockReturnValue({});
   });
 
   describe('headers()', () => {

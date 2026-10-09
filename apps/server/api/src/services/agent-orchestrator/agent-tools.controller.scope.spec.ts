@@ -1,3 +1,4 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
@@ -10,7 +11,11 @@ import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrat
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ApiKeyScope } from '@genfeedai/contracts';
+import { ActionOrigin, ApiKeyScope } from '@genfeedai/contracts';
+import {
+  GenerationEntryAttribution,
+  GenerationEntryChannel,
+} from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
@@ -112,6 +117,29 @@ describe('AgentToolsController publishing scopes', () => {
       }),
     });
     expect(executor.executeTool).not.toHaveBeenCalled();
+  });
+
+  it('passes server-captured entry independently of untrusted tool context', async () => {
+    executor.executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
+    const generationEntry = {
+      channel: GenerationEntryChannel.MCP,
+      attribution: GenerationEntryAttribution.SERVER_VERIFIED,
+    };
+    await runWithActionOrigin(
+      { origin: ActionOrigin.MCP, generationEntry },
+      () =>
+        controller.execute(
+          'create_brand',
+          { parameters: { label: 'Brand', confirmed: true } },
+          apiKeyUser([]),
+          request,
+        ),
+    );
+    expect(executor.executeTool).toHaveBeenCalledWith(
+      'create_brand',
+      expect.anything(),
+      expect.objectContaining({ generationEntry, organizationId: 'org-1' }),
+    );
   });
 
   it('strips a spoofed confirmation origin from direct tool execution', async () => {
