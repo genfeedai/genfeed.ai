@@ -15,7 +15,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -55,7 +54,6 @@ export class ImageUpscaleService {
     private readonly metadataService: MetadataService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
-    private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly generationBilling: GenerationBillingService,
@@ -90,6 +88,17 @@ export class ImageUpscaleService {
     const url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
     this.loggerService.log(url, { body: imageEditDto, params: { imageId } });
 
+    const model = MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE;
+    if (imageEditDto.model !== undefined && imageEditDto.model !== model) {
+      throw new HttpException(
+        {
+          detail: 'This operation supports Topaz image upscaling only.',
+          title: 'Unsupported image upscale model',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const parent = await this.imagesService.findOne(
       {
         id: imageId,
@@ -121,12 +130,6 @@ export class ImageUpscaleService {
       imageId,
       'images',
     );
-
-    const model =
-      imageEditDto.model ||
-      ((await this.routerService.getDefaultModel(
-        ModelCategory.IMAGE_UPSCALE,
-      )) as string);
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
@@ -196,18 +199,16 @@ export class ImageUpscaleService {
       const promptResult = await this.promptBuilderService.buildPrompt(
         MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         {
-          modelCategory:
-            (request.selectedModel?.category as ModelCategory) ||
-            ModelCategory.IMAGE_UPSCALE,
+          modelCategory: ModelCategory.IMAGE_UPSCALE,
           prompt: '',
           references: [imageUrl],
           ...({
             enhance_model: imageEditDto.enhanceModel || 'Low Resolution V2',
             face_enhancement: imageEditDto.faceEnhancement !== false,
             face_enhancement_creativity:
-              imageEditDto.faceEnhancementCreativity || 0.5,
+              imageEditDto.faceEnhancementCreativity ?? 0.5,
             face_enhancement_strength:
-              imageEditDto.faceEnhancementStrength || 0.8,
+              imageEditDto.faceEnhancementStrength ?? 0.8,
             output_format: imageEditDto.outputFormat || 'jpg',
             subject_detection: imageEditDto.subjectDetection || 'Foreground',
             upscale_factor: imageEditDto.upscaleFactor || '4x',
