@@ -83,6 +83,10 @@ const environment = () => ({
 const owner = { id: 'owned-id', nonce: identity.nonce, network: 'none' };
 test('journey diagnostics expose only the finite failure category', () => {
   assert.equal(
+    readJourneyFailure('B01_REAL_PRINCIPALS_TOKEN failed'),
+    'B01_REAL_PRINCIPALS_TOKEN',
+  );
+  assert.equal(
     readJourneyFailure(`private output\n${CONTRACT.cases[0]} failed\n`),
     CONTRACT.cases[0],
   );

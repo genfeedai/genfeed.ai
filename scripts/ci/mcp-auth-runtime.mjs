@@ -345,6 +345,12 @@ export function readProcessNetworkNamespace(pid, runCommand = command) {
 }
 export function readJourneyFailure(output) {
   const lines = output.split('\n');
+  const principalFailure = lines.find((line) =>
+    /^B01_REAL_PRINCIPALS_(SIGNIN|COOKIE|TOKEN|CONTEXT|TRANSPORT|KEY_MINT|KEY_BINDING) failed$/.test(
+      line,
+    ),
+  );
+  if (principalFailure) return principalFailure.slice(0, -' failed'.length);
   return (
     CONTRACT.cases.find((id) => lines.includes(`${id} failed`)) ??
     'JOURNEY_INFRASTRUCTURE'

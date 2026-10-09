@@ -50,13 +50,16 @@ const redis = new Redis('redis://127.0.0.1:6379/1', {
   maxRetriesPerRequest: 1,
 });
 const cases: McpRuntimeCase[] = [];
+let principalStage = 'SIGNIN';
 const caseRun = async (id: string, run: () => Promise<void>) => {
   try {
     await run();
     cases.push({ id, status: 'passed' });
     process.stdout.write(`${id} passed\n`);
   } catch {
-    throw new Error(id);
+    throw new Error(
+      id === 'B01_REAL_PRINCIPALS' ? `${id}_${principalStage}` : id,
+    );
   }
 };
 async function rest(
@@ -155,6 +158,7 @@ try {
   await caseRun('B01_REAL_PRINCIPALS', async () => {
     for (const label of ['U', 'V', 'W', 'Z'] as const) {
       const actor = fixture.actors[label];
+      principalStage = 'SIGNIN';
       const signin = await rest(undefined, '/v1/auth/sign-in/email', {
         method: 'POST',
         headers: {
@@ -168,11 +172,13 @@ try {
           record(record(signin.body).user).id === actor.id,
         'REAL_SIGNIN',
       );
+      principalStage = 'COOKIE';
       const cookie = signin.headers
         .getSetCookie()
         .map((entry) => entry.split(';')[0])
         .join('; ');
       requireMcpRuntime(cookie, 'REAL_SESSION_COOKIE');
+      principalStage = 'TOKEN';
       const tokenResponse = await rest(undefined, '/v1/auth/token', {
         headers: { cookie },
       });
@@ -181,6 +187,7 @@ try {
         tokenResponse.status === 200 && typeof token === 'string',
         'REAL_JWT',
       );
+      principalStage = 'CONTEXT';
       const who = await rest(token, '/v1/auth/whoami');
       const data = record(record(who.body).data);
       requireMcpRuntime(
@@ -193,8 +200,10 @@ try {
         (await prisma.session.count({ where: { userId: actor.id } })) > 0,
         'REAL_PERSISTED_SESSION',
       );
+      principalStage = 'TRANSPORT';
       sessions[label] = { token, ...(await connect(token)) };
     }
+    principalStage = 'KEY_MINT';
     const minted = await rest(sessions.W.token, '/v1/api-keys', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -216,6 +225,7 @@ try {
       'REAL_KEY_SERIALIZER',
     );
     key = attributes.key;
+    principalStage = 'KEY_BINDING';
     const persisted = await prisma.apiKey.findFirstOrThrow({
       where: {
         userId: fixture.actors.W.id,
