@@ -142,7 +142,9 @@ export class VisualProjectsController {
       await this.projects.export(user, id, input),
     );
   }
-  @Post(':id/cancel') async cancel(
+  @OrganizationModule('motion', 'cancel')
+  @Post(':id/cancel')
+  async cancel(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

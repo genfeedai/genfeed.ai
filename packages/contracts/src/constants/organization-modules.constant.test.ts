@@ -277,3 +277,33 @@ describe('readonly module creation presentation', () => {
     ).toEqual({ isAllowed: true, reason: null });
   });
 });
+
+describe('existing work cancellation', () => {
+  it('allows stopping existing work while new Motion work remains disabled', () => {
+    expect(
+      resolveOrganizationModuleAccess({
+        ...cloud,
+        moduleId: 'motion',
+        operation: 'cancel',
+      }),
+    ).toEqual({ isAllowed: true, reason: null });
+    expect(
+      resolveOrganizationModuleAccess({
+        ...cloud,
+        moduleId: 'motion',
+        operation: 'write',
+      }),
+    ).toEqual({ isAllowed: false, reason: 'disabled' });
+  });
+  it('does not require unavailable billing/settings to stop an already authorized job', () => {
+    expect(
+      resolveOrganizationModuleAccess({
+        ...cloud,
+        moduleId: 'automation',
+        operation: 'cancel',
+        hasPaidSubscription: null,
+        isSettingsLoaded: false,
+      }),
+    ).toEqual({ isAllowed: true, reason: null });
+  });
+});
