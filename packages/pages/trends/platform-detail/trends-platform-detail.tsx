@@ -230,7 +230,7 @@ export default function TrendsPlatformDetail({
         tabs={<SocialsNavigation active={platform} />}
       />
 
-      <Container>
+      <Container moduleChrome={false}>
         {!isLoading && !error ? (
           <TrendsPlatformStatBar
             feedModeLabel={feedModeLabel}
