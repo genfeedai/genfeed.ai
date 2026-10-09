@@ -208,6 +208,7 @@ describe('AgentToolExecutorService mutation policy', () => {
         .success,
     ).toBe(true);
     member.brands = [];
+    findMember.mockClear();
     authorize.mockClear();
     publishHandler.createPost.mockClear();
     const denied = await service.executeTool(
@@ -220,7 +221,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(authorize).not.toHaveBeenCalled();
     expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
     expect(publishHandler.createPost).not.toHaveBeenCalled();
-    expect(findMember).toHaveBeenCalledTimes(2);
+    expect(findMember).toHaveBeenCalledOnce();
     authorize.mockRestore();
   });
 
