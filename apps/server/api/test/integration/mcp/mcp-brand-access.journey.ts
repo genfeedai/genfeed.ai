@@ -495,7 +495,7 @@ try {
   );
 } catch (error) {
   process.stderr.write(
-    `${error instanceof Error && /^B\d{2}_[A-Z_]+$/.test(error.message) ? error.message : 'JOURNEY_INFRASTRUCTURE'} failed\n`,
+    `${error instanceof Error && /^B\d{2}_[A-Z_]+(?:_[1-5][0-9]{2}(?:_[A-Z_]+)?)?$/.test(error.message) ? error.message : 'JOURNEY_INFRASTRUCTURE'} failed\n`,
   );
   process.exitCode = 1;
 } finally {
