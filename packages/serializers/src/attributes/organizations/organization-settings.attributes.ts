@@ -49,6 +49,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'agentPolicy',
   'moduleOverrides',
   'hasOrganizationBilling',
+  'hasPaidModuleSubscription',
   'fleetEvaluationPolicy',
   'onboardingJourneyMissions',
   'onboardingJourneyCompletedAt',

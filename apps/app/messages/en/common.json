@@ -928,7 +928,10 @@
       },
       "disabledTitle": "{module} is disabled",
       "disabledHelp": "An owner or admin can enable this module in organization settings. Existing projects remain readable and exportable.",
-      "manageModules": "Organization modules"
+      "manageModules": "Organization modules",
+      "subscriptionTitle": "{module} requires an active paid subscription",
+      "subscriptionHelp": "Existing data remains readable and exportable. A paid plan is required to start new work.",
+      "manageSubscription": "Manage subscription"
     }
   },
   "workspaceOverlay": {

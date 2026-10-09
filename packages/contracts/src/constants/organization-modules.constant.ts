@@ -108,6 +108,7 @@ export type OrganizationModulePreferences = Readonly<
 export interface OrganizationModulePreferenceInput {
   moduleOverrides?: unknown;
   hasOrganizationBilling?: unknown;
+  hasPaidModuleSubscription?: unknown;
 }
 
 /** Navigation/preferences only. Enabled subscription modules still require fresh admission. */
@@ -145,6 +146,26 @@ export interface OrganizationModuleAccessInput {
   hasOrganizationBilling: boolean;
   hasPaidSubscription: boolean | null;
   operation: 'read' | 'export' | 'write';
+}
+
+/** Creation presentation only. The server still rechecks every actual write. */
+export function resolveOrganizationModulePresentationAccess(
+  settings: OrganizationModulePreferenceInput | null | undefined,
+  moduleId: OrganizationModuleId,
+): OrganizationModuleAccess {
+  if (typeof settings?.hasOrganizationBilling !== 'boolean')
+    return { isAllowed: false, reason: 'unavailable' };
+  return resolveOrganizationModuleAccess({
+    moduleId,
+    operation: 'write',
+    isSettingsLoaded: true,
+    moduleOverrides: settings.moduleOverrides,
+    hasOrganizationBilling: settings.hasOrganizationBilling,
+    hasPaidSubscription:
+      typeof settings.hasPaidModuleSubscription === 'boolean'
+        ? settings.hasPaidModuleSubscription
+        : null,
+  });
 }
 
 /** Admission only: authorization, platform flags and credits still apply. */

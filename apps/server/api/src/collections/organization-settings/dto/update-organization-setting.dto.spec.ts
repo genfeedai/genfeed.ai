@@ -11,10 +11,12 @@ describe('UpdateOrganizationSettingDto', () => {
     it('strips the read-only runtime billing field from settings writes', async () => {
       const dto = plainToInstance(UpdateOrganizationSettingDto, {
         hasOrganizationBilling: false,
+        hasPaidModuleSubscription: true,
         moduleOverrides: { motion: true },
       });
       expect(await validate(dto, { whitelist: true })).toEqual([]);
       expect(dto).not.toHaveProperty('hasOrganizationBilling');
+      expect(dto).not.toHaveProperty('hasPaidModuleSubscription');
       expect(dto.moduleOverrides).toEqual({ motion: true });
     });
     it('should create an instance', () => {

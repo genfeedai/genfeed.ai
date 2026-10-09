@@ -5,6 +5,7 @@ import { CreateOrganizationSettingDto } from '@api/collections/organization-sett
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
+import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heygen.tokens';
 import {
@@ -16,6 +17,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type {
   PopulateInput,
+  PrismaFilter,
   PrismaUpdate,
 } from '@api/shared/services/base/base-query-normalization.adapter';
 import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
@@ -65,7 +67,38 @@ export class OrganizationSettingsService extends BaseService<
     return {
       ...super.normalizeDocument(document),
       hasOrganizationBilling: hasOrganizationBilling(),
+      hasPaidModuleSubscription: null,
     };
+  }
+
+  override async findOne(
+    params: PrismaFilter,
+    populate: PopulateInput = [],
+  ): Promise<OrganizationSettingDocument | null> {
+    const settings = await super.findOne(params, populate);
+    if (!settings) return null;
+    if (!settings.hasOrganizationBilling)
+      return { ...settings, hasPaidModuleSubscription: true };
+    try {
+      const paidAccess = this.moduleRef.get(OrganizationPaidAccessService, {
+        strict: false,
+      });
+      if (!settings.organizationId || !paidAccess) return settings;
+      const isGated = await paidAccess.isSubscriptionGatedFresh(
+        settings.organizationId,
+      );
+      return typeof isGated === 'boolean'
+        ? { ...settings, hasPaidModuleSubscription: !isGated }
+        : settings;
+    } catch {
+      this.logger?.warn?.(
+        'Organization module subscription eligibility unavailable',
+        {
+          organizationId: settings.organizationId,
+        },
+      );
+      return settings;
+    }
   }
 
   async patch(

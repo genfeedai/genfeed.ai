@@ -33,6 +33,8 @@ export interface OrganizationSettingDocument
   defaultVoiceId: string | null;
   defaultVoiceRef?: PrismaOrganizationSetting['defaultVoiceRef'];
   readonly hasOrganizationBilling?: boolean;
+  /** Read-only fresh paid eligibility; null means the grant could not be verified. */
+  readonly hasPaidModuleSubscription?: boolean | null;
   [key: string]: unknown;
 }
 
