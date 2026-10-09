@@ -256,6 +256,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'fontFamily',
     'format',
     'frame',
+    // Typed public projection of providerData.generationEntry on read.
+    'generationEntry',
     'hasVoted',
     'height',
     'isBrandingEnabled',
@@ -297,6 +299,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'faceEnhancementStrength',
     'fontFamily',
     'frame',
+    // Typed public projection of providerData.generationEntry on read.
+    'generationEntry',
     'hasVoted',
     'height',
     // Computed per request by the media delivery projection, not stored.
@@ -437,6 +441,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'faceEnhancementStrength',
     'fontFamily',
     'frame',
+    // Typed public projection of providerData.generationEntry on read.
+    'generationEntry',
     'gender',
     'hasVoted',
     'height',
@@ -631,6 +637,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'fontFamily',
     'fps',
     'frame',
+    // Typed public projection of providerData.generationEntry on read.
+    'generationEntry',
     'gender',
     'hasAudio',
     'hasVoted',
@@ -685,6 +693,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'fontFamily',
     'format',
     'frame',
+    // Typed public projection of providerData.generationEntry on read.
+    'generationEntry',
     'frameRate',
     'hasVoted',
     'height',
