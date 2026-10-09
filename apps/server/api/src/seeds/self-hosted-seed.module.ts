@@ -12,6 +12,7 @@ import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { SelfHostedSeedService } from '@api/seeds/self-hosted-seed.service';
 import { SkillCatalogSeedService } from '@api/seeds/skill-catalog-seed.service';
+import { StudioPresetSeedService } from '@api/seeds/studio-preset-seed.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
     ModelCatalogSeedService,
     SelfHostedSeedService,
     SkillCatalogSeedService,
+    StudioPresetSeedService,
   ],
 })
 export class SelfHostedSeedModule {}

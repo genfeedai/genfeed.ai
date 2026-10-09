@@ -1,6 +1,7 @@
 import type {
   CrunInputControls,
   IModel,
+  IPreset,
 } from '@genfeedai/contracts/interfaces';
 import type {
   GenerationSetup,
@@ -46,6 +47,10 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  STUDIO_SYSTEM_PRESETS,
+  studioSystemPresetId,
+} from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { isStudioGenerateType } from '@pages/studio/generate/utils/studio-generate-types';
@@ -120,6 +125,13 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
 
 const generationSetupPopoverMocks = vi.hoisted(() => ({
   props: {} as Record<string, unknown>,
+}));
+
+const presetCatalogMocks = vi.hoisted(() => ({
+  presets: [] as Pick<IPreset, 'id' | 'isActive' | 'isDeleted'>[],
+}));
+vi.mock('@providers/promptbar/promptbar.context', () => ({
+  usePromptBarContext: () => ({ presets: presetCatalogMocks.presets }),
 }));
 
 vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
@@ -277,6 +289,11 @@ const baseProps = {
 
 describe('StudioGenerateComposer', () => {
   beforeEach(() => {
+    presetCatalogMocks.presets = STUDIO_SYSTEM_PRESETS.map((preset) => ({
+      id: studioSystemPresetId(preset.key),
+      isActive: true,
+      isDeleted: false,
+    }));
     runtimeMocks.snapshot = { status: 'web', context: null };
     storeMocks.setupByScope = {};
     storeMocks.reasonsByScope = {};
@@ -773,6 +790,187 @@ describe('StudioGenerateComposer', () => {
     expect(studioLooksMocks.deleteLook).toHaveBeenCalledWith('preset-1');
   });
 
+  it('applies a system image template only after preview and preserves the existing prompt', async () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt="My existing topic"
+        settings={settings}
+        type="image"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Banner', exact: true }),
+    );
+    expect(storeMocks.applyPreset).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Apply preset Banner' }),
+    );
+    expect(storeMocks.applyPreset).toHaveBeenCalledWith(
+      'studio:image',
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+      { ...STUDIO_SYSTEM_PRESETS[1].values, type: 'image' },
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+  });
+
+  it('fills an empty video prompt from a template without choosing a model', async () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="video"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Dance', exact: true }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Apply preset Dance' }));
+    expect(baseProps.onPromptChange).toHaveBeenCalledWith(
+      STUDIO_SYSTEM_PRESETS[5].prompt,
+    );
+    expect(storeMocks.applyPreset).toHaveBeenCalledWith(
+      'studio:video',
+      studioSystemPresetId(STUDIO_SYSTEM_PRESETS[5].key),
+      expect.not.objectContaining({ modelKey: expect.anything() }),
+      getDefaultGenerationSetupValues('video'),
+    );
+    expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
+      duration: 5,
+      type: 'video',
+    });
+    expect(screen.queryByRole('button', { name: 'Banner' })).toBeNull();
+  });
+
+  it('repairs a stale music type in the video scope before normalizing a system template', async () => {
+    const actual = await vi.importActual<
+      typeof import('@ui/dropdowns/generation-setup/generation-setup.store')
+    >('@ui/dropdowns/generation-setup/generation-setup.store');
+    const scope = 'studio:video';
+    const stale: GenerationSetup = {
+      sources: {},
+      values: { ...getDefaultGenerationSetupValues('music'), modelKey: 'auto' },
+    };
+    actual.useGenerationSetupStore.setState({
+      setupByScope: { [scope]: stale },
+    });
+    storeMocks.setupByScope = { [scope]: stale };
+    storeMocks.applyPreset.mockImplementation(
+      actual.applyGenerationSetupPreset,
+    );
+    try {
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          prompt="My dance"
+          settings={settings}
+          type="video"
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Dance', exact: true }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Apply preset Dance' }),
+      );
+      const applied =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      expect(applied).toMatchObject({
+        presetId: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[5].key),
+        sources: { duration: 'preset' },
+        values: { type: 'video', duration: 5, aspectRatio: '9:16' },
+      });
+      expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+    } finally {
+      storeMocks.applyPreset.mockReset();
+      actual.useGenerationSetupStore.setState({
+        setupByScope: {},
+        reasonsByScope: {},
+      });
+      window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    }
+  });
+
+  it.each([
+    { duration: 8, expected: 8 },
+    { duration: 42, expected: 4 },
+  ])(
+    'keeps system template duration inside the selected model bounds ($duration → $expected)',
+    async ({ duration, expected }) => {
+      const model = {
+        key: 'test/video-bounded',
+        label: 'Bounded video',
+        category: ModelCategory.VIDEO,
+        maxOutputs: 1,
+        durations: [4, 8],
+        defaultDuration: 4,
+        hasDurationEditing: true,
+      } as IModel;
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[model]}
+          prompt="My topic"
+          settings={{ ...settings, modelKey: model.key, duration }}
+          type="video"
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Dance', exact: true }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Apply preset Dance' }),
+      );
+      expect(storeMocks.applyPreset.mock.lastCall?.[2]).toMatchObject({
+        duration: expected,
+        type: 'video',
+      });
+      expect(storeMocks.applyPreset.mock.lastCall?.[2]).not.toHaveProperty(
+        'modelKey',
+      );
+      expect(baseProps.onSettingsChange).not.toHaveBeenCalled();
+      expect(baseProps.onPromptChange).not.toHaveBeenCalled();
+    },
+  );
+
+  it('hides missing, inactive and deleted system templates while keeping saved preset access', async () => {
+    presetCatalogMocks.presets = [
+      {
+        id: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[0].key),
+        isActive: false,
+        isDeleted: false,
+      },
+      {
+        id: studioSystemPresetId(STUDIO_SYSTEM_PRESETS[1].key),
+        isActive: true,
+        isDeleted: true,
+      },
+    ];
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Presets' }));
+    expect(await screen.findByPlaceholderText('Save as preset…')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Profile picture' }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Banner' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'YouTube thumbnail' }),
+    ).toBeNull();
+  });
+
   it('reconciles external music settings without mounting Output, idempotently', () => {
     const onSettingsChange = vi.fn();
     const musicSettings = {
@@ -967,6 +1165,10 @@ describe('StudioGenerateComposer', () => {
       ).queryByRole('button', { name: 'Setup' }),
     ).toBeNull();
     expect(generationSetupPopoverMocks.props.isIconOnly).toBe(true);
+    expect(generationSetupPopoverMocks.props.showPresets).toBe(false);
+    expect(
+      promptTools.getByRole('button', { name: 'Presets' }),
+    ).toBeInTheDocument();
 
     const imageEditing = generationSetupPopoverMocks.props
       .imageEditing as GenerationSetupImageEditingMode;

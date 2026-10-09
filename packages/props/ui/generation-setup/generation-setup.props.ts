@@ -1,3 +1,4 @@
+import type { StudioSystemPreset } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import type {
   FormDropdownOption,
   IModel,
@@ -52,6 +53,7 @@ export interface GenerationSetupImageEditingMode {
 }
 
 export interface GenerationSetupPopoverProps {
+  showPresets?: boolean;
   /** One compact entry point for Studio's type and settings. */
   isIconOnly?: boolean;
   /** Studio's explicit image editing override; other surfaces omit it. */
@@ -91,7 +93,7 @@ export interface GenerationSetupPopoverProps {
   buttonRef?: RefObject<HTMLButtonElement | null>;
   /**
    * The user's saved Advanced Mode. When provided, the popover shows the
-   * switch; the surface decides what Advanced reveals (manual model choice).
+   * Auto/Advanced button group; the surface decides what Advanced reveals.
    */
   advancedMode?: GenerationSetupAdvancedMode;
 }
@@ -138,6 +140,7 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupFrontDoorProps {
+  showPresets?: boolean;
   showEnhancementSettings?: boolean;
   capabilities: StudioGenerateCapabilities;
   inputControls?: CrunInputControls;
@@ -161,6 +164,18 @@ export interface GenerationSetupPresetsSectionProps {
   onSavePreset: (label: string) => void;
   presets: readonly IStudioLook[];
   setup: GenerationSetup;
+}
+
+export interface GenerationSetupPresetsPopoverProps
+  extends GenerationSetupPresetsSectionProps {
+  onClearPreset: () => void;
+  systemPresets?: readonly StudioSystemPreset[];
+  onApplySystemPreset?: (preset: StudioSystemPreset) => void;
+}
+
+export interface GenerationSetupPresetPreviewProps {
+  preset: StudioSystemPreset;
+  isAnimated?: boolean;
 }
 
 export interface GenerationSetupOptionPickerProps {
