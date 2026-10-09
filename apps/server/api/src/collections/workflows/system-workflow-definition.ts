@@ -1,5 +1,6 @@
 import type { WorkflowGraphDefinitionInput } from '@api/collections/workflows/workflow-version-definition';
 import type { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
 
 /**
  * `RunSystemWorkflowInput.source` value used by every platform-cron sweep
@@ -28,6 +29,10 @@ export type SystemWorkflowGraphMetadata = {
   changeSummary?: string;
   description: string;
   label: string;
+  /** Code-owned product admission; never read from editable mirror metadata. */
+  organizationModule?: OrganizationModuleId;
+  /** Terminal state projection after an admitted side effect; never new work. */
+  moduleCompletionNodeIds?: readonly string[];
   schedule?: string;
   version?: number;
 };

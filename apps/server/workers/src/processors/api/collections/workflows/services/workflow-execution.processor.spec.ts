@@ -69,6 +69,9 @@ function createMockSchedulerService() {
 
 function createMockSystemWorkflowRunner() {
   return {
+    runWithRegisteredWorkflowModule: vi.fn(
+      async (_input: unknown, work: () => Promise<unknown>) => work(),
+    ),
     runWorkflow: vi.fn().mockResolvedValue({
       provenance: {
         executionId: 'exec-failure',
@@ -143,6 +146,46 @@ describe('WorkflowExecutionProcessor', () => {
   });
 
   describe('module revocation', () => {
+    it('checks static module ownership on a legacy job before resuming its existing execution', async () => {
+      mockSystemWorkflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
+        new Error('Messages disabled'),
+      );
+      const job = createMockJob({
+        type: 'system-run',
+        systemRun: {
+          input: {
+            actionType: 'social.inbox.outbound.send-dm',
+            canonicalId: 'social.inbox.outbound.send-dm',
+            organizationId: 'org-1',
+            source: 'legacy',
+          },
+          priorExecution: {
+            executionId: 'old-execution',
+            status: WorkflowExecutionStatus.RUNNING,
+            userId: 'user-1',
+            workflowId: 'old-workflow',
+            workflowLabel: 'Send DM',
+          },
+          failureWorkflow: { canonicalId: 'failed-message' },
+        },
+      });
+      await expect(processor.process(job as never)).rejects.toThrow(
+        'Messages disabled',
+      );
+      expect(
+        mockSystemWorkflowRunner.runWithRegisteredWorkflowModule,
+      ).toHaveBeenCalledWith(job.data.systemRun?.input, expect.any(Function));
+      expect(mockExecutor.continueExistingExecution).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+      expect(job.updateData).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          canonicalId: 'failed-message',
+          organizationId: 'org-1',
+        }),
+      );
+    });
+
     it('blocks execution and runs registered failure compensation after revocation', async () => {
       mockQueue.runWithQueuedOrganizationModule.mockRejectedValueOnce(
         new Error('Module disabled'),

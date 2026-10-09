@@ -52,6 +52,8 @@ export function buildSocialInboxOutboundWorkflowDefinition(
   }));
   return {
     canonicalId,
+    organizationModule: 'messages',
+    moduleCompletionNodeIds: ['finalize-message'],
     definition: {
       edges,
       inputVariables: [
