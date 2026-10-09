@@ -292,6 +292,19 @@ export class AgentAnalyticsToolHandler {
         : undefined;
   }
 
+  private analyticsPeriodRange(period: string): {
+    startDate: Date;
+    endDate: Date;
+  } {
+    const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
+    const days = daysMap[period] || 30;
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    return { startDate, endDate };
+  }
+
   async getAnalytics(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -431,12 +444,7 @@ export class AgentAnalyticsToolHandler {
     }
 
     const period = (params.period as string) || '30d';
-    const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
-    const days = daysMap[period] || 30;
-
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const { startDate, endDate } = this.analyticsPeriodRange(period);
 
     const overview = (await this.analyticsService.getOverview(
       startDate.toISOString(),
