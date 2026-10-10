@@ -16,6 +16,7 @@ import { PostingSetsService } from '@services/content/posting-sets.service';
 import { PostingSignaturesService } from '@services/content/posting-signatures.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { isCancelledRequest } from '@services/core/operation-error';
 import { Badge } from '@ui/primitives/badge';
 import {
   Select,
@@ -190,7 +191,11 @@ export default function PostingSetPicker({
         setPostingSets(sets);
         setSignatures(signatureRows);
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (
+          signal.aborted ||
+          isCancelledRequest(error) ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
           return;
         }
         logger.error('Failed to load posting sets', error);
