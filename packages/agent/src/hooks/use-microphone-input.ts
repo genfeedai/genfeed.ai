@@ -1,3 +1,7 @@
+import {
+  describeRecordedAudio,
+  pickAudioRecordingFormat,
+} from '@genfeedai/helpers/media/audio-recording/audio-recording-format.helper';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
@@ -59,7 +63,13 @@ export function useMicrophoneInput({
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
-      const mediaRecorder = new MediaRecorder(stream);
+      const recordingFormat = pickAudioRecordingFormat();
+      const mediaRecorder = new MediaRecorder(
+        stream,
+        recordingFormat?.recorderMimeType
+          ? { mimeType: recordingFormat.recorderMimeType }
+          : undefined,
+      );
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -71,13 +81,20 @@ export function useMicrophoneInput({
         for (const track of stream.getTracks()) {
           track.stop();
         }
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const recordedAudio = describeRecordedAudio(mediaRecorder.mimeType);
+        const blob = new Blob(chunksRef.current, {
+          type: recordedAudio.blobType,
+        });
 
         setIsTranscribing(true);
         try {
           const token = await getToken();
           const formData = new FormData();
-          formData.append('audio', blob, 'recording.webm');
+          formData.append(
+            'audio',
+            blob,
+            `recording.${recordedAudio.extension}`,
+          );
 
           const response = await fetch(
             `${apiBaseUrl}/speech/transcribe/audio`,
