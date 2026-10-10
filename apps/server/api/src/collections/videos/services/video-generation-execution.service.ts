@@ -156,7 +156,17 @@ export class VideoGenerationExecutionService {
     context: VideoGenerationContext,
     error: unknown,
   ): Promise<never> {
-    await this.failPendingOutputs(context, error);
+    try {
+      await this.failPendingOutputs(context, error);
+    } finally {
+      // This producer calls here before execute/output binding. Close unused
+      // admission through the existing durable group fence; already bound or
+      // ambiguous provider work still requires its normal terminal evidence.
+      if (context.request && !this.submissionStarted.get(context)?.size)
+        await this.generationBilling.releasePool(
+          context.request as unknown as GenerationBillingRequest,
+        );
+    }
     throw error;
   }
 

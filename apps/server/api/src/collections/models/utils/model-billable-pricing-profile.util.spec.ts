@@ -1,5 +1,8 @@
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
-import { quoteModelBillablePricing } from '@genfeedai/pricing';
+import {
+  classifyModelPricingAttention,
+  quoteModelBillablePricing,
+} from '@genfeedai/pricing';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
 
@@ -41,6 +44,195 @@ const contract = {
   lastSeenAt: new Date('2026-09-30T00:00:00Z'),
 } as unknown as ModelProviderContract;
 describe('raw reviewed provider pricing adapter', () => {
+  it('cannot treat a lost conditional contract as a scalar or free tariff', () => {
+    const profile = projectModelBillablePricingProfile(
+      {
+        ...model,
+        pricingType: 'conditional',
+        providerCostUsd: null,
+        cost: 0,
+        costPerUnit: null,
+        hasResolutionOptions: false,
+        hasAudioToggle: false,
+      },
+      [],
+    );
+    expect(profile.reviewedPricing).toBeNull();
+    expect(profile.requiresReviewedRates).toBe(true);
+    for (const isFree of [false, true]) {
+      expect(
+        quoteModelBillablePricing(
+          { ...profile, isFree },
+          { modelKey: model.key, provider: model.provider, duration: 5 },
+          3.33,
+          '2026-10-10T00:00:00Z',
+        ).status,
+      ).toBe('unresolved');
+    }
+  });
+
+  it('keeps Seedance callable when legacy audio flags lack a schema field', () => {
+    const seedance = {
+      ...model,
+      key: 'bytedance/seedance-2.5',
+      endpoint: 'bytedance/seedance-2.5',
+      provider: 'replicate',
+      hasAudioToggle: true,
+    };
+    const profile = projectModelBillablePricingProfile(seedance, [
+      {
+        ...contract,
+        provider: seedance.provider,
+        endpoint: seedance.endpoint,
+        pricing: {
+          currency: 'USD',
+          sourceUrl: 'https://replicate.com/bytedance/seedance-2.5',
+          verifiedAt: '2026-10-09T06:00:01.069Z',
+          invariantSelectors: ['generate_audio'],
+          rates: [
+            {
+              component: 'output',
+              unit: 'second',
+              unitPriceUsd: 0.2312,
+              isPerOutput: true,
+              when: { resolution: '720p', model_variant: 'non_video_in' },
+            },
+          ],
+          variantRules: [
+            {
+              selectorKey: 'model_variant',
+              criterionTitle: 'model variant',
+              derive: {
+                kind: 'presence',
+                field: 'reference_videos',
+                fieldType: 'array',
+                whenPresent: 'video_in',
+                whenAbsent: 'non_video_in',
+              },
+            },
+          ],
+        },
+      },
+    ]);
+    expect(profile.requiredSelectorKeys).toEqual([
+      'resolution',
+      'generate_audio',
+      'model_variant',
+    ]);
+    const quote = quoteModelBillablePricing(
+      profile,
+      {
+        modelKey: seedance.key,
+        provider: seedance.provider,
+        duration: 5,
+        selectors: { resolution: '720p' },
+      },
+      3.33,
+      '2026-10-10T00:00:00Z',
+      { kind: 'dispatch', input: { resolution: '720p', reference_videos: [] } },
+    );
+    expect(quote).toMatchObject({
+      status: 'priced',
+      snapshot: { providerCostUsd: 1.156 },
+    });
+    expect(
+      classifyModelPricingAttention({
+        category: 'video',
+        isActive: true,
+        isFree: false,
+        now: new Date('2026-10-10T00:00:00Z'),
+        profile,
+        provider: seedance.provider,
+      }),
+    ).toEqual([]);
+  });
+
+  it('does not rename an actual schema audio field to an unrelated invariant', () => {
+    const profile = projectModelBillablePricingProfile(
+      {
+        ...model,
+        hasAudioToggle: true,
+        providerInputSchema: { properties: { audio: { type: 'boolean' } } },
+      },
+      [
+        {
+          ...contract,
+          pricing: {
+            currency: 'USD',
+            sourceUrl: 'https://fal.ai/models/fal-ai/model',
+            verifiedAt: '2026-09-30T00:00:00Z',
+            invariantSelectors: ['generate_audio'],
+            rates: [
+              {
+                component: 'output',
+                unit: 'second',
+                unitPriceUsd: 0.2,
+                when: {},
+              },
+            ],
+          },
+        },
+      ],
+    );
+    expect(profile.requiredSelectorKeys).toContain('audio');
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        { modelKey: model.key, provider: model.provider, duration: 5 },
+        3.33,
+        '2026-10-10T00:00:00Z',
+      ).status,
+    ).toBe('unresolved');
+  });
+
+  it('requires an explicit audio choice when approved rates price that choice', () => {
+    const profile = projectModelBillablePricingProfile(
+      { ...model, hasAudioToggle: true, hasResolutionOptions: false },
+      [
+        {
+          ...contract,
+          pricing: {
+            currency: 'USD',
+            sourceUrl: 'https://fal.ai/models/fal-ai/model',
+            verifiedAt: '2026-09-30T00:00:00Z',
+            rates: [
+              {
+                component: 'output',
+                unit: 'second',
+                unitPriceUsd: 0.2,
+                when: { generate_audio: false },
+              },
+              {
+                component: 'output',
+                unit: 'second',
+                unitPriceUsd: 0.4,
+                when: { generate_audio: true },
+              },
+            ],
+          },
+        },
+      ],
+    );
+    expect(profile.requiredSelectorKeys).toEqual(['generate_audio']);
+    const request = {
+      modelKey: model.key,
+      provider: model.provider,
+      duration: 5,
+    };
+    expect(
+      quoteModelBillablePricing(profile, request, 3.33, '2026-10-10T00:00:00Z')
+        .status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        { ...request, selectors: { generate_audio: false } },
+        3.33,
+        '2026-10-10T00:00:00Z',
+      ),
+    ).toMatchObject({ status: 'priced', snapshot: { providerCostUsd: 1 } });
+  });
+
   it('adapts exact approved Fal account evidence, dated by the last observation of these exact rates', () => {
     const profile = projectModelBillablePricingProfile(model, [contract]);
     expect(profile.cost).toBe(99);

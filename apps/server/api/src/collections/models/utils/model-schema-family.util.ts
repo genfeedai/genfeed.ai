@@ -5,7 +5,12 @@ const IMAGE_FAL_SCHEMA_FAMILIES = new Set([
   'image-edit-single-v1',
   'image-text-v1',
 ]);
-const VIDEO_FAL_SCHEMA_FAMILIES = new Set(['video-image-v1', 'video-text-v1']);
+const VIDEO_FAL_SCHEMA_FAMILIES = new Set([
+  'video-image-v1',
+  'video-text-v1',
+  'video-reference-v1',
+  'video-draft-v1',
+]);
 
 export function isFalSchemaFamilyCompatible(
   category: string,

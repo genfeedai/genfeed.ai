@@ -44,6 +44,152 @@ describe('pending provider rate drift', () => {
   });
 });
 describe('authoritative bill-time quote snapshots', () => {
+  it('binds native input usage to the same source at quote and completion', () => {
+    const profile: ModelBillablePricingProfile = {
+      ...model,
+      provider: 'fal',
+      rateVersion: 'native-v1',
+      reviewedPricing: {
+        currency: 'USD',
+        version: 'native-v1',
+        reviewStatus: 'approved',
+        sourceUrl:
+          'https://fal.ai/models/bytedance/seedance-2.5/reference-to-video',
+        verifiedAt: date,
+        rates: [
+          {
+            component: 'output',
+            unit: 'video-token',
+            unitPriceUsd: 0.0000214,
+            when: {},
+          },
+          {
+            component: 'input',
+            unit: 'input-video-token',
+            unitPriceUsd: 0.00001284,
+            when: {},
+          },
+        ],
+      },
+    };
+    const request = {
+      ...input,
+      provider: 'fal',
+      width: 1280,
+      height: 720,
+      duration: 5,
+      inputDuration: 4,
+      framesPerSecond: 24,
+    };
+    expect(quoteModelBillablePricing(profile, request, 1, date).status).toBe(
+      'unresolved',
+    );
+    const quote = quoteModelBillablePricing(
+      profile,
+      { ...request, referenceEvidenceHash: 'a'.repeat(64) },
+      1,
+      date,
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    const completion = {
+      completedOutputs: 1,
+      successfulRequests: 1,
+      width: 1280,
+      height: 720,
+      duration: 5,
+      inputDuration: 4,
+    };
+    for (const hash of [undefined, 'b'.repeat(64)])
+      expect(
+        quoteModelBillableCompletion(quote.snapshot, {
+          ...completion,
+          referenceEvidenceHash: hash,
+        }).status,
+      ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        ...completion,
+        referenceEvidenceHash: 'a'.repeat(64),
+      }).status,
+    ).toBe('priced');
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        ...completion,
+        inputDuration: 3,
+        referenceEvidenceHash: 'a'.repeat(64),
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 0,
+        successfulRequests: 0,
+      }),
+    ).toMatchObject({ status: 'priced', credits: 0 });
+  });
+  it('settles native video tokens from actual output evidence and rejects missing or over-reservation usage', () => {
+    const profile: ModelBillablePricingProfile = {
+      ...model,
+      requiredSelectorKeys: [],
+      rateVersion: 'native-v1',
+      reviewedPricing: {
+        currency: 'USD',
+        version: 'native-v1',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://fal.ai/models/bytedance/seedance-2.0/text-to-video',
+        verifiedAt: date,
+        rates: [
+          {
+            component: 'output',
+            unit: 'video-token',
+            unitPriceUsd: 0.000014,
+            when: {},
+            isPerOutput: true,
+          },
+        ],
+      },
+    };
+    const reserved = quoteModelBillablePricing(
+      profile,
+      { ...input, width: 1280, height: 720, framesPerSecond: 24, duration: 5 },
+      1,
+      date,
+    );
+    if (reserved.status !== 'priced') throw new Error(reserved.reason);
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+        width: 1280,
+        height: 720,
+        duration: 4,
+      }),
+    ).toMatchObject({
+      status: 'priced',
+      billableProviderCostUsd: 1.2096,
+      credits: 121,
+    });
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+        width: 1280,
+        height: 720,
+        duration: 6,
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(reserved.snapshot, {
+        completedOutputs: 0,
+        successfulRequests: 0,
+      }),
+    ).toMatchObject({ status: 'priced', credits: 0 });
+  });
   it('prices actual duration, aggregates once, and conserves every allocated credit', () => {
     const quote = quoteModelBillablePricing(
       model,

@@ -6,7 +6,10 @@ import {
   CreditReservationStatus,
   IngredientStatus,
 } from '@genfeedai/contracts';
-import type { ModelBillablePricingProfile } from '@genfeedai/contracts/interfaces';
+import type {
+  ModelBillablePricingProfile,
+  ModelBillableQuoteRequest,
+} from '@genfeedai/contracts/interfaces';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,10 +17,17 @@ import { describe, expect, it, vi } from 'vitest';
 function fixture(
   profile: Partial<ModelBillablePricingProfile> = {},
   requests = 1,
+  quantities: Partial<ModelBillableQuoteRequest> = {},
 ) {
   const quoted = quoteModelBillablePricing(
     billableProfile({ cost: 3.1, ...profile }),
-    { modelKey: 'test/model', provider: 'replicate', outputs: 3, requests },
+    {
+      modelKey: 'test/model',
+      provider: profile.provider ?? 'replicate',
+      outputs: 3,
+      requests,
+      ...quantities,
+    },
     1,
     '2026-09-30T00:00:00.000Z',
   );
@@ -102,7 +112,88 @@ function fixture(
   return { credits, hold, logger, outputs, prisma, service, recordComplete };
 }
 
+function nativeFixture() {
+  return fixture(
+    {
+      provider: 'fal',
+      rateVersion: 'native-v1',
+      reviewedPricing: {
+        currency: 'USD',
+        version: 'native-v1',
+        reviewStatus: 'approved',
+        sourceUrl:
+          'https://fal.ai/models/bytedance/seedance-2.5/reference-to-video',
+        verifiedAt: '2026-09-30T00:00:00.000Z',
+        rates: [
+          {
+            component: 'output',
+            unit: 'video-token',
+            unitPriceUsd: 0.0000214,
+            when: {},
+          },
+          {
+            component: 'input',
+            unit: 'input-video-token',
+            unitPriceUsd: 0.00001284,
+            when: {},
+          },
+        ],
+      },
+    },
+    1,
+    {
+      width: 1280,
+      height: 720,
+      duration: 5,
+      inputDuration: 4,
+      framesPerSecond: 24,
+      referenceEvidenceHash: 'a'.repeat(64),
+    },
+  );
+}
+
 describe('GenerationQuoteGroupService', () => {
+  it('closes empty native dispatch and releases its unused hold only once', async () => {
+    const state = nativeFixture();
+    state.hold.metadata.boundOutputIds = [];
+    state.hold.metadata.failedOutputIds = [];
+    state.hold.metadata.dispatchClosed = false;
+    await state.service.settleGroup('hold-1', 'org-1');
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+
+    await state.service.closeDispatch('hold-1', 'org-1');
+    await state.service.closeDispatch('hold-1', 'org-1');
+
+    expect(state.hold.metadata.dispatchClosed).toBe(true);
+    expect(state.prisma.crunGenerationTask.findMany).toHaveBeenCalledWith({
+      where: {
+        reservationId: 'hold-1',
+        organizationId: 'org-1',
+        isDeleted: false,
+      },
+    });
+    expect(state.credits.releaseReservation).toHaveBeenCalledExactlyOnceWith({
+      organizationId: 'org-1',
+      reservationId: 'hold-1',
+      expectedReservationMetadata: state.hold.metadata,
+    });
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+  });
+
+  it('retains bound native funding when actual completion quantities are missing', async () => {
+    const state = nativeFixture();
+    state.recordComplete(0);
+
+    await state.service.settleGroup('hold-1', 'org-1');
+
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.logger.warn).toHaveBeenCalledWith(
+      'Generation completion quantity is unresolved; retain funding',
+      expect.objectContaining({ reservationId: 'hold-1' }),
+    );
+  });
+
   it.each([0, 1, 2])(
     'prices one durable output identically at position %s, independently of [4,3,3]',
     async (index) => {

@@ -178,8 +178,101 @@ describe('VideoGenerationExecutionService', () => {
       expect(
         state.failedGenerationService.handleFailedVideoGeneration,
       ).not.toHaveBeenCalled();
+      if (path === 'pre-dispatch')
+        expect(
+          state.generationBilling.releasePool,
+        ).toHaveBeenCalledExactlyOnceWith(context.request);
+      else expect(state.generationBilling.releasePool).not.toHaveBeenCalled();
     },
   );
+
+  it('closes unbound request admission even when no output was bound', async () => {
+    const state = createHarness();
+    const context = buildContext({
+      request: {
+        creditsConfig: { reservationId: 'hold-1', settlement: 'completion' },
+        user: { organizationId: 'org-1', userId: 'user-1' },
+      } as never,
+    });
+    const error = new Error('reference changed before dispatch');
+
+    await expect(
+      state.service.failPlaceholderBeforeDispatch(context, error),
+    ).rejects.toBe(error);
+
+    expect(state.generationBilling.releasePool).toHaveBeenCalledExactlyOnceWith(
+      context.request,
+    );
+    expect(state.generationBilling.bindOutput).not.toHaveBeenCalled();
+    expect(state.providerDispatchService.dispatch).not.toHaveBeenCalled();
+    expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
+  });
+
+  it('closes unused admission when failure projection itself fails before dispatch', async () => {
+    const state = createHarness();
+    const projectionError = new Error('failure projection unavailable');
+    state.failedGenerationService.handleFailedVideoGeneration.mockRejectedValue(
+      projectionError,
+    );
+    const context = buildContext({
+      pendingIngredientIds: ['ingredient-1'],
+      request: { creditsConfig: { reservationId: 'hold-1' } } as never,
+    });
+
+    await expect(
+      state.service.failPlaceholderBeforeDispatch(
+        context,
+        new Error('reference changed'),
+      ),
+    ).rejects.toBe(projectionError);
+
+    expect(state.generationBilling.releasePool).toHaveBeenCalledExactlyOnceWith(
+      context.request,
+    );
+    expect(state.providerDispatchService.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('does not close a request after an ambiguous provider submission', async () => {
+    const state = createHarness();
+    const quote = quoteModelBillablePricing(
+      billableProfile(),
+      {
+        modelKey: 'test/model',
+        provider: 'replicate',
+        outputs: 1,
+        requests: 1,
+      },
+      1,
+      '2026-09-30T00:00:00.000Z',
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    const context = buildContext({
+      pendingIngredientIds: ['ingredient-1'],
+      request: {
+        creditsConfig: {
+          modelQuote: quote.snapshot,
+          amount: quote.snapshot.credits,
+          settlement: 'completion',
+          reservationId: 'hold-1',
+        },
+      } as never,
+    });
+    const failure = new Error('provider submission outcome unknown');
+    state.providerDispatchService.dispatch.mockImplementation(
+      async (params) => {
+        params.onProviderSubmissionStarted();
+        throw failure;
+      },
+    );
+    await expect(state.service.execute(context)).rejects.toBe(failure);
+
+    await expect(
+      state.service.failPlaceholderBeforeDispatch(context, failure),
+    ).rejects.toBe(failure);
+
+    expect(state.generationBilling.releasePool).not.toHaveBeenCalled();
+    expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
+  });
 
   it('keeps an earlier accepted output funded when a later sequential dispatch fails', async () => {
     const {

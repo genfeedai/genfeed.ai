@@ -10,6 +10,10 @@ import {
   normalizeFalPrice,
 } from '@workers/crons/fal-model-watcher/fal-pricing';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
+import {
+  type FalSeedancePricingSnapshot,
+  observeFalSeedancePricing,
+} from '@workers/services/fal-seedance-pricing.util';
 import { hashProviderContract } from '@workers/services/provider-contract.util';
 
 export interface FalCandidateContract {
@@ -21,7 +25,7 @@ export interface FalCandidateContract {
   openapi: Record<string, unknown>;
   openapiVersion: string | null;
   outputSchema: Record<string, unknown>;
-  pricing: NormalizedFalPrice[];
+  pricing: NormalizedFalPrice[] | FalSeedancePricingSnapshot;
   pricingType: string | null;
   schemaFamily: string | null;
   unitPrice: string | null;
@@ -56,21 +60,29 @@ export function prepareFalModelContract(
   }
 
   const price = normalizedPrices.length === 1 ? normalizedPrices[0] : null;
+  const tokenPricing = observeFalSeedancePricing(
+    model.endpoint_id,
+    normalizedPrices,
+  );
   const pricingMapping = price ? mapFalPricing(price) : null;
   if (!price) {
     unsupportedReason ??=
       normalizedPrices.length > 1 ? 'ambiguous_pricing' : 'missing_pricing';
-  } else if (pricingMapping && !pricingMapping.supported) {
+  } else if (!tokenPricing && pricingMapping && !pricingMapping.supported) {
     unsupportedReason ??= pricingMapping.reason;
   }
 
-  const supported = Boolean(schemaFamily && pricingMapping?.supported);
+  const supported = Boolean(
+    schemaFamily && (tokenPricing || pricingMapping?.supported),
+  );
   const candidateWithoutVersion = {
     endpoint: model.endpoint_id,
     inputSchema: schemas.input,
     openapi,
     outputSchema: schemas.output,
-    pricing: normalizedPrices,
+    pricing: tokenPricing
+      ? { ...tokenPricing, verifiedAt: undefined }
+      : normalizedPrices,
     schemaFamily,
   };
 
@@ -84,9 +96,12 @@ export function prepareFalModelContract(
     openapiVersion:
       typeof openapi.openapi === 'string' ? openapi.openapi : null,
     outputSchema: schemas.output,
-    pricing: normalizedPrices,
-    pricingType:
-      pricingMapping?.supported === true ? pricingMapping.pricingType : null,
+    pricing: tokenPricing ?? normalizedPrices,
+    pricingType: tokenPricing
+      ? 'conditional'
+      : pricingMapping?.supported === true
+        ? pricingMapping.pricingType
+        : null,
     schemaFamily,
     unitPrice: price?.unitPrice ?? null,
     unitPriceMicros:
