@@ -48,6 +48,9 @@ describe('pricing metadata', () => {
       unitText: 'credit',
       price: 0.01,
     });
+    const pro = jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro');
+    expect(pro?.price).toBe('39');
+    expect(pro?.description).toContain('12 months, then $49/mo');
     expect(jsonLd.about).toMatchObject({
       '@type': 'Service',
       name: 'Done for you',

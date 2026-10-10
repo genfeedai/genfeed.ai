@@ -55,10 +55,14 @@ export function buildPricingJsonLd() {
         .filter((plan) => plan.price != null)
         .map((plan) => ({
           '@type': 'Offer',
-          description: OFFER_DESCRIPTIONS[plan.tier],
+          description: [OFFER_DESCRIPTIONS[plan.tier], plan.launchNote]
+            .filter(Boolean)
+            .join(' '),
           name: plan.label,
           price: String(
-            plan.type === 'payg' ? CREDIT_VALUE_DOLLARS : plan.price,
+            plan.type === 'payg'
+              ? CREDIT_VALUE_DOLLARS
+              : (plan.launchPrice ?? plan.price),
           ),
           priceCurrency: 'USD',
           priceSpecification:
