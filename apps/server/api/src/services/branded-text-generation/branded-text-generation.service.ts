@@ -107,6 +107,7 @@ export class BrandedTextGenerationService {
       brandId: input.brandId,
       actorId: input.actorId,
       isApiKey: request.initiatingActor.isApiKey,
+      apiKeyId: request.initiatingActor.apiKeyId,
       scopes: request.initiatingActor.scopes,
     };
     const { receipt } = await this.receipts.create(input, actor);

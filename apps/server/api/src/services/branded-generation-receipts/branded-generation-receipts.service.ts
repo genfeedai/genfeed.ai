@@ -215,7 +215,9 @@ export class BrandedGenerationReceiptsService {
       const receipt = brandedGenerationReceiptV1Schema.parse({
         schemaVersion: 1,
         id: randomUUID(),
-        ...actor,
+        actorId: actor.actorId,
+        brandId: actor.brandId,
+        organizationId: actor.organizationId,
         requestKey: input.requestKey,
         candidateIndex: input.candidateIndex,
         requestHash,
@@ -258,7 +260,9 @@ export class BrandedGenerationReceiptsService {
       await tx.brandedGenerationReceipt.create({
         data: {
           id: receipt.id,
-          ...actor,
+          actorId: actor.actorId,
+          brandId: actor.brandId,
+          organizationId: actor.organizationId,
           requestKey: receipt.requestKey,
           candidateIndex: receipt.candidateIndex,
           requestHash,

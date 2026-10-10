@@ -238,7 +238,7 @@ export default function OrgLandingContent() {
   if (hasNoBrandAccess)
     return (
       <p className="px-6 py-12 text-muted-foreground" role="status">
-        No brands assigned. Ask an organization admin for access.
+        {translate('noBrandAccess')}
       </p>
     );
 

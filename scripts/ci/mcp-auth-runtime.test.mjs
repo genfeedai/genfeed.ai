@@ -1,10 +1,24 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import {
   assertChildOutcome,
   CONTRACT,
   parseOptions,
+  readJourneyFailure,
+  readProcessNetworkNamespace,
+  scrubRuntimeExport,
   validateContainer,
   validateEnvironment,
   validateJourney,
@@ -15,6 +29,15 @@ import {
 const sha = 'a'.repeat(40);
 const identity = { candidateSha: sha, testedSha: sha, nonce: 'b'.repeat(32) };
 const digest = 'c'.repeat(64);
+const fixtureDatabaseUrl = (
+  hostname = '127.0.0.1',
+  database = CONTRACT.database,
+) => {
+  const url = new URL(`postgresql://${hostname}:5432/${database}`);
+  url.username = 'fixture';
+  url.password = 'ephemeral';
+  return url.href;
+};
 const receipt = () => ({
   version: 1,
   ...identity,
@@ -49,14 +72,52 @@ const environment = () => ({
       ]),
   ),
   GITHUB_ACTIONS: 'true',
+  CHECKPOINT_DISABLE: '1',
   MCP_AUTH_RUNTIME_NONCE: identity.nonce,
-  DATABASE_URL: `postgresql://fixture:ephemeral@127.0.0.1:5432/${CONTRACT.database}`,
+  DATABASE_URL: fixtureDatabaseUrl(),
   REDIS_QUEUE_DB: '0',
   REDIS_CACHE_DB: '1',
   REDIS_RATELIMIT_DB: '2',
   REDIS_SOCKET_DB: '3',
 });
 const owner = { id: 'owned-id', nonce: identity.nonce, network: 'none' };
+test('journey diagnostics expose only the finite failure category', () => {
+  assert.equal(
+    readJourneyFailure('B01_REAL_PRINCIPALS_TOKEN failed'),
+    'B01_REAL_PRINCIPALS_TOKEN',
+  );
+  assert.equal(
+    readJourneyFailure(
+      'B01_REAL_PRINCIPALS_SIGNIN_HTTP_401_INVALID_EMAIL_OR_PASSWORD failed',
+    ),
+    'B01_REAL_PRINCIPALS_SIGNIN_HTTP_401_INVALID_EMAIL_OR_PASSWORD',
+  );
+  assert.equal(
+    readJourneyFailure('B01_REAL_PRINCIPALS_KEY_MINT_HTTP_403 failed'),
+    'B01_REAL_PRINCIPALS_KEY_MINT_HTTP_403',
+  );
+  assert.equal(
+    readJourneyFailure('B04_KEY_CAP_AND_DIRECT_PARITY_REST_LIST failed'),
+    'B04_KEY_CAP_AND_DIRECT_PARITY_REST_LIST',
+  );
+  assert.equal(
+    readJourneyFailure(
+      'B11_PROVIDER_NOT_STARTED_MUTATION_SNAPSHOT_POSTS failed',
+    ),
+    'B11_PROVIDER_NOT_STARTED_MUTATION_SNAPSHOT_POSTS',
+  );
+  assert.equal(
+    readJourneyFailure(`private output\n${CONTRACT.cases[0]} failed\n`),
+    CONTRACT.cases[0],
+  );
+  for (const output of [
+    'private failure detail',
+    'B99_UNDECLARED failed',
+    'B04_KEY_CAP_AND_DIRECT_PARITY_PRIVATE_MESSAGE failed',
+    'B11_PROVIDER_NOT_STARTED_MUTATION_SNAPSHOT_PRIVATE_TABLE failed',
+  ])
+    assert.equal(readJourneyFailure(output), 'JOURNEY_INFRASTRUCTURE');
+});
 const container = () => ({
   Id: owner.id,
   Config: { Labels: { 'genfeed.mcp-auth.nonce': owner.nonce } },
@@ -93,9 +154,11 @@ test('runtime environment rejects ambient secrets, alternate databases and real 
     { AWS_SECRET_ACCESS_KEY: 'real-secret' },
     { UNDECLARED_SETTING: 'value' },
     { GENFEED_CLOUD: 'false' },
-    { DATABASE_URL: 'postgresql://fixture:ephemeral@127.0.0.1:5432/other' },
+    { CHECKPOINT_DISABLE: undefined },
+    { CHECKPOINT_DISABLE: '0' },
+    { DATABASE_URL: fixtureDatabaseUrl('127.0.0.1', 'other') },
     {
-      DATABASE_URL: `postgresql://fixture:ephemeral@remote:5432/${CONTRACT.database}`,
+      DATABASE_URL: fixtureDatabaseUrl('remote'),
     },
     { DATABASE_URL: `${environment().DATABASE_URL}?schema=other` },
     { GENFEEDAI_API_URL: 'https://remote.invalid' },
@@ -194,4 +257,56 @@ test('receipt requires all immutable cases and independently supplied source ide
     assert.throws(() =>
       validateReceipt({ ...receipt(), ...override }, identity),
     );
+});
+
+test('runtime export removes machine-local agent inputs before validating runtime symlinks', (t) => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mcp-auth-export-')));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const destination = join(root, 'export');
+  mkdirSync(join(destination, 'apps/app/.agents/skills'), { recursive: true });
+  symlinkSync(
+    '/missing-machine-local-skill',
+    join(destination, 'apps/app/.agents/skills/local'),
+  );
+  writeFileSync(join(destination, '.env.local'), 'LOCAL_INPUT=fixture');
+  writeFileSync(
+    join(destination, 'runtime.js'),
+    'export const runtime = true;',
+  );
+  symlinkSync(join(destination, 'runtime.js'), join(destination, 'safe-link'));
+  scrubRuntimeExport(destination);
+  assert.equal(existsSync(join(destination, 'apps/app/.agents')), false);
+  assert.equal(existsSync(join(destination, '.env.local')), false);
+  assert.equal(existsSync(join(destination, 'safe-link')), true);
+  const outside = join(root, 'outside.js');
+  writeFileSync(outside, 'outside');
+  symlinkSync(outside, join(destination, 'unsafe-link'));
+  assert.throws(
+    () => scrubRuntimeExport(destination),
+    /OUTSIDE_EXPORT_SYMLINK/,
+  );
+});
+
+test('namespace reads use the validated root-owned PID with noninteractive privilege', () => {
+  const calls = [];
+  const run = (exe, args) => {
+    calls.push([exe, args]);
+    return 'net:[1234]';
+  };
+  assert.equal(readProcessNetworkNamespace(42, run), 'net:[1234]');
+  assert.deepEqual(calls, [['sudo', ['-n', 'readlink', '/proc/42/ns/net']]]);
+  for (const pid of [0, -1, '42', NaN, 1.5]) {
+    assert.throws(
+      () => readProcessNetworkNamespace(pid, run),
+      /INVALID_NAMESPACE_PID/,
+    );
+  }
+  assert.equal(calls.length, 1);
+  assert.throws(
+    () =>
+      readProcessNetworkNamespace(42, () => {
+        throw new Error('private host error');
+      }),
+    /NETWORK_NAMESPACE_READ/,
+  );
 });

@@ -114,7 +114,7 @@ describe('link_external_publication_credential execution', () => {
     await f.handler.linkExternalPublicationCredential(params, ctx);
     expect(f.scopeService.assertBrandAuthorized).toHaveBeenCalledWith(
       params.brandId,
-      ctx.organizationId,
+      { organizationId: ctx.organizationId, userId: ctx.userId },
     );
   });
   it('rejects a brand the organization does not own before persistence', async () => {

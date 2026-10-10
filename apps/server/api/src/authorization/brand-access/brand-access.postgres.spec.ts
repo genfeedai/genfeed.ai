@@ -59,6 +59,7 @@ const migrations = [
 const fixtureSql = `
 CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
 CREATE TABLE users (id text PRIMARY KEY);
+CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3));
 CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
 CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean NOT NULL DEFAULT false, UNIQUE(id,"organizationId"));
 CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "userId" text NOT NULL REFERENCES users(id), "roleId" text NOT NULL REFERENCES roles(id), "roleKey" text, "currentBrandId" text NOT NULL, "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false);
@@ -66,6 +67,7 @@ CREATE TABLE "_member_brands" ("A" text NOT NULL REFERENCES brands(id), "B" text
 CREATE TABLE context_entries (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean NOT NULL DEFAULT false, "updatedAt" timestamptz NOT NULL DEFAULT now(), "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz);
 INSERT INTO organizations(id,"isDeleted") VALUES ('org-a',false),('org-b',false),('deleted-org',true);
 INSERT INTO users(id) VALUES ('opaque-a'),('opaque-b'),('admin-a'),('admin-b'),('owner-a'),('foreign-user'),('deleted-user');
+INSERT INTO api_keys(id,"userId","organizationId",scopes) VALUES ('key-a','opaque-a','org-a',ARRAY['*','admin']);
 INSERT INTO roles(id,key) VALUES ('ordinary','user'),('admin','admin'),('owner','owner');
 INSERT INTO brands(id,"organizationId","isDeleted") VALUES ('brand-a','org-a',false),('brand-b','org-a',false),('deleted-brand','org-a',true),('foreign-brand','org-b',false),('deleted-org-brand','deleted-org',false);
 INSERT INTO members(id,"organizationId","userId","roleId","roleKey","currentBrandId") VALUES ('member-a','org-a','opaque-a','ordinary','OWNER','brand-a'),('member-b','org-a','opaque-b','ordinary','ADMIN','brand-b'),('admin-a','org-a','admin-a','admin',null,'brand-a'),('admin-b','org-a','admin-b','admin',null,'brand-a'),('owner-a','org-a','owner-a','owner',null,'brand-a'),('foreign-member','org-b','foreign-user','owner',null,'foreign-brand'),('deleted-member','deleted-org','deleted-user','owner',null,'deleted-org-brand');
@@ -122,6 +124,9 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
   });
   beforeEach(async () => {
     embeddings.mockClear();
+    await pool.query(
+      `UPDATE "${schema}".api_keys SET scopes=ARRAY['*','admin'],"isRevoked"=false,"expiresAt"=null WHERE id='key-a'`,
+    );
     await pool.query(
       `UPDATE "${schema}".members SET "isActive"=true,"isDeleted"=false,"roleId"='ordinary' WHERE id='member-a'`,
     );
@@ -184,6 +189,7 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
         where: await policy.predicate({
           ...actorA,
           isApiKey: true,
+          apiKeyId: 'key-a',
           scopes: ['*'],
         }),
       }),
@@ -193,6 +199,7 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
         where: await policy.predicate({
           ...actorA,
           isApiKey: true,
+          apiKeyId: 'key-a',
           scopes: ['admin'],
         }),
       }),
@@ -208,6 +215,39 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
         userId: 'deleted-user',
         organizationId: 'deleted-org',
       }),
+    ).rejects.toThrow('Brand access denied');
+  });
+  it('refreshes key scopes, expiry and revocation against real PostgreSQL', async () => {
+    await pool.query(
+      `UPDATE "${schema}".members SET "roleId"='owner' WHERE id='member-a'`,
+    );
+    const keyActor = {
+      ...actorA,
+      isApiKey: true,
+      apiKeyId: 'key-a',
+      scopes: ['admin'],
+    };
+    expect(
+      await prisma.brand.count({ where: await policy.predicate(keyActor) }),
+    ).toBe(2);
+    await pool.query(
+      `UPDATE "${schema}".api_keys SET scopes=ARRAY['read'] WHERE id='key-a'`,
+    );
+    expect(
+      await prisma.brand.count({ where: await policy.predicate(keyActor) }),
+    ).toBe(1);
+    await pool.query(
+      `UPDATE "${schema}".api_keys SET "expiresAt"=$1::timestamp WHERE id='key-a'`,
+      [new Date(Date.now() - 60_000).toISOString()],
+    );
+    await expect(policy.predicate(keyActor)).rejects.toThrow(
+      'Brand access denied',
+    );
+    await pool.query(
+      `UPDATE "${schema}".api_keys SET "expiresAt"=null,"isRevoked"=true WHERE id='key-a'`,
+    );
+    await expect(
+      prisma.$transaction((tx) => policy.assert(keyActor, 'brand-a', tx)),
     ).rejects.toThrow('Brand access denied');
   });
   it('applies the same policy to real Knowledge mutations, versions, reads and async admission before embedding', async () => {

@@ -205,6 +205,12 @@ describe('automation selected data and immutable actor', () => {
     const count = vi.fn(async (_query: Record<string, unknown>) => 1);
     const prisma = {
       knowledgeSource: { findMany, count },
+      brand: { findFirst: vi.fn().mockResolvedValue({ id: selectedBrand }) },
+      member: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ role: { key: 'admin' }, brands: [] }),
+      },
       $transaction: (queries: Promise<unknown>[]) => Promise.all(queries),
     } as unknown as PrismaService;
     const records = new KnowledgeRecordsService(

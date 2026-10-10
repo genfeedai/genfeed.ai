@@ -190,21 +190,25 @@ describe('judge calibration gate', () => {
     ).toMatchObject({ code: 'unchanged', isPassing: true, warning: null });
   });
 
-  it('G5 rejects a text digest bump on a pull request without a report link', () => {
+  it('G5 allows a text digest bump without a report and warns that live evidence is missing', () => {
     expect(evaluateCalibrationGate(input())).toMatchObject({
       code: 'link-missing',
-      isPassing: false,
+      isPassing: true,
+      warning: expect.stringContaining(
+        'No current live calibration evidence was accepted',
+      ),
     });
   });
 
-  it('G6 rejects a linked report that is absent', () => {
+  it('G6 warns about an absent optional report without blocking CI', () => {
     expect(evaluateCalibrationGate(input({ prBody: PR_BODY }))).toMatchObject({
       code: 'report-missing',
-      isPassing: false,
+      isPassing: true,
+      warning: expect.stringContaining('does not exist'),
     });
   });
 
-  it('G7 rejects a linked report that fails the summary schema', () => {
+  it('G7 warns about an invalid optional report without accepting it as evidence', () => {
     expect(
       evaluateCalibrationGate(
         input({
@@ -212,10 +216,16 @@ describe('judge calibration gate', () => {
           readSummary: () => ({ isPresent: true, value: { kind: 'invalid' } }),
         }),
       ),
-    ).toMatchObject({ code: 'report-invalid', isPassing: false });
+    ).toMatchObject({
+      code: 'report-invalid',
+      isPassing: true,
+      warning: expect.stringContaining(
+        'does not match calibrationSummarySchema',
+      ),
+    });
   });
 
-  it('G8 rejects stub evidence even when its digest matches the head', () => {
+  it('G8 allows CI but does not accept a matching stub report as live evidence', () => {
     expect(
       evaluateCalibrationGate(
         input({
@@ -226,10 +236,14 @@ describe('judge calibration gate', () => {
           }),
         }),
       ),
-    ).toMatchObject({ code: 'report-stub', isPassing: false });
+    ).toMatchObject({
+      code: 'report-stub',
+      isPassing: true,
+      warning: expect.stringContaining('does not measure live judge quality'),
+    });
   });
 
-  it('G9 rejects live evidence for a stale text digest', () => {
+  it('G9 warns when optional live evidence measures a stale text digest', () => {
     expect(
       evaluateCalibrationGate(
         input({
@@ -245,7 +259,11 @@ describe('judge calibration gate', () => {
           }),
         }),
       ),
-    ).toMatchObject({ code: 'report-stale', isPassing: false });
+    ).toMatchObject({
+      code: 'report-stale',
+      isPassing: true,
+      warning: expect.stringContaining('but this revision'),
+    });
   });
 
   it('G10 passes a linked live summary and warns when its thresholds failed', () => {
@@ -279,7 +297,7 @@ describe('judge calibration gate', () => {
     });
   });
 
-  it('G15 rejects a live summary that lacks complete calibration evidence', () => {
+  it('G15 warns about each incomplete live evidence gap without blocking CI', () => {
     const live = summary();
     const gate = (value: CalibrationSummary) =>
       evaluateCalibrationGate(
@@ -346,9 +364,9 @@ describe('judge calibration gate', () => {
       expect(calibrationSummarySchema.safeParse(value).success).toBe(true);
       expect(gate(value)).toEqual({
         code: 'report-incomplete',
-        isPassing: false,
+        isPassing: true,
         reason: `linked calibration report ${REPORT_PATH} is not complete live evidence: ${gap}`,
-        warning: null,
+        warning: expect.stringContaining(gap),
       });
     }
   });
@@ -356,7 +374,11 @@ describe('judge calibration gate', () => {
   it('G11 passes a text change in a merge group without a PR body', () => {
     expect(
       evaluateCalibrationGate(input({ event: 'merge_group', prBody: null })),
-    ).toMatchObject({ code: 'merge-group', isPassing: true });
+    ).toMatchObject({
+      code: 'merge-group',
+      isPassing: true,
+      warning: expect.stringContaining('not checked for this group'),
+    });
   });
 
   it('G12 passes a vision-only change with the deferred-calibration warning', () => {
@@ -368,8 +390,7 @@ describe('judge calibration gate', () => {
     ).toMatchObject({
       code: 'vision-unenforced',
       isPassing: true,
-      warning:
-        'vision-judge surface changed; vision calibration is deferred (#4924 D-1)',
+      warning: expect.stringContaining('vision calibration is deferred'),
     });
   });
 
@@ -379,10 +400,30 @@ describe('judge calibration gate', () => {
     ).toMatchObject({ code: 'no-base', isPassing: true });
   });
 
-  it('G14 rejects a text change when the pull request body is unavailable', () => {
+  it('G14 warns when optional evidence cannot be inspected from the PR body', () => {
     expect(evaluateCalibrationGate(input({ prBody: null }))).toMatchObject({
       code: 'pr-body-unavailable',
-      isPassing: false,
+      isPassing: true,
+      warning: expect.stringContaining(
+        'calibration evidence was not inspected',
+      ),
+    });
+  });
+
+  it('G16 warns if reading the optional linked report throws', () => {
+    expect(
+      evaluateCalibrationGate(
+        input({
+          prBody: PR_BODY,
+          readSummary: () => {
+            throw new Error('synthetic unreadable report');
+          },
+        }),
+      ),
+    ).toMatchObject({
+      code: 'report-unreadable',
+      isPassing: true,
+      warning: expect.stringContaining('could not be read'),
     });
   });
 });

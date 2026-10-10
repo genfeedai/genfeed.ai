@@ -494,7 +494,7 @@ jobs:
         run: bun run --cwd packages/contracts build
       - name: Run executable contracts
         run: bun run test:executable-contracts
-      - name: Check judge calibration link
+      - name: Check scoring provenance and optional calibration
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
