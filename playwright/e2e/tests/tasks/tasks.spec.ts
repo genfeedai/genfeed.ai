@@ -479,8 +479,18 @@ test.describe('Tasks', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, taskRoute);
 
     expect(new URL(authenticatedPage.url()).pathname).toBe(taskRoute);
+    // The task title is the page's single level-one heading (Container
+    // chrome, screen-reader-only while the shell breadcrumb carries visible
+    // page identity) and the visible level-two heading of the task header.
     await expect(
       authenticatedPage.getByRole('heading', {
+        level: 1,
+        name: 'Regression in task orchestration',
+      }),
+    ).toHaveCount(1);
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        level: 2,
         name: 'Regression in task orchestration',
       }),
     ).toBeVisible();

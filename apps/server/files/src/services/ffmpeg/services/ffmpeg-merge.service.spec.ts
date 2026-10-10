@@ -336,14 +336,59 @@ describe('FFmpegMergeService', () => {
       const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
       const filter = args[args.indexOf('-filter_complex') + 1];
       for (const index of [0, 1]) {
+        // Timestamps restart before the rate conversion: FFmpeg 7 drops the
+        // frame rate after setpts and xfade then rejects the input.
         expect(filter).toContain(
-          `fps=30,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[scaled${index}]`,
+          `[${index}:v]setpts=PTS-STARTPTS,fps=30,scale=1920:1080`,
         );
-        expect(filter).toContain(`asetpts=PTS-STARTPTS[aud${index}]`);
+        expect(filter).toContain(
+          `[${index}:a]asetpts=PTS-STARTPTS,aresample=48000`,
+        );
       }
       expect(filter).toContain(
-        'xfade=transition=fade:duration=0.5:offset=4.50',
+        '[v0][v1]xfade=transition=fade:duration=0.5:offset=4.5[xv1]',
       );
+      expect(filter).toContain('[xv1]format=yuv420p[vout]');
+      expect(args).toEqual(
+        expect.arrayContaining(['-pix_fmt', 'yuv420p', '-movflags']),
+      );
+    });
+
+    it('places transitions by video length, not a longer audio track', async () => {
+      coreService.probe
+        .mockResolvedValueOnce({
+          format: { duration: '8' },
+          streams: [
+            { codec_type: 'video', duration: '5', height: 1920, width: 1080 },
+            { codec_type: 'audio', duration: '8' },
+          ],
+        })
+        .mockResolvedValueOnce(makeProbeResult(4));
+
+      await service.mergeVideosWithTransitions(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/out.mp4',
+        { transition: 'fade', transitionDuration: 0.5 },
+      );
+
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      const filter = args[args.indexOf('-filter_complex') + 1];
+      expect(filter).toContain('xfade=transition=fade:duration=0.5:offset=4.5');
+      expect(filter).toContain('apad=whole_dur=5,atrim=duration=5[a0]');
+    });
+
+    it('rejects a transition as long as a clip instead of truncating the merge', async () => {
+      coreService.probe.mockResolvedValue(makeProbeResult(1.5));
+      await expect(
+        service.mergeVideosWithTransitions(
+          ['/tmp/a.mp4', '/tmp/b.mp4'],
+          '/tmp/out.mp4',
+          { transition: 'fade', transitionDuration: 2 },
+        ),
+      ).rejects.toThrow(
+        'Transition duration 2s must be shorter than every clip; clip 1 is 1.5s',
+      );
+      expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
     });
 
     it('rejects a failed clip probe without executing a fabricated merge', async () => {
@@ -372,7 +417,7 @@ describe('FFmpegMergeService', () => {
             '/tmp/out.mp4',
             { transition: 'fade' },
           ),
-        ).rejects.toThrow('Transition clip duration must be positive');
+        ).rejects.toThrow('Transition clip 1 has no positive video duration');
         expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
       },
     );
@@ -388,7 +433,7 @@ describe('FFmpegMergeService', () => {
           '/tmp/out.mp4',
           { transition: 'fade' },
         ),
-      ).rejects.toThrow('Transition clip has no video stream');
+      ).rejects.toThrow('Transition clip 1 has no video stream');
       expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
     });
 

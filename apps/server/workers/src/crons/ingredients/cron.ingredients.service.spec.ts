@@ -165,6 +165,7 @@ describe('CronIngredientsService', () => {
           status: IngredientStatus.PROCESSING,
         }),
         {
+          generationError: 'Processing timed out',
           status: IngredientStatus.FAILED,
         },
       );

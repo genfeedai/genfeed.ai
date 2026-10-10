@@ -3,6 +3,7 @@ import { parseContractReviewedPricing } from '@api/collections/models/utils/mode
 import { ModelProvider } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { Injectable } from '@nestjs/common';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 import {
@@ -87,11 +88,22 @@ export class FalModelContractSyncService {
         : null;
 
     if (reviewed && comparison?.status === 'unchanged') {
-      // The same rates observed again: roll the verification forward.
+      // The same rates observed again: roll the verification forward. A Fal
+      // snapshot is verified by `lastSeenAt`; a rate-sheet contract carries its
+      // own `pricing.verifiedAt`, which moves with it.
+      const reviewedPricing = reviewed.contract.pricing;
       await prisma.modelProviderContract.update({
         data: {
           lastSeenAt: now,
           ...(reviewedSchemaRepair(reviewed.contract, candidate) ?? {}),
+          ...(isRecord(reviewedPricing)
+            ? {
+                pricing: toPrismaJson({
+                  ...reviewedPricing,
+                  verifiedAt: now.toISOString(),
+                }),
+              }
+            : {}),
         },
         where: { id: reviewed.contract.id },
       });

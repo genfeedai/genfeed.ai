@@ -1499,6 +1499,36 @@ describe('RouterService', () => {
       });
     });
 
+    it('skips a deactivated Legacy music pin for the active registry default', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          category: ModelCategory.MUSIC,
+          isDefault: true,
+          key: MODEL_KEYS.FAL_LYRIA3_PRO,
+        }),
+      ]);
+      modelsService.findOne.mockResolvedValue(
+        createMockModel({
+          category: ModelCategory.MUSIC,
+          isActive: false,
+          key: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+          lifecycle: ModelLifecycle.LEGACY,
+          succeededBy: MODEL_KEYS.FAL_LYRIA3_PRO,
+        }),
+      );
+
+      const result = await service.resolveModelKey({
+        candidates: [MODEL_KEYS.REPLICATE_META_MUSICGEN],
+        category: ModelCategory.MUSIC,
+        organizationId: 'org-1',
+      });
+
+      expect(result).toEqual({
+        key: MODEL_KEYS.FAL_LYRIA3_PRO,
+        source: 'registry-default',
+      });
+    });
+
     it('resolves a Retired alias through its same-owner successor', async () => {
       const retired = createMockModel({
         isActive: false,

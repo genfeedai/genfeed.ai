@@ -103,6 +103,8 @@ function project(row: StitchFixtureRow, select?: Record<string, unknown>) {
 export class VideoStitchFixture {
   readonly events: StitchFixtureEvent[] = [];
   readonly failWaitFor = new Map<string, Error>();
+  /** Status reads that fail like an unreachable files service. */
+  readonly failStatusFor = new Map<string, Error>();
   readonly jobResults = new Map<string, Record<string, unknown>>();
   readonly jobStates = new Map<string, JobState>();
   /** Jobs the queue still holds; anything else answers 404 like the files service. */
@@ -315,9 +317,14 @@ export class VideoStitchFixture {
 
   private queue() {
     return {
-      findJobStatus: async (jobId: string) =>
-        this.knownJobs.has(jobId) ? this.status(jobId) : null,
+      findJobStatus: async (jobId: string) => {
+        const failure = this.failStatusFor.get(jobId);
+        if (failure) throw failure;
+        return this.knownJobs.has(jobId) ? this.status(jobId) : null;
+      },
       getJobStatus: async (jobId: string) => {
+        const failure = this.failStatusFor.get(jobId);
+        if (failure) throw failure;
         if (!this.knownJobs.has(jobId)) {
           throw new Error('Request failed with status code 404');
         }

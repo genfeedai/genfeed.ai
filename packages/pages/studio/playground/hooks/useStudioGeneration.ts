@@ -154,6 +154,7 @@ export function useStudioGeneration({
   const submittingRef = useRef(false);
   const consumedCrunQuoteRef = useRef<string | null>(null);
   const cancellingIds = useRef(new Set<string>());
+  const failedHydrationIdsRef = useRef(new Set<string>());
   const [jobs, setJobs] = useState<readonly StudioPlaygroundJob[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [jobsBrandId, setJobsBrandId] = useState(brandId);
@@ -435,6 +436,7 @@ export function useStudioGeneration({
     for (const unsubscribe of subscriptionsRef.current) unsubscribe();
     subscriptionsRef.current = [];
     subscribedIdsRef.current.clear();
+    failedHydrationIdsRef.current.clear();
     restoredBrandRef.current = brandId;
     const restored = readStudioPlaygroundSessionJobs(brandId);
 
@@ -566,6 +568,89 @@ export function useStudioGeneration({
     patchJob,
     resolveFetchService,
   ]);
+
+  // A socket failure event and a session-restored card carry only the
+  // persisted ingredient ID. Without the server row the card cannot classify
+  // the failure, so it offered only Remove/Reprompt while Library offered
+  // Retry/Replace (#6398). Read each such row once, brand-scoped, and attach
+  // it only when it is still this brand's live FAILED ingredient.
+  useEffect(() => {
+    if (jobsBrandId !== brandId || connectionState === 'offline') return;
+    const unresolved = jobs.filter(
+      (job) =>
+        job.status === IngredientStatus.FAILED &&
+        Boolean(job.ingredientId) &&
+        job.id === job.ingredientId &&
+        job.ingredient?.id !== job.ingredientId &&
+        !failedHydrationIdsRef.current.has(job.id),
+    );
+    if (unresolved.length === 0) return;
+    const controller = new AbortController();
+    const claimedIds = unresolved.map((job) => job.id);
+    let isSettled = false;
+    for (const id of claimedIds) failedHydrationIdsRef.current.add(id);
+    void (async () => {
+      const settled = await Promise.all(
+        unresolved.map(async (job) => {
+          const id = job.id;
+          try {
+            const service = await resolveFetchService(job.type);
+            const ingredient = await service.findOne(
+              id,
+              { brandId },
+              controller.signal,
+            );
+            return ingredient &&
+              ingredient.id === id &&
+              ingredient.brandId === brandId &&
+              ingredient.status === IngredientStatus.FAILED &&
+              !ingredient.isDeleted
+              ? ingredient
+              : null;
+          } catch (error) {
+            if (controller.signal.aborted) return null;
+            const status = getErrorStatus(error);
+            // A refused row stays local-only; a transient read may retry on
+            // the next change to the job list.
+            if (status === undefined || status >= 500) {
+              failedHydrationIdsRef.current.delete(id);
+            }
+            logger.debug('Failed Studio generation could not be loaded', error);
+            return null;
+          }
+        }),
+      );
+      if (controller.signal.aborted || activeBrandRef.current !== brandId)
+        return;
+      isSettled = true;
+      const hydrated = new Map(
+        settled.flatMap((ingredient) =>
+          ingredient ? [[ingredient.id, ingredient] as const] : [],
+        ),
+      );
+      if (hydrated.size === 0) return;
+      setJobs((previous) =>
+        previous.map((job) => {
+          const ingredient = hydrated.get(job.id);
+          return ingredient &&
+            job.status === IngredientStatus.FAILED &&
+            job.ingredientId === ingredient.id
+            ? {
+                ...job,
+                error: job.error ?? ingredient.generationError ?? undefined,
+                ingredient,
+              }
+            : job;
+        }),
+      );
+    })();
+    return () => {
+      controller.abort();
+      // Release a run abandoned before publishing so the next run repeats it.
+      if (!isSettled)
+        for (const id of claimedIds) failedHydrationIdsRef.current.delete(id);
+    };
+  }, [brandId, connectionState, jobs, jobsBrandId, resolveFetchService]);
 
   const submit = useCallback(
     async (

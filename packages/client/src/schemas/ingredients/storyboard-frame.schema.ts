@@ -1,8 +1,4 @@
-import {
-  IngredientFormat,
-  VideoEaseCurve,
-  VideoTransition,
-} from '@genfeedai/contracts';
+import { IngredientFormat, VideoTransition } from '@genfeedai/contracts';
 import {
   DEFAULT_LABELS,
   VIDEO_DIMENSIONS,
@@ -129,15 +125,6 @@ export const storyboardSchema = z.object({
     ])
     .optional(),
   transitionDuration: z.number().min(0.1).max(2).optional(),
-  transitionEaseCurve: z
-    .enum([
-      VideoEaseCurve.EASE_IN_OUT_EXPO,
-      VideoEaseCurve.EASE_IN_EXPO_OUT_CUBIC,
-      VideoEaseCurve.EASE_IN_QUART_OUT_QUAD,
-      VideoEaseCurve.EASE_IN_OUT_CUBIC,
-      VideoEaseCurve.EASE_IN_OUT_SINE,
-    ])
-    .optional(),
 
   width: z
     .number()

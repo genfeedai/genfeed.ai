@@ -107,7 +107,6 @@ export interface VideoProcessingParams {
   isResizeEnabled?: boolean;
   transition?: VideoTransition;
   transitionDuration?: number;
-  transitionEaseCurve?: VideoEaseCurve;
   zoomEaseCurve?: VideoEaseCurve;
   zoomConfigs?: Array<{
     startZoom?: number;

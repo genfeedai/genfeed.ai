@@ -4,7 +4,6 @@ import { VideoTransition } from '@genfeedai/contracts';
 import type { StoryboardMergeSettingsPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import FormRange from '@ui/primitives/range-field';
 import { Switch } from '@ui/primitives/switch';
-import EaseCurveSelector from '@ui/storyboard/EaseCurveSelector';
 import TransitionSelector from '@ui/storyboard/TransitionSelector';
 
 const DEFAULT_TRANSITION_DURATION = 0.5;
@@ -24,22 +23,13 @@ export default function MergeSettingsPanel({
         Merge settings
       </span>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TransitionSelector
-          value={settings.transition}
-          isDisabled={isDisabled}
-          isFullWidth
-          dropdownDirection="down"
-          onChange={(transition) => onChange({ transition })}
-        />
-        <EaseCurveSelector
-          value={settings.transitionEaseCurve}
-          isDisabled={isDisabled || !hasTransition}
-          isFullWidth
-          dropdownDirection="down"
-          onChange={(transitionEaseCurve) => onChange({ transitionEaseCurve })}
-        />
-      </div>
+      <TransitionSelector
+        value={settings.transition}
+        isDisabled={isDisabled}
+        isFullWidth
+        dropdownDirection="down"
+        onChange={(transition) => onChange({ transition })}
+      />
 
       <FormRange
         name="transitionDuration"

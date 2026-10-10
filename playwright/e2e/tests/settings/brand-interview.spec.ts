@@ -1,11 +1,8 @@
-import type { Page, Route } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import {
-  testBrands,
-  testOrganizations,
-} from '../../fixtures/test-data.fixture';
+import { generateMockBrand } from '../../utils/api-interceptor';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -16,9 +13,10 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
  * BrandInterviewService frontend client.
  */
 
-const brand = testBrands[0];
-const org = testOrganizations.default ?? Object.values(testOrganizations)[0];
-const interviewUrl = `/${org.slug}/${brand.slug}/settings/brand-kit/guided-setup`;
+// The session's own brand. Brand-scoped routes only resolve brands in the
+// member's brand list (#6512); any other slug renders "brand unavailable".
+const brand = generateMockBrand();
+const interviewUrl = `/${brand.organization.slug}/${brand.slug}/settings/brand-kit/guided-setup`;
 
 const toneQuestion = {
   answerType: 'text',
@@ -55,24 +53,6 @@ function buildSteps(currentFieldKey: string, answered: Record<string, string>) {
   });
 }
 
-async function mockBrandResolution(route: Route): Promise<void> {
-  await route.fulfill({
-    contentType: 'application/json',
-    status: 200,
-    body: JSON.stringify({
-      data: {
-        attributes: {
-          description: brand.description,
-          name: brand.name,
-          slug: brand.slug,
-        },
-        id: brand.id,
-        type: 'brand',
-      },
-    }),
-  });
-}
-
 async function gotoInterview(page: Page): Promise<void> {
   await page.goto(interviewUrl);
   await expect(page).toHaveURL(new RegExp(`${interviewUrl}$`));
@@ -86,29 +66,8 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       plan: 'pro',
     });
 
-    // Resolve the brand so the page can derive brandId.
-    await authenticatedPage.route(
-      `**/api.genfeed.ai/**/brands/${brand.id}**`,
-      mockBrandResolution,
-    );
-    await authenticatedPage.route(
-      '**/api.genfeed.ai/**/brands?**',
-      async (route) => {
-        await route.fulfill({
-          contentType: 'application/json',
-          status: 200,
-          body: JSON.stringify({
-            data: [
-              {
-                attributes: { name: brand.name, slug: brand.slug },
-                id: brand.id,
-                type: 'brand',
-              },
-            ],
-          }),
-        });
-      },
-    );
+    // The shared API mocks resolve the session brand (list, slug lookup,
+    // detail), so the page derives brandId from its real organization scope.
 
     // No active interview on entry.
     await authenticatedPage.route(

@@ -266,11 +266,16 @@ async function mockComposer(page: Page, options: ComposerFixtureOptions = {}) {
   );
   await page.route('**/v1/auth/bootstrap**', async (route) => {
     const bootstrap = buildProtectedAppBootstrapPayload();
-    if (options.theme) {
+    const settings = bootstrap.currentUser.settings as ISetting;
+    bootstrap.currentUser.settings = {
+      ...settings,
+      // Simple mode resets a saved model pick to Auto, which has no quote
+      // until routing selects a model. Advanced keeps the explicit Imagen 4
+      // pick whose 8-credit estimate this suite asserts.
+      isAdvancedMode: true,
       // Account preference sync overrides localStorage after hydration.
-      const settings = bootstrap.currentUser.settings as ISetting;
-      bootstrap.currentUser.settings = { ...settings, theme: options.theme };
-    }
+      ...(options.theme ? { theme: options.theme } : {}),
+    };
     await route.fulfill({
       json: {
         ...bootstrap,

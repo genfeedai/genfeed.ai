@@ -234,7 +234,7 @@
     "symbol": "apps/server/telegram/src/services/telegram-bot-manager.service.ts"
   },
   {
-    "actual": 161,
+    "actual": 159,
     "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts",
     "metric": "method-lines",
     "symbol": "CronIngredientsService.checkStuckProcessingIngredients"

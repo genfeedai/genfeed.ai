@@ -124,7 +124,10 @@ export default function ConnectionSuccess({
         className,
       )}
     >
-      <style>{ANIMATION_STYLES}</style>
+      {/* Hoisted to <head>: an in-place <style> breaks hydration (#6601). */}
+      <style href="genfeed-connection-success" precedence="genfeed-component">
+        {ANIMATION_STYLES}
+      </style>
       <div
         aria-hidden="true"
         className="relative size-24"

@@ -6,7 +6,6 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
   RouterPriority,
-  VideoEaseCurve,
   VideoTransition,
 } from '@genfeedai/contracts';
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
@@ -125,15 +124,11 @@ export class CreateMergedVideoDto {
   @ApiHideProperty()
   readonly zoomEaseCurve?: unknown;
 
-  @IsEnum(VideoEaseCurve)
-  @IsOptional()
-  @ApiProperty({
-    description: 'Ease curve for transitions between videos',
-    enum: VideoEaseCurve,
-    enumName: 'VideoEaseCurve',
-    required: false,
+  @IsEmpty({
+    message: 'Transition ease curves are not supported when merging videos',
   })
-  readonly transitionEaseCurve?: VideoEaseCurve;
+  @ApiHideProperty()
+  readonly transitionEaseCurve?: unknown;
 
   @IsEmpty({ message: 'Zoom effects are not supported when merging videos' })
   @ApiHideProperty()

@@ -91,7 +91,6 @@ export interface VideoStitchJobParams {
   sourceStorageKeys: string[];
   transition: string;
   transitionDuration?: number;
-  transitionEaseCurve?: string;
   width?: number;
   [key: string]: unknown;
 }
@@ -109,6 +108,7 @@ export interface VideoStitchOutputRow {
   brandId: string | null;
   generationError: string | null;
   generationSource: string | null;
+  generationStage: string | null;
   id: string;
   mergeSettings: unknown;
   metadataId: string | null;

@@ -301,7 +301,6 @@ export class VideoMergeJobService {
           ...(params.isMuteVideoAudio ? { muteVideoAudio: true } : {}),
           transition: params.transition,
           transitionDuration: params.transitionDuration || 0.5,
-          transitionEaseCurve: params.transitionEaseCurve,
         },
         this.createProgressCallback(
           job,

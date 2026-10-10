@@ -25,7 +25,7 @@ import { GET as getProtectedResourceMetadata } from './.well-known/oauth-protect
 describe('website discovery routes', () => {
   it('keeps retired demo links out of the generated LLM discovery index', () => {
     const source = readFileSync(
-      join(import.meta.dirname, '../scripts/generate-llms-txt.ts'),
+      join(import.meta.dirname, '../packages/data/llms-text.data.ts'),
       'utf8',
     );
 

@@ -23,6 +23,12 @@ export function toManualStitchRequest(
       'Zoom effects are not supported when merging videos',
     );
   }
+  // xfade has no easing; refuse the curve rather than merge without it.
+  if (dto.transitionEaseCurve != null) {
+    throw new BadRequestException(
+      'Transition ease curves are not supported when merging videos',
+    );
+  }
   const portrait = VIDEO_FORMAT_DIMENSIONS[IngredientFormat.PORTRAIT];
   return {
     brandId: user.brandId,
@@ -53,9 +59,6 @@ export function toManualStitchRequest(
       ...(dto.transitionDuration !== undefined
         ? { transitionDuration: dto.transitionDuration }
         : {}),
-      ...(dto.transitionEaseCurve !== undefined
-        ? { transitionEaseCurve: dto.transitionEaseCurve }
-        : {}),
     },
     userId: user.userId ?? user.id,
   };
@@ -80,7 +83,7 @@ export class VideoMergeOrchestrationService {
         `manual:${randomUUID()}`,
       ),
     );
-    this.videoStitchService.trackInBackground(handle);
+    void this.videoStitchService.trackInBackground(handle);
 
     const output = await this.ingredientsService.findOne({
       id: handle.outputId,

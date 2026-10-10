@@ -39,14 +39,18 @@ describe('ConnectionSuccess', () => {
   });
 
   it('keeps a static success state for reduced motion', () => {
-    const { container } = render(
+    render(
       <ConnectionSuccess
         brand={resolveAgentConnectionBrand('claude')}
         title="Connected to Claude"
       />,
     );
 
-    expect(container.querySelector('style')?.textContent).toMatch(
+    expect(
+      document.head.querySelector(
+        'style[data-href="genfeed-connection-success"]',
+      )?.textContent,
+    ).toMatch(
       /prefers-reduced-motion: reduce[\s\S]*connection-success-trace \{ display: none; \}/,
     );
   });
