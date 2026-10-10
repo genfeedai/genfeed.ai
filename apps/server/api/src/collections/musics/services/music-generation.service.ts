@@ -16,7 +16,6 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
-import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { RouterService } from '@api/services/router/router.service';
@@ -151,17 +150,16 @@ export class MusicGenerationService {
         selectedModel: model,
         service: this.orchestrationSource,
       });
+    } else if (createMusicDto.model) {
+      // An explicit request stays strict: a retired or inactive key is
+      // rejected below instead of being silently swapped.
+      model = createMusicDto.model as string;
     } else {
-      model = resolveGenerationDefaultModel<string>({
-        brandDefault: brand?.defaultMusicModel as string | undefined,
-        explicit: createMusicDto.model as string | undefined,
-        organizationDefault: organizationSettings?.defaultMusicModel as
-          | string
-          | undefined,
-        systemDefault: (await this.routerService.getDefaultModel(
-          ModelCategory.MUSIC,
-        )) as string,
-      });
+      model = await this.resolveDefaultMusicModel(
+        user.organizationId,
+        brand?.defaultMusicModel,
+        organizationSettings?.defaultMusicModel,
+      );
     }
 
     // Reject before any job/document is created when the resolved model has
@@ -273,6 +271,45 @@ export class MusicGenerationService {
   private applyStyle(text: string, style: string | undefined): string {
     const trimmedStyle = style?.trim();
     return trimmedStyle ? `${text} (style: ${trimmedStyle})` : text;
+  }
+
+  /**
+   * Brand, then organization, then the registry's music default — through the
+   * router's shared resolution, so a configured default the registry no longer
+   * carries as an active music row (e.g. a MusicGen pin after its retirement)
+   * falls through to the active registry default instead of failing every
+   * generation. The skipped pin is logged, not rewritten: it stays the
+   * operator's setting to change.
+   */
+  private async resolveDefaultMusicModel(
+    organizationId: string,
+    brandDefault: string | null | undefined,
+    organizationDefault: string | null | undefined,
+  ): Promise<string> {
+    const resolution = await this.routerService.resolveModelKey({
+      candidates: [brandDefault, organizationDefault],
+      category: ModelCategory.MUSIC,
+      organizationId,
+    });
+
+    if (
+      (brandDefault || organizationDefault) &&
+      resolution.source !== 'candidate'
+    ) {
+      this.loggerService.warn(
+        'Configured music default is not an active music model; using the registry default',
+        {
+          brandDefault,
+          organizationDefault,
+          organizationId,
+          resolvedModel: resolution.key,
+          service: this.orchestrationSource,
+          source: resolution.source,
+        },
+      );
+    }
+
+    return resolution.key;
   }
 
   /**
