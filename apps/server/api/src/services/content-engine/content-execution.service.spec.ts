@@ -6,6 +6,7 @@ import {
   ImageTaskModel,
   VideoTaskModel,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 
 // ---------------------------------------------------------------------------
@@ -682,12 +683,12 @@ describe('ContentExecutionService', () => {
       });
     });
 
-    it('should map text-to-music pipeline step correctly', async () => {
+    it('passes a text-to-music step model through as its explicit registry model', async () => {
       const item = makeItem({
         pipelineSteps: [
           {
             duration: 30,
-            model: 'musicgen',
+            model: MODEL_KEYS.FAL_LYRIA3_PRO,
             prompt: 'upbeat jazz',
             type: 'text-to-music',
           },
@@ -705,8 +706,9 @@ describe('ContentExecutionService', () => {
 
       const callArgs =
         mockContentOrchestrationService.generateAndPublish.mock.calls[0][0];
-      expect(callArgs.steps[0]).toMatchObject({
+      expect(callArgs.steps[0]).toEqual({
         duration: 30,
+        model: MODEL_KEYS.FAL_LYRIA3_PRO,
         prompt: 'upbeat jazz',
         type: 'text-to-music',
       });

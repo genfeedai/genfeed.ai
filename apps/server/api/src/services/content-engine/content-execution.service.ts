@@ -339,7 +339,7 @@ export class ContentExecutionService {
         case 'text-to-music':
           return {
             duration: step.duration,
-            model: step.model as MusicTaskModel,
+            model: step.model,
             prompt: step.prompt ?? itemPrompt,
             type: 'text-to-music' as const,
           };

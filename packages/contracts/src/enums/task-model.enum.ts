@@ -19,7 +19,6 @@ export enum VideoTaskModel {
 }
 
 export enum MusicTaskModel {
-  MUSICGEN = 'musicgen',
   RIFFUSION = 'riffusion',
   ELEVENLABS = 'elevenlabs',
   REPLICATE = 'replicate',

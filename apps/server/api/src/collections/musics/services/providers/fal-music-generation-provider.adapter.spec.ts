@@ -74,6 +74,28 @@ describe('FalMusicGenerationProviderAdapter', () => {
       expect(falService.run).toHaveBeenCalledWith(
         'elevenlabs/music',
         expect.objectContaining({ prompt: 'upbeat electronic music' }),
+        undefined,
+      );
+    });
+  });
+
+  describe('generate — organization key', () => {
+    it("runs on the organization's own key when one is supplied", async () => {
+      const falService = {
+        run: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
+      };
+      const adapter = new FalMusicGenerationProviderAdapter(
+        falService as never,
+      );
+
+      await adapter.generate(buildRequest({ apiKeyOverride: 'byok-key' }));
+
+      expect(falService.run).toHaveBeenCalledWith(
+        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        expect.any(Object),
+        'byok-key',
       );
     });
   });
@@ -98,6 +120,7 @@ describe('FalMusicGenerationProviderAdapter', () => {
           music_length_ms: 30_000,
           prompt: 'upbeat electronic music',
         }),
+        undefined,
       );
       expect(result.outputUrl).toBe('https://fal.example.com/track.mp3');
       expect(result.externalId).toEqual(expect.any(String));
@@ -118,6 +141,7 @@ describe('FalMusicGenerationProviderAdapter', () => {
       expect(falService.run).toHaveBeenCalledWith(
         MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
         expect.objectContaining({ music_length_ms: 10_000 }),
+        undefined,
       );
     });
 
@@ -143,6 +167,7 @@ describe('FalMusicGenerationProviderAdapter', () => {
       expect(falService.run).toHaveBeenCalledWith(
         MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
         expect.objectContaining({ force_instrumental: true }),
+        undefined,
       );
     });
 
@@ -170,6 +195,7 @@ describe('FalMusicGenerationProviderAdapter', () => {
         expect.objectContaining({
           prompt: expect.stringContaining('Verse one\nChorus'),
         }),
+        undefined,
       );
     });
 
@@ -196,6 +222,7 @@ describe('FalMusicGenerationProviderAdapter', () => {
       expect(falService.run).toHaveBeenCalledWith(
         MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
         expect.objectContaining({ prompt: 'upbeat electronic music' }),
+        undefined,
       );
     });
   });
@@ -220,9 +247,13 @@ describe('FalMusicGenerationProviderAdapter', () => {
         }),
       );
 
-      expect(falService.run).toHaveBeenCalledWith(MODEL_KEYS.FAL_LYRIA3_PRO, {
-        prompt: 'upbeat electronic music',
-      });
+      expect(falService.run).toHaveBeenCalledWith(
+        MODEL_KEYS.FAL_LYRIA3_PRO,
+        {
+          prompt: 'upbeat electronic music',
+        },
+        undefined,
+      );
       expect(result.outputUrl).toBe('https://fal.example.com/lyria.mp3');
     });
 
@@ -248,9 +279,13 @@ describe('FalMusicGenerationProviderAdapter', () => {
         }),
       );
 
-      expect(falService.run).toHaveBeenCalledWith(MODEL_KEYS.FAL_LYRIA3_PRO, {
-        prompt: 'ambient soundscape (instrumental, no vocals or lyrics)',
-      });
+      expect(falService.run).toHaveBeenCalledWith(
+        MODEL_KEYS.FAL_LYRIA3_PRO,
+        {
+          prompt: 'ambient soundscape (instrumental, no vocals or lyrics)',
+        },
+        undefined,
+      );
     });
   });
 
