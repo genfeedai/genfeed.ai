@@ -292,8 +292,8 @@ export function buildLlmsFull(
         : plan.price === null
           ? 'Contact Sales'
           : plan.includedCredits
-            ? `$${plan.price.toLocaleString()}/month with ${plan.includedCredits.toLocaleString()} credits included`
-            : `$${plan.price.toLocaleString()}/month`;
+            ? `$${plan.price.toLocaleString('en-US')}/month with ${plan.includedCredits.toLocaleString('en-US')} credits included`
+            : `$${plan.price.toLocaleString('en-US')}/month`;
 
     s.push(`### ${plan.label}: ${priceStr}`);
     s.push('');
@@ -310,7 +310,9 @@ export function buildLlmsFull(
         parts.push(`${plan.outputs.videoMinutes} min video/month`);
       }
       if (plan.outputs.images) {
-        parts.push(`${plan.outputs.images.toLocaleString()} images/month`);
+        parts.push(
+          `${plan.outputs.images.toLocaleString('en-US')} images/month`,
+        );
       }
       if (plan.outputs.voiceMinutes) {
         parts.push(`${plan.outputs.voiceMinutes} min voice/month`);

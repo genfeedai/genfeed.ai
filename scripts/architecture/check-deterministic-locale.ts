@@ -170,12 +170,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'to-locale-date-string',
     1,
   ),
-  allowance(
-    'apps/website/scripts/generate-llms-txt.ts',
-    'to-locale-string',
-    5,
-    'Build-time documentation output follows the environment locale and is never hydrated.',
-  ),
   legacyUiAllowance(
     'packages/agent/src/components/AgentStrategyStatus.tsx',
     'to-locale-date-string',
