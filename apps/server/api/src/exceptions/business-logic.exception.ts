@@ -71,6 +71,21 @@ export class InsufficientCreditsException extends BusinessLogicException {
 }
 
 /**
+ * The trial is used up: the balance cannot pay for one default image, so the
+ * organization needs a credit pack or a plan before spending again. Shares the
+ * `INSUFFICIENT_CREDITS` code so every client routes it to the same prompt.
+ */
+export class TrialCreditsUsedUpException extends BusinessLogicException {
+  constructor(defaultGenerationCredits: number, available: number) {
+    super(
+      `Not enough credits to keep generating: ${available} available, ${defaultGenerationCredits} needed for a standard image. Add credits or choose a plan.`,
+      { available, defaultGenerationCredits, reason: 'trial_used_up' },
+      'INSUFFICIENT_CREDITS',
+    );
+  }
+}
+
+/**
  * A credit hold that is no longer RESERVED — released or expired — and so can
  * never be settled.
  *

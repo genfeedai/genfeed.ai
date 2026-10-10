@@ -1,6 +1,7 @@
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { DefaultGenerationAffordabilityService } from '@api/collections/models/services/default-generation-affordability.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
@@ -24,7 +25,7 @@ import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
 import type { IAnalytics, IBrand } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 export interface AuthBootstrapRequest extends RequestWithContext {}
@@ -74,6 +75,8 @@ export class AuthBootstrapService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly streaksService: StreaksService,
     private readonly usersService: UsersService,
+    @Optional()
+    private readonly defaultGenerationAffordability?: DefaultGenerationAffordabilityService,
   ) {}
 
   private getOverviewBootstrapCacheKey(
@@ -309,6 +312,14 @@ export class AuthBootstrapService {
           : null,
       ]);
 
+    const canAffordDefaultGeneration =
+      organizationId && this.defaultGenerationAffordability
+        ? await this.defaultGenerationAffordability.canAffordDefaultGeneration(
+            organizationId,
+            creditsBalance,
+          )
+        : undefined;
+
     const matchedBrand = brands.find(
       (candidate) => getBrandId(candidate) === brandId,
     );
@@ -321,6 +332,9 @@ export class AuthBootstrapService {
     return {
       access: {
         brandId: resolvedBrandId,
+        ...(canAffordDefaultGeneration === undefined
+          ? {}
+          : { canAffordDefaultGeneration }),
         creditsBalance,
         hasDismissedAssetGate: dbUser?.hasDismissedAssetGate === true,
         hasEverHadCredits: organizationSettings?.hasEverHadCredits === true,

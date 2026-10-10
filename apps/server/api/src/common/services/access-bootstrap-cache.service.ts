@@ -26,6 +26,11 @@ export interface AccessBootstrapStatePayload {
   subscriptionTier: string;
   hasEverHadCredits: boolean;
   creditsBalance: number;
+  /**
+   * The balance pays for one standard image on the default image model.
+   * Absent on payloads cached before the field existed; readers fail open.
+   */
+  canAffordDefaultGeneration?: boolean;
   // First-asset unlock gate flags surfaced to the client without an extra request.
   hasGeneratedFirstAsset: boolean;
   hasDismissedAssetGate: boolean;

@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { isNativeImageBatch } from '@api/collections/images/services/image-generation-provider.util';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { DefaultGenerationAffordabilityService } from '@api/collections/models/services/default-generation-affordability.service';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import {
@@ -26,10 +27,18 @@ import {
   type ReservationCreditsConfig,
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
+import {
+  getIsSuperAdmin,
+  getStripeSubscriptionStatus,
+} from '@api/helpers/utils/auth/auth.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
-import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  type ByokProvider,
+  SubscriptionStatus,
+} from '@genfeedai/contracts';
 import {
   MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
@@ -55,6 +64,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
@@ -99,6 +109,8 @@ export class CreditsGuard implements CanActivate {
 
     private loggerService: LoggerService,
     private readonly modelCreditQuote: ModelCreditQuoteService,
+    @Optional()
+    private readonly defaultGenerationAffordability?: DefaultGenerationAffordabilityService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -584,6 +596,28 @@ export class CreditsGuard implements CanActivate {
         }
       }
       // --- End BYOK bypass ---
+
+      // Trial used up: the wallet cannot pay for one default image, so even a
+      // cheaper action waits for a credit pack or a plan.
+      if (
+        requiredCredits > 0 &&
+        !hasGenerationSourceActionId(request) &&
+        this.defaultGenerationAffordability
+      ) {
+        const subscriptionStatus = getStripeSubscriptionStatus(user, request);
+        await this.defaultGenerationAffordability.assertTrialAllowsSpend({
+          hasPaidPlan:
+            subscriptionStatus === SubscriptionStatus.ACTIVE ||
+            subscriptionStatus === SubscriptionStatus.TRIALING,
+          isSuperAdmin: getIsSuperAdmin(user, request),
+          organizationId: user.organizationId,
+          readBalance: () =>
+            this.creditsUtilsService.getOrganizationCreditsBalance(
+              user.organizationId,
+            ),
+          userId: user.userId || user.id,
+        });
+      }
 
       if (creditsDeferred) return true;
 

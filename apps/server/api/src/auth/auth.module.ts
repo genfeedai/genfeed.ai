@@ -8,6 +8,7 @@ import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { ModelsModule } from '@api/collections/models/models.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
@@ -40,6 +41,7 @@ import { PassportModule } from '@nestjs/passport';
     CredentialsCoreModule,
     CreditsModule,
     MembersModule,
+    ModelsModule,
     OrganizationsModule,
     OrganizationSettingsModule,
     PostsModule,

@@ -4,6 +4,7 @@ import {
   hasOrganizationBillingHint,
   shouldShowCreditsNav,
 } from '@genfeedai/config/license';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -87,8 +88,10 @@ function LowCreditsContent({
   creditsBreakdown,
 }: LowCreditsContentProps) {
   const { orgHref } = useOrgUrl();
+  const { isTrialUsedUp } = useAccessState();
   const isBillingEnabled = hasOrganizationBillingHint();
   const ctaHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
+  const plansHref = orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION);
   // Match TopbarCreditsBar: GEN wallet from topbar balances is the source of
   // truth the operator already sees. creditsBreakdown can be null when the
   // subscription query is still loading or was historically gated on ACTIVE.
@@ -108,11 +111,14 @@ function LowCreditsContent({
   }, [balance]);
 
   const severity = useMemo(() => {
+    if (isTrialUsedUp) {
+      return 'critical';
+    }
     if (balance === null || balance >= LOW_CREDITS_THRESHOLD) {
       return null;
     }
     return balance === 0 ? 'critical' : 'warning';
-  }, [balance]);
+  }, [balance, isTrialUsedUp]);
 
   const handleDismiss = useCallback(() => {
     if (balance === null) {
@@ -127,24 +133,32 @@ function LowCreditsContent({
     setIsDismissed(true);
   }, [balance]);
 
-  if (!severity || isDismissed) {
+  // The trial-used-up state is the paywall, so it cannot be dismissed.
+  if (!severity || (isDismissed && !isTrialUsedUp)) {
     return null;
   }
 
   const isCritical = severity === 'critical';
-  const title = isCritical
-    ? "You've run out of credits"
-    : "You're running low on credits";
-  const balanceLabel = isCritical
-    ? '0 credits left'
-    : `${formatCreditBalanceExact(balance)} remaining`;
-  const description = isBillingEnabled
-    ? isCritical
-      ? 'Top up your balance to keep generating content, running workflows, and using your organization tools without interruption.'
-      : 'Your current balance is getting tight. Top up now so active generations and automations do not get blocked later.'
+  const title = isTrialUsedUp
+    ? 'Your trial credits are used up'
     : isCritical
-      ? 'Your local install is missing usable provider capacity. Add or update API keys so generations and workflows can keep running.'
-      : 'Your provider capacity is getting tight. Review API keys now so active generations and automations do not get blocked later.';
+      ? "You've run out of credits"
+      : "You're running low on credits";
+  const balanceLabel =
+    isCritical && balance !== null && balance > 0
+      ? `${formatCreditBalanceExact(balance)} left`
+      : isCritical
+        ? '0 credits left'
+        : `${formatCreditBalanceExact(balance)} remaining`;
+  const description = isTrialUsedUp
+    ? 'Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.'
+    : isBillingEnabled
+      ? isCritical
+        ? 'Top up your balance to keep generating content, running workflows, and using your organization tools without interruption.'
+        : 'Your current balance is getting tight. Top up now so active generations and automations do not get blocked later.'
+      : isCritical
+        ? 'Your local install is missing usable provider capacity. Add or update API keys so generations and workflows can keep running.'
+        : 'Your provider capacity is getting tight. Review API keys now so active generations and automations do not get blocked later.';
   const ctaLabel = isBillingEnabled ? 'Top up credits' : 'Buy credits';
   const isInline = variant === 'inline';
 
@@ -223,23 +237,35 @@ function LowCreditsContent({
                   : 'bg-warning text-warning-foreground hover:bg-warning/80',
               )}
             >
-              {ctaLabel}
+              {isTrialUsedUp ? 'Buy credits' : ctaLabel}
             </Link>
 
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={handleDismiss}
-              className={cn(
-                'inline-flex items-center justify-center border transition-colors',
-                isInline ? 'size-9 rounded-lg' : 'size-10 rounded-xl',
-                isCritical
-                  ? 'border-red-400/15 text-red-200 hover:bg-red-500/[0.12]'
-                  : 'border-amber-400/15 text-amber-200 hover:bg-amber-500/[0.12]',
-              )}
-              ariaLabel="Dismiss low credits banner"
-              icon={<X className="size-4" />}
-            />
+            {isTrialUsedUp ? (
+              <Link
+                href={plansHref}
+                className={cn(
+                  'inline-flex items-center justify-center border border-red-400/20 text-sm font-semibold text-foreground transition-colors hover:bg-red-500/[0.12]',
+                  isInline ? 'h-9 rounded-lg px-3.5' : 'h-10 rounded-xl px-4',
+                )}
+              >
+                See plans
+              </Link>
+            ) : (
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                onClick={handleDismiss}
+                className={cn(
+                  'inline-flex items-center justify-center border transition-colors',
+                  isInline ? 'size-9 rounded-lg' : 'size-10 rounded-xl',
+                  isCritical
+                    ? 'border-red-400/15 text-red-200 hover:bg-red-500/[0.12]'
+                    : 'border-amber-400/15 text-amber-200 hover:bg-amber-500/[0.12]',
+                )}
+                ariaLabel="Dismiss low credits banner"
+                icon={<X className="size-4" />}
+              />
+            )}
           </div>
         </div>
       </div>

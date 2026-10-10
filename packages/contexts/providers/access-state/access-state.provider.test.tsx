@@ -11,13 +11,7 @@ import {
 } from '@providers/access-state/access-state.provider';
 import { clearClientProtectedBootstrapCache } from '@providers/protected-bootstrap/client-protected-bootstrap';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -49,21 +43,6 @@ vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: vi.fn(),
   },
-}));
-
-const socketState = vi.hoisted(() => ({
-  handlers: new Map<string, (data: unknown) => void>(),
-  isReady: true,
-}));
-
-vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
-  useSocketManager: () => ({
-    isReady: socketState.isReady,
-    subscribe: (event: string, handler: (data: unknown) => void) => {
-      socketState.handlers.set(event, handler);
-      return () => socketState.handlers.delete(event);
-    },
-  }),
 }));
 
 const loadClientProtectedBootstrapMock = vi.hoisted(() =>
@@ -107,8 +86,6 @@ describe('AccessStateProvider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    socketState.handlers.clear();
-    socketState.isReady = true;
     loadClientProtectedBootstrapMock.mockResolvedValue(null);
     useAuthMock.mockReturnValue({
       isLoaded: true,
@@ -155,72 +132,6 @@ describe('AccessStateProvider', () => {
     expect(screen.getByTestId('payg')).toHaveTextContent('true');
     expect(screen.getByTestId('access')).toHaveTextContent('false');
     expect(screen.getByTestId('needs-onboarding')).toHaveTextContent('true');
-  });
-
-  describe('remaining credits (paywall signal)', () => {
-    function CreditsConsumer() {
-      const { hasCreditsRemaining, hasPaygCredits } = useAccessState();
-
-      return (
-        <div>
-          <span data-testid="remaining">{String(hasCreditsRemaining)}</span>
-          <span data-testid="payg">{String(hasPaygCredits)}</span>
-        </div>
-      );
-    }
-
-    function renderCredits(accessState: AccessBootstrapState) {
-      const Wrapper = createWrapper();
-
-      render(
-        <Wrapper>
-          <AccessStateProvider
-            hasInitialBootstrap
-            initialAccessState={accessState}
-          >
-            <CreditsConsumer />
-          </AccessStateProvider>
-        </Wrapper>,
-      );
-    }
-
-    it('reports no remaining credits once a gifted balance is spent', () => {
-      renderCredits({
-        ...initialAccessState,
-        creditsBalance: 0,
-        hasEverHadCredits: true,
-      });
-
-      expect(screen.getByTestId('remaining')).toHaveTextContent('false');
-      expect(screen.getByTestId('payg')).toHaveTextContent('true');
-    });
-
-    it('tracks the live balance from the credits socket in both directions', async () => {
-      renderCredits({ ...initialAccessState, creditsBalance: 5 });
-      expect(screen.getByTestId('remaining')).toHaveTextContent('true');
-
-      const handler = socketState.handlers.get('/credits/org_123');
-      expect(handler).toBeDefined();
-
-      act(() => handler?.({ balance: 0 }));
-      await waitFor(() => {
-        expect(screen.getByTestId('remaining')).toHaveTextContent('false');
-      });
-      expect(clearClientProtectedBootstrapCache).toHaveBeenCalled();
-
-      act(() => handler?.({ balance: 100 }));
-      await waitFor(() => {
-        expect(screen.getByTestId('remaining')).toHaveTextContent('true');
-      });
-    });
-
-    it('ignores credit events without a numeric balance', () => {
-      renderCredits({ ...initialAccessState, creditsBalance: 5 });
-
-      act(() => socketState.handlers.get('/credits/org_123')?.({}));
-      expect(screen.getByTestId('remaining')).toHaveTextContent('true');
-      expect(clearClientProtectedBootstrapCache).not.toHaveBeenCalled();
-    });
   });
 
   it('uses bootstrap state without forcing a fresh fetch on mount', () => {
