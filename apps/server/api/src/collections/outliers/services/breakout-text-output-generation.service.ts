@@ -111,6 +111,10 @@ export class BreakoutTextOutputGenerationService {
         let reservationId: string | undefined;
         let usesByok = false;
         const normal: BrandedTextGenerationRequestV1 = {
+          initiatingActor: {
+            userId: admission.actorUserId,
+            organizationId: scope.organizationId,
+          },
           input,
           privateLearning: request.privateLearning,
           reauthorize,

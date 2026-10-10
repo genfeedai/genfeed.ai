@@ -3,8 +3,8 @@ import type {
   BreakoutExposureEvidence,
   BreakoutExposureMetric,
   BreakoutOwnedProviderAttempt,
-  LearningFormat,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 
 /**
  * Provider-agnostic post collected for Following / social sources.

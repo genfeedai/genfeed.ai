@@ -6,7 +6,7 @@ import type {
   TwitterMappedUser,
   TwitterResponseMapper,
 } from '@api/services/integrations/twitter/services/twitter-response.mapper';
-import type { LearningFormat } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 
 /** Preserve normal timeline projection; add separate evidence only on explicit capture. */
 export function mapTwitterTimeline(

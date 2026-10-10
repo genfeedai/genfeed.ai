@@ -11,8 +11,8 @@ import type {
   BreakoutLiveCapacityReservationInput,
   BreakoutLiveCapacityReservationResult,
   BreakoutOutputPlanSlot,
-  LearningFormat,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { planBreakoutCapacity } from '@genfeedai/helpers';
 import { Prisma } from '@genfeedai/prisma';
 

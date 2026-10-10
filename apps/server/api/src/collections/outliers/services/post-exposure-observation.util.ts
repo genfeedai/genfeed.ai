@@ -33,7 +33,7 @@ const ingredientSelect = {
   mimeType: true,
   s3Key: true,
   version: true,
-} satisfies Prisma.IngredientSelect;
+} satisfies Prisma.IngredientSelect & { cdnUrl?: boolean }; // cdnUrl is a Prisma result extension
 const postInclude = {
   ingredients: { select: ingredientSelect },
   children: {

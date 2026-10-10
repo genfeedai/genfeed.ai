@@ -27,8 +27,7 @@ export async function registerBreakoutResponse(
   input: Readonly<BreakoutBaselineReadInput>,
 ): Promise<BreakoutResponseRegistrationResult> {
   const receipt = await readBreakoutBaselineReceipt(tx, input);
-  if (receipt.status !== 'recorded' && receipt.status !== 'replayed')
-    return receipt;
+  if (!('receiptId' in receipt)) return receipt;
   if (receipt.evaluation.status !== 'breakout')
     return { status: 'evidence_held', reason: receipt.evaluation.status };
   if (

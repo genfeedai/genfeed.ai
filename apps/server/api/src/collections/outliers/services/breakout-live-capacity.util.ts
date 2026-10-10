@@ -22,8 +22,8 @@ import {
 import type {
   BreakoutLiveCapacityInput,
   BreakoutLiveCapacitySnapshot,
-  LearningFormat,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { z } from 'zod';
 

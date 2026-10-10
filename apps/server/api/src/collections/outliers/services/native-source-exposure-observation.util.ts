@@ -20,8 +20,8 @@ import type {
   BreakoutNativePublicationSourceV1,
   BreakoutOwnedProviderAttempt,
   BreakoutPublicationReference,
-  LearningFormat,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { Prisma } from '@genfeedai/prisma';
 
 const formats: LearningFormat[] = [

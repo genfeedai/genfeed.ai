@@ -11,8 +11,8 @@ import { SocialSourcePlatform } from '@genfeedai/contracts';
 import type {
   BreakoutExposureEvidence,
   BreakoutExposureMetric,
-  LearningFormat,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { Injectable } from '@nestjs/common';
 
 /**

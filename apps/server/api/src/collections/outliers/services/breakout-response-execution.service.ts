@@ -69,6 +69,7 @@ export class BreakoutResponseExecutionService {
           textModelKey: plan.textModelKey,
           admission: {
             scope: {
+              version: 1,
               ...request.scope,
               strategyId: request.strategyId,
               format: output.format,

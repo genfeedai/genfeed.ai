@@ -4,10 +4,8 @@ import {
   strategyBudgetAttributionSchema,
 } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import { CreditReservationStatus } from '@genfeedai/contracts';
-import type {
-  BreakoutLiveCapacityInput,
-  LearningFormat,
-} from '@genfeedai/contracts/interfaces';
+import type { BreakoutLiveCapacityInput } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { Prisma } from '@genfeedai/prisma';
 
 export type { StrategyBudgetAttribution } from '@api/collections/credits/services/strategy-budget-attribution.context';

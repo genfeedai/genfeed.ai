@@ -5,6 +5,7 @@ import type {
 import type {
   SourceCollectContext,
   SourceCollectResult,
+  SourceProviderName,
 } from './source-collector.types';
 
 /**
@@ -12,7 +13,7 @@ import type {
  * Providers are tried in priority order by {@link SourceCollectorService}.
  */
 export interface SourceTimelineProvider {
-  readonly name: SourceCollectResult['provider'];
+  readonly name: SourceProviderName;
   readonly platforms: readonly SocialSourcePlatform[];
 
   /**

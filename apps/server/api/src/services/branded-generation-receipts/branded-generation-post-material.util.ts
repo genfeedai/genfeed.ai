@@ -12,7 +12,7 @@ import {
   PostCategory,
   PostFormat,
 } from '@genfeedai/contracts';
-import type { LearningFormat } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { BrandGenerationArtifactV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { STORAGE_READ_MAX_BYTES } from '@genfeedai/storage';
@@ -29,7 +29,7 @@ const ingredientSelect = {
   mimeType: true,
   fileSize: true,
   cdnUrl: true,
-} satisfies Prisma.IngredientSelect;
+} satisfies Prisma.IngredientSelect & { cdnUrl?: boolean }; // cdnUrl is a Prisma result extension
 const segmentSelect = {
   id: true,
   organizationId: true,
@@ -59,9 +59,29 @@ export const brandedPostMaterialSelect = {
     select: { ...segmentSelect, children: { select: { id: true }, take: 1 } },
   },
 } satisfies Prisma.PostSelect;
-export type BrandedPostMaterialRecord = Prisma.PostGetPayload<{
+type PostMaterialPayload = Prisma.PostGetPayload<{
   select: typeof brandedPostMaterialSelect;
 }>;
+/** `cdnUrl` is a Prisma result extension, so the static payload types it as `never`. */
+type WithMediaUrl<Row> = Omit<Row, 'cdnUrl'> & { cdnUrl: string | null };
+type PostMaterialSegment = Omit<
+  PostMaterialPayload,
+  'children' | 'ingredients'
+> & {
+  ingredients: Array<WithMediaUrl<PostMaterialPayload['ingredients'][number]>>;
+};
+export type BrandedPostMaterialRecord = PostMaterialSegment & {
+  children: Array<
+    Omit<PostMaterialPayload['children'][number], 'children' | 'ingredients'> &
+      Pick<PostMaterialPayload['children'][number], 'children'> & {
+        ingredients: Array<
+          WithMediaUrl<
+            PostMaterialPayload['children'][number]['ingredients'][number]
+          >
+        >;
+      }
+  >;
+};
 export type BrandedPostMaterialEntry =
   | { kind: 'media'; id: string; role: 'image' | 'video' }
   | {

@@ -16,8 +16,8 @@ import type {
   BreakoutLiveCapacityReservationResult,
   BreakoutObservationScope,
   BreakoutPublicationSource,
-  LearningFormat,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 
@@ -64,9 +64,8 @@ export class BreakoutGenerationPlanService {
       source.platform !== Platform.TWITTER
     )
       return this.mediaCapabilityHold(request, source.format);
-    const models = await this.registry.listCallableGenerationModels(
+    const models = await this.registry.listCallableTextModels(
       request.scope.organizationId,
-      'text',
     );
     await request.reauthorize(this.prisma);
     const eligibleModelKeys = models
