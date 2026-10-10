@@ -51,7 +51,7 @@ export function toTurboRunItemCreatedAt(
 
 /**
  * Include/select args so readers can prefer typed `turbo_run_items` rows.
- * `Batch.items` JSON stays as the fallback until a later PR drops it.
+ * `Turbo run.items` JSON stays as the fallback until a later PR drops it.
  */
 export function turboRunItemRowsReadArgs(organizationId: string) {
   return {
@@ -79,8 +79,8 @@ export async function withTurboRunWriteTransaction<TClient, T>(
 }
 
 /**
- * Dual-write the JSON `Batch.items` payload onto typed `turbo_run_items` rows so
- * review/status scans can groupBy + paginate without loading every batch blob.
+ * Dual-write the JSON `Turbo run.items` payload onto typed `turbo_run_items` rows so
+ * review/status scans can groupBy + paginate without loading every run blob.
  *
  * Upserts run in bounded chunks. Tombstone restore still needs per-row upsert
  * (`isDeleted` omitted from the unique where), so this is not createMany
@@ -114,7 +114,7 @@ export async function persistTurboRunItemRows(
 
 /**
  * One transactional writer for the JSON blob + typed rows. Keep writing
- * `Batch.items` here until the reader ratchet is the only consumer and a
+ * `Turbo run.items` here until the reader ratchet is the only consumer and a
  * follow-up PR drops the column.
  */
 export async function writeTurboRunJsonAndItemRows(

@@ -19,7 +19,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const updatedAt = new Date('2026-09-27T10:00:00Z');
 const credits = {
   amountPerItem: 1,
-  description: 'Batch rewrite (text model)',
+  description: 'Turbo rewrite (text model)',
   source: ActivitySource.POST_ENHANCEMENT,
 };
 const items = [
@@ -48,7 +48,7 @@ function storedJob(
   return {
     data: {
       activityId: 'activity-1',
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       brandId: 'brand-1',
       credits,
       itemIds: ['item-1'],
@@ -69,7 +69,7 @@ function setup() {
   const prisma = {
     turboRun: {
       findFirst: vi.fn().mockResolvedValue({
-        id: 'batch-1',
+        id: 'run-1',
         brandId: 'brand-1',
         items,
         updatedAt,
@@ -109,11 +109,11 @@ function setup() {
 describe('TurboRunRewriteService', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('queues one job per batch with the post version lock and returns at once', async () => {
+  it('queues one job per run with the post version lock and returns at once', async () => {
     const { activities, prisma, queue, service, websocket } = setup();
 
     const job = await service.enqueue({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       credits,
       itemIds: ['item-1', 'item-2', 'item-1'],
       organizationId: 'org-1',
@@ -122,7 +122,7 @@ describe('TurboRunRewriteService', () => {
 
     expect(prisma.turboRun.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'batch-1', organizationId: 'org-1', isDeleted: false },
+        where: { id: 'run-1', organizationId: 'org-1', isDeleted: false },
       }),
     );
     expect(prisma.post.findMany).toHaveBeenCalledWith({
@@ -137,7 +137,7 @@ describe('TurboRunRewriteService', () => {
       'rewrite-items',
       {
         activityId: 'activity-1',
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         brandId: 'brand-1',
         credits,
         itemIds: ['item-1', 'item-2'],
@@ -146,12 +146,12 @@ describe('TurboRunRewriteService', () => {
         userId: 'user-1',
       },
       {
-        deduplication: { id: 'turbo-rewrite-batch-1' },
+        deduplication: { id: 'turbo-rewrite-run-1' },
         jobId: expect.stringMatching(/^turboRun-rewrite-turboRun-1-/),
       },
     );
     expect(job).toMatchObject({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       completedItemIds: [],
       failedItems: [],
       itemIds: ['item-1', 'item-2'],
@@ -169,7 +169,7 @@ describe('TurboRunRewriteService', () => {
 
     await expect(
       service.enqueue({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         credits,
         itemIds: ['item-1'],
         organizationId: 'other-org',
@@ -184,21 +184,21 @@ describe('TurboRunRewriteService', () => {
     {
       brandId: null,
       itemIds: ['item-1'],
-      label: 'a brandless batch',
-      message: 'Rewrite needs a brand-scoped batch',
+      label: 'a brandless run',
+      message: 'Rewrite needs a brand-scoped run',
     },
     {
       brandId: 'brand-1',
       itemIds: ['foreign'],
       label: 'foreign item IDs',
-      message: 'Select completed items from this batch',
+      message: 'Select completed items from this run',
     },
   ])(
     'rejects $label before queueing',
     async ({ brandId, itemIds, message }) => {
       const { prisma, queue, service } = setup();
       prisma.turboRun.findFirst.mockResolvedValue({
-        id: 'batch-1',
+        id: 'run-1',
         brandId,
         items,
         updatedAt,
@@ -206,7 +206,7 @@ describe('TurboRunRewriteService', () => {
 
       await expect(
         service.enqueue({
-          turboRunId: 'batch-1',
+          turboRunId: 'run-1',
           credits,
           itemIds,
           organizationId: 'org-1',
@@ -225,7 +225,7 @@ describe('TurboRunRewriteService', () => {
 
     await expect(
       service.enqueue({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         credits,
         itemIds: ['item-1'],
         organizationId: 'org-1',
@@ -235,20 +235,20 @@ describe('TurboRunRewriteService', () => {
     expect(queue.add).not.toHaveBeenCalled();
   });
 
-  it('refuses a second rewrite while one is running for the batch', async () => {
+  it('refuses a second rewrite while one is running for the run', async () => {
     const { activities, queue, service } = setup();
     queue.getDeduplicationJobId.mockResolvedValue('job-1');
     queue.getJob.mockResolvedValue(storedJob({}));
 
     await expect(
       service.enqueue({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         credits,
         itemIds: ['item-1'],
         organizationId: 'org-1',
         userId: 'user-1',
       }),
-    ).rejects.toThrow('A rewrite is already running for this batch');
+    ).rejects.toThrow('A rewrite is already running for this run');
     expect(queue.add).not.toHaveBeenCalled();
     expect(activities.record).not.toHaveBeenCalled();
   });
@@ -259,13 +259,13 @@ describe('TurboRunRewriteService', () => {
 
     await expect(
       service.enqueue({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         credits,
         itemIds: ['item-1'],
         organizationId: 'org-1',
         userId: 'user-1',
       }),
-    ).rejects.toThrow('A rewrite is already running for this batch');
+    ).rejects.toThrow('A rewrite is already running for this run');
     // The losing request never ran: history keeps the row, no alert fires.
     expect(activities.update).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'activity-1' }),
@@ -288,8 +288,8 @@ describe('TurboRunRewriteService', () => {
       }),
     );
 
-    await expect(service.getJob('batch-1', 'job-1', 'org-1')).resolves.toEqual({
-      turboRunId: 'batch-1',
+    await expect(service.getJob('run-1', 'job-1', 'org-1')).resolves.toEqual({
+      turboRunId: 'run-1',
       completedItemIds: ['item-1'],
       failedItems: [],
       id: 'job-1',
@@ -312,22 +312,22 @@ describe('TurboRunRewriteService', () => {
     );
 
     await expect(
-      service.getJob('batch-1', 'job-1', 'org-1'),
+      service.getJob('run-1', 'job-1', 'org-1'),
     ).resolves.toMatchObject({ status: TurboRewriteJobStatus.CANCELLED });
   });
 
   it.each([
     ['another organization', { organizationId: 'other-org' }],
-    ['another batch', { turboRunId: 'batch-2' }],
+    ['another run', { turboRunId: 'run-2' }],
   ])('hides a job owned by %s', async (_label, data) => {
     const { queue, service } = setup();
     const job = storedJob(data);
     queue.getJob.mockResolvedValue(job);
 
-    await expect(service.getJob('batch-1', 'job-1', 'org-1')).rejects.toThrow(
-      "Batch rewrite with identifier 'job-1' not found",
+    await expect(service.getJob('run-1', 'job-1', 'org-1')).rejects.toThrow(
+      "Turbo rewrite with identifier 'job-1' not found",
     );
-    await expect(service.cancel('batch-1', 'job-1', 'org-1')).rejects.toThrow();
+    await expect(service.cancel('run-1', 'job-1', 'org-1')).rejects.toThrow();
     expect(job.updateData).not.toHaveBeenCalled();
   });
 
@@ -337,7 +337,7 @@ describe('TurboRunRewriteService', () => {
     queue.getJob.mockResolvedValue(job);
 
     await expect(
-      service.cancel('batch-1', 'job-1', 'org-1'),
+      service.cancel('run-1', 'job-1', 'org-1'),
     ).resolves.toMatchObject({ isCancelRequested: true });
     expect(job.updateData).toHaveBeenCalledWith(
       expect.objectContaining({ isCancelRequested: true }),
@@ -356,7 +356,7 @@ describe('TurboRunRewriteService', () => {
     queue.getJob.mockResolvedValue(job);
 
     await expect(
-      service.cancel('batch-1', 'job-1', 'org-1'),
+      service.cancel('run-1', 'job-1', 'org-1'),
     ).resolves.toMatchObject({ status: TurboRewriteJobStatus.COMPLETED });
     expect(job.updateData).not.toHaveBeenCalled();
   });
@@ -367,13 +367,13 @@ describe('TurboRunRewriteService', () => {
     queue.getJob.mockResolvedValue(storedJob({}, 'waiting'));
 
     await expect(
-      service.getActiveJob('batch-1', 'org-1'),
+      service.getActiveJob('run-1', 'org-1'),
     ).resolves.toMatchObject({
       id: 'job-1',
       status: TurboRewriteJobStatus.QUEUED,
     });
     await expect(
-      service.getActiveJob('batch-1', 'other-org'),
+      service.getActiveJob('run-1', 'other-org'),
     ).resolves.toBeNull();
   });
 });

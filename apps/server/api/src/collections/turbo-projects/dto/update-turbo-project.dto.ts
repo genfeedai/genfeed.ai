@@ -24,7 +24,7 @@ export class UpdateTurboProjectDto {
   @IsEnum(TurboProjectStep)
   readonly step?: TurboProjectStep;
 
-  @ApiPropertyOptional({ description: 'Saved workflow for workflow batches' })
+  @ApiPropertyOptional({ description: 'Saved workflow for workflow projects' })
   @IsOptional()
   @IsEntityId()
   readonly workflowId?: string;

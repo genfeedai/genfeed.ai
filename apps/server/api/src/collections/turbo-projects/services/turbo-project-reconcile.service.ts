@@ -96,12 +96,12 @@ type ItemOutcome =
 
 type OutputIngredient = { category: string; id: string };
 
-/** Lineage key tying a review inbox item back to its batch project item. */
+/** Lineage key tying a review inbox item back to its Turbo project item. */
 export function turboProjectItemSourceKey(itemId: string): string {
   return `turbo-project-item:${itemId}`;
 }
 
-/** Idempotency key of the workflow run a batch project start enqueues. */
+/** Idempotency key of the workflow run a Turbo project start enqueues. */
 export function turboProjectStartKey(
   projectId: string,
   dispatchedAt: Date,
@@ -115,9 +115,9 @@ export function turboProjectRetryKey(itemId: string, attempt: number): string {
 }
 
 /**
- * Moves a batch project forward from server state alone, so generation that
+ * Moves a Turbo project forward from server state alone, so generation that
  * continues after the creator leaves still lands (#5463). Idea items resolve
- * from their generated ingredient; workflow items from the batch execution's
+ * from their generated ingredient; workflow items from the project execution's
  * per-item child runs. Finished outputs enter the shared review inbox, and
  * review decisions made there flow back onto the project items.
  */
@@ -191,7 +191,7 @@ export class TurboProjectReconcileService {
       }
     }
     throw new ConflictException(
-      'This batch is updating. Try again in a moment.',
+      'This project is updating. Try again in a moment.',
     );
   }
 
@@ -204,7 +204,7 @@ export class TurboProjectReconcileService {
     let cursor: string | undefined;
     let reconciled = 0;
     for (;;) {
-      // tenant-scope-ignore: platform maintenance sweep — it must see generating batch projects across every organization, and each reconcile is scoped by the row's own organizationId
+      // tenant-scope-ignore: platform maintenance sweep — it must see generating Turbo projects across every organization, and each reconcile is scoped by the row's own organizationId
       const projects = await this.prisma.turboProject.findMany({
         orderBy: { id: 'asc' },
         select: { id: true, organizationId: true },
@@ -220,7 +220,7 @@ export class TurboProjectReconcileService {
         try {
           await this.reconcileProject(project.id, project.organizationId);
         } catch (error: unknown) {
-          this.logger.error('Batch project reconcile failed', error, {
+          this.logger.error('Turbo project reconcile failed', error, {
             turboProjectId: project.id,
             context: this.context,
             organizationId: project.organizationId,
@@ -296,7 +296,7 @@ export class TurboProjectReconcileService {
             status: TurboProjectItemStatus.FAILED,
           },
         );
-        this.logger.warn('Batch project item failed', {
+        this.logger.warn('Turbo project item failed', {
           turboProjectId: project.id,
           turboProjectItemId: outcome.item.id,
           context: this.context,
@@ -360,7 +360,7 @@ export class TurboProjectReconcileService {
       });
       return true;
     } catch (error: unknown) {
-      this.logger.error('Batch project idea credits did not settle', error, {
+      this.logger.error('Turbo project idea credits did not settle', error, {
         turboProjectId: project.id,
         turboProjectItemId: outcome.item.id,
         context: this.context,
@@ -413,7 +413,7 @@ export class TurboProjectReconcileService {
           userId: project.userId,
         });
       } catch (error: unknown) {
-        this.logger.warn('Batch project idea could not be queued again', {
+        this.logger.warn('Turbo project idea could not be queued again', {
           turboProjectId: project.id,
           turboProjectItemId: item.id,
           context: this.context,
@@ -650,7 +650,7 @@ export class TurboProjectReconcileService {
       } else if (!child && isParentTerminal) {
         outcomes.push({
           error:
-            parent.error ?? 'The workflow batch ended before this item ran',
+            parent.error ?? 'The workflow project ended before this item ran',
           item,
           kind: 'failed',
         });
@@ -707,7 +707,7 @@ export class TurboProjectReconcileService {
   }
 
   /**
-   * Add finished outputs to the project's review inbox batch — created with
+   * Add finished outputs to the project's review inbox project — created with
    * the first output, appended to afterwards. `targetIdempotencyKey` makes a
    * retried hand-off reuse the draft Post it already created.
    */
@@ -778,7 +778,7 @@ export class TurboProjectReconcileService {
       });
     }
 
-    this.logger.log('Batch project outputs sent to review', {
+    this.logger.log('Turbo project outputs sent to review', {
       turboProjectId: project.id,
       context: this.context,
       itemCount: completed.length,
@@ -802,8 +802,8 @@ export class TurboProjectReconcileService {
       }
     }
 
-    // A crash between creating the review batch and saving its id leaves a
-    // batch that already holds these items; adopt it instead of a second one.
+    // A crash between creating the review run and saving its id leaves a
+    // project that already holds these items; adopt it instead of a second one.
     const handedOffTurboRunId = await findReviewTurboRunIdBySourceKeys(
       this.prisma,
       project.organizationId,
@@ -828,7 +828,7 @@ export class TurboProjectReconcileService {
     return summary;
   }
 
-  /** Append to a review batch; `null` when it was removed from the inbox. */
+  /** Append to a review run; `null` when it was removed from the inbox. */
   private async appendIfLive(
     project: ProjectWithItems,
     reviewTurboRunId: string,

@@ -160,7 +160,7 @@ describe('TurboProjectSchedulingService', () => {
       outputCategory: IngredientCategory.VIDEO,
       outputIngredientId: 'output-1',
       postId: 'review-post-1',
-      reviewTurboRunId: 'review-batch-1',
+      reviewTurboRunId: 'review-run-1',
       reviewItemId: 'review-item-1',
       status: TurboProjectItemStatus.APPROVED,
     });
@@ -453,7 +453,7 @@ describe('TurboProjectSchedulingService', () => {
         1,
       );
       expect(turboRunService.linkDestinationPosts).toHaveBeenCalledWith(
-        'review-batch-1',
+        'review-run-1',
         'review-item-1',
         ['clone-post-1'],
         'org-1',
@@ -684,14 +684,14 @@ describe('TurboProjectSchedulingService', () => {
         ),
       ).rejects.toThrow('Approve at least one item');
       expect(reviewLocks.run).toHaveBeenCalledWith(
-        expect.arrayContaining(['review-batch-1']),
+        expect.arrayContaining(['review-run-1']),
         'org-1',
         expect.any(Function),
       );
       expect(postsService.batchSchedule).not.toHaveBeenCalled();
     });
 
-    it('refuses an item the review inbox rejected after Batch approved it', async () => {
+    it('refuses an item the review inbox rejected after Turbo approved it', async () => {
       prisma.turboRunItem.findMany.mockResolvedValue([
         { id: 'review-item-1', reviewDecision: 'REJECTED', status: 'SKIPPED' },
       ]);

@@ -13,7 +13,7 @@ export enum TurboRunAction {
 }
 
 /**
- * A bulk action is a select-all over one review batch, and a batch itself holds
+ * A bulk action is a select-all over one review run, and a run itself holds
  * at most `CreateTurboRunDto.count` (`@Max(100)`) items — so 100 covers every real
  * select-all while keeping the per-item write loop bounded.
  */

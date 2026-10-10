@@ -32,7 +32,7 @@ function bootRunner() {
   return { executors, runner };
 }
 
-describe('batch project idea dispatch workflow definitions', () => {
+describe('Turbo project idea dispatch workflow definitions', () => {
   it('resolves every dispatch action from the shared action catalog', () => {
     for (const actionId of Object.values(
       TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS,

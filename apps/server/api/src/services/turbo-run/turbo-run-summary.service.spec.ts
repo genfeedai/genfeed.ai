@@ -51,7 +51,7 @@ describe('TurboRunSummaryService assignee projection', () => {
       brandId: 'brand-1',
       config: {},
       createdAt: new Date('2026-08-19T10:00:00.000Z'),
-      id: 'batch-1',
+      id: 'run-1',
       items: [
         {
           assigneeId: 'user-1',
@@ -92,7 +92,7 @@ describe('TurboRunSummaryService assignee projection', () => {
       brandId: 'brand-1',
       config: {},
       createdAt: new Date('2026-08-19T10:00:00.000Z'),
-      id: 'batch-1',
+      id: 'run-1',
       items: [
         {
           assigneeId: 'user-deleted',
@@ -111,12 +111,12 @@ describe('TurboRunSummaryService assignee projection', () => {
     expect(summary.items[0]?.reviewDecision).toBe(ReviewDecision.APPROVED);
   });
 
-  it('preserves content-run and variant lineage in returned batch items', async () => {
+  it('preserves content-run and variant lineage in returned Turbo run items', async () => {
     const summary = await service.toTurboRunSummary({
       brandId: 'brand-1',
       config: {},
       createdAt: new Date('2026-08-19T10:00:00.000Z'),
-      id: 'batch-1',
+      id: 'run-1',
       items: [
         {
           contentRunId: 'run-1',

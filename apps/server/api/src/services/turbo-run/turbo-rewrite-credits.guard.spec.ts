@@ -111,7 +111,7 @@ describe('TurboRewriteCreditsGuard admission', () => {
         new TurboRewriteCreditsGuard({
           admit,
         } as unknown as CreditsGuard).canActivate(context),
-      ).rejects.toThrow('Select between 1 and 100 batch items');
+      ).rejects.toThrow('Select between 1 and 100 Turbo run items');
       expect(admit).not.toHaveBeenCalled();
     },
   );

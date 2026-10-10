@@ -11,7 +11,7 @@ function deferred() {
   return { promise, resolve };
 }
 
-describe('Batch review advisory transactions (real Postgres)', () => {
+describe('Turbo run review advisory transactions (real Postgres)', () => {
   const organizationId = randomUUID();
   const firstApplication = `turbo-run-review-${organizationId}-first`;
   const secondApplication = `turbo-run-review-${organizationId}-second`;
@@ -59,7 +59,7 @@ describe('Batch review advisory transactions (real Postgres)', () => {
     );
     expect(locks.rows[0].locks).toBe(0);
   });
-  it('serializes overlapping batches on one connection and unlocks after the complete operation', async () => {
+  it('serializes overlapping runs on one connection and unlocks after the complete operation', async () => {
     const entered = deferred();
     const release = deferred();
     const waiting = first.run(['b', 'a', 'b'], organizationId, async () => {
@@ -112,14 +112,14 @@ describe('Batch review advisory transactions (real Postgres)', () => {
     ).resolves.toBe('recovered');
   });
   it.each([
-    { label: 'independent batch', turboRunId: 'c', organization: organizationId },
+    { label: 'independent run', turboRunId: 'c', organization: organizationId },
     {
       label: 'independent organization',
       turboRunId: 'a',
       organization: `${organizationId}-other`,
     },
   ])(
-    'does not block an independent batch/organization: $label',
+    'does not block an independent run/organization: $label',
     async ({ turboRunId, organization }) => {
       const entered = deferred();
       const release = deferred();

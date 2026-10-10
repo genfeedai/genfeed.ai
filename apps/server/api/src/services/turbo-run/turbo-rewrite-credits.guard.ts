@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 
 /**
- * Prices a batch rewrite at one text-model call per distinct item and checks
+ * Prices a Turbo rewrite at one text-model call per distinct item and checks
  * the balance covers all of them. The background job reserves and settles each
  * item itself, so admission places no request-level hold.
  */
@@ -29,7 +29,7 @@ export class TurboRewriteCreditsGuard implements CanActivate {
       body.itemIds.length > 100 ||
       body.itemIds.some((id: unknown) => typeof id !== 'string')
     ) {
-      throw new BadRequestException('Select between 1 and 100 batch items');
+      throw new BadRequestException('Select between 1 and 100 Turbo run items');
     }
     const admission = {
       ...request,
@@ -37,7 +37,7 @@ export class TurboRewriteCreditsGuard implements CanActivate {
       creditsOutputCount: new Set(body.itemIds).size,
     };
     const result = await this.creditsGuard.admit(admission, {
-      description: 'Batch rewrite (text model)',
+      description: 'Turbo rewrite (text model)',
       isBodyModelIgnored: true,
       isReservationDeferred: true,
       modelKey: DEFAULT_MINI_TEXT_MODEL,

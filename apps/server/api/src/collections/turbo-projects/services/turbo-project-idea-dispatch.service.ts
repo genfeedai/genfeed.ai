@@ -75,7 +75,7 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * Starts idea generation server-side (#5463) so an idea batch keeps
+ * Starts idea generation server-side (#5463) so an idea project keeps
  * generating after the creator leaves. Each accepted quote line runs as one
  * durable system-workflow job keyed by its dispatch key:
  *
@@ -233,7 +233,7 @@ export class TurboProjectIdeaDispatchService implements OnModuleInit {
         status: TurboProjectItemStatus.GENERATING,
       }),
     });
-    this.logger.warn('Batch project idea failed to start', {
+    this.logger.warn('Turbo project idea failed to start', {
       turboProjectId: job.projectId,
       turboProjectItemId: job.itemId,
       context: this.context,
@@ -273,7 +273,7 @@ export class TurboProjectIdeaDispatchService implements OnModuleInit {
       !parsed.userId ||
       parsed.organizationId !== organizationId
     ) {
-      throw new ConflictException('Invalid batch project idea dispatch job.');
+      throw new ConflictException('Invalid Turbo project idea dispatch job.');
     }
     return parsed as TurboProjectIdeaDispatchJob;
   }

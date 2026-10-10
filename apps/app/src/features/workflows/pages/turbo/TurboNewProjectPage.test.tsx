@@ -58,7 +58,7 @@ vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
 
 async function chooseIdeas() {
   fireEvent.click(screen.getAllByRole('button', { name: 'Generate ideas' })[0]);
-  fireEvent.change(screen.getByRole('textbox', { name: 'Batch name' }), {
+  fireEvent.change(screen.getByRole('textbox', { name: 'Turbo name' }), {
     target: { value: 'My draft' },
   });
 }
@@ -78,7 +78,7 @@ describe('TurboNewProjectPage', () => {
       create: mocks.create,
     });
     mocks.list.mockResolvedValue([]);
-    mocks.create.mockResolvedValue({ id: 'batch-1' });
+    mocks.create.mockResolvedValue({ id: 'run-1' });
   });
   it('disables the ideas option when the turbo_ideas flag is off', async () => {
     mocks.isIdeasEnabled = false;
@@ -89,7 +89,7 @@ describe('TurboNewProjectPage', () => {
     });
     expect(fromIdeasButton).toBeDisabled();
     expect(
-      screen.getByText('Idea batches are not available right now.'),
+      screen.getByText('Idea projects are not available right now.'),
     ).toBeInTheDocument();
   });
 
@@ -102,7 +102,7 @@ describe('TurboNewProjectPage', () => {
     });
     for (const button of fromIdeasButtons) expect(button).not.toBeDisabled();
     expect(
-      screen.queryByText('Idea batches are not available right now.'),
+      screen.queryByText('Idea projects are not available right now.'),
     ).not.toBeInTheDocument();
   });
   it('waits for a brand before loading workflows', async () => {
@@ -110,7 +110,7 @@ describe('TurboNewProjectPage', () => {
     const { rerender } = render(<TurboNewProjectPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
     expect(mocks.getService).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Create batch' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create project' })).toBeDisabled();
     mocks.brandId = 'brand-1';
     rerender(<TurboNewProjectPage />);
     await waitFor(() =>
@@ -143,7 +143,7 @@ describe('TurboNewProjectPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
     expect(mocks.list).not.toHaveBeenCalled();
     await chooseIdeas();
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith({
         brandId: 'brand-1',
@@ -161,7 +161,7 @@ describe('TurboNewProjectPage', () => {
       moduleOverrides: { automation: false },
     };
     rerender(<TurboNewProjectPage />);
-    expect(screen.getByRole('button', { name: 'Create batch' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create project' })).toBeDisabled();
     expect(
       screen.queryByText(
         'No saved workflows yet. Create a workflow or start from ideas.',
@@ -208,7 +208,7 @@ describe('TurboNewProjectPage', () => {
       reject?.(new Error('Workflow unavailable'));
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create batch' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Create project' })).toBeEnabled();
   });
 
   it('shows the real workflow-loading reason', async () => {
@@ -235,18 +235,18 @@ describe('TurboNewProjectPage', () => {
     });
     render(<TurboNewProjectPage />);
     await chooseIdeas();
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Please subscribe to a plan.',
     );
-    expect(screen.queryByRole('textbox', { name: 'Batch name' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Turbo name' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Generate ideas' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Saved workflow' })).toBeNull();
     expect(
       screen.getByRole('link', { name: 'Manage subscription' }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
     expect(
-      screen.queryByRole('button', { name: 'Create batch' }),
+      screen.queryByRole('button', { name: 'Create project' }),
     ).not.toBeInTheDocument();
     expect(mocks.create).toHaveBeenCalledTimes(1);
     expect(mocks.push).not.toHaveBeenCalled();
@@ -258,7 +258,7 @@ describe('TurboNewProjectPage', () => {
     });
     render(<TurboNewProjectPage />);
     await chooseIdeas();
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Name is already in use',
     );
@@ -266,18 +266,18 @@ describe('TurboNewProjectPage', () => {
       screen.queryByRole('link', { name: 'Manage subscription' }),
     ).not.toBeInTheDocument();
     expect(mocks.create).toHaveBeenCalledTimes(1);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Batch name' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Turbo name' }), {
       target: { value: ' Corrected draft ' },
     });
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: 'Create batch' }),
+        screen.getByRole('button', { name: 'Create project' }),
       ).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith(
-        '/acme/moonrise/studio/turbo/batch-1',
+        '/acme/moonrise/studio/turbo/run-1',
       ),
     );
     expect(mocks.create).toHaveBeenLastCalledWith({
@@ -289,7 +289,7 @@ describe('TurboNewProjectPage', () => {
   });
 });
 
-describe('Batch workflow paid admission', () => {
+describe('Turbo workflow paid admission', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.brandId = 'brand-1';
@@ -304,7 +304,7 @@ describe('Batch workflow paid admission', () => {
       create: mocks.create,
     });
     mocks.list.mockResolvedValue([]);
-    mocks.create.mockResolvedValue({ id: 'batch-1' });
+    mocks.create.mockResolvedValue({ id: 'run-1' });
   });
   it.each([false, null, undefined])(
     'does not load unpaid/unknown workflows while ideas remain available (%s)',
@@ -323,7 +323,7 @@ describe('Batch workflow paid admission', () => {
           screen.getByRole('link', { name: 'Manage subscription' }),
         ).toHaveAttribute('href', '/acme/~/settings/subscription');
       await chooseIdeas();
-      fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
       await waitFor(() =>
         expect(mocks.create).toHaveBeenCalledWith(
           expect.objectContaining({ kind: TurboProjectKind.IDEAS }),
@@ -343,7 +343,7 @@ describe('Batch workflow paid admission', () => {
     );
     const { rerender } = render(<TurboNewProjectPage />);
     await chooseIdeas();
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
     mocks.brandId = 'brand-2';
     rerender(<TurboNewProjectPage />);
     await act(async () => {

@@ -30,7 +30,7 @@ function setup() {
   );
   return { service, client };
 }
-describe('Batch review dedicated lock transactions', () => {
+describe('Turbo run review dedicated lock transactions', () => {
   beforeEach(() => vi.clearAllMocks());
   it('sorts all locks on one connection and keeps nested calls reentrant until release', async () => {
     const { service, client } = setup();

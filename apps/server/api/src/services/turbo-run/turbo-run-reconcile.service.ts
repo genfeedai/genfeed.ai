@@ -25,22 +25,22 @@ import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-/** A batch whose run died and which the sweep wants handed back to the queue. */
+/** A run whose run died and which the sweep wants handed back to the queue. */
 export type StrandedTurboRun = {
   turboRunId: string;
   organizationId: string;
-  /** How many previous runs already gave up on this batch. */
+  /** How many previous runs already gave up on this run. */
   resumeCount: number;
   userId: string;
 };
 
 /**
- * Finds batches whose run disappeared.
+ * Finds runs whose run disappeared.
  *
- * Before batch processing moved onto BullMQ it ran as an in-process promise in
- * the API: an API reload mid-batch left the row PROCESSING with nothing alive
+ * Before run processing moved onto BullMQ it ran as an in-process promise in
+ * the API: an API reload mid-run left the row PROCESSING with nothing alive
  * to finish it, and nothing that could see it was stuck. Queueing fixes the
- * common case — BullMQ redelivers a stalled job — but a batch can still be
+ * common case — BullMQ redelivers a stalled job — but a run can still be
  * orphaned by an enqueue that never landed, or by a job dropped after its
  * retries. This sweep is the backstop for both.
  *
@@ -61,16 +61,16 @@ export class TurboRunReconcileService {
   ) {}
 
   /**
-   * Return batches that should be re-enqueued, and fail out the ones that have
+   * Return runs that should be re-enqueued, and fail out the ones that have
    * burned through their resume budget.
    *
    * Two shapes are stranded:
    * - **PROCESSING with a stale lease** — a run claimed it and died. Every item
    *   persist bumps `updatedAt`, so a lease older than `TURBO_RUN_LEASE_STALE_MS`
    *   means no live run is touching it.
-   * - **PENDING with `queuedAt` set but never picked up** — the batch was
+   * - **PENDING with `queuedAt` set but never picked up** — the run was
    *   handed to the queue and the job was lost. `queuedAt` is what keeps the
-   *   sweep from auto-starting batches that were deliberately created and not
+   *   sweep from auto-starting runs that were deliberately created and not
    *   run.
    */
   async findStrandedTurboRuns(
@@ -81,7 +81,7 @@ export class TurboRunReconcileService {
     const leaseStaleBefore = new Date(now - TURBO_RUN_LEASE_STALE_MS);
     const pickupStaleBefore = new Date(now - TURBO_RUN_QUEUE_PICKUP_STALE_MS);
 
-    // tenant-scope-ignore: platform maintenance sweep — it must see stranded batches across every organization, and each result carries its own organizationId so all downstream work stays scoped
+    // tenant-scope-ignore: platform maintenance sweep — it must see stranded runs across every organization, and each result carries its own organizationId so all downstream work stays scoped
     const candidates = await this.prisma.turboRun.findMany({
       orderBy: { updatedAt: 'asc' },
       select: {
@@ -202,7 +202,7 @@ export class TurboRunReconcileService {
    *
    * This maintenance query intentionally crosses organizations. Candidate
    * rows carry their tenant ids, and each collection attempt uses that scope.
-   * The stored marker is the retry source; batch items and pricing are never
+   * The stored marker is the retry source; Turbo run items and pricing are never
    * re-read or re-derived here.
    */
   async reconcileSettlementShortfalls(
@@ -259,7 +259,7 @@ export class TurboRunReconcileService {
     }
 
     if (candidates.length > 0) {
-      this.logger.log('Batch settlement shortfall reconciliation completed', {
+      this.logger.log('Turbo run settlement shortfall reconciliation completed', {
         candidateCount: candidates.length,
         collectedCount,
       });
@@ -289,10 +289,10 @@ export class TurboRunReconcileService {
   }
 
   /**
-   * Give up on a batch that keeps dying. Unfinished items are marked FAILED so
-   * the batch stops looking like work in flight, then credits are settled — the
+   * Give up on a run that keeps dying. Unfinished items are marked FAILED so
+   * the run stops looking like work in flight, then credits are settled — the
    * ledger bills only the drafts that actually landed, so the customer is made
-   * whole for everything this batch never produced.
+   * whole for everything this run never produced.
    */
   private async failExhaustedTurboRun(params: {
     turboRunId: string;
@@ -321,7 +321,7 @@ export class TurboRunReconcileService {
         ? item
         : {
             ...item,
-            error: 'Batch run was interrupted and could not be resumed',
+            error: 'Turbo run run was interrupted and could not be resumed',
             status: TurboRunItemStatus.FAILED,
           },
     );

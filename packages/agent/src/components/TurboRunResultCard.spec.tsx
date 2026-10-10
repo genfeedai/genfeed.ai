@@ -21,23 +21,23 @@ describe('TurboRunResultCard', () => {
           creditsUsed: 5,
           ctas: [
             {
-              href: '/publishing/review?run=batch-123&filter=ready',
+              href: '/publishing/review?run=run-123&filter=ready',
               label: 'Open review queue',
             },
             { href: '/calendar/posts', label: 'Open calendar' },
           ],
           description: 'Generating drafts for Instagram, X, and LinkedIn.',
           failedCount: 1,
-          id: 'batch-result-1',
+          id: 'run-result-1',
           platforms: ['instagram', 'twitter', 'linkedin'],
           status: 'processing',
-          title: 'Batch generation started',
+          title: 'Turbo run started',
           type: 'turbo_run_result_card',
         }}
       />,
     );
 
-    expect(screen.getByText('Batch generation started')).toBeInTheDocument();
+    expect(screen.getByText('Turbo run started')).toBeInTheDocument();
     expect(
       screen.getByText(
         '20 requested · 12 ready · 1 failed · 5 credits · Instagram · X · LinkedIn',
@@ -51,11 +51,11 @@ describe('TurboRunResultCard', () => {
       screen.getByRole('link', { name: 'Open review queue' }),
     ).toHaveAttribute(
       'href',
-      '/publishing/review?run=batch-123&filter=ready',
+      '/publishing/review?run=run-123&filter=ready',
     );
-    expect(screen.queryByText('batch-123')).not.toBeInTheDocument();
+    expect(screen.queryByText('run-123')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Collapse batch result' }),
+      screen.getByRole('button', { name: 'Collapse run result' }),
     ).toBeInTheDocument();
   });
 
@@ -72,7 +72,7 @@ describe('TurboRunResultCard', () => {
             },
           ],
           description: 'Generated 3 X drafts.',
-          id: 'batch-collapse',
+          id: 'run-collapse',
           items: [
             {
               id: 'post-1',
@@ -81,7 +81,7 @@ describe('TurboRunResultCard', () => {
               type: 'post',
             },
           ],
-          title: 'Batch generation complete',
+          title: 'Turbo run complete',
           type: 'turbo_run_result_card',
         }}
       />,
@@ -89,11 +89,11 @@ describe('TurboRunResultCard', () => {
 
     expect(screen.getByText('Draft one')).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Collapse batch result' }),
+      screen.getByRole('button', { name: 'Collapse run result' }),
     );
     expect(screen.queryByText('Draft one')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Expand batch result' }),
+      screen.getByRole('button', { name: 'Expand run result' }),
     ).toBeInTheDocument();
   });
 
@@ -105,12 +105,12 @@ describe('TurboRunResultCard', () => {
           completedCount: 8,
           ctas: [
             {
-              href: '/publishing/review?run=batch-xyz&filter=ready',
+              href: '/publishing/review?run=run-xyz&filter=ready',
               label: 'View all 8 posts',
             },
           ],
           description: 'Generated 8 X drafts.',
-          id: 'batch-result-previews',
+          id: 'run-result-previews',
           // Server already applied takeTurboRunPostPreviews({ limit: 3 }).
           items: [
             {
@@ -133,7 +133,7 @@ describe('TurboRunResultCard', () => {
             },
           ],
           remainingCount: 5,
-          title: 'Batch generation complete',
+          title: 'Turbo run complete',
           type: 'turbo_run_result_card',
         }}
       />,
@@ -153,11 +153,11 @@ describe('TurboRunResultCard', () => {
       screen.getByRole('link', { name: '+5 more posts in review' }),
     ).toHaveAttribute(
       'href',
-      '/publishing/review?run=batch-xyz&filter=ready',
+      '/publishing/review?run=run-xyz&filter=ready',
     );
   });
 
-  it('emphasizes all-failed batches without Ready metrics', () => {
+  it('emphasizes all-failed runs without Ready metrics', () => {
     render(
       <TurboRunResultCard
         action={{
@@ -165,9 +165,9 @@ describe('TurboRunResultCard', () => {
           completedCount: 0,
           description: 'Generated 20 X drafts.',
           failedCount: 20,
-          id: 'batch-failed',
+          id: 'run-failed',
           platforms: ['twitter'],
-          title: 'Batch generation complete',
+          title: 'Turbo run complete',
           type: 'turbo_run_result_card',
         }}
       />,

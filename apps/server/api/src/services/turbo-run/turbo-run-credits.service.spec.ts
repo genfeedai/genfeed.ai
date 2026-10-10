@@ -12,7 +12,7 @@ vi.mock('@sentry/nestjs', () => ({
   captureException: vi.fn(),
 }));
 
-/** The rates a batch pins at creation — caption-first, no media generated. */
+/** The rates a run pins at creation — caption-first, no media generated. */
 const PINNED_PRICING = { includeMedia: false, qualityTier: 'balanced' };
 
 /** What one completed caption-only image draft costs at those rates. */
@@ -24,7 +24,7 @@ const ONE_DRAFT = chargeTurboRunCredits(
 const LEASE = new Date('2026-08-07T10:00:00.000Z');
 
 /**
- * Settlement idempotency (#2501). A batch can now be settled from more than one
+ * Settlement idempotency (#2501). A run can now be settled from more than one
  * place — the run itself, a redelivered BullMQ job, a resumed run, the
  * reconciliation sweep — so each of these must move only what has not moved yet.
  */
@@ -82,13 +82,13 @@ describe('TurboRunCreditsService', () => {
 
   function settle() {
     return service.settleTurboRunCredits({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       organizationId: 'org-1',
       userId: 'user-1',
     });
   }
 
-  /** The batch config written by the compare-and-swap on `updateMany`. */
+  /** The run config written by the compare-and-swap on `updateMany`. */
   function writtenConfig(callIndex = 0): {
     credits: {
       chargedCredits: number;
@@ -142,7 +142,7 @@ describe('TurboRunCreditsService', () => {
     ).toHaveBeenCalledOnce();
   });
 
-  it('settles a batch reservation to the price of only the drafts that landed', async () => {
+  it('settles a run reservation to the price of only the drafts that landed', async () => {
     turboRunDelegate.findFirst.mockResolvedValue(
       turboRunWith({
         chargedCredits: ONE_DRAFT * 2,
@@ -156,7 +156,7 @@ describe('TurboRunCreditsService', () => {
     expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith({
       actualAmount: ONE_DRAFT,
       actorUserId: 'user-1',
-      description: 'Batch generation batch-1 settlement',
+      description: 'Turbo run run-1 settlement',
       organizationId: 'org-1',
       reservationId: 'reservation-1',
       source: expect.anything(),
@@ -206,14 +206,14 @@ describe('TurboRunCreditsService', () => {
       expect.any(String),
       expect.anything(),
       expect.objectContaining({
-        referenceId: 'batch-1:1',
+        referenceId: 'run-1:1',
         referenceType: 'turbo-run:settlement',
       }),
     );
     expect(writtenConfig().credits.chargedCredits).toBe(landedCredits);
   });
 
-  it('releases the reservation when a batch produces no usable drafts', async () => {
+  it('releases the reservation when a run produces no usable drafts', async () => {
     turboRunDelegate.findFirst.mockResolvedValue(
       turboRunWith({
         chargedCredits: ONE_DRAFT,
@@ -232,7 +232,7 @@ describe('TurboRunCreditsService', () => {
     expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
   });
 
-  it('does not transition an already settled batch reservation twice', async () => {
+  it('does not transition an already settled run reservation twice', async () => {
     turboRunDelegate.findFirst.mockResolvedValue(
       turboRunWith({
         chargedCredits: ONE_DRAFT,
@@ -249,7 +249,7 @@ describe('TurboRunCreditsService', () => {
     expect(turboRunDelegate.updateMany).not.toHaveBeenCalled();
   });
 
-  it('moves nothing when the batch is settled a second time', async () => {
+  it('moves nothing when the run is settled a second time', async () => {
     // The ledger already records the price of what landed — this is the state a
     // redelivered job or the reconcile sweep finds.
     turboRunDelegate.findFirst.mockResolvedValue(
@@ -345,7 +345,7 @@ describe('TurboRunCreditsService', () => {
 
     expect(turboRunDelegate.updateMany.mock.calls[0]?.[0]?.where).toEqual(
       expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         organizationId: 'org-1',
         updatedAt: LEASE,
       }),
@@ -385,7 +385,7 @@ describe('TurboRunCreditsService', () => {
     expect(turboRunDelegate.updateMany).toHaveBeenNthCalledWith(2, {
       data: { settlementShortfall: ONE_DRAFT, settlementShortfallSeq: 1 },
       where: expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         isDeleted: false,
         organizationId: 'org-1',
         settlementShortfall: null,
@@ -393,12 +393,12 @@ describe('TurboRunCreditsService', () => {
     });
     expect(Sentry.captureException).toHaveBeenCalledWith(deductionError, {
       extra: {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         organizationId: 'org-1',
         settlementShortfall: ONE_DRAFT,
       },
       tags: {
-        operation: 'batch-credit-settlement',
+        operation: 'run-credit-settlement',
       },
     });
   });
@@ -406,7 +406,7 @@ describe('TurboRunCreditsService', () => {
   it('retries the exact marked shortfall and leaves the marker clear on success', async () => {
     await expect(
       service.retrySettlementShortfall({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         organizationId: 'org-1',
         settlementShortfall: ONE_DRAFT,
         settlementShortfallSeq: 3,
@@ -419,7 +419,7 @@ describe('TurboRunCreditsService', () => {
     expect(turboRunDelegate.updateMany).toHaveBeenNthCalledWith(1, {
       data: { settlementShortfall: -ONE_DRAFT },
       where: expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         isDeleted: false,
         organizationId: 'org-1',
         settlementShortfall: ONE_DRAFT,
@@ -429,7 +429,7 @@ describe('TurboRunCreditsService', () => {
     expect(turboRunDelegate.updateMany).toHaveBeenNthCalledWith(2, {
       data: { settlementShortfall: null, settlementShortfallSeq: null },
       where: expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         isDeleted: false,
         organizationId: 'org-1',
         settlementShortfall: -ONE_DRAFT,
@@ -444,10 +444,10 @@ describe('TurboRunCreditsService', () => {
       'org-1',
       'user-1',
       ONE_DRAFT,
-      'Batch generation batch-1 settlement',
+      'Turbo run run-1 settlement',
       expect.anything(),
       expect.objectContaining({
-        referenceId: 'batch-1:3',
+        referenceId: 'run-1:3',
         referenceType: 'turbo-run:settlement',
       }),
     );
@@ -484,7 +484,7 @@ describe('TurboRunCreditsService', () => {
 
     const retry = () =>
       service.retrySettlementShortfall({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         organizationId: 'org-1',
         settlementShortfall: ONE_DRAFT,
         settlementShortfallSeq: 3,
@@ -509,7 +509,7 @@ describe('TurboRunCreditsService', () => {
 
     await expect(
       service.retrySettlementShortfall({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         organizationId: 'org-1',
         settlementShortfall: ONE_DRAFT,
         settlementShortfallSeq: 3,
@@ -520,7 +520,7 @@ describe('TurboRunCreditsService', () => {
     expect(turboRunDelegate.updateMany).toHaveBeenNthCalledWith(2, {
       data: { settlementShortfall: ONE_DRAFT },
       where: expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         organizationId: 'org-1',
         settlementShortfall: -ONE_DRAFT,
         settlementShortfallSeq: 3,
@@ -533,7 +533,7 @@ describe('TurboRunCreditsService', () => {
 
     await expect(
       service.retrySettlementShortfall({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         organizationId: 'org-1',
         settlementShortfall: ONE_DRAFT,
         settlementShortfallSeq: 3,
@@ -553,7 +553,7 @@ describe('TurboRunCreditsService', () => {
     );
     await settle();
 
-    // The batch resumes, a second draft lands, and the ledger carries the
+    // The run resumes, a second draft lands, and the ledger carries the
     // first occurrence's claim. This delta is new money, not a replay.
     turboRunDelegate.findFirst.mockResolvedValueOnce(
       turboRunWith({
@@ -577,7 +577,7 @@ describe('TurboRunCreditsService', () => {
       ONE_DRAFT,
       expect.any(String),
       expect.anything(),
-      expect.objectContaining({ referenceId: 'batch-1:1' }),
+      expect.objectContaining({ referenceId: 'run-1:1' }),
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
@@ -588,7 +588,7 @@ describe('TurboRunCreditsService', () => {
       ONE_DRAFT,
       expect.any(String),
       expect.anything(),
-      expect.objectContaining({ referenceId: 'batch-1:2' }),
+      expect.objectContaining({ referenceId: 'run-1:2' }),
     );
   });
 
@@ -611,7 +611,7 @@ describe('TurboRunCreditsService', () => {
     expect(Sentry.captureException).toHaveBeenCalledTimes(2);
   });
 
-  it('returns without moving credits when the batch is gone', async () => {
+  it('returns without moving credits when the run is gone', async () => {
     turboRunDelegate.findFirst.mockResolvedValue(null);
 
     const settlement = await settle();
@@ -629,7 +629,7 @@ describe('TurboRunCreditsService', () => {
     turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 4 }));
 
     await service.recordUpfrontCharge({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       credits: 6,
       organizationId: 'org-1',
       pricingOptions: { includeMedia: false, qualityTier: 'high_quality' },
@@ -645,7 +645,7 @@ describe('TurboRunCreditsService', () => {
     });
     expect(turboRunDelegate.updateMany.mock.calls[0]?.[0]?.where).toEqual(
       expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         organizationId: 'org-1',
         updatedAt: LEASE,
       }),
@@ -656,7 +656,7 @@ describe('TurboRunCreditsService', () => {
     turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 2 }));
 
     await service.recordUpfrontCharge({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       credits: 3,
       organizationId: 'org-1',
     });

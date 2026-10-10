@@ -1,5 +1,5 @@
 /**
- * Cap for draft post previews on the batch result card.
+ * Cap for draft post previews on the run result card.
  * Server applies this as a take-limit when building the action payload —
  * the card must not re-slice.
  */
@@ -29,9 +29,9 @@ export type TurboRunPostPreviewResult = {
 };
 
 /**
- * Take up to `limit` completed post previews for the batch result card.
+ * Take up to `limit` completed post previews for the run result card.
  *
- * @param items - Streamed batch items (completed + failed).
+ * @param items - Streamed Turbo run items (completed + failed).
  * @param options.limit - Max previews to return (required; not a post-hoc slice).
  */
 export function takeTurboRunPostPreviews(

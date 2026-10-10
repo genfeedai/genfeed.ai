@@ -3,9 +3,9 @@ import { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-/** The thread identity a worker-side batch run reconstructs from job data. */
+/** The thread identity a worker-side run run reconstructs from job data. */
 const CONTEXT = {
-  turboRunId: 'batch-1',
+  turboRunId: 'run-1',
   runId: 'run-1',
   threadId: 'thread-1',
   userId: 'user-1',
@@ -14,7 +14,7 @@ const CONTEXT = {
 const itemContext = (
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
-  turboRunId: 'batch-1',
+  turboRunId: 'run-1',
   completedCount: 1,
   failedCount: 0,
   index: 0,
@@ -44,9 +44,9 @@ describe('TurboRunStreamService', () => {
     expect(withoutPublisher.buildProcessOptions(CONTEXT)).toBeUndefined();
   });
 
-  it('opens the batch tool call on the live thread', async () => {
+  it('opens the run tool call on the live thread', async () => {
     await service.buildProcessOptions(CONTEXT)?.onTurboRunStarted?.({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       totalCount: 2,
     });
 
@@ -54,12 +54,12 @@ describe('TurboRunStreamService', () => {
       expect.objectContaining({
         detail: 'Queued 2 posts for generation.',
         event: 'started',
-        label: 'Batch generation started',
+        label: 'Turbo run started',
         progress: 0,
         runId: 'run-1',
         status: 'running',
         threadId: 'thread-1',
-        toolCallId: 'batch:batch-1',
+        toolCallId: 'run:run-1',
         toolName: 'generate_turbo_content',
         userId: 'user-1',
       }),
@@ -84,7 +84,7 @@ describe('TurboRunStreamService', () => {
         label: 'Generating post 1',
         progress: 0,
         status: 'running',
-        toolCallId: 'batch:batch-1:item:item-1',
+        toolCallId: 'run:run-1:item:item-1',
       }),
     );
     expect(publishWorkEvent).toHaveBeenNthCalledWith(
@@ -95,12 +95,12 @@ describe('TurboRunStreamService', () => {
         progress: 50,
         resultSummary: 'Launch day is here',
         status: 'completed',
-        toolCallId: 'batch:batch-1:item:item-1',
+        toolCallId: 'run:run-1:item:item-1',
       }),
     );
   });
 
-  it('reports a failed draft without ending the batch call', async () => {
+  it('reports a failed draft without ending the run call', async () => {
     await service.buildProcessOptions(CONTEXT)?.onItemFailed?.(
       itemContext({
         completedCount: 0,
@@ -117,7 +117,7 @@ describe('TurboRunStreamService', () => {
         progress: 50,
         resultSummary: 'provider refused the prompt',
         status: 'failed',
-        toolCallId: 'batch:batch-1:item:item-1',
+        toolCallId: 'run:run-1:item:item-1',
       }),
     );
   });
@@ -127,14 +127,14 @@ describe('TurboRunStreamService', () => {
 
     await expect(
       service.buildProcessOptions(CONTEXT)?.onTurboRunStarted?.({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         totalCount: 2,
       }),
     ).resolves.toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(
-      'Batch batch-1 progress event dropped',
+      'Turbo run run-1 progress event dropped',
       expect.objectContaining({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         error: 'redis unavailable',
       }),
     );

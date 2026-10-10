@@ -275,8 +275,8 @@ export class TurboRunCreationService {
   }
 
   /**
-   * Append items to an existing manual-review batch so outputs that finish at
-   * different times land in the same review inbox batch (#5463). Each item
+   * Append items to an existing manual-review run so outputs that finish at
+   * different times land in the same review inbox run (#5463). Each item
    * gets its draft Post exactly as `createManualReviewTurboRun` creates them; the
    * created Posts are soft-deleted again if the append does not commit.
    */
@@ -422,7 +422,7 @@ export class TurboRunCreationService {
     if (existingPostIds.length === 0) return;
     if (existingPostIds.length !== suppliedPostIds.length) {
       throw new BadRequestException(
-        'A Post can appear only once in a manual review batch',
+        'A Post can appear only once in a manual review run',
       );
     }
     const ownedPosts = await this.prisma.post.findMany({
@@ -588,7 +588,7 @@ export class TurboRunCreationService {
     if (results.some((result) => result.count !== 1)) {
       throw new NotFoundException({
         message:
-          'A manual review post disappeared before batch linking completed',
+          'A manual review post disappeared before run linking completed',
       });
     }
   }
@@ -618,7 +618,7 @@ export class TurboRunCreationService {
         });
       }
     } catch (cleanupError: unknown) {
-      this.logger.error('Manual review batch compensation failed', {
+      this.logger.error('Manual review run compensation failed', {
         turboRunId,
         cleanupError,
         orgId,
@@ -629,12 +629,12 @@ export class TurboRunCreationService {
   /**
    * Map free-text platform inputs onto domain Platform values. Reject the
    * whole request when any entry is unmappable so we never persist malformed
-   * platform strings into batch items (#2696).
+   * platform strings into Turbo run items (#2696).
    */
   private normalizeTurboRunPlatforms(platforms: string[]): string[] {
     if (!Array.isArray(platforms) || platforms.length === 0) {
       throw new BadRequestException(
-        'At least one platform is required for batch generation',
+        'At least one platform is required for Turbo run',
       );
     }
 

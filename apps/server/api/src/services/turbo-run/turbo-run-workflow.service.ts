@@ -61,9 +61,9 @@ export class TurboRunWorkflowService implements OnModuleInit {
 
   /**
    * `dispatchClass` is threaded from the caller rather than hard-coded here:
-   * this producer serves both a live "generate batch" click/agent tool call
+   * this producer serves both a live "generate run" click/agent tool call
    * (INTERACTIVE — `TurboRunController`, `AgentMediaTurboRunService`)
-   * and a cron reconcile retrying a stuck batch (BACKGROUND —
+   * and a cron reconcile retrying a stuck run (BACKGROUND —
    * `CronTurboRunReconcileService`) — see #5271.
    */
   queueTurboRun(

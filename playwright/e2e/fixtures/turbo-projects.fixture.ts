@@ -33,8 +33,8 @@ export async function mockTurboProject(
 ) {
   const bootstrap = buildProtectedAppBootstrapPayload();
   const credential = {
-    id: 'batch-instagram',
-    label: 'Batch Instagram',
+    id: 'project-instagram',
+    label: 'Turbo Instagram',
     platform: 'instagram',
     status: 'active',
     isConnected: true,
@@ -64,8 +64,8 @@ export async function mockTurboProject(
   );
   await mockActiveSubscription(page);
   let project: ITurboProject = {
-    id: 'persisted-batch',
-    name: 'Saved batch',
+    id: 'persisted-project',
+    name: 'Saved project',
     brandId: 'brand-1',
     kind,
     status: TurboProjectStatus.DRAFT,
@@ -140,11 +140,11 @@ export async function mockTurboProject(
     }),
   );
   await mockReviewQueue(page, {
-    turboRunId: 'review-batch',
+    turboRunId: 'review-run',
     itemId: 'review-item',
     itemAttributes: {
-      label: 'Saved batch output',
-      prompt: 'Saved batch output',
+      label: 'Saved project output',
+      prompt: 'Saved project output',
       sourceActionId: 'turbo-project-item:item-1',
       sourceWorkflowName: 'Saved workflow',
     },
@@ -209,7 +209,7 @@ export async function mockTurboProject(
             ? TurboProjectStatus.GENERATING
             : TurboProjectStatus.REVIEWING;
           project.step = TurboProjectStep.REVIEW;
-          project.reviewTurboRunId = 'review-batch';
+          project.reviewTurboRunId = 'review-run';
           if (project.quote)
             project.quote.acceptedAt = new Date().toISOString();
           project.items = project.items?.map((entry) => ({
@@ -218,7 +218,7 @@ export async function mockTurboProject(
               ? TurboProjectItemStatus.GENERATING
               : TurboProjectItemStatus.READY,
             outputIngredientId: 'output-1',
-            reviewTurboRunId: 'review-batch',
+            reviewTurboRunId: 'review-run',
             reviewItemId: 'review-item',
           }));
         } else if (path.endsWith('/review'))

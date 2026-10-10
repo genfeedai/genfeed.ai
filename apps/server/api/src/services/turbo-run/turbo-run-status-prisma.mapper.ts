@@ -4,7 +4,7 @@
  * This mapper always emits literal Postgres labels so a stale `@genfeedai/contracts`
  * dist (lowercase `pending` / `generating`) cannot write invalid enum values.
  *
- * @see packages/contracts/src/enums/batch.enum.ts
+ * @see packages/contracts/src/enums/run.enum.ts
  * @see packages/prisma/prisma/schema.prisma `enum TurboRunStatus`
  */
 import { TurboRunStatus } from '@genfeedai/contracts';

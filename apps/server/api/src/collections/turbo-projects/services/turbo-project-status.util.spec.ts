@@ -12,7 +12,7 @@ const item = (
   scheduledAt: string | null = null,
 ) => ({ scheduledAt, status });
 
-describe('batch project status', () => {
+describe('Turbo project status', () => {
   it('counts items by state, including scheduled approvals', () => {
     expect(
       countTurboProjectItems([

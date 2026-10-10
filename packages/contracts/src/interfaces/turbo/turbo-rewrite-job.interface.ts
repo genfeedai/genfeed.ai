@@ -8,7 +8,7 @@ export interface ITurboRewriteItemFailure {
   reason: TurboRewriteItemFailureReason;
 }
 
-/** Per-item outcome a background batch rewrite persists as it runs. */
+/** Per-item outcome a background Turbo rewrite persists as it runs. */
 export interface ITurboRewriteJobProgress {
   completedItemIds: string[];
   failedItems: ITurboRewriteItemFailure[];

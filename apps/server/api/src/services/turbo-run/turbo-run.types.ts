@@ -27,7 +27,7 @@ export interface TurboRunItemFull extends TurboRunItem {
   prompt?: string;
   postId?: string;
   /**
-   * Further posts publishing this item on other accounts (a batch project
+   * Further posts publishing this item on other accounts (a Turbo project
    * schedules one draft per destination). Review decisions reach them too.
    */
   destinationPostIds?: string[];
@@ -77,11 +77,11 @@ export interface TurboRunItemFull extends TurboRunItem {
 }
 
 /**
- * Running total of credits actually moved for a batch.
+ * Running total of credits actually moved for a run.
  *
  * `chargedCredits` is the claimed net charge (up-front estimate plus any
  * settlement delta, minus refunds). It normally matches the amount deducted;
- * when the settlement delta fails, `Batch.settlementShortfall` records the
+ * when the settlement delta fails, `Turbo run.settlementShortfall` records the
  * exact amount still collectible. Settlement always targets the price of what
  * landed and charges `target - chargedCredits`, so replaying settlement is a
  * no-op rather than a second charge.
@@ -89,13 +89,13 @@ export interface TurboRunItemFull extends TurboRunItem {
 export type TurboRunCreditsLedger = {
   chargedCredits: number;
   refundedCredits?: number;
-  /** Hold consumed when this batch reaches a terminal settlement. */
+  /** Hold consumed when this run reaches a terminal settlement. */
   reservationId?: string;
   /** Durable proof that the reservation transition completed. */
   reservationSettledAt?: string;
   settledAt?: string;
   /**
-   * Monotonic count of settlement claims won for this batch. Each occurrence
+   * Monotonic count of settlement claims won for this run. Each occurrence
    * keys its own credit-transaction reference, so a later legitimate delta is
    * never mistaken for a replay of an earlier one.
    */
@@ -116,12 +116,12 @@ export type TurboRunConfig = {
   style?: string;
   credits?: TurboRunCreditsLedger;
   /**
-   * Pricing inputs captured at creation. Stored on the batch rather than
+   * Pricing inputs captured at creation. Stored on the run rather than
    * carried in job data so a resumed run settles at the same rates as the run
    * it replaces.
    */
   pricing?: TurboRunPricingOptions;
-  /** Set when the batch was handed to the turbo-run queue. */
+  /** Set when the run was handed to the turbo-run queue. */
   queuedAt?: string;
   /** Number of times a stranded run has been re-claimed and resumed. */
   resumeCount?: number;

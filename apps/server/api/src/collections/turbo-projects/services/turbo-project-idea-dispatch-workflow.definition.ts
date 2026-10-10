@@ -25,7 +25,7 @@ function singleActionWorkflow(input: {
       inputVariables: [
         {
           key: 'job',
-          label: 'Batch project idea dispatch',
+          label: 'Turbo project idea dispatch',
           required: true,
           type: 'json',
         },
@@ -46,15 +46,15 @@ function singleActionWorkflow(input: {
   };
 }
 
-/** Generates one idea item of a Studio Batch project server-side (#5463). */
+/** Generates one idea item of a Studio Turbo project server-side (#5463). */
 export function buildTurboProjectIdeaDispatchWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     ...singleActionWorkflow({
       actionId: TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS.DISPATCH,
       canonicalId: TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
       description:
-        'Reserves one accepted quote line and starts generation of one batch idea.',
-      label: 'Batch Idea Generation',
+        'Reserves one accepted quote line and starts generation of one Turbo idea.',
+      label: 'Turbo Idea Generation',
       nodeId: 'dispatch-idea',
     }),
     organizationModule: 'turbo',
@@ -67,8 +67,8 @@ export function buildTurboProjectIdeaDispatchFailureWorkflowDefinition(): System
     actionId: TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS.FAIL,
     canonicalId: TURBO_PROJECT_IDEA_DISPATCH_FAILURE_WORKFLOW_ID,
     description:
-      'Fails one batch idea whose generation could not start and releases its hold.',
-    label: 'Fail Batch Idea Generation',
+      'Fails one Turbo idea whose generation could not start and releases its hold.',
+    label: 'Fail Turbo Idea Generation',
     nodeId: 'fail-idea',
   });
 }

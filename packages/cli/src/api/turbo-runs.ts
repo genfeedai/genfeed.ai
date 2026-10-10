@@ -25,8 +25,8 @@ export interface TurboRun {
 export interface TurboRunItem {
   id: string;
   /**
-   * Per-item status inside the batch `items` JSON payload — SCREAMING_SNAKE,
-   * same as the batch itself.
+   * Per-item status inside the run `items` JSON payload — SCREAMING_SNAKE,
+   * same as the run itself.
    *
    * @see .agents/memory/rules/enum_source_of_truth.md
    */

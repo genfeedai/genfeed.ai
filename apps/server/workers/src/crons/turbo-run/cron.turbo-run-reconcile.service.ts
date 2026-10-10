@@ -6,12 +6,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Puts stranded batches back on the queue.
+ * Puts stranded runs back on the queue.
  *
- * Queueing already covers the ordinary failure: a worker that dies mid-batch
+ * Queueing already covers the ordinary failure: a worker that dies mid-run
  * has its job redelivered. This sweep is the backstop for the cases BullMQ
- * cannot see — a batch marked queued whose `queue.add` never landed, and a job
- * that fell out of the queue entirely. Without it those batches sit in
+ * cannot see — a run marked queued whose `queue.add` never landed, and a job
+ * that fell out of the queue entirely. Without it those runs sit in
  * PROCESSING forever, which is the failure issue #2501 was filed for.
  *
  * Detection and the fail-out decision live in `TurboRunReconcileService`
@@ -30,14 +30,14 @@ export class CronTurboRunReconcileService {
   ) {}
 
   /**
-   * Advance Studio Batch projects whose generation is in flight (#5463), so a
-   * batch the creator left mid-generation still reaches the review inbox.
+   * Advance Studio Turbo projects whose generation is in flight (#5463), so a
+   * run the creator left mid-generation still reaches the review inbox.
    */
   async reconcileTurboProjects(): Promise<void> {
     const projectCount =
       await this.turboProjectReconcileService.reconcileGeneratingProjects();
     if (projectCount > 0) {
-      this.logger.log('CronTurboRunReconcileService batch projects', {
+      this.logger.log('CronTurboRunReconcileService Turbo projects', {
         context: this.context,
         projectCount,
       });
@@ -61,7 +61,7 @@ export class CronTurboRunReconcileService {
       try {
         // The deterministic job id makes this a no-op when the original job is
         // still queued, so a sweep firing next to a live job cannot fork a
-        // second run of the same batch.
+        // second run of the same run.
         await this.workflowService.queueTurboRun(
           {
             turboRunId: turboRun.turboRunId,
@@ -73,8 +73,8 @@ export class CronTurboRunReconcileService {
         );
         resumedCount += 1;
       } catch (error: unknown) {
-        // One bad batch must not stop the sweep from recovering the rest.
-        this.logger.error('Failed to re-queue stranded batch', error, {
+        // One bad run must not stop the sweep from recovering the rest.
+        this.logger.error('Failed to re-queue stranded run', error, {
           turboRunId: turboRun.turboRunId,
           context: this.context,
         });

@@ -11,7 +11,7 @@ export const TURBO_RUN_ACTION_IDS = {
   SETTLE: 'turbo.run.settle',
 } as const;
 
-export const TURBO_RUN_WORKFLOW_ID = 'batch.generation';
+export const TURBO_RUN_WORKFLOW_ID = 'run.generation';
 
 export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const ownership: WorkflowVisualNode = {
@@ -31,12 +31,12 @@ export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition
     {
       id: 'mark-to-process',
       source: 'mark-queued',
-      target: 'process-batch',
+      target: 'process-run',
       targetHandle: 'queued',
     },
     {
       id: 'process-to-ownership',
-      source: 'process-batch',
+      source: 'process-run',
       target: ownership.id,
       targetHandle: 'value',
     },
@@ -49,7 +49,7 @@ export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition
     },
     {
       id: 'settle-failure',
-      source: 'process-batch',
+      source: 'process-run',
       sourceHandle: 'failure',
       target: 'settle-credits',
       targetHandle: 'failure',
@@ -65,7 +65,7 @@ export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition
       inputVariables: [
         {
           key: 'request',
-          label: 'Batch generation',
+          label: 'Turbo run',
           required: true,
           type: 'json',
         },
@@ -79,7 +79,7 @@ export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition
         }),
         createGenfeedActionNode({
           actionId: TURBO_RUN_ACTION_IDS.PROCESS,
-          id: 'process-batch',
+          id: 'process-run',
           inputVariableKeys: ['request'],
           position: { x: 0, y: 160 },
         }),
@@ -92,9 +92,9 @@ export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition
         }),
       ],
     },
-    description: 'Claims, processes, and settles one durable generation batch.',
-    label: 'Batch Generation',
-    resultNodeId: 'process-batch',
+    description: 'Claims, processes, and settles one durable generation run.',
+    label: 'Turbo run Generation',
+    resultNodeId: 'process-run',
     version: 1,
   };
 }

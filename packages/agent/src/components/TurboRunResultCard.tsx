@@ -61,7 +61,7 @@ function resolveReviewHref(action: AgentUiAction): string | undefined {
 }
 
 /**
- * Dense batch outcome surface — header metrics + Publish-style platform
+ * Dense run outcome surface — header metrics + Publish-style platform
  * previews for the first drafts (same PlatformPreview as review queue).
  * Collapsible body matches completion-summary density.
  */
@@ -144,10 +144,10 @@ export function TurboRunResultCard({
             <span className="truncate text-sm font-medium text-foreground">
               {action.title ||
                 (activeStatus
-                  ? 'Batch in progress'
+                  ? 'Turbo run in progress'
                   : isAllFailed
-                    ? 'Batch failed'
-                    : 'Batch complete')}
+                    ? 'Turbo run failed'
+                    : 'Turbo run complete')}
             </span>
             {action.status ? (
               <Badge status={action.status} className="h-5 text-2xs" />
@@ -171,8 +171,8 @@ export function TurboRunResultCard({
         {hasCollapsibleBody ? (
           <AgentCardCollapseToggle
             isCollapsed={isCollapsed}
-            labelCollapse="Collapse batch result"
-            labelExpand="Expand batch result"
+            labelCollapse="Collapse run result"
+            labelExpand="Expand run result"
             onToggle={() => {
               setIsCollapsed((current) => !current);
             }}

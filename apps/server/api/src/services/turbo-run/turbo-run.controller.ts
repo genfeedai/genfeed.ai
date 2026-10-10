@@ -60,7 +60,7 @@ export class TurboRunController {
 
   @Post()
   @HttpCode(201)
-  @ApiOperation({ summary: 'Create a new batch generation job' })
+  @ApiOperation({ summary: 'Create a new Turbo run job' })
   async createTurboRun(
     @Req() req: Request,
     @Body() dto: CreateTurboRunDto,
@@ -84,7 +84,7 @@ export class TurboRunController {
   @Post('manual-review')
   @HttpCode(201)
   @ApiOperation({
-    summary: 'Create a manual review batch from existing assets',
+    summary: 'Create a manual review run from existing assets',
   })
   async createManualReviewTurboRun(
     @Req() req: Request,
@@ -112,7 +112,7 @@ export class TurboRunController {
 
   @TenantReadPolicy('selected')
   @Get()
-  @ApiOperation({ summary: 'List batches for organization' })
+  @ApiOperation({ summary: 'List runs for organization' })
   @ApiQuery({
     enum: TurboRunStatus,
     enumName: 'TurboRunStatus',
@@ -145,7 +145,7 @@ export class TurboRunController {
 
   @TenantReadPolicy('selected')
   @Get(':id')
-  @ApiOperation({ summary: 'Get a specific batch' })
+  @ApiOperation({ summary: 'Get a specific run' })
   async getTurboRun(
     @Req() req: Request,
     @Param('id') id: string,
@@ -163,7 +163,7 @@ export class TurboRunController {
 
   @Post(':id/process')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Trigger batch processing' })
+  @ApiOperation({ summary: 'Trigger run processing' })
   async processTurboRun(@Param('id') id: string, @CurrentUser() user: User) {
     try {
       const organization = user.organizationId;
@@ -186,7 +186,7 @@ export class TurboRunController {
   @HttpCode(202)
   @UseGuards(TurboRewriteCreditsGuard)
   @ApiOperation({
-    summary: 'Queue a background rewrite of selected batch items',
+    summary: 'Queue a background rewrite of selected Turbo run items',
   })
   async createRewriteJob(
     @Req() req: Request & Pick<CreditsGuardRequest, 'creditsConfig'>,
@@ -201,7 +201,7 @@ export class TurboRunController {
         turboRunId: id,
         credits: {
           amountPerItem: (creditsConfig?.amount ?? 0) / itemCount,
-          description: creditsConfig?.description ?? 'Batch rewrite',
+          description: creditsConfig?.description ?? 'Turbo rewrite',
           source: creditsConfig?.source ?? ActivitySource.POST_ENHANCEMENT,
         },
         itemIds: dto.itemIds,
@@ -218,7 +218,7 @@ export class TurboRunController {
   }
 
   @Get(':id/rewrite-jobs/active')
-  @ApiOperation({ summary: 'Get the queued or running rewrite of a batch' })
+  @ApiOperation({ summary: 'Get the queued or running rewrite of a run' })
   async getActiveRewriteJob(
     @Param('id') id: string,
     @CurrentUser() user: User,
@@ -237,7 +237,7 @@ export class TurboRunController {
   }
 
   @Get(':id/rewrite-jobs/:jobId')
-  @ApiOperation({ summary: 'Get the progress of a batch rewrite' })
+  @ApiOperation({ summary: 'Get the progress of a Turbo rewrite' })
   async getRewriteJob(
     @Param('id') id: string,
     @Param('jobId') jobId: string,
@@ -253,7 +253,7 @@ export class TurboRunController {
   @Post(':id/rewrite-jobs/:jobId/cancel')
   @OrganizationModule('turbo', 'read')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Stop a batch rewrite before its next item' })
+  @ApiOperation({ summary: 'Stop a Turbo rewrite before its next item' })
   async cancelRewriteJob(
     @Param('id') id: string,
     @Param('jobId') jobId: string,
@@ -273,7 +273,7 @@ export class TurboRunController {
   @Post(':id/items/action')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Approve, reject, or request changes on batch items',
+    summary: 'Approve, reject, or request changes on Turbo run items',
   })
   async itemAction(
     @Req() req: Request,
@@ -362,7 +362,7 @@ export class TurboRunController {
 
   @Patch(':id')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Update a batch (e.g. cancel via status)' })
+  @ApiOperation({ summary: 'Update a run (e.g. cancel via status)' })
   async patch(
     @Req() req: Request,
     @Param('id') id: string,

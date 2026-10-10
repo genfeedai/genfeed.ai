@@ -39,7 +39,7 @@ describe('api/turbo-runs', () => {
             platforms: ['twitter', 'linkedin'],
             status: TurboRunStatus.PENDING,
           },
-          id: 'batch-1',
+          id: 'run-1',
           type: 'turbo-run',
         },
       });
@@ -62,13 +62,13 @@ describe('api/turbo-runs', () => {
       const body = mockFetch.mock.calls[0][1].body as Record<string, unknown>;
       expect(body).toHaveProperty('brandId', 'brand-1');
       expect(body).not.toHaveProperty('brand');
-      expect(result.id).toBe('batch-1');
+      expect(result.id).toBe('run-1');
       expect(result.status).toBe(TurboRunStatus.PENDING);
     });
   });
 
   describe('listTurboRuns', () => {
-    it('lists batches without params', async () => {
+    it('lists runs without params', async () => {
       mockFetch.mockResolvedValue({ data: [] });
 
       const result = await listTurboRuns();
@@ -77,7 +77,7 @@ describe('api/turbo-runs', () => {
       expect(result).toEqual([]);
     });
 
-    it('lists batches with status and limit filters', async () => {
+    it('lists runs with status and limit filters', async () => {
       mockFetch.mockResolvedValue({ data: [] });
 
       await listTurboRuns({ limit: 5, status: TurboRunStatus.PENDING });
@@ -89,19 +89,19 @@ describe('api/turbo-runs', () => {
   });
 
   describe('getTurboRun', () => {
-    it('fetches a batch detail by id', async () => {
+    it('fetches a run detail by id', async () => {
       mockFetch.mockResolvedValue({
         data: {
           attributes: { count: 1, platforms: ['twitter'], status: TurboRunStatus.COMPLETED },
-          id: 'batch-9',
+          id: 'run-9',
           type: 'turbo-run',
         },
       });
 
-      const result = await getTurboRun('batch-9');
+      const result = await getTurboRun('run-9');
 
-      expect(mockFetch).toHaveBeenCalledWith('/turbo-runs/batch-9', { method: 'GET' });
-      expect(result.id).toBe('batch-9');
+      expect(mockFetch).toHaveBeenCalledWith('/turbo-runs/run-9', { method: 'GET' });
+      expect(result.id).toBe('run-9');
       expect(result.status).toBe(TurboRunStatus.COMPLETED);
     });
   });
@@ -110,9 +110,9 @@ describe('api/turbo-runs', () => {
     it('posts an approve action with item ids', async () => {
       mockFetch.mockResolvedValue({ data: null });
 
-      await turboRunItemAction('batch-1', { action: 'approve', itemIds: ['item-1', 'item-2'] });
+      await turboRunItemAction('run-1', { action: 'approve', itemIds: ['item-1', 'item-2'] });
 
-      expect(mockFetch).toHaveBeenCalledWith('/turbo-runs/batch-1/items/action', {
+      expect(mockFetch).toHaveBeenCalledWith('/turbo-runs/run-1/items/action', {
         body: { action: 'approve', itemIds: ['item-1', 'item-2'] },
         method: 'POST',
       });
@@ -120,12 +120,12 @@ describe('api/turbo-runs', () => {
   });
 
   describe('cancelTurboRun', () => {
-    it('patches the batch status to CANCELLED', async () => {
+    it('patches the run status to CANCELLED', async () => {
       mockFetch.mockResolvedValue({ data: null });
 
-      await cancelTurboRun('batch-1');
+      await cancelTurboRun('run-1');
 
-      expect(mockFetch).toHaveBeenCalledWith('/turbo-runs/batch-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/turbo-runs/run-1', {
         body: { status: TurboRunStatus.CANCELLED },
         method: 'PATCH',
       });

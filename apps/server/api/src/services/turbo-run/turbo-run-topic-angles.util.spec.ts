@@ -46,7 +46,7 @@ describe('expandTurboRunTopics', () => {
     expect(new Set(topics).size).toBe(5);
   });
 
-  it('uses more templates than a small batch needs', () => {
+  it('uses more templates than a small run needs', () => {
     expect(TURBO_RUN_TOPIC_ANGLE_TEMPLATES.length).toBeGreaterThanOrEqual(20);
   });
 });
@@ -61,7 +61,7 @@ describe('buildTurboRunDiversityContext', () => {
     });
 
     expect(lines[0]).toBe('punchy');
-    expect(lines[1]).toContain('Batch item 3 of 10');
+    expect(lines[1]).toContain('Turbo run item 3 of 10');
     expect(lines[2]).toContain('do not rewrite');
     expect(lines[3]).toBe('1. First draft');
     expect(lines[4]).toBe('2. Second draft');

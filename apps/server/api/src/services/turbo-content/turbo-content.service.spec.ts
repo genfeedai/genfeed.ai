@@ -74,12 +74,12 @@ describe('TurboContentService', () => {
     expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 
-  it('denies a direct batch request before a queue write', async () => {
+  it('denies a direct run request before a queue write', async () => {
     workflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
-      new Error('Batch disabled'),
+      new Error('Turbo run disabled'),
     );
     await expect(service.queueTurboRun(request, 'user-1')).rejects.toThrow(
-      'Batch disabled',
+      'Turbo run disabled',
     );
     expect(workflowRunner.runWithRegisteredWorkflowModule).toHaveBeenCalledWith(
       {

@@ -66,7 +66,7 @@ describe('TurboRunService approval version pins', () => {
     brandId: 'brand-1',
     config: {},
     createdAt: new Date('2026-07-13T10:00:00.000Z'),
-    id: 'batch-1',
+    id: 'run-1',
     isDeleted: false,
     items,
     organizationId: 'org-1',
@@ -207,7 +207,7 @@ describe('TurboRunService approval version pins', () => {
     turboRunDelegate.findFirst.mockResolvedValue(createTurboRunRecord([item]));
 
     const result = await service.approveItems(
-      'batch-1',
+      'run-1',
       ['item-1'],
       'org-1',
       'canonical-user-1',
@@ -219,7 +219,7 @@ describe('TurboRunService approval version pins', () => {
       organizationId: 'org-1',
       postId: 'post-1',
       provenance: {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         reviewItemId: 'item-1',
         surface: 'review-queue',
       },
@@ -270,7 +270,7 @@ describe('TurboRunService approval version pins', () => {
       postLifecycleService.transition.mock.invocationCallOrder[0] ?? 0,
     );
     expect(reviewLocks.run).toHaveBeenCalledWith(
-      ['batch-1'],
+      ['run-1'],
       'org-1',
       expect.any(Function),
     );
@@ -292,7 +292,7 @@ describe('TurboRunService approval version pins', () => {
     );
 
     await service.requestChanges(
-      'batch-1',
+      'run-1',
       ['item-1'],
       'org-1',
       'Use a clearer opening line.',
@@ -315,7 +315,7 @@ describe('TurboRunService approval version pins', () => {
         ],
       },
       where: {
-        id: 'batch-1',
+        id: 'run-1',
         isDeleted: false,
         organizationId: 'org-1',
       },
@@ -345,7 +345,7 @@ describe('TurboRunService approval version pins', () => {
     );
 
     await service.rejectItems(
-      'batch-1',
+      'run-1',
       ['item-1'],
       'org-1',
       'This misses the brief.',
@@ -368,7 +368,7 @@ describe('TurboRunService approval version pins', () => {
         ],
       },
       where: {
-        id: 'batch-1',
+        id: 'run-1',
         isDeleted: false,
         organizationId: 'org-1',
       },
@@ -403,14 +403,14 @@ describe('TurboRunService approval version pins', () => {
     );
 
     await expect(
-      service.approveItems('batch-1', ['item-1'], 'org-1', 'canonical-user-1'),
+      service.approveItems('run-1', ['item-1'], 'org-1', 'canonical-user-1'),
     ).rejects.toThrow('Canonical Post changed.');
 
     expect(postDelegate.updateMany).not.toHaveBeenCalled();
     expect(turboRunDelegate.updateMany).not.toHaveBeenCalled();
   });
 
-  it('rolls back Post reference state when the batch approval write fails', async () => {
+  it('rolls back Post reference state when the run approval write fails', async () => {
     const item = {
       id: 'item-1',
       format: ContentFormat.IMAGE,
@@ -436,8 +436,8 @@ describe('TurboRunService approval version pins', () => {
     };
     const transactionBatch = {
       findFirst: vi.fn().mockResolvedValue(createTurboRunRecord([item])),
-      update: vi.fn().mockRejectedValue(new Error('batch write failed')),
-      updateMany: vi.fn().mockRejectedValue(new Error('batch write failed')),
+      update: vi.fn().mockRejectedValue(new Error('run write failed')),
+      updateMany: vi.fn().mockRejectedValue(new Error('run write failed')),
     };
     const transaction = {
       $queryRaw: vi.fn(),
@@ -456,8 +456,8 @@ describe('TurboRunService approval version pins', () => {
     });
 
     await expect(
-      service.approveItems('batch-1', ['item-1'], 'org-1', 'canonical-user-1'),
-    ).rejects.toThrow('batch write failed');
+      service.approveItems('run-1', ['item-1'], 'org-1', 'canonical-user-1'),
+    ).rejects.toThrow('run write failed');
 
     expect(durableState).toEqual({
       turboRunItems: [item],
@@ -489,7 +489,7 @@ describe('TurboRunService approval version pins', () => {
     postDelegate.updateMany.mockResolvedValueOnce({ count: 0 });
 
     const error = await service
-      .approveItems('batch-1', ['item-1'], 'org-1', 'canonical-user-1')
+      .approveItems('run-1', ['item-1'], 'org-1', 'canonical-user-1')
       .catch((cause: unknown) => cause);
 
     expect(error).toBeInstanceOf(NotFoundException);
@@ -512,7 +512,7 @@ describe('TurboRunService approval version pins', () => {
     );
 
     await service.approveItems(
-      'batch-1',
+      'run-1',
       ['item-1'],
       'org-1',
       'canonical-user-1',
@@ -531,7 +531,7 @@ describe('TurboRunService approval version pins', () => {
         ],
       },
       where: {
-        id: 'batch-1',
+        id: 'run-1',
         isDeleted: false,
         organizationId: 'org-1',
       },
@@ -541,7 +541,7 @@ describe('TurboRunService approval version pins', () => {
     expect(persistedItems[0]).not.toHaveProperty('versionPinId');
   });
 
-  it('hydrates an older batch item with the durable Post review pin', async () => {
+  it('hydrates an older run item with the durable Post review pin', async () => {
     turboRunDelegate.findFirst.mockResolvedValue(
       createTurboRunRecord([
         {
@@ -559,7 +559,7 @@ describe('TurboRunService approval version pins', () => {
       },
     ]);
 
-    const result = await service.getTurboRun('batch-1', 'org-1');
+    const result = await service.getTurboRun('run-1', 'org-1');
 
     expect(result.items[0]).toEqual(
       expect.objectContaining({ versionPinId: 'pin-from-post' }),
@@ -641,7 +641,7 @@ describe('TurboRunService approval version pins', () => {
       },
     ]);
 
-    const result = await service.getTurboRun('batch-1', 'org-1');
+    const result = await service.getTurboRun('run-1', 'org-1');
 
     expect(memberDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

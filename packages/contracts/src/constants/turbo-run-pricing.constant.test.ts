@@ -107,7 +107,7 @@ describe('turbo-run-pricing', () => {
     expect(uiOptions.qualityTier).toBe('balanced');
   });
 
-  it('promotes batch-level media intent to media rates', () => {
+  it('promotes run-level media intent to media rates', () => {
     const captionOnly = resolveTurboRunPricingOptions({
       hasMediaGeneration: false,
     });
@@ -120,7 +120,7 @@ describe('turbo-run-pricing', () => {
     );
   });
 
-  it('bills the shortfall when an async batch produced media', () => {
+  it('bills the shortfall when an async run produced media', () => {
     const options = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
     const items = [
       { format: ContentFormat.IMAGE, hasMedia: true },
@@ -144,7 +144,7 @@ describe('turbo-run-pricing', () => {
     expect(settlement.refundCredits).toBe(0);
   });
 
-  it('refunds the estimate when an async batch landed nothing', () => {
+  it('refunds the estimate when an async run landed nothing', () => {
     const options = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
 
     const settlement = reconcileTurboRunCredits(25, [], options);

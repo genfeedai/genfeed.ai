@@ -39,11 +39,11 @@ interface TurboRunDraft {
 }
 
 /**
- * Host callbacks for batch generation that still depend on orchestrator-owned
+ * Host callbacks for Turbo run that still depend on orchestrator-owned
  * thread title helpers.
  *
  * `maybeUpdateThreadTitle` resolves to the persisted title, or null when the
- * thread had already been renamed and nothing changed. Batch turns do not push
+ * thread had already been renamed and nothing changed. Turbo run turns do not push
  * a live title today (their `agent:done` payload carries no `threadTitle`), so
  * the value is unused here — the shape mirrors the util so the two cannot drift
  * apart again.
@@ -117,7 +117,7 @@ export class AgentOrchestratorTurboRunService {
       toolCallId,
       toolName,
       workEventDetail: `Preparing ${draft.count} post${draft.count === 1 ? '' : 's'} for your review.`,
-      workEventLabel: 'Batch generation',
+      workEventLabel: 'Turbo run',
     });
     const result = await this.executeTurboRunTool(params, toolParams);
 
@@ -164,7 +164,7 @@ export class AgentOrchestratorTurboRunService {
       await this.publishTurboRunFailure(
         params.context,
         params.threadId,
-        result.error ?? 'Batch generation failed',
+        result.error ?? 'Turbo run failed',
       );
       return true;
     }
@@ -207,12 +207,12 @@ export class AgentOrchestratorTurboRunService {
     summary: ToolCallSummary,
   ): Promise<void> {
     const fullContent = result.requiresConfirmation
-      ? 'Review the batch details and approve to start generation.'
+      ? 'Review the run details and approve to start generation.'
       : typeof result.data?.streamedTranscript === 'string'
         ? result.data.streamedTranscript
         : typeof result.data?.message === 'string'
           ? result.data.message
-          : 'Batch generation completed.';
+          : 'Turbo run completed.';
     await host.maybeUpdateThreadTitle({
       context: params.context,
       seedTitle: params.seedTitle,

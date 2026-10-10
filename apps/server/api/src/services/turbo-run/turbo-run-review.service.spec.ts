@@ -53,7 +53,7 @@ describe('TurboRunReviewService.getReviewInboxSummary', () => {
     );
   });
 
-  it('counts and pages from typed turbo_run_items columns, not batch JSON', async () => {
+  it('counts and pages from typed turbo_run_items columns, not run JSON', async () => {
     await service.getReviewInboxSummary('org-1', 'brand-1', 5);
 
     expect(turboRunItem.groupBy).toHaveBeenCalledWith({
@@ -100,7 +100,7 @@ describe('TurboRunReviewService.getReviewInboxSummary', () => {
     ]);
     turboRunItem.findMany.mockResolvedValue([
       {
-        turboRunId: 'batch-new',
+        turboRunId: 'run-new',
         createdAt: new Date('2026-08-12T11:00:00.000Z'),
         data: {
           continuityQa: {
@@ -159,7 +159,7 @@ describe('TurboRunReviewService.cancelTurboRun', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     turboRun.findFirst.mockResolvedValue({
-      id: 'batch-1',
+      id: 'run-1',
       items: [
         { id: 'item-1', status: TurboRunItemStatus.PENDING },
         { id: 'item-2', status: TurboRunItemStatus.COMPLETED },
@@ -210,12 +210,12 @@ describe('TurboRunReviewService.cancelTurboRun', () => {
   });
 
   it('cancels tenant-scoped and marks only pending items skipped', async () => {
-    await service.cancelTurboRun('batch-1', 'org-1');
+    await service.cancelTurboRun('run-1', 'org-1');
 
     expect(turboRun.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          id: 'batch-1',
+          id: 'run-1',
           organizationId: 'org-1',
         }),
       }),
@@ -236,7 +236,7 @@ describe('TurboRunReviewService.cancelTurboRun', () => {
           ],
         }),
         where: expect.objectContaining({
-          id: 'batch-1',
+          id: 'run-1',
           organizationId: 'org-1',
         }),
       }),
@@ -267,7 +267,7 @@ describe('TurboRunReviewService harness review feedback', () => {
 
   const createTurboRunRecord = (items: unknown[]) => ({
     brandId: 'brand-1',
-    id: 'batch-1',
+    id: 'run-1',
     items,
     organizationId: 'org-1',
     status: TurboRunStatus.PENDING,
@@ -318,7 +318,7 @@ describe('TurboRunReviewService harness review feedback', () => {
     );
   });
 
-  it('feeds a rejected item back to the harness profile with the batch brand + item id', async () => {
+  it('feeds a rejected item back to the harness profile with the run brand + item id', async () => {
     turboRun.findFirst.mockResolvedValue(
       createTurboRunRecord([
         {
@@ -331,7 +331,7 @@ describe('TurboRunReviewService harness review feedback', () => {
     );
 
     await service.rejectItems(
-      'batch-1',
+      'run-1',
       ['item-1'],
       'org-1',
       'Too salesy for our voice.',
@@ -364,7 +364,7 @@ describe('TurboRunReviewService harness review feedback', () => {
     );
 
     await service.requestChanges(
-      'batch-1',
+      'run-1',
       ['item-2'],
       'org-1',
       'Needs a more distinctive visual.',
@@ -390,7 +390,7 @@ describe('TurboRunReviewService harness review feedback', () => {
       ]),
     );
 
-    await service.rejectItems('batch-1', ['item-3'], 'org-1');
+    await service.rejectItems('run-1', ['item-3'], 'org-1');
 
     expect(
       harnessReviewFeedbackService.recordReviewDecision,
@@ -449,7 +449,7 @@ describe('TurboRunReviewService harness review feedback', () => {
     );
 
     await expect(
-      bareService.rejectItems('batch-1', ['item-4'], 'org-1'),
+      bareService.rejectItems('run-1', ['item-4'], 'org-1'),
     ).resolves.toBeDefined();
   });
 });
@@ -474,7 +474,7 @@ describe('TurboRunReviewService assignment', () => {
   function createTurboRunRecord() {
     return {
       brandId: 'brand-1',
-      id: 'batch-1',
+      id: 'run-1',
       items: [
         {
           id: 'item-1',
@@ -521,7 +521,7 @@ describe('TurboRunReviewService assignment', () => {
   });
 
   it('assigns a tenant-scoped active member without changing review decision', async () => {
-    await service.assignItem('batch-1', 'item-1', 'user-1', 'org-1');
+    await service.assignItem('run-1', 'item-1', 'user-1', 'org-1');
 
     expect(member.findFirst).toHaveBeenCalledWith({
       select: {
@@ -543,7 +543,7 @@ describe('TurboRunReviewService assignment', () => {
     expect(turboRun.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          id: 'batch-1',
+          id: 'run-1',
           isDeleted: false,
           organizationId: 'org-1',
         }),
@@ -561,7 +561,7 @@ describe('TurboRunReviewService assignment', () => {
           ],
         }),
         where: expect.objectContaining({
-          id: 'batch-1',
+          id: 'run-1',
           organizationId: 'org-1',
         }),
       }),
@@ -592,7 +592,7 @@ describe('TurboRunReviewService assignment', () => {
       ],
     });
 
-    await service.unassignItem('batch-1', 'item-1', 'org-1');
+    await service.unassignItem('run-1', 'item-1', 'org-1');
 
     expect(member.findFirst).not.toHaveBeenCalled();
     expect(turboRun.updateMany).toHaveBeenCalledWith(
@@ -614,7 +614,7 @@ describe('TurboRunReviewService assignment', () => {
     member.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.assignItem('batch-1', 'item-1', 'user-other-org', 'org-1'),
+      service.assignItem('run-1', 'item-1', 'user-other-org', 'org-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(turboRun.updateMany).not.toHaveBeenCalled();
   });
@@ -623,7 +623,7 @@ describe('TurboRunReviewService assignment', () => {
     member.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.assignItem('batch-1', 'item-1', 'user-inactive', 'org-1'),
+      service.assignItem('run-1', 'item-1', 'user-inactive', 'org-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -634,14 +634,14 @@ describe('TurboRunReviewService assignment', () => {
     });
 
     await expect(
-      service.assignItem('batch-1', 'item-1', 'user-deleted', 'org-1'),
+      service.assignItem('run-1', 'item-1', 'user-deleted', 'org-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(turboRun.updateMany).not.toHaveBeenCalled();
   });
 
-  it('fails closed when the item is missing from the tenant-scoped batch', async () => {
+  it('fails closed when the item is missing from the tenant-scoped run', async () => {
     await expect(
-      service.assignItem('batch-1', 'missing-item', 'user-1', 'org-1'),
+      service.assignItem('run-1', 'missing-item', 'user-1', 'org-1'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
@@ -673,7 +673,7 @@ describe('TurboRunReviewService destination posts', () => {
 
   const reviewedTurboRun = (item: Record<string, unknown>) => ({
     brandId: 'brand-1',
-    id: 'batch-1',
+    id: 'run-1',
     items: [
       {
         caption: 'Caption',
@@ -730,7 +730,7 @@ describe('TurboRunReviewService destination posts', () => {
     );
 
     await service.requestChanges(
-      'batch-1',
+      'run-1',
       ['item-1'],
       'org-1',
       'Fix the hook',
@@ -759,7 +759,7 @@ describe('TurboRunReviewService destination posts', () => {
       reviewedTurboRun({ destinationPostIds: ['dest-draft'] }),
     );
 
-    await service.rejectItems('batch-1', ['item-1'], 'org-1', 'No', 'user-1');
+    await service.rejectItems('run-1', ['item-1'], 'org-1', 'No', 'user-1');
 
     expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -777,7 +777,7 @@ describe('TurboRunReviewService destination posts', () => {
     );
 
     await service.linkDestinationPosts(
-      'batch-1',
+      'run-1',
       'item-1',
       ['dest-draft', 'dest-new', 'post-1'],
       'org-1',

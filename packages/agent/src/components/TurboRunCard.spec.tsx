@@ -13,9 +13,9 @@ describe('TurboRunCard', () => {
       <TurboRunCard
         action={{
           turboRunCount: 20,
-          id: 'batch-form-1',
+          id: 'run-form-1',
           platforms: ['twitter'],
-          title: 'Batch generation',
+          title: 'Turbo run',
           type: 'turbo_run_card',
         }}
       />,
@@ -42,9 +42,9 @@ describe('TurboRunCard', () => {
         action={{
           turboRunCount: 20,
           creditEstimate: 12,
-          id: 'batch-form-2',
+          id: 'run-form-2',
           platforms: ['twitter'],
-          title: 'Batch generation',
+          title: 'Turbo run',
           type: 'turbo_run_card',
         }}
       />,
@@ -78,9 +78,9 @@ describe('TurboRunCard', () => {
       <TurboRunCard
         action={{
           turboRunCount: 5,
-          id: 'batch-form-3',
+          id: 'run-form-3',
           platforms: ['twitter'],
-          title: 'Batch generation',
+          title: 'Turbo run',
           type: 'turbo_run_card',
         }}
         onGenerate={onGenerate}
@@ -102,9 +102,9 @@ describe('TurboRunCard', () => {
         action={{
           turboRunCount: 10,
           creditEstimate: 99,
-          id: 'batch-form-4',
+          id: 'run-form-4',
           platforms: ['twitter'],
-          title: 'Batch generation',
+          title: 'Turbo run',
           type: 'turbo_run_card',
         }}
       />,

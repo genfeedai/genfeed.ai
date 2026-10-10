@@ -937,8 +937,8 @@
           "label": "Clips",
           "description": "Turn long videos and audio into clips."
         },
-        "batch": {
-          "label": "Batch",
+        "turbo": {
+          "label": "Turbo",
           "description": "Create content in bulk."
         },
         "editor": {
@@ -2288,8 +2288,8 @@
     "generate": "Generate draft",
     "error": "Unable to generate newsletter"
   },
-  "batchRewrite": {
-    "action": "Rewrite batch",
+  "turboRewrite": {
+    "action": "Rewrite selected",
     "progress": "Rewriting…",
     "error": "Unable to start the rewrite. Please try again.",
     "queued": "Rewrite queued — you can keep reviewing.",

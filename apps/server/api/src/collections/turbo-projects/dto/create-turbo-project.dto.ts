@@ -14,7 +14,7 @@ export class CreateTurboProjectDto {
   @IsEnum(TurboProjectKind)
   readonly kind!: TurboProjectKind;
 
-  @ApiProperty({ description: 'Brand that owns the batch' })
+  @ApiProperty({ description: 'Brand that owns the project' })
   @IsEntityId()
   readonly brandId!: string;
 
@@ -25,7 +25,7 @@ export class CreateTurboProjectDto {
   @MaxLength(120)
   readonly name?: string;
 
-  @ApiPropertyOptional({ description: 'Saved workflow for workflow batches' })
+  @ApiPropertyOptional({ description: 'Saved workflow for workflow projects' })
   @IsOptional()
   @IsEntityId()
   readonly workflowId?: string;

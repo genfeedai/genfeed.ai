@@ -11,9 +11,9 @@ import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-/** The identity a queued batch carries from the agent thread into the worker. */
+/** The identity a queued run carries from the agent thread into the worker. */
 const REQUEST = {
-  turboRunId: 'batch-1',
+  turboRunId: 'run-1',
   organizationId: 'organization-1',
   runId: 'run-1',
   threadId: 'thread-1',
@@ -84,7 +84,7 @@ describe('TurboRunWorkflowService', () => {
     return handler({ input: { request: REQUEST } });
   };
 
-  it('registers every batch action alongside the batch workflow graph', () => {
+  it('registers every run action alongside the run workflow graph', () => {
     expect([...actions.keys()]).toEqual(
       expect.arrayContaining([
         TURBO_RUN_ACTION_IDS.MARK_QUEUED,
@@ -95,7 +95,7 @@ describe('TurboRunWorkflowService', () => {
     expect(registeredWorkflowIds).toContain(TURBO_RUN_WORKFLOW_ID);
   });
 
-  it('queues the batch under a deterministic job id so a retry replaces it', async () => {
+  it('queues the run under a deterministic job id so a retry replaces it', async () => {
     await service.queueTurboRun(REQUEST, SystemWorkflowDispatchClass.INTERACTIVE);
 
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
@@ -103,7 +103,7 @@ describe('TurboRunWorkflowService', () => {
         canonicalId: TURBO_RUN_WORKFLOW_ID,
         inputValues: {
           request: expect.objectContaining({
-            turboRunId: 'batch-1',
+            turboRunId: 'run-1',
             threadId: 'thread-1',
             userId: 'user-1',
           }),
@@ -112,7 +112,7 @@ describe('TurboRunWorkflowService', () => {
         source: 'turbo-run',
         userId: 'user-1',
       }),
-      turboRunJobId('batch-1'),
+      turboRunJobId('run-1'),
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
@@ -143,14 +143,14 @@ describe('TurboRunWorkflowService', () => {
         }),
       },
       where: expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         isDeleted: false,
         organizationId: 'organization-1',
       }),
     });
   });
 
-  it('leaves a batch outside the organization untouched', async () => {
+  it('leaves a run outside the organization untouched', async () => {
     prisma.turboRun.findFirst.mockResolvedValue(null);
 
     await expect(run(TURBO_RUN_ACTION_IDS.MARK_QUEUED)).resolves.toEqual(
@@ -166,19 +166,19 @@ describe('TurboRunWorkflowService', () => {
     });
 
     expect(streams.buildProcessOptions).toHaveBeenCalledWith({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       runId: 'run-1',
       threadId: 'thread-1',
       userId: 'user-1',
     });
     expect(turboRuns.processTurboRun).toHaveBeenCalledWith(
-      'batch-1',
+      'run-1',
       'organization-1',
       streamOptions,
     );
   });
 
-  it('processes silently when the batch has no thread to stream into', async () => {
+  it('processes silently when the run has no thread to stream into', async () => {
     const handler = actions.get(TURBO_RUN_ACTION_IDS.PROCESS);
     await handler?.({
       input: { request: { ...REQUEST, threadId: undefined } },
@@ -186,15 +186,15 @@ describe('TurboRunWorkflowService', () => {
 
     expect(streams.buildProcessOptions).not.toHaveBeenCalled();
     expect(turboRuns.processTurboRun).toHaveBeenCalledWith(
-      'batch-1',
+      'run-1',
       'organization-1',
       undefined,
     );
   });
 
-  it('yields to the worker that already owns the batch instead of failing the run', async () => {
+  it('yields to the worker that already owns the run instead of failing the run', async () => {
     turboRuns.processTurboRun.mockRejectedValue(
-      new TurboRunAlreadyOwnedException('batch-1', 'PROCESSING'),
+      new TurboRunAlreadyOwnedException('run-1', 'PROCESSING'),
     );
 
     await expect(run(TURBO_RUN_ACTION_IDS.PROCESS)).resolves.toEqual({
@@ -216,13 +216,13 @@ describe('TurboRunWorkflowService', () => {
     });
 
     expect(credits.settleTurboRunCredits).toHaveBeenCalledWith({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       organizationId: 'organization-1',
       userId: 'user-1',
     });
   });
 
-  it('reports an unsettled batch instead of throwing away a finished run', async () => {
+  it('reports an unsettled run instead of throwing away a finished run', async () => {
     credits.settleTurboRunCredits.mockRejectedValue(new Error('ledger offline'));
 
     await expect(run(TURBO_RUN_ACTION_IDS.SETTLE)).resolves.toEqual({

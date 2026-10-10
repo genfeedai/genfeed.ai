@@ -47,11 +47,11 @@ const items = [
 ];
 const data: TurboRewriteJobData = {
   activityId: 'activity-1',
-  turboRunId: 'batch-1',
+  turboRunId: 'run-1',
   brandId: 'brand-1',
   credits: {
     amountPerItem: 2,
-    description: 'Batch rewrite (text model)',
+    description: 'Turbo rewrite (text model)',
     source: ActivitySource.POST_ENHANCEMENT,
   },
   itemIds: ['item-1', 'item-2'],
@@ -76,7 +76,7 @@ function setup(progress: unknown = 0) {
   const prisma = {
     turboRun: {
       findFirst: vi.fn().mockResolvedValue({
-        id: 'batch-1',
+        id: 'run-1',
         brandId: 'brand-1',
         items,
         updatedAt,
@@ -161,7 +161,7 @@ describe('TurboRunRewriteRunnerService', () => {
 
     expect(prisma.turboRun.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'batch-1', organizationId: 'org-1', isDeleted: false },
+        where: { id: 'run-1', organizationId: 'org-1', isDeleted: false },
       }),
     );
     expect(prisma.post.findFirst).toHaveBeenCalledWith({
@@ -185,7 +185,7 @@ describe('TurboRunRewriteRunnerService', () => {
     expect(generation.enhanceDescription).toHaveBeenCalledTimes(2);
     expect(review.applyRewrites).toHaveBeenNthCalledWith(
       1,
-      'batch-1',
+      'run-1',
       'org-1',
       'user-1',
       new Map([['item-1', 'Rewritten Draft post-1']]),
@@ -196,7 +196,7 @@ describe('TurboRunRewriteRunnerService', () => {
     expect(deductions.queueDeduction).toHaveBeenCalledWith({
       amount: 2,
       brandId: 'brand-1',
-      description: 'Batch rewrite (text model)',
+      description: 'Turbo rewrite (text model)',
       idempotencyKey: 'turbo-rewrite-job-1-item-2',
       organizationId: 'org-1',
       reservationId: 'reservation:turbo-rewrite:job-1:item-2',
@@ -380,7 +380,7 @@ describe('TurboRunRewriteRunnerService', () => {
 
     function markItemOne(rewriteJobId: string) {
       return {
-        id: 'batch-1',
+        id: 'run-1',
         brandId: 'brand-1',
         items: [
           {

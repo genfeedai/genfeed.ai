@@ -62,7 +62,7 @@ export function TurboRunCard({
   }, [count, selectedPlatforms, onGenerate]);
 
   // Same resolver the server charge uses, so the number shown here and the
-  // amount billed cannot drift. The batch pipeline is caption-first, so media
+  // amount billed cannot drift. The run pipeline is caption-first, so media
   // intent is false and the format mix drives image vs video/reel packaging.
   const pricingOptions = useMemo(
     () => resolveTurboRunPricingOptions({ hasMediaGeneration: false }),
@@ -134,7 +134,7 @@ export function TurboRunCard({
       <div className="mb-3 flex min-w-0 items-center gap-2">
         <Layers className="size-5 shrink-0 text-cyan-500" />
         <h3 className="min-w-0 truncate text-sm font-semibold">
-          {action.title || 'Batch Generation'}
+          {action.title || 'Turbo run Generation'}
         </h3>
       </div>
 
@@ -148,13 +148,13 @@ export function TurboRunCard({
           forcing the conversation track past the viewport). */}
       <div className="mb-3 min-w-0 space-y-1.5">
         <label
-          htmlFor="batch-count"
+          htmlFor="run-count"
           className="block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
         >
           Number of items
         </label>
         <Input
-          id="batch-count"
+          id="run-count"
           type="number"
           min={1}
           max={50}

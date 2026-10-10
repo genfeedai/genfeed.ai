@@ -36,7 +36,7 @@ import {
 import type { Queue } from 'bullmq';
 
 /**
- * Admits a Review batch rewrite and hands it to the `turbo-rewrite` queue
+ * Admits a Review run rewrite and hands it to the `turbo-rewrite` queue
  * (#5365). The request returns a job id immediately; the workers app runs the
  * rewrites (`TurboRunRewriteRunnerService`) and reports progress over
  * the user's websocket room.
@@ -67,7 +67,7 @@ export class TurboRunRewriteService {
     );
     if (await this.findActiveJob(turboRunId, organizationId)) {
       throw new ConflictException(
-        'A rewrite is already running for this batch',
+        'A rewrite is already running for this run',
       );
     }
 
@@ -103,7 +103,7 @@ export class TurboRunRewriteService {
         source: ActivitySource.POST_ENHANCEMENT,
       });
       throw new ConflictException(
-        'A rewrite is already running for this batch',
+        'A rewrite is already running for this run',
       );
     }
 
@@ -138,7 +138,7 @@ export class TurboRunRewriteService {
     );
   }
 
-  /** The batch's queued or running rewrite, so a reloaded page can resume it. */
+  /** The run's queued or running rewrite, so a reloaded page can resume it. */
   async getActiveJob(
     turboRunId: string,
     organizationId: string,
@@ -189,7 +189,7 @@ export class TurboRunRewriteService {
       job.data.organizationId !== organizationId ||
       job.data.turboRunId !== turboRunId
     ) {
-      throw new NotFoundException('Batch rewrite', jobId);
+      throw new NotFoundException('Turbo rewrite', jobId);
     }
     return job;
   }
@@ -205,10 +205,10 @@ export class TurboRunRewriteService {
     });
     if (!turboRun) throw new NotFoundException('TurboRun', turboRunId);
     // Posts always belong to a brand, and the rewrite uses its voice: a
-    // brandless batch has nothing it could rewrite.
+    // brandless run has nothing it could rewrite.
     const brandId = turboRun.brandId;
     if (!brandId) {
-      throw new BadRequestException('Rewrite needs a brand-scoped batch');
+      throw new BadRequestException('Rewrite needs a brand-scoped run');
     }
     const selectedIds = new Set(itemIds);
     const items = resolveTurboRunItems(turboRun).filter((item) =>
@@ -219,7 +219,7 @@ export class TurboRunRewriteService {
       items.length !== selectedIds.size ||
       items.some((item) => item.status !== TurboRunItemStatus.COMPLETED)
     ) {
-      throw new BadRequestException('Select completed items from this batch');
+      throw new BadRequestException('Select completed items from this run');
     }
     const postIds = items.flatMap((item) => (item.postId ? [item.postId] : []));
     const posts = await this.prisma.post.findMany({

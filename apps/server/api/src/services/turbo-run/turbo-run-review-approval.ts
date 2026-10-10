@@ -146,12 +146,12 @@ export async function pinApprovedDrafts(input: {
 }
 
 /**
- * Transition one approved review item's post to SCHEDULED. Approving a batch
+ * Transition one approved review item's post to SCHEDULED. Approving a run
  * approves every selected item in one call, so one item's content failing
  * the channel contract (#5193) — media the chosen platform can't take, a
  * caption that no longer fits — must not undo the approval decision recorded
  * for the rest: this fails just that item's post (to FAILED) instead of the
- * whole batch.
+ * whole run.
  */
 export async function scheduleApprovedReviewPost(input: {
   turboRunId: string;

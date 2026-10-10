@@ -76,7 +76,7 @@ type ScheduleEntry = {
 type Destination = { credentialId: string; platform: Platform };
 
 /**
- * Schedules a batch project's approved items through the shared post
+ * Schedules a Turbo project's approved items through the shared post
  * scheduling path (#5463), once per destination, holding the project lock so
  * concurrent requests cannot double-schedule.
  *
@@ -119,7 +119,7 @@ export class TurboProjectSchedulingService {
       include: { items: { where: scopedWhere(scope.organizationId) } },
       where: scopedWhere(scope.organizationId, { id }),
     });
-    if (!project) throw new NotFoundException('Batch project', id);
+    if (!project) throw new NotFoundException('Turbo project', id);
     const turboRunIds = [
       project.reviewTurboRunId,
       ...project.items.map((item) => item.reviewTurboRunId),
@@ -168,7 +168,7 @@ export class TurboProjectSchedulingService {
     });
     await this.reconcileService.refreshProjectStatus(id, scope.organizationId);
 
-    this.logger.log('Batch project scheduled', {
+    this.logger.log('Turbo project scheduled', {
       turboProjectId: id,
       context: this.context,
       failedCount,
@@ -193,7 +193,7 @@ export class TurboProjectSchedulingService {
       where: scopedWhere(scope.organizationId, { id }),
     });
     if (!project) {
-      throw new NotFoundException('Batch project', id);
+      throw new NotFoundException('Turbo project', id);
     }
     const candidates = project.items.filter(
       (item) =>
@@ -456,7 +456,7 @@ export class TurboProjectSchedulingService {
       );
       return new Set(result.posts.map((post) => String(post.id)));
     } catch (error: unknown) {
-      this.logger.error('Batch project destination failed to schedule', error, {
+      this.logger.error('Turbo project destination failed to schedule', error, {
         turboProjectId: run.project.id,
         context: this.context,
         credentialId: destination.credentialId,

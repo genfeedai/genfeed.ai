@@ -5,7 +5,7 @@ import {
 } from '@api/collections/turbo-projects/services/turbo-project-workflow-output.util';
 import { buildForEachChildIdempotencyKey } from '@api/collections/workflows/system-workflow-for-each.util';
 
-describe('batch project workflow output', () => {
+describe('Turbo project workflow output', () => {
   it('prefers the last node and a nested media payload', () => {
     expect(
       readWorkflowOutputIngredientIds([
@@ -52,7 +52,7 @@ describe('batch project workflow output', () => {
     ).toEqual([]);
   });
 
-  it('reads the pinned child version from batch metadata, then inputs', () => {
+  it('reads the pinned child version from project metadata, then inputs', () => {
     expect(
       readBatchChildWorkflowVersionId({
         metadata: { batchExecution: { childWorkflowVersionId: 'version-1' } },

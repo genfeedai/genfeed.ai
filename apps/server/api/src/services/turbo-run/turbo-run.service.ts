@@ -41,7 +41,7 @@ export class TurboRunService {
     );
   }
 
-  @HandleErrors('create batch', 'turbo-run')
+  @HandleErrors('create run', 'turbo-run')
   createTurboRun(
     dto: CreateTurboRunDto,
     userId: string,
@@ -58,7 +58,7 @@ export class TurboRunService {
     );
   }
 
-  @HandleErrors('create manual review batch', 'turbo-run')
+  @HandleErrors('create manual review run', 'turbo-run')
   createManualReviewTurboRun(
     dto: CreateManualReviewTurboRunDto,
     userId: string,
@@ -97,7 +97,7 @@ export class TurboRunService {
     return this.reviewService.getReviewInboxSummary(orgId, brandId, limit);
   }
 
-  @HandleErrors('process batch', 'turbo-run')
+  @HandleErrors('process run', 'turbo-run')
   processTurboRun(
     turboRunId: string,
     orgId: string,
@@ -106,12 +106,12 @@ export class TurboRunService {
     return this.processingService.processTurboRun(turboRunId, orgId, options);
   }
 
-  @HandleErrors('get batch', 'turbo-run')
+  @HandleErrors('get run', 'turbo-run')
   getTurboRun(turboRunId: string, orgId: string): Promise<ITurboRunSummary> {
     return this.reviewService.getTurboRun(turboRunId, orgId);
   }
 
-  @HandleErrors('get batches', 'turbo-run')
+  @HandleErrors('get runs', 'turbo-run')
   getTurboRuns(
     orgId: string,
     query?: { status?: TurboRunStatus; limit?: number; offset?: number },
@@ -201,12 +201,12 @@ export class TurboRunService {
     );
   }
 
-  @HandleErrors('cancel batch', 'turbo-run')
+  @HandleErrors('cancel run', 'turbo-run')
   cancelTurboRun(turboRunId: string, orgId: string): Promise<ITurboRunSummary> {
     return this.reviewService.cancelTurboRun(turboRunId, orgId);
   }
 
-  @HandleErrors('update batch', 'turbo-run')
+  @HandleErrors('update run', 'turbo-run')
   updateTurboRun(
     turboRunId: string,
     dto: UpdateTurboRunDto,

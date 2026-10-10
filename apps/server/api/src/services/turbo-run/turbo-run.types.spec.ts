@@ -118,7 +118,7 @@ describe('resolveTurboRunItems reader ratchet', () => {
     expect(items[0]).not.toHaveProperty('assignee.email');
   });
 
-  it('falls back to Batch.items JSON when typed rows are absent', () => {
+  it('falls back to Turbo run.items JSON when typed rows are absent', () => {
     const items = resolveTurboRunItems({
       items: [{ id: 'from-json', reviewDecision: 'APPROVED' }],
     });

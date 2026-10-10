@@ -12,7 +12,7 @@ import {
   Min,
 } from 'class-validator';
 
-/** Canonical set of formats an idea batch can fan generation across. */
+/** Canonical set of formats an idea project can fan generation across. */
 export const TURBO_IDEA_FORMATS: readonly TurboIdeaFormat[] = [
   'image',
   'video',
@@ -20,7 +20,7 @@ export const TURBO_IDEA_FORMATS: readonly TurboIdeaFormat[] = [
 ] as const;
 
 /**
- * Idea-count bounds for an idea batch. These mirror the UI stepper limits in
+ * Idea-count bounds for an idea project. These mirror the UI stepper limits in
  * `TurboIdeasEditor` (the only consumer of this endpoint) so the server
  * rejects counts the UI can never produce, instead of silently accepting 1–12.
  */
@@ -32,7 +32,7 @@ export class GenerateTurboIdeasDto {
   @ArrayMinSize(1)
   @IsIn([...TURBO_IDEA_FORMATS], { each: true })
   @ApiProperty({
-    description: 'Content formats to distribute the idea batch across',
+    description: 'Content formats to distribute the idea project across',
     enum: TURBO_IDEA_FORMATS,
     isArray: true,
   })
@@ -51,7 +51,7 @@ export class GenerateTurboIdeasDto {
   @IsOptional()
   @MaxLength(300)
   @ApiPropertyOptional({
-    description: 'Optional creative angle or theme to steer the batch',
+    description: 'Optional creative angle or theme to steer the project',
     example: 'Black Friday launch',
   })
   readonly angle?: string;

@@ -52,7 +52,7 @@ describe('TurboRunsService', () => {
     service = new TurboRunsService('test-token');
   });
 
-  it('deserializes JSON:API batch collections', async () => {
+  it('deserializes JSON:API run collections', async () => {
     mockGet.mockResolvedValue({
       data: {
         data: [{ attributes: { status: 'completed', totalCount: 3 }, id: '1' }],
@@ -64,18 +64,18 @@ describe('TurboRunsService', () => {
     ]);
   });
 
-  it('deserializes JSON:API batch resources', async () => {
+  it('deserializes JSON:API run resources', async () => {
     mockGet.mockResolvedValue({
       data: {
         data: {
           attributes: { status: 'completed', totalCount: 3 },
-          id: 'batch-1',
+          id: 'run-1',
         },
       },
     });
 
-    await expect(service.getTurboRun('batch-1')).resolves.toEqual({
-      id: 'batch-1',
+    await expect(service.getTurboRun('run-1')).resolves.toEqual({
+      id: 'run-1',
       status: 'completed',
       totalCount: 3,
     });
@@ -86,39 +86,39 @@ describe('TurboRunsService', () => {
       data: {
         data: {
           attributes: { status: 'PARTIAL' },
-          id: 'batch-1',
+          id: 'run-1',
         },
       },
     });
 
     await expect(
-      service.itemAction('batch-1', {
+      service.itemAction('run-1', {
         action: 'approve',
         itemIds: ['item-1'],
       }),
     ).resolves.toEqual({
-      id: 'batch-1',
+      id: 'run-1',
       status: 'PARTIAL',
     });
   });
 
   it('queues a rewrite job and returns without waiting for the rewrite', async () => {
-    const job = { id: 'job-1', turboRunId: 'batch-1', status: 'queued' };
+    const job = { id: 'job-1', turboRunId: 'run-1', status: 'queued' };
     mockPost.mockResolvedValue({ data: job });
 
     await expect(
-      service.createRewriteJob('batch-1', ['item-1']),
+      service.createRewriteJob('run-1', ['item-1']),
     ).resolves.toEqual(job);
-    expect(mockPost).toHaveBeenCalledWith('/batch-1/rewrite-jobs', {
+    expect(mockPost).toHaveBeenCalledWith('/run-1/rewrite-jobs', {
       itemIds: ['item-1'],
     });
   });
 
-  it('reads the active rewrite job of a batch', async () => {
+  it('reads the active rewrite job of a run', async () => {
     mockGet.mockResolvedValue({ data: { job: null } });
 
-    await expect(service.getActiveRewriteJob('batch-1')).resolves.toBeNull();
-    expect(mockGet).toHaveBeenCalledWith('/batch-1/rewrite-jobs/active', {
+    await expect(service.getActiveRewriteJob('run-1')).resolves.toBeNull();
+    expect(mockGet).toHaveBeenCalledWith('/run-1/rewrite-jobs/active', {
       signal: undefined,
     });
   });
@@ -128,29 +128,29 @@ describe('TurboRunsService', () => {
       data: { id: 'job-1', isCancelRequested: true },
     });
 
-    await expect(service.cancelRewriteJob('batch-1', 'job-1')).resolves.toEqual(
+    await expect(service.cancelRewriteJob('run-1', 'job-1')).resolves.toEqual(
       { id: 'job-1', isCancelRequested: true },
     );
-    expect(mockPost).toHaveBeenCalledWith('/batch-1/rewrite-jobs/job-1/cancel');
+    expect(mockPost).toHaveBeenCalledWith('/run-1/rewrite-jobs/job-1/cancel');
   });
 
-  it('passes feedback through batch item actions', async () => {
+  it('passes feedback through run item actions', async () => {
     mockPost.mockResolvedValue({
       data: {
         data: {
           attributes: { status: 'completed' },
-          id: 'batch-1',
+          id: 'run-1',
         },
       },
     });
 
-    await service.itemAction('batch-1', {
+    await service.itemAction('run-1', {
       action: 'request_changes',
       feedback: 'Needs a clearer CTA.',
       itemIds: ['item-1'],
     });
 
-    expect(mockPost).toHaveBeenCalledWith('/batch-1/items/action', {
+    expect(mockPost).toHaveBeenCalledWith('/run-1/items/action', {
       action: 'request_changes',
       feedback: 'Needs a clearer CTA.',
       itemIds: ['item-1'],
@@ -162,17 +162,17 @@ describe('TurboRunsService', () => {
       data: {
         data: {
           attributes: { status: 'completed' },
-          id: 'batch-1',
+          id: 'run-1',
         },
       },
     });
 
-    await service.assignItem('batch-1', 'item-1', 'user-1');
-    expect(mockPost).toHaveBeenCalledWith('/batch-1/items/item-1/assign', {
+    await service.assignItem('run-1', 'item-1', 'user-1');
+    expect(mockPost).toHaveBeenCalledWith('/run-1/items/item-1/assign', {
       assigneeId: 'user-1',
     });
 
-    await service.unassignItem('batch-1', 'item-1');
-    expect(mockPost).toHaveBeenCalledWith('/batch-1/items/item-1/unassign');
+    await service.unassignItem('run-1', 'item-1');
+    expect(mockPost).toHaveBeenCalledWith('/run-1/items/item-1/unassign');
   });
 });

@@ -1,7 +1,7 @@
 import { AgentOrchestratorTurboRunService } from '@api/services/agent-orchestrator/agent-orchestrator-turbo-run.service';
 import { describe, expect, it, vi } from 'vitest';
 
-describe('batch approval turn', () => {
+describe('run approval turn', () => {
   it.each([undefined, true])(
     'background user turns retain approval capability %s and return a pending card',
     async (hostSupportsApproval) => {
@@ -69,7 +69,7 @@ describe('batch approval turn', () => {
       );
       expect(messages.addMessage).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: 'Review the batch details and approve to start generation.',
+          content: 'Review the run details and approve to start generation.',
           metadata: expect.objectContaining({
             uiActions: [card],
             reviewRequired: true,
@@ -78,7 +78,7 @@ describe('batch approval turn', () => {
       );
       expect(stream.publishStreamDoneOnly).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: 'Review the batch details and approve to start generation.',
+          content: 'Review the run details and approve to start generation.',
           metadata: expect.objectContaining({ uiActions: [card] }),
         }),
       );

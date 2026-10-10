@@ -1,7 +1,7 @@
 import { buildForEachChildIdempotencyKey } from '@api/collections/workflows/system-workflow-for-each.util';
 import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 
-/** Node id of the for-each step in the hidden workflow-batch parent graph. */
+/** Node id of the for-each step in the hidden workflow-project parent graph. */
 export const BATCH_WORKFLOW_FOR_EACH_NODE_ID = 'execute-items';
 
 const OUTPUT_MEDIA_KEYS = ['video', 'image'] as const;
@@ -62,7 +62,7 @@ export function readWorkflowOutputIngredientIds(
   return ids;
 }
 
-/** The version-pinned child workflow the batch parent fans out to. */
+/** The version-pinned child workflow the project parent fans out to. */
 export function readBatchChildWorkflowVersionId(
   parentResult: unknown,
 ): string | undefined {
@@ -75,7 +75,7 @@ export function readBatchChildWorkflowVersionId(
   );
 }
 
-/** Idempotency key of the child run for one item of a workflow batch. */
+/** Idempotency key of the child run for one item of a workflow project. */
 export function batchChildExecutionKey(input: {
   childWorkflowVersionId: string;
   index: number;

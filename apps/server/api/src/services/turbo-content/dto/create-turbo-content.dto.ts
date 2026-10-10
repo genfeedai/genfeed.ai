@@ -11,7 +11,7 @@ import {
 
 export class CreateTurboContentDto {
   @ApiProperty({
-    description: 'Content skill slug to execute for each batch item',
+    description: 'Content skill slug to execute for each run item',
     example: 'content-writing',
   })
   @IsString()

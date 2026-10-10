@@ -48,7 +48,7 @@ describe('TurboRunCreationService manual review Post linking', () => {
     prisma.post.updateMany.mockResolvedValue({ count: 1 });
     prisma.turboRun.create.mockImplementation(({ data }) => ({
       ...data,
-      id: 'batch-1',
+      id: 'run-1',
     }));
     summaryService.toTurboRunSummary.mockImplementation((turboRun) => turboRun);
   });
@@ -71,7 +71,7 @@ describe('TurboRunCreationService manual review Post linking', () => {
     );
     expect(prisma.post.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ reviewTurboRunId: 'batch-1' }),
+        data: expect.objectContaining({ reviewTurboRunId: 'run-1' }),
         where: expect.objectContaining({
           brandId: 'brand-1',
           id: 'post-1',
@@ -79,7 +79,7 @@ describe('TurboRunCreationService manual review Post linking', () => {
         }),
       }),
     );
-    expect(result).toMatchObject({ id: 'batch-1' });
+    expect(result).toMatchObject({ id: 'run-1' });
   });
 
   it('restores a tombstoned Post that owns the tenant idempotency key', async () => {
@@ -133,17 +133,17 @@ describe('TurboRunCreationService manual review Post linking', () => {
   });
 
   it('never compensates by deleting an existing linked Post', async () => {
-    prisma.turboRun.create.mockRejectedValue(new Error('batch write failed'));
+    prisma.turboRun.create.mockRejectedValue(new Error('run write failed'));
 
     await expect(
       service.createManualReviewTurboRun(dto, 'user-1', 'org-1'),
-    ).rejects.toThrow('batch write failed');
+    ).rejects.toThrow('run write failed');
     expect(prisma.post.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({ data: { isDeleted: true } }),
     );
   });
 
-  it('clears partial review links when batch linking fails', async () => {
+  it('clears partial review links when run linking fails', async () => {
     prisma.post.updateMany
       .mockResolvedValueOnce({ count: 0 })
       .mockResolvedValueOnce({ count: 1 });
@@ -156,7 +156,7 @@ describe('TurboRunCreationService manual review Post linking', () => {
       data: { reviewTurboRunId: null, reviewItemId: null },
       where: expect.objectContaining({
         organizationId: 'org-1',
-        reviewTurboRunId: 'batch-1',
+        reviewTurboRunId: 'run-1',
       }),
     });
   });
@@ -204,7 +204,7 @@ describe('TurboRunCreationService platform normalize (#2696)', () => {
     brandsService.findOne.mockResolvedValue({ id: 'brand-1' });
     prisma.turboRun.create.mockImplementation(({ data }) => ({
       ...data,
-      id: 'batch-1',
+      id: 'run-1',
     }));
     summaryService.toTurboRunSummary.mockImplementation((turboRun) => turboRun);
   });
@@ -230,7 +230,7 @@ describe('TurboRunCreationService platform normalize (#2696)', () => {
     );
   });
 
-  it('rejects an empty platforms list before creating a batch', async () => {
+  it('rejects an empty platforms list before creating a run', async () => {
     await expect(
       service.createTurboRun({ ...baseDto, platforms: [] }, 'user-1', 'org-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -298,14 +298,14 @@ describe('TurboRunCreationService strategy attribution', () => {
       }),
     );
   });
-  it('rejects foreign/deleted/wrong-brand strategy before creating a batch', async () => {
+  it('rejects foreign/deleted/wrong-brand strategy before creating a run', async () => {
     const { prisma, service } = setup(false);
     await expect(
       service.createTurboRun(dto, 'owner', 'org', undefined, 'strategy'),
     ).rejects.toThrow();
     expect(prisma.turboRun.create).not.toHaveBeenCalled();
   });
-  it('keeps ordinary batches unattributed', async () => {
+  it('keeps ordinary runs unattributed', async () => {
     const { prisma, service } = setup(false);
     await service.createTurboRun(dto, 'owner', 'org');
     expect(prisma.agentStrategy.findFirst).not.toHaveBeenCalled();
@@ -353,7 +353,7 @@ describe('TurboRunCreationService.appendManualReviewItems', () => {
   const turboRunRow = {
     brandId: 'brand-1',
     config: { completedCount: 1, source: 'manual', totalCount: 1 },
-    id: 'batch-1',
+    id: 'run-1',
     items: [existingItem],
     organizationId: 'org-1',
   };
@@ -378,8 +378,8 @@ describe('TurboRunCreationService.appendManualReviewItems', () => {
     summaryService.toTurboRunSummary.mockImplementation((turboRun) => turboRun);
   });
 
-  it('appends a new draft to the same review batch and links its Post', async () => {
-    await service.appendManualReviewItems('batch-1', dto, 'user-1', 'org-1');
+  it('appends a new draft to the same review run and links its Post', async () => {
+    await service.appendManualReviewItems('run-1', dto, 'user-1', 'org-1');
 
     expect(postsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -390,7 +390,7 @@ describe('TurboRunCreationService.appendManualReviewItems', () => {
     );
     const written = tx.turboRun.updateMany.mock.calls[0][0];
     expect(written.where).toMatchObject({
-      id: 'batch-1',
+      id: 'run-1',
       isDeleted: false,
       organizationId: 'org-1',
     });
@@ -401,17 +401,17 @@ describe('TurboRunCreationService.appendManualReviewItems', () => {
     });
     expect(tx.post.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ reviewTurboRunId: 'batch-1' }),
+        data: expect.objectContaining({ reviewTurboRunId: 'run-1' }),
         where: expect.objectContaining({ id: 'post-2' }),
       }),
     );
   });
 
-  it('soft-deletes the created draft when the batch is gone', async () => {
+  it('soft-deletes the created draft when the run is gone', async () => {
     tx.turboRun.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.appendManualReviewItems('batch-1', dto, 'user-1', 'org-1'),
+      service.appendManualReviewItems('run-1', dto, 'user-1', 'org-1'),
     ).rejects.toThrow(NotFoundException);
     expect(prisma.post.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -438,7 +438,7 @@ describe('TurboRunCreationService.appendManualReviewItems', () => {
     });
 
     await service.appendManualReviewItems(
-      'batch-1',
+      'run-1',
       {
         brandId: 'brand-1',
         items: [

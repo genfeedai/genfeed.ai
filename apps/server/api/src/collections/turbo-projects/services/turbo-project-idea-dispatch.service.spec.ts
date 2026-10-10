@@ -170,9 +170,9 @@ describe('TurboProjectIdeaDispatchService', () => {
 
   it('denies a direct idea dispatch before loading, reserving or calling a provider', async () => {
     workflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
-      new Error('Batch disabled'),
+      new Error('Turbo disabled'),
     );
-    await expect(service.dispatch(job)).rejects.toThrow('Batch disabled');
+    await expect(service.dispatch(job)).rejects.toThrow('Turbo disabled');
     expect(prisma.turboProject.findFirst).not.toHaveBeenCalled();
     expect(creditsUtils.reserveCredits).not.toHaveBeenCalled();
     expect(imageGeneration.generateImage).not.toHaveBeenCalled();
@@ -182,9 +182,9 @@ describe('TurboProjectIdeaDispatchService', () => {
 
   it('denies enqueue before writing a durable dispatch job', async () => {
     workflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
-      new Error('Batch disabled'),
+      new Error('Turbo disabled'),
     );
-    await expect(service.enqueue(job)).rejects.toThrow('Batch disabled');
+    await expect(service.enqueue(job)).rejects.toThrow('Turbo disabled');
     expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 
@@ -491,7 +491,7 @@ describe('TurboProjectIdeaDispatchService', () => {
         organizationId: 'org-2',
         workflowError: 'failed',
       }),
-    ).rejects.toThrow('Invalid batch project idea dispatch job.');
+    ).rejects.toThrow('Invalid Turbo project idea dispatch job.');
   });
 
   it('queues one durable job per attempt with a failure workflow', async () => {

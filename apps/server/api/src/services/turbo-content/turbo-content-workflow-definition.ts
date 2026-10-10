@@ -39,14 +39,14 @@ export function buildTurboContentWorkflowDefinition(
       edges: [
         {
           id: 'plan-to-generate',
-          source: 'plan-batch',
+          source: 'plan-run',
           sourceHandle: 'items',
           target: 'generate-items',
           targetHandle: 'items',
         },
         {
           id: 'plan-to-rank',
-          source: 'plan-batch',
+          source: 'plan-run',
           target: 'rank-drafts',
           targetHandle: 'plan',
         },
@@ -60,7 +60,7 @@ export function buildTurboContentWorkflowDefinition(
       inputVariables: [
         {
           key: 'request',
-          label: 'Batch content request',
+          label: 'Turbo content request',
           required: true,
           type: 'json',
         },
@@ -68,7 +68,7 @@ export function buildTurboContentWorkflowDefinition(
       nodes: [
         createGenfeedActionNode({
           actionId: TURBO_CONTENT_ACTION_IDS.PLAN,
-          id: 'plan-batch',
+          id: 'plan-run',
           inputVariableKeys: ['request'],
           position: { x: 0, y: 0 },
         }),
@@ -123,7 +123,7 @@ export function buildTurboContentItemWorkflowDefinition(
       inputVariables: [
         {
           key: 'item',
-          label: 'Batch content item',
+          label: 'Turbo content item',
           required: true,
           type: 'json',
         },

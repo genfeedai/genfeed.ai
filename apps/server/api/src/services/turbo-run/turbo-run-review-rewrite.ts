@@ -175,7 +175,7 @@ export async function applyTurboRewrites({
     if (caption === undefined) continue;
     if (item.status !== TurboRunItemStatus.COMPLETED) {
       throw new ConflictException(
-        'Batch item changed during rewrite. Refresh and try again.',
+        'Turbo run item changed during rewrite. Refresh and try again.',
       );
     }
     await applyPostRewrite({

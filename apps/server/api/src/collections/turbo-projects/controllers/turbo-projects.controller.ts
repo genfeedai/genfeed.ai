@@ -46,7 +46,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-/** Batch projects produce review drafts, so writing one is a draft action. */
+/** Turbo projects produce review drafts, so writing one is a draft action. */
 const TURBO_PROJECT_WRITE_SCOPES = [
   ApiKeyScope.POSTS_DRAFT,
   ApiKeyScope.POSTS_CREATE,

@@ -18,7 +18,7 @@ import {
 
 /**
  * Parity with `CreateTurboRunDto.count` (`@Max(100)`): a manual review handoff can
- * never legitimately exceed the size of a generated batch. Each item either
+ * never legitimately exceed the size of a generated run. Each item either
  * links one existing Post or creates one sequential Post.
  */
 const MAX_REVIEW_ITEMS = 100;

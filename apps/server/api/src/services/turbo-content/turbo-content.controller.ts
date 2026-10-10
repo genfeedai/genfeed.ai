@@ -6,14 +6,14 @@ import { CreateTurboContentDto } from '@api/services/turbo-content/dto/create-tu
 import { Body, Controller, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Batch Content')
+@ApiTags('Turbo content')
 @Controller('brands/:brandId/content/turbo')
 @OrganizationModule('turbo')
 export class TurboContentController {
   constructor(private readonly turboContentService: TurboContentService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Generate content through a batch workflow' })
+  @ApiOperation({ summary: 'Generate content through a run workflow' })
   async createTurboRun(
     @Param('brandId') brandId: string,
     @Body() dto: CreateTurboContentDto,

@@ -144,7 +144,7 @@ describe('TurboProjectsController publishing scopes', () => {
     'review',
     'schedule',
   ] as const)(
-    'uses Batch module admission rather than a subscription-only gate to %s',
+    'uses Turbo module admission rather than a subscription-only gate to %s',
     (method) => {
       expect(
         Reflect.getMetadata(

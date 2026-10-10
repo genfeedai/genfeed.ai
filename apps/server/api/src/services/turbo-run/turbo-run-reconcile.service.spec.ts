@@ -19,7 +19,7 @@ type CreditReservationServiceMock = {
 };
 
 /**
- * Stranded-batch detection (#2501). Before this, an API reload mid-batch left
+ * Stranded-run detection (#2501). Before this, an API reload mid-run left
  * the row PROCESSING with nothing alive to finish it and nothing that could see
  * it was stuck. These cover what the sweep picks up, what it leaves alone, and
  * what it gives up on.
@@ -132,7 +132,7 @@ describe('TurboRunReconcileService', () => {
   it('advances the expiry scan past pending drafts with longer review windows', async () => {
     pendingReviewPosts
       .mockResolvedValueOnce([
-        { id: 'post-1', reviewTurboRunId: 'batch-1', organizationId: 'org-1' },
+        { id: 'post-1', reviewTurboRunId: 'run-1', organizationId: 'org-1' },
       ])
       .mockResolvedValueOnce([]);
     await service.expireAutonomousReviews(1);
@@ -143,11 +143,11 @@ describe('TurboRunReconcileService', () => {
     );
   });
 
-  it('reports a PROCESSING batch whose lease went stale', async () => {
+  it('reports a PROCESSING run whose lease went stale', async () => {
     turboRunDelegate.findMany.mockResolvedValue([
       {
         config: { resumeCount: 1 },
-        id: 'batch-1',
+        id: 'run-1',
         organizationId: 'org-1',
         status: TurboRunStatus.PROCESSING,
         userId: 'user-1',
@@ -158,7 +158,7 @@ describe('TurboRunReconcileService', () => {
 
     expect(stranded).toEqual([
       {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         organizationId: 'org-1',
         resumeCount: 1,
         userId: 'user-1',
@@ -166,11 +166,11 @@ describe('TurboRunReconcileService', () => {
     ]);
   });
 
-  it('reports a queued batch the workers never picked up', async () => {
+  it('reports a queued run the workers never picked up', async () => {
     turboRunDelegate.findMany.mockResolvedValue([
       {
         config: { queuedAt: '2026-08-07T09:00:00.000Z' },
-        id: 'batch-2',
+        id: 'run-2',
         organizationId: 'org-1',
         status: TurboRunStatus.PENDING,
         userId: 'user-1',
@@ -180,17 +180,17 @@ describe('TurboRunReconcileService', () => {
     const stranded = await service.findStrandedTurboRuns();
 
     expect(stranded).toHaveLength(1);
-    expect(stranded[0]?.turboRunId).toBe('batch-2');
+    expect(stranded[0]?.turboRunId).toBe('run-2');
     expect(stranded[0]?.resumeCount).toBe(0);
   });
 
-  it('leaves a PENDING batch that was never handed to the queue alone', async () => {
-    // A batch created but deliberately not run must not be auto-started by the
+  it('leaves a PENDING run that was never handed to the queue alone', async () => {
+    // A run created but deliberately not run must not be auto-started by the
     // sweep — `queuedAt` is the only thing that says someone asked for it.
     turboRunDelegate.findMany.mockResolvedValue([
       {
         config: {},
-        id: 'batch-3',
+        id: 'run-3',
         organizationId: 'org-1',
         status: TurboRunStatus.PENDING,
         userId: 'user-1',
@@ -219,11 +219,11 @@ describe('TurboRunReconcileService', () => {
     ]);
   });
 
-  it('fails out a batch that burned through its resume budget', async () => {
+  it('fails out a run that burned through its resume budget', async () => {
     turboRunDelegate.findMany.mockResolvedValue([
       {
         config: { resumeCount: TURBO_RUN_MAX_RESUME_ATTEMPTS },
-        id: 'batch-4',
+        id: 'run-4',
         organizationId: 'org-1',
         status: TurboRunStatus.PROCESSING,
         userId: 'user-1',
@@ -238,7 +238,7 @@ describe('TurboRunReconcileService', () => {
     const update = turboRunDelegate.updateMany.mock.calls[0]?.[0];
     expect(update?.data?.status).toBe(TurboRunStatus.FAILED);
     expect(update?.where).toEqual(
-      expect.objectContaining({ id: 'batch-4', organizationId: 'org-1' }),
+      expect.objectContaining({ id: 'run-4', organizationId: 'org-1' }),
     );
 
     const items = update?.data?.items as Array<{
@@ -264,11 +264,11 @@ describe('TurboRunReconcileService', () => {
     expect(config.failedCount).toBe(1);
   });
 
-  it('settles credits when it fails a batch out, so the run is not billed in full', async () => {
+  it('settles credits when it fails a run out, so the run is not billed in full', async () => {
     turboRunDelegate.findMany.mockResolvedValue([
       {
         config: { resumeCount: TURBO_RUN_MAX_RESUME_ATTEMPTS + 1 },
-        id: 'batch-5',
+        id: 'run-5',
         organizationId: 'org-1',
         status: TurboRunStatus.PROCESSING,
         userId: 'user-1',
@@ -278,17 +278,17 @@ describe('TurboRunReconcileService', () => {
     await service.findStrandedTurboRuns();
 
     expect(creditsService.settleTurboRunCredits).toHaveBeenCalledWith({
-      turboRunId: 'batch-5',
+      turboRunId: 'run-5',
       organizationId: 'org-1',
       userId: 'user-1',
     });
   });
 
-  it('skips a batch that disappeared between the sweep and the write', async () => {
+  it('skips a run that disappeared between the sweep and the write', async () => {
     turboRunDelegate.findMany.mockResolvedValue([
       {
         config: { resumeCount: TURBO_RUN_MAX_RESUME_ATTEMPTS },
-        id: 'batch-6',
+        id: 'run-6',
         organizationId: 'org-1',
         status: TurboRunStatus.PROCESSING,
         userId: 'user-1',
@@ -304,7 +304,7 @@ describe('TurboRunReconcileService', () => {
   it('retries settlement from each durable shortfall marker', async () => {
     turboRunDelegate.findMany.mockResolvedValue([
       {
-        id: 'batch-shortfall-1',
+        id: 'run-shortfall-1',
         organizationId: 'org-1',
         settlementShortfall: 7,
         settlementShortfallSeq: 2,
@@ -323,7 +323,7 @@ describe('TurboRunReconcileService', () => {
       }),
     );
     expect(creditsService.retrySettlementShortfall).toHaveBeenCalledWith({
-      turboRunId: 'batch-shortfall-1',
+      turboRunId: 'run-shortfall-1',
       organizationId: 'org-1',
       settlementShortfall: 7,
       settlementShortfallSeq: 2,

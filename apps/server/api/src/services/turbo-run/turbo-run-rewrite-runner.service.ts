@@ -42,8 +42,8 @@ const REWRITE_PROMPT =
   'Rewrite this content to improve clarity, specificity, and engagement while preserving its meaning and brand voice.';
 
 /**
- * Runs a queued Review batch rewrite in the workers app (#5365). Each item is
- * its own unit of work: reserve its credits, rewrite, apply under the batch and
+ * Runs a queued Review run rewrite in the workers app (#5365). Each item is
+ * its own unit of work: reserve its credits, rewrite, apply under the run and
  * post locks, then settle — or release on failure — so a partial run keeps and
  * bills only the captions it actually rewrote. Progress is persisted on the
  * job, which lets a retried or stalled job resume without redoing items.
@@ -218,7 +218,7 @@ export class TurboRunRewriteRunnerService {
         { organizationId },
       );
     } catch (error: unknown) {
-      this.loggerService.warn('Batch rewrite item generation failed', {
+      this.loggerService.warn('Turbo rewrite item generation failed', {
         ...this.context,
         turboRunId,
         error,
@@ -307,7 +307,7 @@ export class TurboRunRewriteRunnerService {
         reservationId,
       });
     } catch (error: unknown) {
-      this.loggerService.error('Batch rewrite credit release failed', error, {
+      this.loggerService.error('Turbo rewrite credit release failed', error, {
         ...this.context,
         reservationId,
       });
@@ -334,7 +334,7 @@ export class TurboRunRewriteRunnerService {
         status === 'failed'
           ? error instanceof Error
             ? error.message
-            : 'Batch rewrite failed'
+            : 'Turbo rewrite failed'
           : undefined,
       label: TURBO_REWRITE_TASK_LABEL,
       progress:

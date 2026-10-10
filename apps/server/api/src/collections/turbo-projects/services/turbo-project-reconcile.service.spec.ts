@@ -139,7 +139,7 @@ describe('TurboProjectReconcileService', () => {
     prisma.workflowExecution.findMany.mockResolvedValue([]);
     prisma.workflowExecutionNodeResult.findMany.mockResolvedValue([]);
     turboRunService.createManualReviewTurboRun.mockResolvedValue({
-      id: 'review-batch-1',
+      id: 'review-run-1',
       items: [
         {
           id: 'review-item-1',
@@ -190,21 +190,21 @@ describe('TurboProjectReconcileService', () => {
       'org-1',
     );
     expect(prisma.turboProject.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { reviewTurboRunId: 'review-batch-1' } }),
+      expect.objectContaining({ data: { reviewTurboRunId: 'review-run-1' } }),
     );
     expect(updatedItem('item-1')).toContainEqual(
       expect.objectContaining({
         outputIngredientId: 'output-1',
         postId: 'post-1',
-        reviewTurboRunId: 'review-batch-1',
+        reviewTurboRunId: 'review-run-1',
         reviewItemId: 'review-item-1',
         status: TurboProjectItemStatus.READY,
       }),
     );
   });
 
-  it('appends later outputs to the existing review batch', async () => {
-    useProject(makeProject([makeItem()], { reviewTurboRunId: 'review-batch-1' }));
+  it('appends later outputs to the existing review run', async () => {
+    useProject(makeProject([makeItem()], { reviewTurboRunId: 'review-run-1' }));
     prisma.workflowExecution.findMany.mockResolvedValue([
       {
         error: null,
@@ -222,7 +222,7 @@ describe('TurboProjectReconcileService', () => {
       id: 'output-1',
     });
     turboRunService.appendManualReviewItems.mockResolvedValue({
-      id: 'review-batch-1',
+      id: 'review-run-1',
       items: [
         {
           id: 'review-item-1',
@@ -235,7 +235,7 @@ describe('TurboProjectReconcileService', () => {
     await service.reconcileProject('project-1', 'org-1');
 
     expect(turboRunService.appendManualReviewItems).toHaveBeenCalledWith(
-      'review-batch-1',
+      'review-run-1',
       expect.objectContaining({ brandId: 'brand-1' }),
       'user-1',
       'org-1',
@@ -245,7 +245,7 @@ describe('TurboProjectReconcileService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('adopts the review batch a crash left unrecorded instead of creating another', async () => {
+  it('adopts the review run a crash left unrecorded instead of creating another', async () => {
     useProject(makeProject([makeItem()]));
     prisma.workflowExecution.findMany.mockResolvedValue([
       {
@@ -264,10 +264,10 @@ describe('TurboProjectReconcileService', () => {
       id: 'output-1',
     });
     prisma.turboRunItem.findFirst.mockResolvedValue({
-      turboRunId: 'review-batch-orphan',
+      turboRunId: 'review-run-orphan',
     });
     turboRunService.appendManualReviewItems.mockResolvedValue({
-      id: 'review-batch-orphan',
+      id: 'review-run-orphan',
       items: [
         {
           id: 'review-item-1',
@@ -296,7 +296,7 @@ describe('TurboProjectReconcileService', () => {
       }),
     );
     expect(turboRunService.appendManualReviewItems).toHaveBeenCalledWith(
-      'review-batch-orphan',
+      'review-run-orphan',
       expect.objectContaining({ brandId: 'brand-1' }),
       'user-1',
       'org-1',
@@ -306,21 +306,21 @@ describe('TurboProjectReconcileService', () => {
     ).not.toHaveBeenCalled();
     expect(prisma.turboProject.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { reviewTurboRunId: 'review-batch-orphan' },
+        data: { reviewTurboRunId: 'review-run-orphan' },
       }),
     );
     expect(updatedItem('item-1')).toContainEqual(
       expect.objectContaining({
-        reviewTurboRunId: 'review-batch-orphan',
+        reviewTurboRunId: 'review-run-orphan',
         reviewItemId: 'review-item-1',
         status: TurboProjectItemStatus.READY,
       }),
     );
   });
 
-  it('starts a new review batch when the previous one was removed', async () => {
+  it('starts a new review run when the previous one was removed', async () => {
     useProject(
-      makeProject([makeItem()], { reviewTurboRunId: 'review-batch-gone' }),
+      makeProject([makeItem()], { reviewTurboRunId: 'review-run-gone' }),
     );
     prisma.workflowExecution.findMany.mockResolvedValue([
       {
@@ -339,7 +339,7 @@ describe('TurboProjectReconcileService', () => {
       id: 'output-1',
     });
     turboRunService.appendManualReviewItems.mockRejectedValue(
-      new NotFoundException('TurboRun', 'review-batch-gone'),
+      new NotFoundException('TurboRun', 'review-run-gone'),
     );
 
     await service.reconcileProject('project-1', 'org-1');
@@ -416,7 +416,7 @@ describe('TurboProjectReconcileService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('fails items the finished batch never ran', async () => {
+  it('fails items the finished project never ran', async () => {
     useProject(makeProject([makeItem()]));
     prisma.workflowExecution.findFirst.mockResolvedValue({
       error: 'Credits exhausted',
@@ -475,7 +475,7 @@ describe('TurboProjectReconcileService', () => {
       },
     ]);
     turboRunService.createManualReviewTurboRun.mockResolvedValue({
-      id: 'review-batch-1',
+      id: 'review-run-1',
       items: [
         {
           id: 'review-item-ready',

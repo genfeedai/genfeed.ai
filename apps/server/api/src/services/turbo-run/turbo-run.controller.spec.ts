@@ -111,7 +111,7 @@ describe('TurboRunController', () => {
   describe('createManualReviewTurboRun', () => {
     it('should call service.createManualReviewTurboRun', async () => {
       service.createManualReviewTurboRun.mockResolvedValue({
-        id: 'batch-1',
+        id: 'run-1',
         items: [],
       } as never);
 
@@ -151,32 +151,32 @@ describe('TurboRunController', () => {
 
   describe('getTurboRun', () => {
     it('should call service.getTurboRun with turboRunId', async () => {
-      const turboRunDoc = { id: 'batch-1', status: 'completed' };
+      const turboRunDoc = { id: 'run-1', status: 'completed' };
       service.getTurboRun.mockResolvedValue(turboRunDoc as never);
       const user = {
         id: 'user-123',
         organizationId: 'org',
         userId: 'usr',
       } as never;
-      const result = await controller.getTurboRun(mockReq, 'batch-1', user);
+      const result = await controller.getTurboRun(mockReq, 'run-1', user);
       expect(service.getTurboRun).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });
 
   describe('processTurboRun', () => {
-    it('queues the batch workflow instead of processing inline', async () => {
+    it('queues the run workflow instead of processing inline', async () => {
       const user = {
         id: 'user-123',
         organizationId: 'org',
         userId: 'usr',
       } as never;
 
-      const result = await controller.processTurboRun('batch-1', user);
+      const result = await controller.processTurboRun('run-1', user);
 
       expect(workflowService.queueTurboRun).toHaveBeenCalledWith(
         {
-          turboRunId: 'batch-1',
+          turboRunId: 'run-1',
           organizationId: 'org',
           userId: 'usr',
         },
@@ -188,7 +188,7 @@ describe('TurboRunController', () => {
   });
 
   describe('patch', () => {
-    it('should delegate to service.updateTurboRun to cancel a batch', async () => {
+    it('should delegate to service.updateTurboRun to cancel a run', async () => {
       const user = {
         id: 'user-123',
         organizationId: 'org',
@@ -200,12 +200,12 @@ describe('TurboRunController', () => {
 
       const result = await controller.patch(
         mockReq,
-        'batch-1',
+        'run-1',
         { status: 'CANCELLED' } as never,
         user,
       );
       expect(service.updateTurboRun).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         { status: 'CANCELLED' },
         expect.any(String),
       );
@@ -215,11 +215,11 @@ describe('TurboRunController', () => {
 
   describe('itemAction', () => {
     it('passes the canonical user id when approving items', async () => {
-      service.approveItems.mockResolvedValue({ id: 'batch-1' } as never);
+      service.approveItems.mockResolvedValue({ id: 'run-1' } as never);
 
       await controller.itemAction(
         mockReq,
-        'batch-1',
+        'run-1',
         {
           action: 'approve',
           itemIds: ['item-1'],
@@ -233,7 +233,7 @@ describe('TurboRunController', () => {
       );
 
       expect(service.approveItems).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'test-object-id',
         'test-object-id',
@@ -241,7 +241,7 @@ describe('TurboRunController', () => {
     });
 
     it('routes request_changes actions to the requestChanges service method', async () => {
-      service.requestChanges.mockResolvedValue({ id: 'batch-1' } as never);
+      service.requestChanges.mockResolvedValue({ id: 'run-1' } as never);
 
       const user = {
         brandId: 'test-object-id',
@@ -252,7 +252,7 @@ describe('TurboRunController', () => {
 
       await controller.itemAction(
         mockReq,
-        'batch-1',
+        'run-1',
         {
           action: 'request_changes',
           feedback: 'Tighten the hook and shorten the caption.',
@@ -262,7 +262,7 @@ describe('TurboRunController', () => {
       );
 
       expect(service.requestChanges).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'test-object-id',
         'Tighten the hook and shorten the caption.',
@@ -271,11 +271,11 @@ describe('TurboRunController', () => {
     });
 
     it('passes the canonical user id when rejecting items', async () => {
-      service.rejectItems.mockResolvedValue({ id: 'batch-1' } as never);
+      service.rejectItems.mockResolvedValue({ id: 'run-1' } as never);
 
       await controller.itemAction(
         mockReq,
-        'batch-1',
+        'run-1',
         {
           action: 'reject',
           feedback: 'Not aligned with the brief.',
@@ -290,7 +290,7 @@ describe('TurboRunController', () => {
       );
 
       expect(service.rejectItems).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'test-object-id',
         'Not aligned with the brief.',
@@ -311,7 +311,7 @@ describe('TurboRunController', () => {
       const req = {
         creditsConfig: {
           amount: 4,
-          description: 'Batch rewrite (text model)',
+          description: 'Turbo rewrite (text model)',
           source: ActivitySource.POST_ENHANCEMENT,
         },
       } as never;
@@ -319,16 +319,16 @@ describe('TurboRunController', () => {
       await expect(
         controller.createRewriteJob(
           req,
-          'batch-1',
+          'run-1',
           { itemIds: ['item-1', 'item-2', 'item-1'] },
           user,
         ),
       ).resolves.toEqual({ id: 'job-1' });
       expect(rewriteService.enqueue).toHaveBeenCalledWith({
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         credits: {
           amountPerItem: 2,
-          description: 'Batch rewrite (text model)',
+          description: 'Turbo rewrite (text model)',
           source: ActivitySource.POST_ENHANCEMENT,
         },
         itemIds: ['item-1', 'item-2', 'item-1'],
@@ -341,22 +341,22 @@ describe('TurboRunController', () => {
       rewriteService.getActiveJob.mockResolvedValue(null);
 
       await expect(
-        controller.getActiveRewriteJob('batch-1', user),
+        controller.getActiveRewriteJob('run-1', user),
       ).resolves.toEqual({ job: null });
-      await controller.getRewriteJob('batch-1', 'job-1', user);
-      await controller.cancelRewriteJob('batch-1', 'job-1', user);
+      await controller.getRewriteJob('run-1', 'job-1', user);
+      await controller.cancelRewriteJob('run-1', 'job-1', user);
 
       expect(rewriteService.getActiveJob).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         'org-1',
       );
       expect(rewriteService.getJob).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         'job-1',
         'org-1',
       );
       expect(rewriteService.cancel).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         'job-1',
         'org-1',
       );
@@ -365,11 +365,11 @@ describe('TurboRunController', () => {
 
   describe('assignItem', () => {
     it('assigns with the canonical user id and organization', async () => {
-      service.assignItem.mockResolvedValue({ id: 'batch-1' } as never);
+      service.assignItem.mockResolvedValue({ id: 'run-1' } as never);
 
       await controller.assignItem(
         mockReq,
-        'batch-1',
+        'run-1',
         'item-1',
         { assigneeId: 'user-1' } as never,
         {
@@ -379,7 +379,7 @@ describe('TurboRunController', () => {
       );
 
       expect(service.assignItem).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         'item-1',
         'user-1',
         'org-1',
@@ -389,15 +389,15 @@ describe('TurboRunController', () => {
 
   describe('unassignItem', () => {
     it('clears assignment for the tenant-scoped item', async () => {
-      service.unassignItem.mockResolvedValue({ id: 'batch-1' } as never);
+      service.unassignItem.mockResolvedValue({ id: 'run-1' } as never);
 
-      await controller.unassignItem(mockReq, 'batch-1', 'item-1', {
+      await controller.unassignItem(mockReq, 'run-1', 'item-1', {
         organizationId: 'org-1',
         userId: 'actor-1',
       } as never);
 
       expect(service.unassignItem).toHaveBeenCalledWith(
-        'batch-1',
+        'run-1',
         'item-1',
         'org-1',
       );

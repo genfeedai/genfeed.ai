@@ -1,9 +1,9 @@
 import { ContentFormat } from '..';
 
 /**
- * Batch generation pricing — shared by agent UI estimates and server charge.
+ * Turbo run pricing — shared by agent UI estimates and server charge.
  *
- * Every batch item always incurs a **caption** LLM cost (scaled by model tier).
+ * Every run item always incurs a **caption** LLM cost (scaled by model tier).
  * **Media** costs apply when the item's format needs media and media was (or
  * will be) produced. Format packaging reflects product intent even for
  * caption-first drafts.
@@ -66,7 +66,7 @@ export const TURBO_RUN_FORMAT_MEDIA_CREDITS: Record<ContentFormat, number> = {
   [ContentFormat.STORY]: 6,
 };
 
-/** Default content mix when the client does not pass one (matches batch creation). */
+/** Default content mix when the client does not pass one (matches run creation). */
 export const DEFAULT_TURBO_CONTENT_MIX: Record<ContentFormat, number> = {
   [ContentFormat.IMAGE]: 60,
   [ContentFormat.VIDEO]: 25,
@@ -133,8 +133,8 @@ export type TurboRunPricingContext = {
   /** Chat model round credits (from registry) — scales caption cost. */
   chatModelRoundCredits?: number | null;
   /**
-   * Batch-level media intent: true only when the run produces a media asset for
-   * every item. The agent batch pipeline is caption-first, so callers leave this
+   * Turbo run-level media intent: true only when the run produces a media asset for
+   * every item. The agent run pipeline is caption-first, so callers leave this
    * false and per-item `hasMedia` drives the media rate at charge time.
    */
   hasMediaGeneration?: boolean;
@@ -177,7 +177,7 @@ function normalizeFormat(format: ContentFormat | string): ContentFormat {
 }
 
 /**
- * Credits for a single batch item.
+ * Credits for a single run item.
  */
 export function turboRunItemCredits(
   item: TurboRunItemPricingInput,
@@ -261,7 +261,7 @@ export function allocateByWeights(
 }
 
 /**
- * Estimate total tool credits for a batch before run.
+ * Estimate total tool credits for a run before run.
  * Uses weighted content mix with largest-remainder counts that sum to
  * `count` exactly; does not include chat-round cost.
  */
@@ -316,17 +316,17 @@ export function chargeTurboRunCredits(
 export type TurboRunChargeReconciliation = {
   /** Credits still owed on top of what was already billed (0 when none). */
   additionalCredits: number;
-  /** Credits to hand back because the batch cost less than billed. */
+  /** Credits to hand back because the run cost less than billed. */
   refundCredits: number;
   /** Media-aware total for the items that actually landed. */
   settledCredits: number;
 };
 
 /**
- * Settle an up-front estimate against what a batch actually produced.
+ * Settle an up-front estimate against what a run actually produced.
  *
- * The async batch path bills the estimate before processing starts, so items
- * that come back carrying media are under-billed and a batch that fails
+ * The async run path bills the estimate before processing starts, so items
+ * that come back carrying media are under-billed and a run that fails
  * outright is over-billed. Charging the delta (or refunding it) keeps the
  * charge media-aware on both the streamed and the async path.
  */

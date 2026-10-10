@@ -106,7 +106,7 @@ export class AgentMediaTurboRunService {
     if (!this.turboRunService) {
       return {
         creditsUsed: 0,
-        error: 'Batch generation service not available',
+        error: 'Turbo run service not available',
         success: false,
       };
     }
@@ -238,14 +238,14 @@ export class AgentMediaTurboRunService {
       return {
         error: {
           creditsUsed: 0,
-          error: 'Batch generation service not available',
+          error: 'Turbo run service not available',
           success: false,
         },
       };
     }
     let turboRun: TurboRunRecord;
     // createTurboRun persists items before credits move; if reserve fails, the
-    // compensation below must cancel them or #2696 leaves an orphan batch.
+    // compensation below must cancel them or #2696 leaves an orphan run.
     // createTurboRun validates platforms before generation or credit movement.
     try {
       turboRun = await this.turboRunService.createTurboRun(
@@ -270,14 +270,14 @@ export class AgentMediaTurboRunService {
         error: {
           creditsUsed: 0,
           error:
-            error instanceof Error ? error.message : 'Failed to create batch',
+            error instanceof Error ? error.message : 'Failed to create run',
           success: false,
         },
       };
     }
 
     const turboRunId = String(turboRun.id);
-    // Atomic reserve plus the batch reference claim prevents concurrent spend.
+    // Atomic reserve plus the run reference claim prevents concurrent spend.
     const reservation = await this.reserveCreditsOrCancel({
       amount: prepared.estimatedCredits,
       turboRunId,
@@ -317,7 +317,7 @@ export class AgentMediaTurboRunService {
       return {
         error: {
           creditsUsed: 0,
-          error: 'Batch credit reservation could not be recorded',
+          error: 'Turbo run credit reservation could not be recorded',
           success: false,
         },
       };
@@ -358,7 +358,7 @@ export class AgentMediaTurboRunService {
 
     try {
       // The charge is already pinned, so settlement — not release — returns the
-      // unspent credits for a batch that produced nothing.
+      // unspent credits for a run that produced nothing.
       await this.turboRunCreditsService?.settleTurboRunCredits({
         turboRunId: execution.turboRunId,
         organizationId: ctx.organizationId,
@@ -380,7 +380,7 @@ export class AgentMediaTurboRunService {
       error:
         queueError instanceof Error
           ? queueError.message
-          : 'Batch could not be queued',
+          : 'Turbo run could not be queued',
       success: false,
     };
   }
@@ -484,7 +484,7 @@ export class AgentMediaTurboRunService {
       );
     } catch (queueError) {
       // The queue owns durable execution: without ownership nothing will ever
-      // process the batch, so unwind the items and the pinned charge here.
+      // process the run, so unwind the items and the pinned charge here.
       return this.compensateUnqueuedTurboRun(execution, ctx, queueError);
     }
     return {

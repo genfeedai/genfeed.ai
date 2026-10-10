@@ -24,7 +24,7 @@ const SETTLED_STATES = new Set<string>([
 ]);
 
 /**
- * A review item's further destination posts (drafts a batch project
+ * A review item's further destination posts (drafts a Turbo project
  * schedules on other accounts) carry its approval too. When the reviewer
  * rejects, requests changes or rewrites the item, every one not yet
  * published loses its publish approval with the canonical post: back to
@@ -78,7 +78,7 @@ export async function withdrawDestinationPosts(input: {
   }
 }
 
-/** Extend destination lineage while the caller holds the batch row lock. */
+/** Extend destination lineage while the caller holds the run row lock. */
 export async function linkReviewDestinationPosts(
   transaction: Prisma.TransactionClient,
   turboRun: TurboRunWithConfig,
@@ -89,7 +89,7 @@ export async function linkReviewDestinationPosts(
   const items = resolveTurboRunItems(turboRun);
   const item = items.find((candidate) => candidate.id === itemId);
   if (!item) {
-    throw new NotFoundException('Batch item', itemId);
+    throw new NotFoundException('Turbo run item', itemId);
   }
   const linked = new Set(item.destinationPostIds ?? []);
   const fresh = postIds.filter(
@@ -107,7 +107,7 @@ export async function linkReviewDestinationPosts(
   });
 }
 
-/** Apply a declined review to the canonical post inside the batch transaction. */
+/** Apply a declined review to the canonical post inside the run transaction. */
 export async function declineReviewPost(input: {
   actorUserId?: string;
   autonomousPublishPolicy: AutonomousPublishPolicyService;

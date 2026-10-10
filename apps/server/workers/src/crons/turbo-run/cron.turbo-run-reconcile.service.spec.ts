@@ -23,13 +23,13 @@ describe('CronTurboRunReconcileService', () => {
 
   const strandedTurboRuns = [
     {
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       organizationId: 'org-1',
       resumeCount: 1,
       userId: 'user-1',
     },
     {
-      turboRunId: 'batch-2',
+      turboRunId: 'run-2',
       organizationId: 'org-2',
       resumeCount: 0,
       userId: 'user-2',
@@ -63,7 +63,7 @@ describe('CronTurboRunReconcileService', () => {
     service = module.get(CronTurboRunReconcileService);
   });
 
-  it('re-queues every stranded batch as a resume', async () => {
+  it('re-queues every stranded run as a resume', async () => {
     reconcileService.findStrandedTurboRuns.mockResolvedValue(strandedTurboRuns);
 
     await service.resumeStrandedTurboRuns();
@@ -71,7 +71,7 @@ describe('CronTurboRunReconcileService', () => {
     expect(queueService.queueTurboRun).toHaveBeenCalledTimes(2);
     expect(queueService.queueTurboRun).toHaveBeenCalledWith(
       {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         isResume: true,
         organizationId: 'org-1',
         userId: 'user-1',
@@ -80,7 +80,7 @@ describe('CronTurboRunReconcileService', () => {
     );
   });
 
-  it('keeps sweeping after one batch fails to enqueue', async () => {
+  it('keeps sweeping after one run fails to enqueue', async () => {
     reconcileService.findStrandedTurboRuns.mockResolvedValue(strandedTurboRuns);
     queueService.queueTurboRun
       .mockRejectedValueOnce(new Error('redis unavailable'))
@@ -88,7 +88,7 @@ describe('CronTurboRunReconcileService', () => {
 
     await service.resumeStrandedTurboRuns();
 
-    // The second batch still gets its chance — one bad batch is not the sweep.
+    // The second run still gets its chance — one bad run is not the sweep.
     expect(queueService.queueTurboRun).toHaveBeenCalledTimes(2);
     expect(logger.error).toHaveBeenCalledOnce();
     expect(logger.log).toHaveBeenCalledWith(
@@ -112,7 +112,7 @@ describe('CronTurboRunReconcileService', () => {
     ).toHaveBeenCalledOnce();
   });
 
-  it('advances every generating Studio Batch project', async () => {
+  it('advances every generating Studio Turbo project', async () => {
     turboProjectReconcile.reconcileGeneratingProjects.mockResolvedValue(3);
 
     await service.reconcileTurboProjects();
@@ -121,7 +121,7 @@ describe('CronTurboRunReconcileService', () => {
       turboProjectReconcile.reconcileGeneratingProjects,
     ).toHaveBeenCalledTimes(1);
     expect(logger.log).toHaveBeenCalledWith(
-      'CronTurboRunReconcileService batch projects',
+      'CronTurboRunReconcileService Turbo projects',
       expect.objectContaining({ projectCount: 3 }),
     );
   });

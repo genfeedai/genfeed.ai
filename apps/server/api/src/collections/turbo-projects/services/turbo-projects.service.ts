@@ -73,8 +73,8 @@ const REVIEWABLE_STATUSES = new Set<string>([
 ]);
 
 /**
- * Studio Batch projects (#5463): one persisted surface for idea batches and
- * workflow batches. Generation continues server-side (see
+ * Studio Turbo projects (#5463): one persisted surface for idea projects and
+ * workflow projects. Generation continues server-side (see
  * `TurboProjectReconcileService`), outputs reach publishing through the
  * shared review inbox, and scheduling uses the shared post scheduling path.
  */
@@ -171,7 +171,7 @@ export class TurboProjectsService {
       data: {
         brandId: dto.brandId,
         kind: dto.kind,
-        name: dto.name ?? (isIdeas ? 'Idea batch' : 'Workflow batch'),
+        name: dto.name ?? (isIdeas ? 'Idea project' : 'Workflow project'),
         organizationId: scope.organizationId,
         settings: toPrismaJson(isIdeas ? { ideas: DEFAULT_IDEA_SETTINGS } : {}),
         status: TurboProjectStatus.DRAFT,
@@ -181,7 +181,7 @@ export class TurboProjectsService {
       },
     });
 
-    this.logger.log('Batch project created', {
+    this.logger.log('Turbo project created', {
       turboProjectId: row.id,
       context: this.context,
       kind: row.kind,
@@ -221,7 +221,7 @@ export class TurboProjectsService {
     const project = await this.requireProject(id, scope);
     if (dto.workflowId !== undefined) {
       if (project.kind !== TurboProjectKind.WORKFLOW) {
-        throw new BadRequestException('Only workflow batches use a workflow');
+        throw new BadRequestException('Only workflow projects use a workflow');
       }
       this.assertDraft(project);
       await this.assertWorkflow(dto.workflowId, scope.organizationId);
@@ -253,7 +253,7 @@ export class TurboProjectsService {
   }
 
   /**
-   * Deletion takes the project lock start and retry take, so a batch can
+   * Deletion takes the project lock start and retry take, so a project can
    * never be deleted between their generating check and their claim.
    */
   remove(id: string, scope: ITurboProjectScope): Promise<void> {
@@ -276,7 +276,7 @@ export class TurboProjectsService {
     if (generating > 0) {
       // Generating items hold credits that settle when their output lands.
       throw new ConflictException(
-        'Wait for generation to finish before deleting this batch',
+        'Wait for generation to finish before deleting this project',
       );
     }
     await this.prisma.$transaction([
@@ -300,7 +300,7 @@ export class TurboProjectsService {
     const before = await this.requireProject(id, scope);
     this.assertDraft(before);
     if (before.kind !== TurboProjectKind.IDEAS)
-      throw new BadRequestException('Only idea batches generate ideas');
+      throw new BadRequestException('Only idea projects generate ideas');
     const project = await this.update(
       id,
       { settings: { ideas: dto }, step: TurboProjectStep.IDEAS },
@@ -315,7 +315,7 @@ export class TurboProjectsService {
       const current = await this.requireProject(id, scope);
       if (current.revision !== project.revision)
         throw new ConflictException(
-          'The batch changed while ideas were generated. Try again.',
+          'The project changed while ideas were generated. Try again.',
         );
       return this.addItemsLocked(id, { ideas }, scope);
     });
@@ -323,7 +323,7 @@ export class TurboProjectsService {
 
   /**
    * Inputs change under the project lock start also takes, and the draft is
-   * rechecked inside it, so an input can never land after the batch started.
+   * rechecked inside it, so an input can never land after the project started.
    */
   addItems(
     id: string,
@@ -345,12 +345,12 @@ export class TurboProjectsService {
 
     if (project.kind === TurboProjectKind.IDEAS) {
       if (!dto.ideas) {
-        throw new BadRequestException('Idea batches take ideas');
+        throw new BadRequestException('Idea projects take ideas');
       }
       await this.replaceIdeas(project, dto.ideas, scope);
     } else {
       if (!dto.inputs) {
-        throw new BadRequestException('Workflow batches take inputs');
+        throw new BadRequestException('Workflow projects take inputs');
       }
       await this.appendInputs(
         project,
@@ -395,7 +395,7 @@ export class TurboProjectsService {
     });
     if (dto.caption !== undefined && item.postId) {
       // The review draft is the canonical caption the inbox shows and
-      // scheduling publishes; keep it in step with Batch edits.
+      // scheduling publishes; keep it in step with Turbo edits.
       await this.prisma.post.updateMany({
         data: { description: dto.caption },
         where: scopedWhere(scope.organizationId, {
@@ -438,7 +438,7 @@ export class TurboProjectsService {
     return this.reconcileService.runExclusive(id, async () => {
       const project = await this.requireProjectWithItems(id, scope);
       if (project.kind !== TurboProjectKind.IDEAS) {
-        throw new BadRequestException('Only idea batches are quoted');
+        throw new BadRequestException('Only idea projects are quoted');
       }
       await this.assertIdeasEnabled(scope);
       return this.ideaGeneration.quote(project, dto.itemIds, scope);
@@ -448,7 +448,7 @@ export class TurboProjectsService {
   /**
    * Start generation for every queued item. Runs under the project's
    * reconcile lock, and the DRAFT → GENERATING claim commits together with
-   * the items it claims, so reconciliation never sees a half-started batch
+   * the items it claims, so reconciliation never sees a half-started project
    * and a double submit cannot start two runs. The workflow run is dispatched
    * after the claim, keyed to that claim, so repeating it reuses the run.
    */
@@ -489,7 +489,7 @@ export class TurboProjectsService {
           }),
         });
         if (claim.count !== 1) {
-          throw new ConflictException('This batch has already started');
+          throw new ConflictException('This project has already started');
         }
         // The run's index is claimed with each item, so reconcile can recover
         // a run whose execution link was never saved from its start key.
@@ -561,7 +561,7 @@ export class TurboProjectsService {
         );
       }
 
-      this.logger.log('Batch project started', {
+      this.logger.log('Turbo project started', {
         turboProjectId: id,
         context: this.context,
         itemCount: pending.length,
@@ -675,7 +675,7 @@ export class TurboProjectsService {
         scope.organizationId,
       );
 
-      this.logger.log('Batch project item retried', {
+      this.logger.log('Turbo project item retried', {
         attempt,
         turboProjectId: id,
         turboProjectItemId: itemId,
@@ -700,7 +700,7 @@ export class TurboProjectsService {
       await write();
     } catch (error: unknown) {
       this.logger.warn(
-        'Batch project run link not saved; reconcile recovers it',
+        'Turbo project run link not saved; reconcile recovers it',
         {
           turboProjectId: id,
           context: this.context,
@@ -743,7 +743,7 @@ export class TurboProjectsService {
       }),
     });
     if (items.length !== new Set(dto.itemIds).size) {
-      throw new NotFoundException('Batch project item');
+      throw new NotFoundException('Turbo project item');
     }
 
     if (
@@ -845,7 +845,7 @@ export class TurboProjectsService {
       )
     ) {
       throw new BadRequestException(
-        'Workflow batches accept images and videos',
+        'Workflow projects accept images and videos',
       );
     }
 
@@ -903,14 +903,14 @@ export class TurboProjectsService {
     }
   }
 
-  /** Idea batches are gated by the central `turbo_ideas` Admin platform flag (#5463). */
+  /** Idea projects are gated by the central `turbo_ideas` Admin platform flag (#5463). */
   private async assertIdeasEnabled(scope: ITurboProjectScope): Promise<void> {
     if (scope.isSuperAdmin) {
       return;
     }
     const { flags } = await this.platformSettingsService.getFeatureSettings();
     if (!flags.turbo_ideas) {
-      throw new NotFoundException({ message: 'Idea batches are not enabled' });
+      throw new NotFoundException({ message: 'Idea projects are not enabled' });
     }
   }
 
@@ -926,7 +926,7 @@ export class TurboProjectsService {
   private assertDraft(project: TurboProject): void {
     if (project.status !== TurboProjectStatus.DRAFT) {
       throw new BadRequestException(
-        'Inputs can only change before the batch starts',
+        'Inputs can only change before the project starts',
       );
     }
   }
@@ -946,7 +946,7 @@ export class TurboProjectsService {
       where: scopedWhere(scope.organizationId, { id }),
     });
     if (!project) {
-      throw new NotFoundException('Batch project', id);
+      throw new NotFoundException('Turbo project', id);
     }
     return project;
   }
@@ -965,7 +965,7 @@ export class TurboProjectsService {
       where: scopedWhere(scope.organizationId, { id }),
     });
     if (!project) {
-      throw new NotFoundException('Batch project', id);
+      throw new NotFoundException('Turbo project', id);
     }
     return project;
   }
@@ -979,7 +979,7 @@ export class TurboProjectsService {
       where: scopedWhere(scope.organizationId, { id: itemId, projectId }),
     });
     if (!item) {
-      throw new NotFoundException('Batch project item', itemId);
+      throw new NotFoundException('Turbo project item', itemId);
     }
     return item;
   }

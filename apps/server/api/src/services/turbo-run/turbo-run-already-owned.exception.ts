@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
 /**
- * A live run already owns this batch — thrown by the ownership claim when the
+ * A live run already owns this run — thrown by the ownership claim when the
  * atomic PENDING → PROCESSING transition (or the stale-lease reclaim) loses.
  *
  * Distinct from a plain BadRequestException on purpose: the workers processor

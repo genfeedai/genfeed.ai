@@ -4,7 +4,7 @@ import {
   buildTurboContentWorkflowDefinition,
 } from '@api/services/turbo-content/turbo-content-workflow-definition';
 
-describe('batch content workflow definitions', () => {
+describe('Turbo content workflow definitions', () => {
   it('fans out through the generic workflow action', () => {
     const definition = buildTurboContentWorkflowDefinition('content-writing');
     expect(definition.organizationModule).toBe('turbo');

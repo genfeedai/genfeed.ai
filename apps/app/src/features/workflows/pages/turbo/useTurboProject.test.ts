@@ -22,7 +22,7 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-describe('persisted Batch project writes', () => {
+describe('persisted Turbo project writes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getService.mockResolvedValue(mocks);

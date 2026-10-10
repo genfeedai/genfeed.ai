@@ -123,7 +123,7 @@ describe('TurboProjectIdeaGenerationService', () => {
           undefined,
           scope,
         ),
-      ).rejects.toThrow('Idea batches are not enabled');
+      ).rejects.toThrow('Idea projects are not enabled');
       expect(quotes.build).not.toHaveBeenCalled();
       expect(prisma.turboProject.updateMany).not.toHaveBeenCalled();
     });
@@ -131,7 +131,7 @@ describe('TurboProjectIdeaGenerationService', () => {
     it('rejects start before a credit check or enqueue', async () => {
       await expect(
         service.start(project() as never, pending as never, 'quote-1', scope),
-      ).rejects.toThrow('Idea batches are not enabled');
+      ).rejects.toThrow('Idea projects are not enabled');
       expect(credits.checkOrganizationCreditsAvailable).not.toHaveBeenCalled();
       expect(prisma.turboProject.updateMany).not.toHaveBeenCalled();
       expect(dispatcher.enqueue).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe('TurboProjectIdeaGenerationService', () => {
           'quote-1',
           scope,
         ),
-      ).rejects.toThrow('Idea batches are not enabled');
+      ).rejects.toThrow('Idea projects are not enabled');
       expect(credits.checkOrganizationCreditsAvailable).not.toHaveBeenCalled();
       expect(prisma.turboProjectItem.updateMany).not.toHaveBeenCalled();
       expect(dispatcher.enqueue).not.toHaveBeenCalled();

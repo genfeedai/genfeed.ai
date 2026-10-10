@@ -53,9 +53,9 @@ type TurboRunProcessingCounts = {
 };
 
 /**
- * Result of trying to take ownership of a batch run.
+ * Result of trying to take ownership of a run run.
  * - `claimed` — fresh PENDING → PROCESSING transition
- * - `resumed` — re-claimed a PROCESSING batch whose lease went stale
+ * - `resumed` — re-claimed a PROCESSING run whose lease went stale
  * - `busy` — someone else owns it, or it is already terminal / missing
  */
 type TurboRunClaimOutcome = 'busy' | 'claimed' | 'resumed';
@@ -115,7 +115,7 @@ export class TurboRunProcessingService {
     const claim = await this.claimTurboRunForProcessing(turboRunId, orgId);
 
     if (claim === 'busy') {
-      // Either the batch doesn't exist for this org, or it's already being processed.
+      // Either the run doesn't exist for this org, or it's already being processed.
       const existing = await this.prisma.turboRun.findFirst({
         where: scopedWhere(orgId, { id: turboRunId }),
       });
@@ -143,7 +143,7 @@ export class TurboRunProcessingService {
     const turboRunItems = resolveTurboRunItems(turboRunRecord);
 
     if (claim === 'resumed') {
-      // The previous run died mid-batch. Items it had started but never
+      // The previous run died mid-run. Items it had started but never
       // persisted go back to PENDING so they are regenerated; items already
       // persisted as COMPLETED/FAILED are left alone, so neither the work nor
       // the credits for them are duplicated.
@@ -332,7 +332,7 @@ export class TurboRunProcessingService {
     ).length;
 
     // Accumulate captions as items complete — O(1) push per item instead of
-    // re-scanning the full batch on every generation call.
+    // re-scanning the full run on every generation call.
     const priorCaptions: string[] = turboRunItems
       .filter(
         (entry) =>
@@ -356,7 +356,7 @@ export class TurboRunProcessingService {
 
     for (let i = 0; i < turboRunItems.length; i++) {
       // Persist progress so far and renew the processing lease in one write.
-      // A miss means the batch was cancelled or re-claimed elsewhere — this
+      // A miss means the run was cancelled or re-claimed elsewhere — this
       // replaces the old read-only status probe at the same round-trip cost,
       // and is what makes a killed run resumable without losing finished items.
       const stillOwned = await this.persistItemProgress(
@@ -539,7 +539,7 @@ export class TurboRunProcessingService {
 
     if (!turboRunRecord.brandId || !turboRunRecord.userId) {
       throw new BadRequestException(
-        'Batch is missing brandId or userId; cannot create draft posts',
+        'Turbo run is missing brandId or userId; cannot create draft posts',
       );
     }
 
@@ -559,7 +559,7 @@ export class TurboRunProcessingService {
       (platformRaw ? toPostPlatform(platformRaw) : undefined);
 
     // Pre-target the draft only when the answer is unambiguous. A brand may
-    // hold several accounts on one platform, and a batch item carries no
+    // hold several accounts on one platform, and a run item carries no
     // account of its own — picking whichever row the database returned
     // first would silently commit the draft to an account the operator
     // never chose. Two or more accounts leaves credentialId null; the
@@ -620,14 +620,14 @@ export class TurboRunProcessingService {
   }
 
   /**
-   * Take ownership of a batch run.
+   * Take ownership of a run run.
    *
    * A fresh claim is the atomic PENDING → PROCESSING transition: if two callers
    * race, exactly one updateMany matches (count=1) and the other exits.
    *
-   * The second attempt is the resume path. A run killed mid-batch (API reload,
+   * The second attempt is the resume path. A run killed mid-run (API reload,
    * worker restart) leaves the row PROCESSING with nothing left to finish it,
-   * which used to strand the batch permanently. `updatedAt` acts as the lease —
+   * which used to strand the run permanently. `updatedAt` acts as the lease —
    * every item persist bumps it — so filtering on it inside updateMany
    * re-claims a stale run atomically, and a still-live run (whose lease is
    * fresh) can never be stolen out from under itself.
@@ -666,7 +666,7 @@ export class TurboRunProcessingService {
   /**
    * Write item results accumulated so far and renew the run lease.
    *
-   * Returns false when the batch is no longer ours — cancelled, or re-claimed
+   * Returns false when the run is no longer ours — cancelled, or re-claimed
    * by another run — in which case the caller must stop without finalizing.
    */
   private async persistItemProgress(

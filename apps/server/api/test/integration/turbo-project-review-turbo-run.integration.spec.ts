@@ -9,9 +9,9 @@ import { Client } from 'pg';
 import { assertIsolatedDatabaseUrl } from '../../scripts/assert-isolated-db-url';
 
 // Real PostgreSQL and real Prisma JSON-path filtering in a uniquely owned
-// schema: the lookup reconcile uses to adopt a review batch whose id a crash
+// schema: the lookup reconcile uses to adopt a review run whose id a crash
 // left unsaved (#5463).
-describe('Batch project review-batch lookup by source key (real Postgres)', () => {
+describe('Turbo project review-run lookup by source key (real Postgres)', () => {
   const schema = `turbo_run_review_${randomUUID().replaceAll('-', '')}`;
   let sql: Client;
   let prisma: PrismaClient;
@@ -66,38 +66,38 @@ describe('Batch project review-batch lookup by source key (real Postgres)', () =
     });
     await prisma.turboRun.createMany({
       data: [
-        { id: 'batch-live', organizationId: 'alpha', userId: 'alice' },
+        { id: 'project-live', organizationId: 'alpha', userId: 'alice' },
         {
-          id: 'batch-deleted',
+          id: 'project-deleted',
           isDeleted: true,
           organizationId: 'alpha',
           userId: 'alice',
         },
-        { id: 'batch-other-org', organizationId: 'bravo', userId: 'bob' },
+        { id: 'project-other-org', organizationId: 'bravo', userId: 'bob' },
       ],
     });
     await prisma.turboRunItem.createMany({
       data: [
         {
-          turboRunId: 'batch-live',
+          turboRunId: 'project-live',
           data: turboRunItemData('row-1', 'turbo-project-item:item-1'),
           id: 'row-1',
           organizationId: 'alpha',
         },
         {
-          turboRunId: 'batch-deleted',
+          turboRunId: 'project-deleted',
           data: turboRunItemData('row-2', 'turbo-project-item:item-2'),
           id: 'row-2',
           organizationId: 'alpha',
         },
         {
-          turboRunId: 'batch-other-org',
+          turboRunId: 'project-other-org',
           data: turboRunItemData('row-3', 'turbo-project-item:item-3'),
           id: 'row-3',
           organizationId: 'bravo',
         },
         {
-          turboRunId: 'batch-live',
+          turboRunId: 'project-live',
           data: turboRunItemData('row-4', 'turbo-project-item:item-4'),
           id: 'row-4',
           isDeleted: true,
@@ -115,16 +115,16 @@ describe('Batch project review-batch lookup by source key (real Postgres)', () =
     }
   });
 
-  it('finds the live batch holding one of the source keys', async () => {
+  it('finds the live project holding one of the source keys', async () => {
     await expect(
       findReviewTurboRunIdBySourceKeys(prisma, 'alpha', [
         'turbo-project-item:unknown',
         'turbo-project-item:item-1',
       ]),
-    ).resolves.toBe('batch-live');
+    ).resolves.toBe('project-live');
   });
 
-  it('ignores removed batches, removed items and other organizations', async () => {
+  it('ignores removed projects, removed items and other organizations', async () => {
     for (const sourceKey of [
       'turbo-project-item:item-2',
       'turbo-project-item:item-3',

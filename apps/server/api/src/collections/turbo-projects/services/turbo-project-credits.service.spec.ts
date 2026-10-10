@@ -71,7 +71,7 @@ describe('TurboProjectCreditsService', () => {
     await expect(
       service.settle({
         actorUserId: 'user-1',
-        description: 'Batch idea',
+        description: 'Turbo idea',
         dispatch: byok,
         organizationId: 'org-1',
         source: ActivitySource.VIDEO_GENERATION,
@@ -87,7 +87,7 @@ describe('TurboProjectCreditsService', () => {
   it('charges exactly the accepted line on settlement', async () => {
     await service.settle({
       actorUserId: 'user-1',
-      description: 'Batch idea video generation',
+      description: 'Turbo idea video generation',
       dispatch: {
         ...dispatch,
         reservationId: 'reservation-1',
@@ -114,7 +114,7 @@ describe('TurboProjectCreditsService', () => {
     await expect(
       service.settle({
         actorUserId: 'user-1',
-        description: 'Batch idea',
+        description: 'Turbo idea',
         dispatch: { ...dispatch, reservationId: 'reservation-1' },
         organizationId: 'org-1',
         source: ActivitySource.VIDEO_GENERATION,

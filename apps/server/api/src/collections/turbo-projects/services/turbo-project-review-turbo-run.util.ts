@@ -2,8 +2,8 @@ import { scopedWhere } from '@api/index';
 import type { PrismaClient } from '@genfeedai/prisma';
 
 /**
- * The live review batch already holding one of these review sources, if any:
- * a batch whose creation committed before the project saved its id. Items
+ * The live review run already holding one of these review sources, if any:
+ * a project whose creation committed before the project saved its id. Items
  * carry their `sourceActionId` inside the typed row's `data` JSON.
  */
 export async function findReviewTurboRunIdBySourceKeys(

@@ -3394,7 +3394,7 @@
       },
       "studio": {
         "label": "Studio",
-        "description": "Storyboard, clips, and batch production surfaces."
+        "description": "Storyboard, clips, and Turbo production surfaces."
       },
       "workflows": {
         "label": "Workflows",
@@ -4067,9 +4067,9 @@
       "title": "Clips",
       "body": "Cut long videos into short clips with captions. Pick moments manually or let the agent find them."
     },
-    "studioBatch": {
-      "title": "Batch",
-      "body": "Generate many variants at once from a brief. Review the batch, keep the winners, and send them to the approval queue."
+    "studioTurbo": {
+      "title": "Turbo",
+      "body": "Generate many variants at once from a brief. Review the run, keep the winners, and send them to the approval queue."
     },
     "studioEditor": {
       "title": "Editor",
@@ -4629,13 +4629,13 @@
         "label": "Clips",
         "description": "Long-form video ingestion, highlight detection and short clip generation."
       },
-      "studio_batch": {
-        "label": "Batch",
-        "description": "Batch projects that produce many review drafts at once."
+      "studio_turbo": {
+        "label": "Turbo",
+        "description": "Turbo projects that produce many review drafts at once."
       },
-      "batch_ideas": {
-        "label": "Batch ideas",
-        "description": "Idea batches: turn brand data into a batch of content ideas."
+      "turbo_ideas": {
+        "label": "Turbo ideas",
+        "description": "Turbo idea projects: turn brand data into a set of content ideas."
       },
       "studio_editor": {
         "label": "Editor",
@@ -5092,36 +5092,36 @@
     "yourProjects": "Your Projects",
     "yourProjectsCount": "Your Projects ({count})"
   },
-  "batchProjects": {
-    "title": "Batch",
-    "new": "New batch",
-    "untitled": "Untitled batch",
+  "turboProjects": {
+    "title": "Turbo",
+    "new": "New project",
+    "untitled": "Untitled project",
     "open": "Open",
     "delete": "Delete",
     "actions": "Actions for {name}",
     "itemCount": "{count} items",
     "recent": "Recent",
-    "all": "All batches",
-    "empty": "Create a saved batch from ideas or a workflow.",
+    "all": "All projects",
+    "empty": "Create a saved project from ideas or a workflow.",
     "more": "Load more",
-    "name": "Batch name",
-    "fromIdeas": "Generate ideas",
-    "fromWorkflow": "Saved workflow",
-    "source": "How do you want to create this batch?",
+    "name": "Project name",
+    "fromIdeas": "From ideas",
+    "fromWorkflow": "From a workflow",
+    "source": "How do you want to create this project?",
     "ideasDescription": "Describe a topic, generate ideas, then turn them into content.",
     "workflowDescription": "Run a saved workflow for each image or video you add.",
     "workflowDisabled": "Enable Automation in organization settings to use saved workflows. A paid subscription is required to run them.",
     "manageModules": "Organization modules",
-    "ideasDisabled": "Idea batches are not available right now.",
+    "ideasDisabled": "Idea projects are not available right now.",
     "workflow": "Workflow",
     "chooseWorkflow": "Choose a workflow",
     "noWorkflows": "No saved workflows yet. Create a workflow or start from ideas.",
     "createWorkflow": "Create a workflow",
-    "create": "Create batch",
-    "loading": "Loading batch…",
-    "loadFailed": "Could not load batches.",
+    "create": "Create project",
+    "loading": "Loading project…",
+    "loadFailed": "Could not load projects.",
     "manageSubscription": "Manage subscription",
-    "saveFailed": "Could not save the batch. Try again.",
+    "saveFailed": "Could not save the project. Try again.",
     "saving": "Saving…",
     "saved": "Saved",
     "unsaved": "Changes not saved",
@@ -5141,7 +5141,7 @@
     "scheduleFor": "Publish time for {name}",
     "noAccounts": "Connect a publishing account in brand settings.",
     "scheduleApproved": "Schedule approved items",
-    "output": "Batch output",
+    "output": "Project output",
     "scheduled": "Scheduled",
     "caption": "Caption",
     "retryItem": "Retry item",
@@ -5154,7 +5154,7 @@
     "review": "Review",
     "schedule": "Schedule",
     "getQuote": "Review generation cost",
-    "startWorkflow": "Start workflow batch",
+    "startWorkflow": "Start workflow project",
     "quote": "Generation quote",
     "quoteTotal": "{credits} credits for {count} items. Only usable output is charged.",
     "credits": "credits",

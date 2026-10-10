@@ -13,7 +13,7 @@ export interface BrandReadinessResult {
 }
 
 /**
- * Checks whether a brand has the minimum configuration required to generate Batch ideas.
+ * Checks whether a brand has the minimum configuration required to generate Turbo ideas.
  *
  * Required for all formats:
  *  - Brand voice tone is set (agentConfig.voice.tone)

@@ -37,7 +37,7 @@ export const turboCommand = new Command('turbo').description('Turbo content gene
 
 turboCommand
   .command('create')
-  .description('Create a batch content generation job')
+  .description('Create a Turbo content generation job')
   .requiredOption('-n, --count <n>', 'Number of content pieces (1-100)', parsePositiveInteger)
   .requiredOption('-p, --platforms <list>', 'Comma-separated target platforms')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
@@ -61,7 +61,7 @@ turboCommand
         ? options.topics.split(',').map((t: string) => t.trim())
         : undefined;
 
-      const spinner = ora('Creating batch...').start();
+      const spinner = ora('Creating run...').start();
 
       const turboRun = await createTurboRun({
         brandId,
@@ -73,12 +73,12 @@ turboCommand
         topics,
       });
 
-      spinner.succeed('Batch created');
+      spinner.succeed('Turbo run created');
 
       if (options.json) {
         printJson(turboRun);
       } else {
-        print(formatLabel('Batch ID', turboRun.id));
+        print(formatLabel('Turbo run ID', turboRun.id));
         print(formatLabel('Status', turboRun.status));
         print(formatLabel('Count', String(turboRun.count)));
         print(formatLabel('Platforms', turboRun.platforms.join(', ')));
@@ -92,7 +92,7 @@ turboCommand
 
 turboCommand
   .command('list')
-  .description('List batch jobs')
+  .description('List run jobs')
   .option('--status <status>', `Filter by status (${TURBO_RUN_STATUS_VALUES.join(', ')})`)
   .option('-l, --limit <n>', 'Max items to return', parsePositiveInteger, 20)
   .option('--json', 'Output as JSON')
@@ -100,7 +100,7 @@ turboCommand
     try {
       await requireAuth();
 
-      const spinner = ora('Fetching batches...').start();
+      const spinner = ora('Fetching runs...').start();
       const turboRuns = await listTurboRuns({
         limit: options.limit,
         status: parseTurboRunStatusFilter(options.status),
@@ -108,7 +108,7 @@ turboCommand
       spinner.stop();
 
       if (turboRuns.length === 0) {
-        print(chalk.dim('No batches found.'));
+        print(chalk.dim('No runs found.'));
         return;
       }
 
@@ -140,14 +140,14 @@ turboCommand
 
 turboCommand
   .command('show')
-  .description('Show batch details')
-  .argument('<id>', 'Batch ID')
+  .description('Show run details')
+  .argument('<id>', 'Turbo run ID')
   .option('--json', 'Output as JSON')
   .action(async (id, options) => {
     try {
       await requireAuth();
 
-      const spinner = ora('Fetching batch...').start();
+      const spinner = ora('Fetching run...').start();
       const turboRun = await getTurboRun(id);
       spinner.stop();
 
@@ -201,8 +201,8 @@ turboCommand
 
 turboCommand
   .command('approve')
-  .description('Approve batch items')
-  .argument('<id>', 'Batch ID')
+  .description('Approve Turbo run items')
+  .argument('<id>', 'Turbo run ID')
   .argument('[itemIds...]', 'Specific item IDs to approve (all if omitted)')
   .option('--json', 'Output as JSON')
   .action(async (id, itemIds, options) => {
@@ -232,8 +232,8 @@ turboCommand
 
 turboCommand
   .command('reject')
-  .description('Reject batch items')
-  .argument('<id>', 'Batch ID')
+  .description('Reject Turbo run items')
+  .argument('<id>', 'Turbo run ID')
   .argument('[itemIds...]', 'Specific item IDs to reject (all if omitted)')
   .option('--json', 'Output as JSON')
   .action(async (id, itemIds, options) => {
@@ -259,16 +259,16 @@ turboCommand
 
 turboCommand
   .command('cancel')
-  .description('Cancel a running batch')
-  .argument('<id>', 'Batch ID')
+  .description('Cancel a running run')
+  .argument('<id>', 'Turbo run ID')
   .option('--json', 'Output as JSON')
   .action(async (id, options) => {
     try {
       await requireAuth();
 
-      const spinner = ora('Cancelling batch...').start();
+      const spinner = ora('Cancelling run...').start();
       await cancelTurboRun(id);
-      spinner.succeed('Batch cancelled');
+      spinner.succeed('Turbo run cancelled');
 
       if (options.json) {
         printJson({ turboRunId: id, status: TurboRunStatus.CANCELLED });

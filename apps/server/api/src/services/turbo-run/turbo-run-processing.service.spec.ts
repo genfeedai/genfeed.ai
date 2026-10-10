@@ -44,7 +44,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
       topics: ['launch week'],
       totalCount: 1,
     },
-    id: 'batch-1',
+    id: 'run-1',
     isDeleted: false,
     items: [baseItem],
     organizationId: 'org-1',
@@ -53,8 +53,8 @@ describe('TurboRunProcessingService post.create credentials', () => {
   };
 
   /**
-   * Repoint the batch delegate at a specific item set so a test can exercise
-   * multi-item batches or per-item platform shapes. `totalCount` follows the
+   * Repoint the run delegate at a specific item set so a test can exercise
+   * multi-item runs or per-item platform shapes. `totalCount` follows the
    * item count so the PARTIAL/COMPLETED branch resolves the way it does in
    * production.
    */
@@ -104,7 +104,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
       toTurboRunSummary: vi.fn().mockResolvedValue({
         completedCount: 1,
         failedCount: 0,
-        id: 'batch-1',
+        id: 'run-1',
         items: [],
         pendingCount: 0,
         status: TurboRunStatus.COMPLETED,
@@ -189,7 +189,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
       reviewed = true;
       return [{ content: 'Caption' }];
     });
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
     const payload = turboRunDelegate.updateMany.mock.calls.at(-1)?.[0]?.data;
     expect(payload.items[0]).toMatchObject({
       reviewDecision: 'approved',
@@ -199,13 +199,13 @@ describe('TurboRunProcessingService post.create credentials', () => {
     });
   });
 
-  it('attributes every generated draft to its batch strategy', async () => {
+  it('attributes every generated draft to its run strategy', async () => {
     turboRunDelegate.findFirst.mockResolvedValue({
       ...turboRunRecord,
       agentStrategyId: 'strategy',
       items: [{ ...baseItem }, { ...baseItem, id: 'item-2' }],
     });
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
     expect(postsService.create).toHaveBeenCalledTimes(2);
     for (const [post] of postsService.create.mock.calls) {
       expect(post).toMatchObject({
@@ -216,7 +216,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
   });
 
   it('resolves a connected brand credential with Prisma SCREAMING platform', async () => {
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -249,7 +249,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
   it('creates an untargeted draft when no credential matches', async () => {
     credentialDelegate.findMany.mockResolvedValue([]);
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(postsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -271,7 +271,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
       ),
     );
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(turboRunDelegate.updateMany).toHaveBeenCalled();
     const lastUpdate = turboRunDelegate.updateMany.mock.calls.at(-1)?.[0];
@@ -284,7 +284,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
     // normalize should catch most cases; this is the process-time backstop.
     useTurboRunItems([{ ...baseItem, platform: 'myspace' }]);
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
     expect(credentialDelegate.findMany).not.toHaveBeenCalled();
@@ -339,7 +339,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
       }),
     );
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(contentGeneratorService.generateContent).toHaveBeenCalledTimes(2);
 
@@ -361,7 +361,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
   it('skips the credential lookup when the item has a blank platform', async () => {
     useTurboRunItems([{ ...baseItem, platform: '   ' }]);
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(credentialDelegate.findMany).not.toHaveBeenCalled();
     const created = postsService.create.mock.calls[0]?.[0];
@@ -375,7 +375,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
       { id: 'cred-google-ads-1' },
     ]);
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -400,7 +400,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
     useTurboRunItems([{ ...baseItem, platform: 'dev-to' }]);
     credentialDelegate.findMany.mockResolvedValue([{ id: 'cred-devto-1' }]);
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -422,7 +422,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
     useTurboRunItems([{ ...baseItem, platform: 'X' }]);
     credentialDelegate.findMany.mockResolvedValue([{ id: 'cred-twitter-1' }]);
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -447,14 +447,14 @@ describe('TurboRunProcessingService post.create credentials', () => {
       ),
     );
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     const error = finalUpdatePayload().items?.[0]?.error;
     expect(error).toBe('Post creation rejected by validation');
     expect(error).not.toContain('at PostsService.create');
   });
 
-  it('isolates per-item failures and finalizes a mixed batch as PARTIAL', async () => {
+  it('isolates per-item failures and finalizes a mixed run as PARTIAL', async () => {
     useTurboRunItems([
       { ...baseItem, id: 'item-1' },
       { ...baseItem, id: 'item-2' },
@@ -465,7 +465,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
         new Error('Null constraint violation on the fields: (`credentialId`)'),
       );
 
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     const payload = finalUpdatePayload();
     expect(payload.status).toBe('PARTIAL');
@@ -483,7 +483,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
 });
 
 /**
- * Resume path (#2501): an API reload used to leave a batch PROCESSING with
+ * Resume path (#2501): an API reload used to leave a run PROCESSING with
  * nothing left to finish it. These cover the claim, what a resumed run keeps,
  * and what it regenerates.
  */
@@ -500,7 +500,7 @@ describe('TurboRunProcessingService resume', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  /** A batch the previous run got halfway through before it was killed. */
+  /** A run the previous run got halfway through before it was killed. */
   const strandedItems = [
     {
       format: ContentFormat.IMAGE,
@@ -522,7 +522,7 @@ describe('TurboRunProcessingService resume', () => {
   const strandedTurboRun = {
     brandId: 'brand-1',
     config: { resumeCount: 1, topics: ['launch week'], totalCount: 2 },
-    id: 'batch-1',
+    id: 'run-1',
     isDeleted: false,
     items: strandedItems,
     organizationId: 'org-1',
@@ -593,7 +593,7 @@ describe('TurboRunProcessingService resume', () => {
             toTurboRunSummary: vi.fn().mockResolvedValue({
               completedCount: 2,
               failedCount: 0,
-              id: 'batch-1',
+              id: 'run-1',
               items: [],
               pendingCount: 0,
               status: TurboRunStatus.COMPLETED,
@@ -607,13 +607,13 @@ describe('TurboRunProcessingService resume', () => {
     service = module.get(TurboRunProcessingService);
   });
 
-  it('reclaims a PROCESSING batch whose lease has gone stale', async () => {
-    await service.processTurboRun('batch-1', 'org-1');
+  it('reclaims a PROCESSING run whose lease has gone stale', async () => {
+    await service.processTurboRun('run-1', 'org-1');
 
     const reclaim = turboRunDelegate.updateMany.mock.calls[1]?.[0];
     expect(reclaim?.where).toEqual(
       expect.objectContaining({
-        id: 'batch-1',
+        id: 'run-1',
         organizationId: 'org-1',
         status: TurboRunStatus.PROCESSING,
         updatedAt: { lt: expect.any(Date) },
@@ -622,7 +622,7 @@ describe('TurboRunProcessingService resume', () => {
   });
 
   it('regenerates only the item the dead run left in flight', async () => {
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     // item-1 already landed a post; regenerating it would bill it twice.
     expect(postsService.create).toHaveBeenCalledOnce();
@@ -632,7 +632,7 @@ describe('TurboRunProcessingService resume', () => {
   });
 
   it('keeps the finished item and its post id through the resume', async () => {
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     const finalUpdate = turboRunDelegate.updateMany.mock.calls.at(-1)?.[0];
     const items = finalUpdate?.data?.items as Array<{
@@ -649,7 +649,7 @@ describe('TurboRunProcessingService resume', () => {
   });
 
   it('seeds the counters from what was already persisted', async () => {
-    await service.processTurboRun('batch-1', 'org-1');
+    await service.processTurboRun('run-1', 'org-1');
 
     const finalUpdate = turboRunDelegate.updateMany.mock.calls.at(-1)?.[0];
     const config = finalUpdate?.data?.config as {
@@ -662,11 +662,11 @@ describe('TurboRunProcessingService resume', () => {
     expect(config.resumeCount).toBe(2);
   });
 
-  it('refuses the batch when neither claim wins', async () => {
+  it('refuses the run when neither claim wins', async () => {
     turboRunDelegate.updateMany.mockReset();
     turboRunDelegate.updateMany.mockResolvedValue({ count: 0 });
 
-    await expect(service.processTurboRun('batch-1', 'org-1')).rejects.toThrow(
+    await expect(service.processTurboRun('run-1', 'org-1')).rejects.toThrow(
       /already being processed/iu,
     );
     expect(postsService.create).not.toHaveBeenCalled();

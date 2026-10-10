@@ -27,24 +27,24 @@ const REFUND_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 /** Compare-and-swap retries before a settlement gives up for this tick. */
 const SETTLE_MAX_ATTEMPTS = 3;
 
-/** Durable credit-ledger idempotency namespace for a batch's one settlement. */
+/** Durable credit-ledger idempotency namespace for a run's one settlement. */
 const TURBO_RUN_SETTLEMENT_REFERENCE_TYPE = 'turbo-run:settlement';
 
 export type TurboRunCreditsSettlement = {
   /** Extra credits deducted to reach the price of what landed. */
   additionalCredits: number;
-  /** True when another settlement already owned this batch — nothing moved. */
+  /** True when another settlement already owned this run — nothing moved. */
   isAlreadySettled: boolean;
   /** Credits handed back because the up-front estimate overshot. */
   refundCredits: number;
-  /** Net credits this batch is billed, after settlement. */
+  /** Net credits this run is billed, after settlement. */
   settledCredits: number;
 };
 
 /**
- * Owns the credit ledger on a batch.
+ * Owns the credit ledger on a run.
  *
- * The JSON ledger is the batch's settlement claim. Ordinarily its
+ * The JSON ledger is the run's settlement claim. Ordinarily its
  * `chargedCredits` matches credits already moved; if a post-claim deduction
  * fails, the typed `settlementShortfall` column is the durable exception.
  * Replaying settlement still moves nothing, and only that stored marker may
@@ -61,7 +61,7 @@ export class TurboRunCreditsService {
 
   /**
    * Pin the preflight amount and pricing before work starts. New callers also
-   * persist the reservation identity; legacy in-flight batches retain the old
+   * persist the reservation identity; legacy in-flight runs retain the old
    * up-front-charge settlement behavior until they finish.
    */
   async recordUpfrontCharge(params: {
@@ -117,9 +117,9 @@ export class TurboRunCreditsService {
   }
 
   /**
-   * Reconcile the batch to the price of the drafts that actually landed.
+   * Reconcile the run to the price of the drafts that actually landed.
    *
-   * Safe to call more than once for the same batch: the ledger swap is the
+   * Safe to call more than once for the same run: the ledger swap is the
    * gate, and a caller that loses it moves no credits at all.
    */
   async settleTurboRunCredits(params: {
@@ -162,7 +162,7 @@ export class TurboRunCreditsService {
         };
       }
 
-      // Bill completed drafts only, at the rates captured when the batch was
+      // Bill completed drafts only, at the rates captured when the run was
       // created — media-aware, so an item that gained a mediaUrl costs more.
       const billableItems = resolveTurboRunItems(turboRun)
         .filter(
@@ -290,7 +290,7 @@ export class TurboRunCreditsService {
     }
 
     if (settledCredits > 0) {
-      // A reservation may only settle up to its held amount. Batch pricing
+      // A reservation may only settle up to its held amount. Turbo run pricing
       // starts caption-only, so media attached during processing can make
       // the final cost higher. Settle the hold itself, then collect the
       // reviewed overage through the existing idempotent shortfall path.
@@ -469,7 +469,7 @@ export class TurboRunCreditsService {
           settlementShortfallSeq: params.settlementShortfallSeq,
         },
         tags: {
-          operation: 'batch-credit-settlement-marker',
+          operation: 'run-credit-settlement-marker',
         },
       });
       this.logger.error(
@@ -559,8 +559,8 @@ export class TurboRunCreditsService {
     settlementShortfall: number;
     userId: string;
   }): Promise<void> {
-    // The reference is scoped to one settlement occurrence, not the batch: a
-    // resumed batch legitimately settles again with a new delta, and that new
+    // The reference is scoped to one settlement occurrence, not the run: a
+    // resumed run legitimately settles again with a new delta, and that new
     // occurrence must charge rather than match the previous occurrence's
     // transaction. Retries of the SAME occurrence (the shortfall sweep, or an
     // ambiguous failure after the deduction committed) reuse the same seq and
@@ -618,7 +618,7 @@ export class TurboRunCreditsService {
               settlementShortfall: params.settlementShortfall,
             },
             tags: {
-              operation: 'batch-credit-settlement-marker',
+              operation: 'run-credit-settlement-marker',
             },
           },
         );
@@ -652,7 +652,7 @@ export class TurboRunCreditsService {
         settlementShortfall: params.settlementShortfall,
       },
       tags: {
-        operation: 'batch-credit-settlement',
+        operation: 'run-credit-settlement',
       },
     });
 

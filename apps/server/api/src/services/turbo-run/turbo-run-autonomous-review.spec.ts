@@ -50,7 +50,7 @@ function fixture() {
   const calls: string[] = [];
   let turboRunUpdatedAt = new Date('2026-09-20T00:00:00Z');
   const turboRun = () => ({
-    id: 'batch-1',
+    id: 'run-1',
     brandId: 'brand-1',
     organizationId: 'org-1',
     userId: 'user-1',
@@ -62,7 +62,7 @@ function fixture() {
   const tx = {
     $queryRaw: vi.fn(async () => {
       calls.push('lock');
-      return [{ id: 'batch-1' }];
+      return [{ id: 'run-1' }];
     }),
     turboRun: {
       findFirst: vi.fn(async () => {
@@ -97,7 +97,7 @@ function fixture() {
       updateMany: vi.fn(async () => ({ count: 1 })),
     },
   };
-  // Transactions queue like the database's batch row lock; concurrent review calls must reload after their predecessor commits.
+  // Transactions queue like the database's run row lock; concurrent review calls must reload after their predecessor commits.
   let tail = Promise.resolve();
   const prisma = {
     $transaction: <T>(fn: (client: typeof tx) => Promise<T>) => {
@@ -197,7 +197,7 @@ describe('Autonomous review transaction boundary', () => {
   it('applies rewrites as edits, invalidates approval, and leaves publication in draft', async () => {
     const f = fixture();
     vi.spyOn(f.service, 'getTurboRun').mockResolvedValue({
-      id: 'batch-1',
+      id: 'run-1',
       items: [],
     } as unknown as ITurboRunSummary);
     f.current().item.reviewDecision = ReviewDecision.APPROVED;
@@ -213,7 +213,7 @@ describe('Autonomous review transaction boundary', () => {
     );
     const expectedDate = new Date('2026-09-20T00:00:00Z');
     await f.service.applyRewrites(
-      'batch-1',
+      'run-1',
       'org-1',
       'user-1',
       new Map([['item-1', 'Rewritten caption']]),
@@ -273,23 +273,23 @@ describe('Autonomous review transaction boundary', () => {
     );
   });
 
-  it('allows unrelated batch updates after the post snapshot', async () => {
+  it('allows unrelated run updates after the post snapshot', async () => {
     const f = fixture();
     vi.spyOn(f.service, 'getTurboRun').mockResolvedValue({
-      id: 'batch-1',
+      id: 'run-1',
       items: [],
     } as unknown as ITurboRunSummary);
     const versions = new Map([['post-1', f.current().post.updatedAt]]);
     f.updateUnrelatedTurboRun();
     await expect(
       f.service.applyRewrites(
-        'batch-1',
+        'run-1',
         'org-1',
         'user-1',
         new Map([['item-1', 'New']]),
         versions,
       ),
-    ).resolves.toMatchObject({ id: 'batch-1' });
+    ).resolves.toMatchObject({ id: 'run-1' });
     expect(f.current().item.caption).toBe('New');
     expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
   });
@@ -297,12 +297,12 @@ describe('Autonomous review transaction boundary', () => {
   it('records the rewrite job on the review event in the apply transaction', async () => {
     const f = fixture();
     vi.spyOn(f.service, 'getTurboRun').mockResolvedValue({
-      id: 'batch-1',
+      id: 'run-1',
       items: [],
     } as unknown as ITurboRunSummary);
 
     await f.service.applyRewrites(
-      'batch-1',
+      'run-1',
       'org-1',
       'user-1',
       new Map([['item-1', 'New']]),
@@ -334,7 +334,7 @@ describe('Autonomous review transaction boundary', () => {
     f.current().item.reviewDecision = ReviewDecision.REJECTED;
     await expect(
       f.service.applyRewrites(
-        'batch-1',
+        'run-1',
         'org-1',
         'user-1',
         new Map([['item-1', 'New']]),
@@ -351,11 +351,11 @@ describe('Autonomous review transaction boundary', () => {
     const f = fixture();
     f.current().item.reviewDecision = ReviewDecision.APPROVED;
     vi.spyOn(f.service, 'getTurboRun').mockResolvedValue({
-      id: 'batch-1',
+      id: 'run-1',
       items: [],
     } as unknown as ITurboRunSummary);
     await f.service.applyRewrites(
-      'batch-1',
+      'run-1',
       'org-1',
       'user-1',
       new Map([['item-1', 'New']]),
@@ -371,7 +371,7 @@ describe('Autonomous review transaction boundary', () => {
     f.current().post.updatedAt = new Date('2026-09-27T00:00:00Z');
     await expect(
       f.service.applyRewrites(
-        'batch-1',
+        'run-1',
         'org-1',
         'user-1',
         new Map([['item-1', 'New']]),
@@ -390,7 +390,7 @@ describe('Autonomous review transaction boundary', () => {
   it('expires a pending draft without ever creating a publish grant', async () => {
     const f = fixture();
     expect(
-      await f.service.expireAutonomousReviewTurboRun('batch-1', 'org-1'),
+      await f.service.expireAutonomousReviewTurboRun('run-1', 'org-1'),
     ).toEqual(['post-1']);
     expect(f.calls.slice(0, 2)).toEqual(['lock', 'read']);
     expect(f.approvals.createForCurrentPost).not.toHaveBeenCalled();
@@ -404,7 +404,7 @@ describe('Autonomous review transaction boundary', () => {
       f.tx,
       expect.objectContaining({ expired: true, postId: 'post-1' }),
     );
-    // Recorded inside the batch transaction, so it commits with the expiry.
+    // Recorded inside the run transaction, so it commits with the expiry.
     expect(f.activityRecorder.recordInTransaction).toHaveBeenCalledWith(
       f.tx,
       reviewActivity,
@@ -415,7 +415,7 @@ describe('Autonomous review transaction boundary', () => {
     interactive.current().post.agentStrategyId = '';
     expect(
       await interactive.service.expireAutonomousReviewTurboRun(
-        'batch-1',
+        'run-1',
         'org-1',
         new Date('2026-09-24T00:00:00Z'),
       ),
@@ -428,7 +428,7 @@ describe('Autonomous review transaction boundary', () => {
     });
     expect(
       await delayed.service.expireAutonomousReviewTurboRun(
-        'batch-1',
+        'run-1',
         'org-1',
         new Date('2026-09-24T00:00:00Z'),
       ),
@@ -439,8 +439,8 @@ describe('Autonomous review transaction boundary', () => {
   it('expiration winning the lock makes a racing approval a replay without a grant', async () => {
     const f = fixture();
     await Promise.all([
-      f.service.expireAutonomousReviewTurboRun('batch-1', 'org-1'),
-      f.service.approveItems('batch-1', ['item-1'], 'org-1', 'user-1'),
+      f.service.expireAutonomousReviewTurboRun('run-1', 'org-1'),
+      f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1'),
     ]);
     expect(f.approvals.createForCurrentPost).not.toHaveBeenCalled();
     expect(f.current().post.targetExecutionState).toBe(
@@ -450,10 +450,10 @@ describe('Autonomous review transaction boundary', () => {
   it('approval winning the lock prevents expiry and repeated approval cannot mint another grant', async () => {
     const f = fixture();
     await Promise.all([
-      f.service.approveItems('batch-1', ['item-1'], 'org-1', 'user-1'),
-      f.service.expireAutonomousReviewTurboRun('batch-1', 'org-1'),
+      f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1'),
+      f.service.expireAutonomousReviewTurboRun('run-1', 'org-1'),
     ]);
-    await f.service.approveItems('batch-1', ['item-1'], 'org-1', 'user-1');
+    await f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1');
     expect(f.approvals.createForCurrentPost).toHaveBeenCalledTimes(1);
     expect(f.policy.recordReviewDecision).toHaveBeenCalledTimes(1);
     expect(f.approvals.invalidatePost).not.toHaveBeenCalled();
@@ -466,7 +466,7 @@ describe('Autonomous review transaction boundary', () => {
     const stale = { 'post-1': '2026-09-19T00:00:00.000Z' };
     await expect(
       f.service.approveItems(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'org-1',
         'user-1',
@@ -476,7 +476,7 @@ describe('Autonomous review transaction boundary', () => {
     ).rejects.toThrow('older draft version');
     await expect(
       f.service.rejectItems(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'org-1',
         undefined,
@@ -493,7 +493,7 @@ describe('Autonomous review transaction boundary', () => {
     const expected = { 'original-post': '2026-09-20T00:00:00.000Z' };
     await expect(
       f.service.approveItems(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'org-1',
         'user-1',
@@ -503,7 +503,7 @@ describe('Autonomous review transaction boundary', () => {
     ).rejects.toThrow('expected draft');
     await expect(
       f.service.rejectItems(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'org-1',
         undefined,
@@ -514,7 +514,7 @@ describe('Autonomous review transaction boundary', () => {
     delete f.current().item.postId;
     await expect(
       f.service.approveItems(
-        'batch-1',
+        'run-1',
         ['item-1'],
         'org-1',
         'user-1',
@@ -529,7 +529,7 @@ describe('Autonomous review transaction boundary', () => {
   it('denies autonomous approval inside the transaction even when invoked directly', async () => {
     const f = fixture();
     await expect(
-      f.service.approveItems('batch-1', ['item-1'], 'org-1', 'user-1', true),
+      f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1', true),
     ).rejects.toThrow('explicit policy');
     expect(f.approvals.createForCurrentPost).not.toHaveBeenCalled();
     expect(f.policy.recordReviewDecision).not.toHaveBeenCalled();
@@ -541,7 +541,7 @@ describe('Autonomous review transaction boundary', () => {
       result: { decision: AgentPublishDecision.PERMITTED },
     });
     await f.service.approveItems(
-      'batch-1',
+      'run-1',
       ['item-1'],
       'org-1',
       'user-1',

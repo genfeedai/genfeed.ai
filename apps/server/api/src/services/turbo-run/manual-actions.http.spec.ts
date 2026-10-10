@@ -52,7 +52,7 @@ describe('Manual actions HTTP routes', () => {
     getDeduplicationJobId: vi.fn().mockResolvedValue(null),
     getJob: vi.fn(),
   };
-  const approveItems = vi.fn().mockResolvedValue({ id: 'batch-1', items: [] });
+  const approveItems = vi.fn().mockResolvedValue({ id: 'run-1', items: [] });
   const credits = {
     admit: vi.fn(async () => {
       if (!hasCredits) throw new HttpException('Insufficient credits', 402);
@@ -73,7 +73,7 @@ describe('Manual actions HTTP routes', () => {
         }) =>
           where.organizationId === 'org-1' && where.isDeleted === false
             ? {
-                id: 'batch-1',
+                id: 'run-1',
                 brandId: 'brand-1',
                 updatedAt: date,
                 items: [
@@ -189,11 +189,11 @@ describe('Manual actions HTTP routes', () => {
 
   it('queues the rewrite and answers 202 before any caption is generated', async () => {
     const response = await request(app.getHttpServer())
-      .post('/turbo-runs/batch-1/rewrite-jobs')
+      .post('/turbo-runs/run-1/rewrite-jobs')
       .send({ itemIds: ['item-1'] })
       .expect(202);
     expect(response.body).toMatchObject({
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       itemIds: ['item-1'],
       status: 'queued',
     });
@@ -210,9 +210,9 @@ describe('Manual actions HTTP routes', () => {
       }),
     );
   });
-  it('returns 404 across organizations for batch rewrite', async () => {
+  it('returns 404 across organizations for Turbo rewrite', async () => {
     await request(app.getHttpServer())
-      .post('/turbo-runs/batch-1/rewrite-jobs')
+      .post('/turbo-runs/run-1/rewrite-jobs')
       .set('x-test-org', 'org-2')
       .send({ itemIds: ['item-1'] })
       .expect(404);
@@ -221,7 +221,7 @@ describe('Manual actions HTTP routes', () => {
   it("hides another organization's rewrite progress", async () => {
     rewriteQueue.getJob.mockResolvedValue({
       data: {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         itemIds: ['item-1'],
         organizationId: 'org-2',
       },
@@ -231,28 +231,28 @@ describe('Manual actions HTTP routes', () => {
       returnvalue: null,
     });
     await request(app.getHttpServer())
-      .get('/turbo-runs/batch-1/rewrite-jobs/job-1')
+      .get('/turbo-runs/run-1/rewrite-jobs/job-1')
       .expect(404);
     await request(app.getHttpServer())
-      .post('/turbo-runs/batch-1/rewrite-jobs/job-1/cancel')
+      .post('/turbo-runs/run-1/rewrite-jobs/job-1/cancel')
       .expect(404);
   });
   it('guards rewrite credits while keeping approval free', async () => {
     hasCredits = false;
     await request(app.getHttpServer())
-      .post('/turbo-runs/batch-1/rewrite-jobs')
+      .post('/turbo-runs/run-1/rewrite-jobs')
       .send({ itemIds: ['item-1'] })
       .expect(402);
     expect(rewriteQueue.add).not.toHaveBeenCalled();
     await request(app.getHttpServer())
-      .post('/turbo-runs/batch-1/items/action')
+      .post('/turbo-runs/run-1/items/action')
       .send({ action: 'approve', itemIds: ['item-1'] })
       .expect(200);
     expect(approveItems).toHaveBeenCalledOnce();
   });
   it('no longer rewrites synchronously through the item action route', async () => {
     await request(app.getHttpServer())
-      .post('/turbo-runs/batch-1/items/action')
+      .post('/turbo-runs/run-1/items/action')
       .send({ action: 'rewrite', itemIds: ['item-1'] })
       .expect(400);
     expect(enhanceDescription).not.toHaveBeenCalled();

@@ -59,7 +59,7 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-const makeMockTurboRun = (id = 'batch-1') => ({
+const makeMockTurboRun = (id = 'run-1') => ({
   id,
   items: [],
   status: 'PENDING',
@@ -121,7 +121,7 @@ describe('TurboRunsService', () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  it('continues logging genuine batch API failures', async () => {
+  it('continues logging genuine run API failures', async () => {
     const error = {
       errors: [{ status: '500', title: 'Internal Server Error' }],
     };
@@ -131,14 +131,14 @@ describe('TurboRunsService', () => {
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it('getTurboRun fetches a single batch by id', async () => {
+  it('getTurboRun fetches a single run by id', async () => {
     mockInstance.get.mockResolvedValue({
-      data: { data: makeMockTurboRun('batch-42') },
+      data: { data: makeMockTurboRun('run-42') },
     });
 
-    const result = await service.getTurboRun('batch-42');
+    const result = await service.getTurboRun('run-42');
 
-    expect(mockInstance.get).toHaveBeenCalledWith('/batch-42');
+    expect(mockInstance.get).toHaveBeenCalledWith('/run-42');
     expect(result).toBeDefined();
   });
 
@@ -170,10 +170,10 @@ describe('TurboRunsService', () => {
     };
     mockInstance.post.mockResolvedValue({ data: { data: makeMockTurboRun() } });
 
-    await service.itemAction('batch-1', req);
+    await service.itemAction('run-1', req);
 
     expect(mockInstance.post).toHaveBeenCalledWith(
-      '/batch-1/items/action',
+      '/run-1/items/action',
       req,
     );
   });
@@ -181,10 +181,10 @@ describe('TurboRunsService', () => {
   it('assignItem POSTs to /:turboRunId/items/:itemId/assign', async () => {
     mockInstance.post.mockResolvedValue({ data: { data: makeMockTurboRun() } });
 
-    await service.assignItem('batch-1', 'item-1', 'user-1');
+    await service.assignItem('run-1', 'item-1', 'user-1');
 
     expect(mockInstance.post).toHaveBeenCalledWith(
-      '/batch-1/items/item-1/assign',
+      '/run-1/items/item-1/assign',
       { assigneeId: 'user-1' },
     );
   });
@@ -192,19 +192,19 @@ describe('TurboRunsService', () => {
   it('unassignItem POSTs to /:turboRunId/items/:itemId/unassign', async () => {
     mockInstance.post.mockResolvedValue({ data: { data: makeMockTurboRun() } });
 
-    await service.unassignItem('batch-1', 'item-1');
+    await service.unassignItem('run-1', 'item-1');
 
     expect(mockInstance.post).toHaveBeenCalledWith(
-      '/batch-1/items/item-1/unassign',
+      '/run-1/items/item-1/unassign',
     );
   });
 
   it('cancelTurboRun PATCHes /:id with status cancelled', async () => {
     mockInstance.patch.mockResolvedValue({ data: { data: makeMockTurboRun() } });
 
-    await service.cancelTurboRun('batch-99');
+    await service.cancelTurboRun('run-99');
 
-    expect(mockInstance.patch).toHaveBeenCalledWith('/batch-99', {
+    expect(mockInstance.patch).toHaveBeenCalledWith('/run-99', {
       status: 'CANCELLED',
     });
   });

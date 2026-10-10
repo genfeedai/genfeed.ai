@@ -91,7 +91,7 @@ export function expandTurboRunTopics(input: ExpandTurboRunTopicsInput): string[]
 
 /**
  * Build additionalContext lines that force the caption model to diverge
- * from posts already written in this batch.
+ * from posts already written in this run.
  */
 export function buildTurboRunDiversityContext(options: {
   index: number;
@@ -117,9 +117,9 @@ export function buildTurboRunDiversityContext(options: {
   if (prior.length > 0) {
     // One string per caption. SecurityUtil.sanitizePromptInputArray caps
     // each element (300–500 chars); a joined list of 8 captions was truncated
-    // mid-sentence and silently gutted diversity for later batch items.
+    // mid-sentence and silently gutted diversity for later Turbo run items.
     lines.push(
-      'Already generated in this batch (do not rewrite, paraphrase, or lightly edit):',
+      'Already generated in this run (do not rewrite, paraphrase, or lightly edit):',
     );
     for (const [index, caption] of prior.entries()) {
       lines.push(`${index + 1}. ${caption}`);

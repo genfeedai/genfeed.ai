@@ -213,7 +213,7 @@ export class TurboContentService implements OnModuleInit {
   private readForEachResult(value: unknown): ForEachResult {
     const record = this.readRecord(value, 'turboRun');
     if (!Array.isArray(record.results)) {
-      throw new Error('Batch content workflow requires generated results');
+      throw new Error('Turbo content workflow requires generated results');
     }
     return {
       count: this.requiredNumber(record.count, 'count'),

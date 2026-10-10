@@ -93,7 +93,7 @@ export class TurboRunReviewService {
    *
    * Counts and recent ready items come from typed `turbo_run_items` columns —
    * `groupBy` for the counters and a capped `findMany` for the preview strip.
-   * The previous path loaded every batch JSON blob and filtered in JS.
+   * The previous path loaded every run JSON blob and filtered in JS.
    */
   async getReviewInboxSummary(
     orgId: string,
@@ -437,7 +437,7 @@ export class TurboRunReviewService {
   }
 
   /**
-   * Feeds human rejections/change-requests on generated batch items back
+   * Feeds human rejections/change-requests on generated Turbo run items back
    * into the brand's harness profile (anti-examples) so future generations
    * avoid repeating the rejected pattern. Fire-and-forget: the harness
    * service never throws, but this is still not awaited so a slow or failed
@@ -708,7 +708,7 @@ export class TurboRunReviewService {
                 occurredAt: now,
               })
             : null;
-        // Committed with the batch; the delivery sweep sends the email.
+        // Committed with the run; the delivery sweep sends the email.
         if (review)
           await this.activityRecorder.recordInTransaction(transaction, review);
         expired.push(post.id);
@@ -837,7 +837,7 @@ export class TurboRunReviewService {
   }
 
   /**
-   * Update a batch by ID. Status transitions to CANCELLED are routed
+   * Update a run by ID. Status transitions to CANCELLED are routed
    * through cancelTurboRun() to preserve its guard (tenant-scoped existence
    * check via findOrThrow) and cascade (marking pending items as skipped).
    */
@@ -930,7 +930,7 @@ export class TurboRunReviewService {
     const turboRunItems = resolveTurboRunItems(turboRunRecord);
     const target = turboRunItems.find((item) => item.id === itemId);
     if (!target) {
-      throw new NotFoundException('Batch item', itemId);
+      throw new NotFoundException('Turbo run item', itemId);
     }
 
     target.assigneeId = assigneeId;

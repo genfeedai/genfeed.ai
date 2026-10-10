@@ -31,7 +31,7 @@ export class TurboRunReviewLockService implements OnModuleDestroy {
       min: 0,
     });
     this.pool.on('error', () =>
-      logger.warn('Batch review lock connection failed'),
+      logger.warn('Turbo run review lock connection failed'),
     );
   }
 

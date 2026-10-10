@@ -1,5 +1,5 @@
 /**
- * Batch lifecycle statuses.
+ * Turbo run lifecycle statuses.
  *
  * Values MUST match the Prisma/Postgres `TurboRunStatus` enum exactly
  * (SCREAMING_SNAKE). Do not reintroduce lowercase wire values — that dual
@@ -21,7 +21,7 @@ export enum TurboRunStatus {
 /**
  * Per-item status. Values MUST match the Prisma/Postgres `TurboRunItemStatus`
  * enum exactly (SCREAMING_SNAKE). The payload still lives on `TurboRunItem.data`
- * / `Batch.items`; status itself is a typed column.
+ * / `Turbo run.items`; status itself is a typed column.
  *
  * @see packages/prisma/prisma/schema.prisma `enum TurboRunItemStatus`
  */
@@ -34,7 +34,7 @@ export enum TurboRunItemStatus {
 }
 
 /**
- * Studio Batch project kind (#5463). Values match Prisma `TurboProjectKind`.
+ * Studio Turbo project kind (#5463). Values match Prisma `TurboProjectKind`.
  *
  * @see packages/prisma/prisma/schema.prisma `enum TurboProjectKind`
  */
@@ -44,7 +44,7 @@ export enum TurboProjectKind {
 }
 
 /**
- * Studio Batch project lifecycle. Values match Prisma `TurboProjectStatus`.
+ * Studio Turbo project lifecycle. Values match Prisma `TurboProjectStatus`.
  *
  * @see packages/prisma/prisma/schema.prisma `enum TurboProjectStatus`
  */
@@ -59,7 +59,7 @@ export enum TurboProjectStatus {
 }
 
 /**
- * Per-item state of a Studio Batch project. Values match Prisma
+ * Per-item state of a Studio Turbo project. Values match Prisma
  * `TurboProjectItemStatus`.
  *
  * @see packages/prisma/prisma/schema.prisma `enum TurboProjectItemStatus`
@@ -74,7 +74,7 @@ export enum TurboProjectItemStatus {
 }
 
 /**
- * Wizard step a Studio Batch project reopens at. Persisted in the
+ * Wizard step a Studio Turbo project reopens at. Persisted in the
  * `turbo_projects.step` String column as lowercase product vocabulary.
  */
 export enum TurboProjectStep {
@@ -105,7 +105,7 @@ export enum ReferenceImageCategory {
 }
 
 /**
- * Lifecycle of a background Review batch rewrite (#5365). Not persisted in
+ * Lifecycle of a background Review run rewrite (#5365). Not persisted in
  * Postgres: the BullMQ job state is the source of truth, so these are API wire
  * values only.
  */
@@ -118,12 +118,12 @@ export enum TurboRewriteJobStatus {
   CANCELLED = 'cancelled',
 }
 
-/** Why one item of a background batch rewrite was not rewritten. */
+/** Why one item of a background Turbo rewrite was not rewritten. */
 export enum TurboRewriteItemFailureReason {
   /** The draft changed after the rewrite was queued (per-post optimistic lock). */
   CONFLICT = 'conflict',
   INSUFFICIENT_CREDITS = 'insufficient_credits',
-  /** Published, publishing, skipped, cancelled, or no longer in the batch. */
+  /** Published, publishing, skipped, cancelled, or no longer in the run. */
   NOT_REWRITABLE = 'not_rewritable',
   GENERATION_FAILED = 'generation_failed',
 }

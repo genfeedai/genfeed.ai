@@ -13,9 +13,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-/** Workflow batches run at most this many inputs, matching the batch runner. */
+/** Workflow projects run at most this many inputs, matching the project runner. */
 export const TURBO_PROJECT_MAX_INPUTS = 100;
-/** Idea batches hold at most one full idea set per format. */
+/** Idea projects hold at most one full idea set per format. */
 export const TURBO_PROJECT_MAX_IDEAS = 27;
 
 export class TurboProjectIdeaDto {
@@ -63,7 +63,7 @@ export class TurboProjectInputDto {
 
 export class AddTurboProjectItemsDto {
   @ApiPropertyOptional({
-    description: 'Replaces the idea batch ideas',
+    description: 'Replaces the idea project ideas',
     type: [TurboProjectIdeaDto],
   })
   @IsOptional()
@@ -74,7 +74,7 @@ export class AddTurboProjectItemsDto {
   readonly ideas?: TurboProjectIdeaDto[];
 
   @ApiPropertyOptional({
-    description: 'Appended to the workflow batch inputs',
+    description: 'Appended to the workflow project inputs',
     type: [TurboProjectInputDto],
   })
   @IsOptional()

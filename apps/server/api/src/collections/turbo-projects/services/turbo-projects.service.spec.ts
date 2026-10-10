@@ -147,7 +147,7 @@ describe('TurboProjectsService', () => {
   });
 
   describe('create', () => {
-    it('keeps idea batches behind the turbo_ideas platform flag', async () => {
+    it('keeps idea projects behind the turbo_ideas platform flag', async () => {
       platformSettingsService.getFeatureSettings.mockResolvedValue({
         flags: { turbo_ideas: false },
       });
@@ -161,7 +161,7 @@ describe('TurboProjectsService', () => {
       expect(prisma.turboProject.create).not.toHaveBeenCalled();
     });
 
-    it('lets a superadmin open an idea batch while turbo_ideas is off', async () => {
+    it('lets a superadmin open an idea project while turbo_ideas is off', async () => {
       platformSettingsService.getFeatureSettings.mockResolvedValue({
         flags: { turbo_ideas: false },
       });
@@ -178,7 +178,7 @@ describe('TurboProjectsService', () => {
       expect(prisma.turboProject.create).toHaveBeenCalled();
     });
 
-    it('opens an idea batch on the ideas step with default idea choices', async () => {
+    it('opens an idea project on the ideas step with default idea choices', async () => {
       prisma.turboProject.create.mockImplementation(async ({ data }) => ({
         ...makeProject(),
         ...data,
@@ -271,7 +271,7 @@ describe('TurboProjectsService', () => {
           { inputs: [{ ingredientId: 'input-1' }] },
           scope,
         ),
-      ).rejects.toThrow('Workflow batches accept images and videos');
+      ).rejects.toThrow('Workflow projects accept images and videos');
     });
 
     it('changes inputs under the project lock and rechecks the draft inside it', async () => {
@@ -290,7 +290,7 @@ describe('TurboProjectsService', () => {
           { inputs: [{ ingredientId: 'input-1' }] },
           scope,
         ),
-      ).rejects.toThrow('Inputs can only change before the batch starts');
+      ).rejects.toThrow('Inputs can only change before the project starts');
       expect(reconcileService.runExclusive).toHaveBeenCalledWith(
         'project-1',
         expect.any(Function),
@@ -310,7 +310,7 @@ describe('TurboProjectsService', () => {
       );
     });
 
-    it('refuses to change inputs once the batch started', async () => {
+    it('refuses to change inputs once the project started', async () => {
       useProject(makeProject({ status: TurboProjectStatus.GENERATING }));
 
       await expect(
@@ -336,12 +336,12 @@ describe('TurboProjectsService', () => {
       await service.updateItem(
         'project-1',
         'item-1',
-        { caption: 'Edited in Batch' },
+        { caption: 'Edited in Turbo' },
         scope,
       );
 
       expect(prisma.post.updateMany).toHaveBeenCalledWith({
-        data: { description: 'Edited in Batch' },
+        data: { description: 'Edited in Turbo' },
         where: expect.objectContaining({
           id: 'review-post-1',
           isDeleted: false,
@@ -546,7 +546,7 @@ describe('TurboProjectsService', () => {
       expect(itemsClaimOrder).toBeLessThan(enqueueOrder);
     });
 
-    it('refuses a second start of the same batch', async () => {
+    it('refuses a second start of the same project', async () => {
       useProject(makeProject(), [makeItem()]);
       prisma.turboProject.updateMany.mockResolvedValueOnce({ count: 0 });
 
@@ -558,7 +558,7 @@ describe('TurboProjectsService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('returns the batch to draft when the run cannot start', async () => {
+    it('returns the project to draft when the run cannot start', async () => {
       useProject(makeProject(), [makeItem()]);
       batchWorkflowExecutionService.startBatchExecution.mockRejectedValue(
         new BadRequestException('Workflow must have an immutable version'),
@@ -793,7 +793,7 @@ describe('TurboProjectsService', () => {
             : operation === 'start'
               ? service.start('project-1', scope, 'quote-1')
               : service.retryItem('project-1', 'item-1', scope, 'quote-1');
-        await expect(result).rejects.toThrow('Idea batches are not enabled');
+        await expect(result).rejects.toThrow('Idea projects are not enabled');
         expect(ideaGeneration[operation]).not.toHaveBeenCalled();
         expect(prisma.turboProject.updateMany).not.toHaveBeenCalled();
       },
@@ -824,7 +824,7 @@ describe('TurboProjectsService', () => {
       },
     );
 
-    it('starts an idea batch through its accepted quote', async () => {
+    it('starts an idea project through its accepted quote', async () => {
       useProject(makeProject({ kind: TurboProjectKind.IDEAS }), [makeItem()]);
 
       await service.start('project-1', scope, 'quote-1');
@@ -868,15 +868,15 @@ describe('TurboProjectsService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('quotes only idea batches', async () => {
+    it('quotes only idea projects', async () => {
       useProject(makeProject());
 
       await expect(service.quote('project-1', {}, scope)).rejects.toThrow(
-        'Only idea batches are quoted',
+        'Only idea projects are quoted',
       );
     });
 
-    it('keeps a batch with generation in flight from being deleted', async () => {
+    it('keeps a project with generation in flight from being deleted', async () => {
       useProject(makeProject({ status: TurboProjectStatus.GENERATING }));
       prisma.turboProjectItem.count.mockResolvedValue(2);
 
@@ -944,7 +944,7 @@ describe('TurboProjectsService', () => {
       useProject(makeProject({ status: TurboProjectStatus.REVIEWING }));
       prisma.turboProjectItem.findMany.mockResolvedValue([
         makeItem({
-          reviewTurboRunId: 'review-batch-1',
+          reviewTurboRunId: 'review-run-1',
           reviewItemId: 'review-item-1',
           status: TurboProjectItemStatus.READY,
         }),
@@ -957,7 +957,7 @@ describe('TurboProjectsService', () => {
       );
 
       expect(turboRunService.approveItems).toHaveBeenCalledWith(
-        'review-batch-1',
+        'review-run-1',
         ['review-item-1'],
         'org-1',
         'user-1',
@@ -972,7 +972,7 @@ describe('TurboProjectsService', () => {
       useProject(makeProject({ status: TurboProjectStatus.REVIEWING }));
       prisma.turboProjectItem.findMany.mockResolvedValue([
         makeItem({
-          reviewTurboRunId: 'review-batch-1',
+          reviewTurboRunId: 'review-run-1',
           reviewItemId: 'review-item-1',
           status: TurboProjectItemStatus.REJECTED,
         }),
@@ -991,10 +991,10 @@ describe('TurboProjectsService', () => {
     it('reads the inbox decision before approving, under the project lock', async () => {
       useProject(makeProject({ status: TurboProjectStatus.REVIEWING }));
       const reviewed = {
-        reviewTurboRunId: 'review-batch-1',
+        reviewTurboRunId: 'review-run-1',
         reviewItemId: 'review-item-1',
       };
-      // Batch still shows the item READY; the inbox has already rejected it.
+      // Turbo still shows the item READY; the inbox has already rejected it.
       prisma.turboProjectItem.findMany.mockResolvedValue([
         makeItem({ ...reviewed, status: TurboProjectItemStatus.READY }),
       ]);
@@ -1022,7 +1022,7 @@ describe('TurboProjectsService', () => {
       useProject(makeProject({ status: TurboProjectStatus.REVIEWING }));
       prisma.turboProjectItem.findMany.mockResolvedValue([
         makeItem({
-          reviewTurboRunId: 'review-batch-1',
+          reviewTurboRunId: 'review-run-1',
           reviewItemId: 'review-item-1',
           status: TurboProjectItemStatus.APPROVED,
         }),
@@ -1035,7 +1035,7 @@ describe('TurboProjectsService', () => {
       );
 
       expect(turboRunService.rejectItems).toHaveBeenCalledWith(
-        'review-batch-1',
+        'review-run-1',
         ['review-item-1'],
         'org-1',
         undefined,

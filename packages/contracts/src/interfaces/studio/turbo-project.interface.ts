@@ -7,13 +7,13 @@ import type {
 import type { TurboIdea, TurboIdeaFormat } from './turbo-idea.interface';
 
 /**
- * Studio Batch project (#5463) — one persisted surface for idea batches
- * (brand ideas → generate → review → schedule) and workflow batches (a saved
+ * Studio Turbo project (#5463) — one persisted surface for idea projects
+ * (brand ideas → generate → review → schedule) and workflow projects (a saved
  * workflow applied to many image/video inputs). Every step, input and
  * per-item state lives on the server so a reload restores the run.
  */
 
-/** Idea-generation choices of an idea batch. */
+/** Idea-generation choices of an idea project. */
 export interface ITurboProjectIdeaSettings {
   formats: TurboIdeaFormat[];
   /** Ideas per format. */
@@ -21,7 +21,7 @@ export interface ITurboProjectIdeaSettings {
   angle?: string;
 }
 
-/** One scheduling destination of a batch's approved items. */
+/** One scheduling destination of a project's approved items. */
 export interface ITurboProjectScheduleTarget {
   /** Credential id of the connected social account. */
   credentialId: string;
@@ -119,9 +119,9 @@ export interface ITurboProjectItem {
   projectId: string;
   position: number;
   status: TurboProjectItemStatus;
-  /** Idea brief (idea batches). */
+  /** Idea brief (idea projects). */
   idea?: TurboIdea | null;
-  /** Input ingredient (workflow batches). */
+  /** Input ingredient (workflow projects). */
   inputIngredientId?: string | null;
   inputCategory?: string | null;
   /** Parent workflow batch execution and this item's index in it. */
@@ -166,7 +166,7 @@ export interface ITurboProject {
   updatedAt?: string;
 }
 
-/** Tenant context every batch project operation runs in. */
+/** Tenant context every Turbo project operation runs in. */
 export interface ITurboProjectScope {
   organizationId: string;
   userId: string;
@@ -189,7 +189,7 @@ export interface IUpdateTurboProjectInput {
   settings?: ITurboProjectSettings;
 }
 
-/** Replace an idea batch's ideas, or append workflow inputs. */
+/** Replace an idea project's ideas, or append workflow inputs. */
 export interface IAddTurboProjectItemsInput {
   ideas?: TurboIdea[];
   inputs?: Array<{ ingredientId: string }>;
@@ -200,7 +200,7 @@ export interface IQuoteTurboProjectInput {
   itemIds?: string[];
 }
 
-/** Idea batches start and retry against an accepted quote. */
+/** Idea projects start and retry against an accepted quote. */
 export interface IAcceptTurboProjectQuoteInput {
   quoteId?: string;
 }

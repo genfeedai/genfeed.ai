@@ -3,7 +3,7 @@ import {
   parseTurboProjectSettings,
 } from '@api/collections/turbo-projects/services/turbo-project-settings.util';
 
-describe('batch project settings', () => {
+describe('Turbo project settings', () => {
   it('keeps valid idea and schedule choices and drops the rest', () => {
     expect(
       parseTurboProjectSettings({

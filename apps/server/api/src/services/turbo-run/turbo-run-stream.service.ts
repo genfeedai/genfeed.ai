@@ -4,7 +4,7 @@ import type { TurboRunProcessOptions } from '@api/services/turbo-run/turbo-run.t
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
-/** Identity a batch run needs to stream progress back into its agent thread. */
+/** Identity a run run needs to stream progress back into its agent thread. */
 export type TurboRunStreamContext = {
   turboRunId: string;
   runId?: string;
@@ -13,10 +13,10 @@ export type TurboRunStreamContext = {
 };
 
 /**
- * Builds the agent-thread progress callbacks for a batch run.
+ * Builds the agent-thread progress callbacks for a run run.
  *
  * Extracted from the media-generation tool handler because the run itself
- * moved: batches now execute in the workers process, so the callbacks have to
+ * moved: runs now execute in the workers process, so the callbacks have to
  * be reconstructible from job data rather than closed over the request that
  * started them. `AgentStreamPublisherService` publishes over Redis pub/sub, so
  * the events reach the user's open thread from either process.
@@ -30,7 +30,7 @@ export class TurboRunStreamService {
   ) {}
 
   /**
-   * Progress callbacks for one batch run, or `undefined` when the batch has no
+   * Progress callbacks for one run run, or `undefined` when the run has no
    * thread to stream into (or no publisher wired, as in OSS single-process
    * builds) — `processTurboRun` treats missing callbacks as "run silently".
    */
@@ -44,7 +44,7 @@ export class TurboRunStreamService {
 
     const { turboRunId, runId, threadId, userId } = context;
 
-    // A stream failure must never take down the batch: the drafts are the
+    // A stream failure must never take down the run: the drafts are the
     // product, the progress feed is decoration.
     const publish = async (
       data: Parameters<AgentStreamPublisherService['publishWorkEvent']>[0],
@@ -67,7 +67,7 @@ export class TurboRunStreamService {
         publish({
           detail: `Queued ${totalCount} post${totalCount === 1 ? '' : 's'} for generation.`,
           event: 'started',
-          label: 'Batch generation started',
+          label: 'Turbo run started',
           progress: 0,
           runId,
           startedAt: new Date().toISOString(),

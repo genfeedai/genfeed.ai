@@ -31,7 +31,7 @@ export interface IContentMixConfig {
 }
 
 /**
- * Request to create a batch generation job
+ * Request to create a Turbo run job
  */
 export interface ITurboRunRequest {
   count: number;
@@ -48,7 +48,7 @@ export interface ITurboRunRequest {
 }
 
 /**
- * Single item within a batch generation job
+ * Single item within a Turbo run job
  */
 export interface ITurboRunItem {
   id: string;
@@ -124,7 +124,7 @@ export interface ITurboRunReviewEvent {
 }
 
 /**
- * Summary of a batch generation job with all items
+ * Summary of a Turbo run job with all items
  */
 export interface ITurboRunSummary {
   id: string;

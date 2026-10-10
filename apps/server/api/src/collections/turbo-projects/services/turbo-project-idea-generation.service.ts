@@ -31,7 +31,7 @@ import {
 } from '@nestjs/common';
 
 /**
- * Idea batches generate server-side against an accepted credit quote
+ * Idea projects generate server-side against an accepted credit quote
  * (#5463), following the Brand Remix billing contract: the creator accepts
  * one quote covering every idea, bound to the project revision it priced;
  * start refuses with 402 when the balance cannot cover it; every item then
@@ -84,7 +84,7 @@ export class TurboProjectIdeaGenerationService {
       throw new BadRequestException(
         itemIds
           ? 'Only failed ideas can be quoted for a retry'
-          : 'Add ideas to a draft batch before quoting it',
+          : 'Add ideas to a draft project before quoting it',
       );
     }
 
@@ -135,7 +135,7 @@ export class TurboProjectIdeaGenerationService {
         }),
       });
       if (claim.count !== 1) {
-        throw new ConflictException('This batch has already started');
+        throw new ConflictException('This project has already started');
       }
       for (const item of pending) {
         await tx.turboProjectItem.updateMany({
@@ -158,7 +158,7 @@ export class TurboProjectIdeaGenerationService {
     for (const item of pending) {
       await this.enqueue(project, this.lineOf(linesByItem, item.id), scope);
     }
-    this.logger.log('Batch project ideas queued', {
+    this.logger.log('Turbo project ideas queued', {
       turboProjectId: project.id,
       context: this.context,
       itemCount: pending.length,
@@ -230,7 +230,7 @@ export class TurboProjectIdeaGenerationService {
     try {
       await this.dispatcher.enqueue(job);
     } catch (error: unknown) {
-      this.logger.error('Batch project idea could not be queued', error, {
+      this.logger.error('Turbo project idea could not be queued', error, {
         turboProjectId: project.id,
         turboProjectItemId: line.itemId,
         context: this.context,
@@ -256,7 +256,7 @@ export class TurboProjectIdeaGenerationService {
     }
     if (quote.revision !== project.revision) {
       throw new ConflictException(
-        'The batch changed after this quote. Request a new quote.',
+        'The project changed after this quote. Request a new quote.',
       );
     }
     if (Date.parse(quote.expiresAt) <= Date.now()) {
@@ -325,7 +325,7 @@ export class TurboProjectIdeaGenerationService {
     }
     const { flags } = await this.platformSettingsService.getFeatureSettings();
     if (!flags.turbo_ideas) {
-      throw new NotFoundException({ message: 'Idea batches are not enabled' });
+      throw new NotFoundException({ message: 'Idea projects are not enabled' });
     }
   }
 }

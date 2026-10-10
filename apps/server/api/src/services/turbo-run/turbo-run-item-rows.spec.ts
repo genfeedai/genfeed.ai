@@ -14,7 +14,7 @@ import {
 } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-describe('batch item row projection', () => {
+describe('run item row projection', () => {
   it('maps known statuses and falls back to PENDING', () => {
     expect(toPrismaTurboRunItemStatus(TurboRunItemStatus.COMPLETED)).toBe(
       TurboRunItemStatus.COMPLETED,
@@ -40,7 +40,7 @@ describe('batch item row projection', () => {
     await persistTurboRunItemRows(
       { turboRunItem: { upsert } },
       {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         brandId: 'brand-1',
         items: [
           {
@@ -65,7 +65,7 @@ describe('batch item row projection', () => {
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
-          turboRunId: 'batch-1',
+          turboRunId: 'run-1',
           brandId: 'brand-1',
           id: 'item-ready',
           organizationId: 'org-1',
@@ -103,7 +103,7 @@ describe('batch item row projection', () => {
     await persistTurboRunItemRows(
       { turboRunItem: { upsert } },
       {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         items: [
           {
             assignee: {
@@ -186,7 +186,7 @@ describe('batch item row projection', () => {
     await persistTurboRunItemRows(
       { turboRunItem: { upsert } },
       {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         items: [
           {
             format: ContentFormat.IMAGE,
@@ -231,7 +231,7 @@ describe('batch item row projection', () => {
     await persistTurboRunItemRows(
       { turboRunItem: { upsert } },
       {
-        turboRunId: 'batch-1',
+        turboRunId: 'run-1',
         items,
         organizationId: 'org-1',
       },
@@ -241,7 +241,7 @@ describe('batch item row projection', () => {
     expect(maxInFlight).toBeLessThanOrEqual(BATCH_ITEM_UPSERT_CHUNK_SIZE);
   });
 
-  it('writes Batch.items JSON and typed rows in one transaction', async () => {
+  it('writes Turbo run.items JSON and typed rows in one transaction', async () => {
     const order: string[] = [];
     const updateMany = vi.fn().mockImplementation(async () => {
       order.push('json');
@@ -271,7 +271,7 @@ describe('batch item row projection', () => {
     ];
 
     const result = await writeTurboRunJsonAndItemRows(prisma, {
-      turboRunId: 'batch-1',
+      turboRunId: 'run-1',
       brandId: 'brand-1',
       extraTurboRunData: { status: TurboRunStatus.COMPLETED },
       items,
@@ -288,7 +288,7 @@ describe('batch item row projection', () => {
           status: TurboRunStatus.COMPLETED,
         }),
         where: expect.objectContaining({
-          id: 'batch-1',
+          id: 'run-1',
           isDeleted: false,
           organizationId: 'org-1',
         }),
@@ -297,7 +297,7 @@ describe('batch item row projection', () => {
     expect(upsert).toHaveBeenCalledTimes(1);
   });
 
-  it('skips typed-row upserts when the JSON batch write matches no row', async () => {
+  it('skips typed-row upserts when the JSON run write matches no row', async () => {
     const upsert = vi.fn();
     const result = await writeTurboRunJsonAndItemRows(
       {
@@ -305,7 +305,7 @@ describe('batch item row projection', () => {
         turboRunItem: { upsert },
       },
       {
-        turboRunId: 'batch-missing',
+        turboRunId: 'run-missing',
         items: [
           {
             format: ContentFormat.IMAGE,

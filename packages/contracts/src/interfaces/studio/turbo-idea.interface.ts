@@ -1,13 +1,13 @@
 /**
- * Batch ideas — brand-data-driven studio mode (#5463).
+ * Turbo ideas — brand-data-driven studio mode (#5463).
  *
- * The user never writes prompts: brand data is turned into a batch of content
+ * The user never writes prompts: brand data is turned into a project of content
  * ideas (one LLM call), each idea is generated across image/video/avatar
  * pipelines, reviewed in a Tinder-style "Blitz" swipe, and the keepers are
  * scheduled to connected short-form socials.
  */
 
-/** Content formats an idea batch can fan generation across. */
+/** Content formats an idea project can fan generation across. */
 export type TurboIdeaFormat = 'image' | 'video' | 'avatar';
 
 /** A single brand-derived content brief produced by the ideas endpoint. */

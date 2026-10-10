@@ -6,7 +6,7 @@ import {
   toPrismaTurboRunStatus,
 } from './turbo-run-status-prisma.mapper';
 
-describe('batch-status-prisma.mapper', () => {
+describe('run-status-prisma.mapper', () => {
   it('emits Prisma SCREAMING_SNAKE for every domain status', () => {
     for (const status of Object.values(TurboRunStatus)) {
       const prismaStatus = toPrismaTurboRunStatus(status);

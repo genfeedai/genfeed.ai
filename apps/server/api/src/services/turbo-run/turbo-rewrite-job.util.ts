@@ -16,7 +16,7 @@ import type { Job, JobState } from 'bullmq';
 
 export type TurboRewriteJob = Job<TurboRewriteJobData, TurboRewriteJobResult>;
 
-export const TURBO_REWRITE_TASK_LABEL = 'Batch rewrite';
+export const TURBO_REWRITE_TASK_LABEL = 'Turbo rewrite';
 
 /** Posts past review keep their caption: a rewrite would edit shipped content. */
 export const NON_REWRITABLE_POST_STATES: ReadonlySet<string> = new Set([
@@ -26,7 +26,7 @@ export const NON_REWRITABLE_POST_STATES: ReadonlySet<string> = new Set([
   TargetExecutionState.CANCELLED,
 ]);
 
-/** One live rewrite per batch: BullMQ keeps this key until the job settles. */
+/** One live rewrite per run: BullMQ keeps this key until the job settles. */
 export function turboRewriteDeduplicationId(turboRunId: string): string {
   return `turbo-rewrite-${turboRunId}`;
 }

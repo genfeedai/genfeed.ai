@@ -4,7 +4,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { mockTurboProject } from '../../fixtures/turbo-projects.fixture';
 
 const base = '/test-org/brand-1/studio/turbo';
-test.describe('Persisted Batch projects', () => {
+test.describe('Persisted Turbo projects', () => {
   test('idea choices, generated ideas, quote, approval and per-target timing survive reloads', async ({
     authenticatedPage: page,
   }) => {
@@ -40,9 +40,9 @@ test.describe('Persisted Batch projects', () => {
     await page.reload();
     await page.getByRole('button', { name: 'Approve', exact: true }).click();
     await page.getByRole('button', { name: 'Schedule', exact: true }).click();
-    await page.getByRole('checkbox', { name: 'Batch Instagram' }).check();
+    await page.getByRole('checkbox', { name: 'Turbo Instagram' }).check();
     await page
-      .getByLabel('Publish time for Batch Instagram')
+      .getByLabel('Publish time for Turbo Instagram')
       .fill('2030-10-01T12:30');
     await expect
       .poll(
@@ -51,15 +51,15 @@ test.describe('Persisted Batch projects', () => {
       .toBeTruthy();
     await page.reload();
     await expect(
-      page.getByRole('checkbox', { name: 'Batch Instagram' }),
+      page.getByRole('checkbox', { name: 'Turbo Instagram' }),
     ).toBeChecked();
     await expect(
-      page.getByLabel('Publish time for Batch Instagram'),
+      page.getByLabel('Publish time for Turbo Instagram'),
     ).toHaveValue('2030-10-01T12:30');
     await page.getByRole('button', { name: 'Schedule approved items' }).click();
     await expect.poll(() => state.scheduled.length).toBe(1);
     expect(state.scheduled[0].targets[0]).toMatchObject({
-      credentialId: 'batch-instagram',
+      credentialId: 'project-instagram',
       scheduledDate: expect.any(String),
     });
     await page.reload();
@@ -85,7 +85,7 @@ test.describe('Persisted Batch projects', () => {
       .toBe('video-input');
     await page.reload();
     await expect(page.getByText('video-input', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Start workflow batch' }).click();
+    await page.getByRole('button', { name: 'Start workflow project' }).click();
     await expect(
       page.getByText('Generating', { exact: true }).first(),
     ).toBeVisible();
@@ -102,7 +102,7 @@ test.describe('Persisted Batch projects', () => {
     await page.getByRole('link', { name: 'Open review inbox' }).click();
     await expect(page).toHaveURL(/publishing\/review/);
     await expect(
-      page.getByText('Saved batch output', { exact: true }).first(),
+      page.getByText('Saved project output', { exact: true }).first(),
     ).toBeVisible();
     await expect(
       page.getByText('turbo-project-item:item-1', { exact: true }),
@@ -120,21 +120,21 @@ test.describe('Persisted Batch projects', () => {
       .first()
       .click();
     await page
-      .getByRole('textbox', { name: 'Batch name' })
+      .getByRole('textbox', { name: 'Turbo name' })
       .fill('Launch collection');
     await page
-      .getByRole('button', { name: 'Create batch', exact: true })
+      .getByRole('button', { name: 'Create project', exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${base}/persisted-batch`));
-    await expect(page.getByRole('textbox', { name: 'Batch name' })).toHaveValue(
+    await expect(page.getByRole('textbox', { name: 'Turbo name' })).toHaveValue(
       'Launch collection',
     );
     expect(state.getProject().name).toBe('Launch collection');
     await page.screenshot({
-      path: testInfo.outputPath('batch-detail-mobile.png'),
+      path: testInfo.outputPath('project-detail-mobile.png'),
       fullPage: true,
     });
-    await page.getByRole('link', { name: 'All batches', exact: true }).click();
+    await page.getByRole('link', { name: 'All projects', exact: true }).click();
     await expect(
       page.getByText('Launch collection', { exact: true }).first(),
     ).toBeVisible();
@@ -143,7 +143,7 @@ test.describe('Persisted Batch projects', () => {
       page.getByRole('radio', { name: 'Grid', exact: true }),
     ).toBeChecked();
     await page.screenshot({
-      path: testInfo.outputPath('batch-list-mobile.png'),
+      path: testInfo.outputPath('project-list-mobile.png'),
       fullPage: true,
     });
     const overflow = await page.evaluate(
@@ -151,7 +151,7 @@ test.describe('Persisted Batch projects', () => {
     );
     expect(overflow).toBe(false);
     await page.getByRole('link', { name: 'Open', exact: true }).first().click();
-    await expect(page.getByRole('textbox', { name: 'Batch name' })).toHaveValue(
+    await expect(page.getByRole('textbox', { name: 'Turbo name' })).toHaveValue(
       'Launch collection',
     );
   });
@@ -205,7 +205,7 @@ test.describe('Persisted Batch projects', () => {
         page.getByRole('dialog', { name: 'Request failed', exact: true }),
       ).toHaveCount(0);
       await page
-        .getByRole('textbox', { name: 'Batch name' })
+        .getByRole('textbox', { name: 'Turbo name' })
         .fill(`Saved after ${name}`);
       await expect
         .poll(() => state.getProject().name)
@@ -220,11 +220,11 @@ test.describe('Persisted Batch projects', () => {
       .poll(() => state.getProject().items?.[0]?.inputIngredientId)
       .toBe('video-input');
     await expect(
-      page.getByRole('button', { name: 'Start workflow batch' }),
+      page.getByRole('button', { name: 'Start workflow project' }),
     ).toBeEnabled();
   });
 
-  test('new batch offers ideas and workflow creation when there are no saved workflows', async ({
+  test('new project offers ideas and workflow creation when there are no saved workflows', async ({
     authenticatedPage: page,
   }) => {
     await mockTurboProject(page, TurboProjectKind.IDEAS);

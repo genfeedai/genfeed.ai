@@ -57,7 +57,7 @@ export function useTurboProject(id: string, brandId: string) {
       try {
         const loaded = await (await getService()).get(id, controller.signal);
         if (loaded.brandId !== brandId)
-          throw new Error('This batch belongs to another brand.');
+          throw new Error('This project belongs to another brand.');
         if (
           scope.alive &&
           !controller.signal.aborted &&
@@ -69,7 +69,7 @@ export function useTurboProject(id: string, brandId: string) {
       } catch (reason) {
         if (scope.alive && !controller.signal.aborted)
           setError(
-            reason instanceof Error ? reason.message : 'Could not load batch.',
+            reason instanceof Error ? reason.message : 'Could not load project.',
           );
       } finally {
         polling = false;
@@ -105,7 +105,7 @@ export function useTurboProject(id: string, brandId: string) {
         } catch (reason) {
           const failure = isServiceOperationError(reason)
             ? reason
-            : normalizeOperationError('save Batch project', reason);
+            : normalizeOperationError('save Turbo project', reason);
           const permanent =
             failure.status !== undefined &&
             PERMANENT_WRITE_STATUSES.has(failure.status);
