@@ -1,3 +1,4 @@
+import { MemberRole } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandsList from './brands-list';
@@ -49,12 +50,41 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
+const accessState = vi.hoisted(() => ({ isSuperAdmin: false }));
+const userRole = vi.hoisted(() => ({
+  value: 'member' as string | null,
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: vi.fn(() => accessState),
+  }),
+);
+
+vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+  useUserRole: vi.fn(() => userRole.value),
+}));
+
+vi.mock('./brand-move-dialog', () => ({
+  default: vi.fn(() => <div data-testid="brand-move-dialog" />),
+}));
+
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(() => ({
-    data: mockBrands,
-    isLoading: false,
-    refetch: vi.fn(),
-  })),
+  useQuery: vi.fn((options: { queryKey: string[] }) =>
+    options.queryKey[0] === 'brand-move-destinations'
+      ? {
+          data: [
+            { id: 'org-123', label: 'Current' },
+            { id: 'org-456', label: 'Other' },
+          ],
+        }
+      : {
+          data: mockBrands,
+          isLoading: false,
+          refetch: vi.fn(),
+        },
+  ),
   useQueryClient: vi.fn(() => ({
     setQueryData: vi.fn(),
   })),
@@ -103,6 +133,8 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
 describe('BrandsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    accessState.isSuperAdmin = false;
+    userRole.value = 'member';
   });
 
   it('should render without crashing', () => {
@@ -181,5 +213,31 @@ describe('BrandsList', () => {
     expect(
       screen.getByRole('link', { name: 'Open Test Brand settings' }),
     ).toHaveAttribute('href', '/default/testbrand/settings');
+  });
+
+  it('offers no selection or move action to members who cannot move brands', () => {
+    render(<BrandsList />);
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Move to organization' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lets an owner with another organization select brands to move', () => {
+    userRole.value = MemberRole.OWNER;
+    render(<BrandsList />);
+
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('button', { name: 'Move to organization' }),
+    ).toHaveLength(mockBrands.length);
+  });
+
+  it('lets a superadmin move brands without an elevated role', () => {
+    accessState.isSuperAdmin = true;
+    render(<BrandsList />);
+
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 });
