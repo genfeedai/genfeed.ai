@@ -376,7 +376,7 @@ describe('ToolRegistryService', () => {
         code: 'approval_pending',
       },
     });
-    expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
+    expect(result).not.toHaveProperty('structuredContent.estimatedCredits');
   });
 
   it('handleToolCall onboard_brand runs the agent tool for its action (#6268)', async () => {

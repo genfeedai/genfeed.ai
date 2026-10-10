@@ -1,4 +1,5 @@
 import type { TwitterAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import { analyticsCollectionAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
   learningPublicationFinalizationVersionV1,
@@ -69,7 +70,14 @@ function createHarness(analytics = new Map<string, unknown>()) {
     logger,
     accountSnapshots as never,
   );
-  return { accountSnapshots, collectionState, postAnalytics, service, twitter };
+  return {
+    accountSnapshots,
+    collectionState,
+    credentials,
+    postAnalytics,
+    service,
+    twitter,
+  };
 }
 
 function input(): TwitterAnalyticsCollectionInput {
@@ -90,10 +98,57 @@ function input(): TwitterAnalyticsCollectionInput {
 describe('AnalyticsTwitterCollectionService', () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it('propagates native denial before private account reads or provider dispatch', async () => {
+    const h = createHarness();
+    const denied = new Error('key_revoked');
+    const authorization = {
+      ...analyticsCollectionAuthorizationFixture,
+      admit: vi.fn(async () => {
+        throw denied;
+      }),
+    };
+    await expect(h.service.collect(input(), authorization)).rejects.toBe(
+      denied,
+    );
+    expect(h.credentials.resolveBrandAccount).not.toHaveBeenCalled();
+    expect(h.twitter.getMediaAnalyticsBatch).not.toHaveBeenCalled();
+    expect(h.collectionState.markFailedBatch).not.toHaveBeenCalled();
+    expect(h.collectionState.markReadyBatch).not.toHaveBeenCalled();
+  });
+
+  it('holds collected data when authority is revoked during the provider await', async () => {
+    const h = createHarness();
+    const denied = new Error('membership_revoked');
+    let revoked = false;
+    const authorization = {
+      ...analyticsCollectionAuthorizationFixture,
+      admit: vi.fn(async () => {
+        if (revoked) throw denied;
+      }),
+    };
+    h.twitter.getMediaAnalyticsBatch.mockImplementation(async () => {
+      revoked = true;
+      return new Map([['tweet-1', { views: 42 }]]);
+    });
+    await expect(h.service.collect(input(), authorization)).rejects.toBe(
+      denied,
+    );
+    expect(h.twitter.getMediaAnalyticsBatch).toHaveBeenCalledOnce();
+    expect(h.postAnalytics.processTwitterAnalytics).not.toHaveBeenCalled();
+    expect(h.collectionState.markFailedBatch).not.toHaveBeenCalled();
+    expect(h.collectionState.markReadyBatch).not.toHaveBeenCalled();
+    expect(h.accountSnapshots.upsertDailySnapshot).not.toHaveBeenCalled();
+  });
+
   it('collects and finalizes exactly one action item', async () => {
     const harness = createHarness(new Map([['tweet-1', { views: 42 }]]));
 
-    expect(await harness.service.collect(input())).toEqual({
+    expect(
+      await harness.service.collect(
+        input(),
+        analyticsCollectionAuthorizationFixture,
+      ),
+    ).toEqual({
       organizationId: 'org-1',
       brandId: 'brand-1',
       credentialId: 'credential-1',
@@ -112,6 +167,7 @@ describe('AnalyticsTwitterCollectionService', () => {
         },
         organizationId: 'org-1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
     expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -131,9 +187,9 @@ describe('AnalyticsTwitterCollectionService', () => {
   it('records delayed state and fails when provider data is unavailable', async () => {
     const harness = createHarness();
 
-    await expect(harness.service.collect(input())).rejects.toThrow(
-      'analytics are not available',
-    );
+    await expect(
+      harness.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toThrow('analytics are not available');
 
     expect(harness.collectionState.markFailedBatch).toHaveBeenCalled();
   });
@@ -147,9 +203,9 @@ describe('AnalyticsTwitterCollectionService', () => {
     }
     batch.posts.push({ ...post, id: 'post-2' });
 
-    await expect(harness.service.collect(batch)).rejects.toThrow(
-      'requires exactly one post',
-    );
+    await expect(
+      harness.service.collect(batch, analyticsCollectionAuthorizationFixture),
+    ).rejects.toThrow('requires exactly one post');
   });
 });
 
@@ -228,7 +284,7 @@ describe('C3 twitter canonical pre-provider observation transport', () => {
     h.postAnalytics.processTwitterAnalytics.mockImplementation(async () => {
       trace.push('persist');
     });
-    await h.service.collect(data);
+    await h.service.collect(data, analyticsCollectionAuthorizationFixture);
     expect(
       h.postAnalytics.prepareLearningObservation,
     ).toHaveBeenCalledExactlyOnceWith({
@@ -252,6 +308,7 @@ describe('C3 twitter canonical pre-provider observation transport', () => {
           receivedAt: expect.any(Date),
         }),
       }),
+      analyticsCollectionAuthorizationFixture,
     );
     expect(
       h.postAnalytics.processTwitterAnalytics.mock.calls[0]?.[2]
@@ -264,7 +321,7 @@ describe('C3 twitter canonical pre-provider observation transport', () => {
   });
   it('keeps ordinary analytics when preparation is null and omits source authority', async () => {
     const h = createHarness(new Map([['tweet-1', { views: 42 }]]));
-    await h.service.collect(input());
+    await h.service.collect(input(), analyticsCollectionAuthorizationFixture);
     const context = h.postAnalytics.processTwitterAnalytics.mock.calls[0]?.[2];
     expect(context?.learningObservation).not.toHaveProperty(
       'publicationSource',
@@ -274,7 +331,9 @@ describe('C3 twitter canonical pre-provider observation transport', () => {
     const h = createHarness(),
       error = new Error('preparation DB');
     h.postAnalytics.prepareLearningObservation.mockRejectedValue(error);
-    await expect(h.service.collect(input())).rejects.toBe(error);
+    await expect(
+      h.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toBe(error);
     expect(h.twitter.getMediaAnalyticsBatch).not.toHaveBeenCalled();
     expect(h.postAnalytics.processTwitterAnalytics).not.toHaveBeenCalled();
   });

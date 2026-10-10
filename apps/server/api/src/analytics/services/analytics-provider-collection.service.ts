@@ -1,11 +1,22 @@
 import { randomUUID } from 'node:crypto';
-import type { SocialAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import type {
+  AnalyticsCollectionAuthorization,
+  SocialAnalyticsCollectionInput,
+} from '@api/analytics/analytics-collection-action.types';
+import {
+  admitAnalyticsCollection,
+  isAnalyticsCollectionAuthorizationFailure,
+} from '@api/analytics/analytics-collection-authorization';
 import {
   attributionFailureFor,
   isAnalyticsAttributionFailure,
   resolveAnalyticsCollectionCredential,
 } from '@api/analytics/analytics-collection-credential';
 import { classifyAnalyticsCollectionError } from '@api/analytics/analytics-collection-state';
+import {
+  exposureCollectionContext,
+  prepareExposureCollectionSource,
+} from '@api/analytics/services/analytics-exposure-source.util';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
@@ -48,177 +59,239 @@ export class AnalyticsProviderCollectionService {
 
   async collectFacebook(
     data: SocialAnalyticsCollectionInput,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsCollectionResult> {
-    return this.collectPosts(data, 'Facebook', async (post) => {
-      const resolution = await resolveAnalyticsCollectionCredential({
-        brandId: post.brandId,
-        credentialId: post.credentialId,
-        lookup: this.credentialsService,
-        organizationId: post.organizationId,
-        platform: CredentialPlatform.FACEBOOK,
-      });
-      if (
-        resolution.kind === 'ambiguous' ||
-        resolution.kind === 'missing' ||
-        resolution.kind === 'mismatch'
-      ) {
-        throw Object.assign(
-          new Error(attributionFailureFor(resolution.kind).message),
-          {
-            analyticsFailure: attributionFailureFor(resolution.kind),
-            status: 409,
-          },
-        );
-      }
-      const credential = await this.credentialsService.findOne({
-        id: resolution.credentialId,
-        isDeleted: false,
-        organizationId: post.organizationId,
-        platform: CredentialPlatform.FACEBOOK,
-      });
-      if (!credential?.accessToken) {
-        throw Object.assign(
-          new Error(`No Facebook credential found for post ${post.id}`),
-          { status: 401 },
-        );
-      }
-      const publicationSource =
-        await this.postAnalyticsService.prepareLearningObservation({
-          organizationId: post.organizationId,
+    return this.collectPosts(
+      data,
+      'Facebook',
+      async (post) => {
+        await admitAnalyticsCollection(authorization);
+        const resolution = await resolveAnalyticsCollectionCredential({
           brandId: post.brandId,
-          credentialId: resolution.credentialId,
-          postId: post.id,
+          credentialId: post.credentialId,
+          lookup: this.credentialsService,
+          organizationId: post.organizationId,
           platform: CredentialPlatform.FACEBOOK,
-          externalId: post.externalId,
         });
-      const sourceAttemptId = randomUUID(),
-        requestStartedAt = new Date();
-      if (!credential.externalId)
-        throw Object.assign(
-          new Error(
-            'Facebook credential is missing its selected Page ID. Reconnect the account.',
-          ),
-          { status: 401 },
-        );
-      const analytics = await this.facebookService.getPostAnalytics(
-        post.externalId,
-        EncryptionUtil.decrypt(credential.accessToken),
-        credential.externalId,
-        post.isVideo === true,
-      );
-      const receivedAt = new Date();
-      await this.postAnalyticsService.processFacebookAnalytics(
-        post.id,
-        {
-          learningMetrics: analytics.learningMetrics,
-          comments: analytics.comments,
-          engagementRate: analytics.engagementRate,
-          impressions: analytics.impressions,
-          likes: analytics.likes,
-          reach: analytics.reach,
-          shares: analytics.shares,
-          views: analytics.views,
-        },
-        {
-          learningObservation: {
-            sourceAttemptId,
-            requestStartedAt,
-            receivedAt,
-            ...(publicationSource ? { publicationSource } : {}),
-          },
+        if (
+          resolution.kind === 'ambiguous' ||
+          resolution.kind === 'missing' ||
+          resolution.kind === 'mismatch'
+        ) {
+          throw Object.assign(
+            new Error(attributionFailureFor(resolution.kind).message),
+            {
+              analyticsFailure: attributionFailureFor(resolution.kind),
+              status: 409,
+            },
+          );
+        }
+        await admitAnalyticsCollection(authorization);
+        const credential = await this.credentialsService.findOne({
+          id: resolution.credentialId,
+          isDeleted: false,
           organizationId: post.organizationId,
-          brandId: post.brandId,
-          credentialId: resolution.credentialId,
-        },
-      );
-      await this.accountSnapshots.upsertDailySnapshot({
-        brandId: post.brandId,
-        credentialId: resolution.credentialId,
-        organizationId: post.organizationId,
-        platform: CredentialPlatform.FACEBOOK,
-        ...extractProfileCounts(analytics),
-      });
-      return {
-        organizationId: post.organizationId,
-        brandId: post.brandId,
-        credentialId: resolution.credentialId,
-      };
-    });
-  }
-
-  async collectThreads(
-    data: SocialAnalyticsCollectionInput,
-  ): Promise<AnalyticsCollectionResult> {
-    return this.collectPosts(data, 'Threads', async (post) => {
-      const resolution = await resolveAnalyticsCollectionCredential({
-        brandId: post.brandId,
-        credentialId: post.credentialId,
-        lookup: this.credentialsService,
-        organizationId: post.organizationId,
-        platform: CredentialPlatform.THREADS,
-      });
-      if (
-        resolution.kind === 'ambiguous' ||
-        resolution.kind === 'missing' ||
-        resolution.kind === 'mismatch'
-      ) {
-        throw Object.assign(
-          new Error(attributionFailureFor(resolution.kind).message),
+          platform: CredentialPlatform.FACEBOOK,
+        });
+        if (!credential?.accessToken) {
+          throw Object.assign(
+            new Error(`No Facebook credential found for post ${post.id}`),
+            { status: 401 },
+          );
+        }
+        await admitAnalyticsCollection(authorization);
+        const publicationSource =
+          await this.postAnalyticsService.prepareLearningObservation({
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+            postId: post.id,
+            platform: CredentialPlatform.FACEBOOK,
+            externalId: post.externalId,
+          });
+        await admitAnalyticsCollection(authorization);
+        const exposureSource = await prepareExposureCollectionSource(
+          this.postAnalyticsService,
           {
-            analyticsFailure: attributionFailureFor(resolution.kind),
-            status: 409,
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+            postId: post.id,
+            platform: post.platform,
+            externalId: post.externalId,
           },
         );
-      }
-
-      const publicationSource =
-        await this.postAnalyticsService.prepareLearningObservation({
-          organizationId: post.organizationId,
-          brandId: post.brandId,
-          credentialId: resolution.credentialId,
-          postId: post.id,
-          platform: CredentialPlatform.THREADS,
-          externalId: post.externalId,
-        });
-      const sourceAttemptId = randomUUID(),
-        requestStartedAt = new Date();
-      const analytics = await this.threadsService.getThreadInsights(
-        post.organizationId,
-        post.brandId,
-        post.externalId,
-        resolution.credentialId,
-      );
-      const receivedAt = new Date();
-      await this.postAnalyticsService.processThreadsAnalytics(
-        post.id,
-        analytics,
-        {
-          learningObservation: {
-            sourceAttemptId,
-            requestStartedAt,
-            receivedAt,
-            ...(publicationSource ? { publicationSource } : {}),
+        await admitAnalyticsCollection(authorization);
+        const sourceAttemptId = randomUUID(),
+          requestStartedAt = new Date();
+        if (!credential.externalId)
+          throw Object.assign(
+            new Error(
+              'Facebook credential is missing its selected Page ID. Reconnect the account.',
+            ),
+            { status: 401 },
+          );
+        await admitAnalyticsCollection(authorization);
+        const analytics = await this.facebookService.getPostAnalytics(
+          post.externalId,
+          EncryptionUtil.decrypt(credential.accessToken),
+          credential.externalId,
+          post.isVideo === true,
+        );
+        const receivedAt = new Date();
+        await admitAnalyticsCollection(authorization);
+        await this.postAnalyticsService.processFacebookAnalytics(
+          post.id,
+          {
+            learningMetrics: analytics.learningMetrics,
+            comments: analytics.comments,
+            engagementRate: analytics.engagementRate,
+            impressions: analytics.impressions,
+            likes: analytics.likes,
+            reach: analytics.reach,
+            shares: analytics.shares,
+            views: analytics.views,
           },
-          organizationId: post.organizationId,
-          brandId: post.brandId,
-          credentialId: resolution.credentialId,
-        },
-      );
-      if (resolution.credentialId) {
+          {
+            ...exposureCollectionContext(exposureSource, {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+            }),
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+              ...(publicationSource ? { publicationSource } : {}),
+            },
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+          },
+          authorization,
+        );
+        await admitAnalyticsCollection(authorization);
         await this.accountSnapshots.upsertDailySnapshot({
           brandId: post.brandId,
           credentialId: resolution.credentialId,
           organizationId: post.organizationId,
-          platform: CredentialPlatform.THREADS,
+          platform: CredentialPlatform.FACEBOOK,
           ...extractProfileCounts(analytics),
         });
-      }
-      return {
-        organizationId: post.organizationId,
-        brandId: post.brandId,
-        credentialId: resolution.credentialId,
-      };
-    });
+        await admitAnalyticsCollection(authorization);
+        return {
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+        };
+      },
+      authorization,
+    );
+  }
+
+  async collectThreads(
+    data: SocialAnalyticsCollectionInput,
+    authorization?: AnalyticsCollectionAuthorization,
+  ): Promise<AnalyticsCollectionResult> {
+    return this.collectPosts(
+      data,
+      'Threads',
+      async (post) => {
+        await admitAnalyticsCollection(authorization);
+        const resolution = await resolveAnalyticsCollectionCredential({
+          brandId: post.brandId,
+          credentialId: post.credentialId,
+          lookup: this.credentialsService,
+          organizationId: post.organizationId,
+          platform: CredentialPlatform.THREADS,
+        });
+        if (
+          resolution.kind === 'ambiguous' ||
+          resolution.kind === 'missing' ||
+          resolution.kind === 'mismatch'
+        ) {
+          throw Object.assign(
+            new Error(attributionFailureFor(resolution.kind).message),
+            {
+              analyticsFailure: attributionFailureFor(resolution.kind),
+              status: 409,
+            },
+          );
+        }
+
+        await admitAnalyticsCollection(authorization);
+        const publicationSource =
+          await this.postAnalyticsService.prepareLearningObservation({
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+            postId: post.id,
+            platform: CredentialPlatform.THREADS,
+            externalId: post.externalId,
+          });
+        await admitAnalyticsCollection(authorization);
+        const exposureSource = await prepareExposureCollectionSource(
+          this.postAnalyticsService,
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+            postId: post.id,
+            platform: post.platform,
+            externalId: post.externalId,
+          },
+        );
+        await admitAnalyticsCollection(authorization);
+        const sourceAttemptId = randomUUID(),
+          requestStartedAt = new Date();
+        const analytics = await this.threadsService.getThreadInsights(
+          post.organizationId,
+          post.brandId,
+          post.externalId,
+          resolution.credentialId,
+        );
+        const receivedAt = new Date();
+        await admitAnalyticsCollection(authorization);
+        await this.postAnalyticsService.processThreadsAnalytics(
+          post.id,
+          analytics,
+          {
+            ...exposureCollectionContext(exposureSource, {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+            }),
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+              ...(publicationSource ? { publicationSource } : {}),
+            },
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+          },
+          authorization,
+        );
+        if (resolution.credentialId) {
+          await admitAnalyticsCollection(authorization);
+          await this.accountSnapshots.upsertDailySnapshot({
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+            organizationId: post.organizationId,
+            platform: CredentialPlatform.THREADS,
+            ...extractProfileCounts(analytics),
+          });
+        }
+        await admitAnalyticsCollection(authorization);
+        return {
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+        };
+      },
+      authorization,
+    );
   }
 
   private async collectPosts(
@@ -227,7 +300,12 @@ export class AnalyticsProviderCollectionService {
     collect: (
       post: SocialAnalyticsCollectionInput['posts'][number],
     ) => Promise<AnalyticsPersistenceContext>,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<AnalyticsCollectionResult> {
+    await admitAnalyticsCollection(
+      authorization,
+      data.posts[0]?.organizationId,
+    );
     if (data.posts.length !== 1) {
       throw new Error(`${platformLabel} analytics action requires one post`);
     }
@@ -238,9 +316,13 @@ export class AnalyticsProviderCollectionService {
     const target = this.target(data.attemptKey, post);
     try {
       const context = await collect(post);
+      await admitAnalyticsCollection(authorization);
       await this.collectionState.markReady(target);
+      await admitAnalyticsCollection(authorization);
       return { failed: 0, processed: 1, requested: 1, context };
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
+      await admitAnalyticsCollection(authorization);
       const failure = classifyAnalyticsCollectionError(error, platformLabel);
       const failedTarget: AnalyticsCollectionFailedTarget = {
         ...target,
@@ -255,16 +337,21 @@ export class AnalyticsProviderCollectionService {
         !failure.isRetryable &&
         !isAnalyticsAttributionFailure(failure.code)
       ) {
-        await this.disableAnalytics(post.id);
+        await this.disableAnalytics(post.id, authorization);
       }
       throw error;
     }
   }
 
-  private async disableAnalytics(postId: string): Promise<void> {
+  private async disableAnalytics(
+    postId: string,
+    authorization?: AnalyticsCollectionAuthorization,
+  ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.postsService.patch(postId, { isAnalyticsEnabled: false });
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to disable analytics after a terminal collection error for post ${postId}`,
         error,

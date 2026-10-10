@@ -1,4 +1,9 @@
+import { captureAndDetectNativeSourceExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
+import { prepareNativeCollectedExposure } from '@api/collections/outliers/services/native-source-exposure-observation.util';
 import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import type { SourceCollectResult } from '@api/services/source-collector/source-collector.types';
+import type { BreakoutNativeCaptureInput } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
@@ -10,11 +15,21 @@ vi.mock('@genfeedai/prisma', async () => {
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  Platform,
   SocialSourcePlatform,
   SocialSourceType,
   SourcePostActionType,
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+
+vi.mock(
+  '@api/collections/outliers/services/native-source-exposure-observation.util',
+  () => ({ prepareNativeCollectedExposure: vi.fn() }),
+);
+vi.mock(
+  '@api/collections/outliers/services/breakout-collected-signal.util',
+  () => ({ captureAndDetectNativeSourceExposureObservation: vi.fn() }),
+);
 
 describe('SourcePostsService', () => {
   const logger = {
@@ -75,6 +90,136 @@ describe('SourcePostsService', () => {
       credentialsService as never,
       outliers as unknown as OutliersService,
     );
+  });
+
+  it('captures native evidence after normal upsert in the same detector transaction without an owner actor', async () => {
+    const scope = {
+      organizationId: 'org-a',
+      brandId: 'brand-a',
+      credentialId: 'credential-a',
+      platform: Platform.TWITTER,
+    };
+    const attempt = {
+      ...scope,
+      provider: 'brand-oauth' as const,
+      sourceAttemptId: 'attempt-a',
+      requestStartedAt: new Date('2026-10-08T12:00:00Z'),
+      receivedAt: new Date('2026-10-08T12:00:01Z'),
+    };
+    const evidence = {
+      id: 'tweet-a',
+      text: 'Own post',
+      platform: SocialSourcePlatform.TWITTER,
+      authorId: 'author-a',
+      nativeFormat: 'text' as const,
+    };
+    const collection: SourceCollectResult = {
+      provider: 'brand-oauth',
+      handle: 'author',
+      platform: SocialSourcePlatform.TWITTER,
+      posts: [evidence],
+      breakoutAttempt: attempt,
+    };
+    const prepared: BreakoutNativeCaptureInput = {
+      ...attempt,
+      isPinned: null,
+      isPromoted: null,
+      exposures: {},
+      source: {
+        ...scope,
+        version: 1,
+        sourceKind: 'native_source_post',
+        sourcePostId: 'native-a',
+        externalId: 'tweet-a',
+        format: 'text',
+        publishedAt: '2026-10-08T11:00:00Z',
+        contentDigest: 'content-a',
+        publicationFingerprint: 'publication-a',
+        logicalPostId: 'logical-a',
+        isResponse: false,
+      },
+    };
+    const tx = {} as Prisma.TransactionClient;
+    const transaction = vi.fn(
+      async (callback: (tx: Prisma.TransactionClient) => Promise<void>) =>
+        callback(tx),
+    );
+    const source = {
+      id: 'source-a',
+      organizationId: scope.organizationId,
+      brandId: scope.brandId,
+      platform: scope.platform,
+      handle: 'author',
+      userId: 'legacy-bookkeeping-user',
+    };
+    const currentSource = {
+      sourceType: SocialSourceType.OWN_ACCOUNT,
+      credentialId: scope.credentialId,
+    };
+    service = new SourcePostsService(
+      {
+        sourcePost,
+        socialSource: { findFirst: vi.fn(async () => currentSource) },
+        $transaction: transaction,
+      } as unknown as PrismaService,
+      logger,
+      credentialsService as never,
+      outliers as unknown as OutliersService,
+    );
+    sourcePost.upsert.mockResolvedValue({
+      id: 'native-a',
+      externalId: 'tweet-a',
+    });
+    vi.mocked(prepareNativeCollectedExposure).mockResolvedValue(prepared);
+    vi.mocked(
+      captureAndDetectNativeSourceExposureObservation,
+    ).mockResolvedValue({ status: 'captured', observationId: 'observation-a' });
+    const posts = [
+      {
+        organizationId: scope.organizationId,
+        brandId: scope.brandId,
+        sourceId: source.id,
+        platform: scope.platform,
+        externalId: 'tweet-a',
+        contentType: 'tweet',
+        text: evidence.text,
+      },
+    ];
+    await service.upsertCollectedPosts(source, posts, collection);
+    expect(prepareNativeCollectedExposure).toHaveBeenCalledWith(
+      tx,
+      {
+        ...scope,
+        postId: null,
+        nativeSourcePostId: 'native-a',
+        externalId: 'tweet-a',
+      },
+      attempt,
+      evidence,
+    );
+    expect(
+      captureAndDetectNativeSourceExposureObservation,
+    ).toHaveBeenCalledWith(tx, prepared);
+    expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
+      maxWait: 10000,
+      timeout: 60000,
+    });
+    expect(sourcePost.upsert.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(prepareNativeCollectedExposure).mock.invocationCallOrder[0],
+    );
+    expect(outliers.refresh).toHaveBeenCalledOnce();
+    const captureCalls = vi.mocked(
+      captureAndDetectNativeSourceExposureObservation,
+    );
+    captureCalls.mockClear();
+    currentSource.sourceType = SocialSourceType.ACCOUNT;
+    await service.upsertCollectedPosts(source, posts, collection);
+    expect(captureCalls).not.toHaveBeenCalled();
+    currentSource.sourceType = SocialSourceType.OWN_ACCOUNT;
+    vi.mocked(prepareNativeCollectedExposure).mockResolvedValue(null);
+    await service.upsertCollectedPosts(source, posts, collection);
+    expect(captureCalls).not.toHaveBeenCalled();
+    expect(sourcePost.upsert).toHaveBeenCalledTimes(3);
   });
 
   it('excludes timeline sources from URL import deduplication within the same live tenant and brand', async () => {

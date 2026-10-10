@@ -5,7 +5,7 @@ import {
   getActiveAppId,
   getAppRailFlagKeyForPath,
   getAppRailHref,
-  resolveAppRailHref,
+  isAppRailItemLocked,
 } from './app-rail.registry';
 
 describe('app rail registry', () => {
@@ -49,17 +49,18 @@ describe('app rail registry', () => {
     ).toBe('/acme/routed/agent');
   });
 
-  it('preserves task context and the first-asset gate for every navigation entry point', () => {
+  it('keeps a locked app on its own route so the gate teaser can render', () => {
     const workspace = APP_RAIL_REGISTRY.find((app) => app.id === 'workspace');
     if (!workspace) throw new Error('missing workspace rail app');
+    expect(isAppRailItemLocked(workspace, true)).toBe(true);
     expect(
-      resolveAppRailHref(workspace, APP_RAIL_REGISTRY, {
+      getAppRailHref(workspace, {
         orgSlug: 'acme',
         brandAwareSlug: 'selected',
-        isAssetGateLocked: true,
+        brandSlug: 'selected',
         preservedSearch: 'taskId=t1',
       }),
-    ).toBe('/acme/selected/agent?taskId=t1&locked=workspace');
+    ).toBe('/acme/selected/workspace/overview?taskId=t1');
   });
 
   it('identifies nested product routes without inventing a source app for settings', () => {

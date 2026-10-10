@@ -1,10 +1,22 @@
 import type { SocialSourcePlatform } from '@genfeedai/contracts';
+import type {
+  BreakoutExposureEvidence,
+  BreakoutExposureMetric,
+  BreakoutOwnedProviderAttempt,
+} from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 
 /**
  * Provider-agnostic post collected for Following / social sources.
  * Maps cleanly into SocialMonitor SocialContentData / sourcePost rows.
  */
 export type CollectedSourcePost = {
+  nativeAuthorVerified?: boolean;
+  nativeFormat?: LearningFormat;
+  attachmentMediaKeys?: string[];
+  breakoutExposures?: Partial<
+    Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+  >;
   isPinned?: boolean | null;
   isPromoted?: boolean | null;
   id: string;
@@ -36,6 +48,8 @@ export type CollectedSourcePost = {
 };
 
 export type SourceCollectContext = {
+  /** Server-owned request for evidence only; no actor or provider enablement. */
+  captureBreakoutEvidence?: boolean;
   organizationId?: string;
   brandId?: string;
   /**
@@ -52,6 +66,7 @@ export type SourceCollectContext = {
 };
 
 export type SourceCollectResult = {
+  breakoutAttempt?: BreakoutOwnedProviderAttempt;
   posts: CollectedSourcePost[];
   /** Which provider fulfilled the request */
   provider:

@@ -949,7 +949,8 @@ test('timeout terminates owned descendants before cleanup and retains the timeou
         const status = await readFile(`/proc/${pid}/stat`, 'utf8');
         assert.match(status, /\) Z /);
       } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
+        // Linux can report ESRCH when the descendant exits during /proc reading.
+        if (error.code !== 'ENOENT' && error.code !== 'ESRCH') throw error;
       }
     },
   });

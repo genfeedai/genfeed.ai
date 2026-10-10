@@ -172,7 +172,10 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       ...(curated && 'endpoint' in curated && curated.endpoint
         ? { endpoint: curated.endpoint }
         : {}),
-      isActive: isCurated,
+      // A curated row can opt out (`isActive: false`) and stay seeded inactive.
+      isActive:
+        isCurated &&
+        !(curated && 'isActive' in curated && curated.isActive === false),
       isDefault: curated?.isDefault ?? false,
       isHighlighted: curated?.isHighlighted ?? false,
       lifecycle: LEGACY_FLUX_MEDIA_KEYS.has(key)

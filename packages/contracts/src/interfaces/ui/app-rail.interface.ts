@@ -27,7 +27,6 @@ export interface AppRailScope {
   brandSlug?: string;
   brandAwareSlug?: string;
   preservedSearch?: string;
-  isAssetGateLocked?: boolean;
 }
 
 export type AppRailSurface = 'desktop' | 'drawer';

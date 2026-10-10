@@ -201,7 +201,7 @@ export function resolveReportWindow(reportType: AgentStrategyReportType): {
 }
 
 export function scoreTextPublishGate(
-  strategy: AgentStrategyDocument,
+  strategy: Pick<AgentStrategyDocument, 'goalProfile' | 'publishPolicy'>,
   content: string,
   analysis: OptimizerAnalysisResult,
 ): PublishGateResult {

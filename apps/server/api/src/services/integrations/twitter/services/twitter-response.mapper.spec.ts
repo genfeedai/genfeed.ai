@@ -132,6 +132,72 @@ describe('TwitterResponseMapper', () => {
   });
 
   describe('analytics projections', () => {
+    it.each([
+      ['organic_metrics', 'organic'],
+      ['non_public_metrics', 'aggregate'],
+      ['public_metrics', 'aggregate'],
+    ] as const)(
+      'retains actual post views from %s with %s provenance',
+      (group, scope) => {
+        const result = mapper.mapAnalytics({
+          data: [{ [group]: { view_count: 0 } }],
+        });
+        expect(result.breakoutExposures?.views).toEqual({
+          availability: 'observed',
+          value: 0,
+          source: `twitter:post:${group}.view_count`,
+          scope,
+        });
+      },
+    );
+
+    it('uses available post views independently of a shared media view count', () => {
+      const result = mapper.mapAnalytics({
+        data: [{ public_metrics: { view_count: 50 } }],
+        includes: {
+          media: [{ type: 'video', public_metrics: { view_count: 900 } }],
+        },
+      });
+      expect(result.views).toBe(900);
+      expect(result.breakoutExposures?.views).toEqual({
+        availability: 'observed',
+        value: 50,
+        source: 'twitter:post:public_metrics.view_count',
+        scope: 'aggregate',
+      });
+    });
+
+    it('keeps missing post views unavailable when only media views are returned', () => {
+      const result = mapper.mapAnalytics({
+        data: [{}],
+        includes: {
+          media: [{ type: 'video', public_metrics: { view_count: 900 } }],
+        },
+      });
+      expect(result.views).toBe(900);
+      expect(result.breakoutExposures?.views).toEqual({
+        availability: 'unavailable',
+        value: null,
+        source: 'twitter:post:view_count',
+        scope: 'unknown',
+      });
+    });
+
+    it.each([-1, Number.NaN, Number.POSITIVE_INFINITY, 0.5])(
+      'keeps malformed post views unavailable (%s)',
+      (view_count) => {
+        const result = mapper.mapAnalytics({
+          data: [{ public_metrics: { view_count } }],
+        });
+        expect(result.breakoutExposures?.views).toEqual({
+          availability: 'unavailable',
+          value: null,
+          source: 'twitter:post:public_metrics.view_count',
+          scope: 'aggregate',
+        });
+      },
+    );
+
     it('retains observed-zero impressions and views', () => {
       const result = mapper.mapAnalytics({
         data: [

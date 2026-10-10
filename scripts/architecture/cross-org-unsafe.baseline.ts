@@ -315,7 +315,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // is cross-organization.
     {
       file: 'apps/server/api/src/collections/credits/services/credits.utils.service.ts',
-      line: 645,
+      line: 652,
     },
     // #6120: the signup welcome entitlement is user-scoped across the user's
     // owned organizations.

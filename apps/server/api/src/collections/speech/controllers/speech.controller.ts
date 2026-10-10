@@ -67,7 +67,16 @@ export class SpeechController {
     @CurrentUser() user: User,
     @UploadedFile(
       new UploadValidationPipe({
-        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedExtensions: [
+          'mp3',
+          'wav',
+          'aac',
+          'flac',
+          'ogg',
+          'webm',
+          'm4a',
+          'mp4',
+        ],
         allowedMimeTypes: [
           'audio/mpeg',
           'audio/mp3',
@@ -76,6 +85,9 @@ export class SpeechController {
           'audio/flac',
           'audio/ogg',
           'audio/webm',
+          // Safari records MP4/AAC, never WebM.
+          'audio/mp4',
+          'audio/x-m4a',
         ],
         maxSizeBytes: 25 * 1024 * 1024,
       }),

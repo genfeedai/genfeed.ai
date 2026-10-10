@@ -1,4 +1,4 @@
-import { ModelLifecycle } from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   CALLABLE_GENERATION_MODEL_TYPES,
   type CallableGenerationModel,
@@ -86,17 +86,43 @@ export class ModelRegistrationService {
     organizationId: string,
     category?: CallableGenerationModelType,
   ): Promise<CallableGenerationModel[]> {
+    if (category !== undefined && !isCallableGenerationModelType(category)) {
+      return [];
+    }
+    const rows = await this.listEnabledModelRows(
+      organizationId,
+      category ? [category] : CALLABLE_GENERATION_MODEL_TYPES,
+    );
+    return rows.flatMap((row) =>
+      isCallableGenerationModelType(row.category)
+        ? [{ key: row.key, label: row.label, type: row.category }]
+        : [],
+    );
+  }
+
+  /**
+   * Text catalog keys under the same gates as listCallableGenerationModels.
+   * Text is not a media generation type, so it is listed separately and never
+   * appears in get_generation_options.
+   */
+  async listCallableTextModels(
+    organizationId: string,
+  ): Promise<Array<{ key: string; label: string }>> {
+    const rows = await this.listEnabledModelRows(organizationId, [
+      ModelCategory.TEXT,
+    ]);
+    return rows.map(({ key, label }) => ({ key, label }));
+  }
+
+  private async listEnabledModelRows(
+    organizationId: string,
+    categories: readonly string[],
+  ): Promise<Array<{ category: string; key: string; label: string }>> {
     const enabledModelIds = await this.readEnabledModelIds(organizationId);
-    if (
-      enabledModelIds.length === 0 ||
-      (category !== undefined && !isCallableGenerationModelType(category))
-    ) {
+    if (enabledModelIds.length === 0) {
       return [];
     }
 
-    const categories = category
-      ? [category]
-      : [...CALLABLE_GENERATION_MODEL_TYPES];
     const unpriceableIds = await findUnpriceableModelIds(
       this.prisma,
       unpriceableModelsScope(organizationId),
@@ -115,7 +141,7 @@ export class ModelRegistrationService {
             ],
           },
         ],
-        category: { in: categories },
+        category: { in: [...categories] },
         isActive: true,
         isDeleted: false,
         lifecycle: { not: ModelLifecycle.RETIRED },
@@ -123,19 +149,16 @@ export class ModelRegistrationService {
       },
     });
 
-    const models: CallableGenerationModel[] = [];
+    const models: Array<{ category: string; key: string; label: string }> = [];
     for (const row of rows) {
       const key = row.key.trim();
-      if (!key || !isCallableGenerationModelType(row.category)) {
-        continue;
-      }
-      if (!isModelOnAllowlist(row, enabledModelIds)) {
+      if (!key || !isModelOnAllowlist(row, enabledModelIds)) {
         continue;
       }
       models.push({
+        category: row.category,
         key,
         label: row.label.trim() || key,
-        type: row.category,
       });
     }
     return models;

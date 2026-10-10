@@ -1,5 +1,9 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
+import type {
+  BreakoutExposureEvidence,
+  BreakoutExposureMetric,
+  ITwitterSearchResult,
+} from '@genfeedai/contracts/interfaces';
 import {
   captureLearningMetrics,
   type LearningMetrics,
@@ -116,6 +120,9 @@ export interface TwitterAnalyticsResponse {
 }
 
 export interface TwitterAnalyticsResult {
+  breakoutExposures?: Partial<
+    Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+  >;
   learningMetrics?: LearningMetrics;
   bookmarks?: number;
   comments: number;
@@ -272,6 +279,12 @@ export class TwitterResponseMapper {
         : 0;
 
     return {
+      breakoutExposures: {
+        impressions: this.postExposureEvidence(tweet, 'impression_count'),
+        // Read actual post fields. Media views measure asset reuse across
+        // posts and remain separate from this post's exposure evidence.
+        views: this.postExposureEvidence(tweet, 'view_count'),
+      },
       learningMetrics,
       bookmarks: metrics.bookmark_count || 0,
       comments: metrics.reply_count || 0,
@@ -283,6 +296,40 @@ export class TwitterResponseMapper {
       quotes: metrics.quote_count || 0,
       retweets: metrics.retweet_count || 0,
       views: learningMetrics.metrics.views?.value ?? 0,
+    };
+  }
+
+  private postExposureEvidence(
+    tweet: TwitterAnalyticsTweet | undefined,
+    metric: 'impression_count' | 'view_count',
+  ): BreakoutExposureEvidence {
+    const groups = [
+      ['organic_metrics', 'organic', tweet?.organic_metrics],
+      ['non_public_metrics', 'aggregate', tweet?.non_public_metrics],
+      ['public_metrics', 'aggregate', tweet?.public_metrics],
+    ] as const;
+    for (const [group, scope, metrics] of groups) {
+      if (metrics?.[metric] === undefined) continue;
+      const value = metrics[metric];
+      return Number.isSafeInteger(value) && value >= 0
+        ? {
+            availability: 'observed',
+            value,
+            source: `twitter:post:${group}.${metric}`,
+            scope,
+          }
+        : {
+            availability: 'unavailable',
+            value: null,
+            source: `twitter:post:${group}.${metric}`,
+            scope,
+          };
+    }
+    return {
+      availability: 'unavailable',
+      value: null,
+      source: `twitter:post:${metric}`,
+      scope: 'unknown',
     };
   }
 

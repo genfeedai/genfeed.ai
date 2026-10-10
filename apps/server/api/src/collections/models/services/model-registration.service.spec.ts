@@ -319,4 +319,63 @@ describe('ModelRegistrationService.listCallableGenerationModels', () => {
       }),
     );
   });
+  it('lists only enabled, priceable text models and never offers them as media generation types', async () => {
+    const { findMany, orgSettingsService, service } = makeListService();
+    vi.mocked(findUnpriceableModelIds).mockResolvedValue(['red-model']);
+    orgSettingsService.findOne.mockResolvedValue({
+      enabledModelIds: ['text-model', 'openrouter/other'],
+      id: testId('setting'),
+      organizationId,
+    });
+    findMany.mockResolvedValue([
+      {
+        category: 'text',
+        id: 'text-model',
+        key: ' openrouter/text ',
+        label: ' Text ',
+      },
+      {
+        category: 'text',
+        id: 'not-enabled',
+        key: 'openrouter/hidden',
+        label: 'Hidden',
+      },
+      { category: 'text', id: 'blank', key: '   ', label: 'Blank' },
+    ]);
+
+    await expect(
+      service.listCallableTextModels(organizationId),
+    ).resolves.toEqual([{ key: 'openrouter/text', label: 'Text' }]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: { in: ['text'] },
+          isActive: true,
+          isDeleted: false,
+          lifecycle: { not: ModelLifecycle.RETIRED },
+          id: { notIn: ['red-model'] },
+        }),
+      }),
+    );
+    await expect(
+      service.listCallableGenerationModels(
+        organizationId,
+        'text' as unknown as 'image',
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it('returns no text keys and does not query when the allowlist is empty', async () => {
+    const { findMany, orgSettingsService, service } = makeListService();
+    orgSettingsService.findOne.mockResolvedValue({
+      enabledModelIds: [],
+      id: testId('setting'),
+      organizationId,
+    });
+
+    await expect(
+      service.listCallableTextModels(organizationId),
+    ).resolves.toEqual([]);
+    expect(findMany).not.toHaveBeenCalled();
+  });
 });

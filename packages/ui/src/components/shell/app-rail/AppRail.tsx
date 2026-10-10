@@ -37,9 +37,9 @@ import {
   ADMIN_RAIL_APP,
   APP_RAIL_REGISTRY,
   getActiveAppId,
+  getAppRailHref,
   getAppRailShortcut,
   isAppRailItemLocked,
-  resolveAppRailHref,
 } from './app-rail.registry';
 import { useAppRailNavigation } from './use-app-rail-navigation';
 
@@ -368,12 +368,13 @@ export function AppRail({
   const items = useMemo<AppRailNavigationItem[]>(() => {
     let dailyIndex = 0;
     return apps.map((app) => {
-      const href = resolveAppRailHref(app, apps, {
+      // A locked item keeps its own route: the page-level AssetGateGuard
+      // renders the teaser there, which is where "Explore anyway" lives.
+      const href = getAppRailHref(app, {
         orgSlug,
         brandSlug,
         brandAwareSlug,
         preservedSearch,
-        isAssetGateLocked,
       });
       const navigation = resolveNavigation?.(href) ?? { href };
       const shortcutIndex = app.group === 'daily' ? dailyIndex++ : undefined;

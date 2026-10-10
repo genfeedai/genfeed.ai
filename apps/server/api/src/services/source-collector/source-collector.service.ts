@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ApifySocialProvider } from '@api/services/source-collector/providers/apify-social.provider';
 import { InstagramBusinessDiscoveryProvider } from '@api/services/source-collector/providers/instagram-business-discovery.provider';
 import { InstagramOfficialProvider } from '@api/services/source-collector/providers/instagram-official.provider';
@@ -21,7 +22,7 @@ import type {
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
-import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { isPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
@@ -98,11 +99,27 @@ export class SourceCollectorService {
         if (!can) {
           continue;
         }
+        const captureScope =
+          context.captureBreakoutEvidence &&
+          context.organizationId &&
+          context.brandId &&
+          context.credentialId &&
+          isPlatform(platform)
+            ? {
+                organizationId: context.organizationId,
+                brandId: context.brandId,
+                credentialId: context.credentialId,
+                platform,
+              }
+            : null;
+        const sourceAttemptId = captureScope ? randomUUID() : null;
+        const requestStartedAt = new Date();
         const result = await provider.collectTimeline(
           platform,
           handle,
           context,
         );
+        const receivedAt = new Date();
         const validPosts = result.posts.filter(hasExternalPostId);
         const discardedCount = result.posts.length - validPosts.length;
         if (discardedCount > 0) {
@@ -119,7 +136,23 @@ export class SourceCollectorService {
           platform,
           provider: result.provider,
         });
-        return { ...result, posts: validPosts };
+        return {
+          handle: result.handle,
+          platform: result.platform,
+          provider: result.provider,
+          posts: validPosts,
+          ...(sourceAttemptId && captureScope
+            ? {
+                breakoutAttempt: {
+                  sourceAttemptId,
+                  requestStartedAt,
+                  receivedAt,
+                  provider: provider.name,
+                  ...captureScope,
+                },
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (
           provider.name === 'apify' &&

@@ -10,6 +10,7 @@ import {
   Magnet,
   ScanSearch,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 
 /**
@@ -20,7 +21,7 @@ import {
  * Shell already labels the module Analytics. What-happened destinations sit
  * ungrouped under that header (Overview, Posts, Brands, Streaks) so the
  * sidebar does not stack ANALYTICS + PERFORMANCE. Intelligence stays a group
- * (Insights, Hooks, Outliers, Lab).
+ * (Insights, Hooks, Outliers, Breakouts, Lab).
  *
  * Overview, Accounts and Outliers exist under both brand and organization
  * scope. Leave their hrefScope unset so navigation preserves the URL scope.
@@ -98,6 +99,15 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ANALYTICS.OUTLIERS],
     outline: ScanSearch,
     solid: ScanSearch,
+  },
+  {
+    group: 'Intelligence',
+    href: APP_ROUTES.ANALYTICS.BREAKOUTS,
+    hrefScope: 'brand',
+    label: 'Breakouts',
+    matchPaths: [APP_ROUTES.ANALYTICS.BREAKOUTS],
+    outline: Zap,
+    solid: Zap,
   },
   {
     // Pattern mining (hook/CTA/structure formulas) sits with Hooks / Insights.

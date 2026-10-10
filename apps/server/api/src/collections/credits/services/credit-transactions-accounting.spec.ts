@@ -1,8 +1,10 @@
 import type { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { runWithStrategyBudgetAttribution } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditTransactionCategory } from '@genfeedai/contracts';
+import { CreditTransactionCategory, Platform } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -85,6 +87,97 @@ function buildService(prisma: unknown, balance = { balance: 100 }) {
 }
 
 describe('ledger brand attribution', () => {
+  it('does not attach a foreign or missing reservation to a new charge', async () => {
+    const tx = {
+      ...ledgerClient(),
+      creditReservation: { findFirst: vi.fn(async () => null) },
+    };
+    await expect(
+      buildService({}).createTransactionEntry(
+        'org',
+        CreditTransactionCategory.DEDUCT,
+        5,
+        100,
+        95,
+        'script',
+        'Settlement',
+        undefined,
+        tx as unknown as Prisma.TransactionClient,
+        { reservationId: 'foreign-hold' },
+      ),
+    ).rejects.toThrow('outside the organization');
+    expect(tx.creditTransaction.create).not.toHaveBeenCalled();
+  });
+  it('writes server strategy allocation and inherits an exact hold at settlement without trusting options metadata', async () => {
+    const tx = {
+      ...ledgerClient(),
+      agentStrategy: {
+        findFirst: vi.fn(async () => ({
+          id: 'strategy-a',
+          platforms: [Platform.TWITTER],
+        })),
+      },
+      creditReservation: {
+        findFirst: vi.fn(async () => ({
+          organizationId: 'org',
+          brandId: 'brand-1',
+          metadata: {
+            strategyBudgetAttribution: {
+              version: 1,
+              organizationId: 'org',
+              brandId: 'brand-1',
+              strategyId: 'original',
+              platform: Platform.TWITTER,
+              format: 'image',
+            },
+          },
+        })),
+      },
+    };
+    await runWithStrategyBudgetAttribution(
+      tx as unknown as Prisma.TransactionClient,
+      {
+        version: 1,
+        organizationId: 'org',
+        brandId: 'brand-1',
+        strategyId: 'strategy-a',
+        platform: Platform.TWITTER,
+        format: 'text',
+      },
+      async () => {
+        await buildService({}).createTransactionEntry(
+          'org',
+          CreditTransactionCategory.DEDUCT,
+          5,
+          100,
+          95,
+          'script',
+          'Quality',
+          undefined,
+          tx as unknown as Prisma.TransactionClient,
+          {
+            brandId: 'brand-1',
+            reservationId: 'hold-a',
+            metadata: { strategyBudgetAttribution: { forged: true } },
+          },
+        );
+      },
+    );
+    expect(tx.creditTransaction.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          strategyBudgetAttribution: expect.objectContaining({
+            strategyId: 'original',
+            format: 'image',
+          }),
+        }),
+      }),
+    });
+    expect(tx.creditReservation.findFirst).toHaveBeenCalledWith({
+      where: { id: 'hold-a', organizationId: 'org', isDeleted: false },
+      select: { organizationId: true, brandId: true, metadata: true },
+    });
+  });
   it('persists the brand on the ledger row', async () => {
     const tx = ledgerClient();
     await buildService({}).createTransactionEntry(

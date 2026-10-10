@@ -274,12 +274,46 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(recommendedUltra.map((entry) => entry.key).sort()).toEqual(
       [
         AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        MODEL_KEYS.FAL_LYRIA3_PRO,
         MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
         MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
         MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
       ].sort(),
     );
+  });
+
+  it('seeds Lyria 3 Pro as the only active music model and the music default', () => {
+    const music = UNIFIED_MODEL_CATALOG.filter(
+      (entry) => entry.category === ModelCategory.MUSIC,
+    );
+    const activeKeys = music
+      .filter((entry) => entry.isActive)
+      .map((entry) => entry.key);
+    const defaults = music.filter((entry) => entry.isDefault);
+
+    expect(activeKeys).toEqual([MODEL_KEYS.FAL_LYRIA3_PRO]);
+    expect(defaults.map((entry) => entry.key)).toEqual([
+      MODEL_KEYS.FAL_LYRIA3_PRO,
+    ]);
+  });
+
+  it('seeds MusicGen as a legacy row that points at Lyria 3 Pro', () => {
+    const musicgen = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    );
+
+    expect(musicgen?.isActive).toBe(false);
+    expect(musicgen?.lifecycle).toBe(ModelLifecycle.LEGACY);
+    expect(musicgen?.succeededBy).toBe(MODEL_KEYS.FAL_LYRIA3_PRO);
+  });
+
+  it('honours a curated row that opts out of being seeded active', () => {
+    const elevenMusic = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+    );
+
+    expect(elevenMusic?.isActive).toBe(false);
+    expect(elevenMusic?.lifecycle).not.toBe(ModelLifecycle.RECOMMENDED);
   });
 
   it('seeds Nano Banana 2 Lite as the cloud image default', () => {

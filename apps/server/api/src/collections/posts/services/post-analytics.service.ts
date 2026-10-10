@@ -1,3 +1,9 @@
+import type { AnalyticsCollectionAuthorization } from '@api/analytics/analytics-collection-action.types';
+import {
+  admitAnalyticsCollection,
+  isAnalyticsCollectionAuthorizationFailure,
+} from '@api/analytics/analytics-collection-authorization';
+import { assertExposureCollectionScope } from '@api/analytics/services/analytics-exposure-source.util';
 import {
   LearningCheckpointService,
   learningCheckpointCollection,
@@ -7,15 +13,23 @@ import {
   parseLearningPublicationSourceV1,
   resolveLearningPublicationSourceV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
+import { captureAndDetectPostExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import {
+  type InstagramPostMetrics,
+  mapBreakoutExposureMetrics,
+  mapDailyPostMetrics,
+  mapInstagramPostMetrics,
   mapTikTokPostMetrics,
+  mapTwitterPostMetrics,
   mapYouTubePostMetrics,
   type TikTokPostMetrics,
+  type TwitterPostMetrics,
   type UpdateTodayAnalyticsMetrics,
   type YouTubePostMetrics,
 } from '@api/collections/posts/services/post-analytics-platform-metrics';
@@ -26,7 +40,11 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
-import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
+import type {
+  AnalyticsPersistenceContext,
+  BreakoutPublicationSourceInput,
+  BreakoutPublicationSourceV1,
+} from '@genfeedai/contracts/interfaces';
 import { type LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -90,11 +108,53 @@ export class PostAnalyticsService extends BaseService<
       ? source
       : null;
   }
+  async prepareExposureObservation(
+    input: BreakoutPublicationSourceInput,
+  ): Promise<BreakoutPublicationSourceV1 | null> {
+    return loadPostExposurePublication(this.prisma, input);
+  }
+
+  private async persistExposureObservation(
+    postId: string,
+    platform: CredentialPlatform,
+    metrics: UpdateTodayAnalyticsMetrics,
+    context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
+  ): Promise<void> {
+    const observation = context.exposureObservation;
+    // Breakout evidence needs a native actor; ordinary actor-less collection records none.
+    if (!observation || !authorization) return;
+    const { source } = observation;
+    assertExposureCollectionScope(
+      context,
+      postId,
+      fromPrismaCredentialPlatform(platform),
+    );
+    const exposures = mapBreakoutExposureMetrics(metrics, source.platform);
+    await admitAnalyticsCollection(authorization);
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        await admitAnalyticsCollection(authorization);
+        return captureAndDetectPostExposureObservation(tx, {
+          ...observation,
+          exposures,
+          isPinned:
+            metrics.isPinned ?? metrics.learningMetrics?.isPinned ?? null,
+          isPromoted:
+            metrics.isPromoted ?? metrics.learningMetrics?.isPaid ?? null,
+        });
+      },
+      { maxWait: 10_000, timeout: 60_000 },
+    );
+    if (result.status !== 'captured' && result.status !== 'replayed')
+      throw new Error(`Exposure observation held: ${result.status}`);
+  }
   private async persistLearningObservation(
     postId: string,
     platform: CredentialPlatform,
     metrics: UpdateTodayAnalyticsMetrics,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     const observation = context.learningObservation;
     const source = parseLearningPublicationSourceV1(
@@ -117,6 +177,7 @@ export class PostAnalyticsService extends BaseService<
       !Number.isFinite(observation.receivedAt.getTime())
     )
       return;
+    await admitAnalyticsCollection(authorization);
     const checkpoint = await this.checkpoints.capture({
       organizationId: context.organizationId,
       postId,
@@ -135,12 +196,14 @@ export class PostAnalyticsService extends BaseService<
       learningCheckpointCollection(checkpoint)?.outcome !== 'observed'
     )
       return;
-    await this.queueMaterializationRefresh(context);
+    await this.queueMaterializationRefresh(context, authorization);
   }
   private async queueMaterializationRefresh(
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       const account = await this.prisma.contentLearningAccount.findFirst({
         where: {
           organizationId: context.organizationId,
@@ -159,12 +222,15 @@ export class PostAnalyticsService extends BaseService<
       )
         return;
       const bucket = Math.floor(Date.now() / 300000);
+      await admitAnalyticsCollection(authorization);
       await this.workflowQueue.queueSystemWorkflow(
         {
           organizationId: context.organizationId,
           actionType: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
           canonicalId: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
+          userId: authorization?.initiatingActor.userId,
           inputValues: {
+            initiatingActor: authorization?.initiatingActor,
             credentialId: context.credentialId,
             materializationOnly: true,
             refreshBucket: bucket,
@@ -181,7 +247,8 @@ export class PostAnalyticsService extends BaseService<
           ]),
         { attempts: 3, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
       );
-    } catch {
+    } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.warn('learning_materialization_enqueue_failed', {
         organizationId: context.organizationId,
         brandId: context.brandId,
@@ -203,7 +270,14 @@ export class PostAnalyticsService extends BaseService<
     platform: CredentialPlatform,
     metrics: UpdateTodayAnalyticsMetrics,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<PostAnalyticsEntity | null> {
+    await admitAnalyticsCollection(authorization, context.organizationId);
+    assertExposureCollectionScope(
+      context,
+      postId,
+      fromPrismaCredentialPlatform(platform),
+    );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -218,6 +292,7 @@ export class PostAnalyticsService extends BaseService<
       brandId: context.brandId,
       isDeleted: false,
     });
+    await admitAnalyticsCollection(authorization);
     if (!post) {
       this.logger.error(`Post ${postId} not found for analytics update`);
       throw new Error('Analytics post not found in account scope');
@@ -229,6 +304,7 @@ export class PostAnalyticsService extends BaseService<
       return null;
     }
 
+    await admitAnalyticsCollection(authorization);
     const yesterdayAnalytics = await this.prisma.postAnalytics.findFirst({
       where: {
         date: yesterday,
@@ -275,22 +351,10 @@ export class PostAnalyticsService extends BaseService<
       accountType: 'credential' as const,
       accountId: credentialId,
     };
+    await admitAnalyticsCollection(authorization);
     await this.outliersService.authorize(account);
-    const dailyMetrics = { ...metrics };
-    delete dailyMetrics.learningMetrics;
-    const attributedMetrics = {
-      ...dailyMetrics,
-      credentialId,
-      isPinned: metrics.isPinned ?? null,
-      isPromoted: metrics.isPromoted ?? null,
-      metricAvailability: {
-        views:
-          Number.isSafeInteger(metrics.totalViews) && metrics.totalViews >= 0
-            ? 'observed'
-            : 'unavailable',
-        ...metrics.metricAvailability,
-      },
-    };
+    const attributedMetrics = mapDailyPostMetrics(metrics, credentialId);
+    await admitAnalyticsCollection(authorization);
     const credential = await this.prisma.credential.findFirst({
       where: {
         id: credentialId,
@@ -306,6 +370,7 @@ export class PostAnalyticsService extends BaseService<
         fromPrismaCredentialPlatform(platform)
     )
       throw new Error('Outlier analytics credential is unavailable');
+    await admitAnalyticsCollection(authorization);
     const result = await this.prisma.postAnalytics.upsert({
       create: {
         brandId: owner.brandId,
@@ -330,7 +395,21 @@ export class PostAnalyticsService extends BaseService<
       },
     });
 
-    await this.persistLearningObservation(postId, platform, metrics, context);
+    await this.persistExposureObservation(
+      postId,
+      platform,
+      metrics,
+      context,
+      authorization,
+    );
+    await this.persistLearningObservation(
+      postId,
+      platform,
+      metrics,
+      context,
+      authorization,
+    );
+    await admitAnalyticsCollection(authorization);
     return result
       ? new PostAnalyticsEntity(result as PostAnalyticsDocument)
       : null;
@@ -517,52 +596,23 @@ export class PostAnalyticsService extends BaseService<
 
   async processTwitterAnalytics(
     postId: string,
-    analytics: {
-      learningMetrics?: LearningMetrics;
-      isPinned?: boolean | null;
-      isPromoted?: boolean | null;
-      views: number;
-      likes: number;
-      comments: number;
-      retweets?: number;
-      bookmarks?: number;
-      quotes?: number;
-      impressions?: number;
-      engagementRate?: number;
-      mediaType?: 'text' | 'image' | 'video' | 'mixed';
-    },
+    analytics: TwitterPostMetrics,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.TWITTER,
-        {
-          learningMetrics: analytics.learningMetrics,
-          impressions: analytics.impressions ?? null,
-          isPinned:
-            analytics.isPinned ?? analytics.learningMetrics?.isPinned ?? null,
-          isPromoted:
-            analytics.isPromoted ?? analytics.learningMetrics?.isPaid ?? null,
-          metricAvailability: {
-            impressions:
-              analytics.learningMetrics?.metrics.impressions?.availability ??
-              (analytics.impressions == null ? 'unavailable' : 'observed'),
-            views:
-              analytics.learningMetrics?.metrics.views?.availability ??
-              'observed',
-          },
-          totalComments: analytics.comments,
-          totalLikes: analytics.likes,
-          totalSaves: analytics.bookmarks ?? 0,
-          totalShares: analytics.retweets || 0,
-          totalViews: analytics.views,
-        },
+        mapTwitterPostMetrics(analytics),
         context,
+        authorization,
       );
 
       this.logger.log(`Updated Twitter analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process Twitter analytics for post ${postId}`,
         error,
@@ -578,17 +628,21 @@ export class PostAnalyticsService extends BaseService<
     postId: string,
     analytics: YouTubePostMetrics,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.YOUTUBE,
         mapYouTubePostMetrics(analytics),
         context,
+        authorization,
       );
 
       this.logger.log(`Updated YouTube analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process YouTube analytics for post ${postId}`,
         error,
@@ -602,50 +656,23 @@ export class PostAnalyticsService extends BaseService<
    */
   async processInstagramAnalytics(
     postId: string,
-    analytics: {
-      learningMetrics?: LearningMetrics;
-      isPinned?: boolean | null;
-      isPromoted?: boolean | null;
-      views?: number;
-      likes: number;
-      comments: number;
-      shares?: number;
-      saves?: number;
-      impressions?: number;
-      reach?: number;
-      engagementRate?: number;
-      mediaType?: 'image' | 'video' | 'carousel' | 'reel' | 'story';
-    },
+    analytics: InstagramPostMetrics,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.INSTAGRAM,
-        {
-          learningMetrics: analytics.learningMetrics,
-          impressions: analytics.impressions ?? null,
-          metricAvailability: {
-            impressions:
-              analytics.impressions == null ? 'unavailable' : 'observed',
-            reach: analytics.reach == null ? 'unavailable' : 'observed',
-            views:
-              analytics.learningMetrics?.metrics.views?.availability ??
-              'unavailable',
-          },
-          reach: analytics.reach ?? null,
-          totalComments: analytics.comments,
-          totalLikes: analytics.likes,
-          totalSaves: analytics.saves || 0,
-          totalShares: analytics.shares || 0,
-          totalViews: analytics.views ?? 0,
-          videoViews: analytics.views ?? null,
-        },
+        mapInstagramPostMetrics(analytics),
         context,
+        authorization,
       );
 
       this.logger.log(`Updated Instagram analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process Instagram analytics for post ${postId}`,
         error,
@@ -661,17 +688,21 @@ export class PostAnalyticsService extends BaseService<
     postId: string,
     analytics: TikTokPostMetrics,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.TIKTOK,
         mapTikTokPostMetrics(analytics),
         context,
+        authorization,
       );
 
       this.logger.log(`Updated TikTok analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process TikTok analytics for post ${postId}`,
         error,
@@ -698,8 +729,10 @@ export class PostAnalyticsService extends BaseService<
       engagementRate?: number;
     },
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.PINTEREST,
@@ -720,10 +753,12 @@ export class PostAnalyticsService extends BaseService<
           totalViews: analytics.views ?? 0,
         },
         context,
+        authorization,
       );
 
       this.logger.log(`Updated Pinterest analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process Pinterest analytics for post ${postId}`,
         error,
@@ -752,8 +787,10 @@ export class PostAnalyticsService extends BaseService<
       mediaType?: 'text' | 'image' | 'video' | 'article' | 'document' | 'mixed';
     },
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.LINKEDIN,
@@ -775,10 +812,12 @@ export class PostAnalyticsService extends BaseService<
           totalViews: analytics.views,
         },
         context,
+        authorization,
       );
 
       this.logger.log(`Updated LinkedIn analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process LinkedIn analytics for post ${postId}`,
         error,
@@ -803,8 +842,10 @@ export class PostAnalyticsService extends BaseService<
       boosts: number;
     },
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.MASTODON,
@@ -817,10 +858,12 @@ export class PostAnalyticsService extends BaseService<
           totalViews: 0, // Mastodon does not expose view counts
         },
         context,
+        authorization,
       );
 
       this.logger.log(`Updated Mastodon analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process Mastodon analytics for post ${postId}`,
         error,
@@ -847,8 +890,10 @@ export class PostAnalyticsService extends BaseService<
       engagementRate?: number;
     },
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.FACEBOOK,
@@ -870,10 +915,12 @@ export class PostAnalyticsService extends BaseService<
           totalViews: analytics.views,
         },
         context,
+        authorization,
       );
 
       this.logger.log(`Updated Facebook analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process Facebook analytics for post ${postId}`,
         error,
@@ -898,8 +945,10 @@ export class PostAnalyticsService extends BaseService<
       quotes: number;
     },
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     try {
+      await admitAnalyticsCollection(authorization);
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.THREADS,
@@ -916,10 +965,12 @@ export class PostAnalyticsService extends BaseService<
           totalViews: analytics.views,
         },
         context,
+        authorization,
       );
 
       this.logger.log(`Updated Threads analytics for post ${postId}`);
     } catch (error: unknown) {
+      if (isAnalyticsCollectionAuthorizationFailure(error)) throw error;
       this.logger.error(
         `Failed to process Threads analytics for post ${postId}`,
         error,
