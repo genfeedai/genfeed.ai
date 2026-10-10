@@ -131,7 +131,22 @@ describe('MusicGenerationService', () => {
       ),
     };
     const routerService = {
-      getDefaultModel: vi.fn().mockResolvedValue('system-model'),
+      // Mirrors RouterService.resolveModelKey: the first configured candidate
+      // wins, otherwise the registry default.
+      resolveModelKey: vi
+        .fn()
+        .mockImplementation(
+          async ({
+            candidates = [],
+          }: {
+            candidates?: Array<string | null | undefined>;
+          }) => {
+            const candidate = candidates.find(Boolean);
+            return candidate
+              ? { key: candidate, source: 'candidate' }
+              : { key: 'system-model', source: 'registry-default' };
+          },
+        ),
       selectModel: vi.fn().mockResolvedValue({
         reason: 'best match',
         selectedModel: 'auto-model',
@@ -523,9 +538,10 @@ describe('MusicGenerationService', () => {
       created.organizationSettingsService.findOne.mockResolvedValue(
         {} as never,
       );
-      created.routerService.getDefaultModel.mockResolvedValue(
-        systemDefault as never,
-      );
+      created.routerService.resolveModelKey.mockResolvedValue({
+        key: systemDefault,
+        source: 'registry-default',
+      } as never);
 
       try {
         await created.service.generateMusic(
@@ -615,7 +631,7 @@ describe('MusicGenerationService', () => {
       prioritize: RouterPriority.QUALITY,
       prompt: dto.text,
     });
-    expect(created.routerService.getDefaultModel).not.toHaveBeenCalled();
+    expect(created.routerService.resolveModelKey).not.toHaveBeenCalled();
     expect(created.promptsService.create).toHaveBeenCalledWith(
       expect.objectContaining({ model: 'auto-model' }),
     );
@@ -671,6 +687,78 @@ describe('MusicGenerationService', () => {
       );
     },
   );
+
+  it('resolves configured defaults through the router in brand → organization order', async () => {
+    const created = createService();
+
+    await created.service.generateMusic(
+      user,
+      buildDto({ model: undefined }),
+      request,
+    );
+
+    expect(created.routerService.resolveModelKey).toHaveBeenCalledWith({
+      candidates: ['brand-model', 'organization-model'],
+      category: ModelCategory.MUSIC,
+      organizationId: 'org-1',
+    });
+    expect(created.loggerService.warn).not.toHaveBeenCalled();
+  });
+
+  it('falls through a retired brand pin to the active registry music default', async () => {
+    const created = createService();
+    created.brandsService.findOne.mockResolvedValue({
+      defaultMusicModel: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      id: 'brand-from-user',
+    } as never);
+    created.organizationSettingsService.findOne.mockResolvedValue({} as never);
+    // The router only honours candidates that are active music rows; a
+    // retired MusicGen pin is skipped in favour of the registry default.
+    created.routerService.resolveModelKey.mockResolvedValue({
+      key: MODEL_KEYS.FAL_LYRIA3_PRO,
+      source: 'registry-default',
+    } as never);
+
+    await created.service.generateMusic(
+      user,
+      buildDto({ model: undefined }),
+      request,
+    );
+
+    expect(created.modelsService.findOne).toHaveBeenCalledWith({
+      key: MODEL_KEYS.FAL_LYRIA3_PRO,
+      organizationId: 'org-1',
+    });
+    expect(created.promptsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ model: MODEL_KEYS.FAL_LYRIA3_PRO }),
+    );
+    expect(created.loggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Configured music default'),
+      expect.objectContaining({
+        brandDefault: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+        resolvedModel: MODEL_KEYS.FAL_LYRIA3_PRO,
+        source: 'registry-default',
+      }),
+    );
+  });
+
+  it('keeps an explicit retired model strict instead of swapping it', async () => {
+    const created = createService();
+    created.modelsService.findOne.mockResolvedValue({
+      ...activeMusicModel,
+      isActive: false,
+    } as never);
+
+    await expect(
+      created.service.generateMusic(
+        user,
+        buildDto({ model: MODEL_KEYS.REPLICATE_META_MUSICGEN }),
+        request,
+      ),
+    ).rejects.toBeInstanceOf(HttpException);
+    expect(created.routerService.resolveModelKey).not.toHaveBeenCalled();
+    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+  });
 
   it('clamps outputs to four and continues after a partial provider failure', async () => {
     const created = createService();
