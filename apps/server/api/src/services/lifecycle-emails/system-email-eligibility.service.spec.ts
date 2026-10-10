@@ -10,7 +10,7 @@ const input = {
   templateKey: 'welcome-day-2',
 };
 // A rollout long past, so windows run from organization creation.
-const configGet = vi.fn((key: string) =>
+const configGet = vi.fn((key: string): string | undefined =>
   key === 'FREE_TRIAL_ROLLOUT_AT' ? '2026-01-01T00:00:00.000Z' : undefined,
 );
 
