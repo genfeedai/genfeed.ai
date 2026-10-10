@@ -55,6 +55,7 @@ describe('free-trial.constant', () => {
       expect(isFreeTrialEmailTemplateKey(key)).toBe(true);
     }
     expect(isFreeTrialEmailTemplateKey('credit-low')).toBe(false);
+    expect(isFreeTrialEmailTemplateKey('toString')).toBe(false);
     expect(FREE_TRIAL_EMAILS['trial-ending'].subject).toBe(
       'Your free trial ends in 24 hours',
     );
