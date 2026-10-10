@@ -7,7 +7,6 @@ import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  access: { isSuperAdmin: false },
   brand: {
     selectedBrand: { slug: 'moonrise' } as { slug?: string } | undefined,
     settings: {
@@ -30,10 +29,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brand,
 }));
-vi.mock(
-  '@genfeedai/contexts/providers/access-state/access-state.provider',
-  () => ({ useAccessState: () => mocks.access }),
-);
 vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
   useFeatureFlagContext: () => ({ flags: mocks.flags, isConfigured: false }),
 }));
@@ -87,7 +82,6 @@ function appState(appId: string): string | null | undefined {
 describe('OrganizationStorePage (#5502)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.access.isSuperAdmin = false;
     mocks.brand.selectedBrand = { slug: 'moonrise' };
     mocks.brand.settings = {
       hasOrganizationBilling: true,
@@ -118,8 +112,13 @@ describe('OrganizationStorePage (#5502)', () => {
     ]);
   });
 
-  it('lists every native app for the founder', () => {
-    mocks.access.isSuperAdmin = true;
+  it('lists every native app for an organization on release preview', () => {
+    mocks.brand.settings = {
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: true,
+      isReleasePreviewEnabled: true,
+      moduleOverrides: {},
+    };
     render(<OrganizationStorePage />);
 
     expect(screen.getAllByTestId(/^store-app-/)).toHaveLength(9);
@@ -188,7 +187,6 @@ describe('OrganizationStorePage (#5502)', () => {
   });
 
   it('shows the workflow library only while Automation is installed and eligible', () => {
-    mocks.access.isSuperAdmin = true;
     const { rerender } = render(<OrganizationStorePage />);
     expect(screen.queryByTestId('store-workflows')).toBeNull();
 
