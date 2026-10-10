@@ -83,7 +83,16 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  return {
+    useFormatter: () => ({
+      dateTime: (value: Date, options?: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-US', {
+          ...options,
+          timeZone: 'UTC',
+        }).format(value),
+    }),
+    useTranslations: translateFromCatalog,
+  };
 });
 vi.mock('next/navigation', () => ({
   useParams: () => ({ orgSlug: 'acme', brandSlug: 'moonrise' }),

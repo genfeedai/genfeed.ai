@@ -21,6 +21,13 @@ vi.mock('next-intl', async () => {
     '@ui/tests/next-intl.stub'
   );
   return {
+    useFormatter: () => ({
+      dateTime: (value: Date, options?: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-US', {
+          ...options,
+          timeZone: 'UTC',
+        }).format(value),
+    }),
     useTranslations: createTranslateFromCatalog({
       pages: {
         generationReceipts: {

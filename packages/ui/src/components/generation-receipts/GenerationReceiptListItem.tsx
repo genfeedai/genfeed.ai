@@ -9,7 +9,7 @@ import Badge from '@ui/display/badge/Badge';
 import { FileText, Film, ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import {
   getGenerationReceiptCost,
   getGenerationReceiptStatus,
@@ -50,6 +50,7 @@ export default function GenerationReceiptListItem({
   media,
 }: GenerationReceiptListItemProps) {
   const t = useTranslations('pages.generationReceipts.list');
+  const format = useFormatter();
   const status = getGenerationReceiptStatus(receipt.state);
   const cost = getGenerationReceiptCost(receipt);
   const kind =
@@ -90,7 +91,7 @@ export default function GenerationReceiptListItem({
           {t('model', { model: receipt.execution?.model ?? t('noModel') })} ·{' '}
           {costLabel} ·{' '}
           <time dateTime={receipt.createdAt}>
-            {new Date(receipt.createdAt).toLocaleString(undefined, {
+            {format.dateTime(new Date(receipt.createdAt), {
               dateStyle: 'medium',
               timeStyle: 'short',
             })}
