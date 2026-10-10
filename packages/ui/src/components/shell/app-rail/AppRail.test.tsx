@@ -575,6 +575,7 @@ describe('AppRail', () => {
         orgSlug="acme"
         modulePreferences={resolveOrganizationModulePreferences({
           hasOrganizationBilling: true,
+          isReleasePreviewEnabled: true,
           moduleOverrides: {},
         })}
       />,
@@ -605,6 +606,7 @@ describe('AppRail', () => {
     const onTogglePin = vi.fn();
     const preferences = resolveOrganizationModulePreferences({
       hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
       moduleOverrides: {},
     });
     const { rerender } = render(
@@ -630,6 +632,7 @@ describe('AppRail', () => {
         onTogglePin={onTogglePin}
         modulePreferences={resolveOrganizationModulePreferences({
           hasOrganizationBilling: true,
+          isReleasePreviewEnabled: true,
           moduleOverrides: { automation: true },
         })}
       />,

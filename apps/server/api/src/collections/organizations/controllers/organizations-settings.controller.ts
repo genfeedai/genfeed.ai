@@ -11,6 +11,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
+import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
@@ -26,7 +27,14 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
+import { hasOrganizationBilling } from '@genfeedai/config';
 import { ByokProvider, MemberRole } from '@genfeedai/contracts';
+import {
+  isOrganizationModuleUnreleased,
+  ORGANIZATION_MODULE_IDS,
+  ORGANIZATION_MODULES,
+  organizationModuleOverridesSchema,
+} from '@genfeedai/contracts/constants';
 import type {
   IByokProviderStatus,
   IWebhookDeliveryStatus,
@@ -220,8 +228,9 @@ export class OrganizationsSettingsController {
         'Onboarding journey state is managed by the server',
       );
     }
+    const isSuperAdmin = getIsSuperAdmin(req.user, req);
     if (
-      !getIsSuperAdmin(req.user, req) &&
+      !isSuperAdmin &&
       BILLING_CONTROLLED_SETTINGS.some((field) =>
         Object.hasOwn(settingsDto, field),
       )
@@ -229,6 +238,12 @@ export class OrganizationsSettingsController {
       throw new BadRequestException(
         'Plan limits and subscription tier are managed by billing',
       );
+    }
+    if (
+      !isSuperAdmin &&
+      Object.hasOwn(settingsDto, 'isReleasePreviewEnabled')
+    ) {
+      throw new ForbiddenException('Release preview is managed by Genfeed');
     }
     const resolvedOrganizationId = this.resolveOrganizationId(
       req,
@@ -254,6 +269,10 @@ export class OrganizationsSettingsController {
         resolvedOrganizationId,
       );
 
+    if (!isSuperAdmin) {
+      this.assertNoUnreleasedModuleEnabled(organizationSettings, settingsDto);
+    }
+
     const normalizedSettingsDto =
       this.agentPolicyOverridesService.normalizeOverrides(settingsDto);
 
@@ -269,6 +288,44 @@ export class OrganizationsSettingsController {
     await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
 
     return serializeSingle(req, OrganizationSettingSerializer, data);
+  }
+
+  /**
+   * #5502 customer owners and admins cannot switch on a founder-only module
+   * while it is unreleased for their organization. Values already stored stay
+   * as they are, so other module changes still save; admission refuses new
+   * work in an unreleased module regardless.
+   */
+  private assertNoUnreleasedModuleEnabled(
+    current: Pick<
+      OrganizationSettingDocument,
+      'isReleasePreviewEnabled' | 'moduleOverrides'
+    >,
+    settingsDto: UpdateOrganizationSettingDto,
+  ): void {
+    const next = settingsDto.moduleOverrides;
+    if (!next) return;
+    const parsedCurrent = organizationModuleOverridesSchema.safeParse(
+      current.moduleOverrides ?? {},
+    );
+    const previous: Partial<Record<string, boolean>> = parsedCurrent.success
+      ? parsedCurrent.data
+      : {};
+    const newlyEnabled = ORGANIZATION_MODULE_IDS.filter(
+      (moduleId) =>
+        next[moduleId as keyof typeof next] === true &&
+        previous[moduleId] !== true &&
+        isOrganizationModuleUnreleased(
+          moduleId,
+          hasOrganizationBilling(),
+          current.isReleasePreviewEnabled === true,
+        ),
+    );
+    if (newlyEnabled.length > 0) {
+      throw new ForbiddenException(
+        `${newlyEnabled.map((moduleId) => ORGANIZATION_MODULES[moduleId].label).join(', ')} not released yet`,
+      );
+    }
   }
 
   @Post(':organizationId/settings/webhooks/test')
