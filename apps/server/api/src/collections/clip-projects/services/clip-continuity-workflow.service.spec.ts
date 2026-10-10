@@ -4,6 +4,7 @@ import type { WorkflowExecutionQueueService } from '@api/collections/workflows/s
 import type {
   SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
+  SystemWorkflowTerminalFailureHandler,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -13,6 +14,10 @@ import { ClipContinuityWorkflowService } from './clip-continuity-workflow.servic
 
 function createHarness() {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
+  const terminalFailures = new Map<
+    string,
+    SystemWorkflowTerminalFailureHandler
+  >();
   const prisma = {
     $executeRaw: vi.fn().mockResolvedValue(1),
     batchItem: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn() },
@@ -56,6 +61,10 @@ function createHarness() {
         actions.set(actionId, executor);
       },
     ),
+    registerTerminalFailure: vi.fn(
+      (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) =>
+        terminalFailures.set(canonicalId, handler),
+    ),
     registerWorkflow: vi.fn(),
   };
   const service = new ClipContinuityWorkflowService(
@@ -67,7 +76,15 @@ function createHarness() {
     moduleAccess as never,
   );
   service.onModuleInit();
-  return { actions, clipResults, moduleAccess, prisma, queue, service };
+  return {
+    actions,
+    clipResults,
+    moduleAccess,
+    prisma,
+    queue,
+    service,
+    terminalFailures,
+  };
 }
 
 const project = {
@@ -80,6 +97,30 @@ const project = {
 } as unknown as ClipProjectDocument;
 
 describe('ClipContinuityWorkflowService', () => {
+  it('fails only the in-flight QA of the generation run that queued it (#6655)', async () => {
+    const { prisma, terminalFailures } = createHarness();
+
+    await terminalFailures.get('clip.continuity')?.({
+      inputValues: {
+        generationWorkflowExecutionId: 'generation-execution-1',
+        projectId: 'project-1',
+      },
+      organizationId: 'org-1',
+      workflowError: 'Action contract input validation failed',
+    });
+
+    expect(prisma.clipProject.updateMany).toHaveBeenCalledWith({
+      data: { continuityQaStatus: 'failed' },
+      where: expect.objectContaining({
+        continuityQaStatus: { in: ['queued', 'running'] },
+        id: 'project-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        workflowExecutionId: 'generation-execution-1',
+      }),
+    });
+  });
+
   it.each([
     'clip.continuity.begin',
     'clip.continuity.fail',

@@ -36,6 +36,19 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+/** Statuses a stuck workflow can leave a project in. */
+const IN_FLIGHT_CLIP_PROJECT_STATUSES = new Set([
+  'analyzing',
+  'captioning',
+  'clipping',
+  'generating',
+  'pending',
+  'transcribing',
+]);
+
+const CLIP_WORKFLOW_INTERNAL_FAILURE_MESSAGE =
+  'Processing stopped because of an internal error. Retry, or start a new project.';
+
 type ClipProjectWriteDto = Partial<
   CreateClipProjectDto & UpdateClipProjectDto
 > &
@@ -387,6 +400,81 @@ export class ClipProjectsService extends BaseService<
         updatedAt: current.updatedAt,
       },
     });
+  }
+
+  /**
+   * Last resort when a Clips workflow and its failure workflow both failed
+   * (#6655): an in-flight project becomes terminal `failed` instead of
+   * staying in progress forever. A newer attempt or a finished project is
+   * left untouched.
+   */
+  async settleInFlightFailure(
+    projectId: string,
+    organizationId: string,
+    attempt: Pick<ClipSourceContract, 'fingerprint' | 'retryCount'> | undefined,
+  ): Promise<boolean> {
+    const current = await this.findOne({
+      id: projectId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (
+      !current ||
+      !IN_FLIGHT_CLIP_PROJECT_STATUSES.has(current.status) ||
+      (attempt &&
+        current.source &&
+        (current.source.fingerprint !== attempt.fingerprint ||
+          current.source.retryCount !== attempt.retryCount))
+    ) {
+      return false;
+    }
+    const message = CLIP_WORKFLOW_INTERNAL_FAILURE_MESSAGE;
+    // Once clips exist a completed source stays; failed clips are retried.
+    const hasClips =
+      current.source?.status === 'completed' &&
+      (await this.clipResultsService.findByProject(projectId, organizationId))
+        .length > 0;
+    const config = this.readRecord(current.config);
+    const terminalAt = new Date();
+    const updated = await this.prisma.clipProject.updateMany({
+      data: {
+        config: toPrismaJson({
+          ...config,
+          ...(current.source && !hasClips
+            ? {
+                source: {
+                  ...current.source,
+                  failure: {
+                    code: 'clip_workflow_failed',
+                    message,
+                    retryable: true,
+                  },
+                  status: 'failed',
+                  updatedAt: terminalAt.toISOString(),
+                },
+              }
+            : {}),
+        }),
+        error: message,
+        readiness: toPrismaJson(
+          buildClipProjectReadiness({
+            error: message,
+            status: 'failed',
+            terminalAt,
+          }),
+        ),
+        status: 'failed',
+        terminalAt,
+      },
+      where: {
+        id: projectId,
+        isDeleted: false,
+        organizationId,
+        status: current.status,
+        updatedAt: current.updatedAt,
+      },
+    });
+    return updated.count > 0;
   }
 
   async releaseSourceRetry(

@@ -5,7 +5,10 @@ import {
   buildVisualProjectWorkflowDefinition,
 } from '@api/collections/visual-projects/services/visual-project-workflow-definition';
 import { buildHiddenSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
-import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
+import type {
+  SystemWorkflowActionExecutor,
+  SystemWorkflowTerminalFailureHandler,
+} from '@api/collections/workflows/system-workflow-runner.service';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import type { IVisualCodeReceipt } from '@genfeedai/contracts/interfaces';
 import type { VisualRevision } from '@genfeedai/prisma';
@@ -46,6 +49,7 @@ function fixture() {
   } as unknown as VisualRevision;
   let executor: SystemWorkflowActionExecutor | undefined;
   const workflow = {
+    registerTerminalFailure: vi.fn(),
     registerWorkflow: vi.fn(),
     registerAction: vi.fn((_id, handler) => {
       if (_id === 'visual-code.execute-internal') executor = handler;
@@ -498,13 +502,24 @@ function failureFixture() {
     },
   );
   const handlers = new Map<string, SystemWorkflowActionExecutor>();
+  const terminalFailures = new Map<
+    string,
+    SystemWorkflowTerminalFailureHandler
+  >();
   const workflows = {
+    registerTerminalFailure: vi.fn((id, handler) =>
+      terminalFailures.set(id, handler),
+    ),
     registerWorkflow: vi.fn(),
     registerAction: vi.fn((id, handler) => handlers.set(id, handler)),
   };
   const prisma = {
-    visualRevision: { findFirstOrThrow: vi.fn(async () => revision) },
+    visualRevision: {
+      findFirst: vi.fn(async () => revision),
+      findFirstOrThrow: vi.fn(async () => revision),
+    },
     workflowExecution: {
+      findFirst: vi.fn(async () => ({ id: original.id })),
       findFirstOrThrow: vi.fn(async ({ where }) =>
         where.id === 'failure' ? failure : original,
       ),
@@ -576,8 +591,15 @@ function failureFixture() {
     },
   };
   const run = () => handlers.get('visual-code.fail-internal')?.(request);
+  const settle = (organizationId = 'org') =>
+    terminalFailures.get('visual-code.execute')?.({
+      inputValues: { job },
+      organizationId,
+      workflowError: 'Action contract input validation failed',
+    });
   return {
     run,
+    settle,
     request,
     prisma,
     dispatch,
@@ -591,6 +613,45 @@ function failureFixture() {
     workflows,
   };
 }
+
+describe('Motion last-resort terminal failure (#6655)', () => {
+  it('stops an unreconciled revision through the normal reconciliation', async () => {
+    const f = failureFixture();
+
+    await f.settle();
+
+    expect(f.dispatch.reconcileFailedExecution).toHaveBeenCalledWith(
+      f.revision,
+      'original',
+      expect.any(Function),
+    );
+    expect(f.prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        idempotencyKey: 'visual-code-revision',
+        isDeleted: false,
+        organizationId: 'org',
+        userId: 'user',
+      },
+    });
+  });
+
+  it('leaves a terminal revision untouched', async () => {
+    const f = failureFixture();
+    f.revision.status = 'completed';
+
+    await f.settle();
+
+    expect(f.dispatch.reconcileFailedExecution).not.toHaveBeenCalled();
+  });
+
+  it('refuses a job from another tenant', async () => {
+    const f = failureFixture();
+
+    await expect(f.settle('other-org')).rejects.toThrow();
+    expect(f.dispatch.reconcileFailedExecution).not.toHaveBeenCalled();
+  });
+});
 
 describe('Motion internal terminal admission proof', () => {
   it('permits only scoped terminal cleanup after access or actor revocation without provider work', async () => {

@@ -4,6 +4,7 @@ import {
   buildClipFactoryWorkflowDefinition,
   buildClipGenerationChildWorkflowDefinition,
   CLIP_FACTORY_ACTION_IDS,
+  CLIP_FACTORY_WORKFLOW_ID,
 } from '@api/collections/clip-projects/services/clip-factory-workflow-definition';
 import type {
   ClipGenerationInput,
@@ -11,8 +12,9 @@ import type {
   ClipHighlight,
   ClipHookReviewContext,
 } from '@api/collections/clip-projects/services/clip-generation.service';
-import { toClipSourceFailureMessage } from '@api/collections/clip-projects/services/clip-source-contract.util';
+import { toClipFailureMessage } from '@api/collections/clip-projects/services/clip-source-contract.util';
 import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
+import { settleClipWorkflowFailure } from '@api/collections/clip-projects/services/clip-workflow-terminal-failure.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import {
   type SystemWorkflowActionRequest,
@@ -69,6 +71,9 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
       (request) => this.finalizeChild(request),
     );
     this.runner.registerWorkflow(buildClipFactoryWorkflowDefinition());
+    this.runner.registerTerminalFailure(CLIP_FACTORY_WORKFLOW_ID, (request) =>
+      settleClipWorkflowFailure(this.clipProjects, request),
+    );
     this.runner.registerWorkflow(buildClipFactoryFailureWorkflowDefinition());
     this.runner.registerWorkflow(buildClipGenerationChildWorkflowDefinition());
   }
@@ -196,14 +201,32 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
       action.input.workflowError,
       'workflowError',
     );
-    const source = this.failedSource(
-      data.source,
-      toClipSourceFailureMessage(workflowError),
+    const project = await this.clipProjects.findOne({
+      id: data.projectId,
+      isDeleted: false,
+      organizationId: data.orgId,
+    });
+    // A failure graph from an attempt the creator already retried must not
+    // overwrite the newer run.
+    if (
+      project?.source &&
+      data.source &&
+      (project.source.fingerprint !== data.source.fingerprint ||
+        project.source.retryCount !== data.source.retryCount)
+    ) {
+      return { projectId: data.projectId, status: 'failed' };
+    }
+    const message = toClipFailureMessage(workflowError);
+    // The stored source keeps artifacts materialized by earlier nodes.
+    const source = await this.failedSource(
+      project?.source ?? data.source,
+      message,
+      data,
     );
     await this.clipProjects.patch(
       data.projectId,
       {
-        error: workflowError,
+        error: message,
         ...(source ? { source } : {}),
         status: 'failed',
       },
@@ -258,12 +281,27 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
     };
   }
 
-  private failedSource(
+  /**
+   * A failure before any clip exists (highlights, planning) is retried from
+   * the source, which reuses the saved transcript. Once clips exist, the
+   * completed source stays as is and failed clips are retried instead.
+   */
+  private async failedSource(
     source: ClipSourceContract | undefined,
     message: string,
-  ): ClipSourceContract | undefined {
-    if (!source || source.status === 'completed') {
+    data: ClipFactoryWorkflowInput,
+  ): Promise<ClipSourceContract | undefined> {
+    if (!source) {
       return source;
+    }
+    if (source.status === 'completed') {
+      const clips = await this.clipResults.findByProject(
+        data.projectId,
+        data.orgId,
+      );
+      if (clips.length > 0) {
+        return source;
+      }
     }
     return {
       ...source,

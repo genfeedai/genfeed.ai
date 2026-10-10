@@ -134,6 +134,55 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       'visual-code.fail-internal',
       async (request) => this.failAdmittedExecution(request),
     );
+    this.workflows.registerTerminalFailure(
+      'visual-code.execute',
+      async ({ inputValues, organizationId }) =>
+        this.settleUnreconciledExecution(inputValues, organizationId),
+    );
+  }
+
+  /**
+   * Last resort when the execute and failure graphs both failed (#6655). No
+   * failure node lease exists to prove, so only the original execution's own
+   * claims guard the stop; receipts that need recovery still refuse it.
+   */
+  private async settleUnreconciledExecution(
+    inputValues: Record<string, unknown>,
+    organizationId: string,
+  ): Promise<void> {
+    const job = z
+      .strictObject({
+        revisionId: z.string().min(1),
+        organizationId: z.literal(organizationId),
+        brandId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .parse(inputValues.job);
+    const revision = await this.prisma.visualRevision.findFirst({
+      where: {
+        id: job.revisionId,
+        organizationId,
+        brandId: job.brandId,
+        userId: job.userId,
+        isDeleted: false,
+      },
+    });
+    if (!revision || terminal.includes(revision.status)) return;
+    const original = await this.prisma.workflowExecution.findFirst({
+      where: {
+        organizationId,
+        userId: job.userId,
+        idempotencyKey: `visual-code-${revision.id}`,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+    if (!original) return;
+    await this.dispatch.reconcileFailedExecution(
+      revision,
+      original.id,
+      async () => {},
+    );
   }
   private async failAdmittedExecution({
     input,

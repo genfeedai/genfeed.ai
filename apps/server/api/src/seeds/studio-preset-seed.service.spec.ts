@@ -62,6 +62,32 @@ describe('StudioPresetSeedService', () => {
     expect(await service.reconcileCatalog()).toBe(0);
     expect(prisma.preset.upsert).not.toHaveBeenCalled();
   });
+  it('keeps seeding the other templates when one conflicts', async () => {
+    const { prisma, logger, service } = fixture();
+    const [conflicting, ...others] = STUDIO_SYSTEM_PRESETS;
+    prisma.preset.upsert.mockImplementation(
+      async ({ where }: { where: { id: string } }) => {
+        if (where.id === studioSystemPresetId(conflicting.key)) {
+          throw Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          });
+        }
+        return {};
+      },
+    );
+
+    expect(await service.reconcileCatalog()).toBe(others.length);
+
+    expect(prisma.preset.upsert).toHaveBeenCalledTimes(
+      STUDIO_SYSTEM_PRESETS.length,
+    );
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      `Studio system preset seed failed for ${conflicting.key}`,
+      expect.any(Error),
+      'StudioPresetSeedService',
+    );
+  });
   it('reports seed failures without preventing application bootstrap', async () => {
     const { prisma, logger, service } = fixture();
     prisma.preset.upsert.mockRejectedValue(new Error('DB unavailable'));

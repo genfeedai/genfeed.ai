@@ -119,6 +119,16 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
     this.workflowRunner.registerWorkflow(
       buildBatchProjectIdeaDispatchFailureWorkflowDefinition(),
     );
+    // Last resort when the dispatch and its failure graph both failed (#6655).
+    this.workflowRunner.registerTerminalFailure(
+      BATCH_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+      async ({ inputValues, organizationId }) => {
+        await this.failItem(
+          this.readJob(inputValues.job, organizationId),
+          'Generation could not start',
+        );
+      },
+    );
   }
 
   /** Queue one attempt; the job id makes a repeated enqueue a no-op. */
@@ -233,16 +243,21 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
   }
 
   private dispatchAction(request: SystemWorkflowActionRequest) {
-    return this.dispatch(this.readJob(request));
+    return this.dispatch(
+      this.readJob(request.input.job, request.context.organizationId),
+    );
   }
 
   private async failAction(request: SystemWorkflowActionRequest) {
-    await this.failItem(this.readJob(request), 'Generation could not start');
+    await this.failItem(
+      this.readJob(request.input.job, request.context.organizationId),
+      'Generation could not start',
+    );
     return { status: 'failed' };
   }
 
-  private readJob(request: SystemWorkflowActionRequest) {
-    const job = readRecord(request.input.job);
+  private readJob(value: unknown, organizationId: string | undefined) {
+    const job = readRecord(value);
     const parsed = {
       itemId: readString(job.itemId),
       key: readString(job.key),
@@ -256,7 +271,7 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
       !parsed.organizationId ||
       !parsed.projectId ||
       !parsed.userId ||
-      parsed.organizationId !== request.context.organizationId
+      parsed.organizationId !== organizationId
     ) {
       throw new ConflictException('Invalid batch project idea dispatch job.');
     }

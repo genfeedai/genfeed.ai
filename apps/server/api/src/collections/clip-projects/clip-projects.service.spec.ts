@@ -130,6 +130,99 @@ describe('ClipProjectsService', () => {
     });
   });
 
+  describe('settleInFlightFailure', () => {
+    const updatedAt = new Date('2026-10-10T10:00:00Z');
+    const source = {
+      fingerprint: 'sha256:source',
+      retryCount: 1,
+      status: 'extracting',
+    };
+    const stuck = {
+      config: { source, transcriptText: 'Saved transcript.' },
+      id: 'project-1',
+      status: 'analyzing',
+      updatedAt,
+    };
+
+    it('fails a stuck project with a retryable source', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue(stuck);
+      prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.settleInFlightFailure('project-1', 'org-1', {
+          fingerprint: 'sha256:source',
+          retryCount: 1,
+        }),
+      ).resolves.toBe(true);
+
+      expect(prisma.clipProject.updateMany).toHaveBeenCalledWith({
+        data: {
+          config: {
+            source: expect.objectContaining({
+              failure: {
+                code: 'clip_workflow_failed',
+                message: expect.stringContaining('internal error'),
+                retryable: true,
+              },
+              retryCount: 1,
+              status: 'failed',
+            }),
+            transcriptText: 'Saved transcript.',
+          },
+          error: expect.stringContaining('internal error'),
+          readiness: expect.objectContaining({ state: 'failed' }),
+          status: 'failed',
+          terminalAt: expect.any(Date),
+        },
+        where: {
+          id: 'project-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'analyzing',
+          updatedAt,
+        },
+      });
+    });
+
+    it.each([
+      [
+        'a newer attempt',
+        stuck,
+        { fingerprint: 'sha256:source', retryCount: 0 },
+      ],
+      ['a finished project', { ...stuck, status: 'analyzed' }, undefined],
+      ['an already failed project', { ...stuck, status: 'failed' }, undefined],
+    ])('leaves %s untouched', async (_label, project, attempt) => {
+      prisma.clipProject.findFirst.mockResolvedValue(project);
+
+      await expect(
+        service.settleInFlightFailure('project-1', 'org-1', attempt),
+      ).resolves.toBe(false);
+      expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps a completed source once clips exist', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue({
+        ...stuck,
+        config: { source: { ...source, status: 'completed' } },
+        status: 'generating',
+      });
+      clipResultsService.findByProject.mockResolvedValue([{ id: 'clip-1' }]);
+      prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.settleInFlightFailure('project-1', 'org-1', undefined);
+
+      expect(prisma.clipProject.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: { source: { ...source, status: 'completed' } },
+            status: 'failed',
+          }),
+        }),
+      );
+    });
+  });
+
   it('does not restore failed state once a retry worker has started', async () => {
     prisma.clipProject.findFirst.mockResolvedValue({
       id: 'project-1',

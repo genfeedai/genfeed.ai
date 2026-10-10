@@ -22,9 +22,11 @@ import {
   buildClipAnalysisFailureWorkflowDefinition,
   buildClipAnalysisWorkflowDefinition,
   CLIP_ANALYSIS_ACTION_IDS,
+  CLIP_ANALYSIS_WORKFLOW_ID,
 } from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
 import { ClipHighlightDetector } from '@api/collections/clip-projects/services/clip-highlight-detector.service';
-import { toClipSourceFailureMessage } from '@api/collections/clip-projects/services/clip-source-contract.util';
+import { toClipFailureMessage } from '@api/collections/clip-projects/services/clip-source-contract.util';
+import { settleClipWorkflowFailure } from '@api/collections/clip-projects/services/clip-workflow-terminal-failure.util';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
@@ -181,6 +183,10 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       (request) => this.failAnalysisAction(request),
     );
     this.workflowRunner.registerWorkflow(buildClipAnalysisWorkflowDefinition());
+    this.workflowRunner.registerTerminalFailure(
+      CLIP_ANALYSIS_WORKFLOW_ID,
+      (request) => settleClipWorkflowFailure(this.clipProjectsService, request),
+    );
     this.workflowRunner.registerWorkflow(
       buildClipAnalysisFailureWorkflowDefinition(),
     );
@@ -399,16 +405,13 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       // materialized by earlier nodes instead of restoring that old snapshot.
       data.source = project?.source ?? data.source;
     }
+    const failureMessage = toClipFailureMessage(errorMessage);
     await this.updateProject(
       data.projectId,
-      { error: errorMessage, status: 'failed' },
+      { error: failureMessage, status: 'failed' },
       data.orgId,
     );
-    await this.updateSource(
-      data,
-      'failed',
-      toClipSourceFailureMessage(errorMessage),
-    );
+    await this.updateSource(data, 'failed', failureMessage);
     return { status: 'failed' };
   }
 

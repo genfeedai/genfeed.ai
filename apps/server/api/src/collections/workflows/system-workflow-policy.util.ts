@@ -30,6 +30,22 @@ export type SystemWorkflowActionRequest = {
   runtimeContext?: unknown;
 };
 
+/** What a last-resort terminal failure handler receives (#6655). */
+export type SystemWorkflowTerminalFailureRequest = {
+  inputValues: Record<string, unknown>;
+  organizationId: string;
+  workflowError: string;
+};
+
+/**
+ * Marks the record a system workflow owns as terminally failed after both the
+ * workflow and its failure workflow failed. Runs without a graph or action
+ * contracts, so it must read only the minimal identifiers it needs.
+ */
+export type SystemWorkflowTerminalFailureHandler = (
+  request: SystemWorkflowTerminalFailureRequest,
+) => Promise<void>;
+
 // Action handlers are either pure state transforms or async I/O. `registerAction`
 // wraps every executor in an async node executor, so both shapes are awaited.
 export type SystemWorkflowActionExecutor = (
