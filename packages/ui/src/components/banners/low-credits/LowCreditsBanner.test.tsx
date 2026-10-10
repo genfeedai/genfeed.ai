@@ -274,6 +274,29 @@ describe('LowCreditsBanner', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows the paywall state even when the low-balance warning flag is off', () => {
+    accessState.isTrialUsedUp = true;
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 5 },
+    });
+
+    renderBanner(<LowCreditsBanner isLowBalanceWarningEnabled={false} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Not enough credits to keep generating',
+    );
+  });
+
+  it('hides the ordinary low-balance warning when its flag is off', () => {
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 50 },
+    });
+
+    renderBanner(<LowCreditsBanner isLowBalanceWarningEnabled={false} />);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('keeps the billing CTA in EE mode', () => {
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
     mockUseSubscription.mockReturnValue({

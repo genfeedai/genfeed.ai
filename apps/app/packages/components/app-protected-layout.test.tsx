@@ -62,6 +62,7 @@ const {
   universalShellSpy: vi.fn(),
 }));
 
+const mockFeatureFlags = vi.hoisted(() => ({ isEnabled: true }));
 const mockPathname = vi.hoisted(() => ({
   value: '/workspace',
 }));
@@ -443,7 +444,7 @@ vi.mock('@hooks/ui/use-menu-items', () => ({
 }));
 
 vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
-  useFeatureFlag: () => true,
+  useFeatureFlag: () => mockFeatureFlags.isEnabled,
 }));
 
 vi.mock('@providers/protected-providers/protected-providers', () => ({
@@ -495,8 +496,8 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 vi.mock('@ui/banners/low-credits/LowCreditsBanner', () => ({
-  default: () => {
-    lowCreditsBannerSpy();
+  default: (props: { isLowBalanceWarningEnabled?: boolean }) => {
+    lowCreditsBannerSpy(props);
     return <div data-testid="low-credits-banner" />;
   },
 }));
@@ -540,6 +541,7 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
+    mockFeatureFlags.isEnabled = true;
     vi.mocked(useUserRole).mockReturnValue(MemberRole.USER);
     vi.mocked(useAgentPageContext).mockClear();
     mockPathname.value = '/workspace';
@@ -686,6 +688,16 @@ describe('AppProtectedLayout', () => {
     expect(lowCreditsBannerSpy).toHaveBeenCalled();
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
     expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
+  });
+
+  it('mounts the banner with only the low-balance warning gated when the flag is off', () => {
+    mockFeatureFlags.isEnabled = false;
+    mockPathname.value = '/workspace';
+    render(<AppProtectedLayout />);
+    expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
+    expect(lowCreditsBannerSpy).toHaveBeenLastCalledWith({
+      isLowBalanceWarningEnabled: false,
+    });
   });
 
   it('wires the permanent workspace shell through the protected app shell', () => {

@@ -32,6 +32,11 @@ interface DismissState {
 }
 
 interface LowCreditsBannerProps {
+  /**
+   * Gates the ordinary low-balance warning. The "cannot afford a generation"
+   * paywall state always shows, so unpaid users see why generation stopped.
+   */
+  isLowBalanceWarningEnabled?: boolean;
   variant?: 'inline' | 'shell';
 }
 
@@ -85,6 +90,7 @@ interface LowCreditsContentProps extends LowCreditsBannerProps {
   creditsBreakdown: ReturnType<typeof useSubscription>['creditsBreakdown'];
 }
 function LowCreditsContent({
+  isLowBalanceWarningEnabled = true,
   variant = 'shell',
   creditsBreakdown,
 }: LowCreditsContentProps) {
@@ -116,11 +122,15 @@ function LowCreditsContent({
     if (isTrialUsedUp) {
       return 'critical';
     }
-    if (balance === null || balance >= LOW_CREDITS_THRESHOLD) {
+    if (
+      !isLowBalanceWarningEnabled ||
+      balance === null ||
+      balance >= LOW_CREDITS_THRESHOLD
+    ) {
       return null;
     }
     return balance === 0 ? 'critical' : 'warning';
-  }, [balance, isTrialUsedUp]);
+  }, [balance, isLowBalanceWarningEnabled, isTrialUsedUp]);
 
   const handleDismiss = useCallback(() => {
     if (balance === null) {
