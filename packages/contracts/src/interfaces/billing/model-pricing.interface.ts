@@ -20,6 +20,8 @@ export interface ProviderQuoteDimensions {
   height?: number;
   outputs?: number;
   inputDuration?: number;
+  /** Opaque SHA-256 of authorized source identity, bytes and measured usage. */
+  referenceEvidenceHash?: string;
   inputMegapixels?: number;
   frames?: number;
   inputTokens?: number;

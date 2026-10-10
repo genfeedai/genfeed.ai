@@ -215,6 +215,20 @@ export class FalVideoGenerationProviderAdapter
       completion: 'remote-output',
       externalId: result.url,
       provider: this.provider,
+      ...(Number.isSafeInteger(result.width) &&
+      (result.width ?? 0) > 0 &&
+      Number.isSafeInteger(result.height) &&
+      (result.height ?? 0) > 0 &&
+      Number.isFinite(result.duration) &&
+      (result.duration ?? 0) > 0
+        ? {
+            completionQuantities: {
+              width: result.width,
+              height: result.height,
+              duration: result.duration,
+            },
+          }
+        : {}),
     };
   }
 }

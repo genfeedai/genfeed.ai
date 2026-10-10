@@ -92,6 +92,61 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       task: 'editing',
     });
   });
+  it.each([
+    { width: 1280, height: 720, duration: 4.75 },
+    { width: 720, height: 1280, duration: 6 },
+  ])('forwards complete actual output quantities %o', async (quantities) => {
+    const falService = {
+      generateVideo: vi.fn().mockResolvedValue({
+        url: 'https://cdn.test/actual.mp4',
+        ...quantities,
+      }),
+    };
+    const adapter = new FalVideoGenerationProviderAdapter(
+      falService as unknown as FalService,
+    );
+    await expect(
+      adapter.generate({
+        model: 'fal/fal-ai/kling-video',
+        prompt: 'a landscape',
+        promptParams: {},
+        width: 4096,
+        height: 4096,
+        duration: 30,
+      }),
+    ).resolves.toMatchObject({ completionQuantities: quantities });
+  });
+
+  it.each([
+    {},
+    { width: 1280, height: 720 },
+    { width: 0, height: 720, duration: 5 },
+    { width: 1280, height: 720.5, duration: 5 },
+    { width: 1280, height: 720, duration: Number.NaN },
+  ])(
+    'withholds incomplete or invalid actual evidence %o',
+    async (quantities) => {
+      const falService = {
+        generateVideo: vi.fn().mockResolvedValue({
+          url: 'https://cdn.test/partial.mp4',
+          ...quantities,
+        }),
+      };
+      const adapter = new FalVideoGenerationProviderAdapter(
+        falService as unknown as FalService,
+      );
+      const result = await adapter.generate({
+        model: 'fal/fal-ai/kling-video',
+        prompt: 'a landscape',
+        promptParams: {},
+        width: 1280,
+        height: 720,
+        duration: 5,
+      });
+      expect(result).not.toHaveProperty('completionQuantities');
+    },
+  );
+
   it('executes a reviewed image-to-video family through the contract adapter', async () => {
     const falService = {
       generateVideo: vi

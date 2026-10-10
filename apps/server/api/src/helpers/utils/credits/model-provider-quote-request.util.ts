@@ -147,14 +147,18 @@ export function normalizeModelProviderQuoteRequest(
       if (
         videos === undefined ||
         (Array.isArray(videos) && videos.length === 0)
-      )
+      ) {
         quantities.inputDuration = 0;
-      else if (
+        delete quantities.referenceEvidenceHash;
+      } else if (
         !Array.isArray(videos) ||
         !Number.isFinite(quantities.inputDuration) ||
-        (quantities.inputDuration ?? 0) <= 0
-      )
+        (quantities.inputDuration ?? 0) <= 0 ||
+        !/^[a-f0-9]{64}$/.test(quantities.referenceEvidenceHash ?? '')
+      ) {
         delete quantities.inputDuration;
+        delete quantities.referenceEvidenceHash;
+      }
     }
   }
   return {

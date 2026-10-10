@@ -17,6 +17,9 @@ export interface FalImageResult {
 export interface FalVideoResult {
   url: string;
   content_type?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
 }
 
 interface FalMediaAsset {
@@ -24,6 +27,7 @@ interface FalMediaAsset {
   content_type?: string;
   width?: number;
   height?: number;
+  duration?: number;
 }
 
 interface FalResponseData extends Record<string, unknown> {
@@ -35,6 +39,7 @@ interface FalResponseData extends Record<string, unknown> {
   content_type?: string;
   width?: number;
   height?: number;
+  duration?: number;
 }
 
 /**
@@ -198,6 +203,15 @@ export class FalService {
       return {
         content_type: video.content_type,
         url: video.url,
+        ...(Number.isSafeInteger(video.width) && (video.width ?? 0) > 0
+          ? { width: video.width }
+          : {}),
+        ...(Number.isSafeInteger(video.height) && (video.height ?? 0) > 0
+          ? { height: video.height }
+          : {}),
+        ...(Number.isFinite(video.duration) && (video.duration ?? 0) > 0
+          ? { duration: video.duration }
+          : {}),
       };
     } catch (error: unknown) {
       this.loggerService.error(

@@ -72,6 +72,10 @@ const quantities = z.object({
   width: z.number().positive().optional(),
   height: z.number().positive().optional(),
   inputDuration: z.number().nonnegative().optional(),
+  referenceEvidenceHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   inputMegapixels: z.number().nonnegative().optional(),
   frames: z.number().nonnegative().optional(),
   inputTokens: z.number().nonnegative().optional(),

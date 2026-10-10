@@ -10,6 +10,16 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import {
+  assertReplicateVideoReference,
+  assertSeedanceReferenceBinding,
+  assertSeedanceReferenceVideoDuration,
+  bindSeedanceVideoReferences,
+  measuredSeedanceVideoReference,
+  requireSeedanceStoredReferenceKey,
+  type SeedanceVideoReferenceEvidence,
+  seedanceVideoReferenceLimit,
+} from '@api/collections/videos/services/seedance-reference-evidence.util';
 import type {
   PromptInput,
   ResolvedVideoGenerationRequest,
@@ -60,6 +70,7 @@ import {
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
+  ModelProvider,
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/contracts';
@@ -81,24 +92,10 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export const MISSING_PROMPT_ID_DETAIL =
   'Prompt resolution requires a prompt ID';
-export const MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS = 30;
-
-export function assertSeedanceReferenceVideoDuration(
-  durations: readonly number[],
-): void {
-  if (
-    durations.reduce((total, duration) => total + duration, 0) >
-    MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS
-  ) {
-    throw new HttpException(
-      {
-        detail: `Seedance reference videos may total at most ${MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS} seconds`,
-        title: 'Invalid video reference duration',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-}
+export {
+  assertSeedanceReferenceVideoDuration,
+  MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS,
+} from '@api/collections/videos/services/seedance-reference-evidence.util';
 
 export function createMissingPromptIdException(): HttpException {
   return new HttpException(
@@ -187,8 +184,24 @@ export class VideoGenerationPreparationService {
       referenceIds,
       user.organizationId,
     );
+    const validationOrgId =
+      user.organizationId || request.context?.organizationId;
+    const registeredModel = validationOrgId
+      ? await this.modelRegistrationService.validateModelForOrg(
+          model,
+          validationOrgId,
+        )
+      : undefined;
+    const nativeReferenceLimit =
+      registeredModel?.provider === ModelProvider.FAL
+        ? seedanceVideoReferenceLimit(registeredModel.endpoint ?? '')
+        : null;
     const videoReferenceIds = createVideoDto.videoReferences ?? [];
-    if (videoReferenceIds.length > 0 && !hasVideoReferences(model)) {
+    if (
+      videoReferenceIds.length > 0 &&
+      !nativeReferenceLimit &&
+      !hasVideoReferences(model)
+    ) {
       throw new HttpException(
         {
           detail:
@@ -198,23 +211,17 @@ export class VideoGenerationPreparationService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    if (videoReferenceIds.length > getModelMaxVideoReferences(model)) {
+    const videoReferenceLimit =
+      nativeReferenceLimit ?? getModelMaxVideoReferences(model);
+    if (videoReferenceIds.length > videoReferenceLimit) {
       throw new HttpException(
         {
-          detail: `The selected model accepts at most ${getModelMaxVideoReferences(model)} video references`,
+          detail: `The selected model accepts at most ${videoReferenceLimit} video references`,
           title: 'Too many video references',
         },
         HttpStatus.BAD_REQUEST,
       );
     }
-    const validationOrgId =
-      user.organizationId || request.context?.organizationId;
-    const registeredModel = validationOrgId
-      ? await this.modelRegistrationService.validateModelForOrg(
-          model,
-          validationOrgId,
-        )
-      : undefined;
     const rawInputSchema = registeredModel?.providerInputSchema;
     const modelInputSchema =
       rawInputSchema &&
@@ -246,6 +253,7 @@ export class VideoGenerationPreparationService {
   ): Promise<VideoGenerationContext> {
     const { brand, createVideoDto, model, referenceIds, request, user } =
       resolved;
+    const nativeVideoReferences = await this.resolveNativeReferences(resolved);
     const { height, width } = resolveGenerationDimensions(
       createVideoDto.width,
       createVideoDto.height,
@@ -309,6 +317,10 @@ export class VideoGenerationPreparationService {
       templateUsed = built.templateUsed;
       templateVersion = built.templateVersion;
     }
+    if (nativeVideoReferences)
+      promptParams.video_urls = nativeVideoReferences.map(
+        (reference) => reference.url,
+      );
     if (
       generationHarness.status === 'applied' &&
       typeof promptParams.prompt === 'string'
@@ -366,6 +378,7 @@ export class VideoGenerationPreparationService {
 
     return {
       ...resolved,
+      nativeVideoReferences,
       generationHarness,
       abortSignal: createRequestAbortSignal(request),
       briefEvidence,
@@ -382,6 +395,87 @@ export class VideoGenerationPreparationService {
       referenceImageUrls,
       width,
     };
+  }
+
+  private async resolveNativeReferences(
+    resolved: ResolvedVideoGenerationRequest,
+  ): Promise<SeedanceVideoReferenceEvidence[] | undefined> {
+    const { modelProvider, modelEndpoint, createVideoDto, user } = resolved;
+    const endpoint = modelEndpoint ?? '';
+    if (
+      modelProvider !== ModelProvider.FAL ||
+      !seedanceVideoReferenceLimit(endpoint) ||
+      !createVideoDto.videoReferences?.length
+    )
+      return undefined;
+    const organizationId = user.organizationId;
+    const assetIds = createVideoDto.videoReferences.map(String);
+    const references: SeedanceVideoReferenceEvidence[] = [];
+    for (const assetId of assetIds) {
+      const ingredient = await this.ingredientsService.findOne({
+        id: assetId,
+        organizationId,
+        isDeleted: false,
+        category: IngredientCategory.VIDEO,
+      });
+      const sourceKey = requireSeedanceStoredReferenceKey(ingredient?.s3Key);
+      const url =
+        await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          sourceKey,
+        );
+      const before = await this.filesClientService.fingerprintMedia(url);
+      const probe = await this.filesClientService.probeMediaFromUrl(
+        url,
+        'video',
+      );
+      const after = await this.filesClientService.fingerprintMedia(url);
+      references.push(
+        measuredSeedanceVideoReference({
+          assetId,
+          organizationId,
+          sourceKey,
+          url,
+          before,
+          probe,
+          after,
+        }),
+      );
+    }
+    bindSeedanceVideoReferences(endpoint, organizationId, references);
+    return references;
+  }
+
+  async assertFreshNativeVideoReferences(
+    context: VideoGenerationContext,
+  ): Promise<void> {
+    const references = context.nativeVideoReferences;
+    if (!references?.length) return;
+    const endpoint = context.modelEndpoint ?? '';
+    const organizationId = context.user.organizationId;
+    const fresh: SeedanceVideoReferenceEvidence[] = [];
+    for (const reference of references) {
+      const ingredient = await this.ingredientsService.findOne({
+        id: reference.assetId,
+        organizationId,
+        isDeleted: false,
+        category: IngredientCategory.VIDEO,
+      });
+      requireSeedanceStoredReferenceKey(ingredient?.s3Key, reference.sourceKey);
+      const url =
+        await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          reference.sourceKey,
+        );
+      const fingerprint = await this.filesClientService.fingerprintMedia(url);
+      fresh.push({
+        ...reference,
+        sourceVersion: fingerprint.assetHash,
+        sizeBytes: fingerprint.sizeBytes,
+      });
+    }
+    assertSeedanceReferenceBinding(
+      bindSeedanceVideoReferences(endpoint, organizationId, references),
+      bindSeedanceVideoReferences(endpoint, organizationId, fresh),
+    );
   }
 
   private createGenerationPrompt(
@@ -771,29 +865,12 @@ export class VideoGenerationPreparationService {
       );
     }
     const duration = ingredient.metadata?.duration;
-    if (
-      typeof duration !== 'number' ||
-      !Number.isFinite(duration) ||
-      duration < 3 ||
-      duration > 10
-    ) {
-      throw new HttpException(
-        {
-          detail: `The ${role} reference must be a video between 3 and 10 seconds`,
-          title: 'Invalid video reference duration',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    if (
-      this.configService.isAuthorizedMediaDeliveryEnabled &&
-      !ingredient.s3Key
-    ) {
-      throw new HttpException(
-        'The source video has no stored media key',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    assertReplicateVideoReference(
+      duration,
+      Boolean(ingredient.s3Key),
+      this.configService.isAuthorizedMediaDeliveryEnabled,
+      role,
+    );
     return {
       duration,
       url:

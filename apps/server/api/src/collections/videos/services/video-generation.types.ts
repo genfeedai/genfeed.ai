@@ -1,3 +1,4 @@
+import type { SeedanceVideoReferenceEvidence } from '@api/collections/videos/services/seedance-reference-evidence.util';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 export type PromptInput = Record<string, unknown> & {
   prompt?: string;
@@ -49,6 +50,11 @@ export interface VideoGenerationProviderResult {
   completion: 'polling' | 'remote-output';
   externalId: string | null;
   provider: VideoGenerationProvider;
+  /** Actual provider output evidence; never copied from request dimensions. */
+  completionQuantities?: Pick<
+    ProviderQuoteDimensions,
+    'width' | 'height' | 'duration'
+  >;
 }
 
 export interface VideoGenerationProviderAdapter {
@@ -95,6 +101,7 @@ export interface ResolvedVideoGenerationRequest {
 }
 
 export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
+  nativeVideoReferences?: readonly SeedanceVideoReferenceEvidence[];
   preparedFalDispatch?: PreparedFalVideoDispatch;
   generationHarness?: GenerationHarnessReceipt;
   abortSignal: AbortSignal;
@@ -122,4 +129,7 @@ import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { ModelProvider } from '@genfeedai/contracts';
 import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
+import type {
+  GenerationHarnessReceipt,
+  ProviderQuoteDimensions,
+} from '@genfeedai/contracts/interfaces';

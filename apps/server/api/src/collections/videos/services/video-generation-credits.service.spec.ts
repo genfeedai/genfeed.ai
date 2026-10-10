@@ -58,6 +58,85 @@ describe('VideoGenerationCreditsService', () => {
     );
   });
 
+  it.each([true, false])(
+    'requires authorized native reference evidence before reservation: %s',
+    async (hasEvidence) => {
+      const model = 'fal/bytedance/seedance-2.5/reference-to-video';
+      modelsService.findOne.mockResolvedValue(
+        billableProfile({
+          key: model,
+          provider: ModelProvider.FAL,
+          cost: 0,
+          pricingType: 'conditional',
+          requiresReviewedRates: true,
+          rateVersion: 'native-v1',
+          reviewedPricing: {
+            currency: 'USD',
+            reviewStatus: 'approved',
+            version: 'native-v1',
+            sourceUrl:
+              'https://fal.ai/models/bytedance/seedance-2.5/reference-to-video',
+            verifiedAt: '2026-09-30T00:00:00.000Z',
+            rates: [
+              {
+                component: 'output',
+                unit: 'video-token',
+                unitPriceUsd: 0.0000214,
+                when: { resolution: '720p' },
+              },
+              {
+                component: 'input',
+                unit: 'input-video-token',
+                unitPriceUsd: 0.00001284,
+                when: { resolution: '720p' },
+              },
+            ],
+          },
+        }),
+      );
+      const request = {
+        creditsConfig: { deferred: true },
+        user: { userId: 'user-1' },
+      };
+      const evidence = {
+        inputDuration: 4,
+        referenceEvidenceHash: 'a'.repeat(64),
+      };
+      const check = service.ensureDeferredCredits(
+        { outputs: 1, width: 1, height: 1, duration: 1 },
+        model,
+        'org-1',
+        request as never,
+        {
+          resolution: '720p',
+          aspect_ratio: '16:9',
+          duration: '5',
+          video_urls: ['https://storage.test/authorized'],
+        },
+        hasEvidence ? evidence : undefined,
+      );
+      if (!hasEvidence) {
+        await expect(check).rejects.toThrow();
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        return;
+      }
+      await expect(check).resolves.toBeUndefined();
+      expect(creditsUtilsService.reserveCredits).toHaveBeenCalledTimes(1);
+      expect(request.creditsConfig).toMatchObject({
+        modelQuote: {
+          provider: 'fal',
+          quantities: {
+            ...evidence,
+            width: 1280,
+            height: 720,
+            duration: 5,
+            framesPerSecond: 24,
+          },
+        },
+      });
+    },
+  );
+
   it('skips authorization when the request is not deferred', async () => {
     await service.ensureDeferredCredits(
       { outputs: 2, resolution: 'high' } as never,
