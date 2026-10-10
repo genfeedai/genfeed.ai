@@ -39,13 +39,17 @@ const mockGetTopbarBalances = vi.fn();
 const accessState = vi.hoisted(() => ({
   isTrialExpired: false,
   isTrialUsedUp: false,
+  lowCreditThreshold: 1000 as number | null,
 }));
 
 vi.mock(
   '@genfeedai/contexts/providers/access-state/access-state.provider',
   () => ({
     useAccessState: () => ({
-      accessState: { isTrialExpired: accessState.isTrialExpired },
+      accessState: {
+        isTrialExpired: accessState.isTrialExpired,
+        lowCreditThreshold: accessState.lowCreditThreshold,
+      },
       isTrialUsedUp: accessState.isTrialUsedUp,
     }),
   }),
@@ -161,6 +165,8 @@ describe('LowCreditsBanner', () => {
     });
     accessState.isTrialUsedUp = false;
     accessState.isTrialExpired = false;
+    // The server-computed threshold (10% of a 10,000-credit plan here).
+    accessState.lowCreditThreshold = 1000;
     mockUseSubscription.mockReset();
     mockGetTopbarBalances.mockReset();
     mockGetTopbarBalances.mockResolvedValue({ segments: [] });
@@ -213,6 +219,42 @@ describe('LowCreditsBanner', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       "You're running low on credits",
+    );
+  });
+
+  it('warns relative to the server threshold, not a fixed number', () => {
+    accessState.lowCreditThreshold = 50;
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 250 },
+    });
+
+    const { rerender } = renderBanner(<LowCreditsBanner />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 40 },
+    });
+    rerender(<LowCreditsBanner />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "You're running low on credits",
+    );
+  });
+
+  it('shows no ordinary low warning without a server threshold, but still the empty state', () => {
+    accessState.lowCreditThreshold = null;
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 5 },
+    });
+
+    const { rerender } = renderBanner(<LowCreditsBanner />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 0 },
+    });
+    rerender(<LowCreditsBanner />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "You've run out of credits",
     );
   });
 

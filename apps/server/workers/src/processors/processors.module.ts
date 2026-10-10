@@ -46,6 +46,7 @@ import { ContentOptimizationModule } from '@api/services/content-optimization/co
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
+import { LowCreditThresholdModule } from '@api/services/low-credit-threshold/low-credit-threshold.module';
 import { MediaVisionEvaluationModule } from '@api/services/media-assessment/media-vision-evaluation.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { MediaTextDecisionsModule } from '@api/services/media-text-decisions/media-text-decisions.module';
@@ -54,7 +55,6 @@ import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
-import { RouterModule } from '@api/services/router/router.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
 import { TaskOrchestrationModule } from '@api/services/task-orchestration/task-orchestration.module';
@@ -143,7 +143,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => NotificationsModule),
     forwardRef(() => OnboardingModule),
     forwardRef(() => ReplyBotModule),
-    RouterModule,
+    LowCreditThresholdModule,
     forwardRef(() => SignupPrefillModule),
     forwardRef(() => SkillWorkflowModule),
     forwardRef(() => TaskOrchestrationModule),

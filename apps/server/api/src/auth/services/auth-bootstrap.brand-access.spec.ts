@@ -112,6 +112,11 @@ function fixture() {
         .fn()
         .mockResolvedValue({ isTrialExpired: false, trialEndsAt: null }),
     } as unknown as Dependencies[9],
+    {
+      resolve: vi
+        .fn()
+        .mockResolvedValue({ isTrialSubject: false, threshold: null }),
+    } as unknown as Dependencies[10],
   );
   return {
     member,
