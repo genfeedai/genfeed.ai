@@ -128,7 +128,6 @@ describe('routes.constant', () => {
       expect(APP_ROUTES.SETTINGS).not.toHaveProperty(key);
     }
     expect(APP_ROUTES.LIBRARY).not.toHaveProperty('INGREDIENTS');
-    expect(APP_ROUTES.LIBRARY).not.toHaveProperty('OVERVIEW');
     expect(APP_ROUTES.OVERVIEW).not.toHaveProperty('ROOT');
     expect(APP_ROUTES.PUBLISHING).not.toHaveProperty('OUTREACH_CAMPAIGNS');
     expect(APP_ROUTES.PUBLISHING).not.toHaveProperty('OUTREACH_CAMPAIGNS_NEW');

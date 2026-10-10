@@ -56,6 +56,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
@@ -405,6 +406,7 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
     const moduleConfig = await E2ETestModule.forRoot({
       providers: [
         CreditsUtilsService,
+        FreeTrialService,
         CreditBalanceService,
         CreditReservationService,
         CreditTransactionsService,

@@ -12,6 +12,7 @@ import {
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
+import { SystemWorkflowTerminalFailures } from '@api/collections/workflows/system-workflow-policy.util';
 import {
   type SystemWorkflowActionRequest,
   type SystemWorkflowGraphDefinition,
@@ -73,6 +74,8 @@ class InMemorySystemWorkflowRunner {
     (request: SystemWorkflowActionRequest) => Promise<unknown>
   >();
   readonly workflows = new Map<string, SystemWorkflowGraphDefinition>();
+  // Services register their last-resort settlement on init, as on the real runner.
+  readonly terminalFailures = new SystemWorkflowTerminalFailures();
 
   registerAction(
     actionId: string,
