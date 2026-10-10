@@ -232,6 +232,12 @@ export default function PricingContent() {
                       {plan.launchNote ? (
                         <p className="mb-8 text-xs leading-5 text-surface/55">
                           {plan.launchNote.replace('EARLYGENFEED · ', 'First ')}
+                          <br />
+                          Use code{' '}
+                          <span className="font-medium text-surface/75">
+                            {plan.launchNote.split(' · ')[0]}
+                          </span>{' '}
+                          at checkout
                         </p>
                       ) : null}
 

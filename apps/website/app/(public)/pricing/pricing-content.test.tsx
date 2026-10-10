@@ -83,9 +83,9 @@ describe('PricingContent launch pricing', () => {
     render(<PricingContent />);
     expect(screen.getByText('$39')).toBeInTheDocument();
     expect(screen.queryByText('$49', { exact: true })).not.toBeInTheDocument();
-    expect(
-      screen.getByText('First 12 months, then $49/mo'),
-    ).toBeInTheDocument();
+    const terms = screen.getByText('EARLYGENFEED').parentElement;
+    expect(terms).toHaveTextContent('First 12 months, then $49/mo');
+    expect(terms).toHaveTextContent('Use code EARLYGENFEED at checkout');
   });
 
   it('uses the tokenized dark card surface for the popular plan', () => {
