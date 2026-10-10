@@ -70,6 +70,15 @@ describe('onboarding button card contract', () => {
       suggestionSource: 'competitors',
     });
     expect(byField.competitors?.fallbackOptions).toBeUndefined();
+    // A scan can return fewer suggestions than the card's limit, and
+    // request_input rejects maxSelections above the options shown.
+    for (const card of [byField.audience, byField.competitors])
+      expect(ONBOARDING_CONVERSATION_FLOW).toContain(
+        `${card?.title} (field: ${card?.field}): isMultiSelect: true, maxSelections: the smaller of ${card?.maxSelections} and the number of suggestions shown (not counting Skip)`,
+      );
+    expect(ONBOARDING_CONVERSATION_FLOW).toContain(
+      'Goal (field: goals): isMultiSelect: true, maxSelections: 3.',
+    );
     expect(ONBOARDING_CONVERSATION_FLOW).toContain(
       'data.summary.suggestions.audiences',
     );

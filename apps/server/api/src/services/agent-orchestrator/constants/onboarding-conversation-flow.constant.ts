@@ -135,7 +135,9 @@ function renderOptions(
 
 function renderCard(card: IOnboardingButtonCard, index: number): string {
   const selection = card.isMultiSelect
-    ? `isMultiSelect: true, maxSelections: ${card.maxSelections}`
+    ? card.suggestionSource
+      ? `isMultiSelect: true, maxSelections: the smaller of ${card.maxSelections} and the number of suggestions shown (not counting Skip)`
+      : `isMultiSelect: true, maxSelections: ${card.maxSelections}`
     : 'single select';
   const options = card.suggestionSource
     ? `Up to ${card.maxSuggestions} options from data.summary.suggestions.${card.suggestionSource} (label = the suggestion text, ids suggested_1, suggested_2, ...), then Skip (id: skip). ${
