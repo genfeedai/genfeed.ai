@@ -442,20 +442,17 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
-   * The only curated, active default until Eleven Music, Lyria 3 Pro, and
-   * Mureka V9 (below) are verified and switched on by an operator. Curated
-   * (cost > 0, isActive/isDefault) so the MUSIC category always has a usable
-   * registry row — an uncurated row seeds inactive and free, which left the
-   * router with nothing to select (#4679).
+   * Legacy. MusicGen's weights are CC-BY-NC 4.0 (facebookresearch/audiocraft,
+   * Hugging Face `facebook/musicgen-large`), so output cannot be sold, and it
+   * ranks last (19 of 19) on the Artificial Analysis instrumental board.
+   * Kept so existing records and the Replicate prompt builder still resolve;
+   * Lyria 3 Pro is the active music default.
    *
    * `endpoint` MUST carry the pinned version hash. `meta/musicgen` alone
    * resolves to `resolvePredictionTarget`'s `{ model }` form
    * (replicate.service.ts), which Replicate's predictions API only serves
    * for its own verified "official model" catalog — not every public
-   * owner/name slug. Dropping the hash 404s every generation. Pin here
-   * (not the pinned-constant-in-application-code pattern this replaced —
-   * see #4679) so an operator can re-pin to a newer version by editing the
-   * registry row, without a code change.
+   * owner/name slug. Dropping the hash 404s every generation.
    */
   {
     category: ModelCategory.MUSIC,
@@ -464,21 +461,29 @@ export const SELF_HOSTED_MODELS = [
     qualityTier: QualityTier.BASIC,
     speedTier: SpeedTier.FAST,
     description:
-      'Meta MusicGen — text-to-music generation, 5-30 second instrumental clips.',
+      'Meta MusicGen — legacy, non-commercial weights (CC-BY-NC 4.0). Replaced by Lyria 3 Pro.',
     endpoint:
       'meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb',
-    isDefault: true,
+    isActive: false,
+    isDefault: false,
     isHighlighted: false,
     key: MODEL_KEYS.REPLICATE_META_MUSICGEN,
     label: 'MusicGen',
+    lifecycle: ModelLifecycle.LEGACY,
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'musicgen', owner: 'meta' },
     providerCostUsd: 0.05,
+    succeededBy: MODEL_KEYS.FAL_LYRIA3_PRO,
   },
   /**
    * fal.ai — https://fal.ai/models/fal-ai/elevenlabs/music ($0.60 per output
    * minute, rounded up to the next minute). Seeded inactive until an operator
    * turns it on. Runs through the existing fal integration (`FalService`).
+   *
+   * LEGAL HOLD: the ElevenLabs Music Terms (updated 2026-10-09) mark every
+   * self-serve tier "Model Resale Prohibited" and clause 4.3 bars "offering
+   * any Music Model alongside third-party models", which the router does.
+   * Keep it off and out of the quality picks until that is cleared.
    */
   {
     category: ModelCategory.MUSIC,
@@ -492,7 +497,7 @@ export const SELF_HOSTED_MODELS = [
     endpoint: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
     isActive: false,
     isDefault: false,
-    isHighlighted: true,
+    isHighlighted: false,
     key: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
     label: 'Eleven Music',
     minCost: 200,
@@ -502,20 +507,24 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.01,
   },
   /**
-   * fal.ai — https://fal.ai/models/fal-ai/lyria3/pro ($0.08 per audio).
-   * Seeded inactive until an operator turns it on.
+   * fal.ai — https://fal.ai/models/fal-ai/lyria3/pro ($0.08 per audio,
+   * verified on the fal page 2026-10-10). Active music default: rank 5 on the
+   * Artificial Analysis instrumental board (Elo 1078). Every track carries a
+   * SynthID watermark; Google's API terms say it will not claim ownership of
+   * the output. No Lyria-specific commercial-use section was found, so
+   * confirm the terms before selling.
    */
   {
     category: ModelCategory.MUSIC,
     cost: 27,
     costTier: CostTier.LOW,
-    qualityTier: QualityTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
     speedTier: SpeedTier.MEDIUM,
     description:
       'Google Lyria 3 Pro via fal — full songs with vocals, lyrics, and multi-language support, up to 90s.',
     endpoint: MODEL_KEYS.FAL_LYRIA3_PRO,
-    isActive: false,
-    isDefault: false,
+    isActive: true,
+    isDefault: true,
     isHighlighted: false,
     key: MODEL_KEYS.FAL_LYRIA3_PRO,
     label: 'Lyria 3 Pro',
