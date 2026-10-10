@@ -59,7 +59,7 @@ const preparationContract = z
     version: z.literal(1),
     preparationVersion: z.literal(1),
     actionId: z.enum(['imageGen', 'videoGen']),
-    brief: z
+    brief: z.union([z
       .object({
         briefVersion: z.number().int().positive(),
         compilerId: identity,
@@ -69,7 +69,15 @@ const preparationContract = z
         modelKey: identity,
         mediaKind: z.enum(['image', 'video']),
       })
-      .strict(),
+      .strict(), z.object({
+        kind: z.literal('reviewed-provider-schema'),
+        modelKey: identity,
+        mediaKind: z.literal('video'),
+        schemaVersion: identity,
+        schemaFamily: identity,
+        inputSchemaHash: hash,
+        adapterVersion: z.literal(1),
+      }).strict()]),
     reviewedOutput,
   })
   .strict();
@@ -117,6 +125,7 @@ export const workflowGenerationDispatchSchema = z
   .superRefine((dispatch, context) => {
     const prepared = dispatch.preparationContract;
     const output = prepared.reviewedOutput;
+    if ('kind' in prepared.brief && (output.provider !== 'fal' || prepared.brief.schemaVersion !== output.version || prepared.actionId !== 'videoGen')) context.addIssue({ code: 'custom', message: 'Reviewed schema preparation differs from its Fal output contract' });
     if (dispatch.provider !== output.provider)
       context.addIssue({
         code: 'custom',

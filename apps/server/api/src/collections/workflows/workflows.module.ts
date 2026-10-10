@@ -1,3 +1,4 @@
+import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
@@ -231,6 +232,7 @@ import { Module } from '@nestjs/common';
     BullModule.registerQueue({ name: HEYGEN_POLL_QUEUE }),
   ],
   providers: [
+    WorkflowFalOutputFinalizationService,
     DailyPublishingService,
     AdAutomationWorkflowService,
     TwitterSocialAdapter,

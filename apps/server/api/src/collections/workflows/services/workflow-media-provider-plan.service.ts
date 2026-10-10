@@ -1,3 +1,5 @@
+import { prepareSeedanceNativeOutputQuote } from '@api/collections/videos/services/seedance-native-output-quote.util';
+import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { isFalDestination } from '@api/collections/models/utils/model-key.util';
 import { findReviewedFalVideoOutputContract } from '@api/collections/models/utils/model-reviewed-fal-video-output-contract.util';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -31,6 +33,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
+  IngredientStatus,
   MetadataExtension,
   ModelCategory,
 } from '@genfeedai/contracts';
@@ -353,6 +356,17 @@ export class WorkflowMediaProviderPlanService {
       referenceReplacements,
       videoReferenceAssetIds,
     } = await this.resolveVideoReferenceInputs(params, context.organizationId);
+    if (typeof params.frameIngredientId === 'string') {
+      if (referenceAssetIds?.length !== 1 || referenceAssetIds[0] !== params.frameIngredientId || !this.prisma || !this.filesClientService) throw new Error('Fabricated extension must use its exact stored last frame');
+      const frame = await this.prisma.ingredient.findFirst({ select: { s3Key: true }, where: { id: params.frameIngredientId, organizationId: context.organizationId, brandId, parentId: String(params.parentIngredientId), isDeleted: false, category: IngredientCategory.IMAGE, status: { in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED] } } });
+      if (!frame?.s3Key) throw new Error('Fabricated extension last frame is unavailable');
+      referenceReplacements.set(params.frameIngredientId, await this.filesClientService.getPresignedDownloadUrlForObjectKey(frame.s3Key));
+    }
+    if (params.sourceEvidence !== undefined && videoReferenceAssetIds.length === 1 && this.prisma && this.filesClientService) {
+      const source = await this.prisma.ingredient.findFirst({ select: { s3Key: true }, where: { id: videoReferenceAssetIds[0], organizationId: context.organizationId, brandId, isDeleted: false, category: IngredientCategory.VIDEO, status: { in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED] } } });
+      if (!source?.s3Key || videoReferenceAssetIds[0] !== params.parentIngredientId) throw new Error('Native extension must use its exact stored source');
+      referenceReplacements.set(videoReferenceAssetIds[0], await this.filesClientService.getPresignedDownloadUrlForObjectKey(source.s3Key));
+    }
     const prompt = typeof params.prompt === 'string' ? params.prompt : '';
     const height = typeof params.height === 'number' ? params.height : 1080;
     const width = typeof params.width === 'number' ? params.width : 1920;
@@ -586,6 +600,8 @@ export class WorkflowMediaProviderPlanService {
       input: preparedFalDispatch.input,
       preparedFalDispatch,
       reviewedOutput: reviewed.contract,
+      schemaPreparation: { kind: 'reviewed-provider-schema' as const, modelKey: args.model, mediaKind: 'video' as const, schemaVersion: reviewed.contract.version, schemaFamily: reviewed.schemaFamily, inputSchemaHash: quoteSnapshotHash(reviewed.inputSchema), adapterVersion: 1 as const },
+      nativeOutputQuoteEvidence: prepareSeedanceNativeOutputQuote(reviewed.contract.endpoint, preparedFalDispatch.input, measuredReferences ?? []),
       ...(referenceQuoteEvidence ? { referenceQuoteEvidence } : {}),
     };
   }

@@ -1,7 +1,7 @@
+import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { assertWorkflowGenerationActorAdmission } from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
 import { parseWorkflowGenerationAdmissionSource } from '@api/collections/workflows/utils/workflow-generation-admission-source.util';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -71,6 +71,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     @Optional() private readonly falVideo?: FalVideoGenerationProviderAdapter,
     @Optional() private readonly webhooks?: WebhooksService,
     @Optional() private readonly brandAccess?: BrandAccessService,
+    @Optional() private readonly falOutputFinalization?: WorkflowFalOutputFinalizationService,
   ) {}
 
   private async processingMediaUrl(
@@ -201,15 +202,13 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
               node,
             });
       if (prepared.provider !== 'replicate') {
-        if (!funded || !this.falVideo || !this.webhooks || !this.filesClientService) {
+        if (!funded || !this.falVideo || !this.falOutputFinalization) {
           throw new BusinessLogicException(
             'Fal workflow execution requires its funded native dispatch adapter',
           );
         }
         const falVideo = this.falVideo;
-        const webhooks = this.webhooks;
-        const files = this.filesClientService;
-        let remoteUrl: string | undefined;
+        const finalization = this.falOutputFinalization;
         const pending = await this.dispatchFundedMedia(funded, () =>
           this.helper.createAndLinkProcessingOutput({
             continuation: { actionId: 'videoGen', context, isByok: Boolean(funded.credential), node, provider: 'fal' },
@@ -230,27 +229,10 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
               if (result.completion !== 'remote-output' || !result.externalId) {
                 throw new BusinessLogicException('Fal returned no accepted remote video');
               }
-              remoteUrl = result.externalId;
               return { externalId: result.externalId, completionQuantities: result.completionQuantities };
             },
-            onProviderAccepted: async (output, continuationId) => {
-              if (!remoteUrl) throw new Error('Accepted Fal output is unavailable');
-              const externalId = remoteUrl;
-              await webhooks.processMediaForIngredient(output.ingredientId, IngredientCategory.VIDEO, externalId, externalId, {
-                beforeFinalize: async (uploaded) => {
-                  if (!uploaded.s3Key) throw new Error('Accepted Fal output has no stored object identity');
-                  const storedUrl = await files.getPresignedDownloadUrlForObjectKey(uploaded.s3Key);
-                  const before = await files.fingerprintMedia(storedUrl);
-                  const probe = await files.probeMediaFromUrl(storedUrl, 'video');
-                  const after = await files.fingerprintMedia(storedUrl);
-                  if (before.assetHash !== after.assetHash || before.sizeBytes !== after.sizeBytes || probe.sizeBytes !== after.sizeBytes || !probe.width || !probe.height || !probe.durationSeconds || !probe.frameRate || probe.width !== uploaded.width || probe.height !== uploaded.height || probe.durationSeconds !== uploaded.duration || after.sizeBytes !== uploaded.size) throw new Error('Accepted Fal output has no matching stable stored video');
-                  await this.helper.recordFalOutputMeasurement({
-                    continuationId, organizationId: context.organizationId, ingredientId: output.ingredientId, externalId,
-                    measurement: { width: probe.width, height: probe.height, duration: probe.durationSeconds, framesPerSecond: probe.frameRate, assetHash: after.assetHash, sizeBytes: after.sizeBytes, assetKey: uploaded.s3Key },
-                  });
-                  await this.helper.patchMetadata(output.metadataId, new MetadataEntity({ fps: probe.frameRate }));
-                },
-              });
+            onProviderAccepted: async (_output, continuationId) => {
+              await finalization.finalize(continuationId, context.organizationId);
             },
           }),
         );

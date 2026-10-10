@@ -57,6 +57,16 @@ describe('provider-discriminated workflow billing preparation', () => {
   it('accepts the exact single-video Fal output shape with a pinned credential', () => {
     expect(schema.safeParse(falAllocation()).success).toBe(true);
   });
+  it('accepts reviewed schema preparation without fabricating a brief compiler, and binds its approved version', () => {
+    const allocation = falAllocation();
+    const output = allocation.dispatch.preparationContract.reviewedOutput;
+    allocation.dispatch.preparationContract.brief = {
+      kind: 'reviewed-provider-schema', modelKey: output.modelKey, mediaKind: 'video', schemaVersion: output.version, schemaFamily: 'video-reference-v1', inputSchemaHash: 'a'.repeat(64), adapterVersion: 1,
+    };
+    expect(schema.safeParse(allocation).success).toBe(true);
+    allocation.dispatch.preparationContract.brief.schemaVersion = 'unapproved-version';
+    expect(schema.safeParse(allocation).success).toBe(false);
+  });
   it('rejects a mixed provider identity even if outer dispatch is replaced', () => {
     const allocation = falAllocation();
     allocation.dispatch.provider = 'replicate';

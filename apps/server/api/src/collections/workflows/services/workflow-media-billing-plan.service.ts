@@ -69,8 +69,9 @@ function preparationContract(
 ): WorkflowMediaPreparationContract {
   const brief = prepared.generationBriefEvidence;
   if (
-    brief.status !== 'compiled' ||
     brief.modelKey !== prepared.model ||
+    (brief.status !== 'compiled' && !(prepared.provider === 'fal' && brief.status === 'exempted')) ||
+    (prepared.provider === 'fal' && quoteSnapshotHash(output) !== quoteSnapshotHash(prepared.reviewedOutput)) ||
     output.modelKey !== prepared.model ||
     output.provider !== prepared.provider ||
     quoteSnapshotHash(output.target) !== quoteSnapshotHash(prepared.target)
@@ -82,7 +83,7 @@ function preparationContract(
     version: 1,
     preparationVersion: prepared.preparationVersion,
     actionId: prepared.actionId,
-    brief: {
+    brief: brief.status === 'compiled' ? {
       briefVersion: brief.briefVersion,
       compilerId: brief.compilerId,
       compilerVersion: brief.compilerVersion,
@@ -90,7 +91,7 @@ function preparationContract(
       profileVersion: brief.profileVersion,
       modelKey: brief.modelKey,
       mediaKind: brief.mediaKind,
-    },
+    } : prepared.provider === 'fal' ? prepared.schemaPreparation : unavailable('Workflow generation brief contract is unresolved'),
     reviewedOutput: output,
   };
 }
@@ -114,8 +115,8 @@ export class WorkflowMediaBillingPlanService {
       args.context,
     );
     if (
-      prepared.generationBriefEvidence.status !== 'compiled' ||
-      prepared.generationBriefEvidence.modelKey !== prepared.model
+      prepared.generationBriefEvidence.modelKey !== prepared.model ||
+      (prepared.generationBriefEvidence.status !== 'compiled' && !(prepared.provider === 'fal' && prepared.generationBriefEvidence.status === 'exempted'))
     )
       unavailable('Workflow generation brief contract is unresolved');
     const projection = projectWorkflowMediaProviderInput(prepared.input);
@@ -147,7 +148,7 @@ export class WorkflowMediaBillingPlanService {
             provider: prepared.provider,
             providerInput: prepared.input,
             organizationId: args.context.organizationId,
-          })
+          }, prepared.provider === 'fal' ? prepared.nativeOutputQuoteEvidence : undefined)
         : undefined;
     if (quote)
       assertWorkflowMediaPricingUnits(quote.pricingProfile, quote.quantities);
@@ -272,6 +273,7 @@ export class WorkflowMediaBillingPlanService {
           provider: prepared.provider,
           providerInput: prepared.input,
         },
+        prepared.provider === 'fal' ? prepared.nativeOutputQuoteEvidence : undefined,
       );
       quantities = { ...actual, requests: 1, outputs: 1 };
       assertWorkflowMediaPricingUnits(frozen.quote.pricingProfile, quantities);

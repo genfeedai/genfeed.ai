@@ -1,3 +1,4 @@
+import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
@@ -7,7 +8,7 @@ import {
 } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class WorkflowNodeContinuationCoordinatorService {
@@ -19,6 +20,7 @@ export class WorkflowNodeContinuationCoordinatorService {
     private readonly executions: WorkflowExecutionsService,
     private readonly workflowExecutor: WorkflowExecutorService,
     private readonly logger: LoggerService,
+    @Optional() private readonly falOutputs?: WorkflowFalOutputFinalizationService,
   ) {}
 
   async completeProviderAction(input: {
@@ -56,6 +58,7 @@ export class WorkflowNodeContinuationCoordinatorService {
     pollsDispatched: number;
     resumed: number;
   }> {
+    await this.falOutputs?.reconcile();
     const pollsDispatched =
       await this.continuations.reconcileHeygenPollTransport();
     const candidates = await this.continuations.findReconciliationCandidates();

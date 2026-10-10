@@ -47,6 +47,7 @@ export class VideoExtensionExecutionService {
     const sourceEvidence = { assetId: sourceId, sourceKey: source.s3Key, sourceVersion: after.assetHash, sizeBytes: after.sizeBytes };
     const canonicalSourceUrl = `${this.config.ingredientsEndpoint}/videos/${sourceId}`;
     const native = hasNativeExtend(dto.model) || (model.provider === ModelProvider.FAL && /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/.test(model.endpoint ?? ''));
+    if (native && (!Number.isSafeInteger(dto.duration ?? 8) || (dto.duration ?? 8) < 4 || (dto.duration ?? 8) > 30)) throw new BadRequestException('Native extension duration must be between 4 and 30 seconds');
     if (hasNativeExtend(dto.model) && (probe.durationSeconds < 1 || probe.durationSeconds > 30)) throw new BadRequestException('Seedance native extension requires a measured source video between 1 and 30 seconds');
     if (model.provider === ModelProvider.FAL && seedanceVideoReferenceLimit(model.endpoint ?? '')) {
       bindSeedanceVideoReferences(model.endpoint ?? '', user.organizationId, [measuredSeedanceVideoReference({ assetId: sourceId, organizationId: user.organizationId, sourceKey: source.s3Key, url: sourceUrl, before, probe, after })]);
@@ -59,7 +60,12 @@ export class VideoExtensionExecutionService {
       if (typeof frameUrl !== 'string' || !frameUrl) throw new BadRequestException('The source last frame could not be extracted');
       const { ingredientData } = await this.shared.createMediaDocumentsInternal({ brandId: source.brandId, organizationId: user.organizationId, userId: actorUserId, category: IngredientCategory.IMAGE, extension: MetadataExtension.JPG, origin: IngredientOrigin.GENERATED, status: IngredientStatus.PROCESSING, parentId: sourceId, sourceIds: [sourceId], generationSource: 'video-extension:last-frame', providerData: { sourceEvidence, timestampSeconds: Math.max(0, probe.durationSeconds - 0.05) } });
       frameIngredientId = ingredientData.id.toString();
-      await this.media.processMediaForIngredient(frameIngredientId, IngredientCategory.IMAGE, frameUrl);
+      try {
+        await this.media.processMediaForIngredient(frameIngredientId, IngredientCategory.IMAGE, frameUrl);
+      } catch (error: unknown) {
+        await this.prisma.ingredient.updateMany({ where: { id: frameIngredientId, organizationId: user.organizationId, brandId: source.brandId, parentId: sourceId, isDeleted: false, status: IngredientStatus.PROCESSING }, data: { status: IngredientStatus.FAILED } });
+        throw error;
+      }
       const storedFrame = await this.prisma.ingredient.findFirst({ where: { id: frameIngredientId, organizationId: user.organizationId, brandId: source.brandId, isDeleted: false, category: IngredientCategory.IMAGE, parentId: sourceId, status: { in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED] } } });
       if (!storedFrame?.s3Key) throw new BadRequestException('The extracted last frame has not been stored');
       const storedFrameUrl = await this.files.getPresignedDownloadUrlForObjectKey(storedFrame.s3Key);

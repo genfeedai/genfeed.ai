@@ -166,6 +166,7 @@ describe('reviewed Fal workflow provider preparation', () => {
     });
     expect(prepared.reviewedOutput.version).toBe(f.snapshot.version);
     expect(prepared.generationBriefEvidence.status).toBe('exempted');
+    expect(prepared.schemaPreparation).toMatchObject({ kind: 'reviewed-provider-schema', schemaVersion: f.snapshot.version, inputSchemaHash: expect.stringMatching(/^[a-f0-9]{64}$/) });
     expect(f.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -193,6 +194,7 @@ describe('reviewed Fal workflow provider preparation', () => {
       video_urls: ['https://stored.test/source.mp4'],
     });
     if (prepared.provider !== 'fal') throw new Error('Expected Fal plan');
+    expect(prepared.nativeOutputQuoteEvidence).toMatchObject({ width: 864, height: 496, duration: 6, sourceVersion: 'a'.repeat(64) });
     expect(prepared.referenceQuoteEvidence).toMatchObject({ inputDuration: 3, referenceEvidenceHash: expect.stringMatching(/^[a-f0-9]{64}$/) });
     expect(f.findStoredVideo).toHaveBeenCalledWith({ select: { s3Key: true }, where: { id: 'source-1', organizationId: 'org-1', isDeleted: false, category: IngredientCategory.VIDEO } });
     expect(prepared.output.parentIngredientId).toBe('source-1');

@@ -1,3 +1,4 @@
+import type { SeedanceNativeOutputQuoteEvidence } from '@api/collections/videos/services/seedance-native-output-quote.util';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { ModelCreditQuoteInput } from '@api/helpers/utils/credits/model-credit-quote.util';
 import { normalizeModelProviderQuoteRequest } from '@api/helpers/utils/credits/model-provider-quote-request.util';
@@ -23,6 +24,7 @@ export class ModelCreditQuoteService {
   async quoteSnapshotByKey(
     modelKey: string,
     input: ModelCreditQuoteInput = {},
+    nativeOutput?: SeedanceNativeOutputQuoteEvidence,
   ): Promise<ModelBillableQuoteSnapshot> {
     const profile = await this.modelsService.findBillablePricingProfile(
       modelKey,
@@ -37,7 +39,7 @@ export class ModelCreditQuoteService {
       );
     const quote = quoteModelBillablePricing(
       profile,
-      normalizeModelProviderQuoteRequest(profile, modelKey, input),
+      normalizeModelProviderQuoteRequest(profile, modelKey, input, nativeOutput),
       getRuntimeMarginMultiplier(),
       new Date().toISOString(),
       input.providerInput

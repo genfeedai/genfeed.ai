@@ -145,7 +145,7 @@ export function runVideoGenerationBrief(
     input.actionVerb === 'extend' &&
     support.modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
     compiled.dispatch
-      ? { ...compiled.dispatch, aspect_ratio: 'adaptive', duration: -1 }
+      ? { ...compiled.dispatch, aspect_ratio: 'adaptive' }
       : compiled.dispatch;
 
   return {

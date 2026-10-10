@@ -50,6 +50,14 @@ export interface WorkflowMediaPreparationContract {
     profileVersion: number;
     modelKey: string;
     mediaKind: 'image' | 'video';
+  } | {
+    kind: 'reviewed-provider-schema';
+    modelKey: string;
+    mediaKind: 'video';
+    schemaVersion: string;
+    schemaFamily: string;
+    inputSchemaHash: string;
+    adapterVersion: 1;
   };
   reviewedOutput: WorkflowReviewedOutputContract;
 }
