@@ -72,10 +72,15 @@ const quantities = z.object({
   width: z.number().positive().optional(),
   height: z.number().positive().optional(),
   inputDuration: z.number().nonnegative().optional(),
+  referenceEvidenceHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   inputMegapixels: z.number().nonnegative().optional(),
   frames: z.number().nonnegative().optional(),
   inputTokens: z.number().nonnegative().optional(),
   outputTokens: z.number().nonnegative().optional(),
+  framesPerSecond: z.number().positive().optional(),
   characters: z.number().nonnegative().optional(),
   references: z.number().nonnegative().optional(),
   selectors: selectors.optional(),
@@ -92,6 +97,8 @@ const rate = z.object({
     'frame',
     'input-token',
     'output-token',
+    'video-token',
+    'input-video-token',
     'character',
     'reference',
   ]),

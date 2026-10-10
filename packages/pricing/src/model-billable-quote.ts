@@ -112,6 +112,14 @@ export function quoteModelBillablePricing(
     model.pricingType === 'per-request' ? 'request' : 'output';
   if (model.reviewedPricing) {
     const pricing = model.reviewedPricing;
+    if (
+      pricing.rates.some((rate) => rate.unit === 'input-video-token') &&
+      (input.inputDuration ?? 0) > 0 &&
+      !/^[a-f0-9]{64}$/.test(input.referenceEvidenceHash ?? '')
+    )
+      return unresolved(
+        'Authorized reference-video source evidence is required',
+      );
     if (!model.rateVersion || pricing.version !== model.rateVersion)
       return unresolved('Reviewed rate version does not match model');
     // Rates are refreshed by the provider sync rather than expired by age:
@@ -388,6 +396,29 @@ export function quoteModelBillableCompletion(
       'Request fee disposition requires the existing successful-request contract',
     );
   const rates = snapshot.pricingProfile.reviewedPricing?.rates ?? [];
+  if (
+    (snapshot.quantities.inputDuration ?? 0) > 0 &&
+    rates.some((rate) => rate.unit === 'input-video-token') &&
+    (completion.referenceEvidenceHash !==
+      snapshot.quantities.referenceEvidenceHash ||
+      completion.inputDuration !== snapshot.quantities.inputDuration)
+  )
+    return unresolved(
+      'Completion reference source differs from the admitted source',
+    );
+  if (
+    rates.some(
+      (rate) =>
+        rate.unit === 'video-token' || rate.unit === 'input-video-token',
+    ) &&
+    (completion.width === undefined ||
+      completion.height === undefined ||
+      completion.duration === undefined ||
+      (rates.some((rate) => rate.unit === 'input-video-token') &&
+        completion.inputDuration === undefined))
+  ) {
+    return unresolved('Completed native video-token quantities are required');
+  }
   const hasRequestComponent =
     snapshot.pricingProfile.pricingType === 'per-request' ||
     rates.some((rate) => rate.unit === 'request');
@@ -404,6 +435,7 @@ export function quoteModelBillableCompletion(
   if (successfulRequests !== reservedRequests) {
     const usageKeys = {
       'input-second': 'inputDuration',
+      'input-video-token': 'inputDuration',
       'input-megapixel': 'inputMegapixels',
       'input-token': 'inputTokens',
       'output-token': 'outputTokens',

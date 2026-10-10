@@ -76,6 +76,29 @@ function unitsForRate(
       return input.inputTokens ?? null;
     case 'output-token':
       return input.outputTokens ?? null;
+    case 'video-token':
+    case 'input-video-token': {
+      const duration =
+        rate.unit === 'video-token' ? input.duration : input.inputDuration;
+      return Number.isSafeInteger(input.width) &&
+        Number.isSafeInteger(input.height) &&
+        validQuantity(input.width) &&
+        input.width > 0 &&
+        validQuantity(input.height) &&
+        input.height > 0 &&
+        validQuantity(input.framesPerSecond) &&
+        input.framesPerSecond > 0 &&
+        validQuantity(duration) &&
+        (rate.unit === 'input-video-token' || duration > 0)
+        ? multiplyDecimalPricing(
+            input.width,
+            input.height,
+            duration,
+            input.framesPerSecond,
+            0.0009765625,
+          )
+        : null;
+    }
     case 'character':
       return input.characters ?? null;
     case 'reference':

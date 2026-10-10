@@ -8,6 +8,8 @@ export type ProviderBillingUnit =
   | 'frame'
   | 'input-token'
   | 'output-token'
+  | 'video-token'
+  | 'input-video-token'
   | 'character'
   | 'reference';
 
@@ -18,10 +20,14 @@ export interface ProviderQuoteDimensions {
   height?: number;
   outputs?: number;
   inputDuration?: number;
+  /** Opaque SHA-256 of authorized source identity, bytes and measured usage. */
+  referenceEvidenceHash?: string;
   inputMegapixels?: number;
   frames?: number;
   inputTokens?: number;
   outputTokens?: number;
+  /** Native video-token quantity: width × height × seconds × fps / 1024. */
+  framesPerSecond?: number;
   characters?: number;
   references?: number;
   selectors?: Record<string, string | number | boolean>;

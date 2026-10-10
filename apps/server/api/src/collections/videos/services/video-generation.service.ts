@@ -1,6 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
+import {
+  assertPreparedSeedanceReferenceUrls,
+  assertSeedanceReferenceBinding,
+  bindSeedanceVideoReferences,
+  seedanceVideoReferenceLimit,
+} from '@api/collections/videos/services/seedance-reference-evidence.util';
 import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
@@ -120,14 +126,56 @@ export class VideoGenerationService {
       try {
         await onPlaceholderCreated?.(context.ingredientData.id.toString());
         this.executionService.prepareProviderDispatch(context);
+        if (
+          seedanceVideoReferenceLimit(context.modelEndpoint ?? '') &&
+          context.preparedFalDispatch?.input.video_urls !== undefined
+        )
+          assertPreparedSeedanceReferenceUrls(
+            context.nativeVideoReferences ?? [],
+            context.preparedFalDispatch.input.video_urls,
+          );
+        const referenceEvidence = context.nativeVideoReferences?.length
+          ? bindSeedanceVideoReferences(
+              context.modelEndpoint ?? '',
+              resolved.user.organizationId,
+              context.nativeVideoReferences,
+            )
+          : undefined;
+        if (context.nativeVideoReferences?.length)
+          assertPreparedSeedanceReferenceUrls(
+            context.nativeVideoReferences,
+            context.preparedFalDispatch?.input.video_urls,
+          );
         await this.creditsService.ensureDeferredCredits(
           createVideoDto,
           resolved.model,
           resolved.user.organizationId,
           request,
           context.preparedFalDispatch?.input ?? context.promptParams,
+          referenceEvidence,
         );
         await onCreditsPrepared?.();
+        if (referenceEvidence || context.nativeVideoReferences?.length) {
+          if (!referenceEvidence)
+            throw new BadRequestException({
+              code: 'SEEDANCE_REFERENCE_EVIDENCE_INVALID',
+            });
+          assertSeedanceReferenceBinding(
+            referenceEvidence,
+            bindSeedanceVideoReferences(
+              context.modelEndpoint ?? '',
+              resolved.user.organizationId,
+              context.nativeVideoReferences ?? [],
+            ),
+          );
+          assertPreparedSeedanceReferenceUrls(
+            context.nativeVideoReferences ?? [],
+            context.preparedFalDispatch?.input.video_urls,
+          );
+          await this.preparationService.assertFreshNativeVideoReferences(
+            context,
+          );
+        }
       } catch (error: unknown) {
         return await this.executionService.failPlaceholderBeforeDispatch(
           context,

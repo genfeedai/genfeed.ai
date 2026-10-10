@@ -34,6 +34,128 @@ const pricing: ReviewedProviderPricing = {
 
 describe('reviewed provider variant quotes', () => {
   it.each([
+    { unitPriceUsd: 0.000014, width: 1280, height: 720, expected: 1.512 },
+    { unitPriceUsd: 0.0000112, width: 1280, height: 720, expected: 1.2096 },
+    { unitPriceUsd: 0.0000234, width: 1920, height: 1080, expected: 5.6862 },
+    { unitPriceUsd: 0.0000024, width: 1280, height: 720, expected: 0.2592 },
+    {
+      unitPriceUsd: 0.000007,
+      width: 1470,
+      height: 630,
+      expected: 0.75969140625,
+    },
+  ])('prices native video tokens without integer rounding: %s', (example) => {
+    expect(
+      quoteReviewedProviderPricing(
+        {
+          ...pricing,
+          sourceUrl:
+            'https://fal.ai/models/bytedance/seedance-2.0/text-to-video',
+          rates: [
+            {
+              component: 'output',
+              unit: 'video-token',
+              unitPriceUsd: example.unitPriceUsd,
+              when: {},
+              isPerOutput: true,
+            },
+          ],
+        },
+        {
+          duration: 5,
+          width: example.width,
+          height: example.height,
+          framesPerSecond: 24,
+        },
+        1,
+      ),
+    ).toMatchObject({ status: 'priced', providerCostUsd: example.expected });
+  });
+
+  it('includes reference-video tokens and applies one conversion for all outputs', () => {
+    const referencePricing: ReviewedProviderPricing = {
+      ...pricing,
+      sourceUrl:
+        'https://fal.ai/learn/tools/how-to-create-multi-angle-video-seedance-2-5',
+      rates: [
+        {
+          component: 'output',
+          unit: 'video-token',
+          unitPriceUsd: 0.0000084,
+          when: {},
+          isPerOutput: true,
+        },
+        {
+          component: 'input',
+          unit: 'input-video-token',
+          unitPriceUsd: 0.0000084,
+          when: {},
+          isPerOutput: true,
+        },
+      ],
+    };
+    expect(
+      quoteReviewedProviderPricing(
+        referencePricing,
+        {
+          width: 1280,
+          height: 720,
+          duration: 5,
+          inputDuration: 10,
+          framesPerSecond: 24,
+          outputs: 2,
+        },
+        1,
+      ),
+    ).toEqual({ status: 'priced', providerCostUsd: 5.4432, credits: 545 });
+    expect(
+      quoteReviewedProviderPricing(
+        referencePricing,
+        {
+          width: 1280,
+          height: 720,
+          duration: 5,
+          framesPerSecond: 24,
+        },
+        1,
+      ).status,
+    ).toBe('unresolved');
+  });
+
+  it.each([
+    { framesPerSecond: undefined },
+    { framesPerSecond: 0 },
+    { framesPerSecond: Infinity },
+    { width: 1280.5 },
+    { height: 0 },
+    { duration: 0 },
+  ])('fails closed when native video-token usage is invalid: %s', (change) => {
+    expect(
+      quoteReviewedProviderPricing(
+        {
+          ...pricing,
+          rates: [
+            {
+              component: 'output',
+              unit: 'video-token',
+              unitPriceUsd: 0.000014,
+              when: {},
+            },
+          ],
+        },
+        {
+          duration: 5,
+          width: 1280,
+          height: 720,
+          framesPerSecond: 24,
+          ...change,
+        },
+        1,
+      ).status,
+    ).toBe('unresolved');
+  });
+
+  it.each([
     { duration: 0.07, includedUnits: 0, roundUnitsTo: 0.01, expected: 0.07 },
     { duration: 0.4, includedUnits: 0.1, roundUnitsTo: 0.1, expected: 0.3 },
   ])('rounds decimal billed units without overcharging %s', (example) => {
