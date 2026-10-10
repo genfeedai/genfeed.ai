@@ -986,6 +986,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/brands/:id/platforms/:platform',
       '/:orgSlug/:brandSlug/analytics/insights',
       '/:orgSlug/:brandSlug/analytics/hooks',
+      '/:orgSlug/:brandSlug/analytics/breakouts',
       '/:orgSlug/:brandSlug/analytics/outliers',
       '/:orgSlug/:brandSlug/analytics/performance-lab',
       '/:orgSlug/:brandSlug/analytics/streaks',

@@ -15,6 +15,7 @@ import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import BreakoutResponseDetail from './response-detail';
 
@@ -23,6 +24,8 @@ function ScopedBreakoutResponses({
   organizationId,
   strategyId,
 }: BreakoutResponsesContentProps) {
+  const t = useTranslations('pages.analytics.breakouts');
+  const locale = useLocale();
   const getService = useAuthedService((token) =>
     BreakoutResponsesService.forOrganization(token, organizationId),
   );
@@ -60,15 +63,12 @@ function ScopedBreakoutResponses({
         }
         setResult(next);
       } catch {
-        if (!controller.signal.aborted)
-          setError(
-            'Unable to load breakout responses. Your access may have changed.',
-          );
+        if (!controller.signal.aborted) setError(t('loadError'));
       }
     }
     void load();
     return () => controller.abort();
-  }, [brandId, organizationId, getService, page, refresh]);
+  }, [brandId, organizationId, getService, page, refresh, t]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: refresh also reconciles the selected response through its read endpoint.
   useEffect(() => {
@@ -97,15 +97,12 @@ function ScopedBreakoutResponses({
         }
         setDetail(next);
       } catch {
-        if (!controller.signal.aborted)
-          setDetailError(
-            'Unable to load this response. It may be unavailable or your access may have changed.',
-          );
+        if (!controller.signal.aborted) setDetailError(t('detailLoadError'));
       }
     }
     void load();
     return () => controller.abort();
-  }, [brandId, organizationId, getService, selectedId, strategyId, refresh]);
+  }, [brandId, organizationId, getService, selectedId, strategyId, refresh, t]);
 
   const currentResult = result?.page === page ? result : null;
   const isLoading = currentResult === null && error === null;
@@ -114,25 +111,23 @@ function ScopedBreakoutResponses({
     <div className="space-y-5">
       <div className="flex justify-end">
         <Button
-          ariaLabel="Refresh breakout responses"
+          ariaLabel={t('refreshLabel')}
           isDisabled={isLoading}
           onClick={() => setRefresh((value) => value + 1)}
         >
-          Refresh
+          {t('refresh')}
         </Button>
       </div>
       {isLoading ? (
         <Text as="p" role="status">
-          Loading breakout responses…
+          {t('loading')}
         </Text>
       ) : error ? (
         <Text as="p" color="destructive" role="alert">
           {error}
         </Text>
       ) : currentResult?.docs.length === 0 ? (
-        <Text as="p">
-          No breakout responses have been detected for this brand.
-        </Text>
+        <Text as="p">{t('empty')}</Text>
       ) : (
         <div className="space-y-3">
           {currentResult?.docs.map((response) => (
@@ -143,33 +138,41 @@ function ScopedBreakoutResponses({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Heading as="h2" size="md">
                   {response.platform} ·{' '}
-                  {response.source.format ?? 'Unknown format'}
+                  {response.source.format ?? t('unknownFormat')}
                 </Heading>
                 <Badge>
                   {response.source.status === 'current'
-                    ? 'Detected breakout'
-                    : 'Source changed or unavailable'}
+                    ? t('sourceCurrent')
+                    : t('sourceChanged')}
                 </Badge>
               </div>
               <Text as="p" size="sm" className="break-all">
-                Original post: {response.source.externalId}
+                {t('originalPost', {
+                  externalId: response.source.externalId,
+                })}
               </Text>
               <Text as="p" size="sm">
                 {response.trigger?.ratio == null
-                  ? 'Performance ratio unavailable'
-                  : `${response.trigger.ratio.toLocaleString()}× the comparable median`}
+                  ? t('ratioUnavailable')
+                  : t('ratioMedian', {
+                      ratio: response.trigger.ratio.toLocaleString(locale),
+                    })}
               </Text>
               <Text as="p" color="muted" size="sm">
-                Detected: {response.detectedAt}
+                {t('detectedAt', { detectedAt: response.detectedAt })}
               </Text>
               <Text as="p" size="sm">
-                Response state: {response.state.replaceAll('_', ' ')}
+                {t('responseState', {
+                  state: response.state.replaceAll('_', ' '),
+                })}
               </Text>
               <Button
-                ariaLabel={`Inspect breakout ${response.source.externalId}`}
+                ariaLabel={t('inspectLabel', {
+                  externalId: response.source.externalId,
+                })}
                 onClick={() => setSelectedId(response.id)}
               >
-                Inspect response
+                {t('inspect')}
               </Button>
             </article>
           ))}
@@ -178,11 +181,14 @@ function ScopedBreakoutResponses({
       {currentResult && (
         <nav
           className="flex flex-wrap items-center justify-between gap-3"
-          aria-label="Breakout response pagination"
+          aria-label={t('paginationLabel')}
         >
           <Text size="sm">
-            Page {currentResult.page} of {Math.max(1, currentResult.pages)} ·{' '}
-            {currentResult.total} responses
+            {t('pageSummary', {
+              page: currentResult.page,
+              pages: Math.max(1, currentResult.pages),
+              total: currentResult.total,
+            })}
           </Text>
           <div className="flex gap-2">
             <Button
@@ -192,7 +198,7 @@ function ScopedBreakoutResponses({
                 setPage((value) => value - 1);
               }}
             >
-              Previous
+              {t('previous')}
             </Button>
             <Button
               isDisabled={page >= currentResult.pages || isLoading}
@@ -201,14 +207,16 @@ function ScopedBreakoutResponses({
                 setPage((value) => value + 1);
               }}
             >
-              Next
+              {t('next')}
             </Button>
           </div>
         </nav>
       )}
       {selectedId && (
         <div className="space-y-4 rounded-lg border border-border p-5">
-          <Button onClick={() => setSelectedId(null)}>Close details</Button>
+          <Button onClick={() => setSelectedId(null)}>
+            {t('closeDetails')}
+          </Button>
           {detailError ? (
             <Text as="p" color="destructive" role="alert">
               {detailError}
@@ -217,7 +225,7 @@ function ScopedBreakoutResponses({
             <BreakoutResponseDetail response={currentDetail} />
           ) : (
             <Text as="p" role="status">
-              Loading response details…
+              {t('loadingDetails')}
             </Text>
           )}
         </div>
@@ -227,6 +235,7 @@ function ScopedBreakoutResponses({
 }
 
 export default function BreakoutsContent() {
+  const t = useTranslations('pages.analytics.breakouts');
   const { brandId, organizationId, isReady, pageScope } = useCollectionScope();
   const { sessionId, userId, orgId } = useAuthIdentity();
   const searchParams = useSearchParams();
@@ -243,16 +252,13 @@ export default function BreakoutsContent() {
     strategyId,
   ]);
   return (
-    <Container
-      label="Breakouts"
-      description="Inspect breakout evidence and follow-up response status."
-    >
+    <Container label={t('title')} description={t('description')}>
       {!isReady ? (
         <Text as="p" role="status">
-          Loading brand context…
+          {t('loadingBrandContext')}
         </Text>
       ) : !isScopeReady || !brandId ? (
-        <Text as="p">Select a brand to inspect its breakout responses.</Text>
+        <Text as="p">{t('selectBrand')}</Text>
       ) : (
         <ScopedBreakoutResponses
           key={scopeKey}
