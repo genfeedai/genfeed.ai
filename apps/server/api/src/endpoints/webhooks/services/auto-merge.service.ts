@@ -154,7 +154,7 @@ export class AutoMergeService {
       organizationId: request.organizationId,
       outputId: handle.outputId,
     });
-    this.videoStitchService.trackInBackground(handle);
+    void this.videoStitchService.trackInBackground(handle);
   }
 
   private async findGroupVideos(

@@ -9,7 +9,6 @@ import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixt
 import {
   IngredientCategory,
   IngredientStatus,
-  VideoEaseCurve,
   VideoTransition,
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -21,7 +20,6 @@ const mergeSettings = {
   isMuteVideoAudio: true,
   transition: VideoTransition.FADE,
   transitionDuration: 0.8,
-  transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
 };
 
 function groupClip(
@@ -102,7 +100,6 @@ describe('AutoMergeService', () => {
       sourceIds: ['clip-1', 'clip-2', 'clip-3'],
       transition: VideoTransition.FADE,
       transitionDuration: 0.8,
-      transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
     });
     const [output] = fixture.outputs();
     expect(output).toMatchObject({

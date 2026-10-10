@@ -129,14 +129,12 @@ export function useStoryboardWorkspace() {
       isMuteVideoAudio: storyboard.isMuteVideoAudio,
       transition: storyboard.transition,
       transitionDuration: storyboard.transitionDuration,
-      transitionEaseCurve: storyboard.transitionEaseCurve,
     }),
     [
       storyboard.isCaptionsEnabled,
       storyboard.isMuteVideoAudio,
       storyboard.transition,
       storyboard.transitionDuration,
-      storyboard.transitionEaseCurve,
     ],
   );
 

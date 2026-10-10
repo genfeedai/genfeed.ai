@@ -1,12 +1,14 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
+import { buildTransitionFilterGraph } from '@files/services/ffmpeg/helpers/transition-filter-graph.helper';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import {
   FFmpegProgress,
   FFprobeStream,
+  TransitionMergeClip,
 } from '@files/shared/interfaces/ffmpeg.interfaces';
-import { VideoEaseCurve } from '@genfeedai/contracts';
+import { VideoTransition } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -262,17 +264,16 @@ export class FFmpegMergeService {
       muteVideoAudio?: boolean;
       transition?: string;
       transitionDuration?: number;
-      transitionEaseCurve?: VideoEaseCurve;
     } = {},
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {
     const {
       muteVideoAudio = false,
-      transition = 'dissolve',
+      transition = VideoTransition.DISSOLVE,
       transitionDuration = 0.5,
     } = options;
 
-    if (videoPaths.length < 2 || transition === 'none') {
+    if (videoPaths.length < 2 || transition === VideoTransition.NONE) {
       return this.mergeVideos(
         videoPaths,
         outputPath,
@@ -281,150 +282,108 @@ export class FFmpegMergeService {
       );
     }
 
-    const { audioStreams, durations, resolutions } =
+    const { clips, height, width } =
       await this.probeTransitionClips(videoPaths);
 
     // Muting drops every clip's audio instead of crossfading it.
-    const hasAnyAudio = !muteVideoAudio && audioStreams.some((has) => has);
-    const targetWidth = resolutions[0]?.width || 1080;
-    const targetHeight = resolutions[0]?.height || 1920;
+    const isAudioIncluded = !muteVideoAudio && clips.some((c) => c.hasAudio);
+    const graph = buildTransitionFilterGraph({
+      clips,
+      height,
+      isAudioIncluded,
+      transition,
+      transitionDuration,
+      width,
+    });
 
-    let scaleFilters = '';
-    for (let i = 0; i < videoPaths.length; i++) {
-      if (scaleFilters) {
-        scaleFilters += ';';
-      }
-      scaleFilters += `[${i}:v]scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[scaled${i}]`;
-    }
-
-    let videoFilter = '';
-    let audioFilter = '';
-    let offset = Math.max(0, durations[0] - transitionDuration);
-
-    for (let i = 0; i < videoPaths.length - 1; i++) {
-      const inputA = i === 0 ? '[scaled0]' : `[v${i}]`;
-      const inputB = `[scaled${i + 1}]`;
-      const output = i === videoPaths.length - 2 ? '[vout]' : `[v${i + 1}]`;
-
-      if (videoFilter) {
-        videoFilter += ';';
-      }
-
-      videoFilter += `${inputA}${inputB}xfade=transition=${transition}:duration=${transitionDuration}:offset=${offset.toFixed(2)}${output}`;
-
-      if (i < videoPaths.length - 2) {
-        offset += durations[i + 1] - transitionDuration;
-      }
-    }
-
-    if (hasAnyAudio) {
-      const audioInputs: string[] = [];
-
-      for (let i = 0; i < videoPaths.length; i++) {
-        if (audioStreams[i]) {
-          audioFilter += audioFilter ? ';' : '';
-          audioFilter += `[${i}:a]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[aud${i}]`;
-        } else {
-          const duration = durations[i] || 1;
-          audioFilter += audioFilter ? ';' : '';
-          audioFilter += `aevalsrc=0:duration=${duration}:channel_layout=stereo:sample_rate=48000[aud${i}]`;
-        }
-        audioInputs.push(`[aud${i}]`);
-      }
-
-      for (let i = 0; i < videoPaths.length - 1; i++) {
-        const inputA = i === 0 ? audioInputs[0] : `[a${i}]`;
-        const inputB = audioInputs[i + 1];
-        const output = i === videoPaths.length - 2 ? '[aout]' : `[a${i + 1}]`;
-
-        audioFilter += ';';
-        audioFilter += `${inputA}${inputB}acrossfade=d=${transitionDuration}:c1=tri:c2=tri${output}`;
-      }
-    }
-
-    let filterComplex = scaleFilters;
-    if (videoFilter) {
-      filterComplex += `;${videoFilter}`;
-    }
-    if (hasAnyAudio && audioFilter) {
-      filterComplex += `;${audioFilter}`;
-    }
-
-    const args: string[] = [];
-
+    const args: string[] = ['-y'];
     for (const videoPath of videoPaths) {
       args.push('-i', videoPath);
     }
-
     args.push(
       '-filter_complex',
-      filterComplex,
+      graph.filterComplex,
       '-map',
-      '[vout]',
+      graph.videoLabel,
       '-c:v',
       'libx264',
       '-preset',
       'fast',
       '-crf',
       '23',
+      '-pix_fmt',
+      'yuv420p',
     );
-
-    if (hasAnyAudio && audioFilter) {
-      args.push('-map', '[aout]', '-c:a', 'aac', '-b:a', '192k');
-    } else if (muteVideoAudio) {
+    if (graph.audioLabel) {
+      args.push('-map', graph.audioLabel, '-c:a', 'aac', '-b:a', '192k');
+    } else {
       args.push('-an');
     }
-
-    args.push('-y', outputPath);
+    args.push('-movflags', '+faststart', outputPath);
 
     this.loggerService.debug(
       `Merging ${videoPaths.length} videos with ${transition} transition`,
-      { durations, filterComplex, service: this.constructorName },
+      {
+        durations: clips.map((clip) => clip.duration),
+        filterComplex: graph.filterComplex,
+        outputDuration: graph.outputDuration,
+        service: this.constructorName,
+      },
     );
 
     await this.core.executeFFmpeg(args, onProgress);
   }
 
-  /** Duration, audio presence and even-sized resolution of each clip. */
+  /**
+   * Video duration and audio presence of each clip, plus the even-sized
+   * output resolution taken from the first clip. A clip that cannot be
+   * probed fails the merge instead of being guessed at.
+   */
   private async probeTransitionClips(videoPaths: string[]): Promise<{
-    audioStreams: boolean[];
-    durations: number[];
-    resolutions: Array<{ width: number; height: number }>;
+    clips: TransitionMergeClip[];
+    height: number;
+    width: number;
   }> {
-    const durations: number[] = [];
-    const audioStreams: boolean[] = [];
-    const resolutions: Array<{ width: number; height: number }> = [];
+    const clips: TransitionMergeClip[] = [];
+    let width = 0;
+    let height = 0;
 
-    for (const videoPath of videoPaths) {
+    for (const [index, videoPath] of videoPaths.entries()) {
       const probeData = await this.core.probe(videoPath);
       const videoStream = probeData.streams.find(
         (stream: FFprobeStream) => stream.codec_type === 'video',
       );
       if (!videoStream) {
-        throw new Error('Transition clip has no video stream');
+        throw new Error(`Transition clip ${index + 1} has no video stream`);
       }
 
+      // The video stream's own length places the transition; the container
+      // duration also covers a longer audio track.
       const duration = Number(
-        probeData.format?.duration ?? videoStream.duration,
+        videoStream.duration ?? probeData.format?.duration,
       );
       if (!Number.isFinite(duration) || duration <= 0) {
-        throw new Error('Transition clip duration must be positive');
+        throw new Error(
+          `Transition clip ${index + 1} has no positive video duration`,
+        );
       }
-      durations.push(duration);
-      audioStreams.push(
-        probeData.streams.some(
+      clips.push({
+        duration,
+        hasAudio: probeData.streams.some(
           (stream: FFprobeStream) => stream.codec_type === 'audio',
         ),
-      );
+      });
 
-      const rawWidth = videoStream.width || 1080;
-      const rawHeight = videoStream.height || 1920;
-      const width = rawWidth % 2 === 0 ? rawWidth : rawWidth - 1;
-      const height = rawHeight % 2 === 0 ? rawHeight : rawHeight - 1;
-      resolutions.push({ height, width });
+      if (index === 0) {
+        if (!videoStream.width || !videoStream.height) {
+          throw new Error('Transition clip 1 has no video dimensions');
+        }
+        width = videoStream.width - (videoStream.width % 2);
+        height = videoStream.height - (videoStream.height % 2);
+      }
     }
 
-    return { audioStreams, durations, resolutions };
+    return { clips, height, width };
   }
 
   /**

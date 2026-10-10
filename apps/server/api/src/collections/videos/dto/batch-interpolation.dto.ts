@@ -1,17 +1,14 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import {
-  IngredientFormat,
-  VideoEaseCurve,
-  VideoTransition,
-} from '@genfeedai/contracts';
+import { IngredientFormat, VideoTransition } from '@genfeedai/contracts';
 import { VIDEO_STITCH_LIMITS } from '@genfeedai/contracts/constants';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsEmpty,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -96,14 +93,11 @@ export class InterpolationMergeSettingsDto {
   @IsOptional()
   transitionDuration?: number;
 
-  @ApiProperty({
-    enum: VideoEaseCurve,
-    enumName: 'VideoEaseCurve',
-    required: false,
+  @ApiHideProperty()
+  @IsEmpty({
+    message: 'Transition ease curves are not supported when merging videos',
   })
-  @IsEnum(VideoEaseCurve)
-  @IsOptional()
-  transitionEaseCurve?: VideoEaseCurve;
+  transitionEaseCurve?: unknown;
 }
 
 export class BatchInterpolationDto {

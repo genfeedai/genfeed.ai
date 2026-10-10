@@ -39,6 +39,10 @@ export const MEDIA_REFRAME_ASPECT_RATIOS = [
 export const MEDIA_MERGE_ZOOM_UNSUPPORTED =
   'Zoom effects are not supported when merging videos';
 
+/** Same message the video merge API returns when an ease curve is supplied. */
+export const MEDIA_MERGE_TRANSITION_EASE_UNSUPPORTED =
+  'Transition ease curves are not supported when merging videos';
+
 const SHARED_PARAMETERS = ['operation', 'brandId'] as const;
 
 /**
@@ -72,7 +76,6 @@ export const MEDIA_TRANSFORM_OPERATION_PARAMETERS: Readonly<
     'musicVolume',
     'transition',
     'transitionDuration',
-    'transitionEaseCurve',
   ]),
   reframe: new Set([...SHARED_PARAMETERS, 'aspectRatio', 'imageId']),
   upscale: new Set([...SHARED_PARAMETERS, 'imageUrl']),

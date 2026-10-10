@@ -1,8 +1,4 @@
-import type {
-  IngredientFormat,
-  VideoEaseCurve,
-  VideoTransition,
-} from '@genfeedai/contracts';
+import type { IngredientFormat, VideoTransition } from '@genfeedai/contracts';
 
 interface SelectedMusic {
   metadataLabel?: string | null;
@@ -15,7 +11,6 @@ interface VideoMergeStoryboard {
   musicVolume?: number;
   transition?: VideoTransition;
   transitionDuration?: number;
-  transitionEaseCurve?: VideoEaseCurve;
 }
 
 export interface VideoMergePromptBarProps {
@@ -24,7 +19,6 @@ export interface VideoMergePromptBarProps {
   onCaptionsToggle: (enabled: boolean) => void;
   onTransitionChange: (transition: VideoTransition) => void;
   onTransitionDurationChange: (duration: number) => void;
-  onTransitionEaseCurveChange: (curve: VideoEaseCurve | undefined) => void;
   onOpenMusicModal: () => void;
   onMuteVideoAudioToggle: (enabled: boolean) => void;
   onMusicVolumeChange: (volume: number) => void;

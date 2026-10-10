@@ -1,4 +1,4 @@
-import type { IngredientFormat, VideoEaseCurve, VideoTransition } from '../..';
+import type { IngredientFormat, VideoTransition } from '../..';
 
 export interface IVideoMergeParams {
   category: string;
@@ -8,7 +8,6 @@ export interface IVideoMergeParams {
   isCaptionsEnabled?: boolean;
   transition?: VideoTransition;
   transitionDuration?: number;
-  transitionEaseCurve?: VideoEaseCurve;
   isMuteVideoAudio?: boolean;
   musicVolume?: number;
 }

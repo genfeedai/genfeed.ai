@@ -366,7 +366,6 @@ export class FFmpegService {
       muteVideoAudio?: boolean;
       transition?: string;
       transitionDuration?: number;
-      transitionEaseCurve?: VideoEaseCurve;
     },
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {

@@ -1,7 +1,6 @@
 import type {
   IngredientCategory,
   IngredientStatus,
-  VideoEaseCurve,
   VideoTransition,
 } from '../..';
 import type { IIngredient } from '../index';
@@ -40,7 +39,6 @@ export interface IStoryboardMergeSettings {
   isMuteVideoAudio?: boolean;
   transition?: VideoTransition;
   transitionDuration?: number;
-  transitionEaseCurve?: VideoEaseCurve;
 }
 
 /**

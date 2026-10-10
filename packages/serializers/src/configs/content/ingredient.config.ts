@@ -47,7 +47,6 @@ export const ingredientMergeSerializerConfig = simpleConfig(
     'isCaptionsEnabled',
     'transition',
     'transitionDuration',
-    'transitionEaseCurve',
     'zoomEaseCurve',
     'zoomConfigs',
     'isMuteVideoAudio',

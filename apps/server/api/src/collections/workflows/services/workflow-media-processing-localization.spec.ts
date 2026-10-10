@@ -487,7 +487,7 @@ describe('workflow media composition integration', () => {
     expect(h.stitch.queued).toEqual([]);
     expect(h.stitch.outputs()).toEqual([]);
   });
-  it('retains a stitch output without a persisted object and accepts its late artifact', async () => {
+  it('fails a terminal stitch without a persisted object and retries the same output', async () => {
     const h = setup();
     const inputs = new Map<string, unknown>([
       [
@@ -505,12 +505,19 @@ describe('workflow media composition integration', () => {
     await expect(
       h.run('videoStitch', inputs, { brandId: 'brand' }),
     ).rejects.toThrow('persisted video');
-    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.PROCESSING);
-    expect(h.stitch.eventsNamed('media.failed')).toEqual([]);
+    expect(h.stitch.row('output-1')).toMatchObject({
+      generationError: 'Video merge did not return a persisted video',
+      status: IngredientStatus.FAILED,
+    });
+    expect(h.stitch.eventsNamed('media.failed')).toHaveLength(1);
     h.stitch.completeJob('stitch-output-1', 'ingredients/videos/output-1');
     await h.run('videoStitch', inputs, { brandId: 'brand' });
     expect(h.stitch.row('output-1').status).toBe(IngredientStatus.GENERATED);
-    expect(h.stitch.mergeJobs()).toHaveLength(1);
+    expect(h.stitch.outputs()).toHaveLength(1);
+    expect(h.stitch.mergeJobs().map((job) => job.id)).toEqual([
+      'stitch-output-1',
+      'stitch-output-1',
+    ]);
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
   });
   it('re-enqueues a processing output whose job was lost when the node reruns', async () => {

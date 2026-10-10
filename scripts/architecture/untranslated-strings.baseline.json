@@ -688,7 +688,6 @@
     "packages/ui/src/components/quick-actions/config/quick-actions.config.tsx": 60,
     "packages/ui/src/components/sections/header/SectionHeader.tsx": 8,
     "packages/ui/src/components/settings/TrendNotificationSettings.tsx": 24,
-    "packages/ui/src/components/storyboard/EaseCurveSelector.tsx": 10,
     "packages/ui/src/components/storyboard/merge-progress-bars/MergeProgressBars.tsx": 1,
     "packages/ui/src/components/storyboard/TransitionSelector.tsx": 22,
     "packages/ui/src/components/studio/frame-sequence/CameraMovementPromptBar.tsx": 19,
