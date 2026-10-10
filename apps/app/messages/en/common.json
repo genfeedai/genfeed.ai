@@ -1812,6 +1812,33 @@
       "chooseBrandToConnect": "Choose a brand in the conversation filters before connecting an account.",
       "noMessages": "No messages in this thread yet."
     },
+    "overview": {
+      "actionsTitle": "Open the inbox",
+      "cards": {
+        "inbox": {
+          "cta": "Open inbox",
+          "description": "Every open conversation across connected accounts.",
+          "label": "Inbox"
+        },
+        "kind": {
+          "cta": "Open {kind}",
+          "description": "{count, plural, =0 {Nothing open.} one {# open conversation.} other {# open conversations.}}"
+        }
+      },
+      "description": "What is waiting for a reply, by conversation type.",
+      "error": "Message counts could not be loaded.",
+      "kinds": {
+        "comments": "Comments",
+        "dms": "DMs",
+        "replies": "Replies"
+      },
+      "kpi": {
+        "openHelp": "Open conversations",
+        "unread": "Unread",
+        "unreadHelp": "Conversations with unread messages"
+      },
+      "title": "Overview"
+    },
     "pagination": {
       "conversationCount": "{count, plural, one {# conversation} other {# conversations}}",
       "conversationPage": "Page {page} of {pages}",
@@ -1852,7 +1879,8 @@
       "surfaces": {
         "all": "All",
         "comments": "Comments",
-        "dms": "DMs"
+        "dms": "DMs",
+        "replies": "Replies"
       },
       "syncNow": "Sync now",
       "title": "Conversations",
