@@ -1,4 +1,5 @@
 import type { McpApprovalStatus } from '@genfeedai/contracts';
+import type { AgentGenerationQuote } from '@genfeedai/contracts/interfaces';
 
 export interface McpApprovalResource {
   id: string;
@@ -8,6 +9,7 @@ export interface McpApprovalResource {
   result?: Record<string, unknown> | null;
   resolvedAt?: string | null;
   createdAt?: string;
+  generationQuote?: AgentGenerationQuote;
 }
 
 export type McpApprovalDecision = 'approve' | 'decline';

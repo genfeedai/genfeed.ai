@@ -1,6 +1,10 @@
 import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
+import {
+  approvalGenerationConstraint,
+  approvalGenerationQuote,
+} from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { AGENT_RUNTIME_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
@@ -33,7 +37,10 @@ import {
   getVisualGenerationReviewType,
   resolveEffectiveMutationPolicy,
 } from '@genfeedai/actions';
-import { buildLogicalWriteKey } from '@genfeedai/actions/server';
+import {
+  buildLogicalWriteKey,
+  isMcpTextDraftCall,
+} from '@genfeedai/actions/server';
 import {
   ActionOrigin,
   AgentAutonomyMode,
@@ -133,7 +140,7 @@ export class AgentToolMutationAuthorizationService {
       definition?.surfaces.agent || definition?.surfaces.mcp,
     );
     const agentMode = await this.resolveAgentModeForContext(context);
-    const effectivePolicy = resolveEffectiveMutationPolicy(
+    let effectivePolicy = resolveEffectiveMutationPolicy(
       toolName,
       agentMode,
       definition?.mutationPolicy,
@@ -144,6 +151,15 @@ export class AgentToolMutationAuthorizationService {
       context,
     );
     if (proactiveDraft) return proactiveDraft;
+    if (
+      toolName === 'create_post' &&
+      getActionOriginContext().origin === ActionOrigin.MCP &&
+      !context.approvedApprovalId &&
+      !context.isProactive &&
+      (agentMode === undefined || agentMode === 'auto') &&
+      isMcpTextDraftCall(parameters)
+    )
+      effectivePolicy = 'direct';
     if (
       isAvailableOnSurface &&
       !context.approvedApprovalId &&
@@ -462,7 +478,11 @@ export class AgentToolMutationAuthorizationService {
     });
 
     if (decision.kind === 'execute') {
-      if (effectivePolicy !== 'approval-required') {
+      const redeemsVisualQuote =
+        Boolean(context.approvedApprovalId) &&
+        toolName === 'generate' &&
+        (parameters.type === 'image' || parameters.type === 'video');
+      if (effectivePolicy !== 'approval-required' && !redeemsVisualQuote) {
         return { kind: 'execute' };
       }
       const claimed = await this.claimApprovedMutation(
@@ -601,7 +621,15 @@ export class AgentToolMutationAuthorizationService {
       context.userId,
       toolName,
       parameters,
-      { threadId: context.threadId, scope: context.validatedScope },
+      {
+        threadId: context.threadId,
+        scope: context.validatedScope,
+        generationContext: {
+          generationSettings: context.generationSettings,
+          generationModelOverride: context.generationModelOverride,
+          attachmentUrls: context.attachmentUrls,
+        },
+      },
     );
     if (!approval?.id) {
       throw new Error('Approval storage did not return a pending approval id');
@@ -622,7 +650,13 @@ export class AgentToolMutationAuthorizationService {
         mutationPolicy: 'approval-required',
         requiresConfirmation: true,
         nextActions: [
-          buildMutationApprovalCard(approval.id, toolName, parameters, context),
+          buildMutationApprovalCard(
+            approval.id,
+            toolName,
+            parameters,
+            context,
+            approvalGenerationQuote(approval.pricingQuote),
+          ),
         ],
         success: true,
       },
@@ -665,7 +699,18 @@ export class AgentToolMutationAuthorizationService {
         'Approved mutation is already executing or awaiting outcome reconciliation',
       );
     }
-    return { kind: 'execute', approvalId: approval.id };
+    return {
+      kind: 'execute',
+      approvalId: approval.id,
+      ...(toolName === 'generate' &&
+      (parameters.type === 'image' || parameters.type === 'video')
+        ? {
+            approvedGenerationQuote: approvalGenerationConstraint(
+              approval.pricingQuote,
+            ),
+          }
+        : {}),
+    };
   }
 
   async recordApprovedMutationResult(

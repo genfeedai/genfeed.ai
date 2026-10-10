@@ -166,6 +166,7 @@ function approvalCostNote(estimate?: McpApprovalCostEstimate): string {
 export function approvalPendingToolResult(
   approval: McpApprovalResource,
   estimate?: McpApprovalCostEstimate,
+  canResolveApproval = false,
 ): McpToolErrorResult {
   return mcpToolErrorResult({
     code: 'approval_pending',
@@ -177,8 +178,11 @@ export function approvalPendingToolResult(
       `This action requires approval before it runs. ` +
       `Approval ID: ${approval.id}. Tool: ${approval.toolName}. ` +
       `Status: ${approval.status}. A reviewer has been notified. ` +
-      'Hand them the approval queue, or call `resolve_approval` with ' +
-      `approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).${approvalCostNote(estimate)}`,
+      'Hand them the approval queue.' +
+      (canResolveApproval
+        ? ` Or call \`resolve_approval\` with approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).`
+        : '') +
+      approvalCostNote(estimate),
     nextStepUrl: nextStepUrl('approval_pending'),
   });
 }

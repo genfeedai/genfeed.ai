@@ -10,14 +10,14 @@ export const MCP_ONBOARDING_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Set up a new account brand inside this conversation. Use it when get_account reports profile.isOnboardingCompleted false, before generating anything. Steps: (1) scan_url with one public URL the user gives (website, social profile, link page or product page) to prefill name, description, voice, colors and logo; if the scan fails, ask for another URL. (2) Ask the user, one question at a time, for goals, platforms, posting cadence and any tone adjustment, then save_answers. (3) complete once the user confirms the brand.',
+      'Set up a brand inside this conversation. Organization owners and admins can use create_from_url to create a new brand from a website for one credit on success; this queues create_brand_from_url for approval. For an existing brand, scan_url prefills its guide, save_answers stores goals, platforms, cadence and tone, and complete finishes account onboarding.',
     name: 'onboard_brand',
     parameters: {
       properties: {
         action: {
           description:
-            'scan_url prefills the brand from url; save_answers stores goals, platforms, cadence and toneAdjustment; complete finishes onboarding.',
-          enum: ['scan_url', 'save_answers', 'complete'],
+            'create_from_url creates a new brand (owners/admins only, one credit on success); scan_url prefills an existing brand; save_answers stores goals, platforms, cadence and toneAdjustment; complete finishes onboarding.',
+          enum: ['create_from_url', 'scan_url', 'save_answers', 'complete'],
           type: 'string',
         },
         brandId: {
@@ -26,6 +26,19 @@ export const MCP_ONBOARDING_TOOLS: SourceTool[] = [
           maxLength: 200,
           minLength: 1,
           type: 'string',
+        },
+        label: {
+          description:
+            'create_from_url: brand label; defaults to the website hostname.',
+          maxLength: 200,
+          minLength: 1,
+          type: 'string',
+        },
+        approve: {
+          description:
+            'create_from_url: approve the resulting brand guide. This does not approve credit spending.',
+          default: false,
+          type: 'boolean',
         },
         cadence: {
           description: 'save_answers: how often to post, e.g. "3 posts a week"',
@@ -52,7 +65,7 @@ export const MCP_ONBOARDING_TOOLS: SourceTool[] = [
           type: 'string',
         },
         url: {
-          description: 'scan_url: the public URL to scan',
+          description: 'create_from_url or scan_url: the public URL to scan',
           maxLength: 2048,
           minLength: 1,
           type: 'string',

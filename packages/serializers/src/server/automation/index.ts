@@ -9,6 +9,8 @@ export * from '@serializers/server/automation/bot-activity.serializer';
 export * from '@serializers/server/automation/brand-memory.serializer';
 export * from '@serializers/server/automation/livestream-bot-session.serializer';
 export * from '@serializers/server/automation/marketplace-workflow.serializer';
+export * from '@serializers/server/automation/mcp-approval-pricing.serializer';
+export * from '@serializers/server/automation/mcp-approval-status.serializer';
 export * from '@serializers/server/automation/monitored-account.serializer';
 export * from '@serializers/server/automation/outreach-campaign.serializer';
 export * from '@serializers/server/automation/reply-bot-config.serializer';

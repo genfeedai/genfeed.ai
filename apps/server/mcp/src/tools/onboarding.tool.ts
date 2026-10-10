@@ -17,6 +17,11 @@ export const ONBOARD_BRAND_SCAN_TIMEOUT_MS = 75_000;
 
 const ONBOARD_BRAND_ACTIONS = {
   complete: { agentToolName: 'complete_onboarding', fields: [] },
+  create_from_url: {
+    agentToolName: 'create_brand_from_url',
+    fields: ['url', 'label', 'approve'],
+    timeoutMs: ONBOARD_BRAND_SCAN_TIMEOUT_MS,
+  },
   save_answers: {
     agentToolName: 'save_onboarding_answers',
     fields: ['brandId', 'goals', 'platforms', 'cadence', 'toneAdjustment'],

@@ -14,7 +14,12 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
 import { scopedWhere } from '@api/index';
 import { MemberRole } from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus } from '@genfeedai/prisma';
+import {
+  McpApprovalPricingSerializer,
+  McpApprovalStatusSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -95,6 +100,38 @@ export class McpApprovalsController {
     const organization = readScope.organizationId;
     const list = await this.service.findByOrganization(organization, status);
     return { data: list.map((a) => this.toResponse(a)) };
+  }
+
+  @TenantReadPolicy('selected')
+  @Get(':id/pricing')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Read the server-prepared approval quote for the connected actor',
+  })
+  async pricing(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const pricing = await this.service.findPricingForActor(id, user);
+    return McpApprovalPricingSerializer.serialize(
+      pricing,
+    ) as JsonApiSingleResponse;
+  }
+
+  @TenantReadPolicy('selected')
+  @Get(':id/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Read minimal approval job status for the connected actor',
+  })
+  async status(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const approval = await this.service.findStatusForActor(id, user);
+    return McpApprovalStatusSerializer.serialize(
+      approval,
+    ) as JsonApiSingleResponse;
   }
 
   @TenantReadPolicy('selected')

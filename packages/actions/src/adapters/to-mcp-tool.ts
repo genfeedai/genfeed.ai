@@ -1,6 +1,7 @@
 import type {
   CanonicalToolDefinition,
   ToolAnnotations,
+  ToolParameterSchema,
 } from '../interfaces/tool-definition.interface';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
 import {
@@ -31,12 +32,7 @@ export interface McpToolOutput {
   name: string;
   title: string;
   description: string;
-  inputSchema: {
-    $defs?: Record<string, unknown>;
-    type: string;
-    properties: Record<string, unknown>;
-    required?: string[];
-  };
+  inputSchema: ToolParameterSchema;
   annotations: ToolAnnotations;
   requiredRole: 'user' | 'admin' | 'superadmin';
   _meta: Record<string, unknown>;

@@ -77,7 +77,11 @@ describe('hand-authored action definitions', () => {
   it('keeps MCP admin definitions behind platform superadmin authorization', () => {
     expect(MCP_ADMIN_TOOLS.length).toBeGreaterThan(0);
     expect(
-      MCP_ADMIN_TOOLS.every((tool) => tool.requiredRole === 'superadmin'),
+      MCP_ADMIN_TOOLS.every(
+        (tool) =>
+          tool.requiredRole ===
+          (tool.name === 'resolve_approval' ? 'admin' : 'superadmin'),
+      ),
     ).toBe(true);
   });
 

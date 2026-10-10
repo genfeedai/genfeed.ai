@@ -85,13 +85,18 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
       'Get one article by articleId, or search published articles by query (optionally filtered by category). Pass exactly one of articleId or query.',
     name: 'get_articles',
     parameters: {
+      oneOf: [{ required: ['articleId'] }, { required: ['query'] }],
       properties: {
         articleId: {
           description: 'The article to retrieve.',
+          minLength: 1,
+          pattern: '\\S',
           type: 'string',
         },
         query: {
           description: 'Search query over published articles.',
+          minLength: 1,
+          pattern: '\\S',
           type: 'string',
         },
         category: {

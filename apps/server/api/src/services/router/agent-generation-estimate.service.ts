@@ -30,9 +30,11 @@ import {
   type AgentGenerationQuote,
   type AgentGenerationQuoteInput,
   AgentGenerationQuoteUnavailableReason,
+  type ModelBillableQuoteSnapshot,
 } from '@genfeedai/contracts/interfaces';
 import type { Model } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -40,6 +42,10 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+export type PreparedAgentGenerationQuote = AgentGenerationQuote & {
+  snapshot?: ModelBillableQuoteSnapshot;
+};
 
 type VideoEstimateModel = Pick<Model, 'provider'> &
   Partial<
@@ -91,6 +97,15 @@ export class AgentGenerationEstimateService {
   async estimate(
     input: AgentGenerationQuoteInput,
   ): Promise<AgentGenerationQuote> {
+    const { snapshot: _snapshot, ...quote } =
+      await this.estimateWithSnapshot(input);
+    return quote;
+  }
+
+  /** Server-only consent preparation; the public estimate omits tariff evidence. */
+  async estimateWithSnapshot(
+    input: AgentGenerationQuoteInput,
+  ): Promise<PreparedAgentGenerationQuote> {
     if (
       input.outputs !== undefined &&
       (!Number.isInteger(input.outputs) ||
@@ -194,7 +209,7 @@ export class AgentGenerationEstimateService {
     input: AgentGenerationQuoteInput,
     modelKey: string,
     model: VideoEstimateModel,
-  ): Promise<AgentGenerationQuote> {
+  ): Promise<PreparedAgentGenerationQuote> {
     const isVideo = input.category === 'video';
     const dimensions =
       input.dimensions ??
@@ -247,7 +262,7 @@ export class AgentGenerationEstimateService {
     });
     const credits = quote.credits;
     return Number.isFinite(credits) && credits >= 0
-      ? { credits, isAvailable: true, modelKey }
+      ? { credits, isAvailable: true, modelKey, snapshot: quote }
       : unavailableQuote(
           AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
         );

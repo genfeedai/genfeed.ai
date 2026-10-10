@@ -366,6 +366,27 @@ describe('catalog REST handlers — articles', () => {
     expect(result.content[0].text).toContain('Long form body');
   });
 
+  it.each([
+    { articleId: 'article-1', query: '' },
+    { articleId: 'article-1', query: null },
+    { articleId: '', query: 'ai video' },
+    { articleId: 123, query: 'ai video' },
+    { articleId: '   ' },
+    { query: '\t\n' },
+  ])(
+    'rejects invalid article selectors before any API request: %j',
+    async (args) => {
+      const { client, registry } = build();
+      const result = await callTool(registry, 'get_articles', args);
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        'Pass exactly one of articleId or query',
+      );
+      expect(client.getArticle).not.toHaveBeenCalled();
+      expect(client.searchArticles).not.toHaveBeenCalled();
+    },
+  );
+
   it('rejects search-only fields when fetching one article', async () => {
     const { client, registry } = build();
 
@@ -646,12 +667,21 @@ describe('Brand URL tools', () => {
       expect(client.createApproval).not.toHaveBeenCalled();
     },
   );
-  it('lists both tools when selecting the brand toolset', () => {
+  it('lists both tools for admins selecting the brand toolset', () => {
+    const { registry } = build();
+    const names = registry
+      .getToolsForRoleAndToolsets('admin', ['brand'])
+      .map((tool) => tool.name);
+    expect(names).toContain('create_brand_from_url');
+    expect(names).toContain('get_brand_scan_status');
+  });
+
+  it('does not advertise brand creation to user-tier callers', () => {
     const { registry } = build();
     const names = registry
       .getToolsForRoleAndToolsets('user', ['brand'])
       .map((tool) => tool.name);
-    expect(names).toContain('create_brand_from_url');
+    expect(names).not.toContain('create_brand_from_url');
     expect(names).toContain('get_brand_scan_status');
   });
 });

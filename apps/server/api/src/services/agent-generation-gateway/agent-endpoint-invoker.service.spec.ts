@@ -1,3 +1,5 @@
+import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
+import { approvalGenerationConstraint } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -140,6 +142,49 @@ describe('AgentEndpointInvoker', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
+
+  it('carries only server-approved pricing after the credit guard replaces its config', async () => {
+    const constraint = approvalGenerationConstraint(testMcpApprovalPricing());
+    if (!constraint) throw new Error('test quote unavailable');
+    creditsGuard.admit.mockImplementation(async (request) => {
+      request.creditsConfig = {
+        deferred: true,
+        source: ActivitySource.IMAGE_GENERATION,
+      };
+    });
+    const endpoint = buildEndpoint({
+      shouldDeferCreditsUntilModelResolution: true,
+      handle: vi.fn(async ({ request }) => {
+        expect(request.creditsConfig).toMatchObject({
+          deferred: true,
+          approvedGenerationQuote: constraint,
+        });
+        return 'generated';
+      }),
+    });
+    await expect(
+      invoker.invoke(endpoint, {
+        ...invocation,
+        approvedGenerationQuote: constraint,
+      }),
+    ).resolves.toBe('generated');
+  });
+  it.each(['/v1/images', '/v1/music', '/v1/alternate'])(
+    'rejects unsupported quote admission before credit admission: %s',
+    async (originalUrl) => {
+      const constraint = approvalGenerationConstraint(testMcpApprovalPricing());
+      if (!constraint) throw new Error('test quote unavailable');
+      const endpoint = buildEndpoint({ originalUrl });
+      await expect(
+        invoker.invoke(endpoint, {
+          ...invocation,
+          approvedGenerationQuote: constraint,
+        }),
+      ).rejects.toThrow('supported deferred');
+      expect(creditsGuard.admit).not.toHaveBeenCalled();
+      expect(endpoint.handle).not.toHaveBeenCalled();
+    },
+  );
 
   it('runs the HTTP enforcement chain in order and settles the credits', async () => {
     const endpoint = buildEndpoint();

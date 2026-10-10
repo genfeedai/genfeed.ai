@@ -1,5 +1,6 @@
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import { generationQuoteIdentityHash } from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
   billableProfile,
   testModelCreditQuote,
@@ -33,6 +34,80 @@ describe('VideoGenerationCreditsService', () => {
   };
 
   let service: VideoGenerationCreditsService;
+
+  it.each([
+    'same',
+    'outputs',
+    'dimensions',
+    'tariff',
+    'byok',
+    'ceiling',
+  ] as const)(
+    'binds actual MCP preparation before reservation: %s',
+    async (change) => {
+      const model = 'test/replicate-mcp-quote';
+      modelsService.findOne.mockResolvedValue({
+        key: model,
+        provider: 'replicate',
+        cost: 10,
+      });
+      const dto = { outputs: 1, width: 1024, height: 1024, duration: 5 };
+      const snapshot = await testModelCreditQuote(
+        modelsService as never,
+        'replicate',
+      ).quoteSnapshotByKey(model, {
+        organizationId: 'org-1',
+        provider: 'replicate',
+        outputs: 1,
+        requests: 1,
+        width: 1024,
+        height: 1024,
+        duration: 5,
+        selectors: {},
+      });
+      const request = {
+        body: { sourceActionId: 'mcp-quote-test' },
+        user: { userId: 'user-1' },
+        creditsConfig: {
+          deferred: true,
+          approvedGenerationQuote: {
+            model,
+            provider: snapshot.provider,
+            unitCredits: snapshot.credits,
+            maximumCredits: change === 'ceiling' ? 0 : snapshot.credits,
+            billingMode: 'credits' as const,
+            pricingHash: generationQuoteIdentityHash(snapshot),
+            quantities: snapshot.quantities,
+          },
+        },
+      };
+      if (change === 'outputs') dto.outputs = 2;
+      if (change === 'dimensions') dto.width = 2048;
+      if (change === 'tariff')
+        modelsService.findOne.mockResolvedValue({ cost: 11 });
+      if (change === 'byok')
+        byokService.resolveApiKey.mockResolvedValue({ apiKey: 'test-key' });
+      const admission = service.ensureDeferredCredits(
+        dto as never,
+        model,
+        'org-1',
+        request as never,
+      );
+      if (change === 'same') {
+        await expect(admission).resolves.toBeUndefined();
+        expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: snapshot.credits }),
+        );
+      } else {
+        await expect(admission).rejects.toThrow('fresh quote');
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        expect(
+          creditsUtilsService.checkOrganizationCreditsAvailable,
+        ).not.toHaveBeenCalled();
+        expect(request.creditsConfig.deferred).toBe(true);
+      }
+    },
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,4 +1,6 @@
 import { getActionOriginContext } from '@api/action-origin/action-origin.context';
+import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
+import { approvalGenerationConstraint } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import {
   agentPostPreviewInclude,
   agentPostPreviewPopulate,
@@ -1270,6 +1272,8 @@ describe('AgentToolExecutorService', () => {
     };
 
     return {
+      approvals,
+      mutationAuthorizationService,
       executeApprovedTool,
       adsResearchService,
       agentScopeContextService,
@@ -1325,6 +1329,71 @@ describe('AgentToolExecutorService', () => {
       xActionsHandler,
     };
   };
+
+  it('strips caller quote authority and carries only the matched authorization quote', async () => {
+    const { service, mutationAuthorizationService, generationGateway } =
+      createService();
+    const trusted = approvalGenerationConstraint(testMcpApprovalPricing());
+    if (!trusted) throw new Error('test quote unavailable');
+    const authorize = vi
+      .spyOn(mutationAuthorizationService, 'authorize')
+      .mockImplementation(async (_name, _args, context) => {
+        expect(context.approvedGenerationQuote).toBeUndefined();
+        return {
+          kind: 'execute',
+          approvalId: 'matched',
+          approvedGenerationQuote: trusted,
+        };
+      });
+    generationGateway.generateImage.mockResolvedValue({
+      id: 'image',
+      url: 'https://example.com/image.png',
+    });
+    await service.executeTool(
+      'generate',
+      {
+        type: 'image',
+        prompt: 'A scene',
+        model: 'selected-model',
+        harness: false,
+      },
+      {
+        organizationId: 'org-1',
+        userId: 'user-1',
+        approvedGenerationQuote: { ...trusted, unitCredits: 999 },
+        brandId: testId('brand'),
+      },
+    );
+    expect(authorize).toHaveBeenCalled();
+    expect(generationGateway.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ approvedGenerationQuote: trusted }),
+    );
+  });
+  it('records a failed outcome for claimed visual consent without valid pricing', async () => {
+    const {
+      service,
+      mutationAuthorizationService,
+      generationGateway,
+      approvals,
+    } = createService();
+    vi.spyOn(mutationAuthorizationService, 'authorize').mockResolvedValue({
+      kind: 'execute',
+      approvalId: 'legacy',
+      approvedGenerationQuote: null,
+    });
+    const result = await service.executeTool(
+      'generate',
+      { type: 'image', prompt: 'A scene' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(result.success).toBe(false);
+    expect(generationGateway.generateImage).not.toHaveBeenCalled();
+    expect(approvals.attachResult).toHaveBeenCalledWith(
+      'legacy',
+      'org-1',
+      expect.objectContaining({ success: false }),
+    );
+  });
 
   it('executes the media/tool gateway under the invocation entry context', async () => {
     const { service, systemWorkflowRunner } = createService();

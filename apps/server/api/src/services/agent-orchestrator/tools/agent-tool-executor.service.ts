@@ -6,6 +6,7 @@ import {
   type ApiKeyPublishingContext,
   assertApiKeyAgentPublishingScope as assertScope,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import type { ApprovedGenerationQuoteConstraint } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
   AgentScopeContextService,
   resolveNestedActionOrigin,
@@ -130,6 +131,8 @@ export function agentToolCreditEstimate(
 }
 
 export interface ToolExecutionContext {
+  /** Transient server-only constraint retrieved from a matched claimed approval. */
+  approvedGenerationQuote?: ApprovedGenerationQuoteConstraint;
   generationEntry?: GenerationEntry;
   isProactive?: boolean;
   /** Transient constraint issued by mutation authorization; stripped from incoming contexts. */
@@ -444,6 +447,9 @@ export class AgentToolExecutorService implements OnModuleInit {
     }
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
     try {
+      // The runner persists an execution before dispatching its tool node.
+      // Reject inaccessible brands before that write, then recheck at dispatch.
+      await this.assertToolBrandScope(toolName, parameters, context);
       return await runWithActionOrigin(
         {
           ...resolveNestedActionOrigin(ActionOrigin.AGENT),
@@ -499,6 +505,7 @@ export class AgentToolExecutorService implements OnModuleInit {
   ): Promise<AgentToolResult> {
     context = { ...context };
     delete context.proactiveTextDraftOnly;
+    delete context.approvedGenerationQuote;
     const startTime = Date.now();
     let executionApprovalId: string | undefined;
     let executionResult: AgentToolResult;
@@ -539,6 +546,17 @@ export class AgentToolExecutorService implements OnModuleInit {
         return toPlainJson(policyResult.result);
       }
       executionApprovalId = policyResult.approvalId;
+      if (policyResult.approvedGenerationQuote === null) {
+        throw new Error(
+          'The approved generation has no verified quote. Request fresh consent.',
+        );
+      }
+      if (policyResult.approvedGenerationQuote) {
+        context = {
+          ...context,
+          approvedGenerationQuote: policyResult.approvedGenerationQuote,
+        };
+      }
       if (policyResult.executeAsUserId) {
         context = { ...context, userId: policyResult.executeAsUserId };
       }
@@ -632,7 +650,13 @@ export class AgentToolExecutorService implements OnModuleInit {
     const scope = context.validatedScope;
     if (!scope) return;
 
-    if (parameterBrandId && parameterBrandId !== scope.brandId) {
+    // A newly created brand can be polled without rebinding the current thread.
+    // Both the current and requested brands were authorized above.
+    if (
+      toolName !== 'get_brand_scan_status' &&
+      parameterBrandId &&
+      parameterBrandId !== scope.brandId
+    ) {
       throw new Error(
         'Tool brand parameters must match the validated thread brand scope.',
       );

@@ -1,6 +1,8 @@
 import type { CreditsUsage } from '@mcp/shared/interfaces/post.interface';
+import type { AxiosResponse } from 'axios';
 import type { BaseApiClient } from './base-api-client';
 import type {
+  ApiError,
   CreateBatchParams,
   JsonApiResource,
   ListBatchesParams,
@@ -128,15 +130,26 @@ export class WorkspaceClient {
     return this.base.request(
       'getting job status',
       async (http) => {
-        const response = await http.get(
-          `/ingredients/batch?ids=${encodeURIComponent(jobId)}`,
-        );
-        const collection = response.data?.data;
+        let response: AxiosResponse | undefined;
+        try {
+          response = await http.get(
+            `/ingredients/batch?ids=${encodeURIComponent(jobId)}`,
+          );
+        } catch (error: unknown) {
+          if ((error as ApiError).response?.status !== 404) throw error;
+        }
+        const collection = response?.data?.data;
         const row = Array.isArray(collection) ? collection[0] : collection;
         if (!row || typeof row !== 'object') {
-          throw new Error(`Job ${jobId} was not found`);
+          const approval = await http.get(
+            `/mcp-approvals/${encodeURIComponent(jobId)}/status`,
+          );
+          return { id: jobId, ...this.base.unwrapAttributes(approval) };
         }
         const record = row as Record<string, unknown>;
+        if (record.id !== jobId) {
+          throw new Error(`Job ${jobId} was not found`);
+        }
         const rawAttributes = record.attributes;
         const attributes =
           rawAttributes &&
@@ -167,7 +180,7 @@ export class WorkspaceClient {
           ...(url ? { url } : {}),
         };
       },
-      this.base.failWith('Failed to get job status'),
+      this.base.failWithDetail('Failed to get job status'),
     );
   }
 

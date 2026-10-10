@@ -1,4 +1,8 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
+import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
+import type { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -6,7 +10,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('McpApprovalsService', () => {
@@ -31,9 +35,18 @@ describe('McpApprovalsService', () => {
   };
 
   let service: McpApprovalsService;
+  const brandAccess = { resolve: vi.fn(), assert: vi.fn() };
+  const actor: AuthenticatedUser = {
+    id: 'auth-provider-id',
+    userId: 'canonical-user',
+    organizationId: 'org-1',
+    brandId: 'brand-1',
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    brandAccess.resolve.mockResolvedValue({ role: 'OWNER' });
+    brandAccess.assert.mockResolvedValue(undefined);
     mcpApproval.count.mockResolvedValue(0);
     mcpApproval.findFirst.mockResolvedValue({
       id: 'outside-transaction',
@@ -46,7 +59,196 @@ describe('McpApprovalsService', () => {
       { mcpApproval } as unknown as PrismaService,
       mockLogger as LoggerService,
       mockNotificationsPublisher as ActivityRecorderService,
+      brandAccess as unknown as BrandAccessService,
     );
+  });
+
+  describe('findStatusForActor', () => {
+    it('fails closed when brand authorization is unavailable', async () => {
+      const unavailable = new McpApprovalsService(
+        { mcpApproval } as unknown as PrismaService,
+        mockLogger as LoggerService,
+        mockNotificationsPublisher as ActivityRecorderService,
+      );
+      await expect(
+        unavailable.findStatusForActor('approval-1', actor),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mcpApproval.findFirst).not.toHaveBeenCalled();
+    });
+    beforeEach(() => {
+      mcpApproval.findFirst.mockResolvedValue({
+        id: 'approval-1',
+        userId: actor.userId,
+        organizationId: actor.organizationId,
+        toolName: 'create_post',
+        arguments: { brandId: 'brand-1', confirmed: false },
+        status: 'PENDING',
+      });
+    });
+
+    it('queries only the current organization, canonical actor and nondeleted approval', async () => {
+      await service.findStatusForActor('approval-1', actor);
+      expect(mcpApproval.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'approval-1',
+          organizationId: 'org-1',
+          userId: 'canonical-user',
+          isDeleted: false,
+        },
+      });
+      expect(brandAccess.assert).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'canonical-user' }),
+        'brand-1',
+      );
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('conceals a missing or foreign approval', async () => {
+      mcpApproval.findFirst.mockResolvedValue(null);
+      await expect(
+        service.findStatusForActor('foreign', actor),
+      ).rejects.toThrow(NotFoundException);
+      expect(brandAccess.resolve).not.toHaveBeenCalled();
+    });
+
+    it('denies a revoked brand membership', async () => {
+      brandAccess.assert.mockRejectedValueOnce(
+        new Error('Brand access denied'),
+      );
+      await expect(
+        service.findStatusForActor('approval-1', actor),
+      ).rejects.toThrow('Brand access denied');
+    });
+
+    it('denies a key connected to another brand', async () => {
+      await expect(
+        service.findStatusForActor('approval-1', {
+          ...actor,
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_DRAFT],
+          brandId: 'brand-2',
+        }),
+      ).rejects.toThrow('Approval brand is outside');
+    });
+
+    it('rechecks the underlying publishing operation scope', async () => {
+      mcpApproval.findFirst.mockResolvedValue({
+        toolName: 'create_post',
+        arguments: { confirmed: true },
+      });
+      await expect(
+        service.findStatusForActor('approval-1', {
+          ...actor,
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_DRAFT],
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        }),
+      });
+      expect(brandAccess.assert).not.toHaveBeenCalled();
+    });
+
+    it('denies a connected brand key when legacy consent has no brand binding', async () => {
+      mcpApproval.findFirst.mockResolvedValue({
+        toolName: 'create_post',
+        arguments: { confirmed: false },
+      });
+      await expect(
+        service.findStatusForActor('approval-1', {
+          ...actor,
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_DRAFT],
+        }),
+      ).rejects.toThrow('Approval brand is outside');
+    });
+  });
+
+  describe('server-prepared generation quote persistence', () => {
+    function pricedService() {
+      const quote = testMcpApprovalPricing();
+      const prepare = vi.fn().mockResolvedValue(quote);
+      const priced = new McpApprovalsService(
+        { mcpApproval } as unknown as PrismaService,
+        mockLogger as LoggerService,
+        mockNotificationsPublisher as ActivityRecorderService,
+        brandAccess as unknown as BrandAccessService,
+        { prepare } as unknown as McpApprovalPricingService,
+      );
+      return { priced, prepare, quote };
+    }
+
+    it('stores the canonical quote separately from unchanged consent arguments', async () => {
+      const { priced, prepare, quote } = pricedService();
+      const args = {
+        type: 'image',
+        model: 'selected-model',
+        maximumCredits: 999,
+      };
+      mcpApproval.findFirst.mockResolvedValue(null);
+      mcpApproval.create.mockResolvedValue({
+        id: 'priced',
+        pricingQuote: quote,
+      });
+      await priced.createPending('org-1', 'user-1', 'generate', args);
+      expect(prepare).toHaveBeenCalledWith('generate', args, {
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+      expect(mcpApproval.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          arguments: args,
+          pricingQuote: quote,
+          toolName: 'generate',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      });
+    });
+
+    it('reuses the frozen quote for the existing consent identity without repricing', async () => {
+      const { priced, prepare, quote } = pricedService();
+      const existing = { id: 'priced', status: 'PENDING', pricingQuote: quote };
+      mcpApproval.findFirst.mockResolvedValue(existing);
+      await expect(
+        priced.createPending('org-1', 'user-1', 'generate', {
+          type: 'image',
+          model: 'selected-model',
+        }),
+      ).resolves.toBe(existing);
+      expect(prepare).not.toHaveBeenCalled();
+      expect(mcpApproval.create).not.toHaveBeenCalled();
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('requires fresh consent for a legacy visual approval with no quote evidence', async () => {
+      const { priced, prepare } = pricedService();
+      mcpApproval.findFirst.mockResolvedValue({
+        id: 'legacy',
+        status: 'PENDING',
+        pricingQuote: null,
+      });
+      await expect(
+        priced.createPending('org-1', 'user-1', 'generate', {
+          type: 'video',
+          model: 'selected-model',
+        }),
+      ).rejects.toThrow('no verified quote');
+      expect(prepare).not.toHaveBeenCalled();
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps priced generation unavailable when the canonical quote service is missing', async () => {
+      mcpApproval.findFirst.mockResolvedValue(null);
+      await expect(
+        service.createPending('org-1', 'user-1', 'generate', {
+          type: 'image',
+          model: 'selected-model',
+        }),
+      ).rejects.toThrow('pricing is unavailable');
+      expect(mcpApproval.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('createPending', () => {
@@ -511,6 +713,7 @@ describe('McpApprovalsService', () => {
       arguments: { count: 3 },
       toolName: 'generate_content_batch',
       idempotencyKey: 'logical-write',
+      pricingQuote: null,
       status: 'PENDING',
       result: null,
       resolvedAt: null,
@@ -554,6 +757,20 @@ describe('McpApprovalsService', () => {
         },
       });
       expect(result).toEqual(pending);
+    });
+    it('retains frozen pricing and logical identity when replacing a preview', async () => {
+      const pricingQuote = testMcpApprovalPricing();
+      await service.replacePending(
+        { ...original, pricingQuote } as McpApprovalDocument,
+        { mcpApproval } as unknown as Prisma.TransactionClient,
+      );
+      expect(mcpApproval.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          pricingQuote,
+          arguments: original.arguments,
+          idempotencyKey: original.idempotencyKey,
+        }),
+      });
     });
     it('cannot replace consent that another caller already resolved or changed', async () => {
       mcpApproval.updateMany.mockResolvedValueOnce({ count: 0 });

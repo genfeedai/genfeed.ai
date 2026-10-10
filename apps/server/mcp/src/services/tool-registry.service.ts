@@ -12,11 +12,13 @@ import {
   type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
+import { isMcpTextDraftCall } from '@genfeedai/actions/server';
 import { formatAgentError } from '@genfeedai/agent/server';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { serializeMediaArtifact } from '@genfeedai/helpers';
 import { SATOSHI_FONT_RESOURCE_PATH } from '@genfeedai/ui/static/font';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
@@ -342,7 +344,14 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   async handleToolCall(params: ToolCallParams) {
-    const { name, arguments: args } = params;
+    const requestedArgs = params.arguments ?? {};
+    const brandCreation =
+      params.name === 'onboard_brand' &&
+      requestedArgs.action === 'create_from_url'
+        ? resolveOnboardBrandCall(requestedArgs)
+        : null;
+    const name = brandCreation?.agentToolName ?? params.name;
+    const args = brandCreation?.parameters ?? requestedArgs;
 
     this.logger.debug(`Handling tool call: ${name}`, args);
 
@@ -373,7 +382,7 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       // Declared approvals and credit spenders wait for confirmation.
-      if (ToolRegistryService.requiresApproval(name)) {
+      if (ToolRegistryService.requiresApproval(name, args)) {
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
@@ -430,7 +439,29 @@ export class ToolRegistryService implements OnModuleInit {
     return 'unknown';
   }
 
-  private static requiresApproval(name: string): boolean {
+  private static requiresApproval(
+    name: string,
+    args?: Record<string, unknown>,
+  ): boolean {
+    // These concrete calls cannot spend credits or dispatch publishing. The
+    // API still validates their arguments, actor, brand and key permissions.
+    if (name === 'create_post' && args && isMcpTextDraftCall(args))
+      return false;
+    if (name === 'repurpose_post' && args?.mode === 'deterministic')
+      return false;
+    const release = args?.release;
+    if (
+      name === 'create_scheduled_release' &&
+      isRecord(release) &&
+      (release.status === undefined || release.status === 'draft') &&
+      !release.scheduledDate &&
+      Array.isArray(release.targets) &&
+      release.targets.every(
+        (target) => isRecord(target) && !target.scheduledDate,
+      )
+    ) {
+      return false;
+    }
     return requiresMcpApproval(getToolByName(name));
   }
 
@@ -661,19 +692,50 @@ export class ToolRegistryService implements OnModuleInit {
     args: Record<string, unknown>,
   ) {
     const tool = getToolByName(approval.toolName);
-    if (!tool?.creditPricing) return approvalPendingToolResult(approval);
+    const canResolveApproval = this.getTools().some(
+      (candidate) => candidate.name === 'resolve_approval',
+    );
+    if (approval.toolName === 'generate') {
+      const quote = approval.generationQuote;
+      const estimatedCredits =
+        quote?.isAvailable === true &&
+        typeof quote.credits === 'number' &&
+        Number.isFinite(quote.credits) &&
+        quote.credits >= 0 &&
+        typeof quote.modelKey === 'string' &&
+        quote.modelKey.trim()
+          ? quote.credits
+          : null;
+      return approvalPendingToolResult(
+        approval,
+        {
+          estimatedCredits,
+          pricingSummary:
+            estimatedCredits === null
+              ? 'A model-specific credit quote is unavailable. Request fresh consent with a supported model and complete settings.'
+              : undefined,
+        },
+        canResolveApproval,
+      );
+    }
+    if (!tool?.creditPricing)
+      return approvalPendingToolResult(approval, undefined, canResolveApproval);
     const estimatedCredits = estimateToolCreditCost(
       approval.toolName,
       args,
       tool.creditPricing,
     );
-    return approvalPendingToolResult(approval, {
-      estimatedCredits,
-      pricingSummary:
-        estimatedCredits === null
-          ? describeCreditPricing(tool.creditPricing)
-          : undefined,
-    });
+    return approvalPendingToolResult(
+      approval,
+      {
+        estimatedCredits,
+        pricingSummary:
+          estimatedCredits === null
+            ? describeCreditPricing(tool.creditPricing)
+            : undefined,
+      },
+      canResolveApproval,
+    );
   }
 
   private textResult(text: string) {

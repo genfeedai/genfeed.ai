@@ -26,7 +26,7 @@ export const BRAND_FROM_URL_TOOLS: SourceTool[] = [
       required: ['url'],
       type: 'object',
     },
-    requiredRole: 'user',
+    requiredRole: 'admin',
   },
   {
     creditCost: 0,
