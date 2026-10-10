@@ -218,10 +218,11 @@ describe('Branded text generation seam (real Postgres)', () => {
     const db = prisma as unknown as PrismaService;
     const material = () =>
       new BrandedGenerationArtifactMaterialService(db, access, receipts);
+    const artifactMaterial = material();
     const seam = new BrandedTextGenerationService(
       receipts,
       new BrandIdentitySnapshotService(db, access, receipts),
-      material(),
+      artifactMaterial,
       new BrandValidationService(),
       new BrandValidationReceiptService(
         material(),
@@ -245,12 +246,12 @@ describe('Branded text generation seam (real Postgres)', () => {
       openRouter as never,
       new BrandAccessService(db),
     );
-    return { seam, openRouter, providerIds };
+    return { seam, openRouter, providerIds, artifactMaterial };
   }
 
   it('drives an approved-brand text generation through the saved receipt with a fake provider', async () => {
     const s = await seed();
-    const { seam, openRouter, providerIds } = buildSeam();
+    const { seam, openRouter, providerIds, artifactMaterial } = buildSeam();
     const actor = {
       actorId: s.owner,
       organizationId: s.source,
@@ -307,6 +308,9 @@ describe('Branded text generation seam (real Postgres)', () => {
     const value = seamInput();
     const completed = await seam.generate(request(value));
     if (completed.kind !== 'completed') {
+      if (completed.reasonCode === 'artifact_bind_failed' && completed.postId) {
+        await artifactMaterial.describePostArtifact(actor, completed.postId);
+      }
       throw new Error(
         `Branded text generation stopped: ${completed.reasonCode}`,
       );
