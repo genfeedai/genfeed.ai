@@ -25,7 +25,11 @@ describe('CreditDeductionProcessor', () => {
   };
   let creditTransactionsService: {
     createTransactionEntry: ReturnType<typeof vi.fn>;
+    getLatestPaidGrantCredits: ReturnType<typeof vi.fn>;
   };
+  let freeTrialService: { getState: ReturnType<typeof vi.fn> };
+  let affordability: { getDefaultImageCredits: ReturnType<typeof vi.fn> };
+  let freeTrialEmails: { sendTrialCreditsLow: ReturnType<typeof vi.fn> };
   let activityRecorder: {
     record: ReturnType<typeof vi.fn>;
   };
@@ -41,6 +45,7 @@ describe('CreditDeductionProcessor', () => {
     ingredient: { findFirst: ReturnType<typeof vi.fn> };
     crunGenerationTask: { findFirst: ReturnType<typeof vi.fn> };
     metadata: { updateMany: ReturnType<typeof vi.fn> };
+    organizationSetting: { findFirst: ReturnType<typeof vi.fn> };
     workflowExecution: { findFirst: ReturnType<typeof vi.fn> };
   };
 
@@ -53,7 +58,17 @@ describe('CreditDeductionProcessor', () => {
     };
     creditTransactionsService = {
       createTransactionEntry: vi.fn().mockResolvedValue(undefined),
+      // A paying organization whose latest plan grant was 10,000 credits, so
+      // its low-credit threshold is 1,000 (10%).
+      getLatestPaidGrantCredits: vi.fn().mockResolvedValue(10_000),
     };
+    freeTrialService = {
+      getState: vi
+        .fn()
+        .mockResolvedValue({ isTrialExpired: false, trialEndsAt: null }),
+    };
+    affordability = { getDefaultImageCredits: vi.fn().mockResolvedValue(8) };
+    freeTrialEmails = { sendTrialCreditsLow: vi.fn().mockResolvedValue(true) };
     activityRecorder = {
       record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
     };
@@ -69,6 +84,11 @@ describe('CreditDeductionProcessor', () => {
       ingredient: { findFirst: vi.fn() },
       crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
       metadata: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      organizationSetting: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ defaultImageModel: 'org-image-model' }),
+      },
       workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
     };
 
@@ -79,6 +99,9 @@ describe('CreditDeductionProcessor', () => {
       redisService as never,
       logger as never,
       prisma as never,
+      freeTrialService as never,
+      affordability as never,
+      freeTrialEmails as never,
     );
   });
 
@@ -450,6 +473,92 @@ describe('CreditDeductionProcessor', () => {
     expect(logger.warn).toHaveBeenCalled();
   });
 
+  describe('relative low-credit threshold', () => {
+    const inTrial = {
+      isTrialExpired: false,
+      trialEndsAt: new Date('2026-10-13T00:00:00.000Z'),
+    };
+
+    it('does not flag a never-paid organization whose free credits still buy an image', async () => {
+      freeTrialService.getState.mockResolvedValue(inTrial);
+      // 25 free credits used to read as "low" against a fixed 1000.
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(25);
+
+      await processor.process(buildJob({}));
+
+      expect(activityRecorder.record).not.toHaveBeenCalled();
+      expect(freeTrialEmails.sendTrialCreditsLow).not.toHaveBeenCalled();
+      expect(affordability.getDefaultImageCredits).toHaveBeenCalledWith(
+        'org-1',
+        'org-image-model',
+      );
+      expect(
+        creditTransactionsService.getLatestPaidGrantCredits,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('alerts and emails a never-paid organization once its balance cannot buy a default image', async () => {
+      freeTrialService.getState.mockResolvedValue(inTrial);
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(5);
+
+      await processor.process(buildJob({}));
+
+      expect(freeTrialEmails.sendTrialCreditsLow).toHaveBeenCalledWith('org-1');
+      expect(activityRecorder.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: ActivityKey.CREDITS_LOW,
+          value: JSON.stringify({ balance: 5, threshold: 8 }),
+        }),
+      );
+    });
+
+    it('stays quiet for an expired trial (admission already refuses it)', async () => {
+      freeTrialService.getState.mockResolvedValue({
+        isTrialExpired: true,
+        trialEndsAt: new Date('2026-10-01T00:00:00.000Z'),
+      });
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(5);
+
+      await processor.process(buildJob({}));
+
+      expect(activityRecorder.record).not.toHaveBeenCalled();
+      expect(freeTrialEmails.sendTrialCreditsLow).not.toHaveBeenCalled();
+    });
+
+    it('scales a paying organization threshold with its latest paid grant', async () => {
+      creditTransactionsService.getLatestPaidGrantCredits.mockResolvedValue(
+        500,
+      );
+      // 10% of a 500-credit pack is 50, so 60 left is not low yet.
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(60);
+
+      await processor.process(buildJob({}));
+      expect(activityRecorder.record).not.toHaveBeenCalled();
+
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(40);
+      await processor.process(buildJob({}));
+
+      expect(activityRecorder.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          value: JSON.stringify({ balance: 40, threshold: 50 }),
+        }),
+      );
+      expect(freeTrialEmails.sendTrialCreditsLow).not.toHaveBeenCalled();
+    });
+
+    it('does not guess a threshold when neither a price nor a paid grant is known', async () => {
+      affordability.getDefaultImageCredits.mockResolvedValue(null);
+      creditTransactionsService.getLatestPaidGrantCredits.mockResolvedValue(
+        null,
+      );
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
+
+      await processor.process(buildJob({}));
+
+      expect(activityRecorder.record).not.toHaveBeenCalled();
+    });
+  });
+
   it('never fails the job when the low-credits check fails', async () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockRejectedValue(
       new Error('balance lookup failed'),
@@ -750,6 +859,9 @@ describe('Crun media BYOK consumer authority', () => {
       {} as never,
       logger as never,
       prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
     );
     const data: CreditDeductionJobData = {
       type: 'record-byok-usage',

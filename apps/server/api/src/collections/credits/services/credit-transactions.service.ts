@@ -8,6 +8,7 @@ import {
   creditUsageWhere,
   signedCreditUsage,
 } from '@api/collections/credits/services/credit-usage.util';
+import { paidCreditGrantWhere } from '@api/collections/credits/services/free-trial-state.util';
 import { strategyBudgetMetadata } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
@@ -582,6 +583,21 @@ export class CreditTransactionsService extends BaseService<
     }
 
     return series;
+  }
+
+  /**
+   * Credits in the organization's most recent paid grant (Stripe-backed or a
+   * PAYG pack), or null when it never paid. Sizes the paid low-credit alert.
+   */
+  async getLatestPaidGrantCredits(
+    organizationId: string,
+  ): Promise<number | null> {
+    const latest = await this.delegate.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { amount: true },
+      where: { ...paidCreditGrantWhere(), organizationId, isDeleted: false },
+    });
+    return latest && Number.isFinite(latest.amount) ? latest.amount : null;
   }
 
   async getLastPurchaseBaseline(organizationId: string): Promise<{

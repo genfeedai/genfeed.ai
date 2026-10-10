@@ -1,6 +1,7 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import * as deployment from '@genfeedai/config';
 import { IngredientStatus } from '@genfeedai/contracts';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SystemEmailEligibilityService } from './system-email-eligibility.service';
 
 const input = {
@@ -114,4 +115,49 @@ describe('send-time system email eligibility', () => {
       }),
     ).toBe(false);
   });
+});
+
+describe('free-trial notice eligibility at send time', () => {
+  const HOUR_MS = 3_600_000;
+  const neverPaid = (
+    createdHoursAgo: number,
+    subscriptions: unknown[] = [],
+  ) => ({
+    billingAccount: null,
+    createdAt: new Date(Date.now() - createdHoursAgo * HOUR_MS),
+    creditTransactions: [],
+    isProactiveOnboarding: false,
+    subscriptions,
+    user: { userSubscription: null },
+    warmupAccounts: [],
+  });
+
+  beforeEach(() => {
+    vi.spyOn(deployment, 'usesMeteredCredits').mockReturnValue(true);
+    vi.spyOn(deployment, 'isSelfHostedDeployment').mockReturnValue(false);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each([
+    ['trial-ending', 50, true],
+    ['trial-ending', 80, false],
+    ['trial-credits-low', 10, true],
+    ['trial-credits-low', 80, false],
+    ['trial-ended', 80, true],
+  ])('%s at %sh after creation → %s', async (templateKey, hours, expected) => {
+    const { prisma, service } = fixture();
+    prisma.organization.findFirst.mockResolvedValue(neverPaid(hours));
+    expect(await service.shouldSend({ ...input, templateKey })).toBe(expected);
+  });
+
+  it.each(['trial-ending', 'trial-ended', 'trial-credits-low'])(
+    'drops %s once the organization has paid',
+    async (templateKey) => {
+      const { prisma, service } = fixture();
+      prisma.organization.findFirst.mockResolvedValue(
+        neverPaid(80, [{ id: 'sub' }]),
+      );
+      expect(await service.shouldSend({ ...input, templateKey })).toBe(false);
+    },
+  );
 });

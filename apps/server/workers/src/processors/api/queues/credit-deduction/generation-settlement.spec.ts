@@ -176,6 +176,13 @@ describe('async generation settlement', () => {
       } as never,
       logger as never,
       prisma as never,
+      {
+        getState: vi
+          .fn()
+          .mockResolvedValue({ isTrialExpired: false, trialEndsAt: null }),
+      } as never,
+      { getDefaultImageCredits: vi.fn().mockResolvedValue(null) } as never,
+      { sendTrialCreditsLow: vi.fn() } as never,
     );
   });
 

@@ -22,6 +22,7 @@ import {
 } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { FreeTrialEmailsService } from './free-trial-emails.service';
 import {
   LIFECYCLE_MAINTENANCE_IDS,
   type LifecycleMaintenanceRequest,
@@ -69,6 +70,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     private readonly eligibility: SystemEmailEligibilityService,
     private readonly preferences: NotificationPreferenceService,
     private readonly queue: WorkflowExecutionQueueService,
+    private readonly freeTrialEmails: FreeTrialEmailsService,
   ) {}
 
   onModuleInit(): void {
@@ -574,6 +576,12 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     // and the tenant schedule otherwise re-reads every organization's balance
     // twelve times an hour.
     if (new Date(request.referenceDate).getUTCMinutes() >= 5) return;
+    // Free-trial "ends in 24 hours" / "has ended" notices for never-paid
+    // organizations. Hourly is precise enough for a 72-hour window.
+    await this.freeTrialEmails.sendDueTrialNotices(
+      request.organizationId,
+      new Date(request.referenceDate),
+    );
     const [balance, organization] = await Promise.all([
       this.prisma.creditBalance.findFirst({
         where: { organizationId: request.organizationId, isDeleted: false },
