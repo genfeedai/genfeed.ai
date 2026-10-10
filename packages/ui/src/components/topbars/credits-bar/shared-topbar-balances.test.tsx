@@ -2,8 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
+import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import messages from '../../../../../../apps/app/messages/en/ui.json';
 
 /**
  * The credits chip and the low-credits banner both mount on every protected
@@ -16,6 +18,13 @@ const { mockGetCreditsService, mockGetTopbarBalances } = vi.hoisted(() => ({
   mockGetCreditsService: vi.fn(),
   mockGetTopbarBalances: vi.fn(),
 }));
+
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => ({ isTrialUsedUp: false }),
+  }),
+);
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org_1' }),
@@ -117,10 +126,12 @@ describe('shared topbar balances', () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <TopbarCreditsBar />
-        <LowCreditsBanner />
-      </QueryClientProvider>,
+      <NextIntlClientProvider locale="en" messages={{ ui: messages }}>
+        <QueryClientProvider client={queryClient}>
+          <TopbarCreditsBar />
+          <LowCreditsBanner />
+        </QueryClientProvider>
+      </NextIntlClientProvider>,
     );
 
     await waitFor(() => {
