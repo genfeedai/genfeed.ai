@@ -104,6 +104,7 @@ vi.mock('@services/core/socket-manager.service', () => ({
   ) => ({ onFailed, onSuccess }),
 }));
 
+import { writeStudioPlaygroundSessionJobs } from '@pages/studio/playground/utils/studio-playground-session';
 import { getDefaultStudioPlaygroundSettings } from '@pages/studio/playground/utils/studio-playground-settings';
 import { resolveModelKey, useStudioGeneration } from './useStudioGeneration';
 
@@ -1559,5 +1560,172 @@ describe('collect-first persisted video hydration', () => {
     expect(mockVideosFindOne).toHaveBeenCalledOnce();
     expect(onGenerated).not.toHaveBeenCalled();
     expect(mockSubscribe).not.toHaveBeenCalled();
+  });
+});
+
+describe('failed Studio card recovery hydration (#6398)', () => {
+  function failedVideoRow(overrides: Partial<IIngredient> = {}): IIngredient {
+    return {
+      id: 'vid-1',
+      brandId: 'brand-1',
+      category: IngredientCategory.VIDEO,
+      generationError: 'Service unavailable (503)',
+      modelUsed: 'hailuo-02',
+      promptText: 'Saved prompt',
+      status: IngredientStatus.FAILED,
+      ...overrides,
+    } as IIngredient;
+  }
+
+  it('attaches the persisted FAILED row after a socket failure so the card can offer recovery', async () => {
+    const captured = captureHandler();
+    const row = failedVideoRow();
+    const { result } = renderStudioGeneration({ type: 'video' });
+    await act(async () => {
+      await result.current.submit('Saved prompt');
+    });
+    // Status polling reads without a scope and still sees PROCESSING; only the
+    // brand-scoped failed-row read returns the persisted FAILED ingredient.
+    mockVideosFindOne.mockImplementation(
+      async (_id: string, scope?: { brandId: string }) =>
+        scope ? row : { id: 'vid-1', status: IngredientStatus.PROCESSING },
+    );
+
+    await act(async () => {
+      captured.current?.onFailed('Hailuo generation failed');
+    });
+
+    await waitFor(() =>
+      expect(result.current.jobs[0]).toMatchObject({
+        id: 'vid-1',
+        ingredientId: 'vid-1',
+        ingredient: row,
+        error: 'Hailuo generation failed',
+        status: IngredientStatus.FAILED,
+      }),
+    );
+    expect(mockVideosFindOne).toHaveBeenCalledWith(
+      'vid-1',
+      { brandId: 'brand-1' },
+      expect.any(AbortSignal),
+    );
+    const reads = mockVideosFindOne.mock.calls.length;
+
+    act(() => window.dispatchEvent(new Event('focus')));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mockVideosFindOne).toHaveBeenCalledTimes(reads);
+  });
+
+  it('hydrates a session-restored failed card that lost its row on reload', async () => {
+    writeStudioPlaygroundSessionJobs('brand-1', [
+      {
+        createdAt: 1,
+        error: 'Hailuo generation failed',
+        id: 'vid-1',
+        ingredientId: 'vid-1',
+        prompt: 'Saved prompt',
+        status: IngredientStatus.FAILED,
+        type: 'video',
+      },
+      {
+        createdAt: 2,
+        error: 'Rejected before a placeholder existed',
+        id: 'failed-local',
+        prompt: 'Local only',
+        status: IngredientStatus.FAILED,
+        type: 'video',
+      },
+    ]);
+    const row = failedVideoRow();
+    mockVideosFindOne.mockResolvedValue(row);
+
+    const { result } = renderStudioGeneration({ type: 'video' });
+
+    await waitFor(() =>
+      expect(
+        result.current.jobs.find((job) => job.id === 'vid-1')?.ingredient,
+      ).toEqual(row),
+    );
+    expect(
+      result.current.jobs.find((job) => job.id === 'failed-local')?.ingredient,
+    ).toBeUndefined();
+    expect(mockVideosFindOne).toHaveBeenCalledOnce();
+    expect(mockVideosFindOne).toHaveBeenCalledWith(
+      'vid-1',
+      { brandId: 'brand-1' },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('repeats every read of a run abandoned by a job-list change', async () => {
+    writeStudioPlaygroundSessionJobs('brand-1', [
+      ...['vid-1', 'vid-2'].map((id, index) => ({
+        createdAt: index + 1,
+        id,
+        ingredientId: id,
+        prompt: 'Saved prompt',
+        status: IngredientStatus.FAILED,
+        type: 'video' as const,
+      })),
+      {
+        createdAt: 3,
+        id: 'failed-local',
+        prompt: 'Local only',
+        status: IngredientStatus.FAILED,
+        type: 'video',
+      },
+    ]);
+    const firstSecondRead = deferredVideo();
+    let secondReads = 0;
+    mockVideosFindOne.mockImplementation(async (id: string) => {
+      if (id === 'vid-2' && secondReads++ === 0) return firstSecondRead.promise;
+      return failedVideoRow({ id });
+    });
+    const { result } = renderStudioGeneration({ type: 'video' });
+    await waitFor(() => expect(mockVideosFindOne).toHaveBeenCalledTimes(2));
+
+    act(() => result.current.removeJob('failed-local'));
+    await act(async () => {
+      firstSecondRead.resolve(failedVideoRow({ id: 'vid-2' }));
+    });
+
+    await waitFor(() =>
+      expect(
+        result.current.jobs.map((job) => job.ingredient?.id ?? null),
+      ).toEqual(['vid-1', 'vid-2']),
+    );
+  });
+
+  it.each([
+    ['foreign brand', { brandId: 'brand-2' }],
+    ['deleted', { isDeleted: true }],
+    ['no longer failed', { status: IngredientStatus.GENERATED }],
+    ['different id', { id: 'vid-2' }],
+  ])('keeps a %s row off the failed card', async (_label, overrides) => {
+    writeStudioPlaygroundSessionJobs('brand-1', [
+      {
+        createdAt: 1,
+        id: 'vid-1',
+        ingredientId: 'vid-1',
+        prompt: 'Saved prompt',
+        status: IngredientStatus.FAILED,
+        type: 'video',
+      },
+    ]);
+    mockVideosFindOne.mockResolvedValue(failedVideoRow(overrides));
+
+    const { result } = renderStudioGeneration({ type: 'video' });
+
+    await waitFor(() => expect(mockVideosFindOne).toHaveBeenCalledOnce());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.jobs[0]).toMatchObject({
+      id: 'vid-1',
+      status: IngredientStatus.FAILED,
+    });
+    expect(result.current.jobs[0]?.ingredient).toBeUndefined();
   });
 });
