@@ -1,7 +1,10 @@
 import { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboardingChecklist';
 import { isCloudDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { OnboardingChecklistStep } from '@genfeedai/props/ui/agent/agent-onboarding.props';
+import type {
+  OnboardingBrandContextPanel,
+  OnboardingChecklistStep,
+} from '@genfeedai/props/ui/agent/agent-onboarding.props';
 import {
   Drawer,
   DrawerContent,
@@ -13,6 +16,7 @@ import { CircleCheck } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type AgentFullPageOnboardingChromeProps = {
+  brandContext?: OnboardingBrandContextPanel;
   completionPercent: number;
   currentStepId: string | undefined;
   earnedCredits: number;
@@ -25,6 +29,7 @@ type AgentFullPageOnboardingChromeProps = {
 };
 
 export function AgentFullPageOnboardingChrome({
+  brandContext,
   completionPercent,
   currentStepId,
   earnedCredits,
@@ -45,6 +50,7 @@ export function AgentFullPageOnboardingChrome({
       {/* Desktop sidebar */}
       <div className="w-80 shrink-0 border-l border-foreground/[0.06] max-md:hidden">
         <AgentOnboardingChecklist
+          brandContext={brandContext}
           completionPercent={completionPercent}
           currentStepId={currentStepId}
           earnedCredits={earnedCredits}
@@ -66,10 +72,14 @@ export function AgentFullPageOnboardingChrome({
         <div className="flex items-center gap-2">
           <CircleCheck className="size-5 text-primary" />
           <span className="text-sm font-medium text-foreground">
-            Activation Journey
+            {brandContext ? 'Brand context' : 'Activation Journey'}
           </span>
         </div>
-        {isCreditRewardsVisible ? (
+        {brandContext ? (
+          <span className="text-xs text-muted-foreground">
+            {brandContext.score ?? 0}%
+          </span>
+        ) : isCreditRewardsVisible ? (
           <span className="text-xs text-muted-foreground">
             {earnedCredits}/{totalJourneyCredits} credits
           </span>
@@ -87,10 +97,13 @@ export function AgentFullPageOnboardingChrome({
       >
         <DrawerContent className="max-h-[70vh]">
           <DrawerHeader>
-            <DrawerTitle>Activation Journey</DrawerTitle>
+            <DrawerTitle>
+              {brandContext ? 'Brand context' : 'Activation Journey'}
+            </DrawerTitle>
           </DrawerHeader>
           <div className="overflow-y-auto px-1 pb-6">
             <AgentOnboardingChecklist
+              brandContext={brandContext}
               completionPercent={completionPercent}
               currentStepId={currentStepId}
               earnedCredits={earnedCredits}

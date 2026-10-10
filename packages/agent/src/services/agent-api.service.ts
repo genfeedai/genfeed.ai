@@ -1,3 +1,4 @@
+import * as brandsApi from '@genfeedai/agent/services/agent-api/agent-api.brands';
 import * as executionsApi from '@genfeedai/agent/services/agent-api/agent-api.executions';
 import * as mediaApi from '@genfeedai/agent/services/agent-api/agent-api.media';
 import * as mentionsApi from '@genfeedai/agent/services/agent-api/agent-api.mentions';
@@ -69,6 +70,9 @@ export class AgentApiService extends AgentBaseApiService {
   getMessages = threadsApi.getMessages.bind(null, this);
   getMessagesPage = threadsApi.getMessagesPage.bind(null, this);
   retryAgentTransfer = threadsApi.retryAgentTransfer.bind(null, this);
+
+  // Brands
+  getBrandCompleteness = brandsApi.getBrandCompleteness.bind(null, this);
 
   // Workflow executions / credits / readiness
   getInstallReadiness = executionsApi.getInstallReadiness.bind(null, this);
