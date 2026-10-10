@@ -27,6 +27,7 @@ import { ActivityRecordingModule } from '@api/services/activity-recording/activi
 import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
 import { ApiKeyHelperModule } from '@api/services/api-key/api-key-helper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { MediaGenerationReceiptsModule } from '@api/services/media-generation-receipts/media-generation-receipts.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { usesMeteredCredits } from '@genfeedai/config';
 import { HttpModule } from '@nestjs/axios';
@@ -55,6 +56,7 @@ import { Module } from '@nestjs/common';
     ByokModule,
     CommonModule,
     CreditDeductionModule,
+    MediaGenerationReceiptsModule,
     NotificationsPublisherModule,
     OrganizationSettingsModule,
     ServerFunnelCaptureModule,

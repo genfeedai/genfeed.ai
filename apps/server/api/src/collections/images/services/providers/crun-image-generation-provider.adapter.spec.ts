@@ -72,6 +72,7 @@ function fixture() {
     prompts as never,
     images as never,
     prisma as never,
+    { open: vi.fn(), recordAccepted: vi.fn() } as never,
   );
   const request = { user, originalUrl: '/images' };
   return {

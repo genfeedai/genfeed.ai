@@ -303,6 +303,10 @@ describe('VideoGenerationService', () => {
       {
         processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
       } as never,
+      {
+        open: vi.fn().mockResolvedValue(undefined),
+        recordAccepted: vi.fn().mockResolvedValue(undefined),
+      } as never,
     );
     const completionService = new VideoGenerationCompletionService(
       bookmarksService as never,

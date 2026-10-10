@@ -22,6 +22,7 @@ import {
 import { CrunPreviewQuoteService } from '@api/services/integrations/crun/crun-preview-quote.service';
 import type { CrunFrozenImageQuote } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
+import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -79,6 +80,7 @@ export class CrunImageGenerationProviderAdapter
     private readonly prompts: PromptsService,
     private readonly images: ImagesService,
     private readonly prisma: PrismaService,
+    private readonly receipts: MediaGenerationReceiptsService,
   ) {}
 
   private readonly strategy: CrunGenerationStrategy<
@@ -188,6 +190,7 @@ export class CrunImageGenerationProviderAdapter
         credits: this.credits,
         prisma: this.prisma,
         prompts: this.prompts,
+        receipts: this.receipts,
         shared: this.shared,
         tasks: this.tasks,
       },

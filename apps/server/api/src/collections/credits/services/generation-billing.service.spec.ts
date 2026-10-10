@@ -514,6 +514,49 @@ describe('GenerationBillingService', () => {
     });
   });
 
+  describe('media generation receipts', () => {
+    function withReceipts(syncTerminal: ReturnType<typeof vi.fn>) {
+      return new GenerationBillingService(
+        credits as unknown as CreditsUtilsService,
+        queue as unknown as CreditDeductionQueueService,
+        prisma as unknown as PrismaService,
+        logger as unknown as LoggerService,
+        quoteGroups as never,
+        holdRecovery as never,
+        { syncTerminal } as never,
+      );
+    }
+
+    it('settles the output receipt from the completion contract without waiting on it', async () => {
+      // A receipt write that never settles cannot hold the credit settlement.
+      const syncTerminal = vi.fn(() => new Promise<void>(() => undefined));
+      credits.findReservationForWorkload.mockResolvedValue(hold());
+
+      const outcome = await withReceipts(syncTerminal).settleOutput(
+        'ing_1',
+        'org_1',
+      );
+
+      expect(outcome).toBe('queued');
+      expect(syncTerminal).toHaveBeenCalledWith('org_1', 'ing_1', 'settled');
+      expect(queue.queueDeduction).toHaveBeenCalledTimes(1);
+    });
+
+    it('settles the output receipt as released when its hold is given back', async () => {
+      const syncTerminal = vi.fn(() => new Promise<void>(() => undefined));
+      credits.findReservationForWorkload.mockResolvedValue(hold());
+
+      await withReceipts(syncTerminal).releaseOutput('ing_1', 'org_1');
+
+      expect(syncTerminal).toHaveBeenCalledWith('org_1', 'ing_1', 'released');
+      expect(credits.releaseReservation).toHaveBeenCalledWith({
+        organizationId: 'org_1',
+        reason: 'release',
+        reservationId: 'hold_1',
+      });
+    });
+  });
+
   describe('reconcile', () => {
     const row = (
       id: string,

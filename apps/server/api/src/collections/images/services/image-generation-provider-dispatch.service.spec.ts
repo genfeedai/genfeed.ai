@@ -2,6 +2,7 @@ import type { ImageGenerationContext } from '@api/collections/images/services/im
 import { completeImageGeneration } from '@api/collections/images/services/image-generation-completion.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
+import { ImageGenerationReceiptsService } from '@api/collections/images/services/image-generation-receipts.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
@@ -106,6 +107,10 @@ describe('ImageGenerationProviderDispatchService', () => {
     rememberAcceptedOutput: vi.fn().mockResolvedValue(undefined),
     settleOutput: vi.fn().mockResolvedValue('no-hold'),
   };
+  const mediaReceipts = {
+    open: vi.fn().mockResolvedValue(undefined),
+    recordAccepted: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new ImageGenerationProviderDispatchService(
     activitiesService as never,
     failedGenerationService as never,
@@ -119,6 +124,12 @@ describe('ImageGenerationProviderDispatchService', () => {
     providerRegistry,
     sharedService as never,
     websocketService as never,
+    // The real recorder over a mocked receipt store: assertions see the
+    // exact receipt input each output opens with.
+    new ImageGenerationReceiptsService(
+      mediaReceipts as never,
+      providerRegistry,
+    ),
   );
 
   it('delegates frozen Crun generation through the existing registry with the original arguments', async () => {
@@ -357,6 +368,13 @@ describe('ImageGenerationProviderDispatchService', () => {
       width: 1920,
     });
     expect(plan?.kind).toBe('inline');
+    expect(mediaReceipts.recordAccepted).toHaveBeenCalledWith({
+      organizationId: 'organization-1',
+      ingredientId: 'ingredient-1',
+      provider: 'genfeedai',
+      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      externalId: 'ingredient-1',
+    });
   });
 
   it.each([
@@ -783,6 +801,95 @@ describe('ImageGenerationProviderDispatchService', () => {
       }),
     );
     expect(plan?.kind).toBe('poll-single');
+  });
+
+  it('opens a receipt per batch output before dispatch and records each indexed acceptance', async () => {
+    const model = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE;
+    mediaReceipts.open.mockClear();
+    mediaReceipts.recordAccepted.mockClear();
+    // Receipt writes run detached: one that never settles cannot hold dispatch.
+    mediaReceipts.open.mockReturnValue(new Promise(() => undefined));
+    replicateService.generateTextToImage.mockImplementation(async () => {
+      expect(mediaReceipts.open).toHaveBeenCalledTimes(2);
+      return 'replicate-job';
+    });
+    replicateService.getPrediction.mockResolvedValue({
+      output: [
+        'https://replicate.example.com/generated-1.png',
+        'https://replicate.example.com/generated-2.png',
+      ],
+      status: 'succeeded',
+    });
+    sharedService.createMediaDocuments.mockResolvedValueOnce({
+      ingredientData: { id: 'ingredient-2', parent: 'parent-1' },
+      metadataData: { id: 'metadata-2' },
+    });
+    const context = buildContext({
+      model,
+      outputs: 2,
+      generationHarness: {
+        originalPrompt: 'A cinematic sunrise',
+        enhancedPrompt: 'A cinematic sunrise over brand-blue water',
+        status: 'applied',
+        source: 'brand',
+        brandId: 'brand-1',
+        appliedPacks: [],
+      },
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(mediaReceipts.open.mock.calls.map(([input]) => input)).toEqual([
+      expect.objectContaining({
+        organizationId: 'organization-1',
+        brandId: 'brand-1',
+        actorId: 'user-1',
+        ingredientId: 'ingredient-1',
+        parentIngredientId: 'ingredient-1',
+        mediaKind: 'image',
+        provider: 'replicate',
+        model,
+        originalPrompt: 'A cinematic sunrise',
+        enhancedPrompt: 'A cinematic sunrise over brand-blue water',
+        compiledPrompt: 'provider prompt',
+        generationParameters: {
+          width: 1920,
+          height: 1080,
+          outputs: 2,
+          style: 'cinematic',
+        },
+      }),
+      expect.objectContaining({
+        ingredientId: 'ingredient-2',
+        parentIngredientId: 'ingredient-1',
+      }),
+    ]);
+    expect(
+      mediaReceipts.recordAccepted.mock.calls.map(([input]) => input),
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          organizationId: 'organization-1',
+          ingredientId: 'ingredient-1',
+          provider: 'replicate',
+          model,
+          externalId: 'replicate-job_0',
+        },
+        {
+          organizationId: 'organization-1',
+          ingredientId: 'ingredient-2',
+          provider: 'replicate',
+          model,
+          externalId: 'replicate-job_1',
+        },
+      ]),
+    );
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'ingredient-2' }),
+      expect.objectContaining({ status: IngredientStatus.GENERATED }),
+    );
+    mediaReceipts.open.mockResolvedValue(undefined);
   });
 
   it('normalizes batch Replicate outputs into indexed placeholders', async () => {

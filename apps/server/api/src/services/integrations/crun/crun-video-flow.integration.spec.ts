@@ -689,6 +689,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
         } as never,
         client,
         cache,
+        { open: vi.fn(), recordAccepted: vi.fn() } as never,
       );
       await prisma.creditBalance.create({
         data: {

@@ -8,6 +8,7 @@ import {
 import type {
   BrandedGenerationActorV1,
   BrandedGenerationArtifactCompletionV1,
+  BrandedGenerationBlockReasonV1,
   BrandedGenerationDispatchInputV1,
   BrandedGenerationFailureInputV1,
 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
@@ -111,9 +112,14 @@ export function projectBrandedGenerationDispatchV1(
   return candidate;
 }
 
+const BLOCK_REASON_MESSAGES: Record<BrandedGenerationBlockReasonV1, string> = {
+  provider_attempt_ref_unavailable: 'Provider attempt reference unavailable',
+  provider_submission_failed: 'Provider did not accept the generation',
+};
+
 export function projectBrandedGenerationBlockV1(
   current: BrandedGenerationReceiptV1,
-  reasonCode: 'provider_attempt_ref_unavailable',
+  reasonCode: BrandedGenerationBlockReasonV1,
 ): BrandedGenerationReceiptV1 {
   if (current.state !== 'resolved')
     throw new ConflictException('receipt_state_conflict');
@@ -123,9 +129,61 @@ export function projectBrandedGenerationBlockV1(
     diagnostics: withDiagnostic(current.diagnostics, {
       code: reasonCode,
       severity: 'error',
-      message: 'Provider attempt reference unavailable',
+      message: BLOCK_REASON_MESSAGES[reasonCode],
     }),
   };
+}
+
+/**
+ * The provider completed, but its output could not be fingerprinted for the
+ * receipt (for example it exceeds the bounded material read). The execution
+ * is recorded as completed and the receipt blocks without an artifact claim.
+ */
+export function projectBrandedGenerationUnboundCompletionV1(
+  current: BrandedGenerationReceiptV1,
+  input: BrandedGenerationFailureInputV1,
+): BrandedGenerationReceiptV1 {
+  if (
+    current.state !== 'dispatched' ||
+    !current.execution ||
+    !canTransitionBrandedGenerationStateV1(current.state, 'blocked', 'block')
+  )
+    throw new ConflictException('receipt_state_conflict');
+  const candidate = {
+    ...current,
+    state: 'blocked' as const,
+    execution: {
+      ...current.execution,
+      result: 'completed' as const,
+      completedAt: input.completedAt,
+    },
+    diagnostics: withDiagnostic(current.diagnostics, {
+      code: input.reasonCode,
+      severity: 'error',
+      message: 'Output completed but could not be bound to the receipt',
+    }),
+  };
+  if (!brandedGenerationReceiptV1Schema.safeParse(candidate).success)
+    throw new ConflictException('receipt_state_conflict');
+  return candidate;
+}
+
+/** Replaces cost lines by id; every other receipt field is unchanged. */
+export function projectBrandedGenerationCostsV1(
+  current: BrandedGenerationReceiptV1,
+  costs: BrandedGenerationReceiptV1['costs'],
+): BrandedGenerationReceiptV1 {
+  const replaced = new Set(costs.map((cost) => cost.id));
+  const candidate = {
+    ...current,
+    costs: [
+      ...current.costs.filter((cost) => !replaced.has(cost.id)),
+      ...costs,
+    ],
+  };
+  if (!brandedGenerationReceiptV1Schema.safeParse(candidate).success)
+    throw new BadRequestException('receipt_costs_invalid');
+  return candidate;
 }
 
 export function projectBrandedGenerationFailureV1(
