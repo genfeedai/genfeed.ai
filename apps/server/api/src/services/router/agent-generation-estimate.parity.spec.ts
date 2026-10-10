@@ -7,6 +7,7 @@ import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-
 import type { FalJsonSchema } from '@api/services/integrations/fal/services/fal-contract';
 import { FalSchemaFamily } from '@api/services/integrations/fal/services/fal-contract';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -157,6 +158,22 @@ describe('AgentGenerationEstimateService parity with charging', () => {
           duration: 5,
         }),
       ).toMatchObject({ credits: null, isAvailable: false });
+      buildPrompt.mockResolvedValue({ input: { aspect_ratio: 'unreviewed' } });
+      expect(
+        await service.estimate({
+          category: 'video',
+          modelKey: key,
+          organizationId: 'org-1',
+          prompt: 'A slow pan',
+          dimensions: { width: 1920, height: 1080 },
+          duration: 5,
+        }),
+      ).toMatchObject({
+        credits: null,
+        isAvailable: false,
+        unavailableReason:
+          AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
+      });
     },
   );
 });

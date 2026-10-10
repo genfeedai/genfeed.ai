@@ -374,9 +374,9 @@ describe('ToolRegistryService', () => {
       isError: true,
       structuredContent: {
         code: 'approval_pending',
-        estimatedCredits: MEDIA_GENERATION_CREDIT_FLOORS.video,
       },
     });
+    expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
   });
 
   it('handleToolCall onboard_brand runs the agent tool for its action (#6268)', async () => {

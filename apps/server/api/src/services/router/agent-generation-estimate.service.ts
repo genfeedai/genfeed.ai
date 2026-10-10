@@ -299,18 +299,25 @@ export class AgentGenerationEstimateService {
         model.providerSchemaFamily &&
         isRecord(model.providerInputSchema)
       ) {
-        providerInput = prepareFalVideoDispatch({
-          ...dimensions,
-          duration,
-          imageUrl: input.referenceUrls?.[0],
-          model: modelKey,
-          modelEndpoint: endpoint,
-          modelInputSchema: model.providerInputSchema,
-          modelProvider: provider,
-          modelSchemaFamily: model.providerSchemaFamily,
-          prompt: input.prompt ?? 'Price estimate',
-          promptParams: providerInput ?? {},
-        }).input;
+        try {
+          providerInput = prepareFalVideoDispatch({
+            ...dimensions,
+            duration,
+            imageUrl: input.referenceUrls?.[0],
+            model: modelKey,
+            modelEndpoint: endpoint,
+            modelInputSchema: model.providerInputSchema,
+            modelProvider: provider,
+            modelSchemaFamily: model.providerSchemaFamily,
+            prompt: input.prompt ?? 'Price estimate',
+            promptParams: providerInput ?? {},
+          }).input;
+        } catch {
+          throw new ServiceUnavailableException({
+            code: 'PRICING_UNAVAILABLE',
+            message: 'Provider input cannot be priced for the selected schema',
+          });
+        }
       }
       return {
         duration,
