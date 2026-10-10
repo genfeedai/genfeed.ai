@@ -59,10 +59,7 @@ export function pickAudioRecordingFormat(
 export function describeRecordedAudio(
   recorderMimeType: string | undefined,
 ): AudioRecordingFormat {
-  const blobType = (recorderMimeType ?? '')
-    .split(';')[0]
-    ?.trim()
-    .toLowerCase();
+  const blobType = (recorderMimeType ?? '').split(';')[0]?.trim().toLowerCase();
   const extension = blobType ? BLOB_TYPE_EXTENSIONS[blobType] : undefined;
 
   return extension && blobType
