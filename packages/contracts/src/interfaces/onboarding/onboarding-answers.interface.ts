@@ -64,4 +64,59 @@ export interface IOnboardingButtonCard {
   save: string;
   /** One-line consequence shown before a Skip is confirmed. */
   skipWarning?: string;
+  /**
+   * One-line reason the agent gives when it asks this card after onboarding,
+   * e.g. "so posts talk to the right people".
+   */
+  askReason: string;
+}
+
+/** One in-flow brand-context question the agent asked in a conversation. */
+export interface IBrandContextAsk {
+  askedAt: string;
+  threadId: string;
+}
+
+/**
+ * Last in-flow ask per field, persisted on `brand.agentConfig.brandContextAsks`.
+ * It drives the ask cooldown; answers and skips stay on `onboardingAnswers`.
+ */
+export type BrandContextAsks = Partial<
+  Record<OnboardingAnswerFieldId, IBrandContextAsk>
+>;
+
+/** A high-value brand field the agent may ask about after onboarding. */
+export interface IMissingBrandContextField {
+  field: OnboardingAnswerFieldId;
+  /** `skipped`: the user skipped it before and the cooldown has passed. */
+  status: 'missing' | 'skipped';
+}
+
+/** Missing brand fields in ask priority order, plus stored scan suggestions. */
+export interface IMissingBrandContext {
+  fields: IMissingBrandContextField[];
+  suggestions: IOnboardingScanSuggestions;
+}
+
+/** The exact request_input card an in-flow brand-context ask must send. */
+export interface IBrandContextAskCard {
+  field: OnboardingAnswerFieldId;
+  requestId: string;
+  title: string;
+  isMultiSelect: boolean;
+  maxSelections?: number;
+  /** Answer options followed by Skip as the last option. */
+  options: IOnboardingButtonCardOption[];
+  reason: string;
+  /** How the answer maps onto save_onboarding_answers. */
+  save: string;
+}
+
+/** The parts of a request_input call checked against an in-flow ask card. */
+export interface IBrandContextAskRequest {
+  requestId: string;
+  allowFreeText?: boolean;
+  isMultiSelect: boolean;
+  maxSelections?: number;
+  options: IOnboardingButtonCardOption[];
 }

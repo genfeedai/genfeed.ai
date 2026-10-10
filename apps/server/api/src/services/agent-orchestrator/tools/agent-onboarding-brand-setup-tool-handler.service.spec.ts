@@ -1,5 +1,6 @@
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/tools/agent-brand-context-ask.service';
 import { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import {
   type AgentToolDispatchHandlers,
@@ -19,7 +20,10 @@ const CONTEXT: ToolExecutionContext = {
   userId: 'user-1',
 };
 
-function createHandler(options?: { brand?: Record<string, unknown> }) {
+function createHandler(options?: {
+  brand?: Record<string, unknown>;
+  threadSource?: string | null;
+}) {
   const brandsService = {
     findOne: vi.fn().mockResolvedValue(options?.brand ?? null),
     updateAgentConfig: vi
@@ -50,10 +54,22 @@ function createHandler(options?: { brand?: Record<string, unknown> }) {
   };
   const usersService = { findOne: vi.fn(), patch: vi.fn(), patchAll: vi.fn() };
   const userAccessCacheService = { invalidateAll: vi.fn() };
+  const prisma = {
+    agentThread: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue(
+          options?.threadSource === undefined
+            ? null
+            : { source: options.threadSource },
+        ),
+    },
+  };
   const handler = new AgentOnboardingBrandSetupToolHandler(
     loggerService as never,
     brandsService as never,
     new BrandDataMapper(),
+    new AgentBrandContextAskService(brandsService as never, prisma as never),
     signupPrefillService as never,
     organizationsService as never,
     usersService as never,
@@ -64,6 +80,7 @@ function createHandler(options?: { brand?: Record<string, unknown> }) {
   return {
     handler,
     brandsService,
+    prisma,
     credentialsService,
     onboardingCreditGrantsService,
     signupPrefillService,
@@ -359,6 +376,177 @@ describe('saveOnboardingAnswers', () => {
       'Onboarding answer credit grant failed',
       expect.objectContaining({ error: 'ledger down' }),
     );
+  });
+
+  describe('in-flow brand context answers after onboarding', () => {
+    const THREAD_CONTEXT: ToolExecutionContext = {
+      ...CONTEXT,
+      brandId: 'brand-1',
+      threadId: 'thread-1',
+    };
+    const askedBrand = (threadId: string) => ({
+      id: 'brand-1',
+      agentConfig: {
+        brandContextAsks: {
+          audience: { askedAt: new Date().toISOString(), threadId },
+        },
+      },
+    });
+
+    it('treats threadless and onboarding-thread saves as onboarding and grants credits', async () => {
+      for (const options of [
+        { threadSource: 'onboarding' as const, context: THREAD_CONTEXT },
+        {
+          threadSource: undefined,
+          context: { ...CONTEXT, brandId: 'brand-1' },
+        },
+      ]) {
+        const { handler, onboardingCreditGrantsService } = createHandler({
+          brand: { id: 'brand-1', agentConfig: {} },
+          threadSource: options.threadSource,
+        });
+        const result = await handler.saveOnboardingAnswers(
+          { goals: ['Drive sales'] },
+          options.context,
+        );
+        expect(
+          onboardingCreditGrantsService.grantOnboardingAnswerCredits,
+        ).toHaveBeenCalledWith(
+          CONTEXT.organizationId,
+          'brand-1',
+          ['goals'],
+          CONTEXT.userId,
+        );
+        expect(result.data).toMatchObject({ creditsEarned: 5 });
+      }
+    });
+
+    it('looks the thread up inside the organization and skips deleted threads', async () => {
+      const { handler, prisma } = createHandler({
+        brand: askedBrand('thread-1'),
+        threadSource: 'agent',
+      });
+      await handler.saveOnboardingAnswers(
+        { audience: ['Founders'] },
+        THREAD_CONTEXT,
+      );
+      expect(prisma.agentThread.findFirst).toHaveBeenCalledWith({
+        select: { source: true },
+        where: {
+          id: 'thread-1',
+          isDeleted: false,
+          organizationId: CONTEXT.organizationId,
+        },
+      });
+    });
+
+    it('saves the asked field in a normal thread the same way, without credits', async () => {
+      const { handler, brandsService, onboardingCreditGrantsService } =
+        createHandler({ brand: askedBrand('thread-1'), threadSource: 'agent' });
+      const result = await handler.saveOnboardingAnswers(
+        { audience: ['Founders'] },
+        THREAD_CONTEXT,
+      );
+      expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+        'brand-1',
+        CONTEXT.organizationId,
+        expect.objectContaining({
+          voice: { audience: ['Founders'] },
+          onboardingAnswers: {
+            fields: {
+              audience: { status: 'answered', updatedAt: expect.any(String) },
+            },
+          },
+        }),
+      );
+      expect(
+        onboardingCreditGrantsService.grantOnboardingAnswerCredits,
+      ).not.toHaveBeenCalled();
+      expect(result.data).toMatchObject({
+        answeredFields: ['audience'],
+        creditsEarned: 0,
+        rewardedFields: [],
+      });
+    });
+
+    it('records an in-flow skip without credits', async () => {
+      const { handler, brandsService, onboardingCreditGrantsService } =
+        createHandler({ brand: askedBrand('thread-1'), threadSource: 'agent' });
+      await handler.saveOnboardingAnswers(
+        { skippedFields: ['audience'] },
+        THREAD_CONTEXT,
+      );
+      expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+        'brand-1',
+        CONTEXT.organizationId,
+        expect.objectContaining({
+          onboardingAnswers: {
+            fields: {
+              audience: { status: 'skipped', updatedAt: expect.any(String) },
+            },
+          },
+        }),
+      );
+      expect(
+        onboardingCreditGrantsService.grantOnboardingAnswerCredits,
+      ).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'a field this conversation never asked',
+        { offer: 'Coaching' },
+        'thread-1',
+      ],
+      [
+        'a field asked in another conversation',
+        { audience: ['Founders'] },
+        'thread-2',
+      ],
+      [
+        'an asked field plus an unasked one',
+        { audience: ['Founders'], goals: ['Drive sales'] },
+        'thread-1',
+      ],
+    ])('rejects %s without writing', async (_label, params, askedIn) => {
+      const { handler, brandsService } = createHandler({
+        brand: askedBrand(askedIn),
+        threadSource: 'agent',
+      });
+      await expect(
+        handler.saveOnboardingAnswers(params, THREAD_CONTEXT),
+      ).rejects.toThrow('brand context card in this conversation');
+      expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
+    });
+
+    it('treats a thread it cannot find as in-flow, never as onboarding', async () => {
+      const { handler, brandsService } = createHandler({
+        brand: { id: 'brand-1', agentConfig: {} },
+        threadSource: undefined,
+      });
+      await expect(
+        handler.saveOnboardingAnswers(
+          { goals: ['Drive sales'] },
+          THREAD_CONTEXT,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
+    });
+
+    it('keeps invalid answers rejected before any thread or brand lookup', async () => {
+      const { handler, brandsService, prisma } = createHandler({
+        brand: askedBrand('thread-1'),
+        threadSource: 'agent',
+      });
+      await expect(
+        handler.saveOnboardingAnswers(
+          { audience: ['a', 'b', 'c'] },
+          THREAD_CONTEXT,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(brandsService.findOne).not.toHaveBeenCalled();
+      expect(prisma.agentThread.findFirst).not.toHaveBeenCalled();
+    });
   });
 
   it('rejects a brand outside the current thread', async () => {

@@ -29,7 +29,7 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
     creditCost: 0,
     requiredRole: 'user',
     description:
-      'Save onboarding card answers to the current brand strategy and voice right after each card, preserving other settings. Records skipped cards in skippedFields. Grants +5 credits once per answered card; returns the updated brand context score.',
+      'Save onboarding card answers to the current brand strategy and voice right after each card, preserving other settings. Records skipped cards in skippedFields. During onboarding grants +5 credits once per answered card; after onboarding saves only the brand context card asked in this conversation and grants no credits. Returns the updated brand context score.',
     parameters: {
       type: 'object',
       required: [],

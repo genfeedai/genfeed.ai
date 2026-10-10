@@ -129,6 +129,15 @@ export const CLOUD_ONLY_ONBOARDING_TOOLS: CuratedActionName[] = [
 export const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = [
   'complete_brand_onboarding_step',
   'scan_brand_url',
+];
+
+/**
+ * Tools every onboarding turn gets. `save_onboarding_answers` also runs in
+ * normal turns to save an in-flow brand context answer, where its handler
+ * only accepts fields that conversation asked and grants no credits.
+ */
+export const ONBOARDING_TOOLS: CuratedActionName[] = [
+  ...ONBOARDING_ONLY_TOOLS,
   'save_onboarding_answers',
 ];
 
@@ -152,7 +161,7 @@ export function buildToolDefinitions(
   source?: string,
 ): OpenRouterTool[] {
   if (source === 'onboarding' && allowedTools)
-    allowedTools = [...new Set([...allowedTools, ...ONBOARDING_ONLY_TOOLS])];
+    allowedTools = [...new Set([...allowedTools, ...ONBOARDING_TOOLS])];
   const all = getToolDefinitions();
   const allowed = allowedTools
     ? all.filter((t) => allowedTools.includes(t.name as CuratedActionName))
