@@ -4722,7 +4722,7 @@ test('actual spawn guard is synchronous and immediately precedes spawn, while ex
 const FROZEN_CRUN = {
   image: {
     path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
-    sha256: '19ebcf4d0e81a380900d2d1ce7f638e5694a924fcff2eb8aa88c366ff91a7cdd',
+    sha256: '7e8df9451489fe6c72e01e85a6ab6757d8a925d9d0185f91504f1bf98e5a667c',
     count: 18,
     passedTitles: [
       'Crun image quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
@@ -4747,7 +4747,7 @@ const FROZEN_CRUN = {
   },
   video: {
     path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
-    sha256: 'a0d530c2cab376cd23f789e25ce29b722870af658255ba89f2699f6953c01882',
+    sha256: 'a2cd90360d534c1be20d5194ddb13f593f006f01f13d78599473cd228361b775',
     count: 23,
     passedTitles: [
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
