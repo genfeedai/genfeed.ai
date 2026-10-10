@@ -398,6 +398,52 @@ describe('SignupPrefillService explicit URL scan', () => {
       });
   });
 
+  it('returns audience, offer and named-competitor suggestions from the voice analysis only', async () => {
+    const h = createHarness();
+    h.generator.analyzeBrandVoice.mockResolvedValue({
+      audience: 'Gym owners, Personal trainers',
+      audienceSegments: [
+        'Gym owners',
+        'Personal trainers',
+        'Busy professionals',
+        'Beginners 40+',
+        'Athletes',
+      ],
+      competitors: ['Forge Fit'],
+      offers: ['12-week coaching', 'Memberships'],
+      taglines: [],
+      tone: 'Direct',
+      values: [],
+      hashtags: [],
+      voice: 'Encouraging',
+    });
+    const state = await h.service.scanBrandUrl(
+      h.state.request,
+      'https://acme.example',
+    );
+    expect(state.summary?.suggestions).toEqual({
+      audiences: [
+        'Gym owners',
+        'Personal trainers',
+        'Busy professionals',
+        'Beginners 40+',
+      ],
+      offers: ['12-week coaching', 'Memberships'],
+      competitors: ['Forge Fit'],
+    });
+
+    const empty = createHarness();
+    const fallback = await empty.service.scanBrandUrl(
+      empty.state.request,
+      'https://acme.example',
+    );
+    expect(fallback.summary?.suggestions).toEqual({
+      audiences: [],
+      offers: [],
+      competitors: [],
+    });
+  });
+
   it('renames a work-email domain label to the scanned company name', async () => {
     const h = createHarness();
     h.brands.findOne.mockResolvedValue({

@@ -11,8 +11,10 @@ import {
 } from '@api/services/analytics/server-funnel-capture.service';
 import { isSelfHostedDeployment, usesMeteredCredits } from '@genfeedai/config';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
+import type { OnboardingAnswerFieldId } from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
+  ONBOARDING_ANSWER_REWARD_CREDITS,
   ONBOARDING_SIGNUP_GIFT_CREDITS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/contracts/types';
@@ -22,6 +24,7 @@ import { Injectable, Optional } from '@nestjs/common';
 
 const REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const WELCOME_CAMPAIGN = 'onboarding-signup-gift';
+const ANSWER_CAMPAIGN = 'onboarding-answer';
 
 @Injectable()
 export class OnboardingCreditGrantsService {
@@ -200,6 +203,67 @@ export class OnboardingCreditGrantsService {
         addition.result,
       );
     return outcome.missions;
+  }
+
+  /**
+   * +5 credits for each answered onboarding card, once per brand per field.
+   * The ledger idempotency key is the guard, so re-saving an answer, a retry
+   * or a concurrent save never pays twice. Skips never reach this method.
+   * Returns the field ids that were paid in this call.
+   */
+  async grantOnboardingAnswerCredits(
+    organizationId: string,
+    brandId: string,
+    fieldIds: readonly OnboardingAnswerFieldId[],
+    actorUserId?: string,
+  ): Promise<OnboardingAnswerFieldId[]> {
+    if (
+      fieldIds.length === 0 ||
+      !usesMeteredCredits() ||
+      isSelfHostedDeployment()
+    )
+      return [];
+    const additions = await this.runSerializable(async (tx) => {
+      const paid: Array<{
+        fieldId: OnboardingAnswerFieldId;
+        result: Awaited<
+          ReturnType<CreditsUtilsService['addPromotionalCreditsInTransaction']>
+        >;
+      }> = [];
+      for (const fieldId of new Set(fieldIds)) {
+        const result =
+          await this.creditsUtilsService.addPromotionalCreditsInTransaction(
+            {
+              creditsToAdd: ONBOARDING_ANSWER_REWARD_CREDITS,
+              description: `Onboarding answer reward: ${fieldId}`,
+              expiresAt: new Date(Date.now() + REWARD_EXPIRY_MS),
+              organizationId,
+              source: ANSWER_CAMPAIGN,
+              options: {
+                actorUserId,
+                idempotencyKey: `onboarding:answer:${brandId}:${fieldId}`,
+                referenceId: brandId,
+                referenceType: ANSWER_CAMPAIGN,
+                metadata: {
+                  kind: 'promotional',
+                  campaign: ANSWER_CAMPAIGN,
+                  fieldId,
+                },
+              },
+            },
+            tx,
+          );
+        if (result.wasApplied) paid.push({ fieldId, result });
+      }
+      return paid;
+    });
+    for (const addition of additions)
+      await this.creditsUtilsService.publishCreditAddition(
+        organizationId,
+        ONBOARDING_ANSWER_REWARD_CREDITS,
+        addition.result,
+      );
+    return additions.map((addition) => addition.fieldId);
   }
 
   private async runSerializable<T>(

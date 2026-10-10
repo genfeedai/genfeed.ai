@@ -1,3 +1,5 @@
+import type { IOnboardingScanSuggestions } from './onboarding-answers.interface';
+
 /** In-process explicit rescans; signup workflow requests keep their existing contract. */
 export interface SignupPrefillOptions {
   isForced?: boolean;
@@ -12,4 +14,6 @@ export interface SignupPrefillSummary {
   primaryColor?: string;
   secondaryColor?: string;
   logoUrl?: string;
+  /** Audience, offer and competitor card options grounded in the scanned page. */
+  suggestions?: IOnboardingScanSuggestions;
 }

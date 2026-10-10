@@ -90,6 +90,12 @@ export interface IBrandVoiceAnalysis {
   prompting?: IBrandAgentPrompting;
   sampleOutput?: string;
   topics?: string[];
+  /** Distinct audience segments, kept separate from the joined `audience`. */
+  audienceSegments?: string[];
+  /** Products, services or offers the analyzed page names. */
+  offers?: string[];
+  /** Competitors the analyzed page names explicitly. */
+  competitors?: string[];
 }
 
 export interface IOnboardingMasterPrompt {

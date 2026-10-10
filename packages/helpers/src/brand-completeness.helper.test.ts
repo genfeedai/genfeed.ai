@@ -11,7 +11,9 @@ function createFullBrand() {
       strategy: {
         contentTypes: ['short_form', 'long_form'],
         frequency: 'daily',
+        competitors: ['Rival Co'],
         goals: ['brand awareness'],
+        offers: ['12-week coaching'],
         platforms: ['twitter', 'instagram'],
       },
       voice: {
@@ -111,6 +113,35 @@ describe('computeBrandCompleteness', () => {
         group?.fields.map(() => href),
       );
     }
+  });
+
+  it('raises the strategy score when the onboarding offer and competitors are saved', () => {
+    const base = {
+      agentConfig: { strategy: { goals: ['Drive sales'] } },
+      id: 'brand-1',
+    };
+    const before = computeBrandCompleteness(base);
+    const after = computeBrandCompleteness({
+      ...base,
+      agentConfig: {
+        strategy: {
+          competitors: ['Rival Co'],
+          goals: ['Drive sales'],
+          offers: ['Memberships'],
+        },
+      },
+    });
+
+    expect(before.groups.find((group) => group.key === 'strategy')?.score).toBe(
+      17,
+    );
+    expect(after.groups.find((group) => group.key === 'strategy')?.score).toBe(
+      50,
+    );
+    expect(after.overallScore).toBeGreaterThan(before.overallScore);
+    expect(after.incompleteFields.map((field) => field.key)).not.toContain(
+      'offers',
+    );
   });
 
   it('uses weighted average for overall score', () => {

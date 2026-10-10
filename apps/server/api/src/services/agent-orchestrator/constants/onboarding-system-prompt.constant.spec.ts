@@ -17,8 +17,8 @@ describe.each([ONBOARDING_SYSTEM_PROMPT, COMMUNITY_ONBOARDING_SYSTEM_PROMPT])(
         'maxSelections: 3',
         'at most 5 options',
         'LAST option (id: skip)',
-        'call save_onboarding_answers once',
-        'Omit every skipped field',
+        'call save_onboarding_answers with only that field',
+        'Never save skip as a value',
         'Go to my workspace calls complete_onboarding',
         'Never ask for social connections, payment, or publishing before the handoff',
       ])

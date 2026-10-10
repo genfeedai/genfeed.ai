@@ -23,9 +23,11 @@ export interface BrandAgentVoice {
 }
 
 export interface BrandAgentStrategy {
+  competitors?: string[];
   contentTypes?: string[];
   frequency?: string;
   goals?: string[];
+  offers?: string[];
   platforms?: string[];
   topics?: string[];
   [key: string]: unknown;

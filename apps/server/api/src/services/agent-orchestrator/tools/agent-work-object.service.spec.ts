@@ -478,6 +478,28 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     },
   );
 
+  it.each(['agent', 'onboarding'])(
+    'requires Skip to be the last onboarding choice: %s',
+    async (source) => {
+      prisma.agentThread.findFirst.mockResolvedValue({ source });
+      const request = service.requestInput(
+        {
+          requestId: 'ask-1',
+          title: 'Audience',
+          prompt: 'Who matters most?',
+          options: [
+            { id: 'skip', label: 'Skip' },
+            { id: 'suggested_1', label: 'Gym owners' },
+          ],
+        },
+        context as never,
+      );
+      if (source === 'onboarding')
+        await expect(request).rejects.toThrow('Skip as the last choice');
+      else await expect(request).resolves.toMatchObject({ success: true });
+    },
+  );
+
   it('defaults to free text and a single selection', async () => {
     await service.requestInput(
       {

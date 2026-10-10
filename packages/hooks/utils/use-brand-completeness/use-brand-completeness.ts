@@ -29,6 +29,8 @@ interface BrandLike {
       platforms?: string[];
       goals?: string[];
       frequency?: string;
+      offers?: string[];
+      competitors?: string[];
     };
     persona?: string;
   };
