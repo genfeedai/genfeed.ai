@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   findNewlyEnabledUnreleasedModules,
+  isReleasePreviewActive,
   ORGANIZATION_MODULE_IDS,
   ORGANIZATION_MODULES,
   type OrganizationModuleAccessInput,
@@ -174,6 +175,31 @@ describe('newly enabled unreleased modules (#5502)', () => {
     expect(
       findNewlyEnabledUnreleasedModules({ ...base, nextOverrides: undefined }),
     ).toEqual([]);
+  });
+});
+
+describe('release preview navigation (#5502)', () => {
+  it('shows founder-only navigation on self-hosted and preview organizations only', () => {
+    expect(isReleasePreviewActive({ hasOrganizationBilling: false })).toBe(
+      true,
+    );
+    expect(
+      isReleasePreviewActive({
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
+      }),
+    ).toBe(true);
+    expect(
+      isReleasePreviewActive({
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('hides founder-only navigation while settings are unknown', () => {
+    expect(isReleasePreviewActive(null)).toBe(false);
+    expect(isReleasePreviewActive({})).toBe(false);
   });
 });
 
