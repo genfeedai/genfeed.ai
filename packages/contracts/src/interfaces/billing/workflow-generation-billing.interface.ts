@@ -8,6 +8,36 @@ export type WorkflowGenerationProviderTarget =
   | { model: string }
   | { version: string };
 
+export type WorkflowReviewedOutputContract =
+  | {
+      modelKey: string;
+      provider: 'replicate';
+      endpoint: string;
+      version: string;
+      target: WorkflowGenerationProviderTarget;
+      output: {
+        adapterVersion: 1;
+        representation: 'uri' | 'uri-array';
+        requests: 1;
+        outputs: 1;
+        countInput?: string;
+      };
+    }
+  | {
+      modelKey: string;
+      provider: 'fal';
+      endpoint: string;
+      version: string;
+      target: { endpoint: string };
+      output: {
+        adapterVersion: 1;
+        representation: 'video-object';
+        requests: 1;
+        outputs: 1;
+        countInput?: never;
+      };
+    };
+
 export interface WorkflowMediaPreparationContract {
   version: 1;
   preparationVersion: 1;
@@ -21,20 +51,7 @@ export interface WorkflowMediaPreparationContract {
     modelKey: string;
     mediaKind: 'image' | 'video';
   };
-  reviewedOutput: {
-    modelKey: string;
-    provider: 'replicate';
-    endpoint: string;
-    version: string;
-    target: WorkflowGenerationProviderTarget;
-    output: {
-      adapterVersion: 1;
-      representation: 'uri' | 'uri-array';
-      requests: 1;
-      outputs: 1;
-      countInput?: string;
-    };
-  };
+  reviewedOutput: WorkflowReviewedOutputContract;
 }
 
 export type WorkflowMediaProjectionPolicy =

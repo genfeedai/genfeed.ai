@@ -1,5 +1,4 @@
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
-import type { ReviewedReplicateOutputContract } from '@api/collections/models/utils/model-provider-output-contract.interface';
 import { findReviewedReplicateOutputContract } from '@api/collections/models/utils/model-reviewed-replicate-output-contract.util';
 import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
 import type { WorkflowMediaProviderPlan } from '@api/collections/workflows/services/workflow-media-provider-plan.interface';
@@ -27,6 +26,7 @@ import type {
   WorkflowGenerationDispatch,
   WorkflowGenerationNodeAllocation,
   WorkflowMediaPreparationContract,
+  WorkflowReviewedOutputContract,
 } from '@genfeedai/contracts/interfaces/billing';
 import type {
   ExecutableNode,
@@ -65,7 +65,7 @@ function unavailable(detail: string): never {
 }
 function preparationContract(
   prepared: WorkflowMediaProviderPlan,
-  output: ReviewedReplicateOutputContract,
+  output: WorkflowReviewedOutputContract,
 ): WorkflowMediaPreparationContract {
   const brief = prepared.generationBriefEvidence;
   if (
@@ -242,6 +242,7 @@ export class WorkflowMediaBillingPlanService {
       unavailable('Workflow generation compiler or output contract changed');
     const adapter = contract.reviewedOutput.output;
     if (
+      'countInput' in adapter &&
       adapter.countInput &&
       (!Object.hasOwn(prepared.input, adapter.countInput) ||
         prepared.input[adapter.countInput] !== 1)

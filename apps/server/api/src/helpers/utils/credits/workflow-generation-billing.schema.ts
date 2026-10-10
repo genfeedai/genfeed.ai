@@ -24,6 +24,36 @@ const outputAdapter = z
         message: 'Scalar output cannot declare an array count mapping',
       });
   });
+const reviewedOutput = z.discriminatedUnion('provider', [
+  z
+    .object({
+      modelKey: identity,
+      provider: z.literal('replicate'),
+      endpoint: identity,
+      version: identity,
+      target: providerTarget,
+      output: outputAdapter,
+    })
+    .strict(),
+  z
+    .object({
+      modelKey: identity,
+      provider: z.literal('fal'),
+      endpoint: identity,
+      version: identity,
+      target: z.object({ endpoint: identity }).strict(),
+      output: z
+        .object({
+          adapterVersion: z.literal(1),
+          representation: z.literal('video-object'),
+          requests: z.literal(1),
+          outputs: z.literal(1),
+          countInput: z.never().optional(),
+        })
+        .strict(),
+    })
+    .strict(),
+]);
 const preparationContract = z
   .object({
     version: z.literal(1),
@@ -40,16 +70,7 @@ const preparationContract = z
         mediaKind: z.enum(['image', 'video']),
       })
       .strict(),
-    reviewedOutput: z
-      .object({
-        modelKey: identity,
-        provider: z.literal('replicate'),
-        endpoint: identity,
-        version: identity,
-        target: providerTarget,
-        output: outputAdapter,
-      })
-      .strict(),
+    reviewedOutput,
   })
   .strict();
 const projectionPolicy = z.discriminatedUnion('kind', [
@@ -75,23 +96,43 @@ const projectionPolicy = z.discriminatedUnion('kind', [
     })
     .strict(),
 ]);
-export const workflowGenerationDispatchSchema = z.object({
-  contractVersion: identity,
-  preparationContract,
-  projectionPolicy,
-  provider: identity,
-  modelKey: identity,
-  target: identity,
-  credentialRoute: z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('platform') }),
-    z.object({ kind: z.literal('byok'), credentialId: identity }),
-  ]),
-  quantities: dimensions.extend({
-    requests: z.literal(1),
-    outputs: z.literal(1),
-  }),
-  billableFingerprint: hash,
-});
+export const workflowGenerationDispatchSchema = z
+  .object({
+    contractVersion: identity,
+    preparationContract,
+    projectionPolicy,
+    provider: identity,
+    modelKey: identity,
+    target: identity,
+    credentialRoute: z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('platform') }),
+      z.object({ kind: z.literal('byok'), credentialId: identity }),
+    ]),
+    quantities: dimensions.extend({
+      requests: z.literal(1),
+      outputs: z.literal(1),
+    }),
+    billableFingerprint: hash,
+  })
+  .superRefine((dispatch, context) => {
+    const prepared = dispatch.preparationContract;
+    const output = prepared.reviewedOutput;
+    if (dispatch.provider !== output.provider)
+      context.addIssue({
+        code: 'custom',
+        message: 'Dispatch provider differs from reviewed output provider',
+      });
+    if (
+      output.provider === 'fal' &&
+      (prepared.actionId !== 'videoGen' ||
+        output.target.endpoint !== output.endpoint)
+    )
+      context.addIssue({
+        code: 'custom',
+        message:
+          'Fal video output differs from its prepared action or endpoint',
+      });
+  });
 
 export const workflowGenerationNodeAllocationSchema = z
   .object({
@@ -136,7 +177,7 @@ export const workflowGenerationNodeAllocationSchema = z
     if (
       prepared.brief.modelKey !== allocation.dispatch.modelKey ||
       prepared.reviewedOutput.modelKey !== allocation.dispatch.modelKey ||
-      allocation.dispatch.provider !== 'replicate'
+      allocation.dispatch.provider !== prepared.reviewedOutput.provider
     )
       context.addIssue({
         code: 'custom',
