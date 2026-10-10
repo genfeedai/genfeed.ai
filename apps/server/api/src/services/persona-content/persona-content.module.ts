@@ -1,6 +1,7 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     ElevenLabsModule,
     HedraModule,
     HeyGenModule,
+    OrganizationModuleAccessModule,
     PersonasCoreModule,
     PostsModule,
   ],

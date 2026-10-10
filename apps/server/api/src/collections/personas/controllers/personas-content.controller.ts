@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -191,6 +192,7 @@ export class PersonasContentController {
   }
 
   @Post(':id/publish')
+  @OrganizationModule('publishing')
   @HttpCode(HttpStatus.OK)
   async publish(
     @Param('id') id: string,

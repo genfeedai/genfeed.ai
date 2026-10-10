@@ -1,6 +1,7 @@
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   CredentialPlatform,
@@ -58,6 +59,7 @@ export class PersonaContentPlanService {
     private readonly loggerService: LoggerService,
     private readonly personasService: PersonasService,
     private readonly postsService: PostsService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   async generateContentPlan(
@@ -127,6 +129,8 @@ export class PersonaContentPlanService {
       );
       return 0;
     }
+
+    await this.moduleAccess.assertAccess(input.organizationId, 'publishing');
 
     for (const entry of entries) {
       try {
