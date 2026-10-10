@@ -1,6 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -11,10 +12,12 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PersonaPublisherService', () => {
   let service: PersonaPublisherService;
+  let moduleAccess: { assertAccess: ReturnType<typeof vi.fn> };
   let review: {
     createManualReviewBatch: ReturnType<typeof vi.fn>;
     approveAutonomousItems: ReturnType<typeof vi.fn>;
@@ -25,6 +28,7 @@ describe('PersonaPublisherService', () => {
   let postsService: { create: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
     personasService = {
       findOne: vi.fn(),
     };
@@ -44,6 +48,7 @@ describe('PersonaPublisherService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PersonaPublisherService,
+        { provide: OrganizationModuleAccessService, useValue: moduleAccess },
         {
           provide: BatchGenerationService,
           useValue: review,
@@ -72,6 +77,63 @@ describe('PersonaPublisherService', () => {
     }).compile();
 
     service = module.get<PersonaPublisherService>(PersonaPublisherService);
+  });
+
+  it.each(['disabled', 'unavailable'])(
+    'rejects %s module access before any publication effect',
+    async (reason) => {
+      const denied = new HttpException(
+        {
+          code:
+            reason === 'disabled'
+              ? 'ORGANIZATION_MODULE_DISABLED'
+              : 'ORGANIZATION_MODULE_UNAVAILABLE',
+          moduleId: 'publishing',
+        },
+        reason === 'disabled'
+          ? HttpStatus.FORBIDDEN
+          : HttpStatus.SERVICE_UNAVAILABLE,
+      );
+      moduleAccess.assertAccess.mockRejectedValueOnce(denied);
+      await expect(
+        service.publishToAll({
+          personaId: 'persona-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          brandId: 'brand-1',
+          description: 'Draft caption',
+        }),
+      ).rejects.toBe(denied);
+      expect(moduleAccess.assertAccess).toHaveBeenCalledWith(
+        'org-1',
+        'publishing',
+      );
+      expect(personasService.findOne).not.toHaveBeenCalled();
+      expect(credentialsService.findOne).not.toHaveBeenCalled();
+      expect(postsService.create).not.toHaveBeenCalled();
+      expect(review.createManualReviewBatch).not.toHaveBeenCalled();
+      expect(review.approveAutonomousItems).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rechecks module access on the next publication attempt', async () => {
+    personasService.findOne.mockResolvedValue({
+      credentials: [],
+      label: 'Persona',
+    });
+    const input = {
+      personaId: 'persona-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      brandId: 'brand-1',
+      description: 'Draft',
+    };
+    await service.publishToAll(input);
+    const denied = new Error('Publishing disabled after the prior attempt');
+    moduleAccess.assertAccess.mockRejectedValueOnce(denied);
+    await expect(service.publishToAll(input)).rejects.toBe(denied);
+    expect(moduleAccess.assertAccess).toHaveBeenCalledTimes(2);
+    expect(personasService.findOne).toHaveBeenCalledTimes(1);
   });
 
   it('preserves a visible draft and reports failure when review linking fails', async () => {

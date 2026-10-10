@@ -3,6 +3,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -52,9 +53,11 @@ export class PersonaPublisherService {
     private readonly postsService: PostsService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly publishPolicy: AutonomousPublishPolicyService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   async publishToAll(input: PublishInput): Promise<PublishResult> {
+    await this.moduleAccess.assertAccess(input.organizationId, 'publishing');
     const caller = CallerUtil.getCallerName();
     const persona = await this.getPersonaOrFail(
       input.personaId,
