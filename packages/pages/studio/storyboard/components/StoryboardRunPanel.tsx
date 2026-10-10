@@ -3,7 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
-  APP_ROUTES,
+  createPublishingApprovalsRoute,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
 import type { StoryboardRunPanelProps } from '@genfeedai/props/studio/storyboard.props';
@@ -371,7 +371,7 @@ export default function StoryboardRunPanel({
             <Link
               className="font-medium text-primary hover:text-primary/80"
               href={activeHref(
-                `${APP_ROUTES.PUBLISHING.REVIEW}?batch=${encodeURIComponent(run.review.batchId)}`,
+                createPublishingApprovalsRoute({ batch: run.review.batchId }),
               )}
             >
               {translate('run.review.open')}

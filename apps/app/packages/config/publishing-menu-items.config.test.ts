@@ -33,17 +33,16 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('is a flat Overview → Posts → Approval queue → Campaigns bar', () => {
+  it('is a flat Overview → Posts → Campaigns bar', () => {
+    // #5502: calendar and approvals are Posts views, not nav items.
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Posts',
-      'Approval queue',
       'Campaigns',
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).toEqual([
       APP_ROUTES.PUBLISHING.OVERVIEW,
       APP_ROUTES.PUBLISHING.POSTS,
-      APP_ROUTES.PUBLISHING.REVIEW,
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).not.toContain(

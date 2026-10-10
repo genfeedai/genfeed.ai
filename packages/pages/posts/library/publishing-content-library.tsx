@@ -39,7 +39,6 @@ import {
   parsePublishingContentType,
 } from '@pages/posts/library/publishing-content-library.helpers';
 import PublishingContentLibraryToolbar, {
-  PublishingContentLibraryQueueLink,
   PublishingContentLibrarySearch,
 } from '@pages/posts/library/publishing-content-library-toolbar';
 import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
@@ -67,11 +66,17 @@ import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
-import { CalendarDays, Files, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
+import {
+  CalendarDays,
+  ClipboardCheck,
+  Files,
+  Kanban,
+  LayoutGrid,
+  Rows3,
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { buildApprovalQueueHref } from './approval-queue-links.helpers';
 
 interface PublishingContentCollections {
   articles: Article[];
@@ -88,11 +93,14 @@ const EMPTY_COLLECTIONS: PublishingContentCollections = {
 };
 
 export default function PublishingContentLibrary({
+  approvals,
   calendar,
 }: {
+  approvals?: React.ReactNode;
   calendar?: React.ReactNode;
 }) {
   const translate = useTranslations('pages.posts.list.collection');
+  const translateList = useTranslations('pages.posts.list');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const isFetchReady = isCollectionFetchReady({
     brandId,
@@ -102,7 +110,6 @@ export default function PublishingContentLibrary({
   });
   const {
     setLeadingNode,
-    setExportNode,
     setFiltersNode,
     setIsRefreshing,
     setRefresh,
@@ -115,6 +122,8 @@ export default function PublishingContentLibrary({
   const searchParamsString = searchParams?.toString() ?? '';
   const view = new URLSearchParams(searchParamsString).get('view') || 'list';
   const isCalendar = Boolean(calendar) && view === 'calendar';
+  const isApprovals = Boolean(approvals) && view === 'approvals';
+  const isEmbeddedView = isCalendar || isApprovals;
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -309,6 +318,12 @@ export default function PublishingContentLibrary({
       }
       if (key === 'post') {
         params.delete('release');
+      }
+      if (key === 'view') {
+        // Approval queue state does not apply to the other Posts views.
+        params.delete('batch');
+        params.delete('filter');
+        params.delete('item');
       }
       if (key === 'status') {
         params.delete('executionState');
@@ -535,15 +550,12 @@ export default function PublishingContentLibrary({
   ];
 
   useEffect(() => {
+    // The approval queue owns the toolbar while its view is open.
+    if (isApprovals) return;
     setLeadingNode(
       <PublishingContentLibrarySearch
         searchValue={search}
         onSearchChange={(value) => replaceQueryParam('search', value)}
-      />,
-    );
-    setExportNode(
-      <PublishingContentLibraryQueueLink
-        approvalQueueHref={href(buildApprovalQueueHref(searchParamsString))}
       />,
     );
     setFiltersNode(
@@ -565,18 +577,15 @@ export default function PublishingContentLibrary({
     return () => {
       setFiltersNode(null);
       setLeadingNode(null);
-      setExportNode(null);
     };
   }, [
     channel,
     channelOptions,
-    href,
+    isApprovals,
     replaceQueryParam,
     search,
-    searchParamsString,
     setFiltersNode,
     setLeadingNode,
-    setExportNode,
     status,
     statusOptions,
     type,
@@ -588,22 +597,26 @@ export default function PublishingContentLibrary({
         activeView={
           isCalendar
             ? ViewType.CALENDAR
-            : view === 'board'
-              ? ViewType.KANBAN
-              : view === 'grid'
-                ? ViewType.GRID
-                : ViewType.LIST
+            : isApprovals
+              ? ViewType.APPROVALS
+              : view === 'board'
+                ? ViewType.KANBAN
+                : view === 'grid'
+                  ? ViewType.GRID
+                  : ViewType.LIST
         }
         onChange={(next) =>
           replaceQueryParam(
             'view',
             next === ViewType.CALENDAR
               ? 'calendar'
-              : next === ViewType.KANBAN
-                ? 'board'
-                : next === ViewType.GRID
-                  ? 'grid'
-                  : 'list',
+              : next === ViewType.APPROVALS
+                ? 'approvals'
+                : next === ViewType.KANBAN
+                  ? 'board'
+                  : next === ViewType.GRID
+                    ? 'grid'
+                    : 'list',
           )
         }
         options={[
@@ -631,25 +644,38 @@ export default function PublishingContentLibrary({
             icon: <LayoutGrid className="size-3.5" />,
             label: 'Grid',
           },
+          ...(approvals
+            ? [
+                {
+                  type: ViewType.APPROVALS,
+                  icon: <ClipboardCheck className="size-3.5" />,
+                  label: translateList('viewToggle.approvals'),
+                },
+              ]
+            : []),
         ]}
       />,
     );
-    if (!isCalendar)
+    if (!isEmbeddedView)
       setRefresh(() => async () => {
         await refetch();
       });
     return () => {
       setViewToggleNode(null);
-      if (!isCalendar) setRefresh(() => () => {});
+      if (!isEmbeddedView) setRefresh(() => () => {});
     };
   }, [
+    approvals,
     calendar,
+    isApprovals,
     isCalendar,
+    isEmbeddedView,
     view,
     replaceQueryParam,
     refetch,
     setRefresh,
     setViewToggleNode,
+    translateList,
   ]);
 
   useEffect(() => {
@@ -676,6 +702,7 @@ export default function PublishingContentLibrary({
   );
 
   if (isCalendar) return <>{calendar}</>;
+  if (isApprovals) return <>{approvals}</>;
 
   const renderPostCard = (item: PublishingContentLibraryItem) => (
     <div

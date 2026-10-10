@@ -272,7 +272,11 @@ export const APP_ROUTES = {
      * Publishing nav item.
      */
     REMIX: '/publishing/remix',
-    REVIEW: '/publishing/review',
+    /**
+     * #5502 approvals are a Posts view, not a Publishing destination. Build
+     * batch or filter deep links with `createPublishingApprovalsRoute`.
+     */
+    REVIEW: '/publishing/posts?view=approvals',
     ROOT: '/publishing',
   },
   SETTINGS: {

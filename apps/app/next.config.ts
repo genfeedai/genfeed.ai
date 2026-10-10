@@ -341,31 +341,6 @@ const config = createAppNextConfig({
         '/analytics/trend-turnover',
       ),
     },
-    // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
-    // it to `/:org/:brand/review`) — that page never existed. Send both dead
-    // shapes to Publishing Review so stored thread links stop 404ing.
-    {
-      destination: APP_ROUTES.PUBLISHING.REVIEW,
-      permanent: true,
-      source: '/review',
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.PUBLISHING.REVIEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/review'),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.PUBLISHING.REVIEW,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', '/review'),
-    },
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
       destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,

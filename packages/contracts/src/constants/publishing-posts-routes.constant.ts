@@ -37,6 +37,28 @@ export interface PublishingPostsFilterRouteOptions {
   status?: string;
 }
 
+export interface PublishingApprovalsRouteOptions {
+  /** Review batch to open. */
+  batch?: string | null;
+  /** Approval queue filter, e.g. `ready`. */
+  filter?: string | null;
+  /** Review item to focus. */
+  item?: string | null;
+}
+
+/** #5502 deep link into the Posts approval view. */
+export function createPublishingApprovalsRoute({
+  batch,
+  filter,
+  item,
+}: PublishingApprovalsRouteOptions = {}): string {
+  const params = new URLSearchParams({ view: 'approvals' });
+  if (batch) params.set('batch', batch);
+  if (filter) params.set('filter', filter);
+  if (item) params.set('item', item);
+  return `${APP_ROUTES.PUBLISHING.POSTS}?${params.toString()}`;
+}
+
 /** Build a canonical Posts library deep link with lifecycle filters. */
 export function createPublishingPostsFilterRoute({
   publicationState,
