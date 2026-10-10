@@ -49,6 +49,7 @@ describe('activity.enum', () => {
         'EXPERT_FIRST_SYSTEM',
         'BRAND_RELOCATION',
         'REFERRAL',
+        'TRIAL_EXPIRED',
         'MEDIA_MODERATION',
         'AGENT_CHAT',
         'WORKFLOW_EXECUTION',
@@ -105,6 +106,7 @@ describe('activity.enum', () => {
       expect(ActivitySource.EXPERT_FIRST_SYSTEM).toBe('expert-first-system');
       expect(ActivitySource.BRAND_RELOCATION).toBe('brand-relocation');
       expect(ActivitySource.REFERRAL).toBe('credits-referral');
+      expect(ActivitySource.TRIAL_EXPIRED).toBe('credits-trial-expired');
       expect(ActivitySource.MEDIA_MODERATION).toBe('media-moderate');
     });
   });

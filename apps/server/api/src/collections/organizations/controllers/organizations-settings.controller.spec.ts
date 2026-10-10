@@ -26,6 +26,7 @@ vi.mock(
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -46,6 +47,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('OrganizationsSettingsController', () => {
@@ -72,6 +74,7 @@ describe('OrganizationsSettingsController', () => {
     userId: testId('user'),
   } satisfies ISubscriptionOssReadModel;
 
+  const mockEventEmitter = { emitAsync: vi.fn() };
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -218,6 +221,7 @@ describe('OrganizationsSettingsController', () => {
           useValue: mockWebhookDispatchService,
         },
         AccessBootstrapCacheService,
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         {
           provide: RedisService,
           useValue: { getPublisher: () => redis },
@@ -313,6 +317,50 @@ describe('OrganizationsSettingsController', () => {
     const updateDto = {
       isWhitelabelEnabled: true,
     };
+
+    it('starts the free trial (grants trial credits) when onboarding is skipped', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+      mockOrganizationSettingsService.patch.mockResolvedValue({
+        ...mockOrganizationSettings,
+        isFirstLogin: false,
+      });
+
+      await controller.updateSettings(
+        {
+          context: { organizationId },
+          user: { id: 'user-1', organizationId, userId: 'user-1' },
+        } as unknown as Request,
+        organizationId,
+        { isFirstLogin: false },
+      );
+
+      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+        ORGANIZATION_ONBOARDING_FINISHED_EVENT,
+        { organizationId, outcome: 'skipped', userId: 'user-1' },
+      );
+    });
+
+    it('does not announce an onboarding finish for any other settings write', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+      mockOrganizationSettingsService.patch.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+
+      await controller.updateSettings(
+        {
+          context: { organizationId },
+          user: { id: 'user-1', organizationId, userId: 'user-1' },
+        } as unknown as Request,
+        organizationId,
+        { isFirstLogin: true, isWhitelabelEnabled: true },
+      );
+
+      expect(mockEventEmitter.emitAsync).not.toHaveBeenCalled();
+    });
 
     it('patches the setting returned by the canonical get-or-create policy', async () => {
       mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(

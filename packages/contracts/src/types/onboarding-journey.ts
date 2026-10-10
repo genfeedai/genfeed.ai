@@ -15,6 +15,14 @@ export type {
 // publishing, which a throwaway inbox cannot fake cheaply (#4632).
 export const ONBOARDING_SIGNUP_GIFT_CREDITS = 25;
 
+/**
+ * Granted once per user when onboarding is finished or skipped. It stacks on
+ * the signup gift: together they fund the 3-day free trial
+ * (`FREE_TRIAL_DURATION_MS`), after which unspent free credits expire for an
+ * organization that never paid.
+ */
+export const ONBOARDING_TRIAL_CREDITS = 75;
+
 export const ONBOARDING_JOURNEY_MISSION_ORDER: OnboardingJourneyMissionId[] = [
   'complete_company_info',
   'generate_first_image',
@@ -122,7 +130,11 @@ export const ONBOARDING_ANSWER_REWARD_CREDITS = 5;
 export const ONBOARDING_ANSWER_TOTAL_CREDITS =
   ONBOARDING_ANSWER_FIELD_IDS.length * ONBOARDING_ANSWER_REWARD_CREDITS;
 
+/** Free credits on hand once onboarding is finished or skipped. */
+export const ONBOARDING_STARTER_CREDITS =
+  ONBOARDING_SIGNUP_GIFT_CREDITS + ONBOARDING_TRIAL_CREDITS;
+
 export const ONBOARDING_TOTAL_VISIBLE_CREDITS =
-  ONBOARDING_SIGNUP_GIFT_CREDITS +
+  ONBOARDING_STARTER_CREDITS +
   ONBOARDING_ANSWER_TOTAL_CREDITS +
   ONBOARDING_JOURNEY_TOTAL_CREDITS;
