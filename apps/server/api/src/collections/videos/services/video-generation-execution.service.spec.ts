@@ -38,6 +38,7 @@ describe('VideoGenerationExecutionService', () => {
       notifyFailedGeneration: vi.fn().mockResolvedValue(undefined),
     };
     const generationBilling = {
+      recordProviderCompletion: vi.fn().mockResolvedValue(undefined),
       bindOutput: vi.fn().mockResolvedValue(undefined),
       hasPool: vi.fn().mockReturnValue(false),
       releaseOutput: vi.fn().mockResolvedValue('no-hold'),
@@ -414,6 +415,102 @@ describe('VideoGenerationExecutionService', () => {
       buildContext({ pendingIngredientIds: ['ingredient-1'] }),
     );
     expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+  });
+
+  it('persists the actual Fal receipt before artifact finalization rather than copying requested dimensions', async () => {
+    const state = createHarness();
+    const actual = { width: 1280, height: 720, duration: 3 };
+    state.providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'remote-output',
+      externalId: 'https://provider.example/output.mp4',
+      provider: 'fal',
+      completionQuantities: actual,
+    });
+    const context = buildContext({
+      model: 'test/model',
+      createVideoDto: { duration: 5 } as never,
+    });
+    state.webhooksService.processMediaForIngredient.mockImplementation(
+      async () => {
+        expect(
+          state.generationBilling.recordProviderCompletion,
+        ).toHaveBeenCalledExactlyOnceWith({
+          ingredientId: 'ingredient-1',
+          organizationId: 'org-1',
+          externalId: 'https://provider.example/output.mp4',
+          provider: 'fal',
+          modelKey: 'test/model',
+          quantities: actual,
+        });
+      },
+    );
+    await state.service.execute(context);
+    expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      state.generationBilling.recordProviderCompletion.mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(
+      state.webhooksService.processMediaForIngredient.mock
+        .invocationCallOrder[0],
+    );
+  });
+
+  it('does not substitute requested quantities when the actual Fal response lacks evidence', async () => {
+    const state = createHarness();
+    state.providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'remote-output',
+      externalId: 'https://provider.example/output.mp4',
+      provider: 'fal',
+    });
+    await state.service.execute(
+      buildContext({ createVideoDto: { duration: 5 } as never }),
+    );
+    expect(
+      state.generationBilling.recordProviderCompletion,
+    ).not.toHaveBeenCalled();
+    expect(
+      state.webhooksService.processMediaForIngredient,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the accepted artifact available and its funding retained when receipt persistence fails', async () => {
+    const state = createHarness();
+    state.providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'remote-output',
+      externalId: 'https://provider.example/output.mp4',
+      provider: 'fal',
+      completionQuantities: { width: 1280, height: 720, duration: 3 },
+    });
+    state.generationBilling.recordProviderCompletion.mockRejectedValue(
+      new Error('ledger unavailable'),
+    );
+    await state.service.execute(
+      buildContext({ pendingIngredientIds: ['ingredient-1'] }),
+    );
+    expect(
+      state.generationBilling.recordProviderCompletion,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      state.webhooksService.processMediaForIngredient,
+    ).toHaveBeenCalledTimes(1);
+    expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      state.failedGenerationService.handleFailedVideoGeneration,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('leaves non-Fal completion on its existing financial owner even with result dimensions', async () => {
+    const state = createHarness();
+    state.providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'remote-output',
+      externalId: 'https://provider.example/output.mp4',
+      provider: 'heygen',
+      completionQuantities: { width: 1280, height: 720, duration: 3 },
+    });
+    await state.service.execute(buildContext());
+    expect(
+      state.generationBilling.recordProviderCompletion,
+    ).not.toHaveBeenCalled();
   });
 
   it.each(['fal', 'higgsfield'])(

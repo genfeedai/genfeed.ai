@@ -7,6 +7,7 @@ import { hasGenerationLineProtocol } from '@api/helpers/utils/credits/generation
 import {
   crunGroupManifestMatches,
   crunReceiptAllowsDisposition,
+  generationNativeCompletionSchema,
   generationQuoteGroupMetadataSchema as metadataSchema,
   generationQuoteGroupReceiptSchema as receiptSchema,
 } from '@api/helpers/utils/credits/generation-quote-group.schema';
@@ -15,14 +16,29 @@ import {
   abortUnsubmittedCrunOutput,
   sweepAbortedCrunDispatches,
 } from '@api/helpers/utils/credits/persist-unsubmitted-crun-abort.util';
+import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  CreditReservationStatus,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import { MEDIA_GENERATION_GROUP_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
+import type { ModelBillableCompletionInput } from '@genfeedai/contracts/interfaces';
 import { quoteModelBillableCompletion } from '@genfeedai/pricing';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
+
+export interface FalGenerationCompletionInput {
+  ingredientId: string;
+  organizationId: string;
+  externalId: string;
+  provider: 'fal';
+  modelKey: string;
+  quantities: { width?: number; height?: number; duration?: number };
+}
 
 /** One frozen quote/hold for a generation group. Output positions never determine charges. */
 @Injectable()
@@ -32,6 +48,107 @@ export class GenerationQuoteGroupService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
+
+  /** Internal adapter receipt only; caller/UI dimensions never enter this ledger. */
+  async recordProviderCompletion(
+    input: FalGenerationCompletionInput,
+  ): Promise<void> {
+    await this.serializable(async (tx) => {
+      const output = await tx.ingredient.findFirst({
+        where: {
+          id: input.ingredientId,
+          organizationId: input.organizationId,
+          isDeleted: false,
+          category: IngredientCategory.VIDEO,
+        },
+        select: {
+          generationBilling: true,
+          metadata: { select: { externalId: true, externalProvider: true } },
+        },
+      });
+      const receipt = receiptSchema.safeParse(output?.generationBilling);
+      if (!receipt.success) return; // Legacy and BYOK retain their existing owner.
+      const hold = await tx.creditReservation.findFirst({
+        where: {
+          id: receipt.data.reservationId,
+          organizationId: input.organizationId,
+          isDeleted: false,
+          workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+        },
+      });
+      if (!hold || hold.status !== CreditReservationStatus.RESERVED) return;
+      const expectedMetadata = z
+        .record(z.string(), z.unknown())
+        .parse(hold.metadata);
+      const metadata = metadataSchema.parse(expectedMetadata);
+      const quote = metadata.modelQuote;
+      if (
+        !quote.pricingProfile.reviewedPricing?.rates.some(
+          (rate) =>
+            rate.unit === 'video-token' || rate.unit === 'input-video-token',
+        )
+      )
+        return;
+      if (
+        quote.provider !== 'fal' ||
+        quote.providerQuote ||
+        input.modelKey !== quote.modelKey ||
+        input.provider !== 'fal' ||
+        !input.externalId ||
+        output?.metadata?.externalProvider !== 'fal' ||
+        output.metadata.externalId !== input.externalId ||
+        metadata.boundOutputIds[receipt.data.outputIndex] !== input.ingredientId
+      )
+        throw new BusinessLogicException(
+          'Native completion differs from its bound provider output',
+        );
+      const proof = generationNativeCompletionSchema.parse({
+        ingredientId: input.ingredientId,
+        outputIndex: receipt.data.outputIndex,
+        provider: input.provider,
+        externalIdHash: quoteSnapshotHash(input.externalId),
+        modelKey: quote.modelKey,
+        quoteHash: quoteSnapshotHash(quote),
+        width: input.quantities.width,
+        height: input.quantities.height,
+        duration: input.quantities.duration,
+      });
+      const previous = metadata.providerCompletions.filter(
+        (entry) => entry.ingredientId === input.ingredientId,
+      );
+      const conflict =
+        previous.length > 1 ||
+        (previous.length === 1 &&
+          quoteSnapshotHash(previous[0]) !== quoteSnapshotHash(proof));
+      if (previous.length === 1 && !conflict) return;
+      const updated = await tx.creditReservation.updateMany({
+        where: {
+          id: hold.id,
+          organizationId: input.organizationId,
+          isDeleted: false,
+          status: CreditReservationStatus.RESERVED,
+          metadata: { equals: toPrismaJson(expectedMetadata) },
+        },
+        data: {
+          metadata: toPrismaJson({
+            ...metadata,
+            providerCompletions: previous.length
+              ? metadata.providerCompletions
+              : [...metadata.providerCompletions, proof],
+            providerCompletionConflicts: conflict
+              ? [
+                  ...new Set([
+                    ...metadata.providerCompletionConflicts,
+                    input.ingredientId,
+                  ]),
+                ]
+              : metadata.providerCompletionConflicts,
+          }),
+        },
+      });
+      if (updated.count !== 1) throw new ReservationEvidenceChangedException();
+    });
+  }
 
   async bindOutput(
     request: GenerationCreditReservationRequest,
@@ -283,11 +400,70 @@ export class GenerationQuoteGroupService {
       );
       return;
     }
-    const completion = quoteModelBillableCompletion(metadata.modelQuote, {
+    const completionInput: ModelBillableCompletionInput = {
       completedOutputs: completedCount,
       successfulRequests:
         reservedRequests === 1 ? Number(completedCount > 0) : completedCount,
-    });
+    };
+    const native =
+      metadata.modelQuote.pricingProfile.reviewedPricing?.rates.some(
+        (rate) =>
+          rate.unit === 'video-token' || rate.unit === 'input-video-token',
+      );
+    if (native && completedCount > 0) {
+      const proofs = [...completedIds].map((id) =>
+        metadata.providerCompletions.filter(
+          (proof) => proof.ingredientId === id,
+        ),
+      );
+      if (
+        metadata.modelQuote.provider !== 'fal' ||
+        metadata.modelQuote.providerQuote ||
+        metadata.providerCompletionConflicts.length ||
+        proofs.some((entries) => entries.length !== 1)
+      ) {
+        this.logger.warn(
+          'Native completion proof is unresolved; retain funding',
+          { reservationId, organizationId },
+        );
+        return;
+      }
+      const values = proofs.map(([proof]) => proof);
+      const first = values[0];
+      if (
+        new Set(values.map((proof) => proof.externalIdHash)).size !==
+          values.length ||
+        values.some(
+          (proof) =>
+            metadata.boundOutputIds[proof.outputIndex] !== proof.ingredientId ||
+            proof.modelKey !== metadata.modelQuote.modelKey ||
+            proof.quoteHash !== quoteSnapshotHash(metadata.modelQuote) ||
+            proof.width !== first.width ||
+            proof.height !== first.height ||
+            proof.duration !== first.duration,
+        )
+      ) {
+        // The existing aggregate calculator requires homogeneous output quantities.
+        // A heterogeneous aggregate needs an approved contract, never per-slot rounding.
+        this.logger.warn(
+          'Native aggregate completion differs from its frozen contract; retain funding',
+          { reservationId, organizationId },
+        );
+        return;
+      }
+      Object.assign(completionInput, {
+        width: first.width,
+        height: first.height,
+        duration: first.duration,
+        inputDuration: metadata.modelQuote.quantities.inputDuration,
+        referenceEvidenceHash:
+          metadata.modelQuote.quantities.referenceEvidenceHash,
+      });
+    }
+    const completion = quoteModelBillableCompletion(
+      metadata.modelQuote,
+      completionInput,
+    );
     if (completion.status === 'unresolved') {
       this.logger.warn(
         'Generation completion quantity is unresolved; retain funding',

@@ -420,6 +420,25 @@ export class VideoGenerationExecutionService {
     outputIndex?: number,
   ): Promise<void> {
     if (generation.completion === 'remote-output') {
+      if (generation.provider === 'fal' && generation.completionQuantities) {
+        try {
+          await this.generationBilling.recordProviderCompletion({
+            ingredientId,
+            organizationId: context.user.organizationId,
+            externalId: generation.externalId,
+            provider: generation.provider,
+            modelKey: context.model,
+            quantities: generation.completionQuantities,
+          });
+        } catch (error: unknown) {
+          // An accepted result stays available; missing financial proof retains its hold.
+          this.loggerService.error(
+            'Native completion proof persistence failed; retain funding',
+            error,
+            { ingredientId },
+          );
+        }
+      }
       await this.webhooksService.processMediaForIngredient(
         ingredientId,
         IngredientCategory.VIDEO,
