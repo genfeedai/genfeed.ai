@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { readBlockedCharacters } from './blocked-characters.util';
@@ -122,6 +123,7 @@ function BrandsListContent() {
     enabled: !!organizationId,
   });
 
+  const translate = useTranslations('common.settings.brandMove');
   const role = useUserRole();
   const { destinations, isSuperAdmin } =
     useBrandMoveDestinations(organizationId);
@@ -261,7 +263,7 @@ function BrandsListContent() {
             {
               icon: <ArrowRightLeft className="size-3.5" />,
               onClick: (brand: Brand) => setBrandsToMove([brand]),
-              tooltip: 'Move to organization',
+              tooltip: translate('rowAction'),
             },
           ]
         : []),
@@ -279,7 +281,7 @@ function BrandsListContent() {
         tooltip: 'Delete',
       },
     ],
-    [canMoveBrands, handleDelete, openBrandSettings, openConfirm],
+    [canMoveBrands, handleDelete, openBrandSettings, openConfirm, translate],
   );
 
   return (
@@ -293,7 +295,9 @@ function BrandsListContent() {
             <Button
               variant={ButtonVariant.SECONDARY}
               icon={<ArrowRightLeft />}
-              label={`Move ${selectedBrands.length} selected`}
+              label={translate('moveSelected', {
+                count: selectedBrands.length,
+              })}
               onClick={() => setBrandsToMove(selectedBrands)}
             />
           ) : null}

@@ -21,6 +21,15 @@ const service = vi.hoisted(() => ({
   relocateBrand: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ refreshBrands: vi.fn() }),
 }));

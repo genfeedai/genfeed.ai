@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { SelectField } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useRef, useState } from 'react';
 import {
   countByStatus,
@@ -33,19 +34,16 @@ import { useBrandMoveDestinations } from './use-brand-move-destinations';
 
 type BrandMovePhase = 'choose' | 'checking' | 'review' | 'moving' | 'done';
 
-const STATUS_BADGES: Record<
+const STATUS_BADGE_VARIANTS: Record<
   BrandMoveEntryStatus,
-  {
-    label: string;
-    variant: 'default' | 'destructive' | 'secondary' | 'success' | 'warning';
-  }
+  'destructive' | 'secondary' | 'success' | 'warning'
 > = {
-  blocked: { label: 'Blocked', variant: 'warning' },
-  checking: { label: 'Checking', variant: 'secondary' },
-  failed: { label: 'Failed', variant: 'destructive' },
-  moved: { label: 'Moved', variant: 'success' },
-  moving: { label: 'Moving', variant: 'secondary' },
-  ready: { label: 'Ready', variant: 'success' },
+  blocked: 'warning',
+  checking: 'secondary',
+  failed: 'destructive',
+  moved: 'success',
+  moving: 'secondary',
+  ready: 'success',
 };
 
 function errorReason(error: unknown, fallback: string): string {
@@ -61,6 +59,7 @@ export default function BrandMoveDialog({
 }: BrandMoveDialogProps) {
   const { refreshBrands } = useBrand();
   const notificationsService = NotificationsService.getInstance();
+  const translate = useTranslations('common.settings.brandMove');
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -201,7 +200,6 @@ export default function BrandMoveDialog({
 
   const readyCount = countByStatus(entries, 'ready');
   const isBusy = phase === 'checking' || phase === 'moving';
-  const brandNoun = readyCount === 1 ? 'brand' : 'brands';
 
   return (
     <Dialog
@@ -215,20 +213,17 @@ export default function BrandMoveDialog({
       <DialogContent aria-describedby={undefined} className="max-w-xl">
         <DialogHeader>
           <DialogTitle>
-            Move {brands.length} {brands.length === 1 ? 'brand' : 'brands'} to
-            another organization
+            {brands.length === 1
+              ? translate('titleOne')
+              : translate('titleMany', { count: brands.length })}
           </DialogTitle>
-          <DialogDescription>
-            Each brand takes its content, connected accounts, and workflows with
-            it. Members who only have access through this organization lose
-            access. This cannot be easily undone.
-          </DialogDescription>
+          <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
         <SelectField
-          label="Destination organization"
+          label={translate('destinationLabel')}
           name="destinationOrganizationId"
-          placeholder="Choose an organization"
+          placeholder={translate('destinationPlaceholder')}
           value={destinationId}
           onChange={handleDestinationChange}
           isDisabled={isBusy || phase === 'done'}
@@ -243,12 +238,15 @@ export default function BrandMoveDialog({
         {phase !== 'choose' ? (
           <ul className="flex flex-col gap-3" data-testid="brand-move-list">
             {entries.map((entry) => {
-              const badge = STATUS_BADGES[entry.status];
               const detail =
                 entry.status === 'ready' && entry.preview
                   ? describePreview(entry.preview)
                   : entry.status === 'moved' && entry.membersSevered
-                    ? `${entry.membersSevered} member${entry.membersSevered === 1 ? '' : 's'} lost access.`
+                    ? entry.membersSevered === 1
+                      ? translate('membersLostOne')
+                      : translate('membersLostMany', {
+                          count: entry.membersSevered,
+                        })
                     : entry.reason;
               return (
                 <li
@@ -258,7 +256,9 @@ export default function BrandMoveDialog({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium">{entry.brand.label}</span>
-                    <Badge variant={badge.variant}>{badge.label}</Badge>
+                    <Badge variant={STATUS_BADGE_VARIANTS[entry.status]}>
+                      {translate(`status.${entry.status}`)}
+                    </Badge>
                   </div>
                   {detail ? (
                     <p className="text-sm text-muted-foreground">{detail}</p>
@@ -272,7 +272,7 @@ export default function BrandMoveDialog({
         <DialogFooter>
           <Button
             isDisabled={phase === 'moving'}
-            label={phase === 'done' ? 'Close' : 'Cancel'}
+            label={translate(phase === 'done' ? 'close' : 'cancel')}
             onClick={onClose}
             variant={ButtonVariant.GHOST}
           />
@@ -281,7 +281,11 @@ export default function BrandMoveDialog({
               isDisabled={phase !== 'review' || readyCount === 0}
               isLoading={phase === 'moving'}
               label={
-                readyCount > 0 ? `Move ${readyCount} ${brandNoun}` : 'Move'
+                readyCount === 0
+                  ? translate('moveNone')
+                  : readyCount === 1
+                    ? translate('moveOne')
+                    : translate('moveMany', { count: readyCount })
               }
               onClick={() => void handleMove()}
               variant={ButtonVariant.DESTRUCTIVE}

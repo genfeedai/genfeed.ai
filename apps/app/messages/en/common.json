@@ -472,6 +472,30 @@
         "label": "Unlock API keys with {tier}"
       }
     },
+    "brandMove": {
+      "cancel": "Cancel",
+      "close": "Close",
+      "description": "Each brand takes its content, connected accounts, and workflows with it. Members who only have access through this organization lose access. This cannot be easily undone.",
+      "destinationLabel": "Destination organization",
+      "destinationPlaceholder": "Choose an organization",
+      "membersLostMany": "{count} members lost access.",
+      "membersLostOne": "1 member lost access.",
+      "moveMany": "Move {count} brands",
+      "moveNone": "Move",
+      "moveOne": "Move 1 brand",
+      "moveSelected": "Move {count} selected",
+      "rowAction": "Move to organization",
+      "status": {
+        "blocked": "Blocked",
+        "checking": "Checking",
+        "failed": "Failed",
+        "moved": "Moved",
+        "moving": "Moving",
+        "ready": "Ready"
+      },
+      "titleMany": "Move {count} brands to another organization",
+      "titleOne": "Move 1 brand to another organization"
+    },
     "characters": {
       "availability": {
         "brandsLabel": "Brands that can use this character",
