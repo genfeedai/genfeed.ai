@@ -14,13 +14,13 @@ const migrationSource = readFileSync(
 );
 
 describe('batch item assignee migration (#3200)', () => {
-  it('adds a nullable canonical-user assignee on BatchItem', () => {
+  it('adds a nullable canonical-user assignee, renamed to TurboRunItem by #5936', () => {
     expect(schemaSource).toContain('assigneeId     String?');
     expect(schemaSource).toContain(
-      '@relation("batch_item_assignee", fields: [assigneeId], references: [id], onDelete: SetNull)',
+      '@relation("turbo_run_item_assignee", fields: [assigneeId], references: [id], onDelete: SetNull)',
     );
-    expect(schemaSource).toContain(
-      'assignedBatchItems        BatchItem[]               @relation("batch_item_assignee")',
+    expect(schemaSource).toMatch(
+      /assignedTurboRunItems\s+TurboRunItem\[\]\s+@relation\("turbo_run_item_assignee"\)/,
     );
   });
 

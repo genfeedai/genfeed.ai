@@ -58,7 +58,7 @@ describe('typed JSON hot columns migration (#2519)', () => {
       'CREATE INDEX "insights_org_active_created_at_idx"',
     );
     expect(migrationSource).toContain(
-      'CREATE INDEX "turbo_run_items_org_status_review_created_idx"',
+      'CREATE INDEX "batch_items_org_status_review_created_idx"',
     );
   });
 });

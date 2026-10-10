@@ -11,6 +11,8 @@
 --   turbo_projects.settings / quote, turbo_project_items.idea / dispatch
 --   organization_settings."moduleOverrides"   module id batch -> turbo
 --   platform_settings.flags      batch_ideas / studio_batch keys
+--   credit_transactions          settlement reference types and refund keys,
+--                                which settlement retries look up
 -- Integrity-protected history (workflow_versions, admission sources,
 -- agent_transfers) is never rewritten. System workflows are registered in
 -- code by canonical id, so old in-flight runs must be drained before deploy
@@ -125,6 +127,15 @@ UPDATE "platform_settings"
 SET "flags" = ("flags" - 'studio_batch')
   || jsonb_build_object('studio_turbo', "flags" -> 'studio_batch')
 WHERE jsonb_typeof("flags") = 'object' AND "flags" ? 'studio_batch';
+
+-- Settlement retries find earlier ledger rows by reference; keep them findable.
+UPDATE "credit_transactions" SET "referenceType" = 'turbo-run:settlement'
+WHERE "referenceType" = 'batch-generation:settlement';
+UPDATE "credit_transactions" SET "referenceType" = 'turbo_run'
+WHERE "referenceType" = 'batch_generation';
+UPDATE "credit_transactions"
+SET "idempotencyKey" = 'turbo-run-refund:' || substring("idempotencyKey" FROM 14)
+WHERE "idempotencyKey" LIKE 'batch-refund:%';
 
 DO $$
 DECLARE

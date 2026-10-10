@@ -398,7 +398,7 @@ describe('TurboRunCreditsService', () => {
         settlementShortfall: ONE_DRAFT,
       },
       tags: {
-        operation: 'run-credit-settlement',
+        operation: 'turbo-run-credit-settlement',
       },
     });
   });

@@ -469,7 +469,7 @@ export class TurboRunCreditsService {
           settlementShortfallSeq: params.settlementShortfallSeq,
         },
         tags: {
-          operation: 'run-credit-settlement-marker',
+          operation: 'turbo-run-credit-settlement-marker',
         },
       });
       this.logger.error(
@@ -618,7 +618,7 @@ export class TurboRunCreditsService {
               settlementShortfall: params.settlementShortfall,
             },
             tags: {
-              operation: 'run-credit-settlement-marker',
+              operation: 'turbo-run-credit-settlement-marker',
             },
           },
         );
@@ -652,7 +652,7 @@ export class TurboRunCreditsService {
         settlementShortfall: params.settlementShortfall,
       },
       tags: {
-        operation: 'run-credit-settlement',
+        operation: 'turbo-run-credit-settlement',
       },
     });
 

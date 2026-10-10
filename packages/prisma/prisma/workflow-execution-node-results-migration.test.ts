@@ -37,7 +37,7 @@ describe('workflow_execution_node_results (#2512)', () => {
 
   it('does not rewrite sibling hot-path tables', () => {
     expect(migration).not.toContain('ad_performances');
-    expect(migration).not.toContain('turbo_run_items');
+    expect(migration).not.toContain('batch_items');
     expect(migration).not.toContain('content_plan_items');
     expect(migration).not.toMatch(/\bposts\b/);
     expect(migration).not.toContain('insights');

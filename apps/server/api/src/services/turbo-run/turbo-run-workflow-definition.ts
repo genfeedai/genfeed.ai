@@ -11,7 +11,7 @@ export const TURBO_RUN_ACTION_IDS = {
   SETTLE: 'turbo.run.settle',
 } as const;
 
-export const TURBO_RUN_WORKFLOW_ID = 'run.generation';
+export const TURBO_RUN_WORKFLOW_ID = 'turbo.run';
 
 export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const ownership: WorkflowVisualNode = {

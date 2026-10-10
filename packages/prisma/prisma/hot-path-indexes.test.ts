@@ -34,11 +34,16 @@ const hotPathIndexes = [
   'batches_org_deleted_status_created_at_idx',
 ] as const;
 
+/** #5936 renamed `batches` to `turbo_runs`, indexes included. */
+function currentIndexName(indexName: string): string {
+  return indexName.replace(/^batches_/, 'turbo_runs_');
+}
+
 describe('app shell hot-path Prisma indexes', () => {
   it.each(hotPathIndexes)(
     'keeps %s in schema and migration source',
     (indexName) => {
-      expect(schemaSource).toContain(`map: "${indexName}"`);
+      expect(schemaSource).toContain(`map: "${currentIndexName(indexName)}"`);
       // Built CONCURRENTLY so the deploy never ACCESS EXCLUSIVE-locks these hot
       // tables. Guardrail: a plain `CREATE INDEX` regression must fail CI.
       expect(migrationSource).toContain(
