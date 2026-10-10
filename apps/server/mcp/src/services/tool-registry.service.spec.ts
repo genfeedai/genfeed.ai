@@ -360,6 +360,16 @@ describe('ToolRegistryService', () => {
   });
 
   it('handleToolCall generate returns a pending approval and does not run', async () => {
+    clientService.createApproval.mockResolvedValueOnce({
+      generationQuote: {
+        credits: 321,
+        isAvailable: true,
+        modelKey: 'selected-video-model',
+      },
+      id: 'apr-1',
+      status: 'PENDING',
+      toolName: 'generate',
+    });
     const result = await service.handleToolCall({
       arguments: { prompt: 'AI surfing', type: 'video' },
       name: 'generate',
@@ -374,9 +384,24 @@ describe('ToolRegistryService', () => {
       isError: true,
       structuredContent: {
         code: 'approval_pending',
-        estimatedCredits: MEDIA_GENERATION_CREDIT_FLOORS.video,
+        estimatedCredits: 321,
       },
     });
+  });
+
+  it('handleToolCall generate never presents a floor as the estimate without a model quote', async () => {
+    const result = await service.handleToolCall({
+      arguments: { prompt: 'AI surfing', type: 'video' },
+      name: 'generate',
+    });
+
+    expect(clientService.executeAgentTool).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: { code: 'approval_pending' },
+    });
+    expect(JSON.stringify(result)).not.toContain('estimatedCredits');
+    expect(JSON.stringify(result)).toContain('quote is unavailable');
   });
 
   it('handleToolCall onboard_brand runs the agent tool for its action (#6268)', async () => {
