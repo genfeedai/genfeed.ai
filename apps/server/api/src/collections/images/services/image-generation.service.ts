@@ -10,7 +10,10 @@ import type {
   ImageGenerationResolvedBrand,
 } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
-import { resolveImageGenerationCompletion } from '@api/collections/images/services/image-generation-completion.util';
+import {
+  resolveImageGenerationCompletion,
+  throwImageGatewayTimeoutIfPending,
+} from '@api/collections/images/services/image-generation-completion.util';
 import {
   type ImageGenerationPersistenceParams,
   type ImageGenerationPersistenceResult,
@@ -49,7 +52,6 @@ import { MediaPromptEnhancementService } from '@api/services/harness/media-promp
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
@@ -946,7 +948,11 @@ export class ImageGenerationService {
         // GenfeedAi (`inline`) completes synchronously and never had timeout
         // recovery; only the polling providers translate timeouts to 504.
         if (plan.kind !== 'inline') {
-          await this.throwGatewayTimeoutIfPending(error, context);
+          await throwImageGatewayTimeoutIfPending(
+            this.imagesService,
+            error,
+            context,
+          );
         }
         throw error;
       }
@@ -974,34 +980,5 @@ export class ImageGenerationService {
       ...context.ingredientData,
       pendingIngredientIds: context.pendingIngredientIds,
     });
-  }
-
-  /**
-   * Translate a polling timeout into a 504 with the ingredient's current
-   * status. No-op (caller re-throws the original error) for any other error or
-   * when the ingredient can no longer be read.
-   */
-  private async throwGatewayTimeoutIfPending(
-    error: unknown,
-    context: ImageGenerationContext,
-  ): Promise<void> {
-    if (!(error instanceof PollTimeoutException)) {
-      return;
-    }
-
-    const ingredient = await this.imagesService.findOne(
-      { id: context.ingredientData.id },
-      IMAGE_POPULATE,
-    );
-
-    if (ingredient) {
-      throw new HttpException(
-        {
-          detail: `Image generation did not complete within 3 minutes. Current status: ${ingredient.status}`,
-          title: 'Generation timeout',
-        },
-        HttpStatus.GATEWAY_TIMEOUT,
-      );
-    }
   }
 }

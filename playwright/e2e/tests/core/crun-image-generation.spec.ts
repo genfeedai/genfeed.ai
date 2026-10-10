@@ -408,7 +408,9 @@ for (const key of [nanoKey, seedreamKey]) {
     const fixture = await installFixture(page, key);
     await openGenerationSetup(
       page,
-      key === nanoKey ? 'Nano Banana Pro' : 'Seedream 4.5',
+      key === nanoKey
+        ? 'Nano Banana Pro · 1:1 · 1K · x1'
+        : 'Seedream 4.5 · 16:9 · 2K · x1',
     );
     await openConfiguration(page, 'Model');
     await page
@@ -530,8 +532,7 @@ test('expired server quote preserves the prompt and never resubmits automaticall
     name: 'Request failed',
     exact: true,
   });
-  await expect(errorDialog).toBeVisible();
-  await errorDialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(errorDialog).toHaveCount(0);
   await expect(fixture.editor).toHaveText('A ceramic bird on a desk');
   await expect(
     page

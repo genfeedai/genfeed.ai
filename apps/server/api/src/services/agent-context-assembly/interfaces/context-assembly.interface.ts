@@ -5,6 +5,7 @@ import type {
 
 export interface AssembleContextParams {
   isApiKey?: boolean;
+  apiKeyId?: string;
   scopes?: string[];
   organizationId: string;
   /**

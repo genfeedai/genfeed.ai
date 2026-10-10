@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
   type BrandFontActor,
   BrandFontAssetsService,
@@ -133,6 +134,7 @@ async function harness() {
   const module = await Test.createTestingModule({
     providers: [
       BrandFontAssetsService,
+      BrandAccessService,
       {
         provide: PrismaService,
         useValue: {

@@ -203,7 +203,7 @@ describe('AgentToolsController publishing scopes', () => {
     );
     expect(agentScopeContextService.assertBrandAuthorized).toHaveBeenCalledWith(
       'brand-1',
-      'org-1',
+      { userId: 'user-1', organizationId: 'org-1', isApiKey: true, scopes: [] },
     );
     expect(executor.executeTool.mock.calls.at(-1)?.[2]).toMatchObject({
       brandId: 'brand-1',

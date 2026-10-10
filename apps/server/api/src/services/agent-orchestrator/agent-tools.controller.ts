@@ -102,6 +102,7 @@ export class AgentToolsController {
           userId,
           organizationId,
           isApiKey: user.isApiKey,
+          apiKeyId: user.apiKeyId,
           scopes: user.scopes,
         });
       }

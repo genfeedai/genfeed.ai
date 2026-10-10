@@ -208,6 +208,7 @@ describe('AgentToolExecutorService mutation policy', () => {
         .success,
     ).toBe(true);
     member.brands = [];
+    findMember.mockClear();
     authorize.mockClear();
     publishHandler.createPost.mockClear();
     const denied = await service.executeTool(
@@ -220,7 +221,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(authorize).not.toHaveBeenCalled();
     expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
     expect(publishHandler.createPost).not.toHaveBeenCalled();
-    expect(findMember).toHaveBeenCalledTimes(2);
+    expect(findMember).toHaveBeenCalledOnce();
     authorize.mockRestore();
   });
 
@@ -242,6 +243,11 @@ describe('AgentToolExecutorService mutation policy', () => {
     );
     Object.assign(service, {
       brandAccessService: new BrandAccessService({
+        apiKey: {
+          findFirst: vi.fn().mockResolvedValue({
+            scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
+          }),
+        },
         member: { findFirst: findMember },
         brand: { findFirst: brandLookup },
       } as never),
@@ -253,6 +259,7 @@ describe('AgentToolExecutorService mutation policy', () => {
         brandId: testId('brand'),
         apiKeyContext: {
           isApiKey: true,
+          apiKeyId: testId('key'),
           scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
         },
       }),
@@ -264,6 +271,8 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(brandLookup).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          organizationId: testId('org'),
+          isDeleted: false,
           AND: [
             { organizationId: testId('org'), isDeleted: false, id: { in: [] } },
             { id: testId('brand') },

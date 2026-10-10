@@ -84,6 +84,7 @@ export const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
 export type ResolveHarnessBriefParams = {
   userId?: string;
   isApiKey?: boolean;
+  apiKeyId?: string;
   scopes?: string[];
   /**
    * Extra sources (e.g. caller-supplied audience signals) folded into the
@@ -740,6 +741,7 @@ export class HarnessGenerationService {
               brandId: params.brandId,
               userId: params.userId ?? '',
               isApiKey: params.isApiKey,
+              apiKeyId: params.apiKeyId,
               scopes: params.scopes,
               filters: knowledgeFilters,
               organizationId: params.organizationId,
@@ -816,6 +818,7 @@ export class HarnessGenerationService {
         userId: params.userId ?? '',
         organizationId: params.organizationId,
         isApiKey: params.isApiKey,
+        apiKeyId: params.apiKeyId,
         scopes: params.scopes,
       },
     );
@@ -824,6 +827,7 @@ export class HarnessGenerationService {
   private async loadBrandMemorySources(params: {
     userId: string;
     isApiKey?: boolean;
+    apiKeyId?: string;
     scopes?: string[];
     brandId: string;
     filters?: KnowledgeRetrievalFilters;
@@ -851,6 +855,7 @@ export class HarnessGenerationService {
           brandId: params.brandId,
           userId: params.userId,
           isApiKey: params.isApiKey,
+          apiKeyId: params.apiKeyId,
           scopes: params.scopes,
           limit,
           minRelevance,

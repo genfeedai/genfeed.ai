@@ -145,6 +145,7 @@ export class AgentThreadRuntimeController {
       organizationId,
       userId,
       isApiKey: user.isApiKey,
+      apiKeyId: user.apiKeyId,
       scopes: user.scopes,
       ...(body
         ? {
@@ -226,6 +227,7 @@ export class AgentThreadRuntimeController {
         threadId,
         userId,
         isApiKey: user.isApiKey,
+        apiKeyId: user.apiKeyId,
         scopes: user.scopes,
       });
       const scope = preparedScope.existingScope;
