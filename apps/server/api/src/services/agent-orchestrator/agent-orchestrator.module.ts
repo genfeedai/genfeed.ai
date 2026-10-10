@@ -94,6 +94,7 @@ import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrat
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
+import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/tools/agent-brand-context-ask.service';
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
@@ -262,6 +263,7 @@ import { Module } from '@nestjs/common';
     AgentMediaGenerationToolHandler,
     AgentMediaTextGenerationService,
     AgentMediaTransformService,
+    AgentBrandContextAskService,
     AgentOnboardingBrandSetupToolHandler,
     AgentOnboardingToolHandler,
     AgentTransferToolHandler,

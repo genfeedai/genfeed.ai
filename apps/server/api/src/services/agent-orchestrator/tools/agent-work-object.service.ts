@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/tools/agent-brand-context-ask.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type {
   AgentWorkObjectScope,
@@ -47,6 +48,7 @@ export class AgentWorkObjectService {
     private readonly scorer: ContentQualityScorerService,
     private readonly executions: WorkflowExecutionsService,
     private readonly sourceIngest: AgentSourceIngestService,
+    private readonly brandContextAsks: AgentBrandContextAskService,
   ) {}
 
   private async thread(scope: AgentWorkObjectScope) {
@@ -347,6 +349,20 @@ export class AgentWorkObjectService {
         'Use a valid selection limit for a multi-select question.',
       );
     const inputRequestId = requiredString(params.requestId, 'requestId');
+    // An in-flow brand-context card is validated and recorded before it is
+    // shown, so its cooldown holds even when the user never answers.
+    if (thread.source !== 'onboarding')
+      await this.brandContextAsks.recordAsk(
+        {
+          allowFreeText: params.allowFreeText === false ? false : undefined,
+          isMultiSelect,
+          maxSelections:
+            typeof maxSelections === 'number' ? maxSelections : undefined,
+          options,
+          requestId: inputRequestId,
+        },
+        scope,
+      );
     await this.publisher.publishInputRequest({
       inputRequestId,
       threadId: scope.threadId,

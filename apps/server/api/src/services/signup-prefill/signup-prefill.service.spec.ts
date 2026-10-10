@@ -431,6 +431,17 @@ describe('SignupPrefillService explicit URL scan', () => {
       offers: ['12-week coaching', 'Memberships'],
       competitors: ['Forge Fit'],
     });
+    // Stored on the marker so the agent can offer them in-flow later.
+    expect(h.brands.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-1',
+      'org-1',
+      expect.objectContaining({
+        signupPrefill: expect.objectContaining({
+          status: 'completed',
+          suggestions: state.summary?.suggestions,
+        }),
+      }),
+    );
 
     const empty = createHarness();
     const fallback = await empty.service.scanBrandUrl(
