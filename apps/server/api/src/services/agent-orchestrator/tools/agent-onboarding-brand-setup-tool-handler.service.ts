@@ -65,6 +65,35 @@ const BRAND_SETUP_TOOLS = [
 ] as const;
 type BrandSetupToolName = (typeof BRAND_SETUP_TOOLS)[number];
 
+/** A trimmed onboarding answer of at most 200 characters, or undefined when absent. */
+function readShortString(value: unknown, key: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || !value.trim() || value.trim().length > 200)
+    throw new BadRequestException(
+      `${key} must be a non-empty string of at most 200 characters.`,
+    );
+  return value.trim();
+}
+
+/** Up to `max` short onboarding answers, or undefined when absent. */
+function readAnswers(
+  value: unknown,
+  key: string,
+  max = 10,
+): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.length > max)
+    throw new BadRequestException(
+      `${key} must contain at most ${max} answers.`,
+    );
+  return value.map((item) => {
+    if (typeof item !== 'string')
+      throw new BadRequestException(`${key} must contain short strings.`);
+    readShortString(item, key);
+    return item.trim();
+  });
+}
+
 @Injectable()
 export class AgentOnboardingBrandSetupToolHandler {
   constructor(
@@ -241,38 +270,6 @@ export class AgentOnboardingBrandSetupToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const readShortString = (
-      value: unknown,
-      key: string,
-    ): string | undefined => {
-      if (value === undefined) return undefined;
-      if (
-        typeof value !== 'string' ||
-        !value.trim() ||
-        value.trim().length > 200
-      )
-        throw new BadRequestException(
-          `${key} must be a non-empty string of at most 200 characters.`,
-        );
-      return value.trim();
-    };
-    const readAnswers = (
-      value: unknown,
-      key: string,
-      max = 10,
-    ): string[] | undefined => {
-      if (value === undefined) return undefined;
-      if (!Array.isArray(value) || value.length > max)
-        throw new BadRequestException(
-          `${key} must contain at most ${max} answers.`,
-        );
-      return value.map((item) => {
-        if (typeof item !== 'string')
-          throw new BadRequestException(`${key} must contain short strings.`);
-        readShortString(item, key);
-        return item.trim();
-      });
-    };
     const goals = readAnswers(params.goals, 'goals');
     const audience = readAnswers(params.audience, 'audience', 2);
     const offer = readShortString(params.offer, 'offer');
