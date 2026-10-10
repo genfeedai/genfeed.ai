@@ -5,6 +5,7 @@ import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/m
 import type { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
@@ -101,6 +102,39 @@ describe('McpApprovalsService', () => {
         'brand-1',
       );
       expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('uses the validated selected tenant without changing the canonical actor', async () => {
+      await runWithTenantReadScope(
+        { organizationId: 'selected-org', isOrganizationOverride: true },
+        () => service.findStatusForActor('approval-1', actor),
+      );
+      expect(mcpApproval.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'approval-1',
+          organizationId: 'selected-org',
+          userId: 'canonical-user',
+          isDeleted: false,
+        },
+      });
+      expect(brandAccess.resolve).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'selected-org',
+          userId: 'canonical-user',
+        }),
+      );
+      expect(actor.organizationId).toBe('org-1');
+    });
+
+    it('conceals approvals missing from the validated selected tenant', async () => {
+      mcpApproval.findFirst.mockResolvedValue(null);
+      await expect(
+        runWithTenantReadScope(
+          { organizationId: 'selected-org', isOrganizationOverride: true },
+          () => service.findPricingForActor('approval-1', actor),
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(brandAccess.resolve).not.toHaveBeenCalled();
     });
 
     it('conceals a missing or foreign approval', async () => {
