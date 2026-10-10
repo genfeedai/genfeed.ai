@@ -1,8 +1,6 @@
 import { Platform } from '@genfeedai/contracts';
-import type {
-  BreakoutCapacityInput,
-  LearningFormat,
-} from '@genfeedai/contracts/interfaces';
+import type { BreakoutCapacityInput } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { describe, expect, it } from 'vitest';
 import { planBreakoutCapacity } from './breakout-capacity.helper';
 
@@ -121,7 +119,10 @@ describe('breakout capacity within existing credits and publication slots', () =
   });
   it('tracks format spend separately for the quote and winning format', () => {
     const input = fixture();
-    input.budget.remainingFormatCredits = { text: 5, video: 10 };
+    input.budget = {
+      ...input.budget,
+      remainingFormatCredits: { text: 5, video: 10 },
+    };
     expect(planBreakoutCapacity(input)).toMatchObject({
       selectedTotalOutputs: 3,
       estimatedCredits: 15,
@@ -132,12 +133,12 @@ describe('breakout capacity within existing credits and publication slots', () =
   });
   it('holds unknown configured format caps and unavailable prices', () => {
     const input = fixture();
-    input.budget.remainingFormatCredits = { text: null };
+    input.budget = { ...input.budget, remainingFormatCredits: { text: null } };
     expect(planBreakoutCapacity(input)).toMatchObject({
       status: 'held',
       limits: ['budget_unavailable'],
     });
-    input.budget.remainingFormatCredits = {};
+    input.budget = { ...input.budget, remainingFormatCredits: {} };
     input.costsByFormat = {
       text: { generationCredits: 4, qualityCredits: null },
     };
@@ -211,13 +212,13 @@ describe('breakout capacity within existing credits and publication slots', () =
         limits: ['unsupported_format'],
         slots: [{ ordinal: 1, kind: 'quote', format: 'text' }],
       });
-      input.budget.remainingDailyCredits = 4;
+      input.budget = { ...input.budget, remainingDailyCredits: 4 };
       expect(planBreakoutCapacity(input)).toMatchObject({
         status: 'held',
         selectedTotalOutputs: 0,
         limits: ['unsupported_format', 'budget_exhausted'],
       });
-      input.budget.remainingDailyCredits = 100;
+      input.budget = { ...input.budget, remainingDailyCredits: 100 };
       input.costsByFormat = {};
       expect(planBreakoutCapacity(input)).toMatchObject({
         status: 'held',

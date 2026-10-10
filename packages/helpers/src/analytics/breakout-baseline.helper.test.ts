@@ -7,6 +7,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 import { evaluateComparableBreakout } from './breakout-baseline.helper';
 
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 const NOW = Date.UTC(2026, 9, 8, 12);
@@ -125,7 +126,7 @@ describe('prospective comparable breakout evidence', () => {
   });
   it('keeps observed zero separate from missing exposure', () => {
     const input = fixture();
-    const target = structuredClone(input.target);
+    const target: Mutable<BreakoutObservation> = structuredClone(input.target);
     replaceMetric(target, 0);
     expect(evaluateComparableBreakout({ ...input, target })).toMatchObject({
       status: 'below_threshold',
@@ -161,7 +162,9 @@ describe('prospective comparable breakout evidence', () => {
     'format',
   ] as const)('excludes a foreign %s', (key) => {
     const input = fixture();
-    const row = structuredClone(input.observations[0]);
+    const row: Mutable<BreakoutObservation> = structuredClone(
+      input.observations[0],
+    );
     if (key === 'platform') row.platform = Platform.INSTAGRAM;
     else if (key === 'format') row.format = 'video';
     else row[key] = 'other';
@@ -223,7 +226,9 @@ describe('prospective comparable breakout evidence', () => {
     'uses available %s counts without inferring another provenance',
     (scope) => {
       const input = fixture();
-      for (const row of [input.target, ...input.observations]) {
+      for (const row of [input.target, ...input.observations] as Array<
+        Mutable<BreakoutObservation>
+      >) {
         const metric = row.exposures.impressions;
         if (!metric) throw new Error('Fixture impressions required');
         metric.scope = scope;
