@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  findNewlyEnabledUnreleasedModules,
+  isReleasePreviewActive,
   ORGANIZATION_MODULE_IDS,
+  ORGANIZATION_MODULES,
   type OrganizationModuleAccessInput,
   organizationModuleOverridesSchema,
   resolveOrganizationModuleAccess,
@@ -14,8 +17,191 @@ const cloud: OrganizationModuleAccessInput = {
   isSettingsLoaded: true,
   hasOrganizationBilling: true,
   hasPaidSubscription: false,
+  // A release-preview organization, so founder-only modules follow their own
+  // module rules; the unreleased path is asserted on its own below.
+  isReleasePreviewEnabled: true,
   operation: 'write',
 };
+
+const FOUNDER_ONLY_MODULE_IDS = [
+  'motion',
+  'clips',
+  'editor',
+  'automation',
+  'messages',
+] as const;
+
+describe('founder-only release gate (#5502)', () => {
+  it('marks exactly the unreleased specialist modules founder-only', () => {
+    expect(
+      ORGANIZATION_MODULE_IDS.filter(
+        (moduleId) => ORGANIZATION_MODULES[moduleId].isFounderOnly,
+      ),
+    ).toEqual(FOUNDER_ONLY_MODULE_IDS);
+  });
+
+  it.each(FOUNDER_ONLY_MODULE_IDS)(
+    'refuses new %s work on cloud outside release preview, even when enabled and paid',
+    (moduleId) => {
+      expect(
+        resolveOrganizationModuleAccess({
+          ...cloud,
+          moduleId,
+          moduleOverrides: { [moduleId]: true },
+          hasPaidSubscription: true,
+          isReleasePreviewEnabled: false,
+        }),
+      ).toEqual({ isAllowed: false, reason: 'unreleased' });
+    },
+  );
+
+  it('keeps reads, exports and cancellation of unreleased modules available', () => {
+    for (const operation of ['read', 'export', 'cancel'] as const) {
+      expect(
+        resolveOrganizationModuleAccess({
+          ...cloud,
+          moduleId: 'automation',
+          isReleasePreviewEnabled: false,
+          operation,
+        }),
+      ).toEqual({ isAllowed: true, reason: null });
+    }
+  });
+
+  it('admits founder-only work in a release-preview organization by its own rules', () => {
+    expect(
+      resolveOrganizationModuleAccess({
+        ...cloud,
+        moduleId: 'automation',
+        moduleOverrides: { automation: true },
+        hasPaidSubscription: true,
+      }),
+    ).toEqual({ isAllowed: true, reason: null });
+  });
+
+  it('leaves self-hosted deployments without the release gate', () => {
+    expect(
+      resolveOrganizationModuleAccess({
+        ...cloud,
+        moduleId: 'motion',
+        hasOrganizationBilling: false,
+        isReleasePreviewEnabled: false,
+      }),
+    ).toEqual({ isAllowed: true, reason: null });
+  });
+
+  it('never releases released modules through the gate', () => {
+    expect(
+      resolveOrganizationModuleAccess({
+        ...cloud,
+        moduleId: 'playground',
+        isReleasePreviewEnabled: false,
+      }),
+    ).toEqual({ isAllowed: true, reason: null });
+  });
+
+  it('hides unreleased modules from cloud navigation without preview', () => {
+    const preferences = resolveOrganizationModulePreferences({
+      hasOrganizationBilling: true,
+      moduleOverrides: { clips: true, automation: true, batch: true },
+    });
+    expect(preferences?.clips).toBe(false);
+    expect(preferences?.automation).toBe(false);
+    expect(preferences?.batch).toBe(true);
+    expect(
+      resolveOrganizationModulePreferences({
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
+        moduleOverrides: { clips: true },
+      })?.clips,
+    ).toBe(true);
+    expect(
+      resolveOrganizationModulePresentationAccess(
+        { hasOrganizationBilling: true, moduleOverrides: { clips: true } },
+        'clips',
+      ),
+    ).toEqual({ isAllowed: false, reason: 'unreleased' });
+  });
+});
+
+describe('newly enabled unreleased modules (#5502)', () => {
+  const base = {
+    hasOrganizationBilling: true,
+    isReleasePreviewEnabled: false,
+    previousOverrides: { motion: false, batch: false },
+  };
+
+  it('reports founder-only modules switched from off to on', () => {
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        nextOverrides: { batch: true, clips: true, motion: true },
+      }),
+    ).toEqual(['motion', 'clips']);
+  });
+
+  it('ignores stored values, preview organizations and self-hosted', () => {
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        nextOverrides: { motion: true },
+        previousOverrides: { motion: true },
+      }),
+    ).toEqual([]);
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        isReleasePreviewEnabled: true,
+        nextOverrides: { motion: true },
+      }),
+    ).toEqual([]);
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        hasOrganizationBilling: false,
+        nextOverrides: { motion: true },
+      }),
+    ).toEqual([]);
+  });
+
+  it('treats unreadable stored overrides as nothing switched on', () => {
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        nextOverrides: { editor: true },
+        previousOverrides: { editor: 'yes' },
+      }),
+    ).toEqual(['editor']);
+    expect(
+      findNewlyEnabledUnreleasedModules({ ...base, nextOverrides: undefined }),
+    ).toEqual([]);
+  });
+});
+
+describe('release preview navigation (#5502)', () => {
+  it('shows founder-only navigation on self-hosted and preview organizations only', () => {
+    expect(isReleasePreviewActive({ hasOrganizationBilling: false })).toBe(
+      true,
+    );
+    expect(
+      isReleasePreviewActive({
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
+      }),
+    ).toBe(true);
+    expect(
+      isReleasePreviewActive({
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('hides founder-only navigation while settings are unknown', () => {
+    expect(isReleasePreviewActive(null)).toBe(false);
+    expect(isReleasePreviewActive({})).toBe(false);
+  });
+});
 
 describe('organization module preference display', () => {
   it('resolves the settled server defaults independently of subscription eligibility', () => {
@@ -219,6 +405,7 @@ describe('readonly module creation presentation', () => {
     (moduleId) => {
       const settings = {
         hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
         moduleOverrides: { [moduleId]: true },
       };
       expect(

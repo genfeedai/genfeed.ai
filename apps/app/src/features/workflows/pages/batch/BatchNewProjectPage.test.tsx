@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   brandId: 'brand-1',
   settings: {
     hasOrganizationBilling: true,
+    isReleasePreviewEnabled: true,
     hasPaidModuleSubscription: true,
     moduleOverrides: { automation: true },
   } as Record<string, unknown>,
@@ -70,6 +71,7 @@ describe('BatchNewProjectPage', () => {
     mocks.isIdeasEnabled = true;
     mocks.settings = {
       hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
       hasPaidModuleSubscription: true,
       moduleOverrides: { automation: true },
     };
@@ -135,7 +137,11 @@ describe('BatchNewProjectPage', () => {
     expect(mocks.list).not.toHaveBeenCalled();
   });
   it('keeps credit-based ideas available while Automation is off', async () => {
-    mocks.settings = { hasOrganizationBilling: true, moduleOverrides: {} };
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+      moduleOverrides: {},
+    };
     render(<BatchNewProjectPage />);
     expect(
       screen.getByRole('button', { name: 'Saved workflow' }),
@@ -158,6 +164,7 @@ describe('BatchNewProjectPage', () => {
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
     mocks.settings = {
       hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
       moduleOverrides: { automation: false },
     };
     rerender(<BatchNewProjectPage />);
@@ -296,6 +303,7 @@ describe('Batch workflow paid admission', () => {
     mocks.isIdeasEnabled = true;
     mocks.settings = {
       hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
       moduleOverrides: { automation: true },
       hasPaidModuleSubscription: true,
     };

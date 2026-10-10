@@ -14,7 +14,8 @@ function fixture(states: Record<string, string | null>) {
     recordSubmissionRejection: vi.fn().mockResolvedValue(undefined),
     releasePool: vi.fn().mockResolvedValue(undefined),
   };
-  return { tasks, billing };
+  const receipts = { syncTerminal: vi.fn().mockResolvedValue(undefined) };
+  return { tasks, billing, receipts };
 }
 const billingRequest = { creditsConfig: { reservationId: 'hold' } };
 
@@ -27,6 +28,11 @@ describe('compensateCrunDispatchFailure', () => {
       billingRequest: billingRequest as never,
     });
     expect(f.billing.abortUnsubmittedOutput).toHaveBeenCalledWith('a', 'org');
+    expect(f.receipts.syncTerminal).toHaveBeenCalledWith(
+      'org',
+      'a',
+      'released',
+    );
     expect(f.tasks.failPrepared).not.toHaveBeenCalled();
     expect(f.billing.releasePool).toHaveBeenCalledWith(billingRequest);
   });
@@ -43,6 +49,12 @@ describe('compensateCrunDispatchFailure', () => {
       ['b', 'org'],
     ]);
     expect(f.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
+    // The claimed task's acceptance is ambiguous: its receipt stays open for
+    // the poller's settle or release.
+    expect(f.receipts.syncTerminal.mock.calls).toEqual([
+      ['org', 'a', 'released'],
+      ['org', 'b', 'released'],
+    ]);
     expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
   });
   it('still releases the pool when one output cannot be compensated', async () => {
@@ -54,6 +66,9 @@ describe('compensateCrunDispatchFailure', () => {
       billingRequest: billingRequest as never,
     });
     expect(f.billing.recordSubmissionRejection).toHaveBeenCalledTimes(1);
+    expect(f.receipts.syncTerminal.mock.calls).toEqual([
+      ['org', 'b', 'released'],
+    ]);
     expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,8 +1,11 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { ClipboardCheck, Flag, LayoutDashboard, Rows3 } from 'lucide-react';
+import { Flag, LayoutDashboard, Rows3 } from 'lucide-react';
 
-/** Posts owns social posts, articles, and newsletters with type and status filters. */
+/**
+ * Posts owns social posts, articles, and newsletters with type and status
+ * filters. Calendar and approvals are Posts views (#5502), not nav items.
+ */
 export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
@@ -23,15 +26,9 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: APP_ROUTES.PUBLISHING.REVIEW,
-    label: 'Approval queue',
-    matchPaths: [APP_ROUTES.PUBLISHING.REVIEW],
-    outline: ClipboardCheck,
-    solid: ClipboardCheck,
-  },
-  {
-    group: '',
     href: APP_ROUTES.PUBLISHING.CAMPAIGNS,
+    // #5502: Campaigns stays founder-only until validated.
+    isFounderOnly: true,
     label: 'Campaigns',
     matchPaths: [
       APP_ROUTES.PUBLISHING.CAMPAIGNS,

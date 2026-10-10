@@ -31,11 +31,13 @@ export type { PostsListSearchParams } from '@props/publishing/publishing-list-pa
  * no caller forces a lifecycle.
  */
 export async function renderPostsListPage({
+  approvals,
   campaignId,
   calendar,
   searchParams,
   scope = PageScope.PUBLISHING,
 }: {
+  approvals?: React.ReactNode;
   campaignId?: string;
   calendar?: React.ReactNode;
   searchParams: PostsListSearchParams;
@@ -132,6 +134,7 @@ export async function renderPostsListPage({
   return (
     <ServerQueryHydrationBoundary>
       <ReleasePostsList
+        approvals={approvals}
         calendar={calendar}
         campaignId={campaignId}
         contentTypes={contentTypes}

@@ -27,6 +27,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type {
+  LibraryBrowserPlace,
   LibraryBrowserProps,
   LibraryBrowserStatus,
 } from '@props/pages/library-browser.props';
@@ -212,6 +213,7 @@ export function useLibraryBrowser({
       characters?: string[];
       folderId?: string;
       origins?: IngredientOrigin[];
+      place?: LibraryBrowserPlace | null;
       search?: string;
       sort?: string;
       status?: LibraryBrowserStatus | null;
@@ -243,6 +245,15 @@ export function useLibraryBrowser({
         'page',
       ])
         params.delete(key);
+
+      // Recent and Starred share `place` with Trash, so picking one leaves
+      // Trash, and picking Trash below drops them.
+      if ('place' in next) {
+        params.delete('place');
+        if (next.place) {
+          params.set('place', next.place);
+        }
+      }
 
       // Shelf and Trash share one status control. Recent and Starred stay;
       // Trash replaces them because both use `place`.
@@ -402,6 +413,13 @@ export function useLibraryBrowser({
   const handleStatusChange = useCallback(
     (status: LibraryBrowserStatus | null) => {
       pushAxes({ status });
+    },
+    [pushAxes],
+  );
+
+  const handlePlaceChange = useCallback(
+    (nextPlace: LibraryBrowserPlace | null) => {
+      pushAxes({ place: nextPlace });
     },
     [pushAxes],
   );
@@ -566,6 +584,7 @@ export function useLibraryBrowser({
     handleRefresh,
     handleSearchChange,
     handleSortChange,
+    handlePlaceChange,
     handleStatusChange,
     handleTagMatchChange,
     handleTagsChange,

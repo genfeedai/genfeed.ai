@@ -24,6 +24,7 @@ import {
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
+import LibraryOverview from '@pages/library/overview/library-overview';
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
@@ -33,6 +34,7 @@ import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
 import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page';
+import MessagesOverview from '../../../[brandSlug]/messages/overview/messages-overview';
 import RepliesRoute from '../../../[brandSlug]/messages/replies/page';
 import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
@@ -42,7 +44,7 @@ import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/pa
 import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
-import PostsReviewPage from '../../../[brandSlug]/publishing/review/page';
+import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
 import EditorDetailPage from '../../../[brandSlug]/studio/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/editor/new/page';
@@ -56,13 +58,21 @@ const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
   videos: APP_ROUTES.LIBRARY.VIDEOS,
 };
 
+/** Org entries of the brand-scoped Studio apps, by route segment. */
+const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
+  batch: APP_ROUTES.STUDIO.BATCH,
+  clips: APP_ROUTES.STUDIO.CLIPS,
+  motion: APP_ROUTES.STUDIO.MOTION,
+  playground: APP_ROUTES.STUDIO.PLAYGROUND,
+  storyboard: APP_ROUTES.STUDIO.STORYBOARD,
+};
+
 const ORG_LIBRARY_CANONICAL_SEGMENT: Readonly<Record<string, string>> = {
   avatar: 'avatars',
   gif: 'gifs',
   image: 'images',
   musics: 'music',
   moodboard: 'assets',
-  overview: 'assets',
   video: 'videos',
   voice: 'voices',
 };
@@ -271,8 +281,18 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'library') {
-    if (!segments?.[0] || segments[0] === 'ingredients') {
+    if (!segments?.[0]) {
+      redirect(
+        createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.OVERVIEW),
+      );
+    }
+
+    if (segments[0] === 'ingredients') {
       redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.ASSETS));
+    }
+
+    if (segments[0] === 'overview' && segments.length === 1) {
+      return <LibraryOverview scope={PageScope.ORGANIZATION} />;
     }
 
     const canonicalSegment = ORG_LIBRARY_CANONICAL_SEGMENT[segments[0]];
@@ -298,36 +318,41 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
-    // `editor` is Studio's timeline surface, not a generate type. It mirrors
-    // the brand-scoped static `studio/editor` segment.
-    if (segments?.[0] === 'editor') {
-      const editorSurface = await renderStudioEditorSurface(segments[1]);
+    const [toolSegment, detail] = segments ?? [];
+
+    // `editor` is the Editor app's timeline surface. It mirrors the
+    // brand-scoped static `studio/editor` segment.
+    if (toolSegment === 'editor') {
+      const editorSurface = await renderStudioEditorSurface(detail);
 
       return <ErrorBoundary>{editorSurface}</ErrorBoundary>;
     }
 
-    // The bare app-rail destination (no type segment): try the operator's
-    // own persisted last-used brand before falling through to Agent (#4671).
-    if (!segments?.length) {
-      const lastUsedBrandSlug = await resolveLastUsedStudioBrandSlug(orgSlug);
-      if (lastUsedBrandSlug) {
-        redirect(
-          createBrandAppRoute(
-            orgSlug,
-            lastUsedBrandSlug,
-            APP_ROUTES.STUDIO.PLAYGROUND,
-          ),
-        );
-      }
+    // Each Studio tool is its own app with brand-scoped production tooling
+    // (#5502). There is no Studio parent: a bare `/studio` is not a route.
+    const toolRoute = toolSegment
+      ? ORG_STUDIO_APP_ROUTES[toolSegment]
+      : undefined;
+    if (!toolRoute || detail) {
+      notFound();
     }
 
-    // Studio's org-scoped one-off generation surface was retired. Studio
-    // production tooling is brand-scoped; org-scoped generation lives in Agent.
+    // The app's org entry opens the operator's last-used brand (#4671).
+    // Without one, one-off generation lives in Agent.
+    const lastUsedBrandSlug = await resolveLastUsedStudioBrandSlug(orgSlug);
+    if (lastUsedBrandSlug) {
+      redirect(createBrandAppRoute(orgSlug, lastUsedBrandSlug, toolRoute));
+    }
+
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
   }
 
   if (orgRootApp === 'messages') {
     const [section, detail] = segments ?? [];
+
+    if (section === 'overview' && !detail) {
+      return <MessagesOverview scope={PageScope.ORGANIZATION} />;
+    }
 
     if (section === 'outreach' && detail === 'new') {
       return <OutreachSequenceNewRoute />;
@@ -369,6 +394,7 @@ export default async function OrgRootAppPage({
 
     if (publishingSegments.length === 1 && section === 'posts') {
       const postsListPage = await renderPostsListPage({
+        approvals: <ReviewQueueContent />,
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,
       });
@@ -383,14 +409,6 @@ export default async function OrgRootAppPage({
         searchParams: searchParams ?? Promise.resolve({}),
       });
       return null;
-    }
-
-    if (publishingSegments.length === 1 && section === 'review') {
-      return (
-        <PublishingLayoutContent>
-          <PostsReviewPage />
-        </PublishingLayoutContent>
-      );
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {

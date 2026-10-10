@@ -11,7 +11,12 @@ export type AppContext =
   | 'library'
   | 'messages'
   | 'publishing'
-  | 'studio'
+  | 'playground'
+  | 'storyboard'
+  | 'turbo'
+  | 'motion'
+  | 'clips'
+  | 'editor'
   | 'automation'
   | 'analytics';
 
@@ -35,6 +40,11 @@ export interface MenuItemConfig {
   drillDown?: boolean;
   /** When true, this item shows a "Coming Soon" badge and is not clickable */
   isComingSoon?: boolean;
+  /**
+   * #5502 founder-only destination: listed only where release preview is
+   * active (`isReleasePreviewActive`), never for customer organizations.
+   */
+  isFounderOnly?: boolean;
   /** When true on the first item of a group, renders a visual divider above the group */
   hasDividerAbove?: boolean;
   /** When true on the first item of a named group, the group header can collapse its items */

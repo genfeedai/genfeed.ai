@@ -16,7 +16,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
  * Covers: /publishing/remix,
- *         /publishing/review
+ *         /publishing/posts?view=approvals
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -46,12 +46,16 @@ test.describe('Posts — Content Types', () => {
     );
   });
 
-  test('review page shows review queue', async ({ authenticatedPage }) => {
+  test('approvals view shows the review queue', async ({
+    authenticatedPage,
+  }) => {
     await mockReviewQueue(authenticatedPage);
 
     await authenticatedPage.goto(APP_ROUTES.PUBLISHING.REVIEW);
 
-    await expect(authenticatedPage).toHaveURL(/publishing\/review/);
+    await expect(authenticatedPage).toHaveURL(
+      /publishing\/posts\?view=approvals/,
+    );
     // Review queue should display batch/review UI
     await expect(
       authenticatedPage.getByText(/review|queue|batch|approve/i).first(),

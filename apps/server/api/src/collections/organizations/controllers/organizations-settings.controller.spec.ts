@@ -1,3 +1,10 @@
+const billingConfig = vi.hoisted(() => ({
+  hasOrganizationBilling: vi.fn(() => false),
+}));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  hasOrganizationBilling: billingConfig.hasOrganizationBilling,
+}));
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
@@ -430,6 +437,96 @@ describe('OrganizationsSettingsController', () => {
           );
         },
       );
+    });
+
+    describe('founder release preview (#5502)', () => {
+      beforeEach(() => {
+        billingConfig.hasOrganizationBilling.mockReturnValue(true);
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          {
+            ...mockOrganizationSettings,
+            isReleasePreviewEnabled: false,
+            moduleOverrides: { messages: true },
+          },
+        );
+        mockOrganizationSettingsService.patch.mockResolvedValue(
+          mockOrganizationSettings,
+        );
+      });
+      afterEach(() => {
+        billingConfig.hasOrganizationBilling.mockReturnValue(false);
+      });
+
+      it('refuses an owner changing release preview', async () => {
+        await expect(
+          controller.updateSettings(
+            memberRequest(organizationA),
+            organizationA,
+            { isReleasePreviewEnabled: true },
+          ),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it('lets a superadmin turn release preview on', async () => {
+        await controller.updateSettings(
+          superAdminRequest(organizationA),
+          organizationA,
+          { isReleasePreviewEnabled: true },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          mockOrganizationSettings.id,
+          { isReleasePreviewEnabled: true },
+        );
+      });
+
+      it('refuses an owner switching on an unreleased module', async () => {
+        await expect(
+          controller.updateSettings(
+            memberRequest(organizationA),
+            organizationA,
+            { moduleOverrides: { automation: true, messages: true } },
+          ),
+        ).rejects.toMatchObject({
+          status: 403,
+          message: 'Automation not released yet',
+        });
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it('keeps saving other modules when an unreleased module was already on', async () => {
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          { moduleOverrides: { messages: true, batch: true } },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          mockOrganizationSettings.id,
+          { moduleOverrides: { messages: true, batch: true } },
+        );
+      });
+
+      it('lets an owner enable founder-only modules on release preview', async () => {
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          { ...mockOrganizationSettings, isReleasePreviewEnabled: true },
+        );
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          { moduleOverrides: { automation: true } },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalled();
+      });
+
+      it('applies no release gate to self-hosted deployments', async () => {
+        billingConfig.hasOrganizationBilling.mockReturnValue(false);
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          { moduleOverrides: { automation: true } },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalled();
+      });
     });
 
     describe('target organization', () => {

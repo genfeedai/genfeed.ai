@@ -17,6 +17,7 @@ import {
   APP_ROUTES,
   createArtifactEditorRoute,
   createBrandAppRoute,
+  createPublishingApprovalsRoute,
   ITEMS_PER_PAGE,
   PUBLISHING_POSTS_QUERY_KEYS,
 } from '@genfeedai/contracts/constants';
@@ -561,9 +562,10 @@ export function usePostsList({
             );
             router.push(
               href(
-                draft.reviewBatchId
-                  ? `/publishing/review?batch=${draft.reviewBatchId}&filter=ready`
-                  : '/publishing/review',
+                createPublishingApprovalsRoute({
+                  batch: draft.reviewBatchId,
+                  filter: draft.reviewBatchId ? 'ready' : undefined,
+                }),
               ),
             );
           } else {

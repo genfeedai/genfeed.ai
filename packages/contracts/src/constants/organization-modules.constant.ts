@@ -1,72 +1,87 @@
 import { z } from 'zod';
 
-/** Organization preferences are distinct from platform operator kill switches. */
+/**
+ * Organization preferences are distinct from platform operator kill switches.
+ * Founder-only modules (#5502) are unreleased on cloud: they admit new work
+ * only in organizations a platform admin put on release preview.
+ */
 export const ORGANIZATION_MODULES = {
   playground: {
     label: 'Playground',
     isDefaultEnabled: true,
     requiresSubscription: false,
     isToggleable: false,
+    isFounderOnly: false,
   },
   storyboard: {
     label: 'Storyboard',
     isDefaultEnabled: true,
     requiresSubscription: false,
     isToggleable: false,
+    isFounderOnly: false,
   },
   publishing: {
     label: 'Publishing',
     isDefaultEnabled: true,
     requiresSubscription: false,
     isToggleable: true,
+    isFounderOnly: false,
   },
   analytics: {
     label: 'Analytics',
     isDefaultEnabled: true,
     requiresSubscription: false,
     isToggleable: true,
+    isFounderOnly: false,
   },
   motion: {
     label: 'Motion',
     isDefaultEnabled: false,
     requiresSubscription: false,
     isToggleable: true,
+    isFounderOnly: true,
   },
   clips: {
     label: 'Clips',
     isDefaultEnabled: false,
     requiresSubscription: false,
     isToggleable: true,
+    isFounderOnly: true,
   },
   batch: {
     label: 'Batch',
     isDefaultEnabled: false,
     requiresSubscription: false,
     isToggleable: true,
+    isFounderOnly: false,
   },
   editor: {
     label: 'Editor',
     isDefaultEnabled: false,
     requiresSubscription: false,
     isToggleable: true,
+    isFounderOnly: true,
   },
   automation: {
     label: 'Automation',
     isDefaultEnabled: false,
     requiresSubscription: true,
     isToggleable: true,
+    isFounderOnly: true,
   },
   messages: {
     label: 'Messages',
     isDefaultEnabled: false,
     requiresSubscription: true,
     isToggleable: true,
+    isFounderOnly: true,
   },
   discovery: {
     label: 'Discovery',
     isDefaultEnabled: true,
     requiresSubscription: true,
     isToggleable: true,
+    isFounderOnly: false,
   },
 } as const;
 
@@ -109,6 +124,72 @@ export interface OrganizationModulePreferenceInput {
   moduleOverrides?: unknown;
   hasOrganizationBilling?: unknown;
   hasPaidModuleSubscription?: unknown;
+  isReleasePreviewEnabled?: unknown;
+}
+
+/** On cloud, a founder-only module is unreleased outside release preview. */
+export function isOrganizationModuleUnreleased(
+  moduleId: OrganizationModuleId,
+  hasOrganizationBilling: boolean,
+  isReleasePreviewEnabled: boolean,
+): boolean {
+  return (
+    hasOrganizationBilling &&
+    ORGANIZATION_MODULES[moduleId].isFounderOnly &&
+    !isReleasePreviewEnabled
+  );
+}
+
+/**
+ * #5502 founder-only navigation (Campaigns, experimental Analytics) shows only
+ * where unreleased work is visible: self-hosted, or a cloud organization on
+ * release preview. Unknown settings hide it, like unknown module access.
+ */
+export function isReleasePreviewActive(
+  settings: OrganizationModulePreferenceInput | null | undefined,
+): boolean {
+  if (typeof settings?.hasOrganizationBilling !== 'boolean') return false;
+  return (
+    !settings.hasOrganizationBilling ||
+    settings.isReleasePreviewEnabled === true
+  );
+}
+
+export interface UnreleasedModuleChangeInput {
+  hasOrganizationBilling: boolean;
+  isReleasePreviewEnabled: boolean;
+  /** Stored overrides; an unreadable value counts as nothing switched on. */
+  previousOverrides: unknown;
+  nextOverrides: Partial<Record<OrganizationModuleId, boolean>> | undefined;
+}
+
+/**
+ * #5502 modules a settings update would switch from off to on while they are
+ * unreleased for the organization. Values already stored are not reported, so
+ * other module changes still save; admission refuses unreleased work anyway.
+ */
+export function findNewlyEnabledUnreleasedModules({
+  hasOrganizationBilling,
+  isReleasePreviewEnabled,
+  nextOverrides,
+  previousOverrides,
+}: UnreleasedModuleChangeInput): OrganizationModuleId[] {
+  if (!nextOverrides) return [];
+  const parsed = organizationModuleOverridesSchema.safeParse(
+    previousOverrides ?? {},
+  );
+  const previous: Partial<Record<OrganizationModuleId, boolean>> =
+    parsed.success ? parsed.data : {};
+  return ORGANIZATION_MODULE_IDS.filter(
+    (moduleId) =>
+      nextOverrides[moduleId] === true &&
+      previous[moduleId] !== true &&
+      isOrganizationModuleUnreleased(
+        moduleId,
+        hasOrganizationBilling,
+        isReleasePreviewEnabled,
+      ),
+  );
 }
 
 /** Navigation/preferences only. Enabled subscription modules still require fresh admission. */
@@ -123,6 +204,15 @@ export function resolveOrganizationModulePreferences(
   return Object.fromEntries(
     ORGANIZATION_MODULE_IDS.map((moduleId) => {
       const module = ORGANIZATION_MODULES[moduleId];
+      if (
+        isOrganizationModuleUnreleased(
+          moduleId,
+          settings.hasOrganizationBilling === true,
+          settings.isReleasePreviewEnabled === true,
+        )
+      ) {
+        return [moduleId, false];
+      }
       return [
         moduleId,
         !module.isToggleable ||
@@ -136,7 +226,11 @@ export type OrganizationModuleAccess =
   | { isAllowed: true; reason: null }
   | {
       isAllowed: false;
-      reason: 'disabled' | 'subscription-required' | 'unavailable';
+      reason:
+        | 'disabled'
+        | 'subscription-required'
+        | 'unreleased'
+        | 'unavailable';
     };
 
 export interface OrganizationModuleAccessInput {
@@ -145,6 +239,8 @@ export interface OrganizationModuleAccessInput {
   isSettingsLoaded: boolean;
   hasOrganizationBilling: boolean;
   hasPaidSubscription: boolean | null;
+  /** Platform-admin release preview; unlocks founder-only modules on cloud. */
+  isReleasePreviewEnabled: boolean;
   operation: 'read' | 'export' | 'cancel' | 'write';
 }
 
@@ -165,6 +261,7 @@ export function resolveOrganizationModulePresentationAccess(
       typeof settings.hasPaidModuleSubscription === 'boolean'
         ? settings.hasPaidModuleSubscription
         : null,
+    isReleasePreviewEnabled: settings.isReleasePreviewEnabled === true,
   });
 }
 
@@ -175,6 +272,7 @@ export function resolveOrganizationModuleAccess({
   isSettingsLoaded,
   hasOrganizationBilling,
   hasPaidSubscription,
+  isReleasePreviewEnabled,
   operation,
 }: OrganizationModuleAccessInput): OrganizationModuleAccess {
   if (operation !== 'write') return { isAllowed: true, reason: null };
@@ -182,6 +280,15 @@ export function resolveOrganizationModuleAccess({
   const parsed = organizationModuleOverridesSchema.safeParse(moduleOverrides);
   if (!parsed.success) return { isAllowed: false, reason: 'unavailable' };
   const module = ORGANIZATION_MODULES[moduleId];
+  if (
+    isOrganizationModuleUnreleased(
+      moduleId,
+      hasOrganizationBilling,
+      isReleasePreviewEnabled,
+    )
+  ) {
+    return { isAllowed: false, reason: 'unreleased' };
+  }
   const isEnabled = module.isToggleable
     ? (parsed.data[moduleId as ToggleableOrganizationModuleId] ??
       (!hasOrganizationBilling || module.isDefaultEnabled))

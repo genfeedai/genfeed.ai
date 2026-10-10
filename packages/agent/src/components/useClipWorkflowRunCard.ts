@@ -6,7 +6,10 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createPublishingApprovalsRoute,
+} from '@genfeedai/contracts/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useCallback, useMemo, useState } from 'react';
@@ -287,18 +290,16 @@ export function useClipWorkflowRunCard({
           },
         ],
       });
-      const firstItemId = batch.items[0]?.id;
-      const params = new URLSearchParams({ batch: batch.id });
-      if (firstItemId) {
-        params.set('item', firstItemId);
-      }
-      nextUrl = `/publishing/review?${params.toString()}`;
+      nextUrl = createPublishingApprovalsRoute({
+        batch: batch.id,
+        item: batch.items[0]?.id,
+      });
     }
 
     setStep('supervised_review', 'completed');
 
     if (typeof window !== 'undefined') {
-      window.location.href = nextUrl ?? '/publishing/review';
+      window.location.href = nextUrl ?? APP_ROUTES.PUBLISHING.REVIEW;
     }
   }, [
     action.brandId,
@@ -410,6 +411,6 @@ export function useClipWorkflowRunCard({
     workflowExecutionUrl: hrefFn(
       `${APP_ROUTES.AUTOMATION.RUNS}/${workflowExecutionId ?? ''}`,
     ),
-    humanReviewUrl: hrefFn('/publishing/review'),
+    humanReviewUrl: hrefFn(APP_ROUTES.PUBLISHING.REVIEW),
   };
 }

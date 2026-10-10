@@ -628,7 +628,8 @@ describe('ReviewQueueContent', () => {
     });
   });
 
-  it('frames itself as the approval queue and links back to Posts with the selection', () => {
+  it('frames itself as the approval queue without a separate Posts link', () => {
+    // #5502: approvals are a Posts view; the view toggle switches back.
     searchParamsState.set('batch', 'batch-1');
     searchParamsState.set('item', 'item-1');
     mockReviewQueries();
@@ -638,12 +639,7 @@ describe('ReviewQueueContent', () => {
     const framing = screen.getByTestId('approval-queue-framing');
     expect(framing).toHaveTextContent('title');
     expect(framing).toHaveTextContent('description');
-    expect(
-      within(framing).getByRole('link', { name: 'openPosts' }),
-    ).toHaveAttribute(
-      'href',
-      '/acme/main/publishing/posts?batch=batch-1&item=item-1',
-    );
+    expect(within(framing).queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('loads review batches, syncs the active item, and handles batch/filter changes', async () => {

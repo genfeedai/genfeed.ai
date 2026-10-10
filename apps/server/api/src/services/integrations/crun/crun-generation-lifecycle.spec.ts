@@ -45,15 +45,21 @@ function harness(overrides: { credits?: Record<string, unknown> } = {}) {
     },
   };
   const prompts = { create: vi.fn().mockResolvedValue({ id: 'prompt' }) };
+  const receipts = {
+    open: vi.fn().mockResolvedValue(undefined),
+    recordAccepted: vi.fn().mockResolvedValue(undefined),
+    syncTerminal: vi.fn().mockResolvedValue(undefined),
+  };
   const deps = {
     billing,
     credits,
     prisma,
     prompts,
+    receipts,
     shared,
     tasks,
   } as unknown as CrunGenerationDeps;
-  return { billing, credits, deps, prisma, prompts, shared, tasks };
+  return { billing, credits, deps, prisma, prompts, receipts, shared, tasks };
 }
 
 function strategyFor(
@@ -133,6 +139,83 @@ describe('dispatchFrozenCrunGeneration', () => {
     expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
     expect(h.tasks.failPrepared).not.toHaveBeenCalled();
     expect(h.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
+  });
+
+  it('opens one raw receipt per output and records each accepted Crun task without waiting on receipt writes', async () => {
+    const h = harness();
+    // A receipt write that never settles cannot hold the dispatch.
+    h.receipts.open.mockReturnValue(new Promise(() => undefined));
+    h.receipts.recordAccepted.mockReturnValue(new Promise(() => undefined));
+    h.tasks.submit
+      .mockResolvedValueOnce({ isSubmitted: true, taskId: 'task-0' })
+      .mockResolvedValueOnce({
+        isSubmitted: false,
+        reasonCode: 'CRUN_DISABLED',
+      });
+    h.tasks.findForIngredient.mockResolvedValue(null);
+    const request = {
+      user,
+      creditsConfig: {},
+      generationOriginalPrompt: 'a bird',
+    } as never;
+
+    await dispatchFrozenCrunGeneration(h.deps, strategyFor(), {
+      billingRequest: request,
+      frozen: frozen(),
+      raw: {},
+      user: { ...user, isApiKey: true, apiKeyId: 'key-1' } as never,
+    });
+
+    expect(h.receipts.open.mock.calls.map(([input]) => input)).toEqual([
+      {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        actorId: 'user-1',
+        isApiKey: true,
+        apiKeyId: 'key-1',
+        scopes: undefined,
+        ingredientId: 'ingredient-0',
+        parentIngredientId: 'ingredient-0',
+        mediaKind: 'video',
+        surface: 'ui',
+        provider: 'crun',
+        model: 'crun/model',
+        originalPrompt: 'a bird',
+        enhancedPrompt: 'A bird',
+        compiledPrompt: 'A bird',
+        generationParameters: { outputs: 2, quoteId: 'quote' },
+      },
+      expect.objectContaining({
+        ingredientId: 'ingredient-1',
+        parentIngredientId: 'ingredient-0',
+      }),
+    ]);
+    // Only the task Crun accepted carries a provider attempt reference.
+    expect(h.receipts.recordAccepted).toHaveBeenCalledTimes(1);
+    expect(h.receipts.recordAccepted).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      ingredientId: 'ingredient-0',
+      provider: 'crun',
+      model: 'crun/model',
+      externalId: 'task-0',
+    });
+    expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
+  });
+
+  it('records no enhancement when the typed prompt reached Crun unchanged', async () => {
+    const h = harness();
+    await dispatchFrozenCrunGeneration(h.deps, strategyFor(), {
+      billingRequest: billingRequest(),
+      frozen: frozen(),
+      raw: {},
+      user: user as never,
+    });
+    const [input] = h.receipts.open.mock.calls[0];
+    expect(input).toMatchObject({
+      originalPrompt: 'A bird',
+      compiledPrompt: 'A bird',
+    });
+    expect(input).not.toHaveProperty('enhancedPrompt');
   });
 
   it('runs the strategy hook before the first submit', async () => {
@@ -226,6 +309,12 @@ describe('dispatchFrozenCrunGeneration', () => {
       'ingredient-0',
       'org-1',
     );
+    // Only the unambiguous rejection fails its receipt; the other output may
+    // still be accepted and is settled by the poller.
+    expect(h.receipts.syncTerminal.mock.calls).toEqual([
+      ['org-1', 'ingredient-0', 'released'],
+    ]);
+    expect(h.receipts.recordAccepted).not.toHaveBeenCalled();
     expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
   });
 

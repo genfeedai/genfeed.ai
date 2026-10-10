@@ -9,6 +9,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UsersModule } from '@api/collections/users/users.module';
@@ -21,6 +22,7 @@ import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
 import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
+import { AnalyticsWinnersController } from '@api/endpoints/analytics/analytics-winners.controller';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { CacheModule } from '@api/services/cache/cache.module';
@@ -35,6 +37,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     AccountAnalyticsController,
+    AnalyticsWinnersController,
     AnalyticsAdminController,
     AnalyticsController,
   ],
@@ -50,6 +53,7 @@ import { Module } from '@nestjs/common';
     IngredientsModule,
     ModelsModule,
     OrganizationsCoreModule,
+    OutliersCoreModule,
     PostsCoreModule,
     SubscriptionsModule,
     UsersModule,

@@ -1,4 +1,5 @@
 import { CrunImageGenerationProviderAdapter } from '@api/collections/images/services/providers/crun-image-generation-provider.adapter';
+import { mediaGenerationReceiptsStub } from '@api/shared/testing/media-generation-receipts.stub';
 
 const user = { userId: 'user', organizationId: 'org', brandId: 'brand' };
 const dto = {
@@ -72,6 +73,7 @@ function fixture() {
     prompts as never,
     images as never,
     prisma as never,
+    mediaGenerationReceiptsStub(),
   );
   const request = { user, originalUrl: '/images' };
   return {

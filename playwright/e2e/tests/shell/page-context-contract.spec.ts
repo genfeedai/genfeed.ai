@@ -10,9 +10,10 @@ type PageContextContract = {
     | 'analytics'
     | 'automation'
     | 'compose'
+    | 'editor'
     | 'library'
     | 'publishing'
-    | 'studio'
+    | 'storyboard'
     | 'workspace';
   sectionLabel?: string;
   /** Buttons matched by accessible name — survives icon-only compaction. */
@@ -33,19 +34,19 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/library/images`,
     currentApp: 'library',
     sectionLabel: 'Library',
-    sidebarLabels: ['Library', 'All assets'],
+    sidebarLabels: ['Library', 'Assets'],
   },
   {
+    // Studio tools are separate apps with their own nav (#5502).
     route: `${BRAND_BASE}/studio/storyboard`,
-    currentApp: 'studio',
-    sectionLabel: 'Studio',
+    currentApp: 'storyboard',
+    sectionLabel: 'Storyboard',
   },
   {
-    // The Remotion timeline is Studio's Editor surface (#5461), so it renders
-    // the Studio sidebar.
+    // The Remotion timeline is the Editor app (#5461).
     route: `${BRAND_BASE}/studio/editor`,
-    currentApp: 'studio',
-    sectionLabel: 'Studio',
+    currentApp: 'editor',
+    sectionLabel: 'Editor',
     sidebarLabels: ['Editor'],
   },
   {

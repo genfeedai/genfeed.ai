@@ -15,7 +15,10 @@ import {
   buildSettingsMenuItems,
   type SettingsScope,
 } from '@app-config/settings-menu-items.config';
-import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
+import {
+  getStudioAppForPath,
+  STUDIO_APP_MENU_ITEMS,
+} from '@app-config/studio-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
@@ -27,6 +30,7 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
+  isReleasePreviewActive,
   ORGANIZATION_MODULES,
   resolveOrganizationModulePreferences,
 } from '@genfeedai/contracts/constants';
@@ -150,8 +154,10 @@ export function useAppProtectedLayout(
   const isUniversalWorkspaceShell =
     Boolean(workspaceShellRoute) && !isAdminRoute;
 
-  const currentApp: AppContext = isStudioRoute
-    ? 'studio'
+  // Studio tools are separate apps: `/studio/<tool>` belongs to that tool.
+  const studioApp = isStudioRoute ? getStudioAppForPath(pathname) : undefined;
+  const currentApp: AppContext = studioApp
+    ? studioApp
     : isLibraryRoute
       ? 'library'
       : isDiscoveryRoute
@@ -297,32 +303,39 @@ export function useAppProtectedLayout(
       ),
     [organizationSettings, settingsLoading],
   );
+  // #5502 founder-only destinations stay hidden until release preview is known.
+  const isReleasePreview =
+    !settingsLoading && isReleasePreviewActive(organizationSettings);
   const studioMenuItems = useMemo(
     () =>
-      STUDIO_MENU_ITEMS.filter(
-        (item) =>
-          isStudioSurfaceEnabled(item.href, platformFlags) &&
-          (!item.organizationModule ||
-            modulePreferences?.[item.organizationModule] === true ||
-            !ORGANIZATION_MODULES[item.organizationModule].isToggleable),
+      (studioApp ? STUDIO_APP_MENU_ITEMS[studioApp] : [])
+        .filter(
+          (item) =>
+            isStudioSurfaceEnabled(item.href, platformFlags) &&
+            (!item.organizationModule ||
+              modulePreferences?.[item.organizationModule] === true ||
+              !ORGANIZATION_MODULES[item.organizationModule].isToggleable),
+        )
+        .map(
+          (item): MenuItemConfig => ({
+            ...item,
+            href: withTaskContextHref(item.href, taskContextSearchParams),
+          }),
+        ),
+    [platformFlags, taskContextSearchParams, modulePreferences, studioApp],
+  );
+
+  const publishingMenuItems = useMemo(
+    () =>
+      PUBLISHING_MENU_ITEMS.filter(
+        (item) => !item.isFounderOnly || isReleasePreview,
       ).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [platformFlags, taskContextSearchParams, modulePreferences],
-  );
-
-  const publishingMenuItems = useMemo(
-    () =>
-      PUBLISHING_MENU_ITEMS.map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [taskContextSearchParams],
+    [isReleasePreview, taskContextSearchParams],
   );
 
   const libraryMenuItems = useMemo(
@@ -360,13 +373,15 @@ export function useAppProtectedLayout(
 
   const analyticsMenuItems = useMemo(
     () =>
-      getAnalyticsMenuItemsForScope(brandSlug).map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [brandSlug, taskContextSearchParams],
+      getAnalyticsMenuItemsForScope(brandSlug)
+        .filter((item) => !item.isFounderOnly || isReleasePreview)
+        .map(
+          (item): MenuItemConfig => ({
+            ...item,
+            href: withTaskContextHref(item.href, taskContextSearchParams),
+          }),
+        ),
+    [brandSlug, isReleasePreview, taskContextSearchParams],
   );
 
   const discoveryMenuItems = useMemo(

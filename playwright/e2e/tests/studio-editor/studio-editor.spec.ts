@@ -291,7 +291,7 @@ test.describe('Studio Editor', () => {
   });
 
   test.describe('Studio Editor Navigation', () => {
-    test('should navigate from studio hub to editor', async ({
+    test('should open Editor from the Apps launcher', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage);
@@ -299,10 +299,12 @@ test.describe('Studio Editor', () => {
 
       await assertRouteRenders(authenticatedPage, studioPage.url);
 
-      // The Studio app nav (studio-menu-items.config.ts) links to Editor.
+      // Studio tools are separate apps (#5502): Playground's nav does not list
+      // Editor, so the member opens it from the Apps launcher.
+      const rail = authenticatedPage.getByTestId('desktop-app-rail');
+      await rail.getByTestId('app-rail-launcher').click();
       await authenticatedPage
-        .getByRole('complementary', { exact: true, name: 'Navigation' })
-        .getByRole('link', { exact: true, name: 'Editor' })
+        .getByTestId('app-rail-launcher-item-editor')
         .click();
 
       await expect(authenticatedPage).toHaveURL(new RegExp(`${EDIT_ROUTE}$`));
