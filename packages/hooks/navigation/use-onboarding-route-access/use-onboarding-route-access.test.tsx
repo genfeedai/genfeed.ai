@@ -100,11 +100,26 @@ describe('agent-first route access', () => {
       state.needsOnboarding = false;
       state.isOnboardingCompleted = true;
     });
-    it('does not bounce agent-first users to the classic summary step', () => {
+    it('sends agent-first users to the credits page instead of the classic summary', () => {
       const { result } = renderHook(() =>
         useOnboardingRouteAccess('/acme/brand/settings/brand-kit'),
       );
-      expect(result.current).toEqual({ canRender: true, redirectTarget: null });
+      expect(result.current).toEqual({
+        canRender: false,
+        redirectTarget: '/acme/~/settings/credits',
+      });
+    });
+    it('does not loop once the user is on the credits or subscription page', () => {
+      for (const path of [
+        '/acme/~/settings/credits',
+        '/acme/~/settings/subscription',
+      ]) {
+        const { result } = renderHook(() => useOnboardingRouteAccess(path));
+        expect(result.current).toEqual({
+          canRender: true,
+          redirectTarget: null,
+        });
+      }
     });
     it('keeps the summary paywall on agent-off surfaces', () => {
       state.isAgentFirst = false;
