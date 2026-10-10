@@ -1019,6 +1019,17 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
     /**
+     * HeyGen Voice (`heygen-voice-1`) on the synchronous
+     * `POST /v3/models/audio/tts`. It speaks only with a HeyGen Voice clone
+     * (`voice_id`) that the API key's workspace owns; text is 1–5,000 characters.
+     */
+    [MODEL_KEYS.HEYGEN_VOICE]: {
+      category: ModelCategory.VOICE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    /**
      * HeyGen Video (`heygen-video-1`) on the HeyGen v3 models API.
      * Duration is 5–15s. Image-to-video uses one still; extra stills or
      * clips switch the request to reference-to-video.

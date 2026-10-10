@@ -69,6 +69,7 @@ export class RouterService {
       ModelCategory.IMAGE,
       ModelCategory.IMAGE_EDIT,
       ModelCategory.VIDEO,
+      ModelCategory.VOICE,
     ]);
 
   /** Cheaper wins the tiebreak between two models of equal quality. */

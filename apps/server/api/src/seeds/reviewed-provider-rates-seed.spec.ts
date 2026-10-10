@@ -349,3 +349,108 @@ describe('rate sheet frozen variant metadata', () => {
     expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
   });
 });
+
+describe('HeyGen rate sheet entries', () => {
+  const NOW = '2026-12-31T00:00:00Z';
+
+  function heygenEntry(endpoint: string): ReviewedRateSheetEntry {
+    const entry = REVIEWED_RATE_SHEET_ENTRIES.find(
+      (candidate) => candidate.endpoint === endpoint,
+    );
+    if (!entry) throw new Error(`The sheet must carry ${endpoint}`);
+    return entry;
+  }
+
+  /** Seed the entry against a bare registry row and project its billing profile. */
+  async function seededProfile(endpoint: string) {
+    const prisma = harness(
+      modelRow({
+        endpoint,
+        key: endpoint,
+        provider: 'heygen',
+        providerInputSchema: null,
+      }),
+      undefined,
+      [],
+    );
+    const written = await seedReviewedProviderRates(prisma as never, [
+      heygenEntry(endpoint),
+    ]);
+    expect(written).toBe(1);
+    const create =
+      prisma.modelProviderContract.upsert.mock.calls[0]?.[0].create;
+    const profile = projectModelBillablePricingProfile(
+      {
+        ...modelRow({ endpoint, key: endpoint, provider: 'heygen' }),
+        cost: 0,
+        costPerUnit: null,
+        isActive: true,
+        isDeleted: false,
+        minCost: null,
+        pendingProviderContractVersion: null,
+        pricingType: 'flat',
+        providerCostUsd: null,
+        providerInputSchema: create.inputSchema,
+        reviewedProviderContractVersion: create.version,
+      } as never,
+      [
+        {
+          ...create,
+          discoveredAt: new Date(create.discoveredAt),
+          lastSeenAt: new Date(create.lastSeenAt),
+        },
+      ],
+    );
+    return { create, prisma, profile };
+  }
+
+  it('seeds HeyGen from the shipped schema fixtures without an observed contract', async () => {
+    const { create, prisma } = await seededProfile('heygen/heygen-voice-1');
+
+    expect(create).toMatchObject({
+      endpoint: 'heygen/heygen-voice-1',
+      provider: 'heygen',
+      reviewStatus: 'approved',
+      reviewedBy: RATE_SHEET_REVIEWER,
+      schemaFamily: 'heygen-speech-v1',
+    });
+    expect(create.outputSchema).toHaveProperty('properties.audio_url');
+    expect(prisma.model.updateMany.mock.calls[0]?.[0].data).toMatchObject({
+      providerSchemaFamily: 'heygen-speech-v1',
+      providerSyncStatus: 'fresh',
+    });
+  });
+
+  it('quotes HeyGen Voice per submitted character at the list price and 3.33x margin', async () => {
+    const { profile } = await seededProfile('heygen/heygen-voice-1');
+    const quote = (characters: number) =>
+      quoteModelBillablePricing(
+        profile,
+        {
+          characters,
+          modelKey: 'heygen/heygen-voice-1',
+          provider: 'heygen',
+        },
+        3.33,
+        NOW,
+      );
+
+    expect(quote(1000)).toMatchObject({
+      snapshot: { credits: 10, providerCostUsd: 0.03 },
+      status: 'priced',
+    });
+    expect(quote(5000)).toMatchObject({
+      snapshot: { credits: applyMargin(0.15, 3.33), providerCostUsd: 0.15 },
+      status: 'priced',
+    });
+    // Without a character count the request is unpriceable, never flat-billed.
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        { modelKey: 'heygen/heygen-voice-1', provider: 'heygen' },
+        3.33,
+        NOW,
+      ),
+    ).toMatchObject({ status: 'unresolved' });
+  });
+});
