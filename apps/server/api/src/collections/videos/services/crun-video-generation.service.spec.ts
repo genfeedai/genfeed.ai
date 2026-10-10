@@ -3,6 +3,7 @@ import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { mediaGenerationReceiptsStub } from '@api/shared/testing/media-generation-receipts.stub';
 import { MetadataExtension } from '@genfeedai/contracts';
 import { VideoGenerationSerializer } from '@genfeedai/serializers';
 
@@ -57,6 +58,7 @@ function fixture() {
     } as never,
     prisma as never,
     {} as never,
+    mediaGenerationReceiptsStub(),
   );
   return { service, preview, tasks, shared, prisma };
 }

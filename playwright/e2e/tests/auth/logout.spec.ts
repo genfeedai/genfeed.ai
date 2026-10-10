@@ -91,7 +91,7 @@ test.describe('Logout Flow', () => {
 
       await simulateSessionExpiry(authenticatedPage);
 
-      await authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.PLAYGROUND);
 
       const url = authenticatedPage.url();
       const isOnProtectedPage =
@@ -149,7 +149,9 @@ test.describe('Logout Flow', () => {
       authenticatedPage,
     }) => {
       // Start navigating
-      const navigationPromise = authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
+      const navigationPromise = authenticatedPage.goto(
+        APP_ROUTES.STUDIO.PLAYGROUND,
+      );
 
       // Simulate logout mid-navigation
       await authenticatedPage.waitForTimeout(100);

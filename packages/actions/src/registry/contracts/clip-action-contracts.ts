@@ -1,3 +1,8 @@
+import {
+  CLIP_PROCESSING_FLOWS,
+  CLIP_SOURCE_KINDS,
+  CLIP_SOURCE_STATUSES,
+} from '@genfeedai/contracts/interfaces/content/clip-source.interface';
 import type { ActionJsonSchema } from '../../interfaces/action-definition.interface';
 import type { ActionContractSchemas } from './action-contract.interface';
 import {
@@ -37,24 +42,17 @@ const CLIP_SOURCE = closedObjectSchema(
     failure: nullableSchema(CLIP_SOURCE_FAILURE),
     filename: STRING_SCHEMA,
     fingerprint: STRING_SCHEMA,
-    flow: enumSchema(['quick', 'review'] as const),
+    flow: enumSchema(CLIP_PROCESSING_FLOWS),
     ingredientId: STRING_SCHEMA,
     jobId: STRING_SCHEMA,
-    kind: enumSchema(['upload', 'youtube'] as const),
+    // The persisted source contract is the vocabulary; a narrower copy here
+    // rejected Library sources in both the analysis and failure workflows.
+    kind: enumSchema(CLIP_SOURCE_KINDS),
     maxRetries: NUMBER_SCHEMA,
     retryCount: NUMBER_SCHEMA,
     schemaVersion: { const: 1, type: 'number' },
     sizeBytes: NUMBER_SCHEMA,
-    status: enumSchema([
-      'completed',
-      'downloading',
-      'extracting',
-      'failed',
-      'queued',
-      'ready-for-transcription',
-      'uploading',
-      'validating',
-    ] as const),
+    status: enumSchema(CLIP_SOURCE_STATUSES),
     updatedAt: STRING_SCHEMA,
   },
   [

@@ -1,3 +1,4 @@
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type {
   BrandedGenerationPromptInspectionV1,
@@ -60,4 +61,27 @@ export interface BrandedGenerationReceiptInspectorState {
     stage: BrandedGenerationPromptInspectionV1['stage'],
   ) => Promise<void>;
   hidePrompt: (stage: BrandedGenerationPromptInspectionV1['stage']) => void;
+}
+/** How a receipt's state reads in the receipts list. */
+export type GenerationReceiptStatusKey =
+  | 'pending'
+  | 'completed'
+  | 'needsReview'
+  | 'blocked'
+  | 'failed'
+  | 'cancelled';
+/** A receipt's recorded generation cost, without inventing amounts. */
+export type GenerationReceiptCostSummary =
+  | { status: 'known'; credits: number }
+  | { status: 'pending' | 'unavailable' | 'none' };
+export interface GenerationReceiptListItemProps {
+  receipt: BrandedGenerationReceiptReadV1;
+  /** Link that selects the receipt for inspection. */
+  href: string;
+  /** The receipt's output ingredient when it is readable Studio media. */
+  media: IIngredient | null;
+}
+export interface GenerationReceiptMediaPreviewProps {
+  ingredient: IIngredient;
+  label: string;
 }

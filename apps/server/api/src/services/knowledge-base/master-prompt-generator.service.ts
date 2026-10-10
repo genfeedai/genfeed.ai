@@ -141,10 +141,13 @@ export class MasterPromptGeneratorService {
 
       return {
         audience: analysis.audience.join(', '),
+        audienceSegments: analysis.audience,
+        competitors: analysis.strategy.competitors,
         doNotSoundLike: analysis.doNotSoundLike,
         goals: analysis.strategy.goals,
         hashtags: analysis.hashtags,
         messagingPillars: analysis.messagingPillars,
+        offers: analysis.strategy.offers,
         prompting: analysis.prompting,
         sampleOutput: analysis.sampleOutput,
         taglines: analysis.taglines,

@@ -7,6 +7,7 @@ import {
   type SystemWorkflowActionExecutor,
   type SystemWorkflowActionRequest,
   type SystemWorkflowProvenance,
+  SystemWorkflowTerminalFailures,
   validateDefinition,
 } from '@api/collections/workflows/system-workflow-policy.util';
 import {
@@ -18,6 +19,8 @@ export type {
   SystemWorkflowActionExecutor,
   SystemWorkflowActionRequest,
   SystemWorkflowProvenance,
+  SystemWorkflowTerminalFailureHandler,
+  SystemWorkflowTerminalFailureRequest,
 } from '@api/collections/workflows/system-workflow-policy.util';
 
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -100,6 +103,7 @@ export class SystemWorkflowRunnerService
   private readonly moduleCompletionNodes = new AsyncLocalStorage<
     ReadonlySet<string>
   >();
+  readonly terminalFailures = new SystemWorkflowTerminalFailures();
   private readonly workflowDefinitions = new Map<
     string,
     SystemWorkflowGraphDefinition

@@ -610,6 +610,34 @@ describe('SystemWorkflowRunnerService definitions', () => {
     ).toBeUndefined();
   });
 
+  it('settles a double failure through the registered last resort only', async () => {
+    const { runner } = createRunner();
+    const handler = vi.fn().mockResolvedValue(undefined);
+    const input = {
+      canonicalId: 'clip.analysis',
+      inputValues: { job: { projectId: 'project-1' } },
+      organizationId: 'org-1',
+    };
+
+    await expect(
+      runner.terminalFailures.settle(input, 'compensation failed'),
+    ).resolves.toBe(false);
+
+    runner.terminalFailures.register('clip.analysis', handler);
+    expect(() =>
+      runner.terminalFailures.register('clip.analysis', handler),
+    ).toThrow('Duplicate system workflow terminal failure handler');
+
+    await expect(
+      runner.terminalFailures.settle(input, 'compensation failed'),
+    ).resolves.toBe(true);
+    expect(handler).toHaveBeenCalledWith({
+      inputValues: input.inputValues,
+      organizationId: 'org-1',
+      workflowError: 'compensation failed',
+    });
+  });
+
   it.each([
     'agent.turn.execute',
     'agent.thread.ui-action',

@@ -22,7 +22,25 @@ const CONTEXT: ToolExecutionContext = {
 function createHandler(options?: { brand?: Record<string, unknown> }) {
   const brandsService = {
     findOne: vi.fn().mockResolvedValue(options?.brand ?? null),
-    updateAgentConfig: vi.fn().mockResolvedValue({ id: 'brand-1' }),
+    updateAgentConfig: vi
+      .fn()
+      .mockImplementation(
+        async (id: string, _organizationId: string, agentConfig: unknown) => ({
+          agentConfig,
+          id,
+        }),
+      ),
+  };
+  const credentialsService = {
+    findConnectedAccounts: vi.fn().mockResolvedValue([]),
+  };
+  const onboardingCreditGrantsService = {
+    grantOnboardingAnswerCredits: vi
+      .fn()
+      .mockImplementation(
+        async (_organizationId: string, _brandId: string, fieldIds: string[]) =>
+          fieldIds,
+      ),
   };
   const signupPrefillService = { scanBrandUrl: vi.fn() };
   const loggerService = { error: vi.fn(), warn: vi.fn() };
@@ -40,10 +58,14 @@ function createHandler(options?: { brand?: Record<string, unknown> }) {
     organizationsService as never,
     usersService as never,
     userAccessCacheService as never,
+    credentialsService as never,
+    onboardingCreditGrantsService as never,
   );
   return {
     handler,
     brandsService,
+    credentialsService,
+    onboardingCreditGrantsService,
     signupPrefillService,
     loggerService,
     organizationsService,
@@ -95,12 +117,24 @@ describe('saveOnboardingAnswers', () => {
           topics: ['AI'],
         },
         voice: { tone: 'Friendly', style: 'Concise', bannedPhrases: ['hype'] },
+        onboardingAnswers: {
+          fields: {
+            goals: { status: 'answered', updatedAt: expect.any(String) },
+            platforms: { status: 'answered', updatedAt: expect.any(String) },
+            tone: { status: 'answered', updatedAt: expect.any(String) },
+            cadence: { status: 'answered', updatedAt: expect.any(String) },
+          },
+        },
       },
     );
     expect(result).toMatchObject({
       success: true,
       creditsUsed: 0,
-      data: { brandId: 'brand-1' },
+      data: {
+        brandId: 'brand-1',
+        answeredFields: ['goals', 'platforms', 'tone', 'cadence'],
+        creditsEarned: 20,
+      },
     });
   });
 
@@ -123,6 +157,7 @@ describe('saveOnboardingAnswers', () => {
       CONTEXT.organizationId,
       {
         strategy: { goals: ['Keep'], topics: ['AI'], platforms: [] },
+        onboardingAnswers: { fields: {} },
       },
     );
   });
@@ -134,12 +169,196 @@ describe('saveOnboardingAnswers', () => {
     { cadence: 'x'.repeat(201) },
     { toneAdjustment: 42 },
     { brandId: 42 },
+    { audience: ['a', 'b', 'c'] },
+    { competitors: ['a', 'b', 'c', 'd'] },
+    { offer: ['Memberships'] },
+    { skippedFields: ['website'] },
+    { skippedFields: 'audience' },
+    { audience: ['Gym owners'], skippedFields: ['audience'] },
   ])('rejects malformed or oversized answers %j', async (params) => {
     const { handler, brandsService } = createHandler();
     await expect(
       handler.saveOnboardingAnswers(params, { ...CONTEXT, brandId: 'brand-1' }),
     ).rejects.toThrow();
     expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('persists audience, offer and competitors into the fields generation reads and raises the score', async () => {
+    const { handler, brandsService, onboardingCreditGrantsService } =
+      createHandler({
+        brand: {
+          agentConfig: {
+            strategy: { goals: ['Drive sales'] },
+            voice: { tone: 'Direct', audience: ['Everyone'] },
+          },
+        },
+      });
+    const result = await handler.saveOnboardingAnswers(
+      {
+        audience: ['Gym owners', 'Personal trainers'],
+        offer: '12-week coaching',
+        competitors: ['Forge Fit'],
+      },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-1',
+      CONTEXT.organizationId,
+      {
+        strategy: {
+          goals: ['Drive sales'],
+          offers: ['12-week coaching'],
+          competitors: ['Forge Fit'],
+        },
+        voice: {
+          tone: 'Direct',
+          audience: ['Gym owners', 'Personal trainers'],
+        },
+        onboardingAnswers: {
+          fields: {
+            audience: { status: 'answered', updatedAt: expect.any(String) },
+            offer: { status: 'answered', updatedAt: expect.any(String) },
+            competitors: { status: 'answered', updatedAt: expect.any(String) },
+          },
+        },
+      },
+    );
+    expect(
+      onboardingCreditGrantsService.grantOnboardingAnswerCredits,
+    ).toHaveBeenCalledWith(
+      CONTEXT.organizationId,
+      'brand-1',
+      ['audience', 'offer', 'competitors'],
+      CONTEXT.userId,
+    );
+    expect(result.data).toMatchObject({
+      creditsEarned: 15,
+      rewardedFields: ['audience', 'offer', 'competitors'],
+    });
+    expect(result.data?.completenessScore).toBeGreaterThan(
+      (
+        await createHandler({
+          brand: { agentConfig: { strategy: { goals: ['Drive sales'] } } },
+        }).handler.saveOnboardingAnswers({}, { ...CONTEXT, brandId: 'brand-1' })
+      ).data?.completenessScore as number,
+    );
+  });
+
+  it('records skips without saving a value or granting credits, keeping earlier answers', async () => {
+    const { handler, brandsService, onboardingCreditGrantsService } =
+      createHandler({
+        brand: {
+          agentConfig: {
+            onboardingAnswers: {
+              fields: {
+                goals: {
+                  status: 'answered',
+                  updatedAt: '2026-10-10T00:00:00Z',
+                },
+              },
+            },
+            strategy: { goals: ['Drive sales'] },
+          },
+        },
+      });
+    const result = await handler.saveOnboardingAnswers(
+      { skippedFields: ['competitors', 'competitors'] },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-1',
+      CONTEXT.organizationId,
+      {
+        strategy: { goals: ['Drive sales'] },
+        onboardingAnswers: {
+          fields: {
+            goals: { status: 'answered', updatedAt: '2026-10-10T00:00:00Z' },
+            competitors: { status: 'skipped', updatedAt: expect.any(String) },
+          },
+        },
+      },
+    );
+    expect(
+      onboardingCreditGrantsService.grantOnboardingAnswerCredits,
+    ).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      answeredFields: [],
+      skippedFields: ['competitors'],
+      creditsEarned: 0,
+    });
+  });
+
+  it('counts keep as a tone answer without overwriting the scanned voice', async () => {
+    const { handler, brandsService } = createHandler({
+      brand: { agentConfig: { voice: { tone: 'Direct' } } },
+    });
+    const result = await handler.saveOnboardingAnswers(
+      { toneAdjustment: 'keep' },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    const saved = brandsService.updateAgentConfig.mock.calls[0]?.[2];
+    expect(saved).not.toHaveProperty('voice');
+    expect(result.data).toMatchObject({ answeredFields: ['tone'] });
+  });
+
+  it('learns tone from Instagram only once the brand has a connected Instagram account', async () => {
+    const { handler, brandsService, credentialsService } = createHandler({
+      brand: { agentConfig: { voice: { tone: 'Direct' } } },
+    });
+    await expect(
+      handler.saveOnboardingAnswers(
+        { toneAdjustment: 'learn_from_instagram' },
+        { ...CONTEXT, brandId: 'brand-1' },
+      ),
+    ).rejects.toThrow('Connect Instagram');
+    expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
+
+    credentialsService.findConnectedAccounts.mockResolvedValue([
+      { id: 'credential-1' },
+    ]);
+    const result = await handler.saveOnboardingAnswers(
+      { toneAdjustment: 'learn_from_instagram' },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(credentialsService.findConnectedAccounts).toHaveBeenCalledWith(
+      CONTEXT.organizationId,
+      'brand-1',
+      'instagram',
+    );
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-1',
+      CONTEXT.organizationId,
+      {
+        strategy: {},
+        onboardingAnswers: {
+          fields: {
+            tone: { status: 'answered', updatedAt: expect.any(String) },
+          },
+          voiceSource: 'instagram',
+        },
+      },
+    );
+    expect(result.data).toMatchObject({ answeredFields: ['tone'] });
+  });
+
+  it('keeps the save when the credit grant fails', async () => {
+    const { handler, onboardingCreditGrantsService, loggerService } =
+      createHandler({ brand: { agentConfig: {} } });
+    onboardingCreditGrantsService.grantOnboardingAnswerCredits.mockRejectedValue(
+      new Error('ledger down'),
+    );
+    const result = await handler.saveOnboardingAnswers(
+      { goals: ['Drive sales'] },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(result).toMatchObject({
+      success: true,
+      data: { answeredFields: ['goals'], creditsEarned: 0 },
+    });
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      'Onboarding answer credit grant failed',
+      expect.objectContaining({ error: 'ledger down' }),
+    );
   });
 
   it('rejects a brand outside the current thread', async () => {

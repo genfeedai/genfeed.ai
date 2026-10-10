@@ -6,18 +6,16 @@ import {
   QualityTier,
   SubscriptionTier,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { QUALITY_TIER_OPTIONS, TIER_QUALITY_ACCESS } from '@genfeedai/helpers';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import type { ModalUpgradePromptProps } from '@genfeedai/props/modals/modal-upgrade-prompt.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, Check, Lock, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Coins, Lock, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
-
-interface ModalUpgradePromptProps {
-  currentTier?: SubscriptionTier;
-  lockedQualityTier?: QualityTier;
-}
 
 const TIER_LABELS: Record<SubscriptionTier, string> = {
   [SubscriptionTier.FREE]: 'Free',
@@ -73,12 +71,94 @@ const UPGRADE_TIERS = [
   },
 ];
 
+function useAppNavigation() {
+  const [isNavigating, setIsNavigating] = useState(false);
+  const { orgHref } = useOrgUrl();
+
+  const navigateTo = useCallback(
+    (path: string) => {
+      setIsNavigating(true);
+      const appUrl = EnvironmentService.apps.app;
+      window.location.href = `${appUrl}${orgHref(path)}`;
+    },
+    [orgHref],
+  );
+
+  return { isNavigating, navigateTo };
+}
+
+/**
+ * Shown whenever the API refuses a credit-spending action with
+ * `INSUFFICIENT_CREDITS` (generate, clips, batch, editor renders, agent runs).
+ * Admission is all-or-nothing, so this is also the answer when some credits
+ * are left but not enough for the action. Read-only pages stay reachable.
+ */
+function CreditsRequiredPrompt() {
+  const translate = useTranslations('ui.creditsRequiredPrompt');
+  const { isNavigating, navigateTo } = useAppNavigation();
+
+  return (
+    <Modal id={ModalEnum.CREDITS_REQUIRED} title={translate('title')}>
+      <div className="space-y-6 py-2">
+        <div className="flex items-start gap-3 p-4 bg-primary/5 shadow-border">
+          <Coins className="size-5 text-primary flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {translate('heading')}
+            </p>
+            <p className="text-xs text-foreground/50 mt-1">
+              {translate('body')}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => navigateTo(APP_ROUTES.SETTINGS.CREDITS)}
+            isDisabled={isNavigating}
+            isLoading={isNavigating}
+            className="w-full"
+          >
+            {translate('buyCredits')}
+            <ArrowRight className="size-4" />
+          </Button>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => navigateTo(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
+            isDisabled={isNavigating}
+            className="w-full"
+          >
+            {translate('seePlans')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function ModalUpgradePrompt({
   currentTier = SubscriptionTier.FREE,
   lockedQualityTier,
+  reason = 'plan',
 }: ModalUpgradePromptProps) {
-  const [isNavigating, setIsNavigating] = useState(false);
-  const { orgHref } = useOrgUrl();
+  if (reason === 'credits') {
+    return <CreditsRequiredPrompt />;
+  }
+
+  return (
+    <PlanUpgradePrompt
+      currentTier={currentTier}
+      lockedQualityTier={lockedQualityTier}
+    />
+  );
+}
+
+function PlanUpgradePrompt({
+  currentTier = SubscriptionTier.FREE,
+  lockedQualityTier,
+}: ModalUpgradePromptProps) {
+  const { isNavigating, navigateTo } = useAppNavigation();
 
   const requiredTier = lockedQualityTier
     ? getRequiredTierForQuality(lockedQualityTier)
@@ -89,10 +169,8 @@ export default function ModalUpgradePrompt({
     : undefined;
 
   const handleUpgrade = useCallback(() => {
-    setIsNavigating(true);
-    const appUrl = EnvironmentService.apps.app;
-    window.location.href = `${appUrl}${orgHref('/settings/subscription')}`;
-  }, [orgHref]);
+    navigateTo(APP_ROUTES.SETTINGS.SUBSCRIPTION);
+  }, [navigateTo]);
 
   return (
     <Modal id={ModalEnum.UPGRADE_PROMPT} title="Upgrade Your Plan">

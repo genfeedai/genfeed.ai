@@ -11,8 +11,20 @@ const messagesUnread = vi.hoisted(() => ({
 }));
 vi.mock('@/components/shell/use-pinned-rail-apps', () => ({
   usePinnedRailApps: () => ({
-    pinnedAppIds: ['studio'],
+    pinnedAppIds: ['playground'],
     togglePin: vi.fn(),
+  }),
+}));
+const installedApps = vi.hoisted(() => ({
+  installedAppIds: ['playground', 'turbo'] as string[],
+  status: 'ready' as 'loading' | 'ready' | 'error',
+}));
+vi.mock('@/components/shell/installed-apps.provider', () => ({
+  useInstalledApps: () => ({
+    ...installedApps,
+    install: vi.fn(),
+    pendingAppIds: [],
+    uninstall: vi.fn(),
   }),
 }));
 vi.mock('@/components/shell/use-messages-unread-count', () => ({
@@ -70,7 +82,6 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
     library: 'Library',
     messages: 'Messages',
     publishing: 'Publishing',
-    studio: 'Studio',
     workspace: 'Workspace',
   },
   APP_ROUTE_PREFIXES: {
@@ -94,6 +105,7 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
       PUBLISHING: '/settings/publishing',
     },
     SIGN_UP: '/signup',
+    STORE: { ROOT: '/store' },
     WORKSPACE: {
       ACTIVITY: '/workspace/activity',
       OVERVIEW: '/workspace/overview',
@@ -206,7 +218,7 @@ describe('AppProtectedRail', () => {
           workspace: { count: 4, kind: 'dot', label: 'workspaceBadge' },
           messages: { count: 0, label: '0 unread conversations' },
         },
-        pinnedAppIds: ['studio'],
+        pinnedAppIds: ['playground'],
         surface: 'desktop',
       }),
     );
@@ -259,7 +271,7 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         surface: 'drawer',
-        pinnedAppIds: ['studio'],
+        pinnedAppIds: ['playground'],
         modulePreferences: expect.objectContaining({
           playground: true,
           storyboard: true,
@@ -278,7 +290,39 @@ describe('AppProtectedRail', () => {
     brandContextState.settingsLoading = true;
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ modulePreferences: null }),
+      expect.objectContaining({ moduleAccess: null, modulePreferences: null }),
+    );
+  });
+
+  it('feeds the launcher confirmed installs, module access and the Store (#5502)', () => {
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        installedAppIds: ['playground', 'turbo'],
+        isFounderOperator: false,
+        moduleAccess: expect.objectContaining({
+          playground: { isAllowed: true, reason: null },
+          clips: { isAllowed: false, reason: 'unreleased' },
+        }),
+        storeHref: '/acme/~/store',
+      }),
+    );
+  });
+
+  it('shows no launcher apps until installs are confirmed', () => {
+    installedApps.status = 'loading';
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ installedAppIds: [] }),
+    );
+    installedApps.status = 'ready';
+  });
+
+  it('opens founder-only apps to the operator', () => {
+    mockAccessState.isSuperAdmin = true;
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isFounderOperator: true }),
     );
   });
 

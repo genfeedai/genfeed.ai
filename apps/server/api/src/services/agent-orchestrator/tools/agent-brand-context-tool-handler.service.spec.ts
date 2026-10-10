@@ -46,7 +46,7 @@ const SNAPSHOT: IAgentBrandContextSnapshot = {
   model: { creditsPerRound: 3, key: 'model-a' },
   query: '',
   skills: [{ isBuiltIn: true, name: 'Hooks', slug: 'hooks' }],
-  systemPrompt: 'You are the GenFeed AI assistant\n\n## Brand: Acme',
+  systemPrompt: 'You are the Genfeed agent.\n\n## Brand: Acme',
 };
 
 const CONTEXT: ToolExecutionContext = {

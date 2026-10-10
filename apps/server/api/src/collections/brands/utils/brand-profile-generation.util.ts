@@ -68,6 +68,8 @@ const PROFILE_OUTPUT_CONTRACT = `Return one JSON object with these exact fields:
 - sampleOutput: one short example paragraph in the brand voice
 - topics: 3-6 canonical content topics grounded in the supplied brand information
 - goals: 1-4 measurable content or business goals grounded in the supplied brand information
+- offers: 0-4 products, services or offers the supplied brand information names, each a short noun phrase; empty when none are named
+- competitors: 0-3 competitor brands the supplied brand information names explicitly (for example in comparison or "alternative to" copy); empty when none are named, never guessed
 - promptSeeds: exactly 6 objects with topic, angle, audience, and preferredFormats
 
 Each prompt seed must use a topic from topics or messagingPillars. preferredFormats may only contain article, carousel, image, post, short-video, or video. Do not invent products, platforms, proof, performance data, or campaigns.`;
@@ -394,7 +396,9 @@ export function parseGeneratedBrandProfile(
     ),
     sampleOutput: readClampedProfileText(record.sampleOutput, 1000),
     strategy: {
+      competitors: readStringList(record.competitors, 3),
       goals: readStringList(record.goals, 4),
+      offers: readStringList(record.offers, 4),
       topics: canonicalTopics,
     },
     style,

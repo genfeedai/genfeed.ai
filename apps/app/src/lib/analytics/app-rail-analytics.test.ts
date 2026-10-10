@@ -10,7 +10,7 @@ describe('rail analytics', () => {
     (via) => {
       const event = {
         from_app: 'agent',
-        to_app: 'studio',
+        to_app: 'playground',
         via,
         surface: 'desktop',
         orgSlug: 'private-org',
@@ -20,7 +20,7 @@ describe('rail analytics', () => {
       captureAppRailNavigation(event);
       expect(captureAnalyticsEvent).toHaveBeenLastCalledWith(
         'app_rail_navigated',
-        { from_app: 'agent', to_app: 'studio', via, surface: 'desktop' },
+        { from_app: 'agent', to_app: 'playground', via, surface: 'desktop' },
       );
     },
   );

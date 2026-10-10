@@ -16,6 +16,7 @@ import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
 } from '@api/services/harness/media-prompt-enhancement.service';
+import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { VideoGenerationSerializer } from '@genfeedai/serializers';
@@ -529,6 +530,14 @@ describe('VideosController', () => {
         VideoGenerationCompletionService,
         VideoGenerationCreditsService,
         VideoGenerationExecutionService,
+        {
+          provide: MediaGenerationReceiptsService,
+          useValue: {
+            open: vi.fn().mockResolvedValue(undefined),
+            recordAccepted: vi.fn().mockResolvedValue(undefined),
+            syncTerminal: vi.fn().mockResolvedValue(undefined),
+          },
+        },
         VideoGenerationPreparationService,
         VideoGenerationProviderDispatchService,
         VideoGenerationService,

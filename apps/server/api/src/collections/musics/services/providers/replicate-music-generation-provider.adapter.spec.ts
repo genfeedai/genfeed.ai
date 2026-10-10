@@ -71,10 +71,35 @@ describe('ReplicateMusicGenerationProviderAdapter', () => {
           seed: -1,
         }),
       );
-      expect(replicateService.runModel).toHaveBeenCalledWith('meta/musicgen', {
-        prompt: 'built prompt',
-      });
+      expect(replicateService.runModel).toHaveBeenCalledWith(
+        'meta/musicgen',
+        {
+          prompt: 'built prompt',
+        },
+        undefined,
+      );
       expect(result).toEqual({ externalId: 'generation-1' });
+    });
+
+    it("runs on the organization's own key when one is supplied", async () => {
+      const promptBuilderService = {
+        buildPrompt: vi.fn().mockResolvedValue({ input: { prompt: 'p' } }),
+      };
+      const replicateService = {
+        runModel: vi.fn().mockResolvedValue('generation-1'),
+      };
+      const adapter = new ReplicateMusicGenerationProviderAdapter(
+        promptBuilderService as never,
+        replicateService as never,
+      );
+
+      await adapter.generate(buildRequest({ apiKeyOverride: 'byok-key' }));
+
+      expect(replicateService.runModel).toHaveBeenCalledWith(
+        'meta/musicgen',
+        { prompt: 'p' },
+        'byok-key',
+      );
     });
 
     it('passes through supported DTO sampling params', async () => {

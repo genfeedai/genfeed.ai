@@ -67,9 +67,12 @@ const step = (
       type: enumSchema([type] as const),
       voiceId: STRING_SCHEMA,
     },
+    // A music step without a model resolves the saved or registry default.
     type === 'text-to-speech'
       ? ['model', 'type', 'voiceId']
-      : ['model', 'type'],
+      : type === 'text-to-music'
+        ? ['type']
+        : ['model', 'type'],
   );
 const ANY_STEP = {
   oneOf: [

@@ -29,7 +29,7 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
     creditCost: 0,
     requiredRole: 'user',
     description:
-      'Save the onboarding answers chosen by the user to the current brand strategy and voice, preserving other settings.',
+      'Save onboarding card answers to the current brand strategy and voice right after each card, preserving other settings. Records skipped cards in skippedFields. Grants +5 credits once per answered card; returns the updated brand context score.',
     parameters: {
       type: 'object',
       required: [],
@@ -39,6 +39,33 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
           type: 'array',
           maxItems: 10,
           items: { type: 'string', minLength: 1, maxLength: 200 },
+        },
+        audience: {
+          type: 'array',
+          maxItems: 2,
+          items: { type: 'string', minLength: 1, maxLength: 200 },
+        },
+        offer: { type: 'string', minLength: 1, maxLength: 200 },
+        competitors: {
+          type: 'array',
+          maxItems: 3,
+          items: { type: 'string', minLength: 1, maxLength: 200 },
+        },
+        skippedFields: {
+          type: 'array',
+          maxItems: 7,
+          items: {
+            type: 'string',
+            enum: [
+              'goals',
+              'audience',
+              'offer',
+              'competitors',
+              'platforms',
+              'tone',
+              'cadence',
+            ],
+          },
         },
         platforms: {
           type: 'array',

@@ -189,6 +189,37 @@ describe('ContentProductionWorkflowService atomic actions', () => {
     },
   );
 
+  it('leaves the audio step model unset so it resolves the saved or registry music default', async () => {
+    const { service } = buildService();
+    const result = await service.prepareContentPipelinePersona({
+      item: {
+        brandId: 'brand-1',
+        config: {
+          contentStrategy: {
+            formats: [PersonaContentFormat.AUDIO],
+            topics: ['shipping'],
+          },
+          profileImageUrl: 'https://cdn.example.com/persona.png',
+        },
+        credentialCount: 1,
+        id: 'persona-1',
+        label: 'Founder',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      now: '2026-08-28T00:00:00.000Z',
+    });
+
+    const [request] = result.musicItems as Array<{
+      step: Record<string, unknown>;
+    }>;
+    expect(request?.step).toEqual({
+      duration: 8,
+      prompt: expect.any(String),
+      type: 'text-to-music',
+    });
+  });
+
   it.each([
     [
       PersonaContentFormat.PHOTO,

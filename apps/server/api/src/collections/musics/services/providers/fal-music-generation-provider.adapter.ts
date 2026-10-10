@@ -56,9 +56,11 @@ export class FalMusicGenerationProviderAdapter
       normalized.duration,
     );
 
-    const data = (await this.falService.run(endpoint, input)) as
-      | FalMusicResponseData
-      | undefined;
+    const data = (await this.falService.run(
+      endpoint,
+      input,
+      request.apiKeyOverride,
+    )) as FalMusicResponseData | undefined;
     const audioUrl =
       data?.audio?.url ??
       data?.audio_file?.url ??

@@ -6,6 +6,7 @@ import {
   findAgentStreamEntry,
   projectAgentStreamEntry,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
+import { useOnboardingBrandContext } from '@genfeedai/agent/hooks/use-onboarding-brand-context';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -201,6 +202,17 @@ export function useAgentFullPage({
   const hasThreadOutputs = threadOutputs.length > 0;
 
   const agentSetup = useAgentSetupStatus();
+  const pendingInputRequestId = useAgentChatStore(
+    (s) => s.pendingInputRequest?.inputRequestId ?? '',
+  );
+  // A saved onboarding answer lands mid-turn and the next card follows it, so
+  // a new message or card is the signal to refresh the brand-context score.
+  const onboardingBrandContext = useOnboardingBrandContext({
+    apiService,
+    brandId: activeThreadBrandId ?? agentSetup.brand?.id,
+    isEnabled: onboardingMode && authReady,
+    refreshKey: `${existingMessages.length}:${existingMessages.at(-1)?.id ?? ''}:${pendingInputRequestId}`,
+  });
   // Thread outputs take priority over the setup panel: only offer setup in the
   // right pane / mobile drawer when the active thread has produced nothing yet.
   const showSetupPanel = agentSetup.showSetupPanel && !hasThreadOutputs;
@@ -734,6 +746,7 @@ export function useAgentFullPage({
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,
+    onboardingBrandContext,
     onboardingCompletionPercent,
     onboardingEarnedCredits,
     onboardingSignupGiftCredits,

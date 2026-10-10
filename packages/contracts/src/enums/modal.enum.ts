@@ -15,6 +15,7 @@ export enum ModalEnum {
   CLIP = 'modal-clip',
   CONFIRM = 'modal-confirm',
   CREDENTIAL = 'modal-credential',
+  CREDITS_REQUIRED = 'modal-credits-required',
   ERROR_DEBUG = 'modal-error-debug',
   EXPORT = 'modal-export',
   FOLDER = 'modal-folder',

@@ -393,6 +393,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
 
         setProject({
           clips: [],
+          error: data.error,
           highlights,
           hookApproval,
           mode,
@@ -888,6 +889,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
                   transcriptText:
                     projectData.transcriptText ?? prev.transcriptText,
                   source: projectData.source ?? prev.source,
+                  error: projectData.error ?? prev.error,
                   status: 'failed',
                 }
               : prev,
@@ -1026,6 +1028,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
                     updatedAt: new Date().toISOString(),
                   }
                 : undefined,
+              error: null,
               status: 'pending',
             }
           : previous,
@@ -1051,7 +1054,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
       await clipsService.retryFailedClips(project.projectId);
       clipCompletionReportedRef.current = null;
       setProject((previous) =>
-        previous ? { ...previous, status: 'generating' } : previous,
+        previous
+          ? { ...previous, error: null, status: 'generating' }
+          : previous,
       );
     } catch (retryError: unknown) {
       setError(
@@ -1215,6 +1220,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
                 transcriptText:
                   projectData.transcriptText ?? prev.transcriptText,
                 clips,
+                error: projectData.error ?? null,
                 hookApproval,
                 source: projectData.source ?? prev.source,
                 status: projectStatus,

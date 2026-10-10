@@ -176,6 +176,7 @@ function PresetsListContent({
       notificationsService.success(
         `Preset ${newValue ? 'activated' : 'deactivated'}`,
       );
+      refreshPresets();
     } catch (error) {
       logger.error(`${url} failed`, error);
       notificationsService.error('Failed to update preset');

@@ -58,6 +58,7 @@ export class ReplicateMusicGenerationProviderAdapter
     const generationId = await this.replicateService.runModel(
       request.modelEndpoint,
       input,
+      request.apiKeyOverride,
     );
 
     if (!generationId) {

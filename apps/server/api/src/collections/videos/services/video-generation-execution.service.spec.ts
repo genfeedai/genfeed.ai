@@ -65,6 +65,10 @@ describe('VideoGenerationExecutionService', () => {
       publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
     };
 
+    const mediaReceipts = {
+      open: vi.fn().mockResolvedValue(undefined),
+      recordAccepted: vi.fn().mockResolvedValue(undefined),
+    };
     const service = new VideoGenerationExecutionService(
       activitiesService as never,
       failedGenerationService as never,
@@ -77,9 +81,11 @@ describe('VideoGenerationExecutionService', () => {
       videosService as never,
       websocketService as never,
       webhooksService as never,
+      mediaReceipts as never,
     );
 
     return {
+      mediaReceipts,
       generationBilling,
       metadataService,
       videosService,
@@ -356,6 +362,82 @@ describe('VideoGenerationExecutionService', () => {
     ).toEqual([
       { credits: 3, ingredientId: 'ingredient-1' },
       { credits: 3, ingredientId: 'ingredient-2' },
+    ]);
+  });
+
+  it('opens one receipt per admitted output and records each acceptance without waiting on receipt writes', async () => {
+    const { service, mediaReceipts, providerDispatchService, sharedService } =
+      createHarness();
+    // A receipt write that never settles must not hold back dispatch.
+    mediaReceipts.open.mockReturnValue(new Promise(() => undefined));
+    mediaReceipts.recordAccepted.mockReturnValue(new Promise(() => undefined));
+    sharedService.createMediaDocuments.mockResolvedValue({
+      ingredientData: { id: 'ingredient-2' },
+      metadataData: { id: 'metadata-2' },
+    });
+    providerDispatchService.dispatch.mockImplementation(async () => {
+      expect(mediaReceipts.open).toHaveBeenCalledTimes(
+        providerDispatchService.dispatch.mock.calls.length,
+      );
+      return {
+        completion: 'polling',
+        externalId: `accepted-${providerDispatchService.dispatch.mock.calls.length}`,
+        provider: 'replicate',
+      };
+    });
+
+    await service.execute(
+      buildContext({
+        createVideoDto: { outputs: 2, text: 'typed prompt' } as never,
+        generationHarness: {
+          originalPrompt: 'typed prompt',
+          enhancedPrompt: 'enhanced prompt',
+          status: 'applied',
+          source: 'brand',
+          brandId: 'brand-1',
+          appliedPacks: [],
+        },
+        pendingIngredientIds: ['ingredient-1'],
+      }),
+    );
+
+    expect(mediaReceipts.open.mock.calls.map(([input]) => input)).toEqual([
+      expect.objectContaining({
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        actorId: 'user-1',
+        ingredientId: 'ingredient-1',
+        parentIngredientId: 'ingredient-1',
+        mediaKind: 'video',
+        provider: 'replicate',
+        model: 'replicate/model',
+        originalPrompt: 'typed prompt',
+        enhancedPrompt: 'enhanced prompt',
+        compiledPrompt: 'a video',
+        generationParameters: { width: 1920, height: 1080, outputs: 2 },
+      }),
+      expect.objectContaining({
+        ingredientId: 'ingredient-2',
+        parentIngredientId: 'ingredient-1',
+      }),
+    ]);
+    expect(
+      mediaReceipts.recordAccepted.mock.calls.map(([input]) => input),
+    ).toEqual([
+      {
+        organizationId: 'org-1',
+        ingredientId: 'ingredient-1',
+        provider: 'replicate',
+        model: 'replicate/model',
+        externalId: 'accepted-1',
+      },
+      {
+        organizationId: 'org-1',
+        ingredientId: 'ingredient-2',
+        provider: 'replicate',
+        model: 'replicate/model',
+        externalId: 'accepted-2',
+      },
     ]);
   });
 

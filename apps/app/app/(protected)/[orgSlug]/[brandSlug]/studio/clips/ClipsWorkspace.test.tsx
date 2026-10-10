@@ -241,6 +241,67 @@ describe('ClipsWorkspace with the real page-help provider', () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each([0, 3])(
+    'offers source retry from a failed review at attempt %s',
+    (retryCount) => {
+      mocks.useStudioClipProjects.mockReturnValue({
+        error: null,
+        isLoading: false,
+        projects: [],
+      });
+      const handleRetrySource = vi.fn();
+      const resetToInput = vi.fn();
+      mocks.useStudioClipsPage.mockReturnValue(
+        baseClipsPageState({
+          editedHighlights: [],
+          handleRetrySource,
+          isHydrating: false,
+          project: {
+            clips: [],
+            highlights: [],
+            projectId: 'source-1',
+            status: 'failed',
+            source: {
+              failure: {
+                code: 'clip_source_processing_failed',
+                message: 'Audio extraction job 7 failed: Source is unreadable',
+                retryable: true,
+              },
+              flow: 'review',
+              maxRetries: 3,
+              retryCount,
+              status: 'failed',
+            },
+          },
+          resetToInput,
+          step: 'review',
+        }),
+      );
+      render(
+        <PageHelpProvider help={clipsHelp}>
+          <ClipsWorkspace projectId="source-1" />
+        </PageHelpProvider>,
+      );
+
+      expect(
+        screen.getByText('Audio extraction job 7 failed: Source is unreadable'),
+      ).toBeVisible();
+      const retry = screen.getByRole('button', {
+        name: 'Retry source processing',
+      });
+      expect(retry).toHaveProperty('disabled', retryCount === 3);
+      retry.click();
+      expect(handleRetrySource).toHaveBeenCalledTimes(retryCount === 3 ? 0 : 1);
+      expect(
+        screen.queryByText(
+          'Source retry limit reached. No further retries are available.',
+        ),
+      ).toEqual(retryCount === 3 ? expect.anything() : null);
+      screen.getByRole('button', { name: 'Back to projects' }).click();
+      expect(resetToInput).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('renders the restored setup form for a draft project', () => {
     mocks.useStudioClipProjects.mockReturnValue({
       error: null,

@@ -189,4 +189,26 @@ describe('PresetsService', () => {
       where: { id: 'preset-1' },
     });
   });
+
+  it('removes a stored setting that an update clears with null', async () => {
+    const stored = {
+      config: { duration: 5, key: 'studio-animation', label: 'Animation' },
+      id: 'preset-1',
+    };
+    findUnique.mockResolvedValue(stored);
+    findFirst.mockResolvedValue(stored);
+    update.mockImplementation(
+      async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 'preset-1',
+        ...data,
+      }),
+    );
+
+    await service.patch('preset-1', { duration: null, label: 'Animation' });
+
+    expect(update).toHaveBeenCalledWith({
+      data: { config: { key: 'studio-animation', label: 'Animation' } },
+      where: { id: 'preset-1' },
+    });
+  });
 });

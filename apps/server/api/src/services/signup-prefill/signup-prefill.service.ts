@@ -190,6 +190,14 @@ export class SignupPrefillService {
               primaryColor: readString(brand.primaryColor),
               secondaryColor: readString(brand.secondaryColor),
               logoUrl: state.scrapedData?.logoUrl,
+              suggestions: {
+                audiences: (state.brandVoice?.audienceSegments ?? []).slice(
+                  0,
+                  4,
+                ),
+                offers: (state.brandVoice?.offers ?? []).slice(0, 4),
+                competitors: (state.brandVoice?.competitors ?? []).slice(0, 3),
+              },
             }),
           };
         },

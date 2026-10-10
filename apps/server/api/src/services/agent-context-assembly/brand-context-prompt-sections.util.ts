@@ -145,6 +145,14 @@ export function buildStrategyPrompt(
   if (strategy.frequency) {
     parts.push(`- Frequency: ${strategy.frequency}`);
   }
+  if (strategy.offers?.length) {
+    parts.push(`- Offers to drive: ${strategy.offers.join(', ')}`);
+  }
+  if (strategy.competitors?.length) {
+    parts.push(
+      `- Competitors to position against: ${strategy.competitors.join(', ')}`,
+    );
+  }
   return parts.length > 0
     ? {
         header: '## Content Strategy',
