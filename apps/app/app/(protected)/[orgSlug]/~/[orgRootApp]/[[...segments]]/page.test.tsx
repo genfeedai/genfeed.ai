@@ -383,44 +383,57 @@ describe('OrgRootAppPage', () => {
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 
-  it('hands org-scoped /studio/:type off to the Agent', async () => {
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'studio',
-          orgSlug: 'acme',
-          segments: ['music'],
+  it.each([[undefined], [['music']], [['playground', 'extra']]])(
+    'serves no Studio parent or unknown Studio segment %j (#5502)',
+    async (segments) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'studio',
+            orgSlug: 'acme',
+            ...(segments ? { segments } : {}),
+          }),
         }),
-      }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
-    expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
-    expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
-    expect(loadProtectedBootstrapMock).not.toHaveBeenCalled();
-  });
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(redirectMock).not.toHaveBeenCalled();
+      expect(loadProtectedBootstrapMock).not.toHaveBeenCalled();
+    },
+  );
 
-  it('resolves the bare app-rail Studio destination to the persisted last-used brand (#4671)', async () => {
-    loadProtectedBootstrapMock.mockResolvedValue({
-      brandId: 'brand-1',
-      brands: [
-        {
-          id: 'brand-1',
-          organization: { slug: 'acme' },
-          slug: 'moonrise',
-        },
-      ],
-    });
+  it.each([
+    ['playground', '/acme/moonrise/studio/playground'],
+    ['storyboard', '/acme/moonrise/studio/storyboard'],
+    ['batch', '/acme/moonrise/studio/batch'],
+    ['motion', '/acme/moonrise/studio/motion'],
+    ['clips', '/acme/moonrise/studio/clips'],
+  ])(
+    'opens the %s app in the persisted last-used brand (#4671)',
+    async (segment, destination) => {
+      loadProtectedBootstrapMock.mockResolvedValue({
+        brandId: 'brand-1',
+        brands: [
+          {
+            id: 'brand-1',
+            organization: { slug: 'acme' },
+            slug: 'moonrise',
+          },
+        ],
+      });
 
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
-      }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/moonrise/studio/playground');
-    expect(redirectMock).toHaveBeenCalledWith(
-      '/acme/moonrise/studio/playground',
-    );
-  });
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'studio',
+            orgSlug: 'acme',
+            segments: [segment],
+          }),
+        }),
+      ).rejects.toThrow(`NEXT_REDIRECT:${destination}`);
+      expect(redirectMock).toHaveBeenCalledWith(destination);
+    },
+  );
 
-  it('falls back to Agent for the bare Studio destination when there is no persisted brand (#4671)', async () => {
+  it('falls back to Agent for a Studio app when there is no persisted brand (#4671)', async () => {
     loadProtectedBootstrapMock.mockResolvedValue({
       brandId: '',
       brands: [],
@@ -428,13 +441,17 @@ describe('OrgRootAppPage', () => {
 
     await expect(
       OrgRootAppPage({
-        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+        params: Promise.resolve({
+          orgRootApp: 'studio',
+          orgSlug: 'acme',
+          segments: ['playground'],
+        }),
       }),
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
   });
 
-  it('falls back to Agent for the bare Studio destination when the persisted brand is stale or deleted (#4671)', async () => {
+  it('falls back to Agent for a Studio app when the persisted brand is stale or deleted (#4671)', async () => {
     loadProtectedBootstrapMock.mockResolvedValue({
       brandId: 'deleted-brand',
       brands: [
@@ -448,13 +465,17 @@ describe('OrgRootAppPage', () => {
 
     await expect(
       OrgRootAppPage({
-        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+        params: Promise.resolve({
+          orgRootApp: 'studio',
+          orgSlug: 'acme',
+          segments: ['playground'],
+        }),
       }),
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
   });
 
-  it('falls back to Agent for the bare Studio destination when the persisted brand belongs to another organization', async () => {
+  it('falls back to Agent for a Studio app when the persisted brand belongs to another organization', async () => {
     loadProtectedBootstrapMock.mockResolvedValue({
       brandId: 'brand-1',
       brands: [
@@ -468,7 +489,11 @@ describe('OrgRootAppPage', () => {
 
     await expect(
       OrgRootAppPage({
-        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+        params: Promise.resolve({
+          orgRootApp: 'studio',
+          orgSlug: 'acme',
+          segments: ['playground'],
+        }),
       }),
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
@@ -794,7 +819,7 @@ describe('OrgRootAppPage', () => {
           segments: ['edit', 'project-1'],
         }),
       }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(screen.queryByTestId('editor-detail-page')).not.toBeInTheDocument();
   });
 

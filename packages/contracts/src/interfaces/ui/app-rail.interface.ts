@@ -1,4 +1,7 @@
-import type { AppRailFeatureFlagKey } from '../../constants/feature-flags.constant';
+import type {
+  AppRailFeatureFlagKey,
+  PlatformStudioFlagKey,
+} from '../../constants/feature-flags.constant';
 import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
 import type { IconComponent } from '../../types/icon';
 import type { AppContext } from './menu-config.interface';
@@ -9,9 +12,12 @@ export interface AppRailItemConfig {
   /** Translation keys relative to common.appRail. */
   label: string;
   description: string;
-  group: 'daily' | 'more' | 'admin';
+  /** `daily` is the fixed core loop; `app` entries open from the Apps launcher. */
+  group: 'daily' | 'app' | 'admin';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
+  /** Platform switch for one Studio surface, under the `studio` module flag. */
+  surfaceFlagKey?: PlatformStudioFlagKey;
   organizationModule?: OrganizationModuleId;
   isBrandAware?: boolean;
   route: (orgSlug: string, brandSlug?: string) => string;

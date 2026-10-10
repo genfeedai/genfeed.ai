@@ -11,7 +11,12 @@ export type AppContext =
   | 'library'
   | 'messages'
   | 'publishing'
-  | 'studio'
+  | 'playground'
+  | 'storyboard'
+  | 'turbo'
+  | 'motion'
+  | 'clips'
+  | 'editor'
   | 'automation'
   | 'analytics';
 

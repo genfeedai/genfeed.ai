@@ -428,28 +428,9 @@ const config = createAppNextConfig({
         `${APP_ROUTES.SETTINGS.ROOT}/${segment}`,
       ),
     })),
-    {
-      destination: APP_ROUTES.STUDIO.PLAYGROUND,
-      permanent: false,
-      source: APP_ROUTES.STUDIO.ROOT,
-    },
-    {
-      // Studio has no root page — Storyboard is the production landing surface.
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.STUDIO.PLAYGROUND,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.STUDIO.ROOT,
-      ),
-    },
-    // Complete-path homes: bare `/[app]` → a named child. Discovery/Studio
-    // already redirect ROOT to one (discovery / storyboard); Library's home is
-    // the asset browser, not an overview tile grid.
+    // Complete-path homes: bare `/[app]` → a named child. Library's home is
+    // the asset browser, not an overview tile grid. Studio has no root: each
+    // Studio tool is its own app (#5502).
     ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appHomeRedirects(APP_ROUTES.AUTOMATION.ROOT),
     ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS),

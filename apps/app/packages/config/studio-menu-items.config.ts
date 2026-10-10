@@ -1,80 +1,124 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Clapperboard, Film, Layers, Scissors, Wand2 } from 'lucide-react';
+import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  AppContext,
+  MenuItemConfig,
+} from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import {
+  Clapperboard,
+  Film,
+  Layers,
+  Scissors,
+  Sparkles,
+  Wand2,
+} from 'lucide-react';
 
 /**
- * Flat nav under the Studio app chrome (no Edit / Automation subgroups) —
- * same shape as Automation and Library.
- *
- * Playground is the Studio home: one prompt bar for every asset type Genfeed can
- * make, brand-enriched, with the asset type as composer state rather than a
- * route segment. Editor is the Remotion timeline (route `/studio/editor`): the
- * finishing surface every video-producing Studio surface hands off to (#5461).
- *
- * Every entry stays inside `/studio` on purpose — a Studio menu item must never
- * hand the operator off to another module app.
+ * Studio tools are separate apps (#5502): each owns its `/studio/<tool>`
+ * routes and its own nav column, and none lists the others. There is no
+ * Studio parent; members reach the next tool from the Apps launcher.
  */
-export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
-  {
-    group: '',
-    href: APP_ROUTES.STUDIO.PLAYGROUND,
-    label: 'Playground',
-    organizationModule: 'playground',
-    matchPaths: [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.PLAYGROUND],
-    outline: Wand2,
-    solid: Wand2,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.STUDIO.MOTION,
-    label: 'Motion',
-    organizationModule: 'motion',
-    matchPaths: [APP_ROUTES.STUDIO.MOTION],
-    outline: Film,
-    solid: Film,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.STUDIO.STORYBOARD,
-    label: 'Storyboard',
-    organizationModule: 'storyboard',
-    matchPaths: [
-      APP_ROUTES.STUDIO.STORYBOARD,
-      APP_ROUTES.STUDIO.STORYBOARD_NEW,
-    ],
-    outline: Clapperboard,
-    solid: Clapperboard,
-  },
-  {
-    // `/studio/clips` shipped a full page and a workspace-shell breadcrumb but
-    // never a nav entry, so it was only reachable by typing the URL.
-    group: '',
-    href: APP_ROUTES.STUDIO.CLIPS,
-    label: 'Clips',
-    organizationModule: 'clips',
-    matchPaths: [APP_ROUTES.STUDIO.CLIPS],
-    outline: Scissors,
-    solid: Scissors,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.STUDIO.BATCH,
-    label: 'Batch',
-    organizationModule: 'batch',
-    matchPaths: [APP_ROUTES.STUDIO.BATCH, APP_ROUTES.STUDIO.BATCH_NEW],
-    outline: Layers,
-    solid: Layers,
-  },
+export const STUDIO_APP_IDS = [
+  'playground',
+  'storyboard',
+  'turbo',
+  'motion',
+  'clips',
+  'editor',
+] as const satisfies readonly AppContext[];
 
-  {
-    // Remotion timeline — the Studio finishing surface. The label matches the
-    // `/studio/editor` route segment users see in the URL.
-    group: '',
-    href: APP_ROUTES.STUDIO.EDITOR,
-    label: 'Editor',
-    organizationModule: 'editor',
-    matchPaths: [APP_ROUTES.STUDIO.EDITOR, APP_ROUTES.STUDIO.EDITOR_NEW],
-    outline: Film,
-    solid: Film,
-  },
-];
+export type StudioAppId = (typeof STUDIO_APP_IDS)[number];
+
+export const STUDIO_APP_MENU_ITEMS: Readonly<
+  Record<StudioAppId, readonly MenuItemConfig[]>
+> = {
+  playground: [
+    {
+      group: '',
+      href: APP_ROUTES.STUDIO.PLAYGROUND,
+      label: APP_DISPLAY_LABELS.playground,
+      organizationModule: 'playground',
+      matchPaths: [APP_ROUTES.STUDIO.PLAYGROUND],
+      outline: Wand2,
+      solid: Wand2,
+    },
+  ],
+  storyboard: [
+    {
+      group: '',
+      href: APP_ROUTES.STUDIO.STORYBOARD,
+      label: APP_DISPLAY_LABELS.storyboard,
+      organizationModule: 'storyboard',
+      matchPaths: [
+        APP_ROUTES.STUDIO.STORYBOARD,
+        APP_ROUTES.STUDIO.STORYBOARD_NEW,
+      ],
+      outline: Clapperboard,
+      solid: Clapperboard,
+    },
+  ],
+  // Turbo runs on the Batch surface until #5936 renames its routes.
+  turbo: [
+    {
+      group: '',
+      href: APP_ROUTES.STUDIO.BATCH,
+      label: APP_DISPLAY_LABELS.turbo,
+      organizationModule: 'batch',
+      matchPaths: [APP_ROUTES.STUDIO.BATCH, APP_ROUTES.STUDIO.BATCH_NEW],
+      outline: Layers,
+      solid: Layers,
+    },
+  ],
+  motion: [
+    {
+      group: '',
+      href: APP_ROUTES.STUDIO.MOTION,
+      label: APP_DISPLAY_LABELS.motion,
+      organizationModule: 'motion',
+      matchPaths: [APP_ROUTES.STUDIO.MOTION],
+      outline: Sparkles,
+      solid: Sparkles,
+    },
+  ],
+  clips: [
+    {
+      group: '',
+      href: APP_ROUTES.STUDIO.CLIPS,
+      label: APP_DISPLAY_LABELS.clips,
+      organizationModule: 'clips',
+      matchPaths: [APP_ROUTES.STUDIO.CLIPS, APP_ROUTES.STUDIO.CLIPS_NEW],
+      outline: Scissors,
+      solid: Scissors,
+    },
+  ],
+  // The Remotion timeline, the finishing surface video apps hand off to.
+  editor: [
+    {
+      group: '',
+      href: APP_ROUTES.STUDIO.EDITOR,
+      label: APP_DISPLAY_LABELS.editor,
+      organizationModule: 'editor',
+      matchPaths: [APP_ROUTES.STUDIO.EDITOR, APP_ROUTES.STUDIO.EDITOR_NEW],
+      outline: Film,
+      solid: Film,
+    },
+  ],
+};
+
+const STUDIO_APP_ROOTS: Readonly<Record<StudioAppId, string>> = {
+  clips: APP_ROUTES.STUDIO.CLIPS,
+  editor: APP_ROUTES.STUDIO.EDITOR,
+  motion: APP_ROUTES.STUDIO.MOTION,
+  playground: APP_ROUTES.STUDIO.PLAYGROUND,
+  storyboard: APP_ROUTES.STUDIO.STORYBOARD,
+  turbo: APP_ROUTES.STUDIO.BATCH,
+};
+
+/** The Studio app that owns a product path such as `/studio/clips/new`. */
+export function getStudioAppForPath(
+  productPath: string,
+): StudioAppId | undefined {
+  return STUDIO_APP_IDS.find((appId) => {
+    const root = STUDIO_APP_ROOTS[appId];
+    return productPath === root || productPath.startsWith(`${root}/`);
+  });
+}

@@ -951,8 +951,8 @@ describe('AppProtectedLayout', () => {
     );
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentApp: 'studio',
-        sectionLabel: 'Studio',
+        currentApp: 'storyboard',
+        sectionLabel: 'Storyboard',
       }),
     );
   });
@@ -1120,7 +1120,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/discovery/ads', 'Discovery', 'Ads'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
-    ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
+    ['/org-123/brand-123/studio/clips', 'Clips', 'Projects'],
     ['/org-123/brand-123/discovery/trends', 'Discovery', 'Trends'],
     [
       '/org-123/brand-123/discovery/trends/detail/trend-1',
@@ -1399,7 +1399,7 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
   });
 
-  it('gives Studio routes their own nav column', () => {
+  it('gives each Studio app its own nav column (#5502)', () => {
     mockPathname.value = '/org-123/brand-123/studio/storyboard';
 
     render(
@@ -1410,8 +1410,8 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentApp: 'studio',
-        sectionLabel: 'Studio',
+        currentApp: 'storyboard',
+        sectionLabel: 'Storyboard',
       }),
     );
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
@@ -1422,7 +1422,8 @@ describe('AppProtectedLayout', () => {
   });
 
   it.each([
-    ['/org-123/brand-123/studio/storyboard', 'studio', 'Studio'],
+    ['/org-123/brand-123/studio/storyboard', 'storyboard', 'Storyboard'],
+    ['/org-123/brand-123/studio/batch/new', 'turbo', 'Turbo'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
     ['/org-123/brand-123/automation/workflows', 'automation', 'Automation'],
@@ -1616,7 +1617,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('shows the credit-only Studio surfaces under cloud defaults', () => {
+  it('lists only the current Studio app in its nav (#5502)', () => {
     mockPathname.value = '/studio/storyboard';
     mockBrandState.settings.hasOrganizationBilling = true;
     render(
@@ -1628,11 +1629,11 @@ describe('AppProtectedLayout', () => {
       appSidebarSpy.mock.lastCall?.[0].items.map(
         (item: MenuItemConfig) => item.href,
       ),
-    ).toEqual(['/studio/playground', '/studio/storyboard']);
+    ).toEqual(['/studio/storyboard']);
     expect(screen.getByText('Existing storyboard')).toBeInTheDocument();
   });
 
-  it('updates Studio navigation without discarding existing project content', () => {
+  it('updates an app nav without discarding existing project content', () => {
     mockPathname.value = '/studio/clips/project-123';
     mockBrandState.settings.hasOrganizationBilling = true;
     mockBrandState.settings.moduleOverrides = { clips: true };
@@ -1641,11 +1642,14 @@ describe('AppProtectedLayout', () => {
         <div>Existing clips</div>
       </AppProtectedLayout>,
     );
+    expect(appSidebarSpy.mock.lastCall?.[0]).toEqual(
+      expect.objectContaining({ currentApp: 'clips', sectionLabel: 'Clips' }),
+    );
     expect(
       appSidebarSpy.mock.lastCall?.[0].items.map(
         (item: MenuItemConfig) => item.href,
       ),
-    ).toEqual(['/studio/playground', '/studio/storyboard', '/studio/clips']);
+    ).toEqual(['/studio/clips']);
     mockBrandState.settings = {
       ...mockBrandState.settings,
       moduleOverrides: { clips: false },
@@ -1655,16 +1659,12 @@ describe('AppProtectedLayout', () => {
         <div>Existing clips</div>
       </AppProtectedLayout>,
     );
-    expect(
-      appSidebarSpy.mock.lastCall?.[0].items.map(
-        (item: MenuItemConfig) => item.href,
-      ),
-    ).toEqual(['/studio/playground', '/studio/storyboard']);
+    expect(appSidebarSpy.mock.lastCall?.[0].items).toEqual([]);
     expect(screen.getByText('Existing clips')).toBeInTheDocument();
   });
 
   it.each([true, false])(
-    'keeps fixed Studio surfaces while preferences are unknown (loading=%s)',
+    'keeps a credit-only Studio app nav while preferences are unknown (loading=%s)',
     (settingsLoading) => {
       mockPathname.value = '/studio/storyboard';
       mockBrandState.settingsLoading = settingsLoading;
@@ -1678,11 +1678,11 @@ describe('AppProtectedLayout', () => {
         appSidebarSpy.mock.lastCall?.[0].items.map(
           (item: MenuItemConfig) => item.href,
         ),
-      ).toEqual(['/studio/playground', '/studio/storyboard']);
+      ).toEqual(['/studio/storyboard']);
     },
   );
 
-  it('keeps the studio sidebar to production surfaces only', () => {
+  it('never lists another Studio app or a retired surface in an app nav', () => {
     mockPathname.value = '/studio/storyboard';
 
     render(
@@ -1691,31 +1691,20 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(appSidebarSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        items: expect.arrayContaining([
-          expect.objectContaining({ href: '/studio/playground' }),
-          expect.objectContaining({ href: '/studio/storyboard' }),
-          expect.objectContaining({ href: '/studio/clips' }),
-          expect.objectContaining({ href: '/studio/batch' }),
-        ]),
-      }),
-    );
-
-    // One prompt bar at `/studio/playground` replaced the per-type tabs, and no
-    // Studio nav entry hands the operator off to another module app.
-    for (const retiredHref of [
+    for (const otherHref of [
+      '/studio/playground',
+      '/studio/clips',
+      '/studio/batch',
+      '/studio/motion',
+      '/studio/editor',
       '/studio/image',
-      '/studio/video',
-      '/studio/avatar',
-      '/studio/music',
       '/studio/audio',
       '/library/voices',
     ]) {
       expect(appSidebarSpy).not.toHaveBeenCalledWith(
         expect.objectContaining({
           items: expect.arrayContaining([
-            expect.objectContaining({ href: retiredHref }),
+            expect.objectContaining({ href: otherHref }),
           ]),
         }),
       );

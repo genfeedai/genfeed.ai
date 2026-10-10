@@ -56,6 +56,15 @@ const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
   videos: APP_ROUTES.LIBRARY.VIDEOS,
 };
 
+/** Org entries of the brand-scoped Studio apps, by route segment. */
+const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
+  batch: APP_ROUTES.STUDIO.BATCH,
+  clips: APP_ROUTES.STUDIO.CLIPS,
+  motion: APP_ROUTES.STUDIO.MOTION,
+  playground: APP_ROUTES.STUDIO.PLAYGROUND,
+  storyboard: APP_ROUTES.STUDIO.STORYBOARD,
+};
+
 const ORG_LIBRARY_CANONICAL_SEGMENT: Readonly<Record<string, string>> = {
   avatar: 'avatars',
   gif: 'gifs',
@@ -298,31 +307,32 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
-    // `editor` is Studio's timeline surface, not a generate type. It mirrors
-    // the brand-scoped static `studio/editor` segment.
-    if (segments?.[0] === 'editor') {
-      const editorSurface = await renderStudioEditorSurface(segments[1]);
+    const [toolSegment, detail] = segments ?? [];
+
+    // `editor` is the Editor app's timeline surface. It mirrors the
+    // brand-scoped static `studio/editor` segment.
+    if (toolSegment === 'editor') {
+      const editorSurface = await renderStudioEditorSurface(detail);
 
       return <ErrorBoundary>{editorSurface}</ErrorBoundary>;
     }
 
-    // The bare app-rail destination (no type segment): try the operator's
-    // own persisted last-used brand before falling through to Agent (#4671).
-    if (!segments?.length) {
-      const lastUsedBrandSlug = await resolveLastUsedStudioBrandSlug(orgSlug);
-      if (lastUsedBrandSlug) {
-        redirect(
-          createBrandAppRoute(
-            orgSlug,
-            lastUsedBrandSlug,
-            APP_ROUTES.STUDIO.PLAYGROUND,
-          ),
-        );
-      }
+    // Each Studio tool is its own app with brand-scoped production tooling
+    // (#5502). There is no Studio parent: a bare `/studio` is not a route.
+    const toolRoute = toolSegment
+      ? ORG_STUDIO_APP_ROUTES[toolSegment]
+      : undefined;
+    if (!toolRoute || detail) {
+      notFound();
     }
 
-    // Studio's org-scoped one-off generation surface was retired. Studio
-    // production tooling is brand-scoped; org-scoped generation lives in Agent.
+    // The app's org entry opens the operator's last-used brand (#4671).
+    // Without one, one-off generation lives in Agent.
+    const lastUsedBrandSlug = await resolveLastUsedStudioBrandSlug(orgSlug);
+    if (lastUsedBrandSlug) {
+      redirect(createBrandAppRoute(orgSlug, lastUsedBrandSlug, toolRoute));
+    }
+
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
   }
 
