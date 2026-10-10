@@ -41,6 +41,11 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
 import { isReplicateSubmissionRejected } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import {
+  resolveMediaGenerationReceiptPrompts,
+  resolveMediaGenerationReceiptSurface,
+} from '@api/services/media-generation-receipts/media-generation-receipt-input.util';
+import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
@@ -115,6 +120,7 @@ export class ImageGenerationProviderDispatchService {
     private readonly providerRegistry: ImageGenerationProviderRegistryService,
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly mediaReceipts: MediaGenerationReceiptsService,
   ) {}
 
   supports(
@@ -182,7 +188,7 @@ export class ImageGenerationProviderDispatchService {
     }
     let generationPromise: Promise<unknown>;
     try {
-      await this.bindOutputCredits(context, context.ingredientData.id);
+      await this.admitOutput(context, context.ingredientData.id);
       if (
         context.editing &&
         context.outputs > 1 &&
@@ -199,7 +205,7 @@ export class ImageGenerationProviderDispatchService {
           for (let index = 1; index < context.outputs; index += 1) {
             const output = await this.createAdditionalDocuments(context);
             documents.push(output);
-            await this.bindOutputCredits(context, output.ingredientData.id);
+            await this.admitOutput(context, output.ingredientData.id);
             context.pendingIngredientIds.push(
               output.ingredientData.id.toString(),
             );
@@ -311,6 +317,12 @@ export class ImageGenerationProviderDispatchService {
       if (result.kind !== 'inline-buffer') {
         throw new Error('Inline image provider returned an external result');
       }
+      // An inline provider has no remote job; the output id is the attempt.
+      this.recordAcceptedReceipt(
+        context,
+        context.ingredientData.id,
+        String(context.ingredientData.id),
+      );
 
       const uploadMeta = await this.filesClientService.uploadToS3(
         context.ingredientData.id.toString(),
@@ -442,7 +454,7 @@ export class ImageGenerationProviderDispatchService {
         const output = await this.createAdditionalDocuments(context);
         additionalDocuments.push(output);
         documents.push(output);
-        await this.bindOutputCredits(context, output.ingredientData.id);
+        await this.admitOutput(context, output.ingredientData.id);
       }
       this.batchDocuments.set(context, documents);
       if (!provider.tracksSubmissionStarted)
@@ -604,7 +616,7 @@ export class ImageGenerationProviderDispatchService {
     try {
       const documents = await this.createAdditionalDocuments(context);
       ingredientId = documents.ingredientData.id;
-      await this.bindOutputCredits(context, ingredientId);
+      await this.admitOutput(context, ingredientId);
       this.activeDocument.set(context, documents);
       if (!provider.tracksSubmissionStarted)
         this.beginSubmission(context, [ingredientId]);
@@ -734,6 +746,7 @@ export class ImageGenerationProviderDispatchService {
   ): Promise<void> {
     const externalId = this.externalId(result);
     this.markAccepted(context, ingredientId);
+    this.recordAcceptedReceipt(context, ingredientId, externalId);
     try {
       await this.metadataService.patch(
         metadataId,
@@ -934,11 +947,15 @@ export class ImageGenerationProviderDispatchService {
     return context.request as unknown as GenerationBillingRequest;
   }
 
-  /** Each output pays for an even share of what the guard reserved. */
-  private async bindOutputCredits(
+  /**
+   * Admits one output for dispatch: opens its generation receipt (detached,
+   * never blocking) and binds an even share of what the guard reserved.
+   */
+  private async admitOutput(
     context: ImageGenerationContext,
     ingredientId: ImageGenerationSavedIngredient['id'],
   ): Promise<void> {
+    this.openReceipt(context, ingredientId);
     const request = this.billingRequest(context);
     const amount = request.creditsConfig?.amount;
     if (amount === undefined) {
@@ -948,6 +965,64 @@ export class ImageGenerationProviderDispatchService {
       credits: amount / Math.max(context.outputs, 1),
       ingredientId: ingredientId.toString(),
     });
+  }
+
+  private openReceipt(
+    context: ImageGenerationContext,
+    ingredientId: ImageGenerationSavedIngredient['id'],
+  ): void {
+    void this.mediaReceipts.open({
+      organizationId: context.user.organizationId,
+      brandId: String(context.brand.id),
+      actorId: context.user.userId ?? context.user.id,
+      isApiKey: context.user.isApiKey,
+      apiKeyId: context.user.apiKeyId,
+      scopes: context.user.scopes,
+      ingredientId: String(ingredientId),
+      parentIngredientId: String(context.ingredientData.id),
+      mediaKind: 'image',
+      surface: resolveMediaGenerationReceiptSurface(),
+      provider: this.receiptProvider(context),
+      model: context.model,
+      ...resolveMediaGenerationReceiptPrompts({
+        harness: context.generationHarness,
+        fallbackPrompt:
+          context.createImageDto.text ?? context.promptData.original ?? '',
+        dispatched: [
+          context.compiledDispatch?.prompt,
+          context.providerInput?.prompt,
+        ],
+      }),
+      generationParameters: {
+        width: context.width,
+        height: context.height,
+        outputs: context.outputs,
+        ...(context.style ? { style: context.style } : {}),
+        ...(context.editing ? { operation: 'edit' } : {}),
+      },
+    });
+  }
+
+  private recordAcceptedReceipt(
+    context: ImageGenerationContext,
+    ingredientId: ImageGenerationSavedIngredient['id'],
+    externalId: string,
+  ): void {
+    void this.mediaReceipts.recordAccepted({
+      organizationId: context.user.organizationId,
+      ingredientId: String(ingredientId),
+      provider: this.receiptProvider(context),
+      model: context.model,
+      externalId,
+    });
+  }
+
+  private receiptProvider(context: ImageGenerationContext): string {
+    return (
+      this.providerRegistry.providerFor(context.model, context.modelProvider) ??
+      context.modelProvider ??
+      'genfeed'
+    );
   }
 
   private async releaseOutputCredits(

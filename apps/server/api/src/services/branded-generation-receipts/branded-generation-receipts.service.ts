@@ -15,6 +15,7 @@ import { BrandedGenerationReceiptAccessService } from '@api/services/branded-gen
 import type {
   BrandedGenerationActorV1,
   BrandedGenerationArtifactCompletionV1,
+  BrandedGenerationBlockReasonV1,
   BrandedGenerationDispatchInputV1,
   BrandedGenerationDispatchRecoveryV1,
   BrandedGenerationFailureInputV1,
@@ -72,9 +73,11 @@ import {
   projectBrandedGenerationArtifactBindingV1,
   projectBrandedGenerationBlockV1,
   projectBrandedGenerationCancellationV1,
+  projectBrandedGenerationCostsV1,
   projectBrandedGenerationDispatchV1,
   projectBrandedGenerationExpiredDispatchV1,
   projectBrandedGenerationFailureV1,
+  projectBrandedGenerationUnboundCompletionV1,
   projectBrandedGenerationValidationV1,
   validateBrandedGenerationArtifactV1,
   withDiagnostic,
@@ -769,7 +772,7 @@ export class BrandedGenerationReceiptsService {
     actor: BrandedGenerationActorV1,
     id: string,
     mutation: BrandedGenerationMutationV1,
-    reasonCode: 'provider_attempt_ref_unavailable',
+    reasonCode: BrandedGenerationBlockReasonV1,
   ): Promise<BrandedGenerationMutationResultV1> {
     return this.mutate(
       actor,
@@ -905,6 +908,38 @@ export class BrandedGenerationReceiptsService {
       'fail',
       { reasonCode: input.reasonCode, completedAt: input.completedAt },
       async (_tx, current) => projectBrandedGenerationFailureV1(current, input),
+    );
+  }
+  async blockUnboundCompletion(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    input: BrandedGenerationFailureInputV1,
+  ): Promise<BrandedGenerationMutationResultV1> {
+    return this.mutate(
+      actor,
+      id,
+      mutation,
+      'block',
+      { reasonCode: input.reasonCode, completedAt: input.completedAt },
+      async (_tx, current) =>
+        projectBrandedGenerationUnboundCompletionV1(current, input),
+    );
+  }
+  async recordCosts(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    costs: BrandedGenerationReceiptV1['costs'],
+  ): Promise<BrandedGenerationMutationResultV1> {
+    return this.mutate(
+      actor,
+      id,
+      mutation,
+      'record_costs',
+      // JSON round-trip drops absent optional fields before canonical hashing.
+      { costs: JSON.parse(JSON.stringify(costs)) },
+      async (_tx, current) => projectBrandedGenerationCostsV1(current, costs),
     );
   }
   async recordValidation(

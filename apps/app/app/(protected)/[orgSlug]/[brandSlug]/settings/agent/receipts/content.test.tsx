@@ -371,7 +371,7 @@ describe('mounted saved receipt customer read flow', () => {
     // The empty state names which generations write receipts, so an org
     // whose Library only holds Studio media does not read it as data loss.
     screen.getByText(
-      "Receipts are saved for text drafts written in approved-brand mode. Studio image and video generations don't create receipts yet.",
+      'Receipts are saved for Studio image and video generations and for text drafts written in approved-brand mode.',
     );
     http.get.mockRejectedValueOnce({
       isAxiosError: true,

@@ -350,6 +350,10 @@ const createService = () => {
     providerRegistry,
     sharedService as never,
     websocketService as never,
+    {
+      open: vi.fn().mockResolvedValue(undefined),
+      recordAccepted: vi.fn().mockResolvedValue(undefined),
+    } as never,
   );
   const creditsService = new ImageGenerationCreditsService(
     creditsUtilsService as never,
