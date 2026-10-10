@@ -5,6 +5,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   isFounderOnlyNativeApp,
@@ -12,6 +13,7 @@ import {
   type NativeSecondaryAppId,
 } from '@genfeedai/contracts/constants';
 import type { MemberAppsResponse } from '@genfeedai/contracts/interfaces';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Controller,
@@ -38,6 +40,7 @@ import type { Request } from 'express';
 export class MemberAppsController {
   constructor(private readonly membersService: MembersService) {}
 
+  @TenantReadPolicy('owner')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findInstalledApps(
@@ -89,11 +92,17 @@ export class MemberAppsController {
     isInstalled: boolean,
   ): Promise<MemberAppsResponse> {
     const { organizationId, userId } = this.readMembershipScope(user);
-    const installedAppIds = await this.membersService.setAppInstalled(
-      organizationId,
-      userId,
-      appId,
-      isInstalled,
+    // Personal installation always belongs to the authenticated session,
+    // including operator requests carrying a generic tenant query override.
+    const installedAppIds = await runWithTenantContext(
+      { organizationId },
+      async () =>
+        await this.membersService.setAppInstalled(
+          organizationId,
+          userId,
+          appId,
+          isInstalled,
+        ),
     );
     if (!installedAppIds) {
       throw new NotFoundException('Member');
