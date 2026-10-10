@@ -2,6 +2,7 @@ import { OrganizationPaidAccessService } from '@api/common/subscriptions/organiz
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
+  isReleasePreviewActive,
   ORGANIZATION_MODULES,
   type OrganizationModuleAccess,
   type OrganizationModuleAccessInput,
@@ -29,6 +30,22 @@ export class OrganizationModuleAccessService {
       if (error instanceof HttpException) return false;
       throw error;
     }
+  }
+
+  /**
+   * #5502 whether the organization sees unreleased (founder-only) work:
+   * self-hosted, or a cloud organization on release preview.
+   */
+  async isReleasePreviewActive(organizationId: string): Promise<boolean> {
+    if (!hasOrganizationBilling()) return true;
+    const settings = await this.prisma.organizationSetting.findUnique({
+      where: { organizationId },
+      select: { isReleasePreviewEnabled: true },
+    });
+    return isReleasePreviewActive({
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
+    });
   }
 
   async assertAccess(
