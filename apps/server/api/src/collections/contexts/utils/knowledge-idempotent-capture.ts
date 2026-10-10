@@ -259,6 +259,7 @@ async function createFreshCapture(
           userId: input.actor.userId,
           organizationId: input.actor.organizationId,
           isApiKey: input.actor.isApiKey === true,
+          apiKeyId: input.actor.apiKeyId,
           scopes: input.actor.scopes ?? [],
         },
         captureRequestHash: input.requestHash,

@@ -83,6 +83,7 @@ describe('CampaignPlanningService', () => {
       brandId: dto.brandId,
       organizationId: 'org-1',
       query: 'Product launch',
+      userId: 'user-1',
     });
     expect(llm.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({ schema: campaignPlanSchema }),

@@ -587,7 +587,7 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
       exact: true,
     }),
   ).toBeVisible();
-  await openGenerationSetup(page, 'Kling 2.5 Turbo Pro');
+  await openGenerationSetup(page, 'Kling 2.5 Turbo Pro · 16:9 · 5s');
   await openConfiguration(page, 'Model');
   await page.getByRole('option', { name: /Veo 3.1 Fast/ }).click();
   await page.keyboard.press('Escape');
@@ -660,8 +660,7 @@ test('expired video admission reports the error and never retries automatically'
     name: 'Request failed',
     exact: true,
   });
-  await expect(errorDialog).toBeVisible();
-  await errorDialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(errorDialog).toHaveCount(0);
   await expect(fixture.editor).toHaveText('A ceramic bird on a desk');
   await expect(
     page

@@ -28,6 +28,7 @@ export const CALIBRATION_GATE_CODES = [
   'pr-body-unavailable',
   'link-missing',
   'report-missing',
+  'report-unreadable',
   'report-invalid',
   'report-stub',
   'report-stale',
@@ -53,6 +54,18 @@ export interface CalibrationGateResult {
   isPassing: boolean;
   reason: string;
   warning: string | null;
+}
+
+function calibrationAdvisory(
+  code: Exclude<CalibrationGateCode, 'lock-missing' | 'lock-stale' | 'linked'>,
+  reason: string,
+): CalibrationGateResult {
+  return {
+    code,
+    isPassing: true,
+    reason,
+    warning: `${reason}; paid live judge calibration is optional and nonblocking. No current live calibration evidence was accepted.`,
+  };
 }
 
 // A live label and a matching digest are not enough on their own: the summary
@@ -151,91 +164,77 @@ export function evaluateCalibrationGate(
     };
   }
   if (baseText === headText) {
-    return {
-      code: 'vision-unenforced',
-      isPassing: true,
-      reason:
-        'only the vision-judge surface changed; vision calibration is deferred (#4924 D-1)',
-      warning:
-        'vision-judge surface changed; vision calibration is deferred (#4924 D-1)',
-    };
+    return calibrationAdvisory(
+      'vision-unenforced',
+      'only the vision-judge surface changed; vision calibration is deferred (#4924 D-1)',
+    );
   }
   if (event === 'merge_group') {
-    return {
-      code: 'merge-group',
-      isPassing: true,
-      reason:
-        'text scoring surface changed; the calibration link was checked on each member pull request',
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'merge-group',
+      'text scoring surface changed in a merge group; optional calibration evidence was not checked for this group',
+    );
   }
   if (event === 'pull_request' && prBody === null) {
-    return {
-      code: 'pr-body-unavailable',
-      isPassing: false,
-      reason:
-        'text scoring surface changed and the pull request body could not be read; re-run this job',
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'pr-body-unavailable',
+      'text scoring surface changed and the pull request body could not be read; calibration evidence was not inspected',
+    );
   }
   const match = CALIBRATION_REPORT_LINK_PATTERN.exec(prBody ?? '');
   const reportPath = match?.[1];
   if (reportPath === undefined) {
-    return {
-      code: 'link-missing',
-      isPassing: false,
-      reason: `text scoring surface changed (${baseText} to ${headText}); add the line Calibration-Report: scripts/content-eval/calibration/reports/{file}.json to the pull request body`,
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'link-missing',
+      `text scoring surface changed (${baseText} to ${headText}); no optional live calibration report is linked`,
+    );
   }
-  const report = readSummary(reportPath);
+  let report: SummaryReadResult;
+  try {
+    report = readSummary(reportPath);
+  } catch {
+    return calibrationAdvisory(
+      'report-unreadable',
+      `linked calibration report ${reportPath} could not be read`,
+    );
+  }
   if (report.isPresent === false) {
-    return {
-      code: 'report-missing',
-      isPassing: false,
-      reason: `linked calibration report ${reportPath} does not exist at this revision`,
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'report-missing',
+      `linked calibration report ${reportPath} does not exist at this revision`,
+    );
   }
   const parsed = calibrationSummarySchema.safeParse(report.value);
   if (parsed.success === false) {
     const issues = parsed.error.issues
       .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
       .join('; ');
-    return {
-      code: 'report-invalid',
-      isPassing: false,
-      reason: `linked calibration report ${reportPath} does not match calibrationSummarySchema: ${issues}`,
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'report-invalid',
+      `linked calibration report ${reportPath} does not match calibrationSummarySchema: ${issues}`,
+    );
   }
   const summary = parsed.data;
   const evidenceKind = summary.evidenceKind;
   if (evidenceKind !== 'live-dispatcher') {
-    return {
-      code: 'report-stub',
-      isPassing: false,
-      reason: `linked calibration report ${reportPath} is ${evidenceKind} evidence; a live-dispatcher run is required`,
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'report-stub',
+      `linked calibration report ${reportPath} is ${evidenceKind} evidence and does not measure live judge quality`,
+    );
   }
   const reportText = summary.scoringSurface.textDigest;
   if (reportText !== headText) {
-    return {
-      code: 'report-stale',
-      isPassing: false,
-      reason: `linked calibration report ${reportPath} measured text digest ${reportText}, but this revision's text digest is ${headText}`,
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'report-stale',
+      `linked calibration report ${reportPath} measured text digest ${reportText}, but this revision's text digest is ${headText}`,
+    );
   }
   const gaps = summaryEvidenceGaps(summary);
   if (gaps.length > 0) {
-    return {
-      code: 'report-incomplete',
-      isPassing: false,
-      reason: `linked calibration report ${reportPath} is not complete live evidence: ${gaps.join('; ')}`,
-      warning: null,
-    };
+    return calibrationAdvisory(
+      'report-incomplete',
+      `linked calibration report ${reportPath} is not complete live evidence: ${gaps.join('; ')}`,
+    );
   }
   const runId = summary.runId;
   return {

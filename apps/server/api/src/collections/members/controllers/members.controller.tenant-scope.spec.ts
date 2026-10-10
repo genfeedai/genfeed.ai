@@ -123,6 +123,7 @@ describe('roster live brand relation authorization', () => {
       return emptyPage();
     });
     const policy = new BrandAccessService({
+      apiKey: { findFirst: vi.fn().mockResolvedValue({ scopes: [] }) },
       member: { findFirst: findMember },
     } as unknown as PrismaService);
     const controller = Object.create(
@@ -164,7 +165,8 @@ describe('roster live brand relation authorization', () => {
           organizationId: sessionOrganizationId,
           isActive: true,
           isDeleted: false,
-          role: { isDeleted: false },
+          organization: { is: { isDeleted: false } },
+          role: { is: { isDeleted: false } },
         }),
       }),
     );
@@ -195,7 +197,12 @@ describe('roster live brand relation authorization', () => {
     expect(f.findAll.mock.calls[0][0].include.brands.where).not.toHaveProperty(
       'id',
     );
-    const capped = { ...memberUser, isApiKey: true, scopes: [] };
+    const capped = {
+      ...memberUser,
+      isApiKey: true,
+      apiKeyId: 'key-a',
+      scopes: [],
+    };
     await f.controller.findAll(query, tenantReadRequest(capped), capped);
     expect(f.findAll.mock.calls[1][0].include.brands.where.id).toEqual({
       in: [sessionBrandId],

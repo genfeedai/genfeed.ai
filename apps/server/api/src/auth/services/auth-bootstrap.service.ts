@@ -218,6 +218,7 @@ export class AuthBootstrapService {
       userId,
       organizationId,
       isApiKey: user?.isApiKey,
+      apiKeyId: user?.apiKeyId,
       scopes: user?.scopes,
     };
     const liveCloudAccess =
