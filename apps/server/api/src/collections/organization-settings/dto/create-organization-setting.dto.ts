@@ -3,6 +3,7 @@ import {
   type AgentPolicyQualityTier,
 } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { IsOrganizationModuleOverrides } from '@api/helpers/validation/organization-module-overrides.validator';
 import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/contracts';
@@ -10,6 +11,7 @@ import {
   ORGANIZATION_WEBHOOK_EVENT_TYPES,
   type OrganizationWebhookEventType,
 } from '@genfeedai/contracts/api-types/contracts/webhook-events.contract';
+import type { OrganizationModuleOverrides } from '@genfeedai/contracts/constants';
 import {
   DEFAULT_LOCALE,
   PUBLISHING_QUOTA_MAX,
@@ -181,6 +183,16 @@ export class OnboardingJourneyMissionStateDto {
 }
 
 export class CreateOrganizationSettingDto {
+  @IsOrganizationModuleOverrides()
+  @ValidateIf((_, value) => value !== undefined)
+  @ApiProperty({
+    required: false,
+    type: Object,
+    description:
+      'Organization module preferences. Only owners and admins may update them.',
+  })
+  readonly moduleOverrides?: OrganizationModuleOverrides;
+
   @ValidateNested({ each: true })
   @Type(() => OnboardingJourneyMissionStateDto)
   @IsOptional()

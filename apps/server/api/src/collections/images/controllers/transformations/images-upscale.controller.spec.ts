@@ -6,13 +6,13 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ImagesUpscaleController } from '@api/collections/images/controllers/transformations/images-upscale.controller';
 import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import type { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
+import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
@@ -21,7 +21,11 @@ import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { RequestMethod } from '@nestjs/common';
+import {
+  type ExecutionContext,
+  ForbiddenException,
+  RequestMethod,
+} from '@nestjs/common';
 import {
   GUARDS_METADATA,
   INTERCEPTORS_METADATA,
@@ -124,7 +128,6 @@ describe('ImagesUpscaleController', () => {
       Reflect.getMetadata(INTERCEPTORS_METADATA, ImagesUpscaleController),
     ).toContain(CreditsInterceptor);
     expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
-      SubscriptionGuard,
       CreditsGuard,
       ModelsGuard,
     ]);
@@ -142,7 +145,41 @@ describe('ImagesUpscaleController', () => {
       source: ActivitySource.IMAGE_UPSCALE,
     });
     expect(reflector.get(ValidateModel, handler)).toEqual({
-      category: ModelCategory.IMAGE_EDIT,
+      category: ModelCategory.IMAGE_UPSCALE,
     });
   });
+  it.each([
+    { category: ModelCategory.IMAGE_UPSCALE, allowed: true },
+    { category: ModelCategory.IMAGE_EDIT, allowed: false },
+  ])(
+    'validates registered upscale models against catalog category $category',
+    async ({ category, allowed }) => {
+      const catalog = {
+        validateModelForOrg: vi.fn().mockResolvedValue({
+          key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+          category,
+        }),
+      };
+      const guard = new ModelsGuard(
+        catalog as unknown as ModelRegistrationService,
+        new Reflector(),
+      );
+      const req = { body: { model: 'registered-upscale-model' }, user };
+      const context = {
+        getHandler: () => ImagesUpscaleController.prototype.upscaleImage,
+        switchToHttp: () => ({ getRequest: () => req }),
+      } as unknown as ExecutionContext;
+      if (allowed) {
+        await expect(guard.canActivate(context)).resolves.toBe(true);
+      } else {
+        await expect(guard.canActivate(context)).rejects.toThrow(
+          ForbiddenException,
+        );
+      }
+      expect(catalog.validateModelForOrg).toHaveBeenCalledWith(
+        'registered-upscale-model',
+        user.organizationId,
+      );
+    },
+  );
 });

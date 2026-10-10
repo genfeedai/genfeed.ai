@@ -46,6 +46,14 @@ describe('batch project idea dispatch workflow definitions', () => {
 
   it('builds single-action graphs over the registered actions', () => {
     expect(
+      buildBatchProjectIdeaDispatchWorkflowDefinition().organizationModule,
+    ).toBe('batch');
+    // Exhausted-attempt projection and hold release must still run after a disable.
+    expect(
+      buildBatchProjectIdeaDispatchFailureWorkflowDefinition()
+        .organizationModule,
+    ).toBeUndefined();
+    expect(
       buildBatchProjectIdeaDispatchWorkflowDefinition().definition.nodes.map(
         (node) => node.data.config.actionId,
       ),

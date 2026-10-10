@@ -1,4 +1,7 @@
-import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
+import {
+  DEFAULT_PLATFORM_FLAGS,
+  MAX_PAGE_SIZE,
+} from '@genfeedai/contracts/constants';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { Post } from '@genfeedai/models/content/post.model';
@@ -30,6 +33,59 @@ describe('PublicService', () => {
   it('getInstance returns a singleton', () => {
     const first = PublicService.getInstance();
     expect(PublicService.getInstance()).toBe(first);
+  });
+
+  describe('getPlatformFlags', () => {
+    it('reads public flags with the caller cancellation signal', async () => {
+      const flags = { ...DEFAULT_PLATFORM_FLAGS, studio: false };
+      const controller = new AbortController();
+      http.get.mockResolvedValue(axiosResponse(flags));
+
+      await expect(
+        service.getPlatformFlags(controller.signal),
+      ).resolves.toEqual(flags);
+      expect(http.get).toHaveBeenCalledWith('platform-flags', {
+        signal: controller.signal,
+      });
+    });
+
+    it('accepts older known booleans and preserves missing-flag compatibility', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse({ studio: false, future_feature: true }),
+      );
+
+      await expect(service.getPlatformFlags()).resolves.toEqual({
+        ...DEFAULT_PLATFORM_FLAGS,
+        studio: false,
+      });
+    });
+
+    it.each([
+      null,
+      '<html>Bad gateway</html>',
+      [],
+      {},
+      { errors: [{ detail: 'Unavailable' }] },
+      { future_feature: true },
+      { studio: 'false' },
+      { studio: false, analytics: null },
+    ])(
+      'rejects malformed response %j instead of enabling flags',
+      async (data) => {
+        http.get.mockResolvedValue(axiosResponse(data));
+
+        await expect(service.getPlatformFlags()).rejects.toThrow(
+          'Platform flags response is invalid',
+        );
+      },
+    );
+
+    it('preserves an upstream failure for the caller to retry', async () => {
+      const error = new Error('502 Bad Gateway');
+      http.get.mockRejectedValue(error);
+
+      await expect(service.getPlatformFlags()).rejects.toBe(error);
+    });
   });
 
   describe('findPublicProfileBySlug', () => {

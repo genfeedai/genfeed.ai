@@ -140,12 +140,52 @@ export function assertWorkflowMediaPricingUnits(
   if (
     units.length === 0 ||
     units.some(
-      (unit) => !['request', 'output', 'second', 'megapixel'].includes(unit),
+      (unit) =>
+        ![
+          'request',
+          'output',
+          'second',
+          'megapixel',
+          'video-token',
+          'input-video-token',
+        ].includes(unit),
     )
   )
     unavailable(
       'Workflow provider pricing unit lacks a final-input evidence adapter',
     );
+  if (
+    units.some((unit) => unit === 'video-token' || unit === 'input-video-token')
+  ) {
+    if (
+      profile.provider !== 'fal' ||
+      !/^https:\/\/fal\.ai\/models\/bytedance\/seedance-2\.[05]\//.test(
+        profile.reviewedPricing?.sourceUrl ?? '',
+      ) ||
+      ![
+        quantities.width,
+        quantities.height,
+        quantities.duration,
+        quantities.framesPerSecond,
+      ].every(
+        (value) =>
+          typeof value === 'number' && Number.isFinite(value) && value > 0,
+      )
+    )
+      unavailable(
+        'Workflow native video token pricing requires prepared output quantities',
+      );
+    if (
+      units.includes('input-video-token') &&
+      (quantities.inputDuration === undefined ||
+        quantities.inputDuration < 0 ||
+        (quantities.inputDuration > 0 &&
+          !/^[a-f0-9]{64}$/.test(quantities.referenceEvidenceHash ?? '')))
+    )
+      unavailable(
+        'Workflow native input pricing requires measured source evidence',
+      );
+  }
   if (units.includes('second') && quantities.duration === undefined)
     unavailable('Workflow final provider duration is required');
   if (

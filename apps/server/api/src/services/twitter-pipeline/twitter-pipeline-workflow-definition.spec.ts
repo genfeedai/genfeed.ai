@@ -15,6 +15,38 @@ function actionIds(
 }
 
 describe('twitter pipeline workflow definitions', () => {
+  it.each([
+    {
+      graph: buildTwitterSearchWorkflowDefinition(),
+      moduleId: 'discovery',
+      completion: undefined,
+    },
+    {
+      graph: buildTwitterDraftWorkflowDefinition(),
+      moduleId: 'discovery',
+      completion: ['parse-drafts'],
+    },
+    {
+      graph: buildTwitterPublishWorkflowDefinition(),
+      moduleId: 'publishing',
+      completion: undefined,
+    },
+  ])(
+    '$graph.canonicalId owns $moduleId and only exempts a pure draft projection',
+    ({ graph, moduleId, completion }) => {
+      expect(graph.organizationModule).toBe(moduleId);
+      expect(graph.moduleCompletionNodeIds).toEqual(completion);
+      if (completion) {
+        expect(
+          graph.definition.nodes.find((node) => node.id === completion[0])?.data
+            .config.actionId,
+        ).toBe(TWITTER_PIPELINE_ACTION_IDS.DRAFT_PARSE);
+        expect(
+          graph.definition.edges.some((edge) => edge.source === completion[0]),
+        ).toBe(false);
+      }
+    },
+  );
   it('keeps provider search as one atomic action workflow', () => {
     expect(actionIds(buildTwitterSearchWorkflowDefinition())).toEqual([
       TWITTER_PIPELINE_ACTION_IDS.SEARCH_RECENT,

@@ -9,7 +9,6 @@ import { AssetIngestionService } from '@api/collections/assets/services/asset-in
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { RequestMethod } from '@nestjs/common';
@@ -126,7 +125,7 @@ describe('Assets split controllers', () => {
         GUARDS_METADATA,
         AssetsOperationsController.prototype.generate,
       ),
-    ).toEqual([SubscriptionGuard, CreditsGuard]);
+    ).toEqual([CreditsGuard]);
     expect(
       Reflect.getMetadata(
         INTERCEPTORS_METADATA,

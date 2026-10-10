@@ -5,6 +5,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
@@ -16,6 +17,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('content-intelligence/generate')
+@OrganizationModule('playground')
 export class GenerateController {
   constructor(
     private readonly contentGeneratorService: ContentGeneratorService,

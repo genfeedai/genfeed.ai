@@ -5,6 +5,7 @@ import { CreateOrganizationSettingDto } from '@api/collections/organization-sett
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
+import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heygen.tokens';
 import {
@@ -16,14 +17,16 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type {
   PopulateInput,
+  PrismaFilter,
   PrismaUpdate,
 } from '@api/shared/services/base/base-query-normalization.adapter';
-import { isCloudDeployment } from '@genfeedai/config';
+import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
+  organizationModuleOverridesSchema,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
@@ -57,12 +60,60 @@ export class OrganizationSettingsService extends BaseService<
     super(prisma, 'organizationSetting', logger);
   }
 
+  /** Same server runtime for settings HTTP and bootstrap; never persisted or writable. */
+  protected override normalizeDocument(
+    document: unknown,
+  ): OrganizationSettingDocument {
+    return {
+      ...super.normalizeDocument(document),
+      hasOrganizationBilling: hasOrganizationBilling(),
+      hasPaidModuleSubscription: null,
+    };
+  }
+
+  override async findOne(
+    params: PrismaFilter,
+    populate: PopulateInput = [],
+  ): Promise<OrganizationSettingDocument | null> {
+    const settings = await super.findOne(params, populate);
+    if (!settings) return null;
+    if (!settings.hasOrganizationBilling)
+      return { ...settings, hasPaidModuleSubscription: true };
+    // Internal credential/onboarding reads can retain their caller-owned settings
+    // while a selected superadmin GET has another active tenant. A runtime
+    // entitlement hint must remain unavailable rather than query that other scope.
+    const tenant = getTenantContext();
+    if (tenant && tenant.organizationId !== settings.organizationId)
+      return settings;
+    try {
+      const paidAccess = this.moduleRef.get(OrganizationPaidAccessService, {
+        strict: false,
+      });
+      if (!settings.organizationId || !paidAccess) return settings;
+      const isGated = await paidAccess.isSubscriptionGatedFresh(
+        settings.organizationId,
+      );
+      return typeof isGated === 'boolean'
+        ? { ...settings, hasPaidModuleSubscription: !isGated }
+        : settings;
+    } catch {
+      this.logger?.warn?.(
+        'Organization module subscription eligibility unavailable',
+        {
+          organizationId: settings.organizationId,
+        },
+      );
+      return settings;
+    }
+  }
+
   async patch(
     id: string,
     updateDto: Partial<UpdateOrganizationSettingDto> | PrismaUpdate,
     populate: PopulateInput = [],
   ): Promise<OrganizationSettingDocument> {
     const data: PrismaUpdate = { ...updateDto };
+    this.validateModuleOverrides(data);
     if (data.defaultAvatarRef || data.defaultVoiceRef) {
       const organizationId = getTenantContext()?.organizationId;
       const existing = await this.findOne({
@@ -101,6 +152,16 @@ export class OrganizationSettingsService extends BaseService<
     } else if (data.defaultAvatarPhotoUrl || data.defaultAvatarIngredientId)
       data.defaultAvatarRef = null;
     return super.patch(id, data, populate);
+  }
+
+  private validateModuleOverrides(data: PrismaUpdate): void {
+    if (!Object.hasOwn(data, 'moduleOverrides')) return;
+    const parsed = organizationModuleOverridesSchema.safeParse(
+      data.moduleOverrides,
+    );
+    if (!parsed.success)
+      throw new BadRequestException('Invalid organization module preferences');
+    data.moduleOverrides = parsed.data;
   }
 
   private getModelsService(): ModelsService {
@@ -142,6 +203,7 @@ export class OrganizationSettingsService extends BaseService<
     >[1],
   ): Promise<OrganizationSettingDocument> {
     const data: PrismaUpdate = { ...createDto };
+    this.validateModuleOverrides(data);
     if (createDto.defaultAvatarRef || createDto.defaultVoiceRef) {
       const identities = this.moduleRef.get<HeyGenIdentityService>(
         HEYGEN_IDENTITY_SERVICE,

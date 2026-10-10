@@ -175,6 +175,8 @@ describe('workflow immutable financial evidence', () => {
   it('binds the structured preparation contract even after the outer dispatch hash is recomputed', () => {
     const plan = workflowFundingFixture();
     const dispatch = plan.manifest.allocations[0].dispatch;
+    if (!('compilerVersion' in dispatch.preparationContract.brief))
+      throw new Error('Expected compiled brief fixture');
     dispatch.preparationContract.brief.compilerVersion++;
     dispatch.billableFingerprint = quoteSnapshotHash({
       ...dispatch,

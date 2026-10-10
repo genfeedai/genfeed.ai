@@ -81,6 +81,7 @@ const NEWSLETTER_TOPICS_WORKFLOW_ID = 'newsletter.topic-generation';
 function newsletterTopicsWorkflow(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: NEWSLETTER_TOPICS_WORKFLOW_ID,
+    organizationModule: 'publishing',
     definition: {
       edges: [
         {
@@ -121,6 +122,7 @@ function newsletterTopicsWorkflow(): SystemWorkflowGraphDefinition {
 function newsletterDraftWorkflow(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: NEWSLETTER_DRAFT_WORKFLOW_ID,
+    organizationModule: 'publishing',
     definition: {
       edges: [
         {

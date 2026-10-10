@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateDistributionDto } from '@api/collections/distributions/dto/create-distribution.dto';
 import { QueryDistributionDto } from '@api/collections/distributions/dto/query-distribution.dto';
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -32,6 +33,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('Distributions')
 @FeatureFlag('publishing')
+@OrganizationModule('publishing')
 @Controller('distributions')
 export class DistributionsController {
   constructor(

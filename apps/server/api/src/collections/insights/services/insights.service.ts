@@ -11,6 +11,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
@@ -89,6 +90,7 @@ export class InsightsService implements OnModuleInit {
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
     @Optional()
     private readonly performanceSummaryService?: PerformanceSummaryService,
   ) {}
@@ -255,6 +257,8 @@ export class InsightsService implements OnModuleInit {
     organizationId: string,
     limit: number = 5,
   ): Promise<void> {
+    if (!(await this.moduleAccess.canStartWork(organizationId, 'analytics')))
+      return;
     if (!(await this.needsInsightGeneration(organizationId, limit))) {
       return;
     }

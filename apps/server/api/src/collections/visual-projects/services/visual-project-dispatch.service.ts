@@ -26,6 +26,94 @@ export class VisualProjectDispatchService {
     private readonly workflows: SystemWorkflowRunnerService,
     private readonly queue: WorkflowExecutionQueueService,
   ) {}
+  /** Called only after the internal failure graph proves both immutable execution pins. */
+  async reconcileFailedExecution(
+    revision: VisualRevision,
+    executionId: string,
+    assertFailureOwnership: () => Promise<void>,
+  ): Promise<void> {
+    const scope = {
+      id: revision.id,
+      organizationId: revision.organizationId,
+      brandId: revision.brandId,
+      userId: revision.userId,
+      isDeleted: false,
+    };
+    const assertUnowned = async () => {
+      await assertFailureOwnership();
+      const live = await this.prisma.workflowNodeClaim.findFirst({
+        where: {
+          organizationId: revision.organizationId,
+          executionId,
+          status: 'running',
+          leaseExpiresAt: { gt: new Date() },
+        },
+      });
+      if (live) throw new ConflictException('visual_dispatch_owner_active');
+    };
+    await assertUnowned();
+    const bound = await this.prisma.visualRevision.updateMany({
+      where: {
+        ...scope,
+        organizationId: revision.organizationId,
+        isDeleted: false,
+        OR: [
+          { workflowExecutionId: null },
+          { workflowExecutionId: executionId },
+        ],
+      },
+      data: { workflowExecutionId: executionId },
+    });
+    if (bound.count !== 1)
+      throw new ConflictException('visual_worker_binding_invalid');
+    let current = await this.prisma.visualRevision.findFirstOrThrow({
+      where: { ...scope },
+    });
+    const entries = current.receipts as unknown as IVisualCodeReceipt[];
+    if (
+      entries.some(
+        (entry) =>
+          !['quote', 'admission', 'settlement'].includes(entry.kind) &&
+          (entry.state === 'started' || entry.state === 'indeterminate'),
+      )
+    )
+      throw new ConflictException('visual_dispatch_recovery_required');
+    await assertUnowned();
+    current = await this.billing.recoverReservation(current, assertUnowned);
+    await assertUnowned();
+    const stopped = await this.prisma.visualRevision.updateMany({
+      where: {
+        ...scope,
+        organizationId: revision.organizationId,
+        isDeleted: false,
+        workflowExecutionId: executionId,
+        status: current.status,
+        receipts: { equals: toPrismaJson(current.receipts) },
+      },
+      data: {
+        status: terminal.includes(current.status)
+          ? current.status
+          : current.cancelRequestedAt
+            ? VisualCodeStatus.CANCELLED
+            : VisualCodeStatus.FAILED,
+        diagnostics: terminal.includes(current.status)
+          ? toPrismaJson(current.diagnostics)
+          : toPrismaJson([
+              current.cancelRequestedAt
+                ? 'visual_cancelled'
+                : 'visual_dispatch_failed',
+            ]),
+      },
+    });
+    if (stopped.count !== 1)
+      throw new ConflictException('visual_dispatch_state_changed');
+    await this.billing.reconcileStopped(
+      await this.prisma.visualRevision.findFirstOrThrow({
+        where: { ...scope },
+      }),
+      assertUnowned,
+    );
+  }
   async stopWithoutOwner(
     revision: VisualRevision,
     cancelled: boolean,

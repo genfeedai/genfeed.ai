@@ -8,6 +8,7 @@ import {
 } from '@api/collections/social-inbox/dto/social-reply-campaign.dto';
 import type { SocialInboxScope } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -55,6 +56,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiBearerAuth()
 @FeatureFlag('messages')
+@OrganizationModule('messages')
 @Controller('message-campaigns')
 @UseGuards(RolesGuard)
 export class SocialReplyCampaignController {
@@ -139,6 +141,10 @@ export class SocialReplyCampaignController {
   }
 
   @Patch(':campaignId/status')
+  @OrganizationModule('messages', 'write', {
+    field: 'transition',
+    values: ['pause', 'cancel'],
+  })
   @RequiredScopes(ApiKeyScope.POSTS_PUBLISH)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Start, pause, resume, or cancel a campaign' })
@@ -158,6 +164,7 @@ export class SocialReplyCampaignController {
   }
 
   @Delete(':campaignId')
+  @OrganizationModule('messages', 'cancel')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Cancel and soft-delete a reply campaign' })
   async remove(

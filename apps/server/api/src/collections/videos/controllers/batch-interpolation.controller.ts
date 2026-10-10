@@ -27,6 +27,7 @@ import {
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
 import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -36,7 +37,6 @@ import {
   type CreditsGuardRequest,
 } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -77,7 +77,8 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
-@UseGuards(RolesGuard, SubscriptionGuard, CreditsGuard)
+@OrganizationModule('storyboard')
+@UseGuards(RolesGuard, CreditsGuard)
 export class BatchInterpolationController {
   constructor(
     private readonly activityRecorder: ActivityRecorderService,

@@ -1,10 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
@@ -47,8 +47,9 @@ import type { Request } from 'express';
 @ApiTags('Batches')
 @AutoSwagger()
 @FeatureFlag('studio')
+@OrganizationModule('batch')
 @Controller('batches')
-@UseGuards(RolesGuard, SubscriptionGuard)
+@UseGuards(RolesGuard)
 export class BatchGenerationController {
   constructor(
     private readonly batchGenerationService: BatchGenerationService,
@@ -250,6 +251,7 @@ export class BatchGenerationController {
   }
 
   @Post(':id/rewrite-jobs/:jobId/cancel')
+  @OrganizationModule('batch', 'read')
   @HttpCode(200)
   @ApiOperation({ summary: 'Stop a batch rewrite before its next item' })
   async cancelRewriteJob(

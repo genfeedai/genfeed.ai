@@ -221,6 +221,7 @@ export function buildTrendsRefreshWorkflowDefinition(): SystemWorkflowGraphDefin
 export function buildScopedTrendTaskWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_TASK,
+    organizationModule: 'discovery',
     definition: {
       edges: [],
       inputVariables: [

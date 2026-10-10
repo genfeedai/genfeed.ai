@@ -1,4 +1,28 @@
 import {
+  buildClipContinuityQaWorkflowDefinition,
+  buildClipContinuityWorkflowDefinition,
+} from '@api/collections/clip-projects/services/clip-continuity-workflow-definition';
+import {
+  buildClipFactoryWorkflowDefinition,
+  buildClipGenerationChildWorkflowDefinition,
+} from '@api/collections/clip-projects/services/clip-factory-workflow-definition';
+import { buildClipGenerationWorkflowDefinition } from '@api/collections/clip-projects/services/clip-generation-workflow-definition';
+import {
+  buildRssItemWorkflowDefinition,
+  buildRssSourceWorkflowDefinition,
+  buildRssSweepWorkflowDefinition,
+} from '@api/collections/rss-sources/services/rss-sweep-workflow-definition';
+import { buildSocialSourceHistoryImportWorkflowDefinition } from '@api/collections/social-sources/services/social-source-history-import-workflow-definition';
+import {
+  buildSocialSourceOwnAccountResyncItemWorkflowDefinition,
+  buildSocialSourceOwnAccountResyncSweepWorkflowDefinition,
+} from '@api/collections/social-sources/services/social-source-own-account-resync-workflow-definition';
+import { buildScopedTrendTaskWorkflowDefinition } from '@api/collections/trends/services/trends-maintenance-workflow-definition';
+import {
+  buildVisualProjectFailureWorkflowDefinition,
+  buildVisualProjectWorkflowDefinition,
+} from '@api/collections/visual-projects/services/visual-project-workflow-definition';
+import {
   buildHiddenSystemWorkflowMetadata,
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
   SYSTEM_WORKFLOW_METADATA_KEY,
@@ -6,9 +30,44 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { WORKFLOW_EXECUTOR } from '@api/collections/workflows/workflows.tokens';
+import {
+  getOrganizationModuleExecutionContext,
+  runWithOrganizationModule,
+} from '@api/common/organization-modules/organization-module-execution.context';
+import {
+  buildCampaignDmBatchWorkflowDefinition,
+  buildCampaignDmWorkflowDefinition,
+} from '@api/services/campaign/campaign-dm-workflow-definition';
+import {
+  buildCampaignReplyBatchWorkflowDefinition,
+  buildCampaignReplyPreviewWorkflowDefinition,
+  buildCampaignReplyWorkflowDefinition,
+} from '@api/services/campaign/campaign-reply-workflow-definition';
+import { buildTelegramDistributionWorkflowDefinition } from '@api/services/distribution/telegram/telegram-distribution-workflow-definition';
+import {
+  buildAuthorReplyDraftWorkflowDefinition,
+  buildAuthorReplySendWorkflowDefinition,
+} from '@api/services/reply-bot/author-reply-workflow-definition';
+import {
+  buildReplyBotContentWorkflowDefinition,
+  buildReplyBotDmWorkflowDefinition,
+  buildReplyBotOrganizationWorkflowDefinition,
+  buildReplyBotTestWorkflowDefinition,
+  buildReplyBotWorkflowDefinition,
+} from '@api/services/reply-bot/reply-bot-workflow-definition';
+import {
+  buildReplyInboundWorkflowDefinition,
+  buildReplyPostWatchWorkflowDefinition,
+} from '@api/services/reply-bot/reply-ingestion-workflow-definition';
+import {
+  buildTwitterDraftWorkflowDefinition,
+  buildTwitterPublishWorkflowDefinition,
+  buildTwitterSearchWorkflowDefinition,
+} from '@api/services/twitter-pipeline/twitter-pipeline-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
+import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type SystemWorkflowGraphDefinition,
@@ -53,6 +112,28 @@ describe('SystemWorkflowRunnerService definitions', () => {
   it('rejects an unregistered pausable workflow identity', async () => {
     await expect(service.startWorkflow(mismatchedInput)).rejects.toThrow(
       'Unknown system workflow: different-workflow',
+    );
+  });
+
+  it('refuses synchronous execution of a funded system graph before creating a mirror or output', async () => {
+    const { runner } = createRunner();
+    runner.registerWorkflow({
+      ...definition,
+      canonicalId: 'funded-generation',
+      generationAdmission: true,
+    });
+    const input = {
+      actionType: 'video.extend',
+      canonicalId: 'funded-generation',
+      organizationId: 'org-1',
+      source: 'test',
+      userId: 'user-1',
+    };
+    await expect(runner.startWorkflow(input)).rejects.toThrow(
+      'queued execution admission',
+    );
+    await expect(runner.runWorkflow(input)).rejects.toThrow(
+      'queued execution admission',
     );
   });
 
@@ -432,6 +513,101 @@ describe('SystemWorkflowRunnerService definitions', () => {
         }),
       }),
     );
+  });
+
+  it('queues only registered Motion compensation with the original input, ignoring caller policy metadata', async () => {
+    const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
+    const createExecution = vi
+      .fn()
+      .mockResolvedValue({ id: 'motion-execution' });
+    const { runner } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+      {
+        assertAccess: vi.fn().mockResolvedValue(undefined),
+      },
+    );
+    runner.registerWorkflow(buildVisualProjectWorkflowDefinition());
+    runner.registerWorkflow(buildVisualProjectFailureWorkflowDefinition());
+    const internals = runner as unknown as RunnerInternals;
+    vi.spyOn(internals, 'resolveUserId').mockResolvedValue('user');
+    vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue({
+      currentVersion: { id: 'motion-version' },
+      id: 'motion-workflow',
+      label: 'Motion',
+    });
+    const inputValues = {
+      job: {
+        revisionId: 'revision',
+        organizationId: 'org',
+        brandId: 'brand',
+        userId: 'user',
+      },
+    };
+    await runner.enqueueWorkflow(
+      {
+        canonicalId: 'visual-code.execute',
+        actionType: 'visual-code.execute',
+        organizationId: 'org',
+        userId: 'user',
+        source: 'visual-code',
+        inputValues,
+        metadata: {
+          failureWorkflow: {
+            canonicalId: 'attacker',
+            inputValues: { job: 'foreign' },
+          },
+        },
+      },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+    );
+    expect(queueSystemWorkflow.mock.calls[0][2].failureWorkflow).toEqual({
+      canonicalId: 'visual-code.failure',
+      inputValues,
+    });
+  });
+
+  it('rejects missing fixed compensation at bootstrap and rejects self-compensation', () => {
+    const { runner } = createRunner();
+    runner.registerAction('visual-code.execute-internal', vi.fn());
+    runner.registerWorkflow(buildVisualProjectWorkflowDefinition());
+    expect(() => runner.onApplicationBootstrap()).toThrow(
+      'System workflow failure definitions missing: visual-code.execute:visual-code.failure',
+    );
+    expect(() =>
+      runner.registerWorkflow({
+        ...definition,
+        failureWorkflowCanonicalId: definition.canonicalId,
+      }),
+    ).toThrow('Invalid code-owned system workflow failure definition');
+    runner.registerAction('visual-code.fail-internal', vi.fn());
+    runner.registerWorkflow(buildVisualProjectFailureWorkflowDefinition());
+    expect(() => runner.onApplicationBootstrap()).not.toThrow();
+  });
+
+  it('resolves legacy compensation only from a registered graph and rejects missing targets', () => {
+    const { runner } = createRunner();
+    const input = {
+      canonicalId: 'visual-code.execute',
+      inputValues: { job: { revisionId: 'revision' } },
+    };
+    expect(runner.getRegisteredFailureWorkflow(input)).toBeUndefined();
+    runner.registerWorkflow(buildVisualProjectWorkflowDefinition());
+    expect(() => runner.getRegisteredFailureWorkflow(input)).toThrow(
+      'System workflow failure definitions missing',
+    );
+    runner.registerWorkflow(buildVisualProjectFailureWorkflowDefinition());
+    expect(runner.getRegisteredFailureWorkflow(input)).toEqual({
+      canonicalId: 'visual-code.failure',
+      inputValues: input.inputValues,
+    });
+    expect(
+      runner.getRegisteredFailureWorkflow({
+        canonicalId: 'visual-code.failure',
+      }),
+    ).toBeUndefined();
   });
 
   it.each([
@@ -1085,11 +1261,565 @@ describe('SystemWorkflowRunnerService definitions', () => {
   });
 });
 
+describe('registered Motion graph admission', () => {
+  const motion = buildVisualProjectWorkflowDefinition();
+  const input = {
+    actionType: motion.canonicalId,
+    canonicalId: motion.canonicalId,
+    organizationId: 'org-1',
+    source: 'visual-code',
+    userId: 'user-1',
+  };
+  function fixture() {
+    const assertAccess = vi.fn().mockResolvedValue(undefined);
+    const queueSystemWorkflow = vi.fn();
+    const createExecution = vi.fn();
+    const { runner, executors } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+      { assertAccess },
+    );
+    runner.registerWorkflow(motion);
+    const internals = runner as unknown as RunnerInternals;
+    const resolveUserId = vi.spyOn(internals, 'resolveUserId');
+    const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+    return {
+      runner,
+      executors,
+      assertAccess,
+      queueSystemWorkflow,
+      createExecution,
+      resolveUserId,
+      mirror,
+    };
+  }
+  it.each(['start', 'enqueue'] as const)(
+    'denies Motion %s before any execution or queue writes',
+    async (mode) => {
+      const h = fixture();
+      h.assertAccess.mockRejectedValue(
+        new ForbiddenException('Motion disabled'),
+      );
+      await expect(
+        mode === 'start'
+          ? h.runner.startWorkflow(input)
+          : h.runner.enqueueWorkflow(input, {
+              dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+            }),
+      ).rejects.toThrow('Motion disabled');
+      expect(h.assertAccess).toHaveBeenCalledWith('org-1', 'motion');
+      expect(h.resolveUserId).not.toHaveBeenCalled();
+      expect(h.mirror).not.toHaveBeenCalled();
+      expect(h.createExecution).not.toHaveBeenCalled();
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    },
+  );
+  it('uses registered Motion ownership for legacy resume and rechecks revocation after a warmed run', async () => {
+    const h = fixture();
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    await expect(
+      runWithOrganizationModule(
+        { organizationId: 'org-1', moduleId: 'playground' },
+        () => h.runner.runWithRegisteredWorkflowModule(input, work),
+      ),
+    ).resolves.toEqual({ organizationId: 'org-1', moduleId: 'motion' });
+    h.assertAccess.mockRejectedValueOnce(
+      new ForbiddenException('Motion disabled'),
+    );
+    await expect(
+      h.runner.runWithRegisteredWorkflowModule(input, work),
+    ).rejects.toThrow('Motion disabled');
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+  it('does not exempt the provider-capable execute node from fresh module admission', async () => {
+    const h = fixture();
+    const action = vi.fn().mockResolvedValue(null);
+    h.runner.registerAction('visual-code.execute-internal', action);
+    const node = {
+      config: { actionId: 'visual-code.execute-internal' },
+      id: 'execute',
+      inputs: [],
+      label: 'Execute visual revision',
+      type: 'genfeedAction',
+    };
+    await h.runner.runWithRegisteredWorkflowModule(input, async () => {
+      await h.executors.get('visual-code.execute-internal')?.(
+        node,
+        new Map(),
+        executionContext(),
+      );
+      h.assertAccess.mockRejectedValueOnce(
+        new ForbiddenException('Motion disabled'),
+      );
+      await expect(
+        h.executors.get('visual-code.execute-internal')?.(
+          node,
+          new Map(),
+          executionContext(),
+        ),
+      ).rejects.toThrow('Motion disabled');
+    });
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('System workflow module admission', () => {
+  const input = {
+    actionType: definition.canonicalId,
+    canonicalId: definition.canonicalId,
+    organizationId: 'org-1',
+    source: 'test',
+    userId: 'user-1',
+  };
+  function admittedRunner() {
+    const assertAccess = vi.fn().mockResolvedValue(undefined);
+    const queueSystemWorkflow = vi.fn();
+    const createExecution = vi.fn();
+    const { runner, executors } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+      { assertAccess },
+    );
+    runner.registerWorkflow({ ...definition, organizationModule: 'messages' });
+    const internals = runner as unknown as RunnerInternals;
+    const resolveUserId = vi.spyOn(internals, 'resolveUserId');
+    const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+    return {
+      assertAccess,
+      runner,
+      executors,
+      resolveUserId,
+      mirror,
+      queueSystemWorkflow,
+      createExecution,
+    };
+  }
+
+  it.each(['start', 'enqueue'] as const)(
+    'denies %s before principal, mirror, execution or queue writes',
+    async (mode) => {
+      const h = admittedRunner();
+      h.assertAccess.mockRejectedValue(
+        new ForbiddenException('Messages disabled'),
+      );
+      await expect(
+        mode === 'start'
+          ? h.runner.startWorkflow(input)
+          : h.runner.enqueueWorkflow(input, {
+              dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+            }),
+      ).rejects.toThrow('Messages disabled');
+      expect(h.resolveUserId).not.toHaveBeenCalled();
+      expect(h.mirror).not.toHaveBeenCalled();
+      expect(h.createExecution).not.toHaveBeenCalled();
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it('uses the registered module instead of a producer context or caller metadata and rechecks a warmed run', async () => {
+    const h = admittedRunner();
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    const scope = await runWithOrganizationModule(
+      { organizationId: 'org-1', moduleId: 'publishing' },
+      () =>
+        h.runner.runWithRegisteredWorkflowModule(
+          { ...input, ...{ metadata: { organizationModule: 'playground' } } },
+          work,
+        ),
+    );
+    expect(scope).toEqual({ organizationId: 'org-1', moduleId: 'messages' });
+    expect(h.assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+    h.assertAccess.mockRejectedValueOnce(
+      new ForbiddenException('Subscription expired'),
+    );
+    await expect(
+      h.runner.runWithRegisteredWorkflowModule(input, work),
+    ).rejects.toThrow('Subscription expired');
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+
+  it('rechecks module access before the next side-effect node in an active run', async () => {
+    const h = admittedRunner();
+    const action = vi.fn().mockResolvedValue(null);
+    h.runner.registerAction('youtube.resolve-source', action);
+    const node = {
+      config: { actionId: 'youtube.resolve-source' },
+      id: 'review-hook',
+      inputs: [],
+      label: 'Resolve',
+      type: 'genfeedAction',
+    };
+    await h.runner.runWithRegisteredWorkflowModule(input, async () => {
+      await h.executors.get('youtube.resolve-source')?.(
+        node,
+        new Map(),
+        executionContext(),
+      );
+      h.assertAccess.mockRejectedValueOnce(
+        new ForbiddenException('Messages disabled'),
+      );
+      await expect(
+        h.executors.get('youtube.resolve-source')?.(
+          node,
+          new Map(),
+          executionContext(),
+        ),
+      ).rejects.toThrow('Messages disabled');
+    });
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets only code-declared terminal state nodes finish after an admitted side effect', async () => {
+    const h = admittedRunner();
+    const action = vi.fn().mockResolvedValue(null);
+    h.runner.registerAction('youtube.resolve-source', action);
+    const provider = vi.fn();
+    h.runner.registerAction('social.inbox.outbound.provider', provider);
+    h.runner.registerWorkflow({
+      ...definition,
+      canonicalId: 'terminal',
+      organizationModule: 'messages',
+      moduleCompletionNodeIds: ['review-hook'],
+    });
+    const node = {
+      config: { actionId: 'youtube.resolve-source' },
+      id: 'review-hook',
+      inputs: [],
+      label: 'Finalize',
+      type: 'genfeedAction',
+    };
+    await h.runner.runWithRegisteredWorkflowModule(
+      { canonicalId: 'terminal', organizationId: 'org-1' },
+      async () => {
+        h.assertAccess.mockRejectedValue(
+          new ForbiddenException('Messages disabled'),
+        );
+        await h.executors.get('youtube.resolve-source')?.(
+          node,
+          new Map(),
+          executionContext(),
+        );
+        await expect(
+          h.executors.get('youtube.resolve-source')?.(
+            { ...node, id: 'new-work' },
+            new Map(),
+            executionContext(),
+          ),
+        ).rejects.toThrow('Messages disabled');
+        await expect(
+          h.executors.get('social.inbox.outbound.provider')?.(
+            { ...node, config: { actionId: 'social.inbox.outbound.provider' } },
+            new Map(),
+            executionContext(),
+          ),
+        ).rejects.toThrow('Messages disabled');
+      },
+    );
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(provider).not.toHaveBeenCalled();
+    await expect(
+      h.runner.runWithRegisteredWorkflowModule(
+        { canonicalId: 'terminal', organizationId: 'org-1' },
+        async () => null,
+      ),
+    ).rejects.toThrow('Messages disabled');
+  });
+
+  it('never exempts an action in another tenant', async () => {
+    const h = admittedRunner();
+    const action = vi.fn();
+    h.runner.registerAction('youtube.resolve-source', action);
+    await h.runner.runWithRegisteredWorkflowModule(input, async () => {
+      await expect(
+        h.executors.get('youtube.resolve-source')?.(
+          {
+            config: { actionId: 'youtube.resolve-source' },
+            id: 'review-hook',
+            inputs: [],
+            label: 'Resolve',
+            type: 'genfeedAction',
+          },
+          new Map(),
+          { ...executionContext(), organizationId: 'org-2' },
+        ),
+      ).rejects.toThrow('does not match its tenant');
+    });
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown completion nodes and completion policies without a module', () => {
+    const h = admittedRunner();
+    expect(() =>
+      h.runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'bad',
+        organizationModule: 'messages',
+        moduleCompletionNodeIds: ['absent'],
+      }),
+    ).toThrow('Invalid code-owned');
+    expect(() =>
+      h.runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'bad',
+        moduleCompletionNodeIds: ['review-hook'],
+      }),
+    ).toThrow('Invalid code-owned');
+  });
+});
+
+describe('nested scheduled module admission', () => {
+  it.each([false, true])(
+    'admits a child under its own module before Redis when disabled=%s',
+    async (isDisabled) => {
+      const assertAccess = vi.fn(async (_org: string, moduleId: string) => {
+        if (moduleId === 'messages' && isDisabled)
+          throw new ForbiddenException('Messages disabled');
+      });
+      const queueSystemWorkflow = vi.fn(async () => {
+        expect(getOrganizationModuleExecutionContext()).toEqual({
+          organizationId: 'org-1',
+          moduleId: 'messages',
+        });
+        return 'queued-child';
+      });
+      const { runner, executors } = createRunner(
+        { queueSystemWorkflow },
+        {
+          workflowExecution: {
+            findFirst: vi.fn().mockResolvedValue({
+              result: {
+                metadata: {
+                  dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+                  source: 'test',
+                },
+              },
+            }),
+          },
+        },
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.onModuleInit();
+      runner.registerWorkflow({
+        ...definition,
+        organizationModule: 'messages',
+      });
+      await runWithOrganizationModule(
+        { organizationId: 'org-1', moduleId: 'publishing' },
+        async () => {
+          const run = executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+            executableForEachNode({
+              childWorkflowId: definition.canonicalId,
+              itemInputKey: 'item',
+              mode: 'scheduled',
+            }),
+            new Map([['items', ['one']]]),
+            executionContext(),
+          );
+          if (isDisabled)
+            await expect(run).rejects.toThrow('Messages disabled');
+          else
+            await expect(run).resolves.toEqual({
+              count: 1,
+              results: [{ index: 0, jobId: 'queued-child' }],
+            });
+          expect(getOrganizationModuleExecutionContext()?.moduleId).toBe(
+            'publishing',
+          );
+        },
+      );
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+      expect(queueSystemWorkflow).toHaveBeenCalledTimes(isDisabled ? 0 : 1);
+    },
+  );
+});
+
+describe('stored delay module ownership', () => {
+  const input = {
+    executionId: 'execution-1',
+    organizationId: 'org-1',
+    workflowId: 'workflow-1',
+  };
+  function harness() {
+    const workflow = {
+      id: input.workflowId,
+      isDeleted: false,
+      organizationId: 'org-1',
+      userId: 'owner-1',
+      metadata: {
+        sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+        [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+          canonicalId: definition.canonicalId,
+        }),
+      },
+    };
+    const pinned = {
+      workflowVersion: {
+        organizationId: workflow.organizationId,
+        userId: workflow.userId,
+        workflowId: input.workflowId,
+        workflow,
+      },
+    };
+    const findFirst = vi.fn().mockResolvedValue(pinned);
+    const assertAccess = vi.fn().mockResolvedValue(undefined);
+    const h = createRunner(
+      undefined,
+      { workflowExecution: { findFirst } },
+      {},
+      {},
+      { assertAccess },
+    );
+    h.runner.registerWorkflow({
+      ...definition,
+      organizationModule: 'messages',
+    });
+    return { ...h, pinned, findFirst, assertAccess };
+  }
+
+  it('binds an old queue job to its tenant and execution, and ignores tenant-authored hidden/module metadata', async () => {
+    const h = harness();
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).resolves.toEqual({ organizationId: 'org-1', moduleId: 'automation' });
+    expect(h.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'execution-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          workflowId: 'workflow-1',
+        },
+      }),
+    );
+    expect(h.assertAccess).toHaveBeenCalledWith('org-1', 'automation');
+  });
+
+  it('resolves a fixed-principal hidden execution through code-owned module policy and rejects revocation after a warmed attempt', async () => {
+    const h = harness();
+    const version = h.pinned.workflowVersion;
+    version.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).resolves.toEqual({ organizationId: 'org-1', moduleId: 'messages' });
+    h.assertAccess.mockRejectedValueOnce(
+      new ForbiddenException('Subscription expired'),
+    );
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).rejects.toThrow('Subscription expired');
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a registered global maintenance resume distinct from tenant Automation', async () => {
+    const h = harness();
+    h.runner.registerWorkflow({ ...definition, canonicalId: 'maintenance' });
+    const version = h.pinned.workflowVersion;
+    version.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    version.workflow.metadata[SYSTEM_WORKFLOW_METADATA_KEY] =
+      buildHiddenSystemWorkflowMetadata({ canonicalId: 'maintenance' });
+    const work = vi.fn().mockResolvedValue('reconciled');
+    await expect(
+      h.runner.runWithStoredWorkflowModule(
+        { ...input, organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID },
+        work,
+      ),
+    ).resolves.toBe('reconciled');
+    expect(h.assertAccess).not.toHaveBeenCalled();
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    'missing',
+    'wrong-version-workflow',
+    'wrong-workflow',
+    'deleted',
+    'wrong-version-tenant',
+    'wrong-version-owner',
+    'foreign-tenant',
+    'fake-principal-owner',
+    'unknown-canonical',
+  ] as const)(
+    'rejects unsafe saved execution ownership: %s',
+    async (problem) => {
+      const h = harness();
+      const version = h.pinned.workflowVersion;
+      if (problem === 'missing') h.findFirst.mockResolvedValue(null);
+      if (problem === 'wrong-version-workflow') version.workflowId = 'other';
+      if (problem === 'wrong-workflow') version.workflow.id = 'other';
+      if (problem === 'deleted') version.workflow.isDeleted = true;
+      if (problem === 'wrong-version-tenant') version.organizationId = 'other';
+      if (problem === 'wrong-version-owner') version.userId = 'other';
+      if (problem === 'foreign-tenant') {
+        version.organizationId = 'other';
+        version.workflow.organizationId = 'other';
+      }
+      if (
+        problem === 'fake-principal-owner' ||
+        problem === 'unknown-canonical'
+      ) {
+        version.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+        version.workflow.organizationId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+        if (problem === 'unknown-canonical') {
+          version.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+          version.workflow.userId = SYSTEM_WORKFLOW_PRINCIPAL_ID;
+          version.workflow.metadata[SYSTEM_WORKFLOW_METADATA_KEY] =
+            buildHiddenSystemWorkflowMetadata({ canonicalId: 'unknown' });
+        }
+      }
+      const work = vi.fn();
+      await expect(
+        h.runner.runWithStoredWorkflowModule(input, work),
+      ).rejects.toThrow();
+      expect(work).not.toHaveBeenCalled();
+      expect(h.assertAccess).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['executionId', 'organizationId', 'workflowId'] as const)(
+    'rejects a missing %s without reading or executing',
+    async (key) => {
+      const h = harness();
+      const work = vi.fn();
+      await expect(
+        h.runner.runWithStoredWorkflowModule({ ...input, [key]: ' ' }, work),
+      ).rejects.toThrow('requires execution ownership');
+      expect(h.findFirst).not.toHaveBeenCalled();
+      expect(work).not.toHaveBeenCalled();
+    },
+  );
+
+  it('fails closed when saved ownership cannot be read', async () => {
+    const h = harness();
+    h.findFirst.mockRejectedValueOnce(new Error('Database unavailable'));
+    const work = vi.fn();
+    await expect(
+      h.runner.runWithStoredWorkflowModule(input, work),
+    ).rejects.toThrow('Database unavailable');
+    expect(h.assertAccess).not.toHaveBeenCalled();
+    expect(work).not.toHaveBeenCalled();
+  });
+});
+
 function createRunner(
   queue = { queueSystemWorkflow: vi.fn() },
   prisma: object = {},
   workflowExecutor: object = {},
   workflowExecutions: object = {},
+  moduleAccess: object = {},
 ): {
   executors: Map<string, NodeExecutor>;
   runner: SystemWorkflowRunnerService;
@@ -1104,6 +1834,7 @@ function createRunner(
   const moduleRef = {
     get: (token: unknown) => {
       const name = (token as { name?: string })?.name;
+      if (name === 'OrganizationModuleAccessService') return moduleAccess;
       if (name === 'WorkflowExecutionQueueService') {
         return queue;
       }
@@ -1159,3 +1890,1107 @@ function executionContext(): Parameters<NodeExecutor>[2] {
     workflowVersionId: 'parent-version',
   };
 }
+
+describe('registered outbound campaign module admission', () => {
+  const definitions = [
+    buildCampaignDmWorkflowDefinition(),
+    buildCampaignDmBatchWorkflowDefinition(),
+    buildCampaignReplyWorkflowDefinition(),
+    buildCampaignReplyBatchWorkflowDefinition(),
+    buildCampaignReplyPreviewWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException(
+            'Messages disabled or subscription unavailable',
+          ),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-campaign',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Messages disabled or subscription unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    buildCampaignDmWorkflowDefinition(),
+    buildCampaignReplyWorkflowDefinition(),
+  ])(
+    '$canonicalId permits terminal sent-result projection after revocation but blocks another send',
+    async (graph) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalized = vi.fn().mockResolvedValue({ success: true });
+      const sent = vi.fn();
+      const finalAction = String(
+        graph.definition.nodes.find((node) => node.id === 'finalize-target')
+          ?.data.config.actionId,
+      );
+      const sendNode = graph.definition.nodes.find((node) =>
+        node.id.startsWith('send-'),
+      );
+      if (!sendNode) throw new Error('campaign send node missing');
+      const sendAction = String(sendNode.data.config.actionId);
+      runner.registerAction(finalAction, finalized);
+      runner.registerAction(sendAction, sent);
+      const input = { canonicalId: graph.canonicalId, organizationId: 'org-1' };
+      await runner.runWithRegisteredWorkflowModule(input, async () => {
+        assertAccess.mockRejectedValue(
+          new ForbiddenException('Messages revoked'),
+        );
+        await executors.get(finalAction)?.(
+          {
+            config: { actionId: finalAction },
+            id: 'finalize-target',
+            inputs: [],
+            label: 'Finalize',
+            type: 'genfeedAction',
+          },
+          new Map(),
+          executionContext(),
+        );
+        await expect(
+          executors.get(sendAction)?.(
+            {
+              config: { actionId: sendAction },
+              id: sendNode.id,
+              inputs: [],
+              label: 'Send',
+              type: 'genfeedAction',
+            },
+            new Map(),
+            executionContext(),
+          ),
+        ).rejects.toThrow('Messages revoked');
+      });
+      expect(finalized).toHaveBeenCalledTimes(1);
+      expect(sent).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+    },
+  );
+});
+
+describe('registered Clips module admission', () => {
+  const definitions = [
+    buildClipFactoryWorkflowDefinition(),
+    buildClipGenerationWorkflowDefinition(),
+    buildClipGenerationChildWorkflowDefinition(),
+    buildClipContinuityWorkflowDefinition(),
+    buildClipContinuityQaWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException('Clips disabled or unavailable'),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-clips',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Clips disabled or unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'clips');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      graph: buildClipGenerationChildWorkflowDefinition(),
+      nodeId: 'finalize-child',
+      allowed: false,
+    },
+    {
+      graph: buildClipContinuityWorkflowDefinition(),
+      nodeId: 'persist-continuity-report',
+      allowed: true,
+    },
+  ])(
+    '$graph.canonicalId $nodeId respects fresh access after revocation',
+    async ({ graph, nodeId, allowed }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const pin = buildWorkflowVersionDefinition(graph.definition);
+      const { runner, executors } = createRunner(
+        undefined,
+        {
+          workflowExecution: {
+            findFirst: vi.fn().mockResolvedValue({
+              workflowVersion: {
+                id: 'parent-version',
+                workflowId: 'parent-workflow',
+                organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                contentHash: pin.contentHash,
+                graph: pin.graph,
+                inputSchema: pin.inputSchema,
+                workflow: {
+                  isDeleted: false,
+                  organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                  userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                  metadata: {
+                    sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+                    [SYSTEM_WORKFLOW_METADATA_KEY]:
+                      buildHiddenSystemWorkflowMetadata({
+                        canonicalId: graph.canonicalId,
+                      }),
+                  },
+                },
+              },
+            }),
+          },
+        },
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const node = graph.definition.nodes.find((value) => value.id === nodeId);
+      if (!node) throw new Error('registered clip node missing');
+      const actionId = String(node.data.config.actionId);
+      const work = vi.fn().mockResolvedValue({ completed: true });
+      runner.registerAction(actionId, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Clips revoked'),
+          );
+          const result = executors.get(actionId)?.(
+            {
+              config: { actionId },
+              id: nodeId,
+              inputs: [],
+              label: nodeId,
+              type: 'genfeedAction',
+            },
+            new Map(),
+            executionContext(),
+          );
+          if (allowed)
+            await expect(result).resolves.toEqual({ completed: true });
+          else await expect(result).rejects.toThrow('Clips revoked');
+        },
+      );
+      expect(work).toHaveBeenCalledTimes(allowed ? 1 : 0);
+      expect(assertAccess).toHaveBeenCalledTimes(allowed ? 1 : 2);
+    },
+  );
+});
+
+describe('registered reply and author-reply module admission', () => {
+  const definitions = [
+    buildReplyBotOrganizationWorkflowDefinition(),
+    buildReplyBotWorkflowDefinition(),
+    buildReplyBotContentWorkflowDefinition(),
+    buildReplyBotDmWorkflowDefinition(),
+    buildReplyBotTestWorkflowDefinition(),
+    buildAuthorReplyDraftWorkflowDefinition(),
+    buildAuthorReplySendWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException(
+            'Messages disabled or subscription unavailable',
+          ),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-reply',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Messages disabled or subscription unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'messages');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(definitions)(
+    '$canonicalId projects an admitted result after revocation but blocks its next work action',
+    async (graph) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      const workNode = graph.definition.nodes.find(
+        (node) =>
+          node.id !== graph.resultNodeId && node.type === 'genfeedAction',
+      );
+      if (!finalNode || !workNode)
+        throw new Error('reply final/work action missing');
+      const finalAction = String(finalNode.data.config.actionId);
+      const nextAction = String(workNode.data.config.actionId);
+      const finalize = vi.fn().mockResolvedValue({ completed: true });
+      const work = vi.fn();
+      runner.registerAction(finalAction, finalize);
+      runner.registerAction(nextAction, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Messages revoked'),
+          );
+          await expect(
+            executors.get(finalAction)?.(
+              {
+                config: { actionId: finalAction },
+                id: finalNode.id,
+                inputs: [],
+                label: 'Finalize',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).resolves.toEqual({ completed: true });
+          await expect(
+            executors.get(nextAction)?.(
+              {
+                config: { actionId: nextAction },
+                id: workNode.id,
+                inputs: [],
+                label: 'New work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Messages revoked');
+        },
+      );
+      expect(finalize).toHaveBeenCalledTimes(1);
+      expect(work).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+    },
+  );
+});
+
+describe('registered tenant Discovery job admission', () => {
+  const definitions = [
+    buildScopedTrendTaskWorkflowDefinition(),
+    buildSocialSourceHistoryImportWorkflowDefinition(),
+    buildSocialSourceOwnAccountResyncItemWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException(
+            'Discovery disabled or subscription unavailable',
+          ),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-discovery',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Discovery disabled or subscription unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'discovery');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(definitions)(
+    '$canonicalId keeps its provider-capable result node gated after a warmed attempt',
+    async (graph) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const resultNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      if (!resultNode) throw new Error('Discovery provider node missing');
+      const actionId = String(resultNode.data.config.actionId);
+      const provider = vi.fn();
+      runner.registerAction(actionId, provider);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Discovery revoked'),
+          );
+          await expect(
+            executors.get(actionId)?.(
+              {
+                config: { actionId },
+                id: resultNode.id,
+                inputs: [],
+                label: 'Fetch/import',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Discovery revoked');
+        },
+      );
+      expect(provider).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+    },
+  );
+  it('schedules an eligible tenant after another tenant loses Discovery access', async () => {
+    const graph = buildSocialSourceOwnAccountResyncItemWorkflowDefinition();
+    const sweep = buildSocialSourceOwnAccountResyncSweepWorkflowDefinition();
+    const assertAccess = vi.fn(async (organizationId: string) => {
+      if (organizationId === 'org-2')
+        throw new ForbiddenException('Discovery disabled');
+    });
+    const queueSystemWorkflow = vi.fn(
+      async (_input: { organizationId: string }, jobId: string) => jobId,
+    );
+    const prisma = {
+      organization: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'org-2', userId: 'owner-2' },
+          { id: 'org-3', userId: 'owner-3' },
+        ]),
+      },
+      workflow: {
+        findFirst: vi.fn().mockResolvedValue({
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+              canonicalId: sweep.canonicalId,
+            }),
+          },
+        }),
+      },
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const { runner, executors } = createRunner(
+      { queueSystemWorkflow },
+      prisma,
+      {},
+      {},
+      { assertAccess },
+    );
+    runner.onModuleInit();
+    runner.registerWorkflow(graph);
+    runner.registerWorkflow(sweep);
+    const schedule = sweep.definition.nodes.find(
+      (node) => node.id === 'resync-sources',
+    );
+    if (!schedule) throw new Error('Resync scheduling node missing');
+    const result = await executors.get(WORKFLOW_FOR_EACH_TENANT_ACTION_ID)?.(
+      executableForEachNode(
+        schedule.data.config.parameters as Record<string, unknown>,
+        WORKFLOW_FOR_EACH_TENANT_ACTION_ID,
+      ),
+      new Map([
+        ['items', [{ organizationId: 'org-2' }, { organizationId: 'org-3' }]],
+      ]),
+      executionContext(),
+    );
+    expect(result).toMatchObject({
+      count: 2,
+      results: [
+        { index: 0, status: 'failed', error: 'Discovery disabled' },
+        { index: 1, jobId: expect.any(String) },
+      ],
+    });
+    expect(assertAccess).toHaveBeenNthCalledWith(1, 'org-2', 'discovery');
+    expect(assertAccess).toHaveBeenNthCalledWith(2, 'org-3', 'discovery');
+    expect(queueSystemWorkflow).toHaveBeenCalledTimes(1);
+    expect(queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-3', userId: 'owner-3' }),
+      expect.any(String),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      }),
+    );
+  });
+});
+
+describe('registered RSS Publishing module admission', () => {
+  const definitions = [
+    buildRssSourceWorkflowDefinition(),
+    buildRssItemWorkflowDefinition(),
+  ];
+  it.each(
+    definitions.flatMap((graph) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException('Publishing disabled or unavailable'),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-rss',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Publishing disabled or unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', 'publishing');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(
+    definitions.flatMap((graph) =>
+      graph.definition.nodes
+        .filter(
+          (node) =>
+            node.id !== graph.resultNodeId && node.type === 'genfeedAction',
+        )
+        .map((workNode) => ({ graph, workNode })),
+    ),
+  )(
+    '$graph.canonicalId projects its admitted result but blocks $workNode.id after revocation',
+    async ({ graph, workNode }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      if (!finalNode) throw new Error('RSS final/work action missing');
+      const finalAction = String(finalNode.data.config.actionId);
+      const nextAction = String(workNode.data.config.actionId);
+      const finalize = vi.fn().mockResolvedValue({ completed: true });
+      const work = vi.fn();
+      runner.registerAction(finalAction, finalize);
+      runner.registerAction(nextAction, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Publishing revoked'),
+          );
+          await expect(
+            executors.get(finalAction)?.(
+              {
+                config: { actionId: finalAction },
+                id: finalNode.id,
+                inputs: [],
+                label: 'Finalize',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).resolves.toEqual({ completed: true });
+          await expect(
+            executors.get(nextAction)?.(
+              {
+                config: { actionId: nextAction },
+                id: workNode.id,
+                inputs: [],
+                label: 'New work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Publishing revoked');
+        },
+      );
+      expect(finalize).toHaveBeenCalledTimes(1);
+      expect(work).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+    },
+  );
+  it('awaits an eligible RSS source after another tenant loses Publishing access', async () => {
+    const graph = buildRssSourceWorkflowDefinition();
+    const sweep = buildRssSweepWorkflowDefinition();
+    const assertAccess = vi.fn(async (organizationId: string) => {
+      if (organizationId === 'org-2')
+        throw new ForbiddenException('Publishing disabled');
+    });
+    const executeManualWorkflowDocument = vi.fn().mockResolvedValue({
+      executionId: 'eligible-rss-execution',
+      status: 'COMPLETED',
+      nodeResults: [
+        { nodeId: graph.resultNodeId, output: { importedCount: 1 } },
+      ],
+    });
+    const prisma = {
+      organization: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'org-2', userId: 'owner-2' },
+          { id: 'org-3', userId: 'owner-3' },
+        ]),
+      },
+      workflow: {
+        findFirst: vi.fn().mockResolvedValue({
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+              canonicalId: sweep.canonicalId,
+            }),
+          },
+        }),
+      },
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const { runner, executors } = createRunner(
+      undefined,
+      prisma,
+      { executeManualWorkflowDocument },
+      {},
+      { assertAccess },
+    );
+    runner.onModuleInit();
+    runner.registerWorkflow(graph);
+    runner.registerWorkflow(sweep);
+    const internals = runner as unknown as RunnerInternals;
+    const resolve = vi
+      .spyOn(internals, 'resolveUserId')
+      .mockImplementation(
+        async (_organizationId, userId) => userId ?? 'missing-user',
+      );
+    const mirror = vi
+      .spyOn(internals, 'ensureHiddenSystemWorkflowMirror')
+      .mockResolvedValue({
+        id: 'rss-workflow',
+        label: 'Process RSS Source',
+        currentVersion: { id: 'rss-version' },
+      });
+    const fanout = sweep.definition.nodes.find(
+      (node) => node.id === 'process-sources',
+    );
+    if (!fanout) throw new Error('RSS source fan-out missing');
+    const result = await executors.get(WORKFLOW_FOR_EACH_TENANT_ACTION_ID)?.(
+      executableForEachNode(
+        fanout.data.config.parameters as Record<string, unknown>,
+        WORKFLOW_FOR_EACH_TENANT_ACTION_ID,
+      ),
+      new Map([
+        ['items', [{ organizationId: 'org-2' }, { organizationId: 'org-3' }]],
+      ]),
+      executionContext(),
+    );
+    expect(result).toMatchObject({
+      count: 2,
+      results: [
+        { index: 0, status: 'failed', error: 'Publishing disabled' },
+        { index: 1, result: { importedCount: 1 } },
+      ],
+    });
+    expect(assertAccess).toHaveBeenNthCalledWith(1, 'org-2', 'publishing');
+    expect(assertAccess).toHaveBeenNthCalledWith(2, 'org-3', 'publishing');
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(resolve).toHaveBeenCalledWith('org-3', 'owner-3');
+    expect(mirror).toHaveBeenCalledTimes(1);
+    expect(executeManualWorkflowDocument).toHaveBeenCalledTimes(1);
+    expect(executeManualWorkflowDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-3', userId: 'owner-3' }),
+      'owner-3',
+      'org-3',
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(String),
+    );
+  });
+});
+
+describe('registered reply ingestion and Telegram module admission', () => {
+  const definitions = [
+    {
+      graph: buildReplyInboundWorkflowDefinition(),
+      moduleId: 'messages' as const,
+    },
+    {
+      graph: buildReplyPostWatchWorkflowDefinition(),
+      moduleId: 'messages' as const,
+    },
+    {
+      graph: buildTelegramDistributionWorkflowDefinition(),
+      moduleId: 'publishing' as const,
+    },
+  ];
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({
+        graph,
+        moduleId,
+        canonicalId: graph.canonicalId,
+        mode,
+      })),
+    ),
+  )(
+    'blocks $canonicalId $mode before any execution, queue, or provider work',
+    async ({ graph, mode, moduleId }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(
+          new ForbiddenException('Organization module disabled or unavailable'),
+        );
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'legacy-reply-delivery',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('Organization module disabled or unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', moduleId);
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      graph.definition.nodes
+        .filter(
+          (node) =>
+            node.id !== graph.resultNodeId && node.type === 'genfeedAction',
+        )
+        .map((workNode) => ({ graph, workNode, moduleId })),
+    ),
+  )(
+    '$graph.canonicalId projects its admitted result but blocks $workNode.id after revocation',
+    async ({ graph, workNode, moduleId }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const finalNode = graph.definition.nodes.find(
+        (node) => node.id === graph.resultNodeId,
+      );
+      if (!finalNode) throw new Error('Reply/delivery final action missing');
+      const finalAction = String(finalNode.data.config.actionId);
+      const nextAction = String(workNode.data.config.actionId);
+      const finalize = vi.fn().mockResolvedValue({ completed: true });
+      const work = vi.fn();
+      runner.registerAction(finalAction, finalize);
+      runner.registerAction(nextAction, work);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('Organization module revoked'),
+          );
+          await expect(
+            executors.get(finalAction)?.(
+              {
+                config: { actionId: finalAction },
+                id: finalNode.id,
+                inputs: [],
+                label: 'Finalize',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).resolves.toEqual({ completed: true });
+          await expect(
+            executors.get(nextAction)?.(
+              {
+                config: { actionId: nextAction },
+                id: workNode.id,
+                inputs: [],
+                label: 'New work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('Organization module revoked');
+        },
+      );
+      expect(finalize).toHaveBeenCalledTimes(1);
+      expect(work).not.toHaveBeenCalled();
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+      expect(assertAccess).toHaveBeenLastCalledWith('org-1', moduleId);
+    },
+  );
+});
+
+describe('registered X pipeline module admission', () => {
+  const definitions = [
+    {
+      graph: buildTwitterSearchWorkflowDefinition(),
+      moduleId: 'discovery' as const,
+    },
+    {
+      graph: buildTwitterDraftWorkflowDefinition(),
+      moduleId: 'discovery' as const,
+    },
+    {
+      graph: buildTwitterPublishWorkflowDefinition(),
+      moduleId: 'publishing' as const,
+    },
+  ];
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      ['start', 'enqueue', 'resume'].map((mode) => ({ graph, moduleId, mode })),
+    ),
+  )(
+    'blocks $graph.canonicalId $mode before execution or provider work',
+    async ({ graph, moduleId, mode }) => {
+      const assertAccess = vi
+        .fn()
+        .mockRejectedValue(new ForbiddenException('X module unavailable'));
+      const queueSystemWorkflow = vi.fn();
+      const createExecution = vi.fn();
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const internals = runner as unknown as RunnerInternals;
+      const resolve = vi.spyOn(internals, 'resolveUserId');
+      const mirror = vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror');
+      const provider = vi.fn();
+      const input = {
+        canonicalId: graph.canonicalId,
+        actionType: graph.canonicalId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        source: 'x-pipeline',
+        metadata: { organizationModule: 'playground' },
+      };
+      await expect(
+        mode === 'start'
+          ? runner.startWorkflow(input)
+          : mode === 'enqueue'
+            ? runner.enqueueWorkflow(input, {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              })
+            : runner.runWithRegisteredWorkflowModule(input, provider),
+      ).rejects.toThrow('X module unavailable');
+      expect(assertAccess).toHaveBeenCalledWith('org-1', moduleId);
+      expect(resolve).not.toHaveBeenCalled();
+      expect(mirror).not.toHaveBeenCalled();
+      expect(createExecution).not.toHaveBeenCalled();
+      expect(queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(provider).not.toHaveBeenCalled();
+    },
+  );
+  it.each(
+    definitions.flatMap(({ graph, moduleId }) =>
+      graph.definition.nodes
+        .filter(
+          (node) =>
+            node.type === 'genfeedAction' &&
+            !graph.moduleCompletionNodeIds?.includes(node.id),
+        )
+        .map((workNode) => ({ graph, moduleId, workNode })),
+    ),
+  )(
+    '$graph.canonicalId freshly blocks $workNode.id after revocation, including provider-capable result nodes',
+    async ({ graph, moduleId, workNode }) => {
+      const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const { runner, executors } = createRunner(
+        undefined,
+        {},
+        {},
+        {},
+        { assertAccess },
+      );
+      runner.registerWorkflow(graph);
+      const actionId = String(workNode.data.config.actionId);
+      const work = vi.fn();
+      runner.registerAction(actionId, work);
+      const completion = graph.definition.nodes.find((node) =>
+        graph.moduleCompletionNodeIds?.includes(node.id),
+      );
+      const project = vi.fn().mockResolvedValue({ opportunities: [] });
+      if (completion)
+        runner.registerAction(String(completion.data.config.actionId), project);
+      await runner.runWithRegisteredWorkflowModule(
+        { canonicalId: graph.canonicalId, organizationId: 'org-1' },
+        async () => {
+          assertAccess.mockRejectedValue(
+            new ForbiddenException('X module revoked'),
+          );
+          if (completion) {
+            const completionAction = String(completion.data.config.actionId);
+            await expect(
+              executors.get(completionAction)?.(
+                {
+                  config: { actionId: completionAction },
+                  id: completion.id,
+                  inputs: [],
+                  label: 'Prior draft projection',
+                  type: 'genfeedAction',
+                },
+                new Map(),
+                executionContext(),
+              ),
+            ).resolves.toEqual({ opportunities: [] });
+          }
+          await expect(
+            executors.get(actionId)?.(
+              {
+                config: { actionId },
+                id: workNode.id,
+                inputs: [],
+                label: 'New X work',
+                type: 'genfeedAction',
+              },
+              new Map(),
+              executionContext(),
+            ),
+          ).rejects.toThrow('X module revoked');
+        },
+      );
+      expect(work).not.toHaveBeenCalled();
+      expect(project).toHaveBeenCalledTimes(completion ? 1 : 0);
+      expect(assertAccess).toHaveBeenCalledTimes(2);
+      expect(assertAccess).toHaveBeenLastCalledWith('org-1', moduleId);
+    },
+  );
+});

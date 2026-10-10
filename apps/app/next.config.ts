@@ -588,6 +588,10 @@ config.turbopack = {
   root: path.resolve(appDir, '../..'),
 };
 
+if (process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true') {
+  config.devIndicators = false;
+}
+
 // Additive: the tiptap packages and most @genfeedai/* workspaces are already
 // transpiled by next.config.base.ts — only list what the base does not cover.
 config.transpilePackages = [

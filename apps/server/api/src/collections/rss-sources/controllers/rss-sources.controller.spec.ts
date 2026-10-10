@@ -1,6 +1,7 @@
 import { RssSourcesController } from '@api/collections/rss-sources/controllers/rss-sources.controller';
 import type { RssSourceWorkflowService } from '@api/collections/rss-sources/services/rss-source-workflow.service';
 import type { RssSourcesService } from '@api/collections/rss-sources/services/rss-sources.service';
+import type { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
@@ -48,9 +49,11 @@ describe('RssSourcesController', () => {
   const rssSourceWorkflowService = {
     enqueueSource: vi.fn(),
   };
+  const moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
   const controller = new RssSourcesController(
     service as unknown as RssSourcesService,
     rssSourceWorkflowService as unknown as RssSourceWorkflowService,
+    moduleAccess as unknown as OrganizationModuleAccessService,
   );
 
   beforeEach(() => {

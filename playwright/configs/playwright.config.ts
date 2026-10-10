@@ -112,6 +112,23 @@ const appPlaywrightWebServerEnv = {
     process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://genfeed.localhost:3111',
   PLAYWRIGHT_TEST: 'true',
 };
+function shellQuote(value: string): string {
+  return "'" + value.replaceAll("'", "'\"'\"'") + "'";
+}
+
+function ownedDevServerCommand(command: string): string {
+  const wrapper = path.resolve(
+    process.cwd(),
+    'scripts/dev/run-playwright-app.ts',
+  );
+  return [
+    'bun run',
+    shellQuote(wrapper),
+    shellQuote(appWebAppPath),
+    shellQuote(command),
+  ].join(' ');
+}
+
 // Bind the web server dual-stack (IPv6 `::`, which also serves IPv4 127.0.0.1).
 // proxy.ts self-proxies to `localhost`, which resolves to ::1 first; binding
 // IPv4-only (127.0.0.1) made every SSR page 500 with ECONNREFUSED ::1:3000.
@@ -167,9 +184,6 @@ export default defineConfig({
 
   // Global setup - runs once before all tests
   globalSetup: path.join(e2eRoot, 'global-setup.ts'),
-
-  // Global teardown - clears the Turbopack dev cache so it never stockpiles
-  globalTeardown: path.join(e2eRoot, 'global-teardown.ts'),
 
   // Output directories
   outputDir: path.join(artifactsRoot, 'results'),
@@ -310,7 +324,8 @@ export default defineConfig({
         ]
       : [
           {
-            command: appDevWebServerCommand,
+            command: ownedDevServerCommand(appDevWebServerCommand),
+            gracefulShutdown: { signal: 'SIGTERM', timeout: 30_000 },
             env: appPlaywrightWebServerEnv,
             reuseExistingServer: true,
             stderr: 'pipe',

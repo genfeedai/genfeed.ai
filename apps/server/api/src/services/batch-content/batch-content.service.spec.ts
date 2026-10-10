@@ -24,6 +24,12 @@ describe('BatchContentService', () => {
   const workflowRunner = {
     registerAction: vi.fn(),
     registerWorkflow: vi.fn(),
+    runWithRegisteredWorkflowModule: vi.fn(
+      async <T>(
+        _input: { canonicalId: string; organizationId: string },
+        work: () => Promise<T>,
+      ) => work(),
+    ),
   };
   const service = new BatchContentService(
     brands as unknown as BrandsService,
@@ -64,6 +70,23 @@ describe('BatchContentService', () => {
 
     await expect(service.queueBatch(request)).rejects.toBeInstanceOf(
       NotFoundException,
+    );
+    expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('denies a direct batch request before a queue write', async () => {
+    workflowRunner.runWithRegisteredWorkflowModule.mockRejectedValueOnce(
+      new Error('Batch disabled'),
+    );
+    await expect(service.queueBatch(request, 'user-1')).rejects.toThrow(
+      'Batch disabled',
+    );
+    expect(workflowRunner.runWithRegisteredWorkflowModule).toHaveBeenCalledWith(
+      {
+        canonicalId: 'content.batch.generate.content-writing',
+        organizationId: 'org-1',
+      },
+      expect.any(Function),
     );
     expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
   });

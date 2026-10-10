@@ -82,6 +82,8 @@ describe('BatchProjectsPage load recovery', () => {
       screen.queryByRole('link', { name: 'New batch' }),
     ).not.toBeInTheDocument();
     expect(mocks.list).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Recent')).toBeNull();
+    expect(screen.queryByText('All projects')).toBeNull();
   });
 
   it.each([

@@ -264,8 +264,10 @@ export function recipeFromPromptData(
   promptData: PromptTextareaSchema & { isValid: boolean },
   type: StudioPlaygroundType,
   settings: StudioPlaygroundSettings,
+  originalText?: string,
 ): StudioPlaygroundRecipe {
   return {
+    ...(originalText !== undefined ? { originalText } : {}),
     ...(settings.crunControls &&
     settings.crunControls.modelKey === settings.modelKey &&
     (type === 'image' || type === 'video')
@@ -347,6 +349,7 @@ export function recipeFromIngredient(
   const height = ingredient.metadataHeight || ingredient.height || 0;
 
   return {
+    originalText: readStudioOriginalPrompt(ingredient),
     imageEdit: ingredient.imageEdit,
     aspectRatio:
       ingredient.imageEdit?.aspectRatio ??
@@ -396,7 +399,12 @@ export function resolveRecipeForJob(
   job: StudioPlaygroundJob,
 ): StudioPlaygroundRecipe | null {
   if (job.recipe) {
-    return job.recipe;
+    return {
+      ...job.recipe,
+      originalText:
+        job.recipe.originalText ??
+        (job.ingredient ? readStudioOriginalPrompt(job.ingredient) : undefined),
+    };
   }
 
   if (job.ingredient) {
@@ -409,7 +417,7 @@ export function resolveRecipeForJob(
 
   return {
     blacklist: [],
-    brandingMode: 'off',
+    brandingMode: resolveRecipeBrandingMode(job.type, undefined),
     isAudioEnabled: false,
     outputs: 1,
     references: [],
@@ -418,6 +426,53 @@ export function resolveRecipeForJob(
     text: job.prompt.trim(),
     type: job.type,
   };
+}
+
+/** Legacy promptText is effective text, never evidence of original intent. */
+export function readStudioOriginalPrompt(
+  ingredient: IIngredient,
+): string | undefined {
+  const receipt = ingredient.generationHarness;
+  if (
+    ingredient.isDeleted ||
+    !ingredient.brandId ||
+    !receipt ||
+    receipt.brandId !== ingredient.brandId ||
+    typeof receipt.originalPrompt !== 'string' ||
+    typeof receipt.enhancedPrompt !== 'string' ||
+    !['applied', 'skipped', 'failed'].includes(receipt.status) ||
+    !['default', 'organization', 'brand', 'request'].includes(receipt.source) ||
+    !Array.isArray(receipt.appliedPacks)
+  )
+    return undefined;
+  return receipt.originalPrompt;
+}
+
+function boundedAssetLabel(name: string): string {
+  return name.length > 100 ? `${name.slice(0, 99)}…` : name;
+}
+
+/** Reference names preserve recorded labels, never a provider-prompt fallback. */
+export function studioIngredientAccessibleLabel(
+  ingredient: IIngredient,
+): string {
+  const original = readStudioOriginalPrompt(ingredient);
+  return boundedAssetLabel(
+    original?.trim() ||
+      ingredient.metadataLabel?.trim() ||
+      `Asset ${ingredient.id}`,
+  );
+}
+
+/** A control name is recorded intent or asset identity; the full recipe stays in its rail. */
+export function studioAssetAccessibleLabel(job: StudioPlaygroundJob): string {
+  const original =
+    job.recipe?.originalText ??
+    (job.ingredient ? readStudioOriginalPrompt(job.ingredient) : undefined);
+  const name =
+    original?.trim() ||
+    `${getStudioPlaygroundTypeConfig(job.type).label} ${job.id}`;
+  return boundedAssetLabel(name);
 }
 
 /**

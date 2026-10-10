@@ -8,6 +8,7 @@ import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -15,7 +16,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
@@ -74,6 +74,7 @@ function buildBrandAssetPrompt(
 @AutoSwagger()
 @Controller('assets')
 @UseGuards(RolesGuard)
+@OrganizationModule('playground')
 export class AssetsOperationsController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -92,7 +93,7 @@ export class AssetsOperationsController {
     description: 'Asset generation',
     source: ActivitySource.ASSET_GENERATION,
   })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generate(

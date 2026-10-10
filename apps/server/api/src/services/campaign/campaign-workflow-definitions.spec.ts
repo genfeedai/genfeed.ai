@@ -7,6 +7,7 @@ import {
 } from './campaign-dm-workflow-definition';
 import {
   buildCampaignReplyBatchWorkflowDefinition,
+  buildCampaignReplyPreviewWorkflowDefinition,
   buildCampaignReplyWorkflowDefinition,
   CAMPAIGN_REPLY_ACTION_IDS,
   CAMPAIGN_REPLY_WORKFLOW_ID,
@@ -21,6 +22,22 @@ function actionIds(
 }
 
 describe('campaign workflow definitions', () => {
+  it('binds new-work campaign graphs to Messages and exempts only terminal sent-result projection', () => {
+    for (const definition of [
+      buildCampaignDmWorkflowDefinition(),
+      buildCampaignDmBatchWorkflowDefinition(),
+      buildCampaignReplyWorkflowDefinition(),
+      buildCampaignReplyBatchWorkflowDefinition(),
+      buildCampaignReplyPreviewWorkflowDefinition(),
+    ]) {
+      expect(definition.organizationModule).toBe('messages');
+      expect(definition.moduleCompletionNodeIds ?? []).toEqual(
+        definition.resultNodeId === 'finalize-target'
+          ? ['finalize-target']
+          : [],
+      );
+    }
+  });
   it('decomposes one reply target into ordered atomic actions', () => {
     expect(actionIds(buildCampaignReplyWorkflowDefinition())).toEqual([
       CAMPAIGN_REPLY_ACTION_IDS.CLAIM,

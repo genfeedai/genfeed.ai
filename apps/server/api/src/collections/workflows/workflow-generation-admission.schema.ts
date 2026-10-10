@@ -61,6 +61,8 @@ export const workflowAdmissionAvailableSourceSchema = z
     sourceHash: hash,
     organizationId: identity,
     actorUserId: identity,
+    apiKeyId: identity.optional(),
+    actorScopes: z.array(z.string()).optional(),
     workflowId: identity,
     workflowVersionId: identity,
     workflowVersionContentHash: z.string().regex(/^sha256:v1:[a-f0-9]{64}$/),

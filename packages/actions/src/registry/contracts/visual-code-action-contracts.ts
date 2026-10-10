@@ -359,7 +359,10 @@ export const VISUAL_CODE_INPUT_SCHEMAS: Record<string, ActionJsonSchema> = {
 export function getVisualCodeActionContract(
   actionId: string,
 ): ActionContractSchemas | undefined {
-  if (actionId === 'visual-code.execute-internal')
+  if (
+    actionId === 'visual-code.execute-internal' ||
+    actionId === 'visual-code.fail-internal'
+  )
     return {
       inputSchema: closedObjectSchema(
         {

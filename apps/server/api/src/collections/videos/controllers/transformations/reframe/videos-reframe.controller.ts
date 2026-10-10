@@ -10,6 +10,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -20,7 +21,6 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -67,6 +67,7 @@ import {
 
 @AutoSwagger()
 @Controller('videos')
+@OrganizationModule('playground')
 export class VideosReframeController {
   private readonly constructorName = String(this.constructor.name);
 
@@ -106,7 +107,7 @@ export class VideosReframeController {
   }
 
   @Post(':videoId/reframe')
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   // CreditsGuard prices via modelKey; CreditsInterceptor deducts on success only.
   // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({

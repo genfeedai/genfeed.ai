@@ -11,6 +11,7 @@ import { VideoGenerationModule } from '@api/collections/videos/video-generation.
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { RequestContextModule } from '@api/common/request-context.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
@@ -49,6 +50,7 @@ import { Module } from '@nestjs/common';
     AgentVideoMergeGatewayService,
   ],
   imports: [
+    OrganizationModuleAccessModule,
     PlatformSettingsModule,
     ActivitiesModule,
     ArticlesModule,

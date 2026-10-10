@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -44,6 +45,7 @@ function clampSummaryLimit(value: string): number | undefined {
 @AutoSwagger()
 @ApiTags('Content Performance')
 @FeatureFlag('analytics')
+@OrganizationModule('analytics')
 @Controller('content-performance/summary')
 @UseGuards(RolesGuard)
 export class PerformanceSummaryController {

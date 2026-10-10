@@ -11,6 +11,7 @@ import { AccountPublishingContextService } from '@api/collections/credentials/se
 import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
 import { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -59,6 +60,7 @@ function toContentSurface(surface: unknown): ContentSurface {
 @AutoSwagger()
 @Controller('credentials')
 @UseGuards(RolesGuard)
+@OrganizationModule('publishing')
 export class CredentialsPublishingController {
   constructor(
     private readonly accountHealthService: AccountHealthService,

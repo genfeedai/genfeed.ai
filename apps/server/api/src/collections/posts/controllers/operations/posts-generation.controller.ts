@@ -25,6 +25,7 @@ import { PostRepurposeService } from '@api/collections/posts/services/post-repur
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -37,7 +38,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   finalizeDeferredTextCredits,
@@ -84,6 +84,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @FeatureFlag('publishing')
+@OrganizationModule('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsGenerationController {
@@ -111,7 +112,7 @@ export class PostsGenerationController {
     description: 'Source post variation',
     source: ActivitySource.POST_ENHANCEMENT,
   })
-  @UseGuards(PostVariationSourceGuard, SubscriptionGuard, CreditsGuard)
+  @UseGuards(PostVariationSourceGuard, CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateSourceVariations(
@@ -156,7 +157,7 @@ export class PostsGenerationController {
     source: ActivitySource.POST_ENHANCEMENT,
   })
   @DeferCreditsUntilModelResolution()
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async repurposePost(
@@ -190,7 +191,7 @@ export class PostsGenerationController {
     source: ActivitySource.POST_GENERATION,
   })
   @DeferCreditsUntilModelResolution()
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   async generateDraftText(
     @Req() request: Request,
@@ -249,14 +250,12 @@ export class PostsGenerationController {
       }
 
       this.logger.error('Failed to generate account content', error);
-      throw new HttpException(
-        {
-          detail: generationFailureMessage(
-            error,
-            'An error occurred while generating account content',
-          ),
-          title: 'Failed to generate account content',
-        },
+      throw createPostsGenerationHttpException(
+        generationFailureMessage(
+          error,
+          'An error occurred while generating account content',
+        ),
+        'Failed to generate account content',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -274,7 +273,7 @@ export class PostsGenerationController {
     provider: ByokProvider.OPENROUTER,
     source: ActivitySource.POST_ENHANCEMENT,
   })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async expandToThread(
@@ -360,7 +359,7 @@ export class PostsGenerationController {
     provider: ByokProvider.OPENROUTER,
     source: ActivitySource.POST_ENHANCEMENT,
   })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async enhancePost(
@@ -422,7 +421,7 @@ export class PostsGenerationController {
     modelKey: DEFAULT_MINI_TEXT_MODEL,
     source: ActivitySource.POST_ENHANCEMENT,
   })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async scoreSeo(
@@ -462,7 +461,7 @@ export class PostsGenerationController {
   }
 
   @Post('hook-generations')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   // @ts-expect-error TS2345
   @Credits({

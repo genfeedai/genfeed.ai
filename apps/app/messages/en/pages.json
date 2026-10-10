@@ -963,6 +963,7 @@
     "retryFailedClipsHint": "Completed clips stay ready. Retry dispatches only failed work.",
     "retryLibraryLink": "Retry Library link",
     "retrySourceProcessing": "Retry source processing",
+    "sourceRetryLimitReached": "Source retry limit reached. No further retries are available.",
     "reviewHighlightsFirst": "Review highlights first",
     "reviewHookClip": "Review the hook clip",
     "reviewRequired": "Review required",
@@ -1001,7 +1002,11 @@
     "transcript": "Transcript",
     "transcriptPending": "The transcript will appear here after transcription.",
     "avatarDefaultsHint": "Avatar video generation needs a saved HeyGen avatar and voice. You can analyze the source without them.",
-    "configureAvatarDefaults": "Set avatar and voice defaults"
+    "configureAvatarDefaults": "Set avatar and voice defaults",
+    "processingSource": "Processing this source…",
+    "downloadingSource": "Downloading source media…",
+    "extractingSourceAudio": "Extracting source audio…",
+    "transcribingAndAnalyzingSource": "Transcribing and analyzing this source…"
   },
   "studioBatch": {
     "emptyExecutions": "No recent batch executions yet.",
@@ -1578,6 +1583,19 @@
       "retrying": "Retrying history…"
     },
     "inspectPrompt": "View prompt",
+    "continuation": {
+      "replaceTitle": "Replace your draft?",
+      "replaceMessage": "This action prepares a draft from the selected asset. Your current prompt and references will be replaced.",
+      "replaceDraft": "Replace draft",
+      "cancel": "Cancel",
+      "originalUnavailable": "Original prompt unavailable. Write a new instruction; the effective recipe remains available in the inspector.",
+      "originalPrompt": "Original prompt",
+      "effectiveRecipe": "Effective recipe",
+      "sourceUnavailable": "This source is unavailable. Choose a completed image from this brand.",
+      "variationSource": "Variation · {name}",
+      "animateSource": "Animate · {name}",
+      "unnamedSource": "Selected image"
+    },
     "inspector": {
       "actions": "Asset actions",
       "askAgent": "Ask Agent about this",
@@ -1600,6 +1618,11 @@
       "history": "History",
       "loading": "Loading…",
       "previewAlt": "{label} preview",
+      "previewFailed": "This saved asset’s preview could not be loaded.",
+      "previewLoading": "Loading the saved preview…",
+      "previewUnsupported": "A preview is unavailable for this saved asset.",
+      "retryPreview": "Retry preview",
+      "assetUnavailable": "This asset is unavailable in the current workspace and brand.",
       "recipe": "Recipe",
       "remix": "Remix",
       "runSiblings": "This run",
@@ -1710,6 +1733,17 @@
         "CRUN_PROVIDER_UNAVAILABLE": "The video provider could not be reached.",
         "CRUN_ENHANCEMENT_REQUIRED": "Enhance the prompt or remove pending skill and Knowledge selections before generating."
       }
+    },
+    "focusedPreview": {
+      "title": "Focused preview",
+      "open": "Open preview",
+      "back": "Back to gallery",
+      "previous": "Previous asset",
+      "next": "Next asset",
+      "related": "Related assets",
+      "recent": "Recent assets",
+      "loadedOnly": "Related assets shown here may be incomplete. Recent assets are shown separately.",
+      "unavailable": "This asset is no longer available in the current workspace."
     }
   },
   "warmupAccounts": {
@@ -4655,6 +4689,12 @@
     "saveError": "Failed to save the flag",
     "saved": "{label} switched {state}"
   },
+  "platformFlags": {
+    "unavailable": {
+      "description": "We could not load the workspace settings. Try again to continue.",
+      "title": "Workspace settings unavailable"
+    }
+  },
   "platformSettings": {
     "typedDecisionLabel": "Provider",
     "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy.",
@@ -5061,8 +5101,13 @@
     "empty": "Create a saved batch from ideas or a workflow.",
     "more": "Load more",
     "name": "Batch name",
-    "fromIdeas": "From ideas",
-    "fromWorkflow": "From a workflow",
+    "fromIdeas": "Generate ideas",
+    "fromWorkflow": "Saved workflow",
+    "source": "How do you want to create this batch?",
+    "ideasDescription": "Describe a topic, generate ideas, then turn them into content.",
+    "workflowDescription": "Run a saved workflow for each image or video you add.",
+    "workflowDisabled": "Enable Automation in organization settings to use saved workflows. A paid subscription is required to run them.",
+    "manageModules": "Organization modules",
     "ideasDisabled": "Idea batches are not available right now.",
     "workflow": "Workflow",
     "chooseWorkflow": "Choose a workflow",
@@ -5114,7 +5159,9 @@
     "acceptQuote": "Accept quote and generate",
     "items": "Items",
     "scheduleResult": "{scheduled} scheduled; {failed} failed.",
-    "retryLoad": "Retry loading"
+    "retryLoad": "Retry loading",
+    "workflowSubscriptionRequired": "An active paid subscription is required to use saved workflows. You can still generate ideas with credits.",
+    "workflowUnavailable": "Workflow access could not be verified. Refresh module settings before using a saved workflow."
   },
   "studioMotion": {
     "title": "Motion",

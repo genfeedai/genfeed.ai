@@ -3,6 +3,7 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { resolveOrganizationModulePreferences } from '@genfeedai/contracts/constants';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -29,7 +30,11 @@ function AppProtectedRailContent({
 }: AppProtectedRailProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { brandId, brands, selectedBrand } = useBrand();
+  const { brandId, brands, selectedBrand, settings, settingsLoading } =
+    useBrand();
+  const modulePreferences = resolveOrganizationModulePreferences(
+    settingsLoading ? null : settings,
+  );
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
     useOrgUrl();
@@ -114,6 +119,7 @@ function AppProtectedRailContent({
       brandSlug={effectiveBrandSlug}
       currentPath={pathname}
       isAssetGateLocked={isAssetGateLocked}
+      modulePreferences={modulePreferences}
       onNavigate={onNavigate}
       onTogglePin={togglePin}
       orgSlug={effectiveOrgSlug}

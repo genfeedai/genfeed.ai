@@ -202,6 +202,10 @@ type InputField =
   | 'useLlm'
   | 'variables'
   | 'video'
+  | 'sourceEvidence'
+  | 'frameIngredientId'
+  | 'generate_audio'
+  | 'task'
   | 'videoReference'
   | 'videoReferences'
   | 'videos'
@@ -278,6 +282,7 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'addWatermark':
     case 'autoSync':
     case 'generateChapters':
+    case 'generate_audio':
     case 'generateTranscript':
     case 'includeAssetUrl':
     case 'includeCTA':
@@ -370,6 +375,16 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'videos':
     case 'suggestions':
       return arraySchema(URL_OR_MEDIA_SCHEMA);
+    case 'sourceEvidence':
+      return closedObjectSchema(
+        {
+          assetId: NON_EMPTY_STRING_SCHEMA,
+          sourceKey: NON_EMPTY_STRING_SCHEMA,
+          sourceVersion: NON_EMPTY_STRING_SCHEMA,
+          sizeBytes: NUMBER_SCHEMA,
+        },
+        ['assetId', 'sourceKey', 'sourceVersion', 'sizeBytes'],
+      );
     case 'headers':
     case 'structuredPrompt':
     case 'variables':
@@ -1382,6 +1397,10 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     videoGen: {
       inputSchema: inputSchema([
+        'sourceEvidence',
+        'frameIngredientId',
+        'generate_audio',
+        'task',
         'actionVerb',
         'aspectRatio',
         'brandId',

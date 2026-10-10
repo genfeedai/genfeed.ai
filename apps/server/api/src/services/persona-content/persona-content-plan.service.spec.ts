@@ -1,6 +1,7 @@
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   type ContentPlanInput,
@@ -8,6 +9,7 @@ import {
 } from '@api/services/persona-content/persona-content-plan.service';
 import { PersonaContentFormat, PostCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,6 +43,7 @@ const makePersona = (
 
 describe('PersonaContentPlanService', () => {
   let service: PersonaContentPlanService;
+  const moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
   const mockPersonasService = { findOne: vi.fn() };
   const mockPostsService = {
     create: vi.fn().mockResolvedValue({}),
@@ -54,9 +57,11 @@ describe('PersonaContentPlanService', () => {
   };
 
   beforeEach(async () => {
+    moduleAccess.assertAccess.mockReset().mockResolvedValue(undefined);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PersonaContentPlanService,
+        { provide: OrganizationModuleAccessService, useValue: moduleAccess },
         { provide: LoggerService, useValue: mockLogger },
         { provide: PersonasService, useValue: mockPersonasService },
         { provide: PostsService, useValue: mockPostsService },
@@ -169,6 +174,84 @@ describe('PersonaContentPlanService', () => {
     expect(result.entries.length).toBe(2);
     expect(result.entries[0].topic).toBe('general');
     expect(result.entries[0].format).toBe(PersonaContentFormat.PHOTO);
+  });
+
+  it.each(['disabled', 'unavailable'])(
+    'rejects %s Publishing access before creating a draft',
+    async (reason) => {
+      const denied = new HttpException(
+        {
+          code:
+            reason === 'disabled'
+              ? 'ORGANIZATION_MODULE_DISABLED'
+              : 'ORGANIZATION_MODULE_UNAVAILABLE',
+          moduleId: 'publishing',
+        },
+        reason === 'disabled'
+          ? HttpStatus.FORBIDDEN
+          : HttpStatus.SERVICE_UNAVAILABLE,
+      );
+      moduleAccess.assertAccess.mockRejectedValueOnce(denied);
+      await expect(
+        service.createDraftPosts(makeInput(), [
+          {
+            category: PostCategory.IMAGE,
+            description: 'Draft',
+            format: PersonaContentFormat.PHOTO,
+            scheduledDate: new Date(),
+            topic: 'topic',
+          },
+        ]),
+      ).rejects.toBe(denied);
+      expect(moduleAccess.assertAccess).toHaveBeenCalledWith(
+        objectId(),
+        'publishing',
+      );
+      expect(mockPostsService.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rechecks module access before the next draft creation attempt', async () => {
+    const entries = [
+      {
+        category: PostCategory.IMAGE,
+        description: 'Draft',
+        format: PersonaContentFormat.PHOTO,
+        scheduledDate: new Date(),
+        topic: 'topic',
+      },
+    ];
+    await service.createDraftPosts(makeInput(), entries);
+    const denied = new Error('Publishing disabled after the first attempt');
+    moduleAccess.assertAccess.mockRejectedValueOnce(denied);
+    await expect(service.createDraftPosts(makeInput(), entries)).rejects.toBe(
+      denied,
+    );
+    expect(moduleAccess.assertAccess).toHaveBeenCalledTimes(2);
+    expect(mockPostsService.create).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a pure content plan available without a Publishing write grant', async () => {
+    mockPersonasService.findOne.mockResolvedValueOnce(makePersona());
+    moduleAccess.assertAccess.mockRejectedValue(
+      new Error('Publishing disabled'),
+    );
+    const result = await service.generateContentPlan(
+      makeInput({ credentialId: undefined, days: 2 }),
+    );
+    expect(result.totalPosts).toBe(2);
+    expect(moduleAccess.assertAccess).not.toHaveBeenCalled();
+    expect(mockPostsService.create).not.toHaveBeenCalled();
+  });
+
+  it('preserves the no-credential no-op without a Publishing write', async () => {
+    const result = await service.createDraftPosts(
+      makeInput({ credentialId: undefined }),
+      [],
+    );
+    expect(result).toBe(0);
+    expect(moduleAccess.assertAccess).not.toHaveBeenCalled();
+    expect(mockPostsService.create).not.toHaveBeenCalled();
   });
 
   it('should create draft posts and return created count', async () => {

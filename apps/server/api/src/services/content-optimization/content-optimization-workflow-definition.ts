@@ -78,6 +78,7 @@ export function buildContentAnalysisWorkflowDefinition(): SystemWorkflowGraphDef
   );
   return {
     canonicalId: CONTENT_OPTIMIZATION_WORKFLOW_IDS.ANALYZE,
+    organizationModule: 'analytics',
     definition: {
       edges: graph.edges,
       inputVariables: [requestVariable()],
@@ -94,6 +95,7 @@ export function buildContentAnalysisWorkflowDefinition(): SystemWorkflowGraphDef
 export function buildPromptOptimizationWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: CONTENT_OPTIMIZATION_WORKFLOW_IDS.OPTIMIZE_PROMPT,
+    organizationModule: 'playground',
     definition: {
       edges: [
         {
@@ -134,6 +136,7 @@ export function buildContentRecommendationsWorkflowDefinition(): SystemWorkflowG
   );
   return {
     canonicalId: CONTENT_OPTIMIZATION_WORKFLOW_IDS.RECOMMEND,
+    organizationModule: 'analytics',
     definition: {
       edges: [
         ...graph.edges,
@@ -175,6 +178,7 @@ export function buildContentSuggestionsWorkflowDefinition(): SystemWorkflowGraph
 export function buildApplySuggestionWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: CONTENT_OPTIMIZATION_WORKFLOW_IDS.APPLY_SUGGESTION,
+    organizationModule: 'publishing',
     definition: {
       edges: [
         {
@@ -225,6 +229,10 @@ function singleActionDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    organizationModule:
+      canonicalId === CONTENT_OPTIMIZATION_WORKFLOW_IDS.REQUEUE_WINNER
+        ? 'publishing'
+        : 'analytics',
     definition: {
       edges: [],
       inputVariables: [requestVariable()],

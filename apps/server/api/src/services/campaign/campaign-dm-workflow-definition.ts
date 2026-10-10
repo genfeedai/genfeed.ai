@@ -53,6 +53,8 @@ export function buildCampaignDmWorkflowDefinition(): SystemWorkflowGraphDefiniti
 
   return {
     canonicalId: CAMPAIGN_DM_WORKFLOW_ID,
+    organizationModule: 'messages',
+    moduleCompletionNodeIds: ['finalize-target'],
     definition: {
       edges,
       inputVariables: [
@@ -91,6 +93,7 @@ export function buildCampaignDmBatchWorkflowDefinition(): SystemWorkflowGraphDef
   });
   return {
     canonicalId: CAMPAIGN_DM_BATCH_WORKFLOW_ID,
+    organizationModule: 'messages',
     definition: {
       edges: [
         {

@@ -4,6 +4,7 @@ import { ExportVisualProjectDto } from '@api/collections/visual-projects/dto/exp
 import { QuoteVisualProjectDto } from '@api/collections/visual-projects/dto/quote-visual-project.dto';
 import { ReviseVisualProjectDto } from '@api/collections/visual-projects/dto/revise-visual-project.dto';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -36,6 +37,7 @@ import type { Request, Response } from 'express';
 @ApiTags('visual-projects')
 @ApiBearerAuth()
 @FeatureFlag('studio_motion')
+@OrganizationModule('motion')
 @Controller('visual-projects')
 @UseGuards(RolesGuard)
 export class VisualProjectsController {
@@ -140,7 +142,9 @@ export class VisualProjectsController {
       await this.projects.export(user, id, input),
     );
   }
-  @Post(':id/cancel') async cancel(
+  @OrganizationModule('motion', 'cancel')
+  @Post(':id/cancel')
+  async cancel(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

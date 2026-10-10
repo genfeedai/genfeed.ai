@@ -56,7 +56,7 @@ const ENTRY_POINTS: readonly GenerationEntryPoint[] = [
     surface: 'Crun video quote consumption (re-admits on dispatch)',
   },
   {
-    file: 'collections/videos/controllers/transformations/extend/videos-extend.controller.ts',
+    file: 'collections/videos/services/video-extension-execution.service.ts',
     path: 'video-extend',
     surface: 'video extensions',
   },

@@ -3,6 +3,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
+  resolveOrganizationModulePreferences,
   VISUAL_CODE_DEFAULT_SETTINGS,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -18,6 +19,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { VisualCodeQuoteReview } from '@props/studio/visual-code.props';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import OrganizationModulePreferenceGate from '@ui/guards/organization-module/OrganizationModulePreferenceGate';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -63,7 +65,18 @@ function MotionWorkspace() {
       quoteEpoch.current++;
     };
   }, []);
-  const { selectedBrand } = useBrand();
+  const {
+    organizationId,
+    selectedBrand,
+    settings: organizationSettings,
+    settingsLoading,
+  } = useBrand();
+  const modulePreferences = resolveOrganizationModulePreferences(
+    settingsLoading ? null : organizationSettings,
+  );
+  const isModuleWorkEnabled = Boolean(
+    organizationId && modulePreferences?.motion === true,
+  );
   const { href } = useOrgUrl();
   const router = useRouter();
   const search = useSearchParams();
@@ -91,6 +104,12 @@ function MotionWorkspace() {
   >();
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
   const [source, setSource] = useState<string | null>(null);
+  useEffect(() => {
+    if (isModuleWorkEnabled) return;
+    quoteEpoch.current++;
+    setReview(null);
+    setIsAcknowledged(false);
+  }, [isModuleWorkEnabled]);
   const project = api.project.data;
   const revisions = [...(project?.revisions ?? []), ...older];
   const revision =
@@ -167,6 +186,7 @@ function MotionWorkspace() {
   async function requestQuote(
     operation: 'create' | 'revise' | 'export' | 'retry',
   ) {
+    if (!isModuleWorkEnabled) return;
     const epoch = ++quoteEpoch.current;
     await run(async () => {
       if (!selectedBrand?.id) throw new Error(t('selectBrand'));
@@ -225,7 +245,7 @@ function MotionWorkspace() {
     });
   }
   async function submit() {
-    if (!review || !isAcknowledged) return;
+    if (!isModuleWorkEnabled || !review || !isAcknowledged) return;
     await run(async () => {
       const result = await api.submit(
         review.request,
@@ -252,9 +272,13 @@ function MotionWorkspace() {
               {t('description')}
             </p>
           </div>
-          <Button asChild variant={ButtonVariant.SECONDARY}>
-            <Link href={href(APP_ROUTES.STUDIO.MOTION)}>{t('newProject')}</Link>
-          </Button>
+          {isModuleWorkEnabled && (
+            <Button asChild variant={ButtonVariant.SECONDARY}>
+              <Link href={href(APP_ROUTES.STUDIO.MOTION)}>
+                {t('newProject')}
+              </Link>
+            </Button>
+          )}
           <nav aria-label={t('projects')} className="flex flex-col gap-2">
             {api.projects.data?.pages
               .flatMap((page) => page.projects)
@@ -432,16 +456,18 @@ function MotionWorkspace() {
                         >
                           {t('download')}
                         </a>
-                        {media.format === 'mp4' && media.ingredientId && (
-                          <Link
-                            className="ml-4 text-sm underline"
-                            href={href(
-                              `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(media.ingredientId)}`,
-                            )}
-                          >
-                            {t('openEditor')}
-                          </Link>
-                        )}
+                        {modulePreferences?.editor === true &&
+                          media.format === 'mp4' &&
+                          media.ingredientId && (
+                            <Link
+                              className="ml-4 text-sm underline"
+                              href={href(
+                                `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(media.ingredientId)}`,
+                              )}
+                            >
+                              {t('openEditor')}
+                            </Link>
+                          )}
                       </div>
                     ))}
                   </div>
@@ -458,35 +484,37 @@ function MotionWorkspace() {
                       {t('viewSource')}
                     </Button>
                   )}
-                  <div className="flex gap-2">
-                    {revision.hasSource && (
+                  {isModuleWorkEnabled && (
+                    <div className="flex gap-2">
+                      {revision.hasSource && (
+                        <Button
+                          variant={ButtonVariant.SECONDARY}
+                          disabled={isBusy}
+                          onClick={() =>
+                            void run(async () => {
+                              const value = await api.source(revision.number);
+                              if (!isMounted.current) return;
+                              invalidateQuote();
+                              setMode('sourceCode');
+                              setText(value);
+                            })
+                          }
+                        >
+                          {t('loadSource')}
+                        </Button>
+                      )}
                       <Button
                         variant={ButtonVariant.SECONDARY}
-                        disabled={isBusy}
-                        onClick={() =>
-                          void run(async () => {
-                            const value = await api.source(revision.number);
-                            if (!isMounted.current) return;
-                            invalidateQuote();
-                            setMode('sourceCode');
-                            setText(value);
-                          })
-                        }
+                        onClick={() => {
+                          invalidateQuote();
+                          setMode('props');
+                          setText(JSON.stringify(revision.props, null, 2));
+                        }}
                       >
-                        {t('loadSource')}
+                        {t('loadProps')}
                       </Button>
-                    )}
-                    <Button
-                      variant={ButtonVariant.SECONDARY}
-                      onClick={() => {
-                        invalidateQuote();
-                        setMode('props');
-                        setText(JSON.stringify(revision.props, null, 2));
-                      }}
-                    >
-                      {t('loadProps')}
-                    </Button>
-                  </div>
+                    </div>
+                  )}
                   {source !== null && (
                     <div className="space-y-2">
                       <Textarea
@@ -526,100 +554,104 @@ function MotionWorkspace() {
               )}
             </section>
           )}
-          <section
-            className="space-y-4 rounded-xl border border-border p-5"
-            aria-label={t('compose')}
-            onChange={invalidateQuote}
-          >
-            <h2 className="gen-heading-sm">
-              {project ? t('revise') : t('compose')}
-            </h2>
-            {!project && (
+          <OrganizationModulePreferenceGate moduleId="motion">
+            <section
+              className="space-y-4 rounded-xl border border-border p-5"
+              aria-label={t('compose')}
+              onChange={invalidateQuote}
+            >
+              <h2 className="gen-heading-sm">
+                {project ? t('revise') : t('compose')}
+              </h2>
+              {!project && (
+                <label className="grid gap-2 text-sm">
+                  {t('label')}
+                  <Input
+                    value={label}
+                    onChange={(event) => setLabel(event.target.value)}
+                    maxLength={120}
+                  />
+                </label>
+              )}
               <label className="grid gap-2 text-sm">
-                {t('label')}
-                <Input
-                  value={label}
-                  onChange={(event) => setLabel(event.target.value)}
-                  maxLength={120}
+                {t('inputMode')}
+                <Select
+                  value={mode}
+                  onValueChange={(value) => {
+                    setMode(value as typeof mode);
+                    invalidateQuote();
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prompt">{t('prompt')}</SelectItem>
+                    <SelectItem value="sourceCode">{t('source')}</SelectItem>
+                    {project && (
+                      <SelectItem value="props">{t('props')}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="grid gap-2 text-sm">
+                {mode === 'prompt'
+                  ? t('prompt')
+                  : mode === 'props'
+                    ? t('props')
+                    : t('source')}
+                <Textarea
+                  rows={mode === 'sourceCode' ? 12 : 5}
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  className={mode === 'prompt' ? '' : 'font-mono text-xs'}
                 />
               </label>
-            )}
-            <label className="grid gap-2 text-sm">
-              {t('inputMode')}
-              <Select
-                value={mode}
-                onValueChange={(value) => {
-                  setMode(value as typeof mode);
-                  invalidateQuote();
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="prompt">{t('prompt')}</SelectItem>
-                  <SelectItem value="sourceCode">{t('source')}</SelectItem>
-                  {project && (
-                    <SelectItem value="props">{t('props')}</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </label>
-            <label className="grid gap-2 text-sm">
-              {mode === 'prompt'
-                ? t('prompt')
-                : mode === 'props'
-                  ? t('props')
-                  : t('source')}
-              <Textarea
-                rows={mode === 'sourceCode' ? 12 : 5}
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                className={mode === 'prompt' ? '' : 'font-mono text-xs'}
-              />
-            </label>
-            {mode === 'sourceCode' && (
-              <p className="text-sm text-muted-foreground">{t('sourceHint')}</p>
-            )}
-            {!project && (
-              <>
-                <label className="grid gap-2 text-sm">
-                  {t('model')}
-                  <Select
-                    value={modelKey}
-                    onValueChange={(value) => {
-                      setModelKey(value);
-                      invalidateQuote();
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">
-                        {t('organizationDefault')}
-                      </SelectItem>
-                      {catalogModels.map((model) => (
-                        <SelectItem
-                          key={model.key}
-                          value={model.key}
-                          disabled={!model.isAvailable}
-                        >
-                          {model.label}
-                          {model.isByok ? ' · BYOK' : ''}
+              {mode === 'sourceCode' && (
+                <p className="text-sm text-muted-foreground">
+                  {t('sourceHint')}
+                </p>
+              )}
+              {!project && (
+                <>
+                  <label className="grid gap-2 text-sm">
+                    {t('model')}
+                    <Select
+                      value={modelKey}
+                      onValueChange={(value) => {
+                        setModelKey(value);
+                        invalidateQuote();
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">
+                          {t('organizationDefault')}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </label>
-                {selectedModel?.inspectionCapability === 'unknown' && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('unverifiedVision')}
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {(['width', 'height', 'fps', 'durationFrames'] as const).map(
-                    (key) => (
+                        {catalogModels.map((model) => (
+                          <SelectItem
+                            key={model.key}
+                            value={model.key}
+                            disabled={!model.isAvailable}
+                          >
+                            {model.label}
+                            {model.isByok ? ' · BYOK' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  {selectedModel?.inspectionCapability === 'unknown' && (
+                    <p className="text-sm text-muted-foreground">
+                      {t('unverifiedVision')}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {(
+                      ['width', 'height', 'fps', 'durationFrames'] as const
+                    ).map((key) => (
                       <label key={key} className="grid gap-2 text-sm">
                         {t(key)}
                         <Input
@@ -633,186 +665,193 @@ function MotionWorkspace() {
                           }
                         />
                       </label>
-                    ),
-                  )}
-                </div>
-                <label className="grid gap-2 text-sm">
-                  {t('props')}
-                  <Textarea
-                    rows={3}
-                    value={propsText}
-                    onChange={(event) => setPropsText(event.target.value)}
-                    className="font-mono text-xs"
-                  />
-                </label>
-                <fieldset className="space-y-2">
-                  <legend className="text-sm">{t('libraryAssets')}</legend>
-                  <p className="text-xs text-muted-foreground">
-                    {t('libraryHint')}
-                  </p>
-                  <div className="max-h-40 space-y-2 overflow-y-auto">
-                    {api.library.data
-                      ?.filter((item) =>
-                        ['image', 'video', 'audio', 'music', 'voice'].includes(
-                          String(item.category),
-                        ),
-                      )
-                      .map((item) => (
-                        <Checkbox
-                          key={item.id}
-                          checked={assetIds.includes(item.id)}
-                          disabled={
-                            !assetIds.includes(item.id) && assetIds.length >= 12
-                          }
-                          label={
-                            typeof item.metadata === 'object'
-                              ? (item.metadata?.label ?? item.id)
-                              : item.id
-                          }
-                          onCheckedChange={(checked) => {
-                            setAssetIds((prior) =>
-                              checked === true
-                                ? [...prior, item.id]
-                                : prior.filter((id) => id !== item.id),
-                            );
-                            invalidateQuote();
-                          }}
-                        />
-                      ))}
+                    ))}
                   </div>
-                </fieldset>
-              </>
-            )}
-            <fieldset className="space-y-3">
-              <legend className="text-sm">
-                {project ? t('exportOutputs') : t('outputs')}
-              </legend>
-              {project && (
-                <p className="text-sm text-muted-foreground">
-                  {t('inheritedOutputs')}{' '}
-                  {current?.outputRequests
-                    .map(
-                      (item) =>
-                        `${item.format}${item.frame === undefined ? '' : ` @${item.frame}`}`,
-                    )
-                    .join(', ')}
-                </p>
-              )}
-              <div className="flex gap-4">
-                {['mp4', 'png', 'jpeg'].map((format) => (
-                  <label
-                    key={format}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Checkbox
-                      aria-label={format.toUpperCase()}
-                      checked={formats.includes(format)}
-                      onCheckedChange={(checked) =>
-                        setFormats((prior) =>
-                          checked === true
-                            ? [...prior, format]
-                            : prior.filter((value) => value !== format),
-                        )
-                      }
+                  <label className="grid gap-2 text-sm">
+                    {t('props')}
+                    <Textarea
+                      rows={3}
+                      value={propsText}
+                      onChange={(event) => setPropsText(event.target.value)}
+                      className="font-mono text-xs"
                     />
-                    {format.toUpperCase()}
                   </label>
-                ))}
-              </div>
-              {formats.some((format) => format !== 'mp4') && (
-                <label className="grid gap-2 text-sm">
-                  {t('frames')}
-                  <Input
-                    value={frames}
-                    onChange={(event) => setFrames(event.target.value)}
-                  />
-                </label>
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm">{t('libraryAssets')}</legend>
+                    <p className="text-xs text-muted-foreground">
+                      {t('libraryHint')}
+                    </p>
+                    <div className="max-h-40 space-y-2 overflow-y-auto">
+                      {api.library.data
+                        ?.filter((item) =>
+                          [
+                            'image',
+                            'video',
+                            'audio',
+                            'music',
+                            'voice',
+                          ].includes(String(item.category)),
+                        )
+                        .map((item) => (
+                          <Checkbox
+                            key={item.id}
+                            checked={assetIds.includes(item.id)}
+                            disabled={
+                              !assetIds.includes(item.id) &&
+                              assetIds.length >= 12
+                            }
+                            label={
+                              typeof item.metadata === 'object'
+                                ? (item.metadata?.label ?? item.id)
+                                : item.id
+                            }
+                            onCheckedChange={(checked) => {
+                              setAssetIds((prior) =>
+                                checked === true
+                                  ? [...prior, item.id]
+                                  : prior.filter((id) => id !== item.id),
+                              );
+                              invalidateQuote();
+                            }}
+                          />
+                        ))}
+                    </div>
+                  </fieldset>
+                </>
               )}
-            </fieldset>
-            <p className="text-xs text-muted-foreground">{t('limits')}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                disabled={isBusy || isActive || !catalog?.isAvailable}
-                onClick={() => void requestQuote(project ? 'revise' : 'create')}
-              >
-                {t('getQuote')}
-              </Button>
-              {revision?.hasSource && (
+              <fieldset className="space-y-3">
+                <legend className="text-sm">
+                  {project ? t('exportOutputs') : t('outputs')}
+                </legend>
+                {project && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('inheritedOutputs')}{' '}
+                    {current?.outputRequests
+                      .map(
+                        (item) =>
+                          `${item.format}${item.frame === undefined ? '' : ` @${item.frame}`}`,
+                      )
+                      .join(', ')}
+                  </p>
+                )}
+                <div className="flex gap-4">
+                  {['mp4', 'png', 'jpeg'].map((format) => (
+                    <label
+                      key={format}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <Checkbox
+                        aria-label={format.toUpperCase()}
+                        checked={formats.includes(format)}
+                        onCheckedChange={(checked) =>
+                          setFormats((prior) =>
+                            checked === true
+                              ? [...prior, format]
+                              : prior.filter((value) => value !== format),
+                          )
+                        }
+                      />
+                      {format.toUpperCase()}
+                    </label>
+                  ))}
+                </div>
+                {formats.some((format) => format !== 'mp4') && (
+                  <label className="grid gap-2 text-sm">
+                    {t('frames')}
+                    <Input
+                      value={frames}
+                      onChange={(event) => setFrames(event.target.value)}
+                    />
+                  </label>
+                )}
+              </fieldset>
+              <p className="text-xs text-muted-foreground">{t('limits')}</p>
+              <div className="flex flex-wrap gap-2">
                 <Button
-                  disabled={isBusy || isActive}
-                  variant={ButtonVariant.SECONDARY}
-                  onClick={() => void requestQuote('export')}
+                  disabled={isBusy || isActive || !catalog?.isAvailable}
+                  onClick={() =>
+                    void requestQuote(project ? 'revise' : 'create')
+                  }
                 >
-                  {t('quoteExport')}
+                  {t('getQuote')}
                 </Button>
-              )}
-              {revision?.hasSource &&
-                ['failed', 'cancelled'].includes(revision.status) && (
+                {revision?.hasSource && (
                   <Button
                     disabled={isBusy || isActive}
                     variant={ButtonVariant.SECONDARY}
-                    onClick={() => void requestQuote('retry')}
+                    onClick={() => void requestQuote('export')}
                   >
-                    {t('quoteRetry')}
+                    {t('quoteExport')}
                   </Button>
                 )}
-            </div>
-          </section>
-          {review && (
-            <section
-              className="space-y-3 rounded-xl border border-border p-5"
-              aria-label={t('reviewQuote')}
-            >
-              <h2 className="gen-heading-sm">{t('reviewQuote')}</h2>
-              <p className="text-sm">
-                {review.quote.modelKey}
-                {review.quote.isByok ? ' · BYOK' : ''} ·{' '}
-                {review.quote.settings.width}×{review.quote.settings.height} ·{' '}
-                {review.quote.outputRequests
-                  .map(
-                    (output) =>
-                      `${output.format}${output.frame === undefined ? '' : ` @${output.frame}`}`,
-                  )
-                  .join(', ')}
-              </p>
-              <dl className="grid grid-cols-2 gap-2 text-sm">
-                <dt>{t('authoring')}</dt>
-                <dd>{review.quote.authoringCredits}</dd>
-                <dt>{t('inspection')}</dt>
-                <dd>{review.quote.inspectionCredits}</dd>
-                <dt>{t('rendering')}</dt>
-                <dd>{review.quote.renderCredits}</dd>
-                <dt>{t('maximum')}</dt>
-                <dd>{review.quote.maximumCredits}</dd>
-              </dl>
-              <p className="text-sm text-muted-foreground">
-                {t('billingHint')}
-              </p>
-              {catalogModels.find(
-                (model) => model.key === review.quote.modelKey,
-              )?.inspectionCapability === 'unknown' && (
-                <p className="text-sm">{t('unverifiedVision')}</p>
-              )}
-              <label className="flex items-start gap-2 text-sm">
-                <Checkbox
-                  aria-label={t('acknowledge', {
-                    maximum: review.quote.maximumCredits,
-                  })}
-                  checked={isAcknowledged}
-                  onCheckedChange={(checked) =>
-                    setIsAcknowledged(checked === true)
-                  }
-                />
-                {t('acknowledge', { maximum: review.quote.maximumCredits })}
-              </label>
-              <Button
-                disabled={!isAcknowledged || isBusy}
-                onClick={() => void submit()}
-              >
-                {isBusy ? t('submitting') : t('confirm')}
-              </Button>
+                {revision?.hasSource &&
+                  ['failed', 'cancelled'].includes(revision.status) && (
+                    <Button
+                      disabled={isBusy || isActive}
+                      variant={ButtonVariant.SECONDARY}
+                      onClick={() => void requestQuote('retry')}
+                    >
+                      {t('quoteRetry')}
+                    </Button>
+                  )}
+              </div>
             </section>
-          )}
+            {review && (
+              <section
+                className="space-y-3 rounded-xl border border-border p-5"
+                aria-label={t('reviewQuote')}
+              >
+                <h2 className="gen-heading-sm">{t('reviewQuote')}</h2>
+                <p className="text-sm">
+                  {review.quote.modelKey}
+                  {review.quote.isByok ? ' · BYOK' : ''} ·{' '}
+                  {review.quote.settings.width}×{review.quote.settings.height} ·{' '}
+                  {review.quote.outputRequests
+                    .map(
+                      (output) =>
+                        `${output.format}${output.frame === undefined ? '' : ` @${output.frame}`}`,
+                    )
+                    .join(', ')}
+                </p>
+                <dl className="grid grid-cols-2 gap-2 text-sm">
+                  <dt>{t('authoring')}</dt>
+                  <dd>{review.quote.authoringCredits}</dd>
+                  <dt>{t('inspection')}</dt>
+                  <dd>{review.quote.inspectionCredits}</dd>
+                  <dt>{t('rendering')}</dt>
+                  <dd>{review.quote.renderCredits}</dd>
+                  <dt>{t('maximum')}</dt>
+                  <dd>{review.quote.maximumCredits}</dd>
+                </dl>
+                <p className="text-sm text-muted-foreground">
+                  {t('billingHint')}
+                </p>
+                {catalogModels.find(
+                  (model) => model.key === review.quote.modelKey,
+                )?.inspectionCapability === 'unknown' && (
+                  <p className="text-sm">{t('unverifiedVision')}</p>
+                )}
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox
+                    aria-label={t('acknowledge', {
+                      maximum: review.quote.maximumCredits,
+                    })}
+                    checked={isAcknowledged}
+                    onCheckedChange={(checked) =>
+                      setIsAcknowledged(checked === true)
+                    }
+                  />
+                  {t('acknowledge', { maximum: review.quote.maximumCredits })}
+                </label>
+                <Button
+                  disabled={!isAcknowledged || isBusy}
+                  onClick={() => void submit()}
+                >
+                  {isBusy ? t('submitting') : t('confirm')}
+                </Button>
+              </section>
+            )}
+          </OrganizationModulePreferenceGate>
         </main>
       </div>
     </Container>

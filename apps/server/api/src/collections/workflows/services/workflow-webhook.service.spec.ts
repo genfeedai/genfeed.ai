@@ -1,9 +1,11 @@
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
+import { getOrganizationModuleExecutionContext } from '@api/common/organization-modules/organization-module-execution.context';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   WorkflowExecutionTrigger,
   WorkflowWebhookAuthType,
 } from '@genfeedai/contracts';
+import { HttpException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowWebhookService', () => {
@@ -24,14 +26,17 @@ describe('WorkflowWebhookService', () => {
     executeManualWorkflow: vi.fn(),
   };
 
+  const moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
   let service: WorkflowWebhookService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    moduleAccess.assertAccess.mockResolvedValue(undefined);
     service = new WorkflowWebhookService(
       prisma as never,
       configService as never,
       workflowsService as never,
+      moduleAccess as never,
       workflowExecutorService as never,
     );
   });
@@ -217,6 +222,78 @@ describe('WorkflowWebhookService', () => {
         organizationId: 'org-1',
       });
       prisma.workflow.update.mockResolvedValue({});
+    });
+
+    it.each(['disabled', 'subscription-required'])(
+      'rejects %s webhook work before counting or creating an execution',
+      async (reason) => {
+        workflowsService.findOne.mockResolvedValue(nodeWorkflow);
+        moduleAccess.assertAccess.mockRejectedValueOnce(
+          new HttpException({ reason }, 403),
+        );
+        await expect(
+          service.triggerViaWebhook('wh_1', {
+            moduleId: 'playground',
+            organizationId: 'other-org',
+          }),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(moduleAccess.assertAccess).toHaveBeenCalledWith(
+          'org-1',
+          'automation',
+        );
+        expect(prisma.workflow.update).not.toHaveBeenCalled();
+        expect(
+          workflowExecutorService.executeManualWorkflow,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects unavailable policy before any trigger bookkeeping write', async () => {
+      workflowsService.findOne.mockResolvedValue(nodeWorkflow);
+      moduleAccess.assertAccess.mockRejectedValueOnce(
+        new HttpException('Module access unavailable', 503),
+      );
+      await expect(service.triggerViaWebhook('wh_1', {})).rejects.toMatchObject(
+        { status: 503 },
+      );
+      expect(prisma.workflow.update).not.toHaveBeenCalled();
+      expect(
+        workflowExecutorService.executeManualWorkflow,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('restores trusted Automation purpose across async execution and rechecks the next request', async () => {
+      workflowsService.findOne.mockResolvedValue(nodeWorkflow);
+      let observedScope: ReturnType<
+        typeof getOrganizationModuleExecutionContext
+      >;
+      workflowExecutorService.executeManualWorkflow.mockImplementationOnce(
+        async () => {
+          await Promise.resolve();
+          observedScope = getOrganizationModuleExecutionContext();
+          return { executionId: 'run-1', status: 'started' };
+        },
+      );
+      await service.triggerViaWebhook('wh_1', {
+        moduleId: 'playground',
+        organizationId: 'other-org',
+      });
+      expect(observedScope).toEqual({
+        organizationId: 'org-1',
+        moduleId: 'automation',
+      });
+      expect(getOrganizationModuleExecutionContext()).toBeUndefined();
+      moduleAccess.assertAccess.mockRejectedValueOnce(
+        new HttpException('Subscription expired', 403),
+      );
+      await expect(service.triggerViaWebhook('wh_1', {})).rejects.toMatchObject(
+        { status: 403 },
+      );
+      expect(moduleAccess.assertAccess).toHaveBeenCalledTimes(2);
+      expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
+      expect(
+        workflowExecutorService.executeManualWorkflow,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('routes node workflows through the workflow executor and bumps trigger stats', async () => {

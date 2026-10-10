@@ -1,16 +1,20 @@
 import { StoryboardRunsController } from '@api/collections/content-runs/controllers/storyboard-runs.controller';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('character replacement controller', () => {
-  it('requires an active subscription before a paid motion-transfer submission', () => {
+  it('uses credit-only Storyboard admission for motion-transfer submission', () => {
     const guards: unknown[] =
       Reflect.getMetadata(
         GUARDS_METADATA,
         StoryboardRunsController.prototype.replaceCharacter,
       ) ?? [];
-    expect(guards).toEqual([SubscriptionGuard]);
+    expect(guards).toEqual([]);
+    expect(
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, StoryboardRunsController)
+        ?.moduleId,
+    ).toBe('storyboard');
   });
 
   it('uses authenticated organization for scoped read and never invokes submission', async () => {

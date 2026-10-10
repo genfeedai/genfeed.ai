@@ -39,6 +39,7 @@ export class AgentVideoMergeGatewayService implements IAgentVideoMergeGateway {
 
           return serializeSingle(request, IngredientSerializer, ingredient);
         },
+        organizationModule: { moduleId: 'playground' },
         hasCreditsInterceptor: false,
         hasRolesGuard: true,
         isSubscriptionCheckSkipped: true,

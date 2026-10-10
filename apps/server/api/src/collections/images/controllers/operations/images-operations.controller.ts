@@ -11,6 +11,7 @@ import type {
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -24,7 +25,6 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -67,6 +67,7 @@ import sharp from 'sharp';
 @AutoSwagger()
 @Controller('images')
 @UseGuards(RolesGuard)
+@OrganizationModule('playground')
 export class ImagesOperationsController {
   constructor(
     private readonly configService: ConfigService,
@@ -94,7 +95,7 @@ export class ImagesOperationsController {
   })
   @DeferCreditsUntilModelResolution()
   @ValidateModel({ category: ModelCategory.IMAGE })
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)
   @RateLimit({ limit: 30, scope: 'organization', windowMs: 60 * 1000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -124,7 +125,7 @@ export class ImagesOperationsController {
   })
   @DeferCreditsUntilModelResolution()
   @ValidateModel({ category: ModelCategory.IMAGE_EDIT })
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)
   @RateLimit({ limit: 30, scope: 'organization', windowMs: 60 * 1000 })
   async edit(

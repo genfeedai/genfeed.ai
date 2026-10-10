@@ -1,23 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VideosExtendController } from '@api/collections/videos/controllers/transformations/extend/videos-extend.controller';
+import type { VideoExtensionExecutionService } from '@api/collections/videos/services/video-extension-execution.service';
 import type { VideosService } from '@api/collections/videos/services/videos.service';
-import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
-import {
-  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
-  CREDITS_KEY,
-} from '@api/helpers/decorators/credits/credits.decorator';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
-import {
-  ActivitySource,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/contracts';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientCategory } from '@genfeedai/contracts';
+import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -26,252 +18,86 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   }),
   serializeSingle: vi.fn((_request, _serializer, data) => data),
 }));
-
-const sourceVideo = {
-  brandId: 'brand-1',
-  category: IngredientCategory.VIDEO,
-  id: 'video-1',
-  metadata: { duration: 5 },
-  organizationId: 'org-1',
-  status: IngredientStatus.GENERATED,
+const user = { id: 'actor', userId: 'actor', organizationId: 'org' } as User;
+const dto = {
+  model: 'google/veo-3.1',
+  duration: 8,
+  prompt: 'Continue moving forward',
 };
-const user = {
-  brandId: 'brand-1',
-  id: 'user-1',
-  organizationId: 'org-1',
-  userId: 'user-1',
-} as unknown as User;
-
-function createHarness() {
-  const videosService = { findOne: vi.fn().mockResolvedValue(sourceVideo) };
-  const videoGenerationCreditsService = {
-    ensureExtensionCredits: vi.fn().mockResolvedValue(undefined),
+function fixture() {
+  const videos = { findOne: vi.fn().mockResolvedValue({ id: 'source' }) };
+  const extension = {
+    enqueue: vi
+      .fn()
+      .mockResolvedValue({ executionId: 'execution', status: 'PENDING' }),
   };
-  const workflowsService = {
-    createWorkflow: vi.fn().mockResolvedValue({ id: 'workflow-1' }),
+  const execution = {
+    id: 'execution',
+    status: 'PENDING',
+    organizationId: 'org',
+    userId: 'actor',
   };
-  const personas = personasServiceStub();
+  const prisma = {
+    workflowExecution: { findFirst: vi.fn().mockResolvedValue(execution) },
+  };
   const controller = new VideosExtendController(
-    videoGenerationCreditsService as never,
-    personas,
-    videosService as unknown as VideosService,
-    workflowsService as unknown as WorkflowsService,
+    videos as unknown as VideosService,
+    extension as unknown as VideoExtensionExecutionService,
+    prisma as unknown as PrismaService,
   );
   return {
-    controller,
-    personas,
-    videoGenerationCreditsService,
-    videosService,
-    workflowsService,
+    videos,
+    extension,
+    execution,
+    prisma,
+    run: () => controller.extendVideo({} as Request, user, 'source', dto),
   };
 }
-
-describe('VideosExtendController character admission (#6040)', () => {
-  it('refuses to extend a video of a character the brand lost, before credits or a workflow', async () => {
-    const {
-      controller,
-      personas,
-      videoGenerationCreditsService,
-      workflowsService,
-    } = createHarness();
-    vi.mocked(personas.resolveCharacterReferences).mockRejectedValueOnce(
-      new NotFoundException('Reference image'),
-    );
-
-    await expect(
-      controller.extendVideo({} as Request, user, sourceVideo.id, {
-        duration: 8,
-        model: 'bytedance/seedance-2.5',
-        prompt: 'Continue into the next room',
-      }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-
-    expect(personas.resolveCharacterReferences).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      ingredientIds: ['video-1'],
-      organizationId: 'org-1',
-      path: 'video-extend',
+describe('VideosExtendController execution admission', () => {
+  it('returns the actual queued tenant execution through its serializer', async () => {
+    const f = fixture();
+    expect(await f.run()).toEqual(f.execution);
+    expect(f.videos.findOne).toHaveBeenCalledWith({
+      id: 'source',
+      organizationId: 'org',
+      isDeleted: false,
+      category: IngredientCategory.VIDEO,
     });
-    expect(
-      videoGenerationCreditsService.ensureExtensionCredits,
-    ).not.toHaveBeenCalled();
-    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
-  });
-});
-
-describe('VideosExtendController', () => {
-  it('creates a native Seedance extension with source lineage', async () => {
-    const {
-      controller,
-      videoGenerationCreditsService,
-      videosService,
-      workflowsService,
-    } = createHarness();
-    const request = {} as Request;
-
-    const result = await controller.extendVideo(request, user, sourceVideo.id, {
-      duration: 8,
-      model: 'bytedance/seedance-2.5',
-      prompt: 'Continue into the next room',
-    });
-
-    expect(result).toEqual({ id: 'workflow-1' });
-    expect(videosService.findOne).toHaveBeenCalledWith(
-      {
-        category: IngredientCategory.VIDEO,
-        id: sourceVideo.id,
+    expect(f.extension.enqueue).toHaveBeenCalledWith(user, 'source', dto);
+    expect(f.prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'execution',
+        organizationId: 'org',
+        userId: 'actor',
         isDeleted: false,
-        organizationId: user.organizationId,
       },
-      [{ path: 'metadata', select: ['duration'] }],
+    });
+    expect(serializeSingle).toHaveBeenCalledWith(
+      expect.anything(),
+      WorkflowExecutionSerializer,
+      f.execution,
     );
+  });
+  it('never dispatches a missing or foreign source', async () => {
+    const f = fixture();
+    f.videos.findOne.mockResolvedValue(null);
+    await expect(f.run()).rejects.toThrow('source not found');
+    expect(f.extension.enqueue).not.toHaveBeenCalled();
+  });
+  it('propagates queue failure rather than presenting a saved draft as success', async () => {
+    const f = fixture();
+    f.extension.enqueue.mockRejectedValue(new Error('Queue unavailable'));
+    await expect(f.run()).rejects.toThrow('Queue unavailable');
+    expect(f.prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
+  });
+  it('keeps model validation and Playground policy while funding only the execution', () => {
+    const handler = VideosExtendController.prototype.extendVideo;
     expect(
-      videoGenerationCreditsService.ensureExtensionCredits,
-    ).toHaveBeenCalledWith(
-      { duration: 8 },
-      'bytedance/seedance-2.5',
-      user.organizationId,
-      request,
-      'native',
-    );
-    expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      user.userId,
-      user.organizationId,
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          actionVerb: 'extend',
-          dispatchMode: 'native',
-          model: 'bytedance/seedance-2.5',
-          sourceVideoId: sourceVideo.id,
-        }),
-        nodes: expect.arrayContaining([
-          expect.objectContaining({ id: 'extension-video' }),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              // Action-backed nodes carry `{actionId, parameters}` (validated
-              // against the action's contract), not flattened fields.
-              config: expect.objectContaining({
-                actionId: 'videoGen',
-                parameters: expect.objectContaining({
-                  actionVerb: 'extend',
-                  parentIngredientId: sourceVideo.id,
-                }),
-              }),
-            }),
-            id: 'extension-video',
-          }),
-        ]),
-      }),
-      sourceVideo.brandId,
-    );
-  });
-
-  it('preserves the generation credit gate and success-only settlement metadata', () => {
-    const descriptor = Object.getOwnPropertyDescriptor(
-      VideosExtendController.prototype,
-      'extendVideo',
-    );
-    const handler = descriptor?.value;
-
-    expect(Reflect.getMetadata(CREDITS_KEY, handler)).toEqual({
-      description: 'Video extension',
-      source: ActivitySource.VIDEO_GENERATION,
-    });
-    expect(
-      Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler),
-    ).toBe(true);
-    expect(Reflect.getMetadata('__guards__', handler)).toEqual([
-      SubscriptionGuard,
-      CreditsGuard,
-      ModelsGuard,
-    ]);
-    expect(Reflect.getMetadata('__interceptors__', handler)).toEqual([
-      CreditsInterceptor,
-    ]);
-  });
-
-  it('falls back to extract, generate, and stitch for models without native extension', async () => {
-    const { controller, workflowsService } = createHarness();
-
-    await controller.extendVideo({} as Request, user, sourceVideo.id, {
-      model: 'google/veo-3.1',
-      prompt: 'Continue',
-    });
-
-    expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      user.userId,
-      user.organizationId,
-      expect.objectContaining({
-        metadata: expect.objectContaining({ dispatchMode: 'fabricated' }),
-        nodes: expect.arrayContaining([
-          expect.objectContaining({ id: 'source-last-frame' }),
-          expect.objectContaining({ id: 'extended-video' }),
-        ]),
-      }),
-      sourceVideo.brandId,
-    );
-  });
-
-  it('rejects a source that is still processing', async () => {
-    const { controller, videosService, workflowsService } = createHarness();
-    videosService.findOne.mockResolvedValue({
-      ...sourceVideo,
-      status: IngredientStatus.PROCESSING,
-    });
-
-    await expect(
-      controller.extendVideo({} as Request, user, sourceVideo.id, {
-        model: 'bytedance/seedance-2.5',
-        prompt: 'Continue',
-      }),
-    ).rejects.toThrow('Only completed videos can be extended');
-    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
-  });
-
-  it('accepts a validated keep as a completed source', async () => {
-    const { controller, videosService, workflowsService } = createHarness();
-    videosService.findOne.mockResolvedValue({
-      ...sourceVideo,
-      status: IngredientStatus.VALIDATED,
-    });
-
-    await controller.extendVideo({} as Request, user, sourceVideo.id, {
-      model: 'bytedance/seedance-2.5',
-      prompt: 'Continue',
-    });
-
-    expect(workflowsService.createWorkflow).toHaveBeenCalledOnce();
-  });
-
-  it('rejects a source longer than the native extension model accepts', async () => {
-    const { controller, videosService, workflowsService } = createHarness();
-    videosService.findOne.mockResolvedValue({
-      ...sourceVideo,
-      metadata: { duration: 31 },
-    });
-
-    await expect(
-      controller.extendVideo({} as Request, user, sourceVideo.id, {
-        model: 'bytedance/seedance-2.5',
-        prompt: 'Continue',
-      }),
-    ).rejects.toThrow('between 1 and 30 seconds');
-    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
-  });
-
-  it('rejects a source shorter than the native extension model accepts', async () => {
-    const { controller, videosService, workflowsService } = createHarness();
-    videosService.findOne.mockResolvedValue({
-      ...sourceVideo,
-      metadata: { duration: 0.5 },
-    });
-
-    await expect(
-      controller.extendVideo({} as Request, user, sourceVideo.id, {
-        model: 'bytedance/seedance-2.5',
-        prompt: 'Continue',
-      }),
-    ).rejects.toThrow('between 1 and 30 seconds');
-    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, VideosExtendController),
+    ).toEqual({ moduleId: 'playground', operation: undefined });
+    expect(Reflect.getMetadata('__guards__', handler)).toEqual([ModelsGuard]);
+    expect(Reflect.getMetadata(CREDITS_KEY, handler)).toBeUndefined();
+    expect(Reflect.getMetadata('__interceptors__', handler)).toBeUndefined();
+    expect(Reflect.getMetadata('__httpCode__', handler)).toBe(202);
   });
 });

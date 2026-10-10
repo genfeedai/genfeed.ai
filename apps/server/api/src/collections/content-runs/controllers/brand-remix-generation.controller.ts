@@ -5,13 +5,13 @@ import {
 } from '@api/collections/content-runs/dto/brand-remix-generation.dto';
 import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource } from '@genfeedai/contracts';
@@ -27,11 +27,11 @@ import {
 } from '@nestjs/common';
 
 @Controller()
+@OrganizationModule('playground')
 export class BrandRemixGenerationController {
   constructor(private readonly generation: BrandRemixGenerationService) {}
 
   @Post('content-runs/:id/remix/generation/quote')
-  @UseGuards(SubscriptionGuard)
   async quote(
     @Req() request: Request,
     @Param('id') id: string,
@@ -51,7 +51,7 @@ export class BrandRemixGenerationController {
     source: ActivitySource.SCRIPT,
   })
   @DeferCreditsUntilModelResolution()
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   async execute(
     @Req() request: Request,

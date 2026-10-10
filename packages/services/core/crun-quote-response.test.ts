@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parseCrunQuoteResponse } from './crun-quote-response';
+import {
+  isExpectedCrunQuoteConflict,
+  parseCrunQuoteResponse,
+} from './crun-quote-response';
 
 const body = {
   model: 'crun/google/nano-banana-pro',
@@ -104,5 +107,31 @@ describe('shared exact Crun quote response', () => {
     expect(() => parseCrunQuoteResponse(value, body)).toThrow(
       'CRUN_PROVIDER_UNAVAILABLE',
     );
+  });
+});
+
+describe('surface-owned Crun admission recovery', () => {
+  it.each(['CRUN_QUOTE_STALE', 'CRUN_QUOTE_IN_PROGRESS'])(
+    'recognizes only a 409 %s',
+    (code) => {
+      expect(
+        isExpectedCrunQuoteConflict({
+          status: 409,
+          data: { errors: [{ code }] },
+        }),
+      ).toBe(true);
+    },
+  );
+  it.each([
+    { status: 500, data: { errors: [{ code: 'CRUN_QUOTE_STALE' }] } },
+    { status: 409, data: { errors: [{ code: 'UNRELATED_CONFLICT' }] } },
+    {
+      status: 409,
+      data: { errors: [{ code: 'CRUN_QUOTE_STALE' }, { code: 'OTHER' }] },
+    },
+    { status: 409, data: { errors: [] } },
+    { status: 409, data: null },
+  ])('preserves the generic error policy for $status $data', (response) => {
+    expect(isExpectedCrunQuoteConflict(response)).toBe(false);
   });
 });

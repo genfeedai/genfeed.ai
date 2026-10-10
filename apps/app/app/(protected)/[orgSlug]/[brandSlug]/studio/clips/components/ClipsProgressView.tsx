@@ -33,6 +33,9 @@ export default function ClipsProgressView({
     sourceState?: HookClipApprovalStatus['state'];
     status: HookClipApprovalStatus;
   } | null>(null);
+  const isSourceRetryExhausted = Boolean(
+    project.source && project.source.retryCount >= project.source.maxRetries,
+  );
   const serverApproval = project.hookApproval;
   const approval =
     submittedApproval &&
@@ -158,11 +161,16 @@ export default function ClipsProgressView({
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
-            isDisabled={isRetrying}
+            isDisabled={isRetrying || isSourceRetryExhausted}
             onClick={onRetrySource}
           >
             {t('retrySourceProcessing')}
           </Button>
+          {isSourceRetryExhausted ? (
+            <p role="status" className="text-xs text-muted-foreground">
+              {t('sourceRetryLimitReached')}
+            </p>
+          ) : null}
         </Card>
       ) : null}
 

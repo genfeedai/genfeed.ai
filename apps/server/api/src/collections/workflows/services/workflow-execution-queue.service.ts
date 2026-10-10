@@ -6,6 +6,13 @@ import type {
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { isProtectedSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import type { RunSystemWorkflowInput } from '@api/collections/workflows/system-workflow-definition';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import {
+  getOrganizationModuleExecutionContext,
+  type OrganizationModuleExecutionContext,
+  parseOrganizationModuleExecutionContext,
+  runWithOrganizationModule,
+} from '@api/common/organization-modules/organization-module-execution.context';
 import {
   getActionOriginContext,
   sanitizeActionOriginContext,
@@ -28,7 +35,7 @@ import {
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -37,6 +44,7 @@ import { Queue } from 'bullmq';
 
 export interface WorkflowExecutionJobData {
   actionContext?: ActionOriginContext;
+  organizationModuleContext?: Readonly<OrganizationModuleExecutionContext>;
   type: 'trigger' | 'delay-resume' | 'scheduled-fire' | 'system-run';
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
@@ -227,7 +235,82 @@ export class WorkflowExecutionQueueService {
     @InjectQueue(SCHEDULED_PUBLISH_QUEUE)
     private readonly scheduledPublishQueue: Queue<WorkflowExecutionJobData>,
     private readonly logger: LoggerService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
+
+  /** Recheck current settings/subscription before a server-scoped queued attempt. */
+  async runWithQueuedOrganizationModule<T>(
+    data: WorkflowExecutionJobData,
+    work: () => Promise<T>,
+  ): Promise<T | undefined> {
+    const organizationId =
+      data.type === 'system-run'
+        ? data.systemRun?.input.organizationId
+        : data.type === 'trigger'
+          ? data.triggerEvent?.organizationId
+          : data.type === 'delay-resume'
+            ? data.delayResumeData?.organizationId
+            : undefined;
+    const persistedContext = parseOrganizationModuleExecutionContext(
+      data.organizationModuleContext,
+      organizationId,
+    );
+    // Trigger matching executes user-authored Automation. Its producer's
+    // Publishing/Library admission cannot grant access to that separate module.
+    if (data.type === 'trigger' && !organizationId?.trim()) {
+      throw new Error('Workflow trigger is missing its organization identity');
+    }
+    const context =
+      data.type === 'trigger' && organizationId
+        ? { organizationId, moduleId: 'automation' as const }
+        : persistedContext;
+    if (!context) return work();
+    if (
+      data.type === 'delay-resume' &&
+      data.delayResumeData?.triggerEvent.organizationId !==
+        context.organizationId
+    ) {
+      throw new Error('Invalid queued organization module execution context');
+    }
+    try {
+      await this.moduleAccess.assertAccess(
+        context.organizationId,
+        context.moduleId,
+      );
+    } catch (error: unknown) {
+      // An optional trigger must not fail the Publishing/Library operation
+      // that emitted it. Unavailable policy (503) still fails closed visibly.
+      if (
+        data.type === 'trigger' &&
+        error instanceof HttpException &&
+        error.getStatus() === 403
+      ) {
+        this.logger.debug(
+          `${this.logContext} skipped unavailable automation trigger`,
+          {
+            organizationId: context.organizationId,
+            triggerType: data.triggerEvent?.type,
+          },
+        );
+        return undefined;
+      }
+      throw error;
+    }
+    return runWithOrganizationModule(context, work);
+  }
+
+  private async captureOrganizationModule(organizationId: string) {
+    const context = parseOrganizationModuleExecutionContext(
+      getOrganizationModuleExecutionContext(),
+      organizationId,
+    );
+    if (!context) return {};
+    await this.moduleAccess.assertAccess(
+      context.organizationId,
+      context.moduleId,
+    );
+    return { organizationModuleContext: context };
+  }
 
   /**
    * Queue a trigger event for processing.
@@ -237,12 +320,16 @@ export class WorkflowExecutionQueueService {
     event: TriggerEvent,
     options: WorkflowTriggerQueueOptions = {},
   ): Promise<string> {
+    const moduleContext = await this.captureOrganizationModule(
+      event.organizationId,
+    );
     const job = await this.executionQueue.add(
       'trigger',
       {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),
         triggerEvent: event,
         type: 'trigger',
+        ...moduleContext,
       },
       {
         attempts: 1, // Triggers should not auto-retry at queue level
@@ -288,6 +375,9 @@ export class WorkflowExecutionQueueService {
     // `BACKGROUND` to `WORKFLOW_BACKGROUND_QUEUE`,
     // `INTERACTIVE` to `WORKFLOW_EXECUTION_QUEUE` (#5271), except live agent
     // conversation turns, which get `AGENT_TURN_QUEUE` (#5622).
+    const moduleContext = await this.captureOrganizationModule(
+      input.organizationId,
+    );
     const targetQueue = this.resolveSystemWorkflowQueue(
       input.canonicalId,
       options,
@@ -316,6 +406,7 @@ export class WorkflowExecutionQueueService {
             : {}),
         },
         type: 'system-run',
+        ...moduleContext,
       },
       {
         attempts: options.attempts ?? 3,
@@ -375,6 +466,15 @@ export class WorkflowExecutionQueueService {
     delayMs: number,
     queueName: string = WORKFLOW_EXECUTION_QUEUE,
   ): Promise<string> {
+    const moduleContext = await this.captureOrganizationModule(
+      data.organizationId,
+    );
+    if (
+      getOrganizationModuleExecutionContext() &&
+      data.triggerEvent.organizationId !== data.organizationId
+    ) {
+      throw new Error('Invalid queued organization module execution context');
+    }
     const identity = createHash('sha256')
       .update(`${data.executionId}:${data.delayNodeId}`)
       .digest('hex')
@@ -386,6 +486,7 @@ export class WorkflowExecutionQueueService {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),
         delayResumeData: data,
         type: 'delay-resume',
+        ...moduleContext,
       },
       {
         attempts: 3,

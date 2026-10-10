@@ -1,4 +1,5 @@
 import type { AppRailFeatureFlagKey } from '../../constants/feature-flags.constant';
+import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
 import type { IconComponent } from '../../types/icon';
 import type { AppContext } from './menu-config.interface';
 
@@ -11,6 +12,7 @@ export interface AppRailItemConfig {
   group: 'daily' | 'more' | 'admin';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
+  organizationModule?: OrganizationModuleId;
   isBrandAware?: boolean;
   route: (orgSlug: string, brandSlug?: string) => string;
 }

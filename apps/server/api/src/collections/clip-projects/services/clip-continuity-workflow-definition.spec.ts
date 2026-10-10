@@ -10,6 +10,10 @@ describe('clip continuity workflow definitions', () => {
     const definition = buildClipContinuityWorkflowDefinition();
 
     expect(definition.canonicalId).toBe('clip.continuity');
+    expect(definition.organizationModule).toBe('clips');
+    expect(definition.moduleCompletionNodeIds).toEqual([
+      'persist-continuity-report',
+    ]);
     expect(
       definition.definition.nodes.map((node) => node.data.config.actionId),
     ).toEqual([
@@ -32,6 +36,9 @@ describe('clip continuity workflow definitions', () => {
     const qa = buildClipContinuityQaWorkflowDefinition();
     const failure = buildClipContinuityFailureWorkflowDefinition();
 
+    expect(qa.organizationModule).toBe('clips');
+    expect(qa.moduleCompletionNodeIds).toBeUndefined();
+    expect(failure.organizationModule).toBeUndefined();
     expect(qa.definition.nodes).toHaveLength(1);
     expect(qa.definition.nodes[0]?.data.config.actionId).toBe('videoQa');
     expect(failure.definition.nodes).toHaveLength(1);

@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   type ClipProjectCreateInput,
@@ -16,6 +15,12 @@ import { ClipAnalysisWorkflowQueueService } from '@api/collections/clip-projects
 import { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/services/clip-factory-workflow-queue.service';
 import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import {
+  buildYoutubeSource,
+  DEFAULT_CLIP_SOURCE_MAX_RETRIES,
+  hashSource as hashClipSource,
+  withClipSourceJobId,
+} from '@api/collections/clip-projects/services/clip-source-contract.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
@@ -45,7 +50,6 @@ import {
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
-const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 const DRAFT_CLAIM_ATTEMPTS = 3;
 
 export interface ClipProjectAnalysisResult {
@@ -181,7 +185,7 @@ export class ClipProjectIngestionService {
       throw new InsufficientCreditsException(estimatedClips, currentBalance);
     }
 
-    const source = this.buildYoutubeSource(dto.youtubeUrl, 'quick');
+    const source = buildYoutubeSource(dto.youtubeUrl, 'quick');
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId,
       language: dto.language ?? 'en',
@@ -210,7 +214,10 @@ export class ClipProjectIngestionService {
     });
 
     const projectId = String(project.id);
-    const queuedSource = this.withJobId(source, `clip-factory-${projectId}`);
+    const queuedSource = withClipSourceJobId(
+      source,
+      `clip-factory-${projectId}`,
+    );
     const batchJobId = await this.dispatchOrReleaseDraft(
       dto.draftProjectId,
       orgId,
@@ -239,6 +246,7 @@ export class ClipProjectIngestionService {
           source: queuedSource,
         });
       },
+      { projectId, source: queuedSource },
     );
 
     return {
@@ -266,7 +274,7 @@ export class ClipProjectIngestionService {
       organizationId: orgId,
     });
 
-    const source = this.buildYoutubeSource(dto.youtubeUrl, 'review');
+    const source = buildYoutubeSource(dto.youtubeUrl, 'review');
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId,
       language: dto.language ?? 'en',
@@ -291,25 +299,33 @@ export class ClipProjectIngestionService {
     });
 
     const projectId = String(project.id);
-    const queuedSource = this.withJobId(source, `clip-analysis-${projectId}`);
-    await this.dispatchOrReleaseDraft(dto.draftProjectId, orgId, async () => {
-      await this.clipProjectsService.patch(
-        projectId,
-        { source: queuedSource },
-        [],
-        orgId,
-      );
-      return await this.clipAnalysisWorkflowQueue.enqueue({
-        language: dto.language ?? 'en',
-        maxClips: dto.maxClips ?? 10,
-        minViralityScore: dto.minViralityScore ?? 50,
-        orgId,
-        projectId,
-        userId,
-        youtubeUrl: dto.youtubeUrl,
-        source: queuedSource,
-      });
-    });
+    const queuedSource = withClipSourceJobId(
+      source,
+      `clip-analysis-${projectId}`,
+    );
+    await this.dispatchOrReleaseDraft(
+      dto.draftProjectId,
+      orgId,
+      async () => {
+        await this.clipProjectsService.patch(
+          projectId,
+          { source: queuedSource },
+          [],
+          orgId,
+        );
+        return await this.clipAnalysisWorkflowQueue.enqueue({
+          language: dto.language ?? 'en',
+          maxClips: dto.maxClips ?? 10,
+          minViralityScore: dto.minViralityScore ?? 50,
+          orgId,
+          projectId,
+          userId,
+          youtubeUrl: dto.youtubeUrl,
+          source: queuedSource,
+        });
+      },
+      { projectId, source: queuedSource },
+    );
 
     return { identity, projectId, status: 'analyzing' };
   }
@@ -322,7 +338,11 @@ export class ClipProjectIngestionService {
     const flow = dto.flow ?? 'quick';
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
-    if (dto.contentType.startsWith('audio/') && mode === 'raw-cut') {
+    if (
+      flow === 'quick' &&
+      dto.contentType.startsWith('audio/') &&
+      mode === 'raw-cut'
+    ) {
       throw new BadRequestException(
         'Audio sources require avatar mode because raw-cut clips need source video.',
       );
@@ -361,7 +381,7 @@ export class ClipProjectIngestionService {
       },
       contentType: dto.contentType,
       filename: dto.filename,
-      fingerprint: this.hashSource(
+      fingerprint: hashClipSource(
         `${upload.id}:${dto.filename}:${dto.sizeBytes}:${dto.contentType}`,
       ),
       flow,
@@ -573,31 +593,41 @@ export class ClipProjectIngestionService {
     if (!sourceUrl) {
       throw new BadRequestException('The clip source URL is unavailable.');
     }
-    const batchJobId =
-      flow === 'review'
-        ? await this.clipAnalysisWorkflowQueue.enqueue({
-            language: project.settings?.language ?? project.language ?? 'en',
-            maxClips: project.settings?.maxClips ?? 10,
-            minViralityScore: project.settings?.minViralityScore ?? 50,
-            orgId: user.organizationId,
-            projectId,
-            source: nextSource,
-            userId: user.userId ?? user.id,
-            youtubeUrl: sourceUrl,
-          })
-        : (await this.enqueueUploadedProject(user, project, nextSource))
-            .batchJobId;
-
-    await this.clipProjectsService.patch(
-      projectId,
-      {
-        error: null,
-        source: nextSource,
-        status: 'pending',
-      },
-      [],
+    const claimed = await this.clipProjectsService.claimSourceRetry(
+      project,
       user.organizationId,
+      nextSource,
     );
+    if (!claimed) {
+      throw new ConflictException(
+        'This source was already retried or changed.',
+      );
+    }
+
+    let batchJobId: string;
+    try {
+      batchJobId =
+        flow === 'review'
+          ? await this.clipAnalysisWorkflowQueue.enqueue({
+              language: project.settings?.language ?? project.language ?? 'en',
+              maxClips: project.settings?.maxClips ?? 10,
+              minViralityScore: project.settings?.minViralityScore ?? 50,
+              orgId: user.organizationId,
+              projectId,
+              source: nextSource,
+              userId: user.userId ?? user.id,
+              youtubeUrl: sourceUrl,
+            })
+          : (await this.enqueueUploadedProject(user, project, nextSource))
+              .batchJobId;
+    } catch (error: unknown) {
+      await this.clipProjectsService.releaseSourceRetry(
+        project,
+        user.organizationId,
+        nextSource.retryCount,
+      );
+      throw error;
+    }
 
     return {
       batchJobId,
@@ -653,6 +683,7 @@ export class ClipProjectIngestionService {
             youtubeUrl: sourceUrl,
           });
         },
+        source.retryCount === 0 ? { projectId, source } : undefined,
       );
       return {
         batchJobId,
@@ -740,6 +771,7 @@ export class ClipProjectIngestionService {
           youtubeUrl: sourceUrl,
         });
       },
+      source.retryCount === 0 ? { projectId, source } : undefined,
     );
 
     return {
@@ -894,6 +926,7 @@ export class ClipProjectIngestionService {
     draftProjectId: string | undefined,
     organizationId: string,
     dispatch: () => Promise<T>,
+    failedSource?: { projectId: string; source: ClipSourceContract },
   ): Promise<T> {
     try {
       return await dispatch();
@@ -902,6 +935,12 @@ export class ClipProjectIngestionService {
         await this.clipProjectsService.releaseDraft(
           draftProjectId,
           organizationId,
+        );
+      } else if (failedSource) {
+        await this.clipProjectsService.markSourceDispatchFailed(
+          failedSource.projectId,
+          organizationId,
+          failedSource.source,
         );
       }
       throw error;
@@ -921,37 +960,6 @@ export class ClipProjectIngestionService {
       throw new NotFoundException('ClipProject', projectId);
     }
     return project;
-  }
-
-  private buildYoutubeSource(
-    youtubeUrl: string,
-    flow: ClipProcessingFlow,
-  ): ClipSourceContract {
-    return {
-      fingerprint: this.hashSource(youtubeUrl),
-      flow,
-      kind: 'youtube',
-      maxRetries: DEFAULT_CLIP_SOURCE_MAX_RETRIES,
-      retryCount: 0,
-      schemaVersion: CLIP_SOURCE_SCHEMA_VERSION,
-      status: 'queued',
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private withJobId(
-    source: ClipSourceContract,
-    jobId: string,
-  ): ClipSourceContract {
-    return {
-      ...source,
-      jobId,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private hashSource(value: string): string {
-    return `sha256:${createHash('sha256').update(value).digest('hex')}`;
   }
 
   private needsAvatarIdentity(mode: string, provider: string): boolean {

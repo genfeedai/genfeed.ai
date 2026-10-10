@@ -113,6 +113,22 @@ const mockVideo: IVideo = {
 } as unknown as IVideo;
 
 describe('MasonryVideo', () => {
+  it('names the keyboard video action without using provider instructions', () => {
+    const onClickIngredient = vi.fn();
+    render(
+      <MasonryVideo
+        accessibleLabel="Recorded video intent"
+        video={mockVideo}
+        onClickIngredient={onClickIngredient}
+      />,
+    );
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Recorded video intent' }),
+      { key: 'Enter' },
+    );
+    expect(onClickIngredient).toHaveBeenCalledWith(mockVideo);
+  });
+
   it('should prefer explicit thumbnails for video preview', () => {
     render(<MasonryVideo video={mockVideo} />);
 

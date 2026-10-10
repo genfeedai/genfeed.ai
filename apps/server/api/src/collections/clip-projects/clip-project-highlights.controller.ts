@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -27,6 +28,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 @ApiTags('clip-projects')
 @ApiBearerAuth()
 @FeatureFlag('studio_clips')
+@OrganizationModule('clips')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectHighlightsController {

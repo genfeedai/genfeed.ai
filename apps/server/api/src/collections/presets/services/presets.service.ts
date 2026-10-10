@@ -25,16 +25,22 @@ const PRESET_UPDATE_SCALAR_FIELDS = [
 ] as const;
 
 const PRESET_CONFIG_FIELDS = [
+  'aspectRatio',
   'blacklists',
   'camera',
+  'cameraMovement',
   'description',
+  'duration',
   'ingredientId',
   'key',
   'label',
+  'lens',
+  'lighting',
   'model',
   'mood',
   'platform',
   'prompt',
+  'promptTemplate',
   'scene',
   'style',
 ] as const;

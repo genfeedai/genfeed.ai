@@ -1,17 +1,16 @@
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import {
   currentWorkflowGenerationDispatch,
   runWithWorkflowGenerationDispatch,
 } from '@api/collections/workflow-executions/services/workflow-generation-dispatch.context';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import {
-  type ValidatedWorkflowMediaDispatch,
-  WorkflowMediaBillingPlanService,
-} from '@api/collections/workflows/services/workflow-media-billing-plan.service';
+import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
+import type { ValidatedWorkflowMediaDispatch } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
+import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { workflowExecutionGenerationBillingSchema } from '@api/helpers/utils/credits/workflow-generation-billing.schema';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
@@ -19,7 +18,6 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaLocalizationService } from '@api/services/media-localization/media-localization.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ByokProvider,
   IngredientCategory,
@@ -57,12 +55,15 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     @Optional() private readonly byokService?: ByokService,
     @Optional()
     private readonly mediaLocalizationService?: MediaLocalizationService,
-    @Optional() private readonly billingPlan?: WorkflowMediaBillingPlanService,
-    @Optional() private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly dispatchAdmission?: WorkflowMediaDispatchAdmissionService,
     @Optional() private readonly configService?: ConfigService,
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
     @Optional() private readonly personasService?: PersonasService,
+    @Optional() private readonly falVideo?: FalVideoGenerationProviderAdapter,
+    @Optional()
+    private readonly falOutputFinalization?: WorkflowFalOutputFinalizationService,
   ) {}
 
   private async processingMediaUrl(
@@ -174,7 +175,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
   }
 
   private registerVideoGenExecutor(engine: WorkflowEngine): void {
-    if (!this.replicateService) {
+    if (!this.replicateService && !this.falVideo) {
       return;
     }
 
@@ -192,6 +193,67 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
               context,
               node,
             });
+      if (prepared.provider !== 'replicate') {
+        if (!funded || !this.falVideo || !this.falOutputFinalization) {
+          throw new BusinessLogicException(
+            'Fal workflow execution requires its funded native dispatch adapter',
+          );
+        }
+        const falVideo = this.falVideo;
+        const finalization = this.falOutputFinalization;
+        const pending = await this.dispatchFundedMedia(funded, () =>
+          this.helper.createAndLinkProcessingOutput({
+            continuation: {
+              actionId: 'videoGen',
+              context,
+              isByok: Boolean(funded.credential),
+              node,
+              provider: 'fal',
+            },
+            output: prepared.output,
+            resultUrl: (id) => this.helper.buildVideoIngredientUrl(id),
+            runProvider: async () => {
+              const result = await falVideo.generate({
+                apiKeyOverride: funded.credential?.apiKey,
+                model: prepared.model,
+                modelProvider: 'fal',
+                organizationId: context.organizationId,
+                preparedFalDispatch: prepared.preparedFalDispatch,
+                prompt: prepared.output.generationPrompt ?? '',
+                promptParams: prepared.input,
+                width: 0,
+                height: 0,
+              });
+              if (result.completion !== 'remote-output' || !result.externalId) {
+                throw new BusinessLogicException(
+                  'Fal returned no accepted remote video',
+                );
+              }
+              return {
+                externalId: result.externalId,
+                completionQuantities: result.completionQuantities,
+              };
+            },
+            onProviderAccepted: async (_output, continuationId) => {
+              await finalization.finalize(
+                continuationId,
+                context.organizationId,
+              );
+            },
+          }),
+        );
+        return {
+          generationBriefEvidence: prepared.generationBriefEvidence,
+          generationSource: prepared.generationSource,
+          id: pending.ingredientId,
+          model,
+          provider: 'fal',
+          status: IngredientStatus.PROCESSING,
+          videoUrl: this.helper.buildVideoIngredientUrl(pending.ingredientId),
+        };
+      }
+      if (!replicateService)
+        throw new Error('Replicate workflow provider is unavailable');
       const byok = funded
         ? funded.credential
         : await this.byokService?.resolveApiKey(
@@ -653,55 +715,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     return params.buildReturn(pendingOutput.ingredientId, outputCategory);
   }
 
-  private async authorizeMediaDispatch(
+  private authorizeMediaDispatch(
     node: ExecutableNode,
     context: ExecutionContext,
   ): Promise<ValidatedWorkflowMediaDispatch | undefined> {
-    if (!context.executionId || !this.billingPlan || !this.prisma) {
-      return undefined;
-    }
-    const execution = await this.prisma.workflowExecution.findFirst({
-      select: {
-        generationAdmissionSource: true,
-        generationBilling: true,
-      },
-      where: {
-        id: context.executionId,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
-    });
-    if (!execution) {
-      throw new BusinessLogicException('Workflow execution is unavailable');
-    }
-    if (!execution.generationAdmissionSource && !execution.generationBilling) {
-      return undefined;
-    }
-    if (!execution.generationBilling) {
-      throw new BusinessLogicException(
-        'Workflow funded dispatch is unavailable',
-      );
-    }
-    const dispatch = currentWorkflowGenerationDispatch();
-    if (
-      !dispatch ||
-      dispatch.executionId !== context.executionId ||
-      dispatch.organizationId !== context.organizationId
-    ) {
-      throw new BusinessLogicException(
-        'Workflow dispatch context is unavailable',
-      );
-    }
-    return this.billingPlan.validateDispatch({
-      context: { ...context, executionId: context.executionId },
-      executionId: context.executionId,
-      funding: workflowExecutionGenerationBillingSchema.parse(
-        execution.generationBilling,
-      ),
-      inputs: dispatch.inputs,
-      node,
-      operationId: dispatch.operationId,
-    });
+    return (
+      this.dispatchAdmission?.authorize(node, context) ??
+      Promise.resolve(undefined)
+    );
   }
 
   private async dispatchFundedMedia<T>(

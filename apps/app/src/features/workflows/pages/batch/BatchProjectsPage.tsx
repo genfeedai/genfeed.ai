@@ -16,6 +16,7 @@ import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import SubscriptionRequiredState from '@ui/guards/subscription/SubscriptionRequiredState';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
@@ -147,26 +148,28 @@ export default function BatchProjectsPage() {
       (a, b) => Date.parse(b.updatedAt ?? '') - Date.parse(a.updatedAt ?? ''),
     )
     .slice(0, 5);
+  if (isSubscriptionRequired) {
+    return (
+      <Container label={t('title')}>
+        <SubscriptionRequiredState
+          message={error ?? t('loadFailed')}
+          manageHref={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
+          manageLabel={t('manageSubscription')}
+        />
+      </Container>
+    );
+  }
   return (
     <Container
       label={t('title')}
       right={
-        !isSubscriptionRequired && (
-          <Button asChild>
-            <Link href={href(APP_ROUTES.STUDIO.BATCH_NEW)}>{t('new')}</Link>
-          </Button>
-        )
+        <Button asChild>
+          <Link href={href(APP_ROUTES.STUDIO.BATCH_NEW)}>{t('new')}</Link>
+        </Button>
       }
     >
       <div className="flex flex-col gap-8">
         {error && <p role="alert">{error}</p>}
-        {isSubscriptionRequired && (
-          <Button asChild>
-            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-              {t('manageSubscription')}
-            </Link>
-          </Button>
-        )}
         {!loading && !projects.length && !error && <p>{t('empty')}</p>}
         <CollectionSection title={t('recent')} itemCount={recent.length}>
           <CollectionList>
@@ -197,7 +200,7 @@ export default function BatchProjectsPage() {
             )}
           />
         </CollectionSection>
-        {!isSubscriptionRequired && (hasMore || error) && (
+        {(hasMore || error) && (
           <Button
             isDisabled={loading}
             onClick={() => {

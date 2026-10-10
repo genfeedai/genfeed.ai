@@ -43,6 +43,7 @@ async function mockStudioGallery(page: Page): Promise<void> {
         data: [
           {
             attributes: {
+              brandId: 'brand-1',
               category: IngredientCategory.IMAGE,
               cdnUrl: 'https://cdn.genfeed.ai/mock/studio-portrait.jpg',
               createdAt: '2026-09-20T10:00:00.000Z',

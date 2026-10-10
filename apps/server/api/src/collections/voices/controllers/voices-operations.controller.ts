@@ -3,6 +3,7 @@ import { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -11,7 +12,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -34,6 +34,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('voices')
+@OrganizationModule('playground')
 export class VoicesOperationsController {
   constructor(
     private readonly voiceCloneService: VoiceCloneService,
@@ -45,7 +46,7 @@ export class VoicesOperationsController {
     operationId: 'VoicesController.generate',
     summary: 'generate',
   })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @Credits({
     description: 'Voice generation (TTS)',
@@ -68,7 +69,7 @@ export class VoicesOperationsController {
     operationId: 'VoicesController.cloneVoice',
     summary: 'cloneVoice',
   })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(
     CreditsInterceptor,
     FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }),

@@ -1,4 +1,5 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
@@ -78,6 +79,60 @@ function getActionExecutor(
 }
 
 describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
+  it('refuses a Fal preparation before creating output or resolving a Replicate credential', async () => {
+    const createAndLinkProcessingOutput = vi.fn();
+    const runModel = vi.fn();
+    const resolveApiKey = vi.fn();
+    const helper = {
+      createAndLinkProcessingOutput,
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const plan = {
+      prepareVideo: vi
+        .fn()
+        .mockResolvedValue({ provider: 'fal', actionId: 'videoGen' }),
+      canPrepareImage: false,
+    } as unknown as WorkflowMediaProviderPlanService;
+    const engine = new WorkflowEngine();
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      plan,
+      undefined,
+      undefined,
+      { runModel } as never,
+      undefined,
+      { resolveApiKey } as never,
+    ).register(engine);
+    const executor = getActionExecutor(engine, 'videoGen');
+    expect(executor).toBeDefined();
+    await expect(
+      executor?.(
+        {
+          id: 'fal-1',
+          type: 'videoGen',
+          label: 'Fal video',
+          config: {
+            model: 'fal/bytedance/seedance-2.5/text-to-video',
+            brandId: 'brand-1',
+            prompt: 'Continue',
+          },
+          inputs: [],
+        },
+        new Map(),
+        {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          runId: 'run-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow('funded native dispatch adapter');
+    expect(createAndLinkProcessingOutput).not.toHaveBeenCalled();
+    expect(runModel).not.toHaveBeenCalled();
+    expect(resolveApiKey).not.toHaveBeenCalled();
+  });
   it('persists native video extension lineage and dispatches the Seedance extension contract', async () => {
     const createAndLinkProcessingOutput = vi.fn(
       async (
@@ -165,7 +220,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
       expect.objectContaining({
         aspect_ratio: 'adaptive',
-        duration: -1,
+        duration: 8,
         reference_videos: ['https://s3.example.com/source-video-1?sig=signed'],
       }),
       undefined,
@@ -977,8 +1032,11 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         files as never,
         undefined,
         undefined,
-        undefined,
-        undefined,
+        new WorkflowMediaDispatchAdmissionService(
+          undefined,
+          undefined,
+          undefined,
+        ),
         { isAuthorizedMediaDeliveryEnabled: true } as never,
         issuer as never,
       ).register(engine);

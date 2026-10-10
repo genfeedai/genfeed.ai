@@ -1,17 +1,41 @@
+import {
+  assertDefinitionExecutors,
+  isPlatformOriginatedSource,
+  requiredString,
+  resolveDefinition,
+  resolveInheritedDispatch,
+  type SystemWorkflowActionExecutor,
+  type SystemWorkflowActionRequest,
+  type SystemWorkflowProvenance,
+  validateDefinition,
+} from '@api/collections/workflows/system-workflow-policy.util';
+import {
+  readString as optionalString,
+  readRecord,
+} from '@genfeedai/utils/data/extract.util';
+
+export type {
+  SystemWorkflowActionExecutor,
+  SystemWorkflowActionRequest,
+  SystemWorkflowProvenance,
+} from '@api/collections/workflows/system-workflow-policy.util';
+
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import type { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import type { WorkflowExecutionResult } from '@api/collections/workflows/services/workflow-executor.types';
+import type {
+  DelayResumeJobData,
+  WorkflowExecutionResult,
+} from '@api/collections/workflows/services/workflow-executor.types';
 import {
+  getSystemWorkflowMetadata,
   isHiddenSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
 import {
-  PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
-  PROACTIVE_AGENT_TURN_SOURCE,
   type RunSystemWorkflowInput,
   type SystemWorkflowGraphDefinition,
 } from '@api/collections/workflows/system-workflow-definition';
@@ -24,26 +48,26 @@ import {
   WORKFLOW_FOR_EACH_ACTION_ID,
 } from '@api/collections/workflows/system-workflow-for-each.util';
 import { ensureHiddenSystemWorkflowMirror } from '@api/collections/workflows/system-workflow-mirror.util';
-import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
+import { assertReservedSystemActionAdmission } from '@api/collections/workflows/utils/reserved-system-action-admission.util';
 import {
   WORKFLOW_ENGINE_ADAPTER,
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import {
-  type GenfeedActionDefinition,
-  getActionDefinition,
-} from '@genfeedai/actions';
+  getOrganizationModuleExecutionContext,
+  runWithOrganizationModule,
+} from '@api/common/organization-modules/organization-module-execution.context';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { type GenfeedActionDefinition } from '@genfeedai/actions';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { ORGANIZATION_MODULES } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
-import {
-  buildActionExecutionInput,
-  type ExecutionContext,
-} from '@genfeedai/workflows/engine';
+import { buildActionExecutionInput } from '@genfeedai/workflows/engine';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   Injectable,
@@ -56,27 +80,6 @@ export { WORKFLOW_FOR_EACH_ACTION_ID };
 export const WORKFLOW_FOR_EACH_TENANT_ACTION_ID = 'workflow.for-each-tenant';
 export const WORKFLOW_RUN_CHILD_ACTION_ID = 'workflow.run-child';
 const MAX_NESTED_WORKFLOW_DEPTH = 8;
-
-export type SystemWorkflowProvenance = {
-  executionId: string;
-  idempotencyKey?: string;
-  nodeId?: string;
-  workflowId: string;
-  workflowLabel: string;
-};
-
-export type SystemWorkflowActionRequest = {
-  context: ExecutionContext;
-  input: Record<string, unknown>;
-  provenance: SystemWorkflowProvenance;
-  runtimeContext?: unknown;
-};
-
-// Action handlers are either pure state transforms or async I/O. `registerAction`
-// wraps every executor in an async node executor, so both shapes are awaited.
-export type SystemWorkflowActionExecutor = (
-  request: SystemWorkflowActionRequest,
-) => unknown;
 
 export type {
   RunSystemWorkflowInput,
@@ -94,6 +97,9 @@ export class SystemWorkflowRunnerService
   >();
   private readonly runtimeContext = new AsyncLocalStorage<unknown>();
   private readonly workflowDepth = new AsyncLocalStorage<number>();
+  private readonly moduleCompletionNodes = new AsyncLocalStorage<
+    ReadonlySet<string>
+  >();
   private readonly workflowDefinitions = new Map<
     string,
     SystemWorkflowGraphDefinition
@@ -122,15 +128,18 @@ export class SystemWorkflowRunnerService
     );
     const missing = new Set<string>();
     const missingChildren = new Set<string>();
+    const missingCompensations = new Set<string>();
 
     for (const definition of this.workflowDefinitions.values()) {
+      const failureId = definition.failureWorkflowCanonicalId;
+      if (failureId && !this.workflowDefinitions.has(failureId)) {
+        missingCompensations.add(`${definition.canonicalId}:${failureId}`);
+      }
       for (const node of definition.definition.nodes) {
         if (node.type !== 'genfeedAction') {
           continue;
         }
-        const actionId = this.optionalString(
-          this.readRecord(node.data?.config).actionId,
-        );
+        const actionId = optionalString(readRecord(node.data?.config).actionId);
         if (actionId && !registeredActionIds.has(actionId)) {
           missing.add(`${definition.canonicalId}:${actionId}`);
         }
@@ -142,8 +151,8 @@ export class SystemWorkflowRunnerService
           // Node configs nest authored values under `parameters`
           // (`createGenfeedActionNode`). Reading the child id off the config
           // root left this fail-closed guard permanently satisfied.
-          const childWorkflowId = this.optionalString(
-            this.readRecord(this.readRecord(node.data?.config).parameters)
+          const childWorkflowId = optionalString(
+            readRecord(readRecord(node.data?.config).parameters)
               .childWorkflowId,
           );
           if (
@@ -168,6 +177,11 @@ export class SystemWorkflowRunnerService
         `System workflow child definitions missing: ${[...missingChildren].sort().join(', ')}`,
       );
     }
+    if (missingCompensations.size > 0) {
+      throw new Error(
+        `System workflow failure definitions missing: ${[...missingCompensations].sort().join(', ')}`,
+      );
+    }
   }
 
   registerAction(
@@ -177,12 +191,35 @@ export class SystemWorkflowRunnerService
     if (this.actionDefinitions.has(actionId)) {
       throw new Error(`Duplicate Genfeed action definition: ${actionId}`);
     }
-    const definition = this.resolveDefinition(actionId);
+    const definition = resolveDefinition(this.actionDefinitions, actionId);
     this.actionDefinitions.set(actionId, definition);
     try {
       this.getEngineAdapter().registerExecutor(
         actionId,
         async (node, inputs, context) => {
+          await assertReservedSystemActionAdmission(
+            this.prisma,
+            this.workflowDefinitions,
+            { actionId, nodeId: node.id, context },
+          );
+          const moduleContext = getOrganizationModuleExecutionContext();
+          if (moduleContext) {
+            if (moduleContext.organizationId !== context.organizationId) {
+              throw new Error(
+                'System action module context does not match its tenant',
+              );
+            }
+            if (
+              !this.moduleCompletionNodes
+                .getStore()
+                ?.has(`${node.id}:${actionId}`)
+            ) {
+              await this.getModuleAccess().assertAccess(
+                moduleContext.organizationId,
+                moduleContext.moduleId,
+              );
+            }
+          }
           const input = buildActionExecutionInput(node.config, inputs);
           return executor({
             context,
@@ -208,13 +245,29 @@ export class SystemWorkflowRunnerService
     return this.workflowDefinitions.get(canonicalId);
   }
 
+  /** Resolve trusted terminal compensation for both new and legacy queue jobs. */
+  getRegisteredFailureWorkflow(
+    input: Pick<RunSystemWorkflowInput, 'canonicalId' | 'inputValues'>,
+  ): { canonicalId: string; inputValues: Record<string, unknown> } | undefined {
+    const canonicalId = this.workflowDefinitions.get(
+      input.canonicalId,
+    )?.failureWorkflowCanonicalId;
+    if (!canonicalId) return undefined;
+    if (!this.workflowDefinitions.has(canonicalId)) {
+      throw new Error(
+        `System workflow failure definitions missing: ${input.canonicalId}:${canonicalId}`,
+      );
+    }
+    return { canonicalId, inputValues: input.inputValues ?? {} };
+  }
+
   registerWorkflow(definition: SystemWorkflowGraphDefinition): void {
     if (this.workflowDefinitions.has(definition.canonicalId)) {
       throw new Error(
         `Duplicate system workflow definition: ${definition.canonicalId}`,
       );
     }
-    this.validateDefinition(definition);
+    validateDefinition(definition);
     this.workflowDefinitions.set(definition.canonicalId, definition);
   }
 
@@ -230,8 +283,11 @@ export class SystemWorkflowRunnerService
         `System workflow input ${input.canonicalId} does not match definition ${definition.canonicalId}`,
       );
     }
-    this.validateDefinition(definition);
-    this.assertDefinitionExecutors(definition);
+    validateDefinition(definition);
+    assertDefinitionExecutors(
+      definition,
+      this.getEngineAdapter().getRegisteredActionIds(),
+    );
     return this.executeDefinition<T>(definition, input);
   }
 
@@ -266,6 +322,146 @@ export class SystemWorkflowRunnerService
     if (!definition) {
       throw new Error(`Unknown system workflow: ${input.canonicalId}`);
     }
+    return this.runWithDefinitionModule(definition, input.organizationId, () =>
+      this.enqueueAdmittedWorkflow(definition, input, options),
+    );
+  }
+
+  /** Also used for old queue jobs that resume an existing execution directly. */
+  async runWithRegisteredWorkflowModule<T>(
+    input: Pick<RunSystemWorkflowInput, 'canonicalId' | 'organizationId'>,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    const definition = this.workflowDefinitions.get(input.canonicalId);
+    if (!definition) {
+      throw new Error(`Unknown system workflow: ${input.canonicalId}`);
+    }
+    return this.runWithDefinitionModule(definition, input.organizationId, work);
+  }
+
+  /** Bind old delayed jobs to their tenant's actual immutable execution pin. */
+  async runWithStoredWorkflowModule<T>(
+    input: Pick<
+      DelayResumeJobData,
+      'executionId' | 'organizationId' | 'workflowId'
+    >,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    if (
+      !input.executionId?.trim() ||
+      !input.organizationId?.trim() ||
+      !input.workflowId?.trim()
+    ) {
+      throw new Error(
+        'Stored workflow module admission requires execution ownership',
+      );
+    }
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: {
+        id: input.executionId,
+        isDeleted: false,
+        organizationId: input.organizationId,
+        workflowId: input.workflowId,
+      },
+      select: {
+        workflowVersion: {
+          select: {
+            organizationId: true,
+            userId: true,
+            workflowId: true,
+            workflow: {
+              select: {
+                id: true,
+                isDeleted: true,
+                metadata: true,
+                organizationId: true,
+                userId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const version = execution?.workflowVersion;
+    const workflow = version?.workflow;
+    if (
+      !version ||
+      !workflow ||
+      workflow.isDeleted ||
+      version.workflowId !== input.workflowId ||
+      workflow.id !== input.workflowId ||
+      version.organizationId !== workflow.organizationId ||
+      version.userId !== workflow.userId
+    ) {
+      throw new Error('Stored workflow module ownership is unavailable');
+    }
+    if (
+      workflow.organizationId === input.organizationId &&
+      workflow.organizationId !== SYSTEM_WORKFLOW_PRINCIPAL_ID
+    ) {
+      // A tenant-authored or duplicated graph remains Automation even if its
+      // editable metadata imitates a hidden system graph or a credit-only module.
+      await this.getModuleAccess().assertAccess(
+        input.organizationId,
+        'automation',
+      );
+      return runWithOrganizationModule(
+        { organizationId: input.organizationId, moduleId: 'automation' },
+        () => this.moduleCompletionNodes.run(new Set(), work),
+      );
+    }
+    if (
+      workflow.organizationId !== SYSTEM_WORKFLOW_PRINCIPAL_ID ||
+      workflow.userId !== SYSTEM_WORKFLOW_PRINCIPAL_ID ||
+      !isHiddenSystemWorkflowMetadata(workflow.metadata)
+    ) {
+      throw new Error('Stored workflow module ownership is unavailable');
+    }
+    const metadata = getSystemWorkflowMetadata(workflow.metadata);
+    if (!metadata)
+      throw new Error('Stored workflow module ownership is unavailable');
+    return this.runWithRegisteredWorkflowModule(
+      {
+        canonicalId: metadata.canonicalId,
+        organizationId: input.organizationId,
+      },
+      work,
+    );
+  }
+
+  private async runWithDefinitionModule<T>(
+    definition: SystemWorkflowGraphDefinition,
+    organizationId: string,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    const moduleId = definition.organizationModule;
+    if (!moduleId) return this.moduleCompletionNodes.run(new Set(), work);
+    if (!Object.hasOwn(ORGANIZATION_MODULES, moduleId)) {
+      throw new Error('Invalid code-owned system workflow module');
+    }
+    await this.getModuleAccess().assertAccess(organizationId, moduleId);
+    return runWithOrganizationModule({ organizationId, moduleId }, () =>
+      this.moduleCompletionNodes.run(
+        new Set(
+          definition.definition.nodes
+            .filter((node) =>
+              definition.moduleCompletionNodeIds?.includes(node.id),
+            )
+            .map(
+              (node) => `${node.id}:${readRecord(node.data?.config).actionId}`,
+            ),
+        ),
+        work,
+      ),
+    );
+  }
+
+  private async enqueueAdmittedWorkflow(
+    definition: SystemWorkflowGraphDefinition,
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
+    options: { dispatchClass: SystemWorkflowDispatchClass },
+  ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
+    const failureWorkflow = this.getRegisteredFailureWorkflow(input);
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureHiddenSystemWorkflowMirror(definition);
     if (!workflow.currentVersion) {
@@ -278,6 +474,21 @@ export class SystemWorkflowRunnerService
       userId,
       input.organizationId,
       {
+        ...(definition.generationAdmission
+          ? {
+              admission: {
+                apiKeyId: input.apiKeyId,
+                actorScopes: input.actorScopes,
+                systemWorkflowCanonicalId: definition.canonicalId,
+                selection: { mode: 'full' as const, respectLocks: true },
+                trigger: {
+                  type: 'api',
+                  platform: input.source,
+                  data: input.inputValues ?? {},
+                },
+              },
+            }
+          : {}),
         idempotencyKey: input.idempotencyKey,
         inputValues: input.inputValues ?? {},
         metadata: {
@@ -310,7 +521,8 @@ export class SystemWorkflowRunnerService
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
           ...(isAgentConversation ? { attempts: 1 } : {}),
           dispatchClass: options.dispatchClass,
-          ...(this.isPlatformOriginatedSource(input.source)
+          ...(failureWorkflow ? { failureWorkflow } : {}),
+          ...(isPlatformOriginatedSource(input.source)
             ? { usePlatformQueue: true }
             : {}),
           priorExecution: {
@@ -374,6 +586,24 @@ export class SystemWorkflowRunnerService
     provenance: SystemWorkflowProvenance;
     userId: string;
   }> {
+    if (definition.generationAdmission) {
+      throw new Error(
+        'Funded system generation must use queued execution admission',
+      );
+    }
+    return this.runWithDefinitionModule(definition, input.organizationId, () =>
+      this.startAdmittedDefinition(definition, input),
+    );
+  }
+
+  private async startAdmittedDefinition(
+    definition: SystemWorkflowGraphDefinition,
+    input: RunSystemWorkflowInput,
+  ): Promise<{
+    execution: WorkflowExecutionResult;
+    provenance: SystemWorkflowProvenance;
+    userId: string;
+  }> {
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflowMirror =
       await this.ensureHiddenSystemWorkflowMirror(definition);
@@ -427,56 +657,6 @@ export class SystemWorkflowRunnerService
     return ensureHiddenSystemWorkflowMirror(this.prisma, definition);
   }
 
-  private resolveDefinition(actionId: string): GenfeedActionDefinition {
-    const registeredDefinition = this.actionDefinitions.get(actionId);
-    if (registeredDefinition) {
-      return registeredDefinition;
-    }
-    const action = getActionDefinition(actionId);
-    if (!action) {
-      throw new Error(`Unknown Genfeed action: ${actionId}`);
-    }
-    return action;
-  }
-
-  private validateDefinition(definition: SystemWorkflowGraphDefinition): void {
-    const version = buildWorkflowVersionDefinition(definition.definition);
-    if (
-      !version.graph.nodes.some((node) => node.id === definition.resultNodeId)
-    ) {
-      throw new Error(
-        `System workflow ${definition.canonicalId} result node ${definition.resultNodeId} does not exist`,
-      );
-    }
-  }
-
-  private assertDefinitionExecutors(
-    definition: SystemWorkflowGraphDefinition,
-  ): void {
-    const registeredActionIds = new Set(
-      this.getEngineAdapter().getRegisteredActionIds(),
-    );
-    const missingActionIds = definition.definition.nodes.flatMap((node) => {
-      if (node.type !== 'genfeedAction') {
-        return [];
-      }
-      const actionId = this.optionalString(
-        this.readRecord(node.data?.config).actionId,
-      );
-      return actionId && !registeredActionIds.has(actionId) ? [actionId] : [];
-    });
-    if (missingActionIds.length > 0) {
-      throw new Error(
-        `System workflow action executors missing: ${[
-          ...new Set(missingActionIds),
-        ]
-          .sort()
-          .map((actionId) => `${definition.canonicalId}:${actionId}`)
-          .join(', ')}`,
-      );
-    }
-  }
-
   private async executeForEach(
     request: SystemWorkflowActionRequest,
     projectTenantContext = false,
@@ -499,7 +679,7 @@ export class SystemWorkflowRunnerService
   }> {
     const options = parseForEachOptions(request.input);
     const parentNodeId =
-      this.optionalString(request.provenance.nodeId) ?? 'workflow-for-each';
+      optionalString(request.provenance.nodeId) ?? 'workflow-for-each';
     const childContexts = await this.resolveForEachChildContexts(
       options.items,
       request,
@@ -518,7 +698,8 @@ export class SystemWorkflowRunnerService
       // not by the workflow's canonical id — so a future interactive
       // re-dispatch of, say, analytics-sync correctly keeps its children
       // interactive too, instead of always landing on the platform queue.
-      const inheritedDispatch = await this.resolveInheritedDispatch(
+      const inheritedDispatch = await resolveInheritedDispatch(
+        this.prisma,
         request.provenance.executionId,
         request.context.organizationId,
       );
@@ -527,13 +708,15 @@ export class SystemWorkflowRunnerService
         options,
         parentNodeId,
         queueSystemWorkflow: (workflow, jobId, queueOptions) =>
-          this.getWorkflowQueue().queueSystemWorkflow(workflow, jobId, {
-            ...queueOptions,
-            dispatchClass: inheritedDispatch.dispatchClass,
-            ...(inheritedDispatch.usePlatformQueue
-              ? { usePlatformQueue: true }
-              : {}),
-          }),
+          this.runWithRegisteredWorkflowModule(workflow, () =>
+            this.getWorkflowQueue().queueSystemWorkflow(workflow, jobId, {
+              ...queueOptions,
+              dispatchClass: inheritedDispatch.dispatchClass,
+              ...(inheritedDispatch.usePlatformQueue
+                ? { usePlatformQueue: true }
+                : {}),
+            }),
+          ),
         request,
       });
     }
@@ -641,13 +824,13 @@ export class SystemWorkflowRunnerService
   private async executeChild(
     request: SystemWorkflowActionRequest,
   ): Promise<unknown> {
-    const childWorkflowId = this.requiredString(
+    const childWorkflowId = requiredString(
       request.input.childWorkflowId,
       'childWorkflowId',
     );
     const { childWorkflowId: _childWorkflowId, ...inputValues } = request.input;
     const parentNodeId =
-      this.optionalString(request.provenance.nodeId) ?? 'workflow-run-child';
+      optionalString(request.provenance.nodeId) ?? 'workflow-run-child';
 
     const child = await this.runWorkflow({
       actionType: childWorkflowId,
@@ -681,9 +864,7 @@ export class SystemWorkflowRunnerService
 
     await this.assertHiddenSystemWorkflowParent(request);
     const organizationIds = items.map((item, index) => {
-      const organizationId = this.optionalString(
-        this.readRecord(item).organizationId,
-      );
+      const organizationId = optionalString(readRecord(item).organizationId);
       if (!organizationId) {
         throw new Error(
           `${WORKFLOW_FOR_EACH_TENANT_ACTION_ID} item ${index} requires organizationId`,
@@ -736,60 +917,6 @@ export class SystemWorkflowRunnerService
     }
   }
 
-  /**
-   * Whether `source` on an `enqueueWorkflow` call identifies platform
-   * background work rather than a live interactive request — see
-   * `PLATFORM_WORKFLOW_SCHEDULE_SOURCE` and `PROACTIVE_AGENT_TURN_SOURCE`.
-   */
-  private isPlatformOriginatedSource(source: string): boolean {
-    return (
-      source === PLATFORM_WORKFLOW_SCHEDULE_SOURCE ||
-      source === PROACTIVE_AGENT_TURN_SOURCE
-    );
-  }
-
-  /**
-   * How a `workflow.for-each` node's `scheduled`-mode children should route,
-   * inherited from the PARENT EXECUTION's own persisted dispatch rather than
-   * inferred from the workflow's canonical id (#5271, replacing the
-   * `isPlatformSweepWorkflow` canonical-id check #5162/#5252 shipped).
-   *
-   * `enqueueWorkflow` persists both `source` and `dispatchClass` into
-   * `WorkflowExecution.result.metadata` at creation time — `source` was
-   * already there for `isPlatformOriginatedSource`; no schema migration was
-   * needed to add `dispatchClass` alongside it. A run started through any
-   * other path (direct `queueSystemWorkflow`, or a synchronous `runWorkflow`)
-   * never has `dispatchClass` in its metadata; those producers are already
-   * all background in nature (#5271's audit), so a missing value defaults to
-   * `BACKGROUND` rather than risking a for-each fan-out landing on the
-   * interactive queue by accident.
-   */
-  private async resolveInheritedDispatch(
-    executionId: string,
-    organizationId: string,
-  ): Promise<{
-    dispatchClass: SystemWorkflowDispatchClass;
-    usePlatformQueue: boolean;
-  }> {
-    const execution = await this.prisma.workflowExecution.findFirst({
-      select: { result: true },
-      where: { id: executionId, isDeleted: false, organizationId },
-    });
-    const metadata = this.readRecord(
-      this.readRecord(execution?.result).metadata,
-    );
-    const source = this.optionalString(metadata.source);
-    const dispatchClass =
-      Object.values(SystemWorkflowDispatchClass).find(
-        (value) => value === metadata.dispatchClass,
-      ) ?? SystemWorkflowDispatchClass.BACKGROUND;
-    return {
-      dispatchClass,
-      usePlatformQueue:
-        source !== undefined && this.isPlatformOriginatedSource(source),
-    };
-  }
-
   private async linkPostsToExecution(
     postIds: string[],
     provenance: SystemWorkflowProvenance,
@@ -809,26 +936,6 @@ export class SystemWorkflowRunnerService
     });
   }
 
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private requiredString(value: unknown, field: string): string {
-    const parsed = this.optionalString(value);
-    if (!parsed) {
-      throw new Error(`${field} is required`);
-    }
-    return parsed;
-  }
-
-  private optionalString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim().length > 0
-      ? value.trim()
-      : undefined;
-  }
-
   private getEngineAdapter(): WorkflowEngineAdapterService {
     return this.moduleRef.get<WorkflowEngineAdapterService>(
       WORKFLOW_ENGINE_ADAPTER,
@@ -846,6 +953,12 @@ export class SystemWorkflowRunnerService
 
   private getWorkflowQueue(): WorkflowExecutionQueueService {
     return this.moduleRef.get(WorkflowExecutionQueueService, { strict: false });
+  }
+
+  private getModuleAccess(): OrganizationModuleAccessService {
+    return this.moduleRef.get(OrganizationModuleAccessService, {
+      strict: false,
+    });
   }
 
   private getWorkflowExecutions(): WorkflowExecutionsService {

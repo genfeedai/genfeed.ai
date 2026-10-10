@@ -78,23 +78,23 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // parent workflow.
     {
       file: 'apps/server/api/src/collections/workflows/system-workflow-runner.service.ts',
-      line: 720,
+      line: 901,
     },
-    // #6120: system-principal mirror binding check for visual projects.
+    // #6120: one shared system-principal mirror lookup for normal and failure binding proofs; both callers retain exact principal/soft-delete fences.
     {
       file: 'apps/server/api/src/collections/visual-projects/services/visual-project-workflow.service.ts',
-      line: 155,
+      line: 102,
     },
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 195,
+      line: 197,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
     {
       file: 'apps/server/api/src/collections/workflows/controllers/workflow-marketplace.controller.ts',
-      line: 133,
+      line: 135,
     },
     // #6120: runAsSuperAdmin, the single generic-CRUD seam where a verified
     // superadmin reads, edits or removes another organization's row or a
@@ -336,7 +336,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin names a foreign organization.
     {
       file: 'apps/server/api/src/collections/engagement-rules/controllers/engagement-rules.controller.ts',
-      line: 139,
+      line: 141,
     },
     // #6120: superadmin reads any organization's folder.
     {

@@ -382,7 +382,7 @@ describe('PlatformSettingsService', () => {
       });
     });
 
-    it('never caches a read that raced a write', async () => {
+    it('returns the saved settings to readers that raced a write', async () => {
       let resolveRead: (value: unknown) => void = () => undefined;
       const getSingleton = vi.spyOn(service, 'getSingleton');
       getSingleton.mockImplementationOnce(
@@ -400,7 +400,9 @@ describe('PlatformSettingsService', () => {
       } as never);
       await service.updateSingleton({ isMediaPerceptionEnabled: true });
       resolveRead(row);
-      await staleRead;
+      await expect(staleRead).resolves.toMatchObject({
+        isMediaPerceptionEnabled: true,
+      });
 
       await expect(service.getFeatureSettings()).resolves.toMatchObject({
         isMediaPerceptionEnabled: true,
@@ -447,7 +449,7 @@ describe('PlatformSettingsService', () => {
     it('stays resolved on the last known switches when a later read fails', async () => {
       vi.useFakeTimers();
       vi.spyOn(service, 'getSingleton')
-        .mockResolvedValueOnce(row as never)
+        .mockResolvedValueOnce({ ...row, flags: { studio: false } } as never)
         .mockRejectedValueOnce(new Error('db down'));
 
       await service.getFeatureSettingsState();
@@ -455,7 +457,7 @@ describe('PlatformSettingsService', () => {
 
       await expect(service.getFeatureSettingsState()).resolves.toMatchObject({
         isResolved: true,
-        settings: { isMediaPerceptionEnabled: false },
+        settings: { flags: { studio: false }, isMediaPerceptionEnabled: false },
       });
     });
 

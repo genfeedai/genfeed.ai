@@ -291,6 +291,7 @@ describe('VideoGenerationService', () => {
         bindOutput: vi.fn().mockResolvedValue(undefined),
         hasPool: vi.fn().mockReturnValue(false),
         releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+        releasePool: vi.fn().mockResolvedValue(undefined),
       } as never,
       loggerService,
       metadataService as never,

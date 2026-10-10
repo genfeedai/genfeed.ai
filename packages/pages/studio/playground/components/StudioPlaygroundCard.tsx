@@ -17,6 +17,7 @@ import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioPlaygroundCardProps } from '@genfeedai/props/studio/studio-playground.props';
 import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { studioAssetAccessibleLabel } from '@pages/studio/playground/utils/studio-playground-recipe';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
 import { logger } from '@services/core/logger.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
@@ -137,6 +138,7 @@ export default function StudioPlaygroundCard({
   const translateRecovery = useTranslations('pages.library.recovery');
   const { href } = useOrgUrl();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
+  const accessibleLabel = studioAssetAccessibleLabel(job);
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const cancelGeneration = async () => {
@@ -267,7 +269,7 @@ export default function StudioPlaygroundCard({
     return (
       <Button
         ariaLabel={translate('useAsReferenceAria', {
-          prompt: job.prompt || job.id,
+          prompt: accessibleLabel,
           type: label.toLowerCase(),
         })}
         className={className}
@@ -346,7 +348,7 @@ export default function StudioPlaygroundCard({
             {showLifecycleActions && isFailed ? (
               <Button
                 ariaLabel={translate('removeGenerationAria', {
-                  prompt: job.prompt || job.id,
+                  prompt: accessibleLabel,
                   type: label,
                 })}
                 className="px-2 text-xs"
@@ -361,7 +363,7 @@ export default function StudioPlaygroundCard({
             {showLifecycleActions ? (
               <Button
                 ariaLabel={translate('repromptGenerationAria', {
-                  prompt: job.prompt || job.id,
+                  prompt: accessibleLabel,
                   type: label,
                 })}
                 className="px-2 text-xs"
@@ -404,7 +406,7 @@ export default function StudioPlaygroundCard({
                   {showLifecycleActions && isFailed ? (
                     <Button
                       ariaLabel={translate('removeGenerationAria', {
-                        prompt: job.prompt || job.id,
+                        prompt: accessibleLabel,
                         type: label,
                       })}
                       className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
@@ -419,7 +421,7 @@ export default function StudioPlaygroundCard({
                   {showLifecycleActions ? (
                     <Button
                       ariaLabel={translate('repromptGenerationAria', {
-                        prompt: job.prompt || job.id,
+                        prompt: accessibleLabel,
                         type: label,
                       })}
                       className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
@@ -444,6 +446,7 @@ export default function StudioPlaygroundCard({
 
   if (mediaState === 'ready' && masonryIngredient) {
     const sharedProps = {
+      accessibleLabel,
       isActionsEnabled: Boolean(job.ingredient),
       isContainerHovered: true,
       isDragEnabled: false,
@@ -582,7 +585,7 @@ export default function StudioPlaygroundCard({
             audioUrl={job.url}
             className="pointer-events-auto w-full px-3"
             isTimelineVisible
-            label={job.prompt || label}
+            label={accessibleLabel}
             onError={handleMediaError}
           />
         ) : null}

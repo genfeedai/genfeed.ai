@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AccountAnalyticsService } from '@api/endpoints/analytics/account-analytics.service';
 import {
   buildOwnedAnalyticsCacheKey,
@@ -43,6 +44,7 @@ import type { Request as ExpressRequest } from 'express';
 
 @AutoSwagger()
 @FeatureFlag('analytics')
+@OrganizationModule('analytics')
 @Controller('analytics')
 @UseGuards(RolesGuard)
 @UseInterceptors(RedisCacheInterceptor)

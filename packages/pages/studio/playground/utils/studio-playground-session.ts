@@ -103,7 +103,10 @@ function sanitizeRecipe(
       : {}),
     aspectRatio: pickOptionalString(value.aspectRatio),
     blacklist: pickStringList(value.blacklist),
-    brandingMode: value.brandingMode === 'off' ? 'off' : 'brand',
+    brandingMode:
+      value.brandingMode === 'off' || value.brandingMode === 'brand'
+        ? value.brandingMode
+        : undefined,
     camera: pickOptionalString(value.camera),
     cameraMovement: pickOptionalString(value.cameraMovement),
     duration: pickNumber(value.duration),
@@ -119,6 +122,8 @@ function sanitizeRecipe(
       value.outputs >= 1
         ? value.outputs
         : 1,
+    originalText:
+      typeof value.originalText === 'string' ? value.originalText : undefined,
     promptTemplate: pickOptionalString(value.promptTemplate),
     references: pickStringList(value.references),
     imageEdit: readImageEditingRecipe(value.imageEdit),

@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -435,4 +436,37 @@ describe('editing bootstrap default', () => {
       'edit-default',
     ]);
   });
+});
+
+describe('OrganizationSettingsService module preference validation', () => {
+  it('passes valid preferences to canonical persistence without changing unrelated settings', async () => {
+    const preferences = { automation: true, batch: false };
+    const patch = vi.spyOn(BaseService.prototype, 'patch').mockResolvedValue({
+      id: 'settings-1',
+      moduleOverrides: preferences,
+    } as never);
+    try {
+      const saved = await makeService().patch('settings-1', {
+        moduleOverrides: preferences,
+        isWatermarkEnabled: true,
+      });
+      expect(patch).toHaveBeenCalledWith(
+        'settings-1',
+        { moduleOverrides: preferences, isWatermarkEnabled: true },
+        [],
+      );
+      expect(saved.moduleOverrides).toEqual(preferences);
+    } finally {
+      patch.mockRestore();
+    }
+  });
+  it.each([null, [], { unknown: true }, { automation: 'true' }])(
+    'rejects malformed in-process updates before any persistence: %j',
+    async (moduleOverrides) => {
+      const service = makeService();
+      await expect(
+        service.patch('settings-1', { moduleOverrides } as never),
+      ).rejects.toThrow('Invalid organization module preferences');
+    },
+  );
 });

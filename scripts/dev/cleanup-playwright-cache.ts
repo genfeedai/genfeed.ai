@@ -2,7 +2,7 @@ import { rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 /**
- * Global Teardown for Playwright E2E Tests
+ * Cache cleanup for a Playwright-owned dev server
  *
  * Turbopack's persistent dev cache (`apps/app/.next/dev/cache`) is written on
  * every dev-server route compile and is never pruned by Next itself. Across
@@ -10,7 +10,7 @@ import path from 'node:path';
  * which exhausted the disk mid-run and crashed the dev server with
  * `No space left on device (os error 28)`.
  *
- * This teardown removes that cache after each run so it can never accumulate.
+ * The server wrapper invokes this only after its own server exits.
  * It is intentionally cache-only: the compiled output is regenerated on the next
  * run's first route hit, so deleting it costs a one-time recompile and nothing
  * else. Failures here must never fail the suite — teardown is best-effort.
@@ -32,11 +32,9 @@ async function dirSizeBytes(target: string): Promise<number> {
   }
 }
 
-async function globalTeardown(): Promise<void> {
-  const webAppPath = path.resolve(
-    process.cwd(),
-    process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app',
-  );
+export async function cleanupPlaywrightCache(
+  webAppPath: string,
+): Promise<void> {
   const devCacheDir = path.join(webAppPath, '.next', 'dev', 'cache');
 
   try {
@@ -51,13 +49,11 @@ async function globalTeardown(): Promise<void> {
     await rm(devCacheDir, { force: true, recursive: true });
     const freedMb = (freedBytes / (1024 * 1024)).toFixed(1);
     console.log(
-      `\n[e2e teardown] Cleared Turbopack dev cache (${freedMb} MB): ${devCacheDir}`,
+      `\n[e2e server] Cleared Turbopack dev cache (${freedMb} MB): ${devCacheDir}`,
     );
   } catch (error) {
     console.warn(
-      `[e2e teardown] Failed to clear dev cache at ${devCacheDir}: ${String(error)}`,
+      `[e2e server] Failed to clear dev cache at ${devCacheDir}: ${String(error)}`,
     );
   }
 }
-
-export default globalTeardown;

@@ -29,6 +29,10 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
+export interface StoredMediaFinalizationObserver {
+  beforeFinalize(uploadMetadata: IFileMetadata): Promise<void>;
+}
+
 @Injectable()
 export class WebhooksService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -119,6 +123,7 @@ export class WebhooksService {
     category: IngredientCategory | string,
     url: string,
     externalId?: string,
+    observer?: StoredMediaFinalizationObserver,
   ): Promise<void> {
     const categoryValue = normalizeCategory(category);
     const ingredient = await this.ingredientsService.findOne({
@@ -143,6 +148,7 @@ export class WebhooksService {
       ingredientId,
       integration: 'direct',
       metadataId,
+      observer,
       url,
     });
   }
@@ -154,6 +160,7 @@ export class WebhooksService {
     url: string;
     integration: string;
     externalId?: string;
+    observer?: StoredMediaFinalizationObserver;
   }): Promise<void> {
     const logContext = `${this.constructorName} finalizeWebhookMedia`;
 
@@ -185,6 +192,9 @@ export class WebhooksService {
         input.metadataId,
         input.externalId,
       );
+
+    // Server callers can verify the stored bytes before any success or billing transition.
+    await input.observer?.beforeFinalize(uploadMetadata);
 
     // Re-populate the user after patch to preserve the canonical relation.
     const ingredient = await this.ingredientsService.findOne({

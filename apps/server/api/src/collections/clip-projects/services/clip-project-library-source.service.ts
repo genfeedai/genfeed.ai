@@ -142,16 +142,25 @@ export class ClipProjectLibrarySourceService {
       orgId,
     );
 
-    await this.clipAnalysisWorkflowQueue.enqueue({
-      language,
-      maxClips,
-      minViralityScore,
-      orgId,
-      projectId,
-      source: queuedSource,
-      userId,
-      youtubeUrl: media.mediaUrl,
-    });
+    try {
+      await this.clipAnalysisWorkflowQueue.enqueue({
+        language,
+        maxClips,
+        minViralityScore,
+        orgId,
+        projectId,
+        source: queuedSource,
+        userId,
+        youtubeUrl: media.mediaUrl,
+      });
+    } catch (error: unknown) {
+      await this.clipProjectsService.markSourceDispatchFailed(
+        projectId,
+        orgId,
+        queuedSource,
+      );
+      throw error;
+    }
 
     return { identity, projectId, status: 'analyzing' };
   }

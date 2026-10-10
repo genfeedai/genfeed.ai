@@ -441,7 +441,9 @@ test.describe('Clip Factory', () => {
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByText(/transcribing and analyzing video/i),
+      authenticatedPage
+        .getByRole('status')
+        .filter({ hasText: /transcribing and analyzing this source/i }),
     ).toBeVisible();
   });
 
@@ -463,9 +465,10 @@ test.describe('Clip Factory', () => {
     );
 
     await expect(
-      authenticatedPage.getByText(
-        'Clip sources must be at least 15 seconds long.',
-      ),
+      authenticatedPage
+        .getByTestId('workspace-canvas-layout')
+        .getByRole('alert')
+        .filter({ hasText: 'Clip sources must be at least 15 seconds long.' }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('link', { name: /back to library/i }),

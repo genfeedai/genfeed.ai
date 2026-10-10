@@ -1,7 +1,10 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { BatchProjectKind, ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  resolveOrganizationModulePresentationAccess,
+} from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -9,6 +12,7 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
+import SubscriptionRequiredState from '@ui/guards/subscription/SubscriptionRequiredState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -20,10 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Lightbulb, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createWorkflowApiService,
   type WorkflowSummary,
@@ -32,7 +37,12 @@ import { createBatchProjectsApi } from './batch-projects-api';
 
 export default function BatchNewProjectPage() {
   const t = useTranslations('pages.batchProjects');
-  const { brandId } = useBrand();
+  const { brandId, organizationId, settings, settingsLoading } = useBrand();
+  const automationAccess = resolveOrganizationModulePresentationAccess(
+    settingsLoading ? null : settings,
+    'automation',
+  );
+  const isWorkflowEnabled = automationAccess.isAllowed;
   const { href, orgHref } = useOrgUrl();
   const router = useRouter();
   const isIdeasEnabled = useFeatureFlag('batch_ideas');
@@ -48,22 +58,53 @@ export default function BatchNewProjectPage() {
   } | null>(null);
   const workflows =
     workflowResult?.scope === workflowScope ? workflowResult.items : [];
-  const [kind, setKind] = useState(BatchProjectKind.WORKFLOW);
+  const [kind, setKind] = useState(() =>
+    isIdeasEnabled ? BatchProjectKind.IDEAS : BatchProjectKind.WORKFLOW,
+  );
   const [workflowId, setWorkflowId] = useState('');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const [loading, setLoading] = useState(true);
+  const admission = useRef({
+    organizationId,
+    brandId,
+    kind,
+    isIdeasEnabled,
+    isWorkflowEnabled,
+    workflowId,
+  });
+  admission.current = {
+    organizationId,
+    brandId,
+    kind,
+    isIdeasEnabled,
+    isWorkflowEnabled,
+    workflowId,
+  };
+  const submitting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     setWorkflowId('');
     setError(null);
     setIsSubscriptionRequired(false);
     setLoading(true);
-    if (!brandId) return () => controller.abort();
+    if (!brandId || kind !== BatchProjectKind.WORKFLOW || !isWorkflowEnabled) {
+      setLoading(false);
+      return () => controller.abort();
+    }
     void getWorkflows()
-      .then((service) => service.list({ brandId }))
+      .then((service) =>
+        controller.signal.aborted ? [] : service.list({ brandId }),
+      )
       .then((items) => {
         if (!controller.signal.aborted)
           setWorkflowResult({ scope: workflowScope, items });
@@ -76,27 +117,57 @@ export default function BatchNewProjectPage() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [getWorkflows, brandId, t, workflowScope]);
+  }, [getWorkflows, brandId, t, workflowScope, kind, isWorkflowEnabled]);
   async function create() {
     if (
       !brandId ||
       busy ||
+      submitting.current ||
       isSubscriptionRequired ||
+      (kind === BatchProjectKind.IDEAS && !isIdeasEnabled) ||
       (kind === BatchProjectKind.WORKFLOW &&
-        (loading || !workflows.some((workflow) => workflow.id === workflowId)))
+        (!isWorkflowEnabled ||
+          loading ||
+          !workflows.some((workflow) => workflow.id === workflowId)))
     )
       return;
+    submitting.current = true;
+    const intent = admission.current;
     setBusy(true);
     setError(null);
     try {
-      const project = await (await getService()).create({
+      const service = await getService();
+      const current = admission.current;
+      if (
+        !mounted.current ||
+        current.organizationId !== intent.organizationId ||
+        current.brandId !== intent.brandId ||
+        current.kind !== intent.kind ||
+        (kind === BatchProjectKind.IDEAS && !current.isIdeasEnabled) ||
+        (kind === BatchProjectKind.WORKFLOW &&
+          (!current.isWorkflowEnabled ||
+            current.workflowId !== intent.workflowId))
+      )
+        return;
+      const project = await service.create({
         brandId,
         kind,
         name: name.trim() || t('untitled'),
         ...(kind === BatchProjectKind.WORKFLOW ? { workflowId } : {}),
       });
-      router.push(href(`${APP_ROUTES.STUDIO.BATCH}/${project.id}`));
+      if (
+        mounted.current &&
+        admission.current.brandId === intent.brandId &&
+        admission.current.organizationId === intent.organizationId
+      )
+        router.push(href(`${APP_ROUTES.STUDIO.BATCH}/${project.id}`));
     } catch (reason) {
+      if (
+        !mounted.current ||
+        admission.current.brandId !== intent.brandId ||
+        admission.current.organizationId !== intent.organizationId
+      )
+        return;
       const member = getJsonApiErrorMember(reason);
       setIsSubscriptionRequired(
         member?.status === 403 &&
@@ -104,36 +175,97 @@ export default function BatchNewProjectPage() {
       );
       setError(getJsonApiErrorMessage(reason, t('saveFailed')));
     } finally {
-      setBusy(false);
+      submitting.current = false;
+      if (mounted.current) setBusy(false);
     }
+  }
+  if (isSubscriptionRequired) {
+    return (
+      <Container label={t('new')}>
+        <SubscriptionRequiredState
+          message={error ?? t('saveFailed')}
+          manageHref={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
+          manageLabel={t('manageSubscription')}
+        />
+      </Container>
+    );
   }
   return (
     <Container label={t('new')}>
       <div className="flex max-w-2xl flex-col gap-6">
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={
-              kind === BatchProjectKind.IDEAS
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.SECONDARY
-            }
-            isDisabled={!isIdeasEnabled || busy}
-            onClick={() => setKind(BatchProjectKind.IDEAS)}
-          >
-            {t('fromIdeas')}
-          </Button>
-          <Button
-            variant={
-              kind === BatchProjectKind.WORKFLOW
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.SECONDARY
-            }
-            isDisabled={busy}
-            onClick={() => setKind(BatchProjectKind.WORKFLOW)}
-          >
-            {t('fromWorkflow')}
-          </Button>
-        </div>
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium">{t('source')}</legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              aria-label={t('fromIdeas')}
+              aria-pressed={kind === BatchProjectKind.IDEAS}
+              isDisabled={!isIdeasEnabled || busy}
+              onClick={() => {
+                setKind(BatchProjectKind.IDEAS);
+                setError(null);
+              }}
+              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === BatchProjectKind.IDEAS ? 'border-primary bg-primary/10' : 'border-border bg-secondary hover:border-primary/60'}`}
+            >
+              <Lightbulb
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
+              <span className="min-w-0 whitespace-normal">
+                <span className="block font-medium">{t('fromIdeas')}</span>
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  {t('ideasDescription')}
+                </span>
+              </span>
+            </Button>
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              aria-label={t('fromWorkflow')}
+              aria-pressed={kind === BatchProjectKind.WORKFLOW}
+              isDisabled={!isWorkflowEnabled || busy}
+              onClick={() => {
+                setKind(BatchProjectKind.WORKFLOW);
+                setError(null);
+              }}
+              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === BatchProjectKind.WORKFLOW ? 'border-primary bg-primary/10' : 'border-border bg-secondary hover:border-primary/60'}`}
+            >
+              <Workflow aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <span className="min-w-0 whitespace-normal">
+                <span className="block font-medium">{t('fromWorkflow')}</span>
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  {t('workflowDescription')}
+                </span>
+              </span>
+            </Button>
+          </div>
+        </fieldset>
+        {!isWorkflowEnabled && (
+          <p className="text-sm text-muted-foreground">
+            {t(
+              automationAccess.reason === 'subscription-required'
+                ? 'workflowSubscriptionRequired'
+                : automationAccess.reason === 'unavailable'
+                  ? 'workflowUnavailable'
+                  : 'workflowDisabled',
+            )}{' '}
+            <Link
+              href={orgHref(
+                automationAccess.reason === 'subscription-required'
+                  ? APP_ROUTES.SETTINGS.SUBSCRIPTION
+                  : APP_ROUTES.SETTINGS.GENERAL,
+              )}
+              className="underline underline-offset-4"
+            >
+              {t(
+                automationAccess.reason === 'subscription-required'
+                  ? 'manageSubscription'
+                  : 'manageModules',
+              )}
+            </Link>
+          </p>
+        )}
         {!isIdeasEnabled && <p>{t('ideasDisabled')}</p>}
         <Field label={t('name')}>
           <Input
@@ -144,6 +276,7 @@ export default function BatchNewProjectPage() {
           />
         </Field>
         {kind === BatchProjectKind.WORKFLOW &&
+          isWorkflowEnabled &&
           (loading ? (
             <p>{t('loading')}</p>
           ) : workflows.length ? (
@@ -180,27 +313,20 @@ export default function BatchNewProjectPage() {
             </div>
           ))}
         {error && <p role="alert">{error}</p>}
-        {isSubscriptionRequired ? (
-          <Button asChild>
-            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-              {t('manageSubscription')}
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            isDisabled={
-              !brandId ||
-              (kind === BatchProjectKind.WORKFLOW
-                ? loading ||
-                  !workflows.some((workflow) => workflow.id === workflowId)
-                : !isIdeasEnabled)
-            }
-            isLoading={busy}
-            onClick={() => void create()}
-          >
-            {t('create')}
-          </Button>
-        )}
+        <Button
+          isDisabled={
+            !brandId ||
+            (kind === BatchProjectKind.WORKFLOW
+              ? !isWorkflowEnabled ||
+                loading ||
+                !workflows.some((workflow) => workflow.id === workflowId)
+              : !isIdeasEnabled)
+          }
+          isLoading={busy}
+          onClick={() => void create()}
+        >
+          {t('create')}
+        </Button>
       </div>
     </Container>
   );

@@ -1,4 +1,5 @@
 import {
+  isPlatformFlagKey,
   MAX_PAGE_SIZE,
   parsePlatformFlags,
 } from '@genfeedai/contracts/constants';
@@ -132,12 +133,27 @@ export class PublicService extends HTTPBaseService {
     };
   }
 
-  /** Module and feature flags (#5468); a malformed answer keeps them on. */
+  /** Module and feature flags; unavailable or malformed answers reject. */
   public async getPlatformFlags(signal?: AbortSignal): Promise<IPlatformFlags> {
     const response = await this.instance.get<unknown>('platform-flags', {
       signal,
     });
-    return parsePlatformFlags(response.data);
+    const data = response.data;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Platform flags response is invalid');
+    }
+    const entries = Object.entries(data).filter(([key]) =>
+      isPlatformFlagKey(key),
+    );
+    if (
+      entries.length === 0 ||
+      entries.some(([, value]) => typeof value !== 'boolean')
+    ) {
+      throw new Error('Platform flags response is invalid');
+    }
+    // Missing flags in an older valid response retain contract defaults.
+    // Persisted-JSON parsing must never turn HTML/error envelopes into flags.
+    return parsePlatformFlags(data);
   }
 
   public async findPublicProfileBySlug(slug: string): Promise<Brand | null> {

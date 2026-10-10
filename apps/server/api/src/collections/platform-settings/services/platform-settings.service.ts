@@ -266,7 +266,14 @@ export class PlatformSettingsService
       value = lastKnown;
     }
 
-    if (generation === this.featureSettingsGeneration) {
+    if (generation !== this.featureSettingsGeneration) {
+      const updated = this.featureSettingsCache?.value;
+      if (updated) {
+        // A write won the race. Neither this response nor the cache may
+        // restore the older switches after the operator's successful save.
+        return { isResolved: true, settings: updated };
+      }
+    } else {
       this.cacheFeatureSettings(value);
     }
     return { isResolved: true, settings: value };

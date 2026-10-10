@@ -25,7 +25,7 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/calendar/calendar-content.tsx',
   'app/(public)/changelog/content.tsx',
   'app/(public)/cloud/cloud-content.tsx',
-  'app/(public)/download/download-content.tsx',
+  'app/(public)/desktop/desktop-content.tsx',
   'app/(public)/experts/experts-content.tsx',
   'app/(public)/faq/faq-content.tsx',
   'app/(public)/features/features-page.tsx',

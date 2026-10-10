@@ -28,6 +28,7 @@ import { useCallback, useState } from 'react';
 import OrganizationGenerationDefaultsCard from './organization-generation-defaults-card';
 import OrganizationIdentityCard from './organization-identity-card';
 import OrganizationIdentityDefaultsCard from './organization-identity-defaults-card';
+import OrganizationModulesCard from './organization-modules-card';
 import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
 // The pseudo-locale is a QA instrument, not a language — offering it to an
@@ -87,6 +88,7 @@ export default function SettingsOrganizationPage() {
   return (
     <div className="space-y-4">
       <OrganizationIdentityCard organizationId={organizationId} />
+      <OrganizationModulesCard key={organizationId} />
 
       <Card
         label="Language"

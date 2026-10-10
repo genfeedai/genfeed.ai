@@ -1,9 +1,13 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
-import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { videoGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
@@ -152,8 +156,8 @@ export class ClipGenerationService implements OnModuleInit {
 
   onModuleInit(): void {
     const runner = this.requireWorkflowRunner();
-    runner.registerAction('clip.generation.generate-one', ({ input }) =>
-      this.executeGenerateOne(input),
+    runner.registerAction('clip.generation.generate-one', (request) =>
+      this.executeGenerateOne(request),
     );
     runner.registerWorkflow(buildClipGenerationWorkflowDefinition());
   }
@@ -630,9 +634,11 @@ export class ClipGenerationService implements OnModuleInit {
   }
 
   private async executeGenerateOne(
-    actionInput: Record<string, unknown>,
+    action: SystemWorkflowActionRequest,
   ): Promise<ClipGenerationResult> {
+    const actionInput = action.input;
     const request = this.readGenerationInput(actionInput.request);
+    assertClipWorkflowActor(action, request);
     const originalIndex = this.readNonNegativeInteger(
       actionInput.originalIndex,
       'originalIndex',

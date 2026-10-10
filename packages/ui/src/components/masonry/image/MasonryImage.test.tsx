@@ -111,6 +111,19 @@ const mockImage: IImage = {
 } as IImage;
 
 describe('MasonryImage', () => {
+  it('uses the surface asset name for the image and its keyboard action', () => {
+    render(
+      <MasonryImage accessibleLabel="Recorded user intent" image={mockImage} />,
+    );
+    expect(
+      screen.getByRole('img', { name: 'Recorded user intent' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Recorded user intent' }),
+    ).toBeInTheDocument();
+    expect(mockImage.promptText).toBe('A test image');
+  });
+
   beforeEach(() => {
     vi.mocked(useBrand).mockReturnValue(defaultBrandContext);
   });

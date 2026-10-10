@@ -4,6 +4,7 @@ import {
   type ClipLibraryLinkResult,
   ClipLibraryLinkService,
 } from '@api/collections/clip-projects/services/clip-library-link.service';
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
@@ -214,6 +215,7 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
   private async executeEditorHandoff(
     request: SystemWorkflowActionRequest,
   ): Promise<ClipEditorHandoffResult> {
+    assertClipWorkflowActor(request);
     const input = this.readInput(request.input);
     const organizationId = request.context.organizationId;
     const ownedProject = await this.resolveOwnedProject(
@@ -294,6 +296,7 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
   private async executePublishHandoff(
     request: SystemWorkflowActionRequest,
   ): Promise<ClipPublishHandoffResult> {
+    assertClipWorkflowActor(request);
     const input = this.readInput(request.input);
     const organizationId = request.context.organizationId;
     const ownedProject = await this.resolveOwnedProject(
@@ -347,6 +350,7 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
   private async executeLibraryLink(
     request: SystemWorkflowActionRequest,
   ): Promise<ClipLibraryLinkResult> {
+    assertClipWorkflowActor(request);
     const input = this.readInput(request.input);
     const organizationId = request.context.organizationId;
     await this.resolveOwnedProject(input.projectId, organizationId);

@@ -7,12 +7,14 @@ import {
   CLIP_CONTINUITY_FAILURE_WORKFLOW_ID,
   CLIP_CONTINUITY_WORKFLOW_ID,
 } from '@api/collections/clip-projects/services/clip-continuity-workflow-definition';
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -47,6 +49,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     private readonly clipResults: ClipResultsService,
     private readonly queue: WorkflowExecutionQueueService,
     private readonly runner: SystemWorkflowRunnerService,
+    private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
 
   onModuleInit(): void {
@@ -83,6 +86,10 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     ) {
       return false;
     }
+
+    // Saved-data reads can reconcile state without starting optional new QA.
+    if (!(await this.moduleAccess.canStartWork(organizationId, 'clips')))
+      return false;
 
     const execution = await this.prisma.workflowExecution.findFirst({
       include: { nodeResults: true },
@@ -121,28 +128,11 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
         `Clip continuity found no persisted clip results for generation execution ${generationWorkflowExecutionId}`,
       );
     }
-    const clipsById = new Map(clipRows.map((clip) => [clip.id, clip]));
-    const hasCanonicalReferences = references.length > 0;
-    let qaIndex = 0;
-    const descriptors: ClipDescriptor[] = orderedClipIds.flatMap((id) => {
-      const clip = clipsById.get(id);
-      if (!clip) {
-        return [];
-      }
-      const videoUrl =
-        this.readString(clip.captionedVideoUrl) ??
-        this.readString(clip.videoUrl);
-      const descriptor: ClipDescriptor = {
-        id,
-        status: String(clip.status),
-        ...(videoUrl && hasCanonicalReferences
-          ? { qaIndex: qaIndex++, videoUrl }
-          : videoUrl
-            ? { videoUrl }
-            : {}),
-      };
-      return [descriptor];
-    });
+    const descriptors = this.buildClipDescriptors(
+      clipRows,
+      orderedClipIds,
+      references.length > 0,
+    );
     const referenceAssetIds = {
       character: references
         .filter((reference) => reference.role === 'character')
@@ -183,6 +173,16 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       return false;
     }
     try {
+      if (!(await this.moduleAccess.canStartWork(organizationId, 'clips'))) {
+        await this.prisma.clipProject.updateMany({
+          data: { continuityQaStatus: 'pending' },
+          where: scopedWhere(organizationId, {
+            continuityQaStatus: 'queued',
+            id: projectId,
+          }),
+        });
+        return false;
+      }
       await this.queue.queueSystemWorkflow(
         {
           actionType: 'clip-continuity',
@@ -215,10 +215,39 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     }
   }
 
+  private buildClipDescriptors(
+    clipRows: Awaited<ReturnType<ClipResultsService['findByProject']>>,
+    orderedClipIds: string[],
+    hasCanonicalReferences: boolean,
+  ): ClipDescriptor[] {
+    const clipsById = new Map(clipRows.map((clip) => [clip.id, clip]));
+    let qaIndex = 0;
+    return orderedClipIds.flatMap((id) => {
+      const clip = clipsById.get(id);
+      if (!clip) {
+        return [];
+      }
+      const videoUrl =
+        this.readString(clip.captionedVideoUrl) ??
+        this.readString(clip.videoUrl);
+      const descriptor: ClipDescriptor = {
+        id,
+        status: String(clip.status),
+        ...(videoUrl && hasCanonicalReferences
+          ? { qaIndex: qaIndex++, videoUrl }
+          : videoUrl
+            ? { videoUrl }
+            : {}),
+      };
+      return [descriptor];
+    });
+  }
+
   private async begin(request: SystemWorkflowActionRequest): Promise<{
     projectId: string;
     status: 'running';
   }> {
+    assertClipWorkflowActor(request);
     const projectId = this.requiredString(request.input.projectId, 'projectId');
     const updated = await this.prisma.clipProject.updateMany({
       data: {
@@ -240,6 +269,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     projectId: string;
     status: 'failed';
   }> {
+    assertClipWorkflowActor(request);
     const projectId = this.requiredString(request.input.projectId, 'projectId');
     const updated = await this.prisma.clipProject.updateMany({
       data: { continuityQaStatus: 'failed' },
@@ -257,6 +287,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
   private async persistReport(
     request: SystemWorkflowActionRequest,
   ): Promise<VideoContinuityQaReport> {
+    assertClipWorkflowActor(request);
     const projectId = this.requiredString(request.input.projectId, 'projectId');
     const generationWorkflowExecutionId = this.requiredString(
       request.input.generationWorkflowExecutionId,

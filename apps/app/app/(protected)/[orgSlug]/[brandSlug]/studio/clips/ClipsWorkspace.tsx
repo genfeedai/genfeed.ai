@@ -153,6 +153,7 @@ function ClipsProjectDetail(props: ReturnType<typeof useStudioClipsPage>) {
       </div>
       <div className="min-w-0 space-y-4">
         {props.step !== 'input' &&
+        props.project.source?.flow !== 'review' &&
         props.generationMode === 'avatar' &&
         !props.identityDefaults.isComplete ? (
           <p className="text-sm text-muted-foreground">
@@ -217,6 +218,7 @@ function ClipsProjectControls({
   voiceId,
   youtubeUrl,
 }: ReturnType<typeof useStudioClipsPage>) {
+  const t = useTranslations('pages.studioClips');
   if (isHydrating) {
     return (
       <div className="flex min-h-64 items-center justify-center">
@@ -292,7 +294,7 @@ function ClipsProjectControls({
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             {isAnalyzing
-              ? 'Analyzing video -- detecting viral moments...'
+              ? t('processingSource')
               : project.status === 'failed'
                 ? 'Analysis failed. Please try again.'
                 : `Found ${editedHighlights.length} highlights. Edit scripts, deselect weak clips, then generate.`}
@@ -302,16 +304,17 @@ function ClipsProjectControls({
         {isAnalyzing ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
-            <p className="text-sm text-muted-foreground">
-              Transcribing and analyzing video…
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground/70">
-              This usually takes 1-2 minutes
+            <p role="status" className="text-sm text-muted-foreground">
+              {project.source?.status === 'downloading'
+                ? t('downloadingSource')
+                : project.source?.status === 'extracting'
+                  ? t('extractingSourceAudio')
+                  : t('transcribingAndAnalyzingSource')}
             </p>
           </div>
         ) : project.status === 'failed' ? (
           <div className="rounded-lg border border-transparent bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            Analysis failed. Check the YouTube URL and try again.
+            {project.source?.failure?.message ?? t('sourceProcessingFailed')}
           </div>
         ) : (
           <>

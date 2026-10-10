@@ -46,6 +46,58 @@ function renderApproval() {
 }
 
 describe('ClipsProgressView hook approval', () => {
+  it.each([0, 2, 3])(
+    'honors the persisted source retry budget at attempt %s',
+    (retryCount) => {
+      const onRetrySource = vi.fn();
+      render(
+        <ClipsProgressView
+          clipsService={{} as ClipsApiService}
+          isRetrying={false}
+          onReset={vi.fn()}
+          onRetryFailedClips={vi.fn()}
+          onRetrySource={onRetrySource}
+          project={{
+            clips: [],
+            highlights: [],
+            mode: 'avatar',
+            projectId: 'source-budget-project',
+            status: 'failed',
+            source: {
+              schemaVersion: 1,
+              kind: 'youtube',
+              flow: 'review',
+              status: 'failed',
+              fingerprint: 'source-budget-fingerprint',
+              retryCount,
+              maxRetries: 3,
+              updatedAt: '2026-10-10T00:00:00Z',
+              failure: {
+                code: 'TRANSCRIPTION_FAILED',
+                message: 'Source transcription failed.',
+                retryable: true,
+              },
+            },
+          }}
+          selectedCount={1}
+        />,
+      );
+      const retry = screen.getByRole('button', {
+        name: 'Retry source processing',
+      });
+      expect(retry).toHaveProperty('disabled', retryCount === 3);
+      fireEvent.click(retry);
+      expect(onRetrySource).toHaveBeenCalledTimes(retryCount === 3 ? 0 : 1);
+      expect(
+        Boolean(
+          screen.queryByText(
+            'Source retry limit reached. No further retries are available.',
+          ),
+        ),
+      ).toBe(retryCount === 3);
+    },
+  );
+
   it('exposes an accessible decision and approves without feedback', async () => {
     const clipsService = renderApproval();
 

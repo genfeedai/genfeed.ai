@@ -64,6 +64,17 @@ export default function ModalPreset({
       isActive: true,
       key: '',
       label: '',
+      prompt: '',
+      aspectRatio: '',
+      duration: undefined,
+      promptTemplate: '',
+      camera: '',
+      cameraMovement: '',
+      lens: '',
+      lighting: '',
+      mood: '',
+      scene: '',
+      style: '',
     },
     entity: item || null,
     modalId: ModalEnum.PRESET,
@@ -76,6 +87,17 @@ export default function ModalPreset({
       const data = {
         ...formData,
       };
+
+      // Editing never retargets a platform/org-wide preset to the current brand.
+      // Omitted scope fields leave stored null/unknown scope unchanged.
+      if (item?.id) {
+        delete data.organizationId;
+        delete data.brandId;
+        if (typeof item.organizationId === 'string')
+          data.organizationId = item.organizationId;
+        if (typeof item.brandId === 'string') data.brandId = item.brandId;
+        return data;
+      }
 
       if (organizationId) {
         data.organizationId = organizationId;
@@ -112,7 +134,11 @@ export default function ModalPreset({
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value, type: inputType } = e.target;
-    if (inputType === 'checkbox') {
+    if (name === 'duration') {
+      form.setValue('duration', value === '' ? undefined : Number(value), {
+        shouldValidate: true,
+      });
+    } else if (inputType === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       form.setValue(name as Parameters<typeof form.setValue>[0], checked, {
         shouldValidate: true,

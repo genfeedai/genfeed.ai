@@ -40,6 +40,7 @@ export default function Modal({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const previousOpenRef = useRef(isOpen);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -65,6 +66,28 @@ export default function Modal({
     <CompoundModal.Root open={isOpen} onOpenChange={handleOpenChange}>
       <CompoundModal.Content
         aria-describedby={undefined}
+        onOpenAutoFocus={() => {
+          returnFocusRef.current =
+            document.activeElement instanceof HTMLElement &&
+            document.activeElement !== document.body
+              ? document.activeElement
+              : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          const target = returnFocusRef.current;
+          returnFocusRef.current = null;
+          if (!target?.isConnected) return;
+          // Respect focus already moved to another surface by an action.
+          const closingDialog = event.target;
+          if (
+            document.activeElement !== document.body &&
+            closingDialog instanceof HTMLElement &&
+            !closingDialog.contains(document.activeElement)
+          )
+            return;
+          event.preventDefault();
+          target.focus({ preventScroll: true });
+        }}
         size={isFullScreen ? 'full' : size}
         className={cn(
           // Error dialogs keep normal shell chrome — no red outer ring/border.

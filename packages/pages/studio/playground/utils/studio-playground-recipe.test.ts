@@ -17,6 +17,7 @@ import {
   resolveAspectRatioFromDimensions,
   resolveRecipeForJob,
   settingsPatchFromRecipe,
+  studioIngredientAccessibleLabel,
 } from './studio-playground-recipe';
 import {
   buildStudioPromptData,
@@ -346,6 +347,86 @@ describe('groupStudioPlaygroundJobsByRun', () => {
 });
 
 describe('resolveRecipeForJob', () => {
+  it('keeps legacy effective text inspectable without claiming original intent or brand state', () => {
+    const recipe = resolveRecipeForJob(
+      buildJob({ prompt: 'Brand harness instructions' }),
+    );
+    expect(recipe?.text).toBe('Brand harness instructions');
+    expect(recipe?.originalText).toBeUndefined();
+    expect(recipe?.brandingMode).toBeUndefined();
+  });
+
+  it('captures original draft bytes independently from the effective payload', () => {
+    const settings = getDefaultStudioPlaygroundSettings('image');
+    const recipe = recipeFromPromptData(
+      buildStudioPromptData({
+        brandId: 'brand-1',
+        promptText: 'Effective text',
+        settings,
+        type: 'image',
+      }),
+      'image',
+      settings,
+      '  Original\nuser intent  ',
+    );
+    expect(recipe.originalText).toBe('  Original\nuser intent  ');
+    expect(recipe.text).toBe('Effective text');
+  });
+
+  it('bounds an explicit uploaded label and keeps legacy provider prompts out of reference names', () => {
+    const label = 'Uploaded source '.repeat(20);
+    const uploaded = {
+      id: 'source-1',
+      status: IngredientStatus.UPLOADED,
+      metadataLabel: label,
+    } as IIngredient;
+    expect(studioIngredientAccessibleLabel(uploaded)).toBe(
+      `${label.slice(0, 99)}…`,
+    );
+    expect(
+      studioIngredientAccessibleLabel({
+        ...uploaded,
+        status: IngredientStatus.GENERATED,
+        metadataLabel: undefined,
+        promptText: label,
+      }),
+    ).toBe('Asset source-1');
+    expect(uploaded.metadataLabel).toBe(label);
+  });
+
+  it('hydrates clean intent only from a receipt belonging to the persisted asset brand', () => {
+    const ingredient = {
+      id: 'asset-1',
+      brandId: 'brand-1',
+      promptText: 'Effective text',
+      generationHarness: {
+        originalPrompt: '  User intent  ',
+        enhancedPrompt: 'Effective text',
+        brandId: 'brand-1',
+        status: 'applied',
+        source: 'brand',
+        appliedPacks: [],
+      },
+    } as unknown as IIngredient;
+    expect(recipeFromIngredient(ingredient, 'image').originalText).toBe(
+      '  User intent  ',
+    );
+    expect(
+      recipeFromIngredient({ ...ingredient, brandId: 'other-brand' }, 'image')
+        .originalText,
+    ).toBeUndefined();
+    expect(
+      recipeFromIngredient(
+        { ...ingredient, generationHarness: undefined },
+        'image',
+      ).originalText,
+    ).toBeUndefined();
+    expect(
+      recipeFromIngredient({ ...ingredient, isDeleted: true }, 'image')
+        .originalText,
+    ).toBeUndefined();
+  });
+
   it('prefers the submit-time recipe over reconstructing from the card prompt', () => {
     const recipe = recipeFromPromptData(
       buildStudioPromptData({

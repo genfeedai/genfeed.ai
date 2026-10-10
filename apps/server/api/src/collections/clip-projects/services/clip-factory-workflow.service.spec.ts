@@ -30,10 +30,41 @@ describe('ClipFactoryWorkflowService', () => {
     service.onModuleInit();
   });
 
+  it.each([
+    'clip.generation.plan',
+    'clip.factory.fail',
+    'clip.generation.finalize-child',
+  ])('rejects a substituted actor before effects for %s', async (actionId) => {
+    const input = {
+      highlights: [],
+      language: 'en',
+      maxClips: 3,
+      minViralityScore: 50,
+      orgId: 'foreign-org',
+      projectId: 'project-1',
+      userId: 'user-1',
+      youtubeUrl: 'https://youtu.be/abc123def45',
+    };
+    const executor = actions.get(actionId);
+    expect(executor).toBeDefined();
+    await expect(
+      executor?.({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input:
+          actionId === 'clip.factory.fail'
+            ? { job: input }
+            : { request: input },
+      } as never),
+    ).rejects.toThrow('does not match');
+    expect(clipProjects.patch).not.toHaveBeenCalled();
+    expect(clipProjects.reconcileTerminalState).not.toHaveBeenCalled();
+    expect(clipResults.findByProject).not.toHaveBeenCalled();
+  });
+
   it('plans hook review and one child input per discovered highlight', async () => {
     const plan = actions.get('clip.generation.plan');
     const result = await plan?.({
-      context: {} as never,
+      context: { organizationId: 'org-1', userId: 'user-1' } as never,
       input: {
         highlighted: {
           data: {
@@ -98,7 +129,7 @@ describe('ClipFactoryWorkflowService', () => {
   it('plans an immutable manual-generation request without a hook gate', async () => {
     const plan = actions.get('clip.generation.plan');
     const result = await plan?.({
-      context: {} as never,
+      context: { organizationId: 'org-1', userId: 'user-1' } as never,
       input: {
         request: {
           avatarId: 'avatar-1',
@@ -134,7 +165,7 @@ describe('ClipFactoryWorkflowService', () => {
     const finalize = actions.get('clip.generation.finalize-child');
 
     const result = await finalize?.({
-      context: {} as never,
+      context: { organizationId: 'org-1', userId: 'user-1' } as never,
       input: {
         failure: {
           error: 'Provider dispatch failed',

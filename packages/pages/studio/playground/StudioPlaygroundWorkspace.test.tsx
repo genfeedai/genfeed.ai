@@ -11,7 +11,11 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
-import type { PrepareCrunGenerationIntentProps } from '@genfeedai/props/studio/studio-playground.props';
+import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
+import type {
+  PrepareCrunGenerationIntentProps,
+  StudioPlaygroundFocusedPreviewProps,
+} from '@genfeedai/props/studio/studio-playground.props';
 import type { StudioPlaygroundJob } from '@pages/studio/playground/types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
 import {
@@ -116,6 +120,7 @@ const mocks = vi.hoisted(() => ({
   authIdentity: { value: 'identity-1' },
   getToken: vi.fn().mockResolvedValue('test-token'),
   composer: vi.fn(),
+  openConfirm: vi.fn<(config: ModalConfirmProps) => void>(),
   crunQuote: vi.fn(),
   findByIds: vi
     .fn<(ids: string[]) => Promise<unknown[]>>()
@@ -235,6 +240,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     organizationId: mocks.organizationId.value,
     selectedBrand: mocks.selectedBrand.value,
   }),
+}));
+
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
 }));
 
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
@@ -465,19 +474,57 @@ vi.mock('@pages/studio/playground/hooks/useStudioGeneration', () => ({
 }));
 
 vi.mock(
+  '@pages/studio/playground/components/StudioPlaygroundFocusedPreview',
+  () => ({
+    default: ({
+      children,
+      jobs,
+      onClose,
+      onSelect,
+    }: StudioPlaygroundFocusedPreviewProps) => (
+      <div data-testid="studio-focused-preview">
+        <button type="button" onClick={onClose}>
+          Back to gallery
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (jobs[1]) onSelect(jobs[1]);
+          }}
+        >
+          Next focused asset
+        </button>
+        {children}
+      </div>
+    ),
+  }),
+);
+
+vi.mock(
   '@pages/studio/playground/components/StudioPlaygroundInspector',
   () => ({
     default: ({
       job,
       onRemix,
       onVary,
+      onOpenPreview,
     }: {
       job: { id: string; prompt: string };
       onRemix: (job: { id: string }) => void;
       onVary: (job: { id: string }) => void;
+      onOpenPreview?: () => void;
     }) => (
       <div data-testid="studio-inspector">
         <span>{job.prompt}</span>
+        {onOpenPreview ? (
+          <button
+            type="button"
+            data-testid="studio-open-focused-preview"
+            onClick={onOpenPreview}
+          >
+            Open preview
+          </button>
+        ) : null}
         <button type="button" onClick={() => onVary(job)}>
           Vary
         </button>
@@ -932,7 +979,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.submit).toHaveBeenLastCalledWith(
       'A coast',
       expect.anything(),
-      { harness: false },
+      { harness: false, originalText: 'A coast' },
     );
     mocks.brandId.value = 'brand-2';
     rerender(<StudioPlaygroundWorkspace />);
@@ -943,7 +990,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.submit).toHaveBeenLastCalledWith(
       'Other coast',
       expect.anything(),
-      undefined,
+      { originalText: 'Other coast' },
     );
   });
 
@@ -960,7 +1007,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.submit).toHaveBeenLastCalledWith(
       'A heron',
       expect.anything(),
-      { knowledge: { sourceIds: ['source-1'] } },
+      { knowledge: { sourceIds: ['source-1'] }, originalText: 'A heron' },
     );
 
     mocks.brandId.value = 'brand-2';
@@ -970,7 +1017,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.submit).toHaveBeenLastCalledWith(
       'A crane',
       expect.anything(),
-      undefined,
+      { originalText: 'A crane' },
     );
   });
 
@@ -989,6 +1036,7 @@ describe('StudioPlaygroundWorkspace', () => {
       act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
       expect(mocks.submit).toHaveBeenCalledWith('A coast', expect.anything(), {
         requestedSkillSlugs: ['cinema'],
+        originalText: '/cinema A coast',
       });
     },
   );
@@ -1079,7 +1127,7 @@ describe('StudioPlaygroundWorkspace', () => {
         imageReferenceIds: ['ingredient-1', 'img-anna'],
         videoReferenceIds: [],
       },
-      undefined,
+      { originalText: 'Use this composition' },
     );
   });
 
@@ -1105,7 +1153,7 @@ describe('StudioPlaygroundWorkspace', () => {
         imageReferenceIds: ['ingredient-1', 'img-anna'],
         videoReferenceIds: [],
       },
-      undefined,
+      { originalText: '@anna walking' },
     );
   });
 
@@ -1130,11 +1178,10 @@ describe('StudioPlaygroundWorkspace', () => {
         onSubmit: () => void;
       };
       act(() => current.onSubmit());
-      expect(mocks.submit).toHaveBeenCalledWith(
-        submitted,
-        expect.any(Object),
-        options,
-      );
+      expect(mocks.submit).toHaveBeenCalledWith(submitted, expect.any(Object), {
+        ...options,
+        originalText: prompt,
+      });
     },
   );
 
@@ -1143,23 +1190,20 @@ describe('StudioPlaygroundWorkspace', () => {
 
     const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
       onAttachReference: (
-        ingredient: {
-          category: string;
-          id: string;
-          promptText: string;
-          thumbnailUrl: string;
-        },
+        ingredient: IIngredient,
         type: 'image' | 'video',
       ) => void;
     };
     act(() =>
       hookParams.onAttachReference(
         {
-          category: 'images',
+          brandId: 'brand-1',
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
           id: 'generated-1',
           promptText: 'A generated reference',
           thumbnailUrl: 'https://cdn.example/generated.png',
-        },
+        } as IIngredient,
         'video',
       ),
     );
@@ -1177,6 +1221,127 @@ describe('StudioPlaygroundWorkspace', () => {
       }),
     );
   });
+
+  it.each(['image', 'video'] as const)(
+    'prepares %s from the chosen source only after confirming draft replacement',
+    (targetType) => {
+      render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls
+          .at(-1)?.[0]
+          .onPromptChange('Keep my unrelated draft'),
+      );
+      const source = {
+        id: 'source-continuation',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        metadataLabel: 'Desk photo',
+        promptText: 'Effective recipe with brand instructions',
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, targetType),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep my unrelated draft',
+      );
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+      const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+      expect(confirmation).toBeDefined();
+      act(() => confirmation?.onConfirm());
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(mocks.clearAttachments).toHaveBeenCalledOnce();
+      expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual([
+        expect.objectContaining({
+          id: source.id,
+          role: targetType === 'video' ? 'startFrame' : 'reference',
+        }),
+      ]);
+      expect(
+        mocks.settings.mock.results.at(-1)?.value.setType,
+      ).toHaveBeenCalledWith(targetType);
+      expect(mocks.submit).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { brandId: 'other-brand' },
+    { organizationId: 'other-org' },
+    { isDeleted: true },
+    { status: IngredientStatus.PROCESSING },
+    { category: IngredientCategory.VIDEO },
+  ])(
+    'rejects an unavailable continuation source %j without changing the draft',
+    (invalid) => {
+      render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep this draft'),
+      );
+      const source = {
+        id: 'unavailable-source',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+        ...invalid,
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, 'image'),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep this draft',
+      );
+      expect(mocks.openConfirm).not.toHaveBeenCalled();
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'continuation.sourceUnavailable',
+      );
+    },
+  );
+
+  it.each(['draft', 'session'] as const)(
+    'does not apply a continuation after the %s changes during confirmation',
+    (change) => {
+      const { rerender } = render(<StudioPlaygroundWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Original draft'),
+      );
+      const source = {
+        id: 'source-stale-confirm',
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+        cdnUrl: 'https://cdn.example/source.png',
+      } as IIngredient;
+      act(() =>
+        mocks.assetActionsHook.mock.calls
+          .at(-1)?.[0]
+          .onAttachReference(source, 'video'),
+      );
+      const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+      if (change === 'session') {
+        mocks.authIdentity.value = 'identity-2';
+        rerender(<StudioPlaygroundWorkspace />);
+      }
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Latest draft'),
+      );
+      expect(confirmation).toBeDefined();
+      act(() => confirmation?.onConfirm());
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('Latest draft');
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+      expect(mocks.submit).not.toHaveBeenCalled();
+    },
+  );
 
   it('resubscribes stored in-flight jobs when the playground remounts', () => {
     const storedJobs = [
@@ -1246,6 +1411,7 @@ describe('StudioPlaygroundWorkspace', () => {
         style: 'editorial',
         tags: [],
         text: 'A founder at a desk',
+        originalText: 'A founder at a desk',
         type: 'image',
       },
       status: 'GENERATED',
@@ -1278,15 +1444,121 @@ describe('StudioPlaygroundWorkspace', () => {
 
     act(() => resultsProps.onSelect(recipeJob));
     fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
+    expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(1);
+    act(() => {
+      void mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm?.();
+    });
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
   });
+
+  it('opens and navigates one focused inspector without replacing the draft, then restores gallery focus and scroll', async () => {
+    const jobs: StudioPlaygroundJob[] = ['image-9', 'image-10'].map((id) => ({
+      createdAt: 1,
+      id,
+      ingredientId: id,
+      ingredient: {
+        id,
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+      } as IIngredient,
+      prompt: `Prompt for ${id}`,
+      status: IngredientStatus.GENERATED,
+      type: 'image',
+    }));
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: jobs,
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep this draft'),
+    );
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(jobs[0]));
+    const scrollContainer = screen
+      .getByTestId('studio-results')
+      .closest('[tabindex="-1"]') as HTMLDivElement;
+    scrollContainer.scrollTop = 180;
+    scrollContainer.scrollTo = vi.fn();
+    const openButton = screen.getByRole('button', { name: 'Open preview' });
+    openButton.focus();
+    fireEvent.click(openButton);
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('studio-inspector')).toHaveLength(1);
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 0 });
+    fireEvent.click(screen.getByRole('button', { name: 'Next focused asset' }));
+    expect(screen.getByText('Prompt for image-10')).toBeVisible();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+      'Keep this draft',
+    );
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+    expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
+    expect(screen.getByTestId('studio-results')).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Open preview' }),
+      ).toHaveFocus(),
+    );
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 180 });
+  });
+
+  it.each(['brand', 'organization', 'session'])(
+    'does not revive a focused preview after switching %s away and back',
+    (scope) => {
+      const job: StudioPlaygroundJob = {
+        id: 'selected',
+        createdAt: 1,
+        prompt: 'Selected asset',
+        type: 'image',
+        status: IngredientStatus.GENERATED,
+      };
+      mocks.gallery.mockReturnValue({
+        isLoadingGallery: false,
+        refresh: vi.fn(),
+        storedJobs: [job],
+      });
+      const view = render(<StudioPlaygroundWorkspace />, {
+        wrapper: ContextSidebarHost,
+      });
+      act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
+      const scrollContainer = screen
+        .getByTestId('studio-results')
+        .closest('[tabindex="-1"]') as HTMLDivElement;
+      scrollContainer.scrollTo = vi.fn();
+      fireEvent.click(screen.getByRole('button', { name: 'Open preview' }));
+      expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
+      const scopedValue =
+        scope === 'brand'
+          ? mocks.brandId
+          : scope === 'organization'
+            ? mocks.organizationId
+            : mocks.authIdentity;
+      const original = scopedValue.value;
+      scopedValue.value = `${original}-changed`;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      scopedValue.value = original;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('studio-results')).toBeVisible();
+    },
+  );
 
   it('remixes a selected image as an image reference', () => {
     const job = {
       createdAt: 1,
       id: 'image-9',
       ingredient: {
-        category: 'IMAGE',
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
         cdnUrl: 'https://cdn.example/still.png',
         id: 'image-9',
         promptText: 'Sunlit desk',
@@ -1316,6 +1588,60 @@ describe('StudioPlaygroundWorkspace', () => {
     };
     expect(composerProps.attachedAssets).toContainEqual(
       expect.objectContaining({ id: 'image-9', role: 'reference' }),
+    );
+  });
+
+  it('keeps a draft untouched until Replace draft and ignores a confirmation from another brand', () => {
+    const job: StudioPlaygroundJob = {
+      id: 'legacy',
+      createdAt: 1,
+      type: 'image',
+      status: IngredientStatus.GENERATED,
+      prompt: 'Effective brand instructions',
+    };
+    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep my draft'),
+    );
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
+    const confirmation = mocks.openConfirm.mock.calls.at(-1)?.[0];
+    expect(confirmation).toBeDefined();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('Keep my draft');
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+    expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    // Closing/Cancel never calls onConfirm; no composer mutation has occurred.
+    mocks.brandId.value = 'brand-2';
+    rerender(<StudioPlaygroundWorkspace />);
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('New brand draft'),
+    );
+    act(() => {
+      confirmation?.onConfirm?.();
+    });
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+      'New brand draft',
+    );
+  });
+
+  it('leaves a legacy continuation prompt blank instead of replaying provider instructions', () => {
+    const job: StudioPlaygroundJob = {
+      id: 'legacy',
+      createdAt: 1,
+      type: 'image',
+      status: IngredientStatus.GENERATED,
+      prompt: 'Effective brand instructions',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />);
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+    expect(mocks.submit).not.toHaveBeenCalled();
+    expect(mocks.notify).toHaveBeenCalledWith(
+      'continuation.originalUnavailable',
     );
   });
 
@@ -2368,7 +2694,11 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(
       'Portrait of Anna',
       expect.objectContaining({ imageReferenceIds: preview.references }),
-      { crunRequest: preview, getCurrentCrunQuote: expect.any(Function) },
+      {
+        crunRequest: preview,
+        getCurrentCrunQuote: expect.any(Function),
+        originalText: 'Portrait of @anna',
+      },
     );
   });
 
@@ -2386,6 +2716,7 @@ describe('StudioPlaygroundWorkspace', () => {
         recipe: {
           type: 'video',
           text: 'Submitted motion',
+          originalText: 'Submitted motion',
           modelKey: key,
           outputs: 4,
           duration: 10,
@@ -2416,7 +2747,11 @@ describe('StudioPlaygroundWorkspace', () => {
       return mocks.composer.mock.calls.at(-1)?.[0];
     }
     function vary(job = recipeJob()) {
+      mocks.openConfirm.mockClear();
       act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
+      act(() => {
+        mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm?.();
+      });
     }
     beforeEach(() => {
       mocks.type.value = 'video';
@@ -2679,6 +3014,7 @@ describe('StudioPlaygroundWorkspace', () => {
             references: [],
             endFrameId: undefined,
             text: 'Legacy current selection',
+            originalText: undefined,
           };
           vary(next);
         } else {
@@ -2710,6 +3046,7 @@ describe('StudioPlaygroundWorkspace', () => {
         ...editingJob.recipe,
         type: 'image-edit',
         text: 'Exact editing instructions',
+        originalText: 'Exact editing instructions',
         modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
         references: [editId],
         endFrameId: undefined,

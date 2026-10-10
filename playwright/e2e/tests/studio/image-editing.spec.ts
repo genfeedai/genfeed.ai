@@ -83,6 +83,14 @@ for (const { model, editing } of [
               parentId: sourceId,
               ...(editing ? { imageEdit: recipe } : {}),
               generationPrompt: 'Change only the sign to OPEN',
+              generationHarness: {
+                brandId: 'brand-1',
+                originalPrompt: 'Change only the sign to OPEN',
+                enhancedPrompt: 'Change only the sign to OPEN',
+                status: 'skipped',
+                source: 'request',
+                appliedPacks: [],
+              },
               prompt: { original: 'Change only the sign to OPEN' },
             }
           : {}),
@@ -96,6 +104,16 @@ for (const { model, editing } of [
       return route.fulfill({
         json: {
           ...bootstrap,
+          currentUser: {
+            ...bootstrap.currentUser,
+            settings: {
+              ...(typeof bootstrap.currentUser.settings === 'object' &&
+              bootstrap.currentUser.settings !== null
+                ? bootstrap.currentUser.settings
+                : {}),
+              isAdvancedMode: true,
+            },
+          },
           settings: { ...bootstrap.settings, enabledModelIds: [model] },
         },
       });
@@ -199,19 +217,22 @@ for (const { model, editing } of [
     const composer = page
       .getByTestId('studio-playground-prompt')
       .getByRole('textbox');
-    if (!editing) {
-      // Trigger name is `Generation setup: {summary}`; models are Configure Model.
-      await page.getByRole('button', { name: /^Generation setup:/ }).click();
-      await page
-        .getByRole('button', { name: 'Configure Model', exact: true })
-        .click();
-      await page
-        .getByRole('option')
-        .filter({ hasText: 'FLUX.3' })
-        .first()
-        .click();
-      await page.keyboard.press('Escape');
-    }
+    // Explicit model selection lives in Advanced; Auto delegates routing.
+    await page.getByRole('button', { name: /^Generation setup:/ }).click();
+    await page.getByRole('button', { name: 'Advanced', exact: true }).click();
+    await page
+      .getByRole('button', { name: 'Configure Model', exact: true })
+      .click();
+    await page
+      .getByRole('option')
+      .filter({ hasText: flux ? 'FLUX.3' : 'Ideogram' })
+      .first()
+      .click();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await expect(
+      page.getByRole('button', { name: /^Generation setup:/ }),
+    ).toHaveAttribute('aria-expanded', 'false');
     if (flux) {
       await expect(page.getByLabel('FLUX resolution')).toBeVisible();
       await expect(page.getByLabel('Editing seed')).toHaveCount(0);
@@ -262,17 +283,27 @@ for (const { model, editing } of [
           name: editing ? 'Edit image generation' : 'Image generation',
         })
         .first(),
-    ).toContainText('Change only the sign to OPEN');
+    ).toBeVisible();
+    await page.getByTestId(`studio-asset-${outputId}`).click();
+    await expect(
+      page
+        .getByText('Original prompt', { exact: true })
+        .locator('xpath=following-sibling::p[1]'),
+    ).toHaveText('Change only the sign to OPEN');
     if (flux && editing) {
-      await expect(page.getByLabel('Editing seed')).toHaveCount(0);
       expect(JSON.stringify(bodies[0])).not.toContain('maskId');
       expect(JSON.stringify(bodies[0])).not.toContain('seed');
-      await page
-        .getByRole('article', { name: 'Edit image generation' })
-        .first()
-        .click();
       await page.getByRole('button', { name: 'Vary', exact: true }).click();
+      const replacement = page.getByRole('dialog', {
+        name: 'Replace your draft?',
+        exact: true,
+      });
+      await expect(replacement).toBeVisible();
+      await replacement
+        .getByRole('button', { name: 'Replace draft', exact: true })
+        .click();
       await expect(composer).toHaveText('Change only the sign to OPEN');
+      await expect(page.getByLabel('Editing seed')).toHaveCount(0);
       await expect(page.getByLabel('FLUX resolution')).toContainText('1.5K');
       await expect(page.getByLabel('FLUX aspect ratio')).toContainText(
         'Match source aspect ratio',

@@ -19,6 +19,7 @@ import { CampaignPaidActivationService } from '@api/collections/campaigns/servic
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignPlanningService } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -70,6 +71,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('Campaigns')
 @Controller('campaigns')
+@OrganizationModule('publishing')
 export class CampaignsController {
   constructor(
     private readonly comparisonService: CampaignComparisonService,
@@ -306,6 +308,7 @@ export class CampaignsController {
     return serializeSingle(request, CampaignLifecycleSerializer, data);
   }
 
+  @OrganizationModule('publishing', 'cancel')
   @Post(':id/pause')
   @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async pause(

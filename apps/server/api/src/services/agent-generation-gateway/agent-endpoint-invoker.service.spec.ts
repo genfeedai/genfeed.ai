@@ -2,6 +2,8 @@ import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/m
 import { approvalGenerationConstraint } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { getOrganizationModuleExecutionContext } from '@api/common/organization-modules/organization-module-execution.context';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -47,11 +49,13 @@ describe('AgentEndpointInvoker', () => {
   let requestContextMiddleware: { hydrate: ReturnType<typeof vi.fn> };
   let rolesGuard: { assertRoles: ReturnType<typeof vi.fn> };
   let subscriptionGuard: { assertActive: ReturnType<typeof vi.fn> };
+  let moduleAccess: { assertAccess: ReturnType<typeof vi.fn> };
 
   function buildEndpoint(
     overrides: Partial<AgentEndpoint<TestGenerationDto, string>> = {},
   ): AgentEndpoint<TestGenerationDto, string> {
     return {
+      organizationModule: { moduleId: 'playground' },
       creditsConfig: {
         description: 'Image generation',
         source: ActivitySource.IMAGE_GENERATION,
@@ -118,10 +122,16 @@ describe('AgentEndpointInvoker', () => {
         return true;
       }),
     };
+    moduleAccess = {
+      assertAccess: vi.fn(async () => {
+        order.push('module');
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentEndpointInvoker,
+        { provide: OrganizationModuleAccessService, useValue: moduleAccess },
         { provide: CreditsGuard, useValue: creditsGuard },
         { provide: CreditsInterceptor, useValue: creditsInterceptor },
         { provide: MembersService, useValue: membersService },
@@ -196,6 +206,7 @@ describe('AgentEndpointInvoker', () => {
     expect(order).toEqual([
       'hydrate',
       'roles',
+      'module',
       'subscription',
       'credits',
       'models',
@@ -211,6 +222,86 @@ describe('AgentEndpointInvoker', () => {
       endpoint.creditsConfig,
     );
     expect(creditsInterceptor.release).not.toHaveBeenCalled();
+  });
+
+  it('blocks a disabled module before subscription, credits, models or the handler and ignores forged body ownership', async () => {
+    const endpoint = buildEndpoint({
+      organizationModule: { moduleId: 'automation' },
+      isSubscriptionCheckSkipped: true,
+    });
+    moduleAccess.assertAccess.mockRejectedValue(
+      new ForbiddenException('Module disabled'),
+    );
+    await expect(
+      invoker.invoke(endpoint, {
+        ...invocation,
+        body: {
+          ...invocation.body,
+          moduleId: 'playground',
+          organizationId: 'forged',
+        },
+      }),
+    ).rejects.toThrow('Module disabled');
+    expect(moduleAccess.assertAccess).toHaveBeenCalledWith(
+      ORGANIZATION_ID,
+      'automation',
+      'write',
+    );
+    expect(subscriptionGuard.assertActive).not.toHaveBeenCalled();
+    expect(creditsGuard.admit).not.toHaveBeenCalled();
+    expect(modelsGuard.validate).not.toHaveBeenCalled();
+    expect(endpoint.handle).not.toHaveBeenCalled();
+    expect(creditsInterceptor.release).not.toHaveBeenCalled();
+  });
+
+  it('requires server-owned module metadata before spending', async () => {
+    const endpoint = buildEndpoint();
+    Reflect.deleteProperty(endpoint, 'organizationModule');
+    await expect(invoker.invoke(endpoint, invocation)).rejects.toThrow(
+      'Endpoint module ownership is required',
+    );
+    expect(moduleAccess.assertAccess).not.toHaveBeenCalled();
+    expect(creditsGuard.admit).not.toHaveBeenCalled();
+    expect(endpoint.handle).not.toHaveBeenCalled();
+  });
+
+  it('propagates only descriptor-owned module and authenticated organization into nested execution', async () => {
+    const handle = vi.fn(async () => {
+      await Promise.resolve();
+      expect(getOrganizationModuleExecutionContext()).toEqual({
+        organizationId: ORGANIZATION_ID,
+        moduleId: 'storyboard',
+      });
+      return 'generated';
+    });
+    await invoker.invoke(
+      buildEndpoint({ organizationModule: { moduleId: 'storyboard' }, handle }),
+      {
+        ...invocation,
+        body: {
+          ...invocation.body,
+          moduleId: 'automation',
+          organizationId: 'forged',
+        },
+      },
+    );
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(getOrganizationModuleExecutionContext()).toBeUndefined();
+  });
+
+  it('preserves explicit export admission independently of subscription-skip flags', async () => {
+    const endpoint = buildEndpoint({
+      organizationModule: { moduleId: 'messages', operation: 'export' },
+      isSubscriptionCheckSkipped: true,
+      creditsConfig: undefined,
+      hasCreditsInterceptor: false,
+    });
+    await invoker.invoke(endpoint, invocation);
+    expect(moduleAccess.assertAccess).toHaveBeenCalledWith(
+      ORGANIZATION_ID,
+      'messages',
+      'export',
+    );
   });
 
   it('preserves the subscription gate when the endpoint has no credits config', async () => {
@@ -361,6 +452,7 @@ describe('AgentEndpointInvoker', () => {
     expect(rolesGuard.assertRoles).not.toHaveBeenCalled();
     expect(order).toEqual([
       'hydrate',
+      'module',
       'subscription',
       'credits',
       'models',

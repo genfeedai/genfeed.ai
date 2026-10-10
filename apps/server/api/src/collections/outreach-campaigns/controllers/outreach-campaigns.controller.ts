@@ -5,6 +5,7 @@ import type { OutreachCampaignsQueryDto } from '@api/collections/outreach-campai
 import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -36,6 +37,7 @@ import type { Request } from 'express';
 @ApiTags('OutreachCampaigns')
 @AutoSwagger()
 @FeatureFlag('messages')
+@OrganizationModule('messages')
 @Controller('outreach-campaigns')
 export class OutreachCampaignsController extends BaseCRUDController<
   OutreachCampaignDocument,
@@ -162,6 +164,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
    * `{ status: "active" | "paused" | "completed" }` (mirrors agent-campaigns).
    */
   @Patch(':id')
+  @OrganizationModule('messages', 'write', {
+    field: 'status',
+    values: [CampaignStatus.PAUSED, CampaignStatus.COMPLETED],
+  })
   @ApiOperation({
     summary: 'Update a campaign (status transitions via status field)',
   })

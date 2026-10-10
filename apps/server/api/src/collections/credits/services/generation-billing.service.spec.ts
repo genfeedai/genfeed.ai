@@ -71,6 +71,7 @@ describe('GenerationBillingService', () => {
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const quoteGroups = {
+    recordProviderCompletion: vi.fn(),
     reconcileOutput: vi.fn(),
     reconcile: vi.fn(),
     closeDispatch: vi.fn(),
@@ -147,6 +148,23 @@ describe('GenerationBillingService', () => {
         idempotencyKey: 'media-generation-attach:asset',
       }),
     );
+  });
+
+  it('delegates trusted provider quantities to the existing quote ledger without charging at receipt', async () => {
+    const input = {
+      ingredientId: 'asset',
+      organizationId: 'org_1',
+      externalId: 'provider-result',
+      provider: 'fal' as const,
+      modelKey: 'test/model',
+      quantities: { width: 1280, height: 720, duration: 3 },
+    };
+    await service.recordProviderCompletion(input);
+    expect(
+      quoteGroups.recordProviderCompletion,
+    ).toHaveBeenCalledExactlyOnceWith(input);
+    expect(queue.queueDeduction).not.toHaveBeenCalled();
+    expect(credits.releaseReservation).not.toHaveBeenCalled();
   });
 
   describe('hasPool', () => {

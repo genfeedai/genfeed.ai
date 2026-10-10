@@ -13,6 +13,7 @@ const mockGetProject = vi.fn();
 const mockGetToken = vi.fn();
 const mockPush = vi.fn();
 const mockSaveDraft = vi.fn();
+const mockRetrySource = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ selectedBrand: { id: 'brand-1' }, settings: null }),
@@ -51,6 +52,7 @@ vi.mock('./services/clips-api.service', () => ({
     getHookApproval = mockGetHookApproval;
     getProject = mockGetProject;
     saveDraft = mockSaveDraft;
+    retrySource = mockRetrySource;
   },
 }));
 
@@ -66,6 +68,7 @@ import {
 beforeEach(() => {
   vi.clearAllMocks();
   mockSaveDraft.mockResolvedValue(undefined);
+  mockRetrySource.mockResolvedValue({ status: 'queued' });
   mockAnalyzeVideo.mockResolvedValue({
     identity: {
       avatarProvider: 'heygen',
@@ -566,4 +569,56 @@ describe('quick avatar identity', () => {
       voiceId: 'saved-heygen-voice',
     });
   });
+});
+
+describe('source retry presentation', () => {
+  it.each(['review', 'quick'] as const)(
+    'keeps %s source recovery in its actual flow',
+    async (flow) => {
+      const failedProject = {
+        status: 'failed',
+        settings: { mode: 'avatar' },
+        source: {
+          schemaVersion: 1,
+          kind: 'youtube',
+          flow,
+          status: 'failed',
+          fingerprint: 'source-fingerprint',
+          jobId: 'clip-analysis-clip-project-1',
+          retryCount: 0,
+          maxRetries: 3,
+          updatedAt: '2026-10-10T00:00:00Z',
+        },
+      };
+      mockGetProject.mockResolvedValue(failedProject);
+      mockRetrySource.mockImplementation(async () => {
+        mockGetProject.mockResolvedValue({
+          ...failedProject,
+          status: 'analyzing',
+          source: { ...failedProject.source, status: 'queued', retryCount: 1 },
+        });
+        mockGetHighlights.mockResolvedValue({
+          status: 'analyzing',
+          highlights: [],
+        });
+        return { status: 'queued' };
+      });
+      mockGetHookApproval.mockResolvedValue(null);
+      mockGetHighlights.mockResolvedValue({ status: 'failed', highlights: [] });
+      const { result } = renderHook(() =>
+        useStudioClipsPage({ projectId: 'clip-project-1' }),
+      );
+      await waitFor(() =>
+        expect(result.current.project?.status).toBe('failed'),
+      );
+      await act(async () => {
+        await result.current.handleRetrySource();
+      });
+      expect(mockRetrySource).toHaveBeenCalledWith('clip-project-1');
+      expect(result.current.step).toBe(
+        flow === 'review' ? 'review' : 'progress',
+      );
+      expect(result.current.project?.source?.retryCount).toBe(1);
+    },
+  );
 });

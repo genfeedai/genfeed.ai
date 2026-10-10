@@ -134,6 +134,14 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
     service = module.get(NewslettersService);
   });
 
+  it('registers newsletter drafts and topic work as Publishing-owned graphs', () => {
+    service.onModuleInit();
+    expect(workflowRunner.registerWorkflow).toHaveBeenCalledTimes(2);
+    for (const [definition] of workflowRunner.registerWorkflow.mock.calls) {
+      expect(definition).toMatchObject({ organizationModule: 'publishing' });
+    }
+  });
+
   it('createScoped writes scalar FK keys, not legacy relation aliases', async () => {
     await service.createScoped(
       {

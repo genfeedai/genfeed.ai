@@ -34,6 +34,7 @@ export function buildBatchContentWorkflowDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId: getBatchContentWorkflowId(skillSlug),
+    organizationModule: 'batch',
     definition: {
       edges: [
         {
@@ -101,6 +102,7 @@ export function buildBatchContentItemWorkflowDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId: getBatchContentItemWorkflowId(skillSlug),
+    organizationModule: 'batch',
     definition: {
       edges: [
         {

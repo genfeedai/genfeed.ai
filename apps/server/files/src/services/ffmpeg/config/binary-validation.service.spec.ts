@@ -1,6 +1,12 @@
+import { execFileSync } from 'node:child_process';
 import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+vi.mock('node:child_process', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('node:child_process')>()),
+  execFileSync: vi.fn(),
+}));
 
 // Mock ffmpeg-static and ffprobe-static
 vi.mock('ffmpeg-static', () => ({ default: '/usr/local/bin/ffmpeg' }));
@@ -20,6 +26,7 @@ describe('BinaryValidationService', () => {
   };
 
   beforeEach(async () => {
+    vi.mocked(execFileSync).mockReset().mockReturnValue(Buffer.from('version'));
     // Reset static properties before each test
     BinaryValidationService.validated = false;
     BinaryValidationService.validationPromise = null;
@@ -48,6 +55,32 @@ describe('BinaryValidationService', () => {
       ffmpegPath: '/usr/local/bin/ffmpeg',
       ffprobePath: '/usr/local/bin/ffprobe',
     });
+  });
+
+  it('uses the installed native probe when the bundled probe cannot execute', async () => {
+    vi.mocked(execFileSync).mockImplementation((binary) => {
+      if (binary === '/usr/local/bin/ffprobe')
+        throw new Error('Bad CPU type in executable');
+      return Buffer.from('version');
+    });
+    await service.validateBinaries();
+    expect(service.getBinaryPaths().ffprobePath).toBe('ffprobe');
+    expect(execFileSync).toHaveBeenCalledWith('ffprobe', ['-version'], {
+      stdio: 'ignore',
+      timeout: 5_000,
+    });
+  });
+
+  it('fails startup when neither probe executes and allows a repaired retry', async () => {
+    vi.mocked(execFileSync).mockImplementation((binary) => {
+      if (String(binary).includes('ffprobe')) throw new Error('not executable');
+      return Buffer.from('version');
+    });
+    await expect(service.validateBinaries()).rejects.toThrow('no executable');
+    expect(() => service.getBinaryPaths()).toThrow('Binaries not validated');
+    vi.mocked(execFileSync).mockReturnValue(Buffer.from('version'));
+    await service.validateBinaries();
+    expect(service.getBinaryPaths().ffprobePath).toBe('/usr/local/bin/ffprobe');
   });
 
   it('rejects access before validation', () => {

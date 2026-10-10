@@ -185,7 +185,9 @@ describe('ImagesService', () => {
 
       await service.post(imageData);
 
-      expect(mockPost).toHaveBeenCalledWith('', imageData);
+      expect(mockPost).toHaveBeenCalledWith('', imageData, {
+        handlesErrorResponse: expect.any(Function),
+      });
     });
 
     it('returns mapped image result', async () => {

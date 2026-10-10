@@ -57,7 +57,10 @@ vi.mock('@genfeedai/contracts', () => ({
   },
 }));
 
-vi.mock('@genfeedai/contracts/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', async () => ({
+  ...(await import(
+    '@genfeedai/contracts/constants/organization-modules.constant'
+  )),
   APP_DISPLAY_LABELS: {
     admin: 'Admin',
     agent: 'Agent',
@@ -107,6 +110,11 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 const brandContextState = vi.hoisted(() => ({
+  settings: { hasOrganizationBilling: true, moduleOverrides: {} } as Record<
+    string,
+    unknown
+  >,
+  settingsLoading: false,
   brands: [
     {
       id: 'brand',
@@ -131,7 +139,8 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
       organization: { id: 'org', slug: 'acme' },
       slug: 'brand',
     },
-    settings: { subscriptionTier: 'pro' },
+    settings: brandContextState.settings,
+    settingsLoading: brandContextState.settingsLoading,
   }),
 }));
 
@@ -220,6 +229,11 @@ describe('AppProtectedRail', () => {
   });
 
   beforeEach(() => {
+    brandContextState.settings = {
+      hasOrganizationBilling: true,
+      moduleOverrides: {},
+    };
+    brandContextState.settingsLoading = false;
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
     mockAccessState.isAssetGateLocked = false;
@@ -238,6 +252,34 @@ describe('AppProtectedRail', () => {
         slug: 'brand',
       },
     ];
+  });
+
+  it('forwards settled module defaults to both rail surfaces without changing saved pins', () => {
+    render(<AppProtectedRail orgSlug="acme" onNavigate={vi.fn()} />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        surface: 'drawer',
+        pinnedAppIds: ['studio'],
+        modulePreferences: expect.objectContaining({
+          playground: true,
+          storyboard: true,
+          publishing: true,
+          analytics: true,
+          automation: false,
+          messages: false,
+          discovery: true,
+          clips: false,
+        }),
+      }),
+    );
+  });
+
+  it('waits for verified settings during a scope refresh', () => {
+    brandContextState.settingsLoading = true;
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ modulePreferences: null }),
+    );
   });
 
   it('highlights from the current pathname', () => {

@@ -12,6 +12,7 @@ export const INSIGHT_GENERATION_WORKFLOW_ID = 'insight.generation';
 export function buildInsightGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: INSIGHT_GENERATION_WORKFLOW_ID,
+    organizationModule: 'analytics',
     definition: {
       edges: [
         {

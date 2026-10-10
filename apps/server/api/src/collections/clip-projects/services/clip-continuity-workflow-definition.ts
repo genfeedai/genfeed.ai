@@ -14,6 +14,8 @@ export const CLIP_CONTINUITY_ACTION_IDS = {
 export function buildClipContinuityWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: CLIP_CONTINUITY_WORKFLOW_ID,
+    organizationModule: 'clips',
+    moduleCompletionNodeIds: ['persist-continuity-report'],
     definition: {
       edges: [
         {
@@ -110,6 +112,7 @@ export function buildClipContinuityWorkflowDefinition(): SystemWorkflowGraphDefi
 export function buildClipContinuityQaWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: CLIP_CONTINUITY_QA_WORKFLOW_ID,
+    organizationModule: 'clips',
     definition: {
       edges: [],
       inputVariables: [

@@ -4,6 +4,8 @@ import {
   type CrunImageQuoteRequest,
   type CrunVideoQuoteRequest,
 } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
+import type { IHttpErrorPresentationContext } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
+import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 
 /** Both media clients require the same exact reviewed response and null discriminant. */
 export function parseCrunQuoteResponse(
@@ -64,4 +66,18 @@ export function parseCrunQuoteResponse(
   )
     return attributes as CrunGenerationQuoteResponse;
   throw new Error('CRUN_PROVIDER_UNAVAILABLE');
+}
+
+/** The composer retains the draft and exposes these admission conflicts itself. */
+export function isExpectedCrunQuoteConflict(
+  response: IHttpErrorPresentationContext,
+): boolean {
+  if (response.status !== 409) return false;
+  const document = readRecord(response.data);
+  const errors = document?.errors;
+  if (!Array.isArray(errors) || errors.length === 0) return false;
+  return errors.every((error: unknown) => {
+    const code = readString(readRecord(error)?.code);
+    return code === 'CRUN_QUOTE_STALE' || code === 'CRUN_QUOTE_IN_PROGRESS';
+  });
 }

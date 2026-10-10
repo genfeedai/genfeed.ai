@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 /** Readiness and expiry refresh share bounded, batched authenticated requests. */
 export function useAuthorizedMediaPreview(
   ingredient: IIngredient | null,
+  retryRevision = 0,
 ): MediaDeliveryGrant | null {
   const getService = useAuthedService((token) =>
     IngredientsService.getInstance(token),
@@ -27,9 +28,12 @@ export function useAuthorizedMediaPreview(
     hasSwitchedContext.current = true;
   // Once identity changes, a retained store object cannot prove which scope
   // issued its initial capability. Reauthorize it, including switches back.
-  const requireFreshAuthorization = hasSwitchedContext.current;
+  const requireFreshAuthorization =
+    hasSwitchedContext.current || retryRevision > 0;
   const sourceIdentity = [
     ingredient?.id,
+    ingredient?.brandId,
+    ingredient?.isDeleted,
     initial?.url,
     initial?.expiresAt,
     initial?.state,
@@ -37,6 +41,7 @@ export function useAuthorizedMediaPreview(
     orgId,
     sessionId,
     userId,
+    retryRevision,
   ].join('\u0001');
   const current =
     fresh?.sourceIdentity === sourceIdentity
@@ -50,7 +55,8 @@ export function useAuthorizedMediaPreview(
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
     setFresh(null);
-    if (!ingredient?.id || !initial) return () => controller.abort();
+    if (!ingredient?.id || ingredient.isDeleted || !initial)
+      return () => controller.abort();
     const id = ingredient.id;
     const schedule = (grant: MediaDeliveryGrant | null) => {
       if (
@@ -78,9 +84,14 @@ export function useAuthorizedMediaPreview(
               )
             : await (await getService()).previewGrant(id, controller.signal);
         if (controller.signal.aborted) return;
-        if (grant) {
+        if (grant && grant.id === id && grant.purpose === initial.purpose) {
           setFresh({ sourceIdentity, grant });
           schedule(grant);
+        } else if (retryRevision > 0) {
+          setFresh({
+            sourceIdentity,
+            grant: { ...initial, state: 'FAILED', url: null, expiresAt: null },
+          });
         } else {
           timer = setTimeout(
             () => void refresh(),
@@ -89,10 +100,21 @@ export function useAuthorizedMediaPreview(
         }
       } catch {
         if (!controller.signal.aborted) {
-          timer = setTimeout(
-            () => void refresh(),
-            Math.min(30_000, 1000 * 2 ** Math.min(attempts, 5)),
-          );
+          if (retryRevision > 0)
+            setFresh({
+              sourceIdentity,
+              grant: {
+                ...initial,
+                state: 'FAILED',
+                url: null,
+                expiresAt: null,
+              },
+            });
+          else
+            timer = setTimeout(
+              () => void refresh(),
+              Math.min(30_000, 1000 * 2 ** Math.min(attempts, 5)),
+            );
         }
       }
     };
@@ -109,6 +131,8 @@ export function useAuthorizedMediaPreview(
     sourceIdentity,
     initial,
     requireFreshAuthorization,
+    ingredient?.isDeleted,
+    retryRevision,
   ]);
-  return current;
+  return ingredient?.isDeleted ? null : current;
 }

@@ -42,7 +42,7 @@ describe('runVideoGenerationBrief', () => {
     expect(schedule.evidence.surface).toBe('schedule');
   });
 
-  it('compiles Seedance native extension with the provider sentinel and extend evidence', () => {
+  it('compiles Seedance native extension with the requested duration and extend evidence', () => {
     const result = runVideoGenerationBrief({
       actionVerb: 'extend',
       durationSeconds: 8,
@@ -56,7 +56,7 @@ describe('runVideoGenerationBrief', () => {
 
     expect(result.dispatch).toMatchObject({
       aspect_ratio: 'adaptive',
-      duration: -1,
+      duration: 8,
       reference_videos: ['source-video-1'],
     });
     expect(result.evidence).toMatchObject({

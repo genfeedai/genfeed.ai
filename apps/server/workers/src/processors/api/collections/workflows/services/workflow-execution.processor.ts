@@ -82,13 +82,22 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     try {
       switch (data.type) {
         case 'trigger':
-          return await this.processTrigger(job);
+          return await this.queueService.runWithQueuedOrganizationModule(
+            job.data,
+            () => this.processTrigger(job),
+          );
 
         case 'delay-resume':
-          return await this.processDelayResume(job);
+          return await this.queueService.runWithQueuedOrganizationModule(
+            job.data,
+            () => this.processDelayResume(job),
+          );
 
         case 'scheduled-fire':
-          return await this.processScheduledFire(job);
+          return await this.queueService.runWithQueuedOrganizationModule(
+            job.data,
+            () => this.processScheduledFire(job),
+          );
 
         case 'system-run':
           return await this.processSystemRun(job);
@@ -113,7 +122,14 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       throw new Error('System workflow job missing registered workflow input');
     }
     try {
-      return await this.executeSystemRun(job, systemRun);
+      return await this.queueService.runWithQueuedOrganizationModule(
+        job.data,
+        () =>
+          this.systemWorkflowRunner.runWithRegisteredWorkflowModule(
+            systemRun.input,
+            () => this.executeSystemRun(job, systemRun),
+          ),
+      );
     } catch (failure: unknown) {
       // Only a transient failure is worth another attempt; anything else fails
       // once instead of multiplying load on a shared queue (#5633).
@@ -126,14 +142,26 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       const isTerminalAttempt =
         error instanceof UnrecoverableError ||
         (job.attemptsMade ?? 0) + 1 >= attempts;
-      if (!systemRun.failureWorkflow || !isTerminalAttempt) {
+      if (!isTerminalAttempt) {
         throw error;
       }
+      // Old jobs may predate a fixed failure payload. Registered code-owned
+      // compensation also takes precedence over an editable queued payload.
+      const failureWorkflow =
+        this.systemWorkflowRunner.getRegisteredFailureWorkflow(
+          systemRun.input,
+        ) ?? systemRun.failureWorkflow;
+      if (!failureWorkflow) throw error;
       try {
         await this.systemWorkflowRunner.runWorkflow({
-          actionType: systemRun.failureWorkflow.canonicalId,
-          canonicalId: systemRun.failureWorkflow.canonicalId,
-          inputValues: systemRun.failureWorkflow.inputValues,
+          actionType: failureWorkflow.canonicalId,
+          canonicalId: failureWorkflow.canonicalId,
+          inputValues: {
+            ...failureWorkflow.inputValues,
+            // Terminal compensation receives the actual server error, never a queued override.
+            workflowError:
+              error instanceof Error ? error.message : String(error),
+          },
           metadata: {
             failedCanonicalId: systemRun.input.canonicalId,
             failedJobId: job.id,
@@ -143,9 +171,11 @@ export class WorkflowExecutionProcessor extends WorkerHost {
           userId: systemRun.input.userId,
         });
       } catch (compensationError: unknown) {
-        throw new AggregateError(
-          [error, compensationError],
-          `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${systemRun.failureWorkflow.canonicalId} both failed`,
+        throw toTerminalSystemRunError(
+          new AggregateError(
+            [error, compensationError],
+            `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${failureWorkflow.canonicalId} both failed`,
+          ),
         );
       }
       throw error;
@@ -418,6 +448,16 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       throw new Error('Delay resume job missing delayResumeData');
     }
 
+    return this.systemWorkflowRunner.runWithStoredWorkflowModule(
+      delayResumeData,
+      () => this.resumeAdmittedDelay(job, delayResumeData),
+    );
+  }
+
+  private async resumeAdmittedDelay(
+    job: Job<WorkflowExecutionJobData>,
+    delayResumeData: DelayResumeJobData,
+  ): Promise<unknown> {
     const result = await this.executorService.resumeAfterDelay(delayResumeData);
 
     if (result._delayJobData) {

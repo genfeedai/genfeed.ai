@@ -14,6 +14,19 @@ function actionIds(
 }
 
 describe('author reply workflow definitions', () => {
+  it.each([
+    buildAuthorReplyDraftWorkflowDefinition(),
+    buildAuthorReplySendWorkflowDefinition(),
+  ])(
+    '$canonicalId requires Messages except final result projection',
+    (graph) => {
+      expect(graph.organizationModule).toBe('messages');
+      expect(graph.moduleCompletionNodeIds).toEqual([graph.resultNodeId]);
+      expect(graph.resultNodeId).toMatch(/^finalize-/);
+      expect(graph.moduleCompletionNodeIds).not.toContain('send-reply');
+    },
+  );
+
   it('drafts through intent, generation, and typed finalization actions', () => {
     expect(actionIds(buildAuthorReplyDraftWorkflowDefinition())).toEqual([
       AUTHOR_REPLY_ACTION_IDS.RESOLVE_INTENT,

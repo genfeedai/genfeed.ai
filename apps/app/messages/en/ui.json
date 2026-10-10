@@ -174,7 +174,7 @@
     "browseLibrary": "Browse library"
   },
   "generationHarness": {
-    "saving": "Saving\u2026",
+    "saving": "Saving…",
     "appliedContext": "Applied context",
     "brand": "This brand",
     "brandLabel": "Brand prompt enhancement",
@@ -408,5 +408,37 @@
     "empty": "No platform preview available.",
     "label": "Platform preview",
     "account": "Account {count}"
+  },
+  "presetFields": {
+    "label": "Label",
+    "labelPlaceholder": "Enter display label",
+    "key": "Key",
+    "keyPlaceholder": "lowercase-with-hyphens",
+    "keyHelp": "Unique identifier (lowercase, alphanumeric with hyphens)",
+    "type": "Type",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter description (optional)",
+    "prompt": "Generation prompt",
+    "promptPlaceholder": "Suggested prompt when the creator's prompt is empty",
+    "duration": "Video duration (seconds)",
+    "active": "Active",
+    "aspectRatio": "Aspect ratio",
+    "aspectRatioPlaceholder": "16:9",
+    "promptTemplate": "Prompt template",
+    "promptTemplatePlaceholder": "Template key",
+    "style": "Style",
+    "stylePlaceholder": "Visual style",
+    "mood": "Mood",
+    "moodPlaceholder": "Mood",
+    "scene": "Scene",
+    "scenePlaceholder": "Scene description",
+    "camera": "Camera",
+    "cameraPlaceholder": "Camera angle",
+    "lens": "Lens",
+    "lensPlaceholder": "Lens",
+    "lighting": "Lighting",
+    "lightingPlaceholder": "Lighting",
+    "cameraMovement": "Camera movement",
+    "cameraMovementPlaceholder": "Camera movement"
   }
 }

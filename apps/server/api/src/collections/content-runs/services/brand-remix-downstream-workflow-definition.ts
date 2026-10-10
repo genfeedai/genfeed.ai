@@ -119,6 +119,7 @@ function fanOutNode(
 export function buildBrandRemixGenerateResolveCreditsWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_RESOLVE_CREDITS,
+    organizationModule: 'playground',
     definition: {
       edges: [],
       inputVariables: [
@@ -149,6 +150,7 @@ export function buildBrandRemixGenerateResolveCreditsWorkflowDefinition(): Syste
 export function buildBrandRemixGenerateDispatchWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_DISPATCH_VARIANT,
+    organizationModule: 'playground',
     definition: {
       edges: [],
       inputVariables: [
@@ -179,6 +181,7 @@ export function buildBrandRemixGenerateDispatchWorkflowDefinition(): SystemWorkf
 export function buildBrandRemixGenerateWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE,
+    organizationModule: 'playground',
     definition: {
       edges: [
         edge('claim-generation', 'adopt-orphans'),
@@ -293,6 +296,7 @@ export function buildBrandRemixGenerateWorkflowDefinitions(): SystemWorkflowGrap
 export function buildBrandRemixReviewWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.REVIEW_HANDOFF,
+    organizationModule: 'playground',
     definition: {
       edges: [
         edge('prepare-review', 'needs-handoff', 'value'),
@@ -394,6 +398,7 @@ export function buildBrandRemixReviewWorkflowDefinition(): SystemWorkflowGraphDe
 export function buildBrandRemixMetaPausedDraftWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.META_PAUSED_DRAFT,
+    organizationModule: 'publishing',
     definition: {
       edges: [
         edge('validate-source', 'resolve-account'),
@@ -525,6 +530,7 @@ export function buildBrandRemixXPausedDraftWorkflowDefinition(): SystemWorkflowG
   ] as const;
   return {
     canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.X_PAUSED_DRAFT,
+    organizationModule: 'publishing',
     definition: {
       edges: steps
         .slice(1)

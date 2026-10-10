@@ -2,12 +2,29 @@ import {
   buildReplyBotContentWorkflowDefinition,
   buildReplyBotDmWorkflowDefinition,
   buildReplyBotOrganizationWorkflowDefinition,
+  buildReplyBotTestWorkflowDefinition,
   buildReplyBotWorkflowDefinition,
   REPLY_BOT_ACTION_IDS,
   REPLY_BOT_WORKFLOW_IDS,
 } from './reply-bot-workflow-definition';
 
 describe('reply bot system workflow definitions', () => {
+  it.each([
+    buildReplyBotOrganizationWorkflowDefinition(),
+    buildReplyBotWorkflowDefinition(),
+    buildReplyBotContentWorkflowDefinition(),
+    buildReplyBotDmWorkflowDefinition(),
+    buildReplyBotTestWorkflowDefinition(),
+  ])(
+    '$canonicalId requires Messages except its final projected result',
+    (graph) => {
+      expect(graph.organizationModule).toBe('messages');
+      expect(graph.moduleCompletionNodeIds).toEqual([graph.resultNodeId]);
+      expect(graph.resultNodeId).toMatch(/^finalize-/);
+      expect(graph.moduleCompletionNodeIds).not.toContain('schedule-dm');
+    },
+  );
+
   it('fans organizations into bot workflows and bots into content workflows', () => {
     const organization = buildReplyBotOrganizationWorkflowDefinition();
     const bot = buildReplyBotWorkflowDefinition();

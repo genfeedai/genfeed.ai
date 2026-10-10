@@ -925,6 +925,7 @@
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/models": "workspace:*",
+        "@genfeedai/pricing": "workspace:*",
         "@genfeedai/props": "workspace:*",
         "@genfeedai/services": "workspace:*",
         "@genfeedai/utils": "workspace:*",

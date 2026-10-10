@@ -644,8 +644,9 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
               errors: [
                 {
                   status: '409',
-                  code: 'STORYBOARD_REVISION_CONFLICT',
-                  detail: 'Storyboard changed.',
+                  code: '409',
+                  title: 'Conflict',
+                  detail: `Expected revision ${input.expectedRevision}; current revision is ${current.config.revision}. Reload before retrying.`,
                 },
               ],
             },

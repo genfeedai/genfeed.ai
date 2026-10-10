@@ -206,8 +206,8 @@ export interface StudioPlaygroundSettings {
 
 /**
  * Client-side snapshot of the prompt payload that actually left Studio after
- * `buildStudioPromptData`. Recipe display and Vary/Reprompt both read this so
- * the operator sees and edits the enriched request, not the raw composer box.
+ * `buildStudioPromptData`. Effective text remains inspectable; continuations
+ * restore only the separately captured original user draft.
  */
 export interface StudioPlaygroundRecipe {
   crunControls?: StudioCrunControls;
@@ -233,6 +233,8 @@ export interface StudioPlaygroundRecipe {
   modelKey?: string;
   mood?: string;
   outputs: number;
+  /** Exact user draft before command resolution, enhancement and enrichment. */
+  originalText?: string;
   promptTemplate?: string;
   references: string[];
   resolution?: string;

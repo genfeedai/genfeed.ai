@@ -70,6 +70,7 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    ...(requiresRequest ? { organizationModule: 'automation' as const } : {}),
     definition: {
       edges,
       inputVariables: requiresRequest

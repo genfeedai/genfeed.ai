@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   TwitterPipelineDraftDto,
@@ -21,6 +22,7 @@ export class TwitterPipelineController {
   constructor(private readonly twitterqueryService: TwitterPipelineService) {}
 
   @Post('search')
+  @OrganizationModule('discovery')
   @HttpCode(HttpStatus.OK)
   search(
     @Param('organizationId') organizationId: string,
@@ -37,6 +39,7 @@ export class TwitterPipelineController {
   }
 
   @Post('draft')
+  @OrganizationModule('discovery')
   @HttpCode(HttpStatus.OK)
   draft(
     @Param('organizationId') organizationId: string,
@@ -50,6 +53,7 @@ export class TwitterPipelineController {
   }
 
   @Post('publish')
+  @OrganizationModule('publishing')
   @HttpCode(HttpStatus.OK)
   publish(
     @Param('organizationId') organizationId: string,

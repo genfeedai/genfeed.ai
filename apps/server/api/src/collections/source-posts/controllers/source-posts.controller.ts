@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { SourcePostDraftActionDto } from '@api/collections/source-posts/dto/source-post-action.dto';
 import { SourcePostsQueryDto } from '@api/collections/source-posts/dto/source-posts-query.dto';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -29,6 +30,7 @@ import type { Request } from 'express';
 @ApiTags('Source Posts')
 @Controller('source-posts')
 @UseGuards(RolesGuard)
+@OrganizationModule('discovery')
 export class SourcePostsController {
   constructor(private readonly sourcePostsService: SourcePostsService) {}
 

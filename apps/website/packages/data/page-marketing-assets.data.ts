@@ -38,7 +38,7 @@ export const PAGE_MARKETING_ASSETS = {
     alt: 'Photoreal editorial still life of two sculptural graphite communication handsets facing one another across a warm oak desk, copper light bridges the small gap',
     src: cdnAsset('/assets/branding/website/editorial/page-contact-v1.webp'),
   },
-  '/download': {
+  '/desktop': {
     alt: 'A polished silver creative toolkit descending neatly into an open graphite desktop dock, amber lens and cobalt media slide inside',
     src: cdnAsset('/assets/branding/website/editorial/page-download-v1.webp'),
   },

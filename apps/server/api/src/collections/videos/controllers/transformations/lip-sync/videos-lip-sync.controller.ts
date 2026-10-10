@@ -6,12 +6,12 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -52,7 +52,8 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
-@UseGuards(SubscriptionGuard, CreditsGuard)
+@OrganizationModule('playground')
+@UseGuards(CreditsGuard)
 export class VideosLipSyncController {
   private readonly constructorName = String(this.constructor.name);
 

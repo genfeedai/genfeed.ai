@@ -318,6 +318,15 @@ describe('ContentGeneratorService', () => {
   });
 
   describe('registered generation workflows', () => {
+    it('owns generation through Playground rather than requiring Automation or Discovery', () => {
+      expect(workflowRunner.registerWorkflow.mock.calls.length).toBeGreaterThan(
+        0,
+      );
+      for (const [definition] of workflowRunner.registerWorkflow.mock.calls) {
+        expect(definition).toMatchObject({ organizationModule: 'playground' });
+      }
+    });
+
     type GraphNode = {
       data?: {
         config?: { actionId?: string; parameters?: Record<string, unknown> };

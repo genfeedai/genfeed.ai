@@ -13,6 +13,8 @@ export const TELEGRAM_DISTRIBUTION_WORKFLOW_ID =
 export function buildTelegramDistributionWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: TELEGRAM_DISTRIBUTION_WORKFLOW_ID,
+    organizationModule: 'publishing',
+    moduleCompletionNodeIds: ['finalize-delivery'],
     definition: {
       edges: [
         {

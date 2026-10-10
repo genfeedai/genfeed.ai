@@ -1012,6 +1012,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     setError(null);
     try {
       await clipsService.retrySource(project.projectId);
+      setStep(project.source?.flow === 'review' ? 'review' : 'progress');
       setProject((previous) =>
         previous
           ? {
@@ -1038,7 +1039,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [clipsService, project?.projectId]);
+  }, [clipsService, project?.projectId, project?.source?.flow]);
 
   const handleRetryFailedClips = useCallback(async () => {
     if (!project?.projectId) {

@@ -1,6 +1,7 @@
 import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -43,6 +44,7 @@ export class MCPController {
     private readonly analyticsService: AnalyticsService,
   ) {}
 
+  @OrganizationModule('playground')
   @Post('videos')
   @Credits({
     description: 'Video generation',

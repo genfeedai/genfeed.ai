@@ -61,6 +61,7 @@ import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@pages/library/knowledge/components/KnowledgeReferenceSection';
 import StudioPlaygroundComposer from '@pages/studio/playground/components/StudioPlaygroundComposer';
+import StudioPlaygroundFocusedPreview from '@pages/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@pages/studio/playground/components/StudioPlaygroundInspector';
 import StudioPlaygroundResults from '@pages/studio/playground/components/StudioPlaygroundResults';
 import StudioPlaygroundStarterIdeas from '@pages/studio/playground/components/StudioPlaygroundStarterIdeas';
@@ -87,6 +88,7 @@ import {
 import {
   canUseStudioJobAsReference,
   filterStudioPlaygroundJobs,
+  isStudioImageContinuationSource,
   mergeStudioPlaygroundJobs,
   replaceStudioContentReference,
   resolveStudioAssetUrl,
@@ -103,9 +105,11 @@ import {
 import {
   groupStudioPlaygroundJobsByRun,
   readStudioCrunRecipeControls,
+  readStudioOriginalPrompt,
   recipeFromIngredient,
   recipeFromRepromptData,
   settingsPatchFromRecipe,
+  studioIngredientAccessibleLabel,
 } from '@pages/studio/playground/utils/studio-playground-recipe';
 import {
   pickStarterCharacter,
@@ -120,6 +124,7 @@ import {
   isStudioPlaygroundType,
   listStudioPlaygroundTypeConfigs,
 } from '@pages/studio/playground/utils/studio-playground-types';
+import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -199,8 +204,7 @@ function toContentReference(
   return {
     item: {
       brandId: asset.brandId ?? null,
-      contentTitle:
-        asset.metadataLabel || asset.promptText || 'Generated reference',
+      contentTitle: studioIngredientAccessibleLabel(asset),
       contentType: String(asset.category),
       id: asset.id,
       thumbnailUrl,
@@ -220,7 +224,7 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
     id: asset.id,
     ingredientId: asset.id,
     kind: asset.category === IngredientCategory.VIDEO ? 'video' : 'image',
-    name: asset.metadataLabel || 'Upload',
+    name: studioIngredientAccessibleLabel(asset),
     previewUrl: url,
     status: UploadStatus.COMPLETED,
     url,
@@ -329,6 +333,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     ViewType.GRID,
   );
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [focusedScope, setFocusedScope] = useState<string | null>(null);
+  // The epoch also fences A → B → A changes without reviving the old selection.
+  const focusedScopeKey = `${crunRestoreScope}:${crunRestoreEpochRef.current}`;
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
+  const galleryPositionRef = useRef(0);
+  const focusReturnRef = useRef<HTMLElement | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
   const [contentLibraryRole, setContentLibraryRole] =
     useState<StudioPlaygroundReferenceRole>('reference');
@@ -453,37 +463,101 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       filter: 'all',
     });
 
-  const handleAttachGeneratedReference = useCallback(
-    (ingredient: IIngredient, targetType: 'image' | 'video') => {
-      const previewUrl = resolveStudioAssetUrl(ingredient);
-      if (!previewUrl) {
-        notificationsService.info('This asset has no usable preview yet');
+  const { openConfirm } = useConfirmModal();
+  const continuationDraft = JSON.stringify([
+    prompt,
+    type,
+    settings,
+    contentReferences,
+    attachments.map((attachment) => attachment.id),
+    restoredAttachments,
+    knowledgeSelection,
+  ]);
+  const continuationDraftRef = useRef(continuationDraft);
+  continuationDraftRef.current = continuationDraft;
+  const prepareContinuation = useCallback(
+    (apply: () => void) => {
+      if (
+        !prompt.trim() &&
+        !contentReferences.length &&
+        !attachments.length &&
+        !restoredAttachments.length
+      ) {
+        apply();
         return;
       }
-
-      setContentReferences((current) =>
-        current.some((reference) => reference.item.id === ingredient.id)
-          ? current
-          : [
-              ...current,
-              {
-                item: {
-                  brandId: ingredient.brandId ?? null,
-                  contentTitle:
-                    ingredient.metadataLabel ||
-                    ingredient.promptText ||
-                    'Generated reference',
-                  contentType: String(ingredient.category),
-                  id: ingredient.id,
-                  thumbnailUrl: previewUrl,
-                },
-                role: targetType === 'video' ? 'startFrame' : 'reference',
-              },
-            ],
-      );
-      setType(targetType);
+      const scope = crunRestoreScopeRef.current;
+      const draft = continuationDraftRef.current;
+      openConfirm({
+        label: translate('continuation.replaceTitle'),
+        message: translate('continuation.replaceMessage'),
+        confirmLabel: translate('continuation.replaceDraft'),
+        cancelLabel: translate('continuation.cancel'),
+        onConfirm: () => {
+          if (
+            !isMountedRef.current ||
+            scope !== crunRestoreScopeRef.current ||
+            draft !== continuationDraftRef.current
+          )
+            return;
+          apply();
+        },
+      });
     },
-    [notificationsService, setType],
+    [
+      attachments.length,
+      contentReferences.length,
+      openConfirm,
+      prompt,
+      restoredAttachments.length,
+      translate,
+    ],
+  );
+
+  const handleAttachGeneratedReference = useCallback(
+    (ingredient: IIngredient, targetType: 'image' | 'video') => {
+      if (
+        !isStudioImageContinuationSource(ingredient, brandId, organizationId)
+      ) {
+        notificationsService.info(translate('continuation.sourceUnavailable'));
+        return;
+      }
+      const reference = toContentReference(
+        ingredient,
+        targetType === 'video' ? 'startFrame' : 'reference',
+      );
+      if (!reference) {
+        notificationsService.info(translate('continuation.sourceUnavailable'));
+        return;
+      }
+      reference.item.contentTitle = translate(
+        targetType === 'video'
+          ? 'continuation.animateSource'
+          : 'continuation.variationSource',
+        {
+          name: studioIngredientAccessibleLabel(ingredient),
+        },
+      );
+      prepareContinuation(() => {
+        clearCrunRestore();
+        clearAttachments();
+        setRestoredAttachments(EMPTY_ATTACHMENTS);
+        restoredRolesRef.current.clear();
+        setContentReferences([reference]);
+        setPrompt('');
+        setType(targetType);
+      });
+    },
+    [
+      brandId,
+      organizationId,
+      clearAttachments,
+      clearCrunRestore,
+      notificationsService,
+      prepareContinuation,
+      setType,
+      translate,
+    ],
   );
   const { cancelJob, isGenerating, jobs, rehydratePending, removeJob, submit } =
     useStudioGeneration({
@@ -844,6 +918,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
     [selectedJobId, visibleJobs],
   );
+  const isFocusedPreview =
+    focusedScope === focusedScopeKey && Boolean(selectedJob);
   const selectedRunJobs = useMemo(() => {
     if (!selectedJob) {
       return [];
@@ -1169,29 +1245,34 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         ...resolvedReferences,
         imageReferenceIds: prepared.referenceIds,
       },
-      crunModel
-        ? {
-            ...(crunRequest ? { crunRequest } : {}),
-            ...(crunVideoRequest ? { crunVideoRequest } : {}),
-            getCurrentCrunQuote: crunQuote.getCurrentQuote,
-          }
-        : skillSlugs.length ||
-            hasKnowledgeSelection ||
-            (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
-            (enhancedPromptId && prepared.text === prompt)
+      {
+        originalText: prompt,
+        ...(crunModel
           ? {
-              ...(skillSlugs.length ? { requestedSkillSlugs: skillSlugs } : {}),
-              ...(hasKnowledgeSelection
-                ? { knowledge: knowledgeSelection }
-                : {}),
-              ...(isHandoffAccepted && handoffPayload?.harness !== undefined
-                ? { harness: handoffPayload.harness }
-                : {}),
-              ...(enhancedPromptId && prepared.text === prompt
-                ? { promptId: enhancedPromptId }
-                : {}),
+              ...(crunRequest ? { crunRequest } : {}),
+              ...(crunVideoRequest ? { crunVideoRequest } : {}),
+              getCurrentCrunQuote: crunQuote.getCurrentQuote,
             }
-          : undefined,
+          : skillSlugs.length ||
+              hasKnowledgeSelection ||
+              (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
+              (enhancedPromptId && prepared.text === prompt)
+            ? {
+                ...(skillSlugs.length
+                  ? { requestedSkillSlugs: skillSlugs }
+                  : {}),
+                ...(hasKnowledgeSelection
+                  ? { knowledge: knowledgeSelection }
+                  : {}),
+                ...(isHandoffAccepted && handoffPayload?.harness !== undefined
+                  ? { harness: handoffPayload.harness }
+                  : {}),
+                ...(enhancedPromptId && prepared.text === prompt
+                  ? { promptId: enhancedPromptId }
+                  : {}),
+              }
+            : {}),
+      },
     ).then((isAccepted) => {
       // A sent generation leaves an empty composer (and draft) behind; the
       // model settings stay for the next one.
@@ -1825,45 +1906,56 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
 
   const handleEditJob = useCallback(
     (job: StudioPlaygroundJob) => {
-      if (!job.ingredient) return;
-      const reference = toContentReference(job.ingredient, 'editSource');
+      const ingredient = job.ingredient;
+      if (
+        !isStudioImageContinuationSource(ingredient, brandId, organizationId)
+      ) {
+        notificationsService.info(translate('continuation.sourceUnavailable'));
+        return;
+      }
+      const reference = toContentReference(ingredient, 'editSource');
       if (!reference) return;
-      clearCrunRestore();
-      clearAttachments();
-      setRestoredAttachments(EMPTY_ATTACHMENTS);
-      restoredRolesRef.current.clear();
-      setContentReferences([reference]);
-      setPrompt('');
-      const entry = imageEditEntryForAsset(
-        {
-          ...job.ingredient,
-          imageEdit: job.ingredient.imageEdit ?? job.recipe?.imageEdit,
-        },
-        {
-          height: job.height,
-          modelKey: job.modelKey,
-          recipeAspectRatio: job.recipe?.aspectRatio,
-          recipeModelKey: job.recipe?.modelKey,
-          width: job.width,
-        },
-      );
-      applyTypeSettings('image-edit', entry.patch);
-      warnForImageEditEntry(
-        entry,
-        {
-          model: (model) => translate('editImage.modelFallback', { model }),
-          ratio: (ratio) =>
-            translate('editImage.aspectRatioFallback', { ratio }),
-        },
-        (message) => notificationsService.warning(message),
-      );
+      prepareContinuation(() => {
+        clearCrunRestore();
+        clearAttachments();
+        setRestoredAttachments(EMPTY_ATTACHMENTS);
+        restoredRolesRef.current.clear();
+        setContentReferences([reference]);
+        setPrompt('');
+        const entry = imageEditEntryForAsset(
+          {
+            ...ingredient,
+            imageEdit: ingredient.imageEdit ?? job.recipe?.imageEdit,
+          },
+          {
+            height: job.height,
+            modelKey: job.modelKey,
+            recipeAspectRatio: job.recipe?.aspectRatio,
+            recipeModelKey: job.recipe?.modelKey,
+            width: job.width,
+          },
+        );
+        applyTypeSettings('image-edit', entry.patch);
+        warnForImageEditEntry(
+          entry,
+          {
+            model: (model) => translate('editImage.modelFallback', { model }),
+            ratio: (ratio) =>
+              translate('editImage.aspectRatioFallback', { ratio }),
+          },
+          (message) => notificationsService.warning(message),
+        );
+      });
     },
     [
       clearAttachments,
       clearCrunRestore,
       applyTypeSettings,
+      brandId,
+      organizationId,
       notificationsService,
       translate,
+      prepareContinuation,
     ],
   );
 
@@ -1890,6 +1982,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         if (
           !ingredient ||
           ingredient.brandId !== brandId ||
+          ingredient.isDeleted ||
           ingredient.category !== IngredientCategory.IMAGE
         )
           throw new Error('Editing source not found in this brand.');
@@ -1944,12 +2037,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       isVoiceSupported,
   );
 
-  // Vary/Reprompt reloads the composer from the card's recipe rather than
-  // firing immediately — the operator tweaks the enriched request instead of
-  // retyping the raw box.
-  const handleVaryRecipe = useCallback(
+  const applyRecipeContinuation = useCallback(
     (job: StudioPlaygroundJob) => {
-      const recipe =
+      const storedRecipe =
         job.type === 'image-edit' && job.ingredient
           ? recipeFromIngredient(job.ingredient, job.type)
           : job.recipe
@@ -1965,11 +2055,19 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                   job.type,
                 )
               : null;
+      const originalText =
+        storedRecipe?.originalText ??
+        (job.ingredient ? readStudioOriginalPrompt(job.ingredient) : undefined);
+      const recipe = storedRecipe ? { ...storedRecipe, originalText } : null;
+      if (originalText === undefined)
+        notificationsService.info(
+          translate('continuation.originalUnavailable'),
+        );
 
       clearCrunRestore();
       if (!recipe) {
         setType(job.type);
-        setPrompt(job.prompt);
+        setPrompt('');
         return;
       }
 
@@ -1997,7 +2095,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         const valid = normalizeCrunVideoDraft(controls, {
           modelKey: residual.modelKey,
           contractVersion: residual.contractVersion,
-          prompt: recipe.text,
+          prompt: recipe.originalText ?? recipe.text,
           duration: recipe.duration,
           resolution: recipe.resolution,
           aspectRatio: recipe.aspectRatio,
@@ -2054,7 +2152,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                   : ''),
               resolution: recipe.resolution ?? '',
             });
-            setPrompt(recipe.text);
+            setPrompt(recipe.originalText ?? '');
             promptDocumentRef.current = null;
             setDocumentSeed(null);
             setCrunRestoreStatus(null);
@@ -2121,7 +2219,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           });
       }
       applyTypeSettings(job.type, settingsPatchFromRecipe(recipe));
-      setPrompt(recipe.text);
+      setPrompt(recipe.originalText ?? '');
     },
     [
       applyTypeSettings,
@@ -2136,11 +2234,40 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     ],
   );
 
+  const handleVaryRecipe = useCallback(
+    (job: StudioPlaygroundJob) => {
+      prepareContinuation(() => applyRecipeContinuation(job));
+    },
+    [applyRecipeContinuation, prepareContinuation],
+  );
+
   const handleSelectJob = useCallback((job: StudioPlaygroundJob) => {
     setSelectedJobId(job.id);
   }, []);
   const handleCloseInspector = useCallback(() => {
     setSelectedJobId(null);
+    setFocusedScope(null);
+  }, []);
+  const handleOpenFocusedPreview = useCallback(() => {
+    focusReturnRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    galleryPositionRef.current = galleryScrollRef.current?.scrollTop ?? 0;
+    setFocusedScope(focusedScopeKey);
+    galleryScrollRef.current?.scrollTo({ top: 0 });
+  }, [focusedScopeKey]);
+  const handleCloseFocusedPreview = useCallback(() => {
+    setFocusedScope(null);
+    requestAnimationFrame(() => {
+      galleryScrollRef.current?.scrollTo({ top: galleryPositionRef.current });
+      const returnTarget = focusReturnRef.current?.isConnected
+        ? focusReturnRef.current
+        : (document.querySelector<HTMLElement>(
+            '[data-testid="studio-open-focused-preview"]',
+          ) ?? galleryScrollRef.current);
+      returnTarget?.focus({ preventScroll: true });
+    });
   }, []);
   // Remix feeds a finished image back into the composer as an image
   // reference. Videos are not offered: a video reference is dropped again by
@@ -2250,68 +2377,98 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4">
+          <div
+            ref={galleryScrollRef}
+            tabIndex={-1}
+            className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
+          >
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-              {galleryError ? (
-                <Alert role="alert">
-                  <AlertTitle>
-                    {translate(`history.${galleryError}FailedTitle`)}
-                  </AlertTitle>
-                  <AlertDescription>
-                    <p>
-                      {translate(`history.${galleryError}FailedDescription`)}
-                    </p>
-                    <Button
-                      aria-busy={isLoadingGallery}
-                      ariaLabel={translate('history.retry')}
-                      className="mt-3"
-                      disabled={isLoadingGallery}
-                      icon={<RotateCcw aria-hidden="true" className="size-4" />}
-                      isLoading={isLoadingGallery}
-                      onClick={refresh}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                      withWrapper={false}
-                    >
-                      {translate('history.retry')}
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              {galleryError && isLoadingGallery ? (
-                <p
-                  aria-live="polite"
-                  className="text-sm text-muted-foreground"
-                  role="status"
-                >
-                  {translate('history.retrying')}
-                </p>
-              ) : null}
-              {showStarterIdeas ? (
-                <StudioPlaygroundStarterIdeas
-                  character={pickStarterCharacter(characterMentions)}
-                  isDisabled={isGenerating}
-                  onSelect={handleStarterIdea}
-                  productReference={pickStarterProductReference(
-                    selectedBrand?.references,
-                  )}
-                />
-              ) : !galleryError || visibleJobs.length > 0 ? (
-                <StudioPlaygroundResults
-                  assetActions={{
-                    ...assetActions,
-                    onCancelGeneration: cancelJob,
-                  }}
-                  isLoading={isLoadingGallery}
+              {isFocusedPreview && selectedJob ? (
+                <StudioPlaygroundFocusedPreview
+                  job={selectedJob}
                   jobs={visibleJobs}
-                  isUseAsReferenceEnabled={canUseGeneratedReference}
-                  onReprompt={handleVaryRecipe}
+                  onClose={handleCloseFocusedPreview}
                   onSelect={handleSelectJob}
-                  onUseAsReference={handleUseGeneratedReference}
-                  selectedJobId={selectedJobId}
-                  view={resultsView}
-                />
-              ) : null}
+                >
+                  <StudioPlaygroundInspector
+                    isFocused
+                    job={selectedJob}
+                    onRemix={handleRemixJob}
+                    onEdit={handleEditJob}
+                    onSelect={handleSelectJob}
+                    onUseInPost={assetActions.onPublishIngredient}
+                    onVary={handleVaryRecipe}
+                    runJobs={selectedRunJobs}
+                  />
+                </StudioPlaygroundFocusedPreview>
+              ) : (
+                <>
+                  {galleryError ? (
+                    <Alert role="alert">
+                      <AlertTitle>
+                        {translate(`history.${galleryError}FailedTitle`)}
+                      </AlertTitle>
+                      <AlertDescription>
+                        <p>
+                          {translate(
+                            `history.${galleryError}FailedDescription`,
+                          )}
+                        </p>
+                        <Button
+                          aria-busy={isLoadingGallery}
+                          ariaLabel={translate('history.retry')}
+                          className="mt-3"
+                          disabled={isLoadingGallery}
+                          icon={
+                            <RotateCcw aria-hidden="true" className="size-4" />
+                          }
+                          isLoading={isLoadingGallery}
+                          onClick={refresh}
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                          withWrapper={false}
+                        >
+                          {translate('history.retry')}
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                  {galleryError && isLoadingGallery ? (
+                    <p
+                      aria-live="polite"
+                      className="text-sm text-muted-foreground"
+                      role="status"
+                    >
+                      {translate('history.retrying')}
+                    </p>
+                  ) : null}
+                  {showStarterIdeas ? (
+                    <StudioPlaygroundStarterIdeas
+                      character={pickStarterCharacter(characterMentions)}
+                      isDisabled={isGenerating}
+                      onSelect={handleStarterIdea}
+                      productReference={pickStarterProductReference(
+                        selectedBrand?.references,
+                      )}
+                    />
+                  ) : !galleryError || visibleJobs.length > 0 ? (
+                    <StudioPlaygroundResults
+                      assetActions={{
+                        ...assetActions,
+                        onCancelGeneration: cancelJob,
+                      }}
+                      isLoading={isLoadingGallery}
+                      jobs={visibleJobs}
+                      isUseAsReferenceEnabled={canUseGeneratedReference}
+                      onReprompt={handleVaryRecipe}
+                      onSelect={handleSelectJob}
+                      onUseAsReference={handleUseGeneratedReference}
+                      selectedJobId={selectedJobId}
+                      view={resultsView}
+                    />
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
           <PromptBarContainer
@@ -2435,7 +2592,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       <ContextSidebarPanel
         onClose={handleCloseInspector}
         selection={
-          selectedJob
+          selectedJob && !isFocusedPreview
             ? {
                 id: selectedJob.id,
                 kind: 'asset',
@@ -2448,9 +2605,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             : null
         }
       >
-        {selectedJob ? (
+        {selectedJob && !isFocusedPreview ? (
           <StudioPlaygroundInspector
             job={selectedJob}
+            onOpenPreview={handleOpenFocusedPreview}
             onRemix={handleRemixJob}
             onEdit={handleEditJob}
             onSelect={handleSelectJob}

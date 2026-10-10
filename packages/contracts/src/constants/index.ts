@@ -45,6 +45,7 @@ export * from './onboarding.constant';
 export * from './onboarding-conversation.constant';
 export * from './organization-context.constant';
 export * from './organization-create.constant';
+export * from './organization-modules.constant';
 export * from './pagination.constant';
 export * from './platform-colors';
 export * from './platform-feature-settings.constant';

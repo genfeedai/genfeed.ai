@@ -1,7 +1,8 @@
 import { ContentTemplateKey } from '../enums/template.enum';
+import type { IPreset } from '../interfaces/elements/preset.interface';
 import type { GenerationSetupValues } from '../interfaces/studio/generation-setup.interface';
 
-/** Canonical system templates, shared by the boot seed and Studio browser. */
+/** Initial system templates. Persisted admin edits own the catalog after seeding. */
 export const STUDIO_SYSTEM_PRESETS = [
   {
     key: 'studio-profile-picture',
@@ -93,8 +94,73 @@ export const STUDIO_SYSTEM_PRESETS = [
   },
 ] as const;
 
-export type StudioSystemPreset = (typeof STUDIO_SYSTEM_PRESETS)[number];
+export type StudioSystemPreset = {
+  key: (typeof STUDIO_SYSTEM_PRESETS)[number]['key'];
+  label: string;
+  description: string;
+  prompt: string;
+  type: 'image' | 'video';
+  values: Partial<GenerationSetupValues> &
+    Pick<GenerationSetupValues, 'aspectRatio'>;
+};
 
 export function studioSystemPresetId(key: StudioSystemPreset['key']): string {
   return `cpresetbuiltin${key.replaceAll('-', '')}`;
+}
+
+/** Only live platform rows with the reserved ID may supply a built-in template. */
+export function resolveStudioSystemPresets(
+  catalog: readonly Partial<IPreset>[],
+  type: string,
+): StudioSystemPreset[] {
+  return STUDIO_SYSTEM_PRESETS.flatMap((seed): StudioSystemPreset[] => {
+    const row = catalog.find(
+      (preset) => preset.id === studioSystemPresetId(seed.key),
+    );
+    if (
+      !row?.isActive ||
+      row.isDeleted ||
+      row.organizationId !== null ||
+      row.brandId !== null ||
+      row.category !== type ||
+      (type !== 'image' && type !== 'video') ||
+      !row.label?.trim() ||
+      typeof row.prompt !== 'string'
+    )
+      return [];
+    // Older rows can omit the ratio. Invalid persisted ratios are never applied.
+    const aspectRatio = row.aspectRatio || seed.values.aspectRatio;
+    if (
+      !/^[1-9]\d*(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$/.test(aspectRatio) ||
+      (row.duration != null &&
+        (!Number.isFinite(row.duration) ||
+          row.duration <= 0 ||
+          row.duration > 3600))
+    )
+      return [];
+    const values: StudioSystemPreset['values'] = { aspectRatio };
+    if (row.duration != null) values.duration = row.duration;
+    for (const field of [
+      'camera',
+      'cameraMovement',
+      'lens',
+      'lighting',
+      'mood',
+      'promptTemplate',
+      'scene',
+      'style',
+    ] as const) {
+      if (typeof row[field] === 'string') values[field] = row[field];
+    }
+    return [
+      {
+        key: seed.key,
+        label: row.label,
+        description: row.description ?? '',
+        prompt: row.prompt,
+        type,
+        values,
+      },
+    ];
+  });
 }

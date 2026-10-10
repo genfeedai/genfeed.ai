@@ -7,6 +7,10 @@ import type {
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import {
+  getOrganizationModuleExecutionContext,
+  runWithOrganizationModule,
+} from '@api/common/organization-modules/organization-module-execution.context';
 import { runWithActionOrigin } from '@api/index';
 import {
   ActionOrigin,
@@ -20,6 +24,7 @@ import {
   SystemWorkflowDispatchClass,
   WORKFLOW_BACKGROUND_QUEUE,
 } from '@genfeedai/contracts/queue';
+import { HttpException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -81,6 +86,7 @@ describe('WorkflowExecutionQueueService', () => {
   let mockAgentTurnQueue: ReturnType<typeof createMockQueue>;
   let mockScheduledPublishQueue: ReturnType<typeof createMockQueue>;
   let mockLogger: ReturnType<typeof createMockLogger>;
+  let mockModuleAccess: { assertAccess: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockQueue = createMockQueue();
@@ -89,6 +95,7 @@ describe('WorkflowExecutionQueueService', () => {
     mockAgentTurnQueue = createMockQueue();
     mockScheduledPublishQueue = createMockQueue();
     mockLogger = createMockLogger();
+    mockModuleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
 
     service = new (
       WorkflowExecutionQueueService as unknown as new (
@@ -101,7 +108,231 @@ describe('WorkflowExecutionQueueService', () => {
       mockAgentTurnQueue,
       mockScheduledPublishQueue,
       mockLogger,
+      mockModuleAccess,
     );
+  });
+
+  describe('trusted module queue admission', () => {
+    it('captures the authenticated scope and ignores input metadata claiming another module', async () => {
+      await runWithOrganizationModule(
+        { organizationId: 'org-1', moduleId: 'batch' },
+        () =>
+          service.queueSystemWorkflow(
+            {
+              actionType: 'test',
+              canonicalId: 'test',
+              organizationId: 'org-1',
+              source: 'web',
+              metadata: {
+                organizationModuleContext: {
+                  moduleId: 'playground',
+                  organizationId: 'org-1',
+                },
+              },
+            },
+            'scoped-job',
+            { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+          ),
+      );
+      expect(mockModuleAccess.assertAccess).toHaveBeenCalledWith(
+        'org-1',
+        'batch',
+      );
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.objectContaining({
+          organizationModuleContext: {
+            organizationId: 'org-1',
+            moduleId: 'batch',
+          },
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('rejects revoked access before reserving or adding a queued job', async () => {
+      mockModuleAccess.assertAccess.mockRejectedValueOnce(
+        new Error('Module disabled'),
+      );
+      await expect(
+        runWithOrganizationModule(
+          { organizationId: 'org-1', moduleId: 'batch' },
+          () =>
+            service.queueSystemWorkflow(
+              {
+                actionType: 'test',
+                canonicalId: 'test',
+                organizationId: 'org-1',
+                source: 'web',
+              },
+              'scoped-job',
+              { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+            ),
+        ),
+      ).rejects.toThrow('Module disabled');
+      expect(mockQueue.getJob).not.toHaveBeenCalled();
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('rejects cross-organization fanout instead of borrowing the parent grant', async () => {
+      await expect(
+        runWithOrganizationModule(
+          { organizationId: 'other-org', moduleId: 'batch' },
+          () => service.queueTriggerEvent(createTriggerEvent()),
+        ),
+      ).rejects.toThrow('Invalid queued organization module execution context');
+      expect(mockModuleAccess.assertAccess).not.toHaveBeenCalled();
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('carries the module purpose through trigger and delayed jobs', async () => {
+      await runWithOrganizationModule(
+        { organizationId: 'org-1', moduleId: 'clips' },
+        async () => {
+          await service.queueTriggerEvent(createTriggerEvent());
+          await service.queueDelayedResume(createDelayResumeData(), 500);
+        },
+      );
+      expect(mockModuleAccess.assertAccess).toHaveBeenCalledTimes(2);
+      for (const [, data] of mockQueue.add.mock.calls)
+        expect(data.organizationModuleContext).toEqual({
+          organizationId: 'org-1',
+          moduleId: 'clips',
+        });
+    });
+
+    it('requires Automation for legacy triggers without a saved module envelope', async () => {
+      const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+      const result = await service.runWithQueuedOrganizationModule(
+        { type: 'trigger', triggerEvent: createTriggerEvent() },
+        work,
+      );
+      expect(result).toEqual({
+        organizationId: 'org-1',
+        moduleId: 'automation',
+      });
+      expect(mockModuleAccess.assertAccess).toHaveBeenCalledWith(
+        'org-1',
+        'automation',
+      );
+      expect(work).toHaveBeenCalledOnce();
+      expect(getOrganizationModuleExecutionContext()).toBeUndefined();
+    });
+
+    it('does not borrow Publishing admission for user-authored trigger work', async () => {
+      const data = {
+        type: 'trigger' as const,
+        triggerEvent: createTriggerEvent(),
+        organizationModuleContext: {
+          organizationId: 'org-1',
+          moduleId: 'publishing' as const,
+        },
+      };
+      const work = vi.fn(async () => getOrganizationModuleExecutionContext());
+      expect(await service.runWithQueuedOrganizationModule(data, work)).toEqual(
+        { organizationId: 'org-1', moduleId: 'automation' },
+      );
+      expect(mockModuleAccess.assertAccess).toHaveBeenCalledWith(
+        'org-1',
+        'automation',
+      );
+    });
+
+    it.each(['disabled', 'subscription-required'])(
+      'completes an optional %s trigger without matching or creating workflows',
+      async (reason) => {
+        mockModuleAccess.assertAccess.mockRejectedValueOnce(
+          new HttpException({ reason }, 403),
+        );
+        const work = vi.fn(async () => 'executed');
+        expect(
+          await service.runWithQueuedOrganizationModule(
+            { type: 'trigger', triggerEvent: createTriggerEvent() },
+            work,
+          ),
+        ).toBeUndefined();
+        expect(work).not.toHaveBeenCalled();
+        expect(mockLogger.debug).toHaveBeenCalledWith(
+          expect.stringContaining('skipped'),
+          expect.objectContaining({ organizationId: 'org-1' }),
+        );
+      },
+    );
+
+    it('does not silently discard a trigger when access policy is unavailable', async () => {
+      mockModuleAccess.assertAccess.mockRejectedValueOnce(
+        new HttpException('Module access unavailable', 503),
+      );
+      const work = vi.fn(async () => 'executed');
+      await expect(
+        service.runWithQueuedOrganizationModule(
+          { type: 'trigger', triggerEvent: createTriggerEvent() },
+          work,
+        ),
+      ).rejects.toThrow('Module access unavailable');
+      expect(work).not.toHaveBeenCalled();
+      expect(mockLogger.debug).not.toHaveBeenCalled();
+    });
+
+    it('rejects a trigger without an organization before policy lookup', async () => {
+      const work = vi.fn(async () => 'executed');
+      await expect(
+        service.runWithQueuedOrganizationModule({ type: 'trigger' }, work),
+      ).rejects.toThrow(
+        'Workflow trigger is missing its organization identity',
+      );
+      expect(work).not.toHaveBeenCalled();
+      expect(mockModuleAccess.assertAccess).not.toHaveBeenCalled();
+    });
+
+    it('rechecks current policy before each queued attempt and restores child scope', async () => {
+      const data = {
+        type: 'delay-resume' as const,
+        delayResumeData: createDelayResumeData(),
+        organizationModuleContext: {
+          organizationId: 'org-1',
+          moduleId: 'clips' as const,
+        },
+      };
+      const work = vi.fn(async () => {
+        await Promise.resolve();
+        return getOrganizationModuleExecutionContext();
+      });
+      expect(await service.runWithQueuedOrganizationModule(data, work)).toEqual(
+        data.organizationModuleContext,
+      );
+      expect(getOrganizationModuleExecutionContext()).toBeUndefined();
+      mockModuleAccess.assertAccess.mockRejectedValueOnce(
+        new Error('Subscription expired'),
+      );
+      await expect(
+        service.runWithQueuedOrganizationModule(data, work),
+      ).rejects.toThrow('Subscription expired');
+      expect(work).toHaveBeenCalledTimes(1);
+      expect(mockModuleAccess.assertAccess).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects mismatched persisted scope and delay trigger identity before running work', async () => {
+      const work = vi.fn(async () => undefined);
+      const data = {
+        type: 'delay-resume' as const,
+        delayResumeData: createDelayResumeData(),
+        organizationModuleContext: {
+          organizationId: 'other-org',
+          moduleId: 'clips' as const,
+        },
+      };
+      await expect(
+        service.runWithQueuedOrganizationModule(data, work),
+      ).rejects.toThrow('Invalid queued organization module execution context');
+      data.organizationModuleContext.organizationId = 'org-1';
+      data.delayResumeData.triggerEvent.organizationId = 'other-org';
+      await expect(
+        service.runWithQueuedOrganizationModule(data, work),
+      ).rejects.toThrow('Invalid queued organization module execution context');
+      expect(work).not.toHaveBeenCalled();
+      expect(mockModuleAccess.assertAccess).not.toHaveBeenCalled();
+    });
   });
 
   describe('queueTriggerEvent', () => {

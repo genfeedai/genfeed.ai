@@ -55,6 +55,7 @@ function MasonryVideoWithActions(props: MasonryVideoProps): React.ReactElement {
 
 function MasonryVideoTile({
   actions,
+  accessibleLabel,
   video,
   isSelected = false,
   isScrollFocused = false,
@@ -147,6 +148,7 @@ function MasonryVideoTile({
 
         {/* Media content */}
         <MasonryVideoMediaArea
+          accessibleLabel={accessibleLabel}
           video={video}
           metadata={metadata}
           isUnavailable={isUnavailable}

@@ -152,6 +152,8 @@ async function installFixture(
         category: 'VIDEO',
         status: 'GENERATED',
         scope: 'USER',
+        brandId: 'brand-1',
+        organizationId: 'mock-org-id-e2e-test',
         cdnUrl: ownedUrl,
         width: 320,
         height: 180,
@@ -371,6 +373,8 @@ async function installFixture(
               category: 'IMAGE',
               status: 'GENERATED',
               scope: 'USER',
+              brandId: 'brand-1',
+              organizationId: 'mock-org-id-e2e-test',
               cdnUrl: `https://cdn.genfeed.ai/mock/${id}.png`,
               createdAt: '2026-10-01T12:00:00.000Z',
               metadata: {

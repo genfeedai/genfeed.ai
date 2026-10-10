@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 /**
  * Videos Module (Core)
  * Core video CRUD, captions, relationships, and upload functionality.
@@ -38,6 +39,7 @@ import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/se
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
+import { VideoExtensionExecutionService } from '@api/collections/videos/services/video-extension-execution.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
@@ -48,6 +50,7 @@ import { VideoMergeOrchestrationService } from '@api/collections/videos/services
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
@@ -89,6 +92,8 @@ import { Module } from '@nestjs/common';
     VideosUploadController,
   ],
   exports: [
+    VideoExtensionExecutionService,
+    FalVideoGenerationProviderAdapter,
     LiveSessionCreditsService,
     VideoGenerationCreditsService,
     VideoGenerationService,
@@ -97,6 +102,8 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
   ],
   imports: [
+    BrandAccessModule,
+    WorkflowsCoreModule,
     PersonasCoreModule,
     MediaUrlsModule,
     PlatformSettingsModule,
@@ -140,6 +147,7 @@ import { Module } from '@nestjs/common';
     WhisperModule,
   ],
   providers: [
+    VideoExtensionExecutionService,
     CrunVideoGenerationService,
     CrunVideoInputService,
     CrunVideoPreviewQuoteService,

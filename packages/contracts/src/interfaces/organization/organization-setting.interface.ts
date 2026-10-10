@@ -1,5 +1,6 @@
 import type { AgentAutonomyMode } from '../..';
 import type { AppLocale } from '../../constants';
+import type { OrganizationModuleOverrides } from '../../constants/organization-modules.constant';
 import type { IFleetEvaluationPolicy } from '../analytics/fleet-evaluation-policy.interface';
 import type { IBaseEntity } from '../index';
 import type {
@@ -131,6 +132,11 @@ export interface IOrganizationSetting extends IBaseEntity {
   onboardingJourneyMissions?: IOnboardingJourneyMissionState[];
   onboardingJourneyCompletedAt?: string | Date | null;
   agentPolicy?: IAgentPolicy;
+  moduleOverrides?: OrganizationModuleOverrides;
+  /** Read-only server runtime hint for presentation; admission always rechecks. */
+  readonly hasOrganizationBilling?: boolean;
+  /** Read-only fresh paid eligibility; null means the grant could not be verified. */
+  readonly hasPaidModuleSubscription?: boolean | null;
   fleetEvaluationPolicy?: IFleetEvaluationPolicy;
 
   // First-asset unlock gate: durable org signal, flips true on the org's first

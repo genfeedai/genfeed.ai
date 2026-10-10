@@ -1,4 +1,5 @@
 import type { ReplicatePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
+import type { WorkflowReviewedOutputContract } from '@genfeedai/contracts/interfaces/billing';
 
 export interface SingleMediaOutputContract {
   adapterVersion: 1;
@@ -21,4 +22,17 @@ export interface ReviewedReplicateOutputContract {
 }
 export type ReviewedReplicateOutputContractResult =
   | { status: 'reviewed'; contract: ReviewedReplicateOutputContract }
+  | { status: 'unresolved'; reason: string };
+
+export type ReviewedFalVideoOutputContract = Extract<
+  WorkflowReviewedOutputContract,
+  { provider: 'fal' }
+>;
+export type ReviewedFalVideoOutputContractResult =
+  | {
+      status: 'reviewed';
+      contract: ReviewedFalVideoOutputContract;
+      inputSchema: Record<string, unknown>;
+      schemaFamily: string;
+    }
   | { status: 'unresolved'; reason: string };

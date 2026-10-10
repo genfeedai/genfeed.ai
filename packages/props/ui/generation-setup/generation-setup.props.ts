@@ -140,6 +140,9 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupFrontDoorProps {
+  activeSection?: GenerationSetupCustomizeSectionId;
+  onCloseSection?: () => void;
+  renderSection?: (section: GenerationSetupCustomizeSectionId) => ReactNode;
   isAutoPriorityOnly?: boolean;
   showPresets?: boolean;
   showEnhancementSettings?: boolean;
@@ -177,15 +180,21 @@ export interface GenerationSetupPresetsPopoverProps
 export interface GenerationSetupPresetPreviewProps {
   preset: StudioSystemPreset;
   isAnimated?: boolean;
+  isCompact?: boolean;
 }
 
 export interface GenerationSetupOptionPickerProps {
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
+  previewKind?: 'style' | 'mood';
   label: string;
   value: string;
   options: readonly {
     value: string;
     label: string;
     isPlatformDefault?: boolean;
+    description?: string;
+    thumbnailUrl?: string;
   }[];
   onValueChange: (value: string) => void;
 }

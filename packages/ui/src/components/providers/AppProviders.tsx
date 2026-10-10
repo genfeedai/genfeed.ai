@@ -24,7 +24,8 @@ const LazyModalErrorDebug = dynamic(
 
 // Devtools loaded only in development. Avoids ~50KB in prod bundle.
 const LazyReactQueryDevtools =
-  process.env.NODE_ENV === 'development'
+  process.env.NODE_ENV === 'development' &&
+  process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST !== 'true'
     ? dynamic(
         () =>
           import('@tanstack/react-query-devtools').then((mod) => ({

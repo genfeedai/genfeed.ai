@@ -1,3 +1,4 @@
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { assembleVideoGenerationBrief } from '@api/services/generation-brief/assemble-video-generation-brief';
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
@@ -103,6 +104,18 @@ export function runVideoGenerationBrief(
     };
   }
 
+  if (
+    input.actionVerb === 'extend' &&
+    support.modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
+    input.durationSeconds !== undefined &&
+    (!Number.isInteger(input.durationSeconds) ||
+      input.durationSeconds < 4 ||
+      input.durationSeconds > 30)
+  )
+    throw new BusinessLogicException(
+      'Native extension duration must be from 4 to 30 seconds',
+    );
+
   const entry = getVideoGenerationBriefRegistryEntry(support.modelKey);
   if (!entry) {
     throw new ServiceUnavailableException(
@@ -145,7 +158,7 @@ export function runVideoGenerationBrief(
     input.actionVerb === 'extend' &&
     support.modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
     compiled.dispatch
-      ? { ...compiled.dispatch, aspect_ratio: 'adaptive', duration: -1 }
+      ? { ...compiled.dispatch, aspect_ratio: 'adaptive' }
       : compiled.dispatch;
 
   return {

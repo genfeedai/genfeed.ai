@@ -16,6 +16,7 @@ describe('ClipProjectLibrarySourceService', () => {
   let service: ClipProjectLibrarySourceService;
   let clipProjectsService: {
     create: ReturnType<typeof vi.fn>;
+    markSourceDispatchFailed: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let clipAnalysisWorkflowQueue: { enqueue: ReturnType<typeof vi.fn> };
@@ -27,6 +28,7 @@ describe('ClipProjectLibrarySourceService', () => {
         id: 'project-1',
       } as ClipProjectDocument),
       patch: vi.fn(),
+      markSourceDispatchFailed: vi.fn(),
     };
     clipAnalysisWorkflowQueue = {
       enqueue: vi.fn().mockResolvedValue('clip-analysis-project-1'),
@@ -95,6 +97,26 @@ describe('ClipProjectLibrarySourceService', () => {
             kind: 'library',
           }),
           youtubeUrl: expect.stringContaining('videos/video-1.mp4'),
+        }),
+      );
+    });
+
+    it('retains a recoverable failed project when its canonical analysis cannot be queued', async () => {
+      ingredientsService.findOne.mockResolvedValue(readyVideo);
+      clipAnalysisWorkflowQueue.enqueue.mockRejectedValue(
+        new Error('Queue unavailable'),
+      );
+      await expect(
+        service.createFromIngredient(libraryUser as never, {
+          ingredientId: 'video-1',
+        }),
+      ).rejects.toThrow('Queue unavailable');
+      expect(clipProjectsService.markSourceDispatchFailed).toHaveBeenCalledWith(
+        'project-1',
+        'org-1',
+        expect.objectContaining({
+          jobId: 'clip-analysis-project-1',
+          kind: 'library',
         }),
       );
     });

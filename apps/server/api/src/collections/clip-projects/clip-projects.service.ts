@@ -307,6 +307,127 @@ export class ClipProjectsService extends BaseService<
     return result.count === 1;
   }
 
+  async claimSourceRetry(
+    project: ClipProjectDocument,
+    organizationId: string,
+    source: ClipSourceContract,
+  ): Promise<boolean> {
+    if (!project.updatedAt || project.source?.status !== 'failed') {
+      return false;
+    }
+    const config = this.readRecord(project.config);
+    const result = await this.prisma.clipProject.updateMany({
+      data: {
+        config: toPrismaJson({ ...config, source }),
+        error: null,
+        readiness: toPrismaJson(
+          buildClipProjectReadiness({ status: 'pending' }),
+        ),
+        status: 'pending',
+        terminalAt: null,
+      },
+      where: {
+        id: project.id,
+        isDeleted: false,
+        organizationId,
+        status: project.status,
+        updatedAt: project.updatedAt,
+      },
+    });
+    return result.count === 1;
+  }
+
+  async markSourceDispatchFailed(
+    projectId: string,
+    organizationId: string,
+    source: ClipSourceContract,
+  ): Promise<void> {
+    const current = await this.findOne({
+      id: projectId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (
+      current?.status !== 'pending' ||
+      current.source?.status !== 'queued' ||
+      current.source.fingerprint !== source.fingerprint ||
+      current.source.retryCount !== source.retryCount
+    ) {
+      return;
+    }
+    const message = 'The source could not be queued. Retry source processing.';
+    const config = this.readRecord(current.config);
+    await this.prisma.clipProject.updateMany({
+      data: {
+        config: toPrismaJson({
+          ...config,
+          source: {
+            ...current.source,
+            jobId: source.jobId,
+            failure: {
+              code: 'clip_source_dispatch_failed',
+              message,
+              retryable: true,
+            },
+            status: 'failed',
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+        error: message,
+        readiness: toPrismaJson(
+          buildClipProjectReadiness({ status: 'failed' }),
+        ),
+        status: 'failed',
+      },
+      where: {
+        id: projectId,
+        isDeleted: false,
+        organizationId,
+        status: 'pending',
+        updatedAt: current.updatedAt,
+      },
+    });
+  }
+
+  async releaseSourceRetry(
+    previous: ClipProjectDocument,
+    organizationId: string,
+    retryCount: number,
+  ): Promise<void> {
+    const current = await this.findOne({
+      id: previous.id,
+      isDeleted: false,
+      organizationId,
+    });
+    if (
+      current?.status !== 'pending' ||
+      current.source?.status !== 'queued' ||
+      current.source.retryCount !== retryCount
+    ) {
+      return;
+    }
+    // Preserve a worker's progress if dispatch failed after it started.
+    const config = this.readRecord(current.config);
+    await this.prisma.clipProject.updateMany({
+      data: {
+        config: toPrismaJson({ ...config, source: previous.source }),
+        error: previous.error ?? null,
+        readiness: toPrismaJson(
+          previous.readiness ?? buildClipProjectReadiness({ status: 'failed' }),
+        ),
+        status: previous.status,
+        terminalAt: previous.terminalAt ?? null,
+      },
+      where: {
+        id: previous.id,
+        isDeleted: false,
+        organizationId,
+        status: 'pending',
+        updatedAt: current.updatedAt,
+      },
+    });
+  }
+
   /**
    * Moves a `draft` project to `pending` exactly once, so a double-submitted
    * start converts the draft into one project run.

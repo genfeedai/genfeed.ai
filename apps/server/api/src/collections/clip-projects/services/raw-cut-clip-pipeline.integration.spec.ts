@@ -181,7 +181,10 @@ function createWorkflowHarness() {
         originalIndex++
       ) {
         const result = (await executor({
-          context: {} as never,
+          context: {
+            organizationId: request.orgId,
+            userId: request.userId,
+          } as never,
           input: { originalIndex, request },
           provenance: {
             executionId: 'execution-1',

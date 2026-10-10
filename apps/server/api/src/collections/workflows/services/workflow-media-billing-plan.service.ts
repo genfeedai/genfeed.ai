@@ -1,5 +1,4 @@
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
-import type { ReviewedReplicateOutputContract } from '@api/collections/models/utils/model-provider-output-contract.interface';
 import { findReviewedReplicateOutputContract } from '@api/collections/models/utils/model-reviewed-replicate-output-contract.util';
 import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
 import type { WorkflowMediaProviderPlan } from '@api/collections/workflows/services/workflow-media-provider-plan.interface';
@@ -27,6 +26,7 @@ import type {
   WorkflowGenerationDispatch,
   WorkflowGenerationNodeAllocation,
   WorkflowMediaPreparationContract,
+  WorkflowReviewedOutputContract,
 } from '@genfeedai/contracts/interfaces/billing';
 import type {
   ExecutableNode,
@@ -65,13 +65,16 @@ function unavailable(detail: string): never {
 }
 function preparationContract(
   prepared: WorkflowMediaProviderPlan,
-  output: ReviewedReplicateOutputContract,
+  output: WorkflowReviewedOutputContract,
 ): WorkflowMediaPreparationContract {
   const brief = prepared.generationBriefEvidence;
   if (
-    brief.status !== 'compiled' ||
     brief.modelKey !== prepared.model ||
-    prepared.provider !== 'replicate' ||
+    (brief.status !== 'compiled' &&
+      !(prepared.provider === 'fal' && brief.status === 'exempted')) ||
+    (prepared.provider === 'fal' &&
+      quoteSnapshotHash(output) !==
+        quoteSnapshotHash(prepared.reviewedOutput)) ||
     output.modelKey !== prepared.model ||
     output.provider !== prepared.provider ||
     quoteSnapshotHash(output.target) !== quoteSnapshotHash(prepared.target)
@@ -83,15 +86,20 @@ function preparationContract(
     version: 1,
     preparationVersion: prepared.preparationVersion,
     actionId: prepared.actionId,
-    brief: {
-      briefVersion: brief.briefVersion,
-      compilerId: brief.compilerId,
-      compilerVersion: brief.compilerVersion,
-      profileId: brief.profileId,
-      profileVersion: brief.profileVersion,
-      modelKey: brief.modelKey,
-      mediaKind: brief.mediaKind,
-    },
+    brief:
+      brief.status === 'compiled'
+        ? {
+            briefVersion: brief.briefVersion,
+            compilerId: brief.compilerId,
+            compilerVersion: brief.compilerVersion,
+            profileId: brief.profileId,
+            profileVersion: brief.profileVersion,
+            modelKey: brief.modelKey,
+            mediaKind: brief.mediaKind,
+          }
+        : prepared.provider === 'fal'
+          ? prepared.schemaPreparation
+          : unavailable('Workflow generation brief contract is unresolved'),
     reviewedOutput: output,
   };
 }
@@ -115,17 +123,24 @@ export class WorkflowMediaBillingPlanService {
       args.context,
     );
     if (
-      prepared.generationBriefEvidence.status !== 'compiled' ||
-      prepared.generationBriefEvidence.modelKey !== prepared.model
+      prepared.generationBriefEvidence.modelKey !== prepared.model ||
+      (prepared.generationBriefEvidence.status !== 'compiled' &&
+        !(
+          prepared.provider === 'fal' &&
+          prepared.generationBriefEvidence.status === 'exempted'
+        ))
     )
       unavailable('Workflow generation brief contract is unresolved');
     const projection = projectWorkflowMediaProviderInput(prepared.input);
-    const output = await findReviewedReplicateOutputContract(
-      this.prisma,
-      prepared.model,
-      prepared.input,
-      args.context.organizationId,
-    );
+    const output =
+      prepared.provider === 'fal'
+        ? { status: 'reviewed' as const, contract: prepared.reviewedOutput }
+        : await findReviewedReplicateOutputContract(
+            this.prisma,
+            prepared.model,
+            prepared.input,
+            args.context.organizationId,
+          );
     if (output.status === 'unresolved')
       unavailable(
         `Workflow provider output contract is unresolved: ${output.reason}`,
@@ -133,18 +148,27 @@ export class WorkflowMediaBillingPlanService {
     const contract = preparationContract(prepared, output.contract);
     const route = await this.credentials.prepareRoute(
       args.context.organizationId,
-      ByokProvider.REPLICATE,
+      prepared.provider === 'fal' ? ByokProvider.FAL : ByokProvider.REPLICATE,
     );
     const quote =
       route.kind === 'platform'
-        ? await this.quotes.quoteSnapshotByKey(prepared.model, {
-            ...projection.dimensions,
-            requests: 1,
-            outputs: 1,
-            provider: prepared.provider,
-            providerInput: prepared.input,
-            organizationId: args.context.organizationId,
-          })
+        ? await this.quotes.quoteSnapshotByKey(
+            prepared.model,
+            {
+              ...projection.dimensions,
+              ...(prepared.provider === 'fal'
+                ? prepared.referenceQuoteEvidence
+                : {}),
+              requests: 1,
+              outputs: 1,
+              provider: prepared.provider,
+              providerInput: prepared.input,
+              organizationId: args.context.organizationId,
+            },
+            prepared.provider === 'fal'
+              ? prepared.nativeOutputQuoteEvidence
+              : undefined,
+          )
         : undefined;
     if (quote)
       assertWorkflowMediaPricingUnits(quote.pricingProfile, quote.quantities);
@@ -242,6 +266,7 @@ export class WorkflowMediaBillingPlanService {
       unavailable('Workflow generation compiler or output contract changed');
     const adapter = contract.reviewedOutput.output;
     if (
+      'countInput' in adapter &&
       adapter.countInput &&
       (!Object.hasOwn(prepared.input, adapter.countInput) ||
         prepared.input[adapter.countInput] !== 1)
@@ -262,11 +287,17 @@ export class WorkflowMediaBillingPlanService {
         prepared.model,
         {
           ...projection.dimensions,
+          ...(prepared.provider === 'fal'
+            ? prepared.referenceQuoteEvidence
+            : {}),
           requests: 1,
           outputs: 1,
           provider: prepared.provider,
           providerInput: prepared.input,
         },
+        prepared.provider === 'fal'
+          ? prepared.nativeOutputQuoteEvidence
+          : undefined,
       );
       quantities = { ...actual, requests: 1, outputs: 1 };
       assertWorkflowMediaPricingUnits(frozen.quote.pricingProfile, quantities);
@@ -287,7 +318,7 @@ export class WorkflowMediaBillingPlanService {
       unavailable('Workflow final billable quantities changed');
     const credential = await this.credentials.resolvePinnedCredential(
       args.context.organizationId,
-      ByokProvider.REPLICATE,
+      prepared.provider === 'fal' ? ByokProvider.FAL : ByokProvider.REPLICATE,
       frozen.dispatch.credentialRoute,
     );
     return {

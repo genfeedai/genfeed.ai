@@ -822,11 +822,12 @@ export class ReplicateService {
         input.initial_prompt = options.prompt;
       }
 
-      // Use openai/whisper model on Replicate
+      // Community models require a pinned version; the model endpoint is official-only.
       const client = this.getClientForRequest(apiKeyOverride);
       const prediction = await client.predictions.create({
         input,
-        model: 'openai/whisper',
+        version:
+          '8099696689d249cf8b122d833c36ac3f75505c666a395ca40ef26f68e7d3d16e',
       });
 
       // Wait for the prediction to complete
@@ -834,6 +835,8 @@ export class ReplicateService {
 
       // Parse the Whisper output
       const output = result.output as {
+        transcription?: string;
+        detected_language?: string;
         text?: string;
         language?: string;
         segments?: Array<{
@@ -843,6 +846,9 @@ export class ReplicateService {
           words?: Array<{ start: number; end: number; word: string }>;
         }>;
       };
+
+      const text = output.transcription ?? output.text ?? '';
+      const language = output.detected_language ?? output.language ?? 'unknown';
 
       // Calculate duration from segments if available
       let duration = 0;
@@ -854,16 +860,16 @@ export class ReplicateService {
       this.loggerService.log(`${url} completed`, {
         duration,
         id: result.id,
-        language: output.language || 'unknown',
-        textLength: output.text?.length || 0,
+        language,
+        textLength: text.length,
       });
 
       return {
         confidence: undefined, // Whisper doesn't provide confidence scores
         duration,
-        language: output.language || 'unknown',
+        language,
         segments: output.segments,
-        text: output.text || '',
+        text,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

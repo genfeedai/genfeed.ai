@@ -47,6 +47,7 @@ describe('StudioPresetSeedService', () => {
       });
       expect(first.update).not.toHaveProperty('isActive');
       expect(first.update).not.toHaveProperty('isDeleted');
+      expect(first.update).toEqual({});
       expect(prisma.preset.upsert.mock.calls[index + 6][0].where).toEqual(
         first.where,
       );

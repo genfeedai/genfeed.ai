@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PatternsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -24,6 +25,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('content-intelligence/patterns')
+@OrganizationModule('discovery')
 export class PatternsController {
   constructor(
     private readonly patternStoreService: PatternStoreService,

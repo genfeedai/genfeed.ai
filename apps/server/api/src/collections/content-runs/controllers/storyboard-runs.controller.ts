@@ -12,8 +12,8 @@ import { StoryboardCharacterReplaceService } from '@api/collections/content-runs
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
@@ -33,10 +33,10 @@ import {
   Post,
   Query,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 
 @Controller('brands/:brandId/storyboard-runs')
+@OrganizationModule('storyboard')
 export class StoryboardRunsController {
   constructor(
     private readonly runs: StoryboardRunsService,
@@ -95,7 +95,6 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/shots/:shotId/character-replacement')
-  @UseGuards(SubscriptionGuard)
   async replaceCharacter(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
@@ -191,7 +190,6 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/plan/approve')
-  @UseGuards(SubscriptionGuard)
   async approvePlan(
     @Req() request: Request,
     @Param('brandId') brandId: string,

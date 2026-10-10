@@ -6,6 +6,7 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import type { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   Credits,
@@ -19,7 +20,6 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -99,6 +99,7 @@ function clipChainCreditsWorkflowMetadata(
  */
 @AutoSwagger()
 @Controller('videos')
+@OrganizationModule('playground')
 export class VideosClipChainController {
   constructor(
     private readonly ingredientsService: IngredientsService,
@@ -114,7 +115,7 @@ export class VideosClipChainController {
   })
   @DeferCreditsUntilModelResolution()
   @ValidateModel({ category: ModelCategory.VIDEO })
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createClipChain(

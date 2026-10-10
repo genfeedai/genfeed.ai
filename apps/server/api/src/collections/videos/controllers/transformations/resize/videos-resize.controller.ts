@@ -4,6 +4,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -40,6 +41,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
+@OrganizationModule('playground')
 export class VideosResizeController {
   private readonly constructorName = String(this.constructor.name);
 

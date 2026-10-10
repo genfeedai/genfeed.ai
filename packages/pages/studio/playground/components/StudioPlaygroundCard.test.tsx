@@ -87,6 +87,16 @@ const generatedJob = {
   id: 'job-1',
   modelKey: 'flux-schnell',
   prompt: 'A boxer in black apparel',
+  recipe: {
+    blacklist: [],
+    isAudioEnabled: false,
+    originalText: 'A boxer in black apparel',
+    outputs: 1,
+    references: [],
+    tags: [],
+    text: 'A boxer in black apparel',
+    type: 'image' as const,
+  },
   status: IngredientStatus.GENERATED,
   type: 'image' as const,
   url: 'https://cdn.example.com/image.png',
@@ -94,6 +104,73 @@ const generatedJob = {
 };
 
 describe('StudioPlaygroundCard', () => {
+  it('names assets and reference actions from recorded intent without changing the provider request', () => {
+    const onUseAsReference = vi.fn();
+    const job = {
+      ...generatedJob,
+      prompt: 'Brand enrichment and provider instructions '.repeat(30),
+    };
+    render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={job}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        onUseAsReference={onUseAsReference}
+        view={ViewType.GRID}
+      />,
+    );
+    const props = masonryMocks.image.mock.calls.at(-1)?.[0];
+    expect(props?.accessibleLabel).toBe(generatedJob.recipe.originalText);
+    expect(props?.image.promptText).toBe(job.prompt);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Use this image as a reference: ${generatedJob.recipe.originalText}`,
+      }),
+    );
+    expect(onUseAsReference).toHaveBeenCalledWith(job);
+  });
+
+  it('uses asset identity when a legacy row has no recorded original intent', () => {
+    render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          recipe: undefined,
+          prompt: 'Unrecorded enrichment '.repeat(30),
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    expect(masonryMocks.image.mock.calls.at(-1)?.[0].accessibleLabel).toBe(
+      'Image job-1',
+    );
+  });
+
+  it('bounds long recorded asset names without truncating the stored intent', () => {
+    const originalText = 'A detailed user description '.repeat(10);
+    const job = {
+      ...generatedJob,
+      recipe: { ...generatedJob.recipe, originalText },
+    };
+    render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={job}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    expect(masonryMocks.image.mock.calls.at(-1)?.[0].accessibleLabel).toBe(
+      `${originalText.slice(0, 99)}…`,
+    );
+    expect(job.recipe.originalText).toBe(originalText);
+  });
+
   it('keeps grid metadata and actions without a prompt caption', () => {
     const onSelect = vi.fn();
     const { container } = render(

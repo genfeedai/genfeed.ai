@@ -15,6 +15,7 @@ import { ArticleVersionService } from '@api/collections/articles/services/articl
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WORKFLOW_EXECUTOR } from '@api/collections/workflows/workflows.tokens';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { ByokProvider, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
@@ -129,7 +130,9 @@ function createHarness() {
       get: (token: unknown) =>
         token === WORKFLOW_EXECUTOR
           ? { executeManualWorkflowDocument }
-          : adapter,
+          : token === OrganizationModuleAccessService
+            ? { assertAccess: vi.fn().mockResolvedValue(undefined) }
+            : adapter,
     } as never,
   );
   const internals = runner as unknown as {

@@ -350,7 +350,11 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'platform',
     'wasApplied',
   ],
-  'organization-setting:OrganizationSetting': [],
+  // Fresh deployment mode and paid eligibility are server-computed settings projections.
+  'organization-setting:OrganizationSetting': [
+    'hasOrganizationBilling',
+    'hasPaidModuleSubscription',
+  ],
   'outreach-campaign:OutreachCampaign': [
     'lastActivityAt',
     'totalDmsSent',
@@ -550,7 +554,14 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'user',
   ],
   'mood:ElementMood': ['category', 'isFavorite', 'isPlatformDefault'],
+  // These creation controls are flattened from Preset.config by the service.
   'preset:Preset': [
+    'aspectRatio',
+    'cameraMovement',
+    'duration',
+    'lens',
+    'lighting',
+    'promptTemplate',
     'blacklists',
     'camera',
     'description',

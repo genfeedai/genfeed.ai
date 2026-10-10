@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ORGANIZATION_MODULES } from '@genfeedai/contracts/constants';
 import type {
   AppRailNavigationItem,
   AppRailNavigationVia,
@@ -171,7 +172,7 @@ function AppRailMoreRow({
       : item.label;
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="group/app-rail-row flex items-center gap-0.5">
       <Link
         href={item.href}
         prefetch={false}
@@ -220,7 +221,13 @@ function AppRailMoreRow({
       {onTogglePin ? (
         <Button
           ariaLabel={t(isPinned ? 'unpin' : 'pin', { app: item.label })}
-          className="size-7 shrink-0 text-foreground/50 hover:text-foreground"
+          className={cn(
+            'size-8 shrink-0 text-foreground/50 transition-opacity duration-150 hover:text-foreground motion-reduce:transition-none',
+            '[@media(hover:none)]:size-11',
+            '[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0',
+            '[@media(hover:hover)]:group-hover/app-rail-row:pointer-events-auto [@media(hover:hover)]:group-hover/app-rail-row:opacity-100',
+            '[@media(hover:hover)]:group-focus-within/app-rail-row:pointer-events-auto [@media(hover:hover)]:group-focus-within/app-rail-row:opacity-100',
+          )}
           onClick={() => onTogglePin(item.app.id)}
           size={ButtonSize.ICON}
           textTransform="none"
@@ -324,6 +331,7 @@ export function AppRail({
   footer,
   header,
   isAssetGateLocked = false,
+  modulePreferences,
   onNavigate,
   onNavigationEvent,
   onTogglePin,
@@ -342,13 +350,17 @@ export function AppRail({
   const apps = useMemo(() => {
     const visible = APP_RAIL_REGISTRY.filter(
       (app) =>
-        !app.visibilityFlagKey ||
-        (Object.hasOwn(flags, app.visibilityFlagKey)
-          ? flags[app.visibilityFlagKey] === true
-          : !isConfigured),
+        (!app.organizationModule ||
+          modulePreferences === undefined ||
+          modulePreferences?.[app.organizationModule] === true ||
+          !ORGANIZATION_MODULES[app.organizationModule].isToggleable) &&
+        (!app.visibilityFlagKey ||
+          (Object.hasOwn(flags, app.visibilityFlagKey)
+            ? flags[app.visibilityFlagKey] === true
+            : !isConfigured)),
     );
     return showAdmin ? [...visible, ADMIN_RAIL_APP] : visible;
-  }, [flags, isConfigured, showAdmin]);
+  }, [flags, isConfigured, showAdmin, modulePreferences]);
   const activeAppId = getActiveAppId(
     [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP],
     currentPath,

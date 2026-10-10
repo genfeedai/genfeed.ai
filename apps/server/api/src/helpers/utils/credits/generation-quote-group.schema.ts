@@ -82,6 +82,23 @@ export const generationQuoteGroupReceiptSchema = z.object({
   reservationId: z.string().min(1),
   outputIndex: z.number().int().nonnegative(),
 });
+/** Server-observed output quantities, bound to one admitted provider result. */
+export const generationNativeCompletionSchema = z
+  .object({
+    ingredientId: z.string().min(1),
+    outputIndex: z.number().int().nonnegative(),
+    provider: z.literal('fal'),
+    externalIdHash: z.string().regex(/^[a-f0-9]{64}$/),
+    modelKey: z.string().min(1),
+    quoteHash: z.string().regex(/^[a-f0-9]{64}$/),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    duration: z.number().finite().positive(),
+  })
+  .strict();
+export type GenerationNativeCompletionEvidence = z.infer<
+  typeof generationNativeCompletionSchema
+>;
 export const generationQuoteGroupMetadataSchema = z
   .object({
     lineFunding: generationLineFundingSchema.optional(),
@@ -90,6 +107,8 @@ export const generationQuoteGroupMetadataSchema = z
     boundOutputIds: z.array(z.string()).default([]),
     dispatchClosed: z.boolean().default(false),
     failedOutputIds: z.array(z.string()).default([]),
+    providerCompletions: z.array(generationNativeCompletionSchema).default([]),
+    providerCompletionConflicts: z.array(z.string().min(1)).default([]),
     completedArtifacts: z
       .array(
         z.object({

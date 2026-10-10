@@ -12,7 +12,6 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
@@ -130,7 +129,6 @@ describe('ImagesReframeController', () => {
       RateLimitPresets.external,
     );
     expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
-      SubscriptionGuard,
       CreditsGuard,
       ModelsGuard,
     ]);

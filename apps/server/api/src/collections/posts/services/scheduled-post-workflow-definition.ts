@@ -74,6 +74,7 @@ export function buildScheduledPostWorkflowDefinition(): SystemWorkflowGraphDefin
 
   return {
     canonicalId: SCHEDULED_POST_WORKFLOW_ID,
+    organizationModule: 'publishing',
     definition: {
       edges,
       inputVariables: [

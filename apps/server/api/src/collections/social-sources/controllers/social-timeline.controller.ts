@@ -3,6 +3,7 @@ import {
   RefreshSocialTimelineDto,
   SourcePostNativeActionDto,
 } from '@api/collections/social-sources/dto/social-timeline.dto';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
@@ -26,6 +27,7 @@ import { ApiTags } from '@nestjs/swagger';
 @FeatureFlag('discovery')
 @UseGuards(RolesGuard)
 @Controller('social-timelines')
+@OrganizationModule('discovery')
 export class SocialTimelineController {
   constructor(private readonly timelines: SocialTimelineService) {}
 

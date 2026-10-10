@@ -86,6 +86,7 @@ export function buildSocialInboxSyncWorkflowDefinition(
   ];
   return {
     canonicalId: surface.workflowId,
+    organizationModule: 'messages',
     definition: {
       edges,
       inputVariables: [

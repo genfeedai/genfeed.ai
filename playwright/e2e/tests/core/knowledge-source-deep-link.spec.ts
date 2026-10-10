@@ -231,7 +231,8 @@ test('denied and unknown Knowledge deep links expose no source evidence', async 
   await page.goto(`${ROUTE}?sourceId=${SOURCE_ID}`);
   await expect(page.getByText('Knowledge could not be loaded.')).toBeVisible();
   await expect(page.getByTestId('knowledge-source-detail')).toHaveCount(0);
-  await expect(page.getByText('PRIVATE_DENIED_SOURCE')).toHaveCount(0);
+  // Next development diagnostics retain console text in a hidden overlay; it must never be presented as source evidence.
+  await expect(page.getByText('PRIVATE_DENIED_SOURCE')).not.toBeVisible();
   await expect(page.getByText('Authorized recovery evidence.')).toHaveCount(0);
   await page.goto(`${ROUTE}?sourceId=unknown-source`);
   await expect(page.getByText('Knowledge could not be loaded.')).toBeVisible();

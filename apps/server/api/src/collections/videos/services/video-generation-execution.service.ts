@@ -156,7 +156,17 @@ export class VideoGenerationExecutionService {
     context: VideoGenerationContext,
     error: unknown,
   ): Promise<never> {
-    await this.failPendingOutputs(context, error);
+    try {
+      await this.failPendingOutputs(context, error);
+    } finally {
+      // This producer calls here before execute/output binding. Close unused
+      // admission through the existing durable group fence; already bound or
+      // ambiguous provider work still requires its normal terminal evidence.
+      if (context.request && !this.submissionStarted.get(context)?.size)
+        await this.generationBilling.releasePool(
+          context.request as unknown as GenerationBillingRequest,
+        );
+    }
     throw error;
   }
 
@@ -410,6 +420,25 @@ export class VideoGenerationExecutionService {
     outputIndex?: number,
   ): Promise<void> {
     if (generation.completion === 'remote-output') {
+      if (generation.provider === 'fal' && generation.completionQuantities) {
+        try {
+          await this.generationBilling.recordProviderCompletion({
+            ingredientId,
+            organizationId: context.user.organizationId,
+            externalId: generation.externalId,
+            provider: generation.provider,
+            modelKey: context.model,
+            quantities: generation.completionQuantities,
+          });
+        } catch (error: unknown) {
+          // An accepted result stays available; missing financial proof retains its hold.
+          this.loggerService.error(
+            'Native completion proof persistence failed; retain funding',
+            error,
+            { ingredientId },
+          );
+        }
+      }
       await this.webhooksService.processMediaForIngredient(
         ingredientId,
         IngredientCategory.VIDEO,

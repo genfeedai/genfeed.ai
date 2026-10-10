@@ -120,6 +120,8 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
           if (!ingredientId) {
             const ingredient = await (await getUploads())[category].postUpload(
               form,
+              undefined,
+              { handledErrorStatuses: [413, 415, 422] },
             );
             ingredientId = ingredient.id;
           }

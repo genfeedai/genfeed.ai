@@ -1,0 +1,18 @@
+Generated using the built-in imagegen tool. Illustrative examples; not model output guarantees.
+
+Use case: stylized-concept
+Asset type: One raster sprite atlas for an image-generation style and mood picker.
+Primary request: Produce a precise contact sheet with exactly 4 columns and 8 rows, 32 equal square cells. Overall aspect ratio 1:2, ideally 1536x3072 pixels. Edge-to-edge cells, NO gutters, margins, frames, lettering, labels, watermarks or interface. Each cell is a fully composed, independent square image.
+Common subject across ALL cells: a traveler wearing an orange jacket seen on a bridge, a lakeside mountain village, reflected mountains and clouds. Keep subject and framing comparable to make visual styles and moods easy to distinguish.
+CELL ORDER is strictly left-to-right then top-to-bottom:
+Row 1: Photoreal natural photography; Cinematic film still; 3D animated polished stylized render; Anime illustration.
+Row 2: Comic ink and graphic shading; Pixel Art visibly pixelated; Oil Painting rich brushstrokes; Watercolor airy washed paper.
+Row 3: Cyberpunk neon sci-fi; Fantasy magical landscape; Sketch pencil drawing; Minimalist reduced flat shapes.
+Row 4: Vintage faded analog photograph; Digital Art detailed painted concept art; Noir monochrome deep shadows; Dreamy soft surreal hazy pastel photography.
+Row 5: Gritty rough weathered textures; Ethereal luminous airy mist; Nostalgic warm faded memory; Futuristic sleek advanced architecture.
+Row 6: Mysterious foggy dusk; Peaceful still water and gentle daylight; Energetic vibrant action and dynamic wind; Moody subdued cool clouds.
+Row 7: Dramatic bold light and storm; Whimsical playful fantastical charm; Tense approaching threatening storm; Joyful brilliant warm sunshine.
+Row 8: Epic vast mountains and heroic scale; natural photography; natural photography; natural photography.
+All moods from Dreamy onward retain a photographic cinematic rendering with distinct atmosphere. Styles in the first 15 cells vary their actual medium strongly.
+Constraints: exact uniform grid alignment and fixed cell order; no text anywhere; no overlap between cells; each tile fills its own square entirely. No famous characters, logos or recognizable people.
+

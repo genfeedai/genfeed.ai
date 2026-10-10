@@ -31,6 +31,7 @@ function requestVariable() {
 export function buildAbTestExecutionWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: AB_TEST_WORKFLOW_IDS.EXECUTE,
+    organizationModule: 'publishing',
     definition: {
       edges: [
         {
@@ -99,6 +100,7 @@ export function buildAbTestArmWorkflowDefinition(): SystemWorkflowGraphDefinitio
 export function buildAbTestResolutionWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: AB_TEST_WORKFLOW_IDS.RESOLVE,
+    organizationModule: 'analytics',
     definition: {
       edges: [
         {
@@ -161,6 +163,7 @@ export function buildAbTestOutcomeWorkflowDefinition(): SystemWorkflowGraphDefin
 export function buildValidatedAbTestsWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: AB_TEST_WORKFLOW_IDS.LOAD_VALIDATED,
+    organizationModule: 'analytics',
     definition: {
       edges: [],
       inputVariables: [requestVariable()],
@@ -188,6 +191,10 @@ function singleItemDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    organizationModule:
+      canonicalId === AB_TEST_WORKFLOW_IDS.EXECUTE_ARM
+        ? 'publishing'
+        : 'analytics',
     definition: {
       edges: [],
       inputVariables: [
