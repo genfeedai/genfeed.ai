@@ -4828,7 +4828,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'user',
       'userId',
     ],
-    listFields: ['brands'],
+    listFields: ['brands', 'installedAppIds'],
     enumFields: {},
     relationIdFields: {
       currentBrand: 'currentBrandId',

@@ -9,8 +9,12 @@ import type {
   PopulateInput,
   PrismaUpdate,
 } from '@api/shared/services/base/base-query-normalization.adapter';
+import {
+  type NativeSecondaryAppId,
+  normalizeInstalledAppIds,
+} from '@genfeedai/contracts/constants';
 import type { AgentTeamMentionItem } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
@@ -138,6 +142,69 @@ export class MembersService extends BaseService<
     );
 
     return members as unknown as MemberDocument[];
+  }
+
+  /**
+   * #5502 the caller's installed native apps in this organization, or `null`
+   * when they have no live membership here. Unknown stored ids are dropped.
+   */
+  async findInstalledAppIds(
+    organizationId: string,
+    userId: string,
+  ): Promise<NativeSecondaryAppId[] | null> {
+    const member = await this.prisma.member.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { installedAppIds: true },
+      where: scopedWhere(organizationId, { userId }),
+    });
+    return member ? normalizeInstalledAppIds(member.installedAppIds) : null;
+  }
+
+  /**
+   * Installs or uninstalls one native app for the caller's membership and
+   * returns the resulting list, or `null` without a live membership. The
+   * membership row is locked so concurrent changes from several tabs apply in
+   * turn instead of overwriting each other. Only this member's activation
+   * changes: organization access, other members and saved content are left
+   * untouched.
+   */
+  async setAppInstalled(
+    organizationId: string,
+    userId: string,
+    appId: NativeSecondaryAppId,
+    isInstalled: boolean,
+  ): Promise<NativeSecondaryAppId[] | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const [locked] = await tx.$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT "id" FROM "members" WHERE "organizationId" = ${organizationId} AND "userId" = ${userId} AND "isDeleted" = false ORDER BY "createdAt" ASC LIMIT 1 FOR UPDATE`,
+      );
+      if (!locked) {
+        return null;
+      }
+
+      const member = await tx.member.findFirst({
+        select: { installedAppIds: true },
+        where: scopedWhere(organizationId, { id: locked.id }),
+      });
+      if (!member) {
+        return null;
+      }
+
+      const installedAppIds = normalizeInstalledAppIds(member.installedAppIds);
+      const isCurrentlyInstalled = installedAppIds.includes(appId);
+      if (isCurrentlyInstalled === isInstalled) {
+        return installedAppIds;
+      }
+
+      const nextAppIds = isInstalled
+        ? [...installedAppIds, appId]
+        : installedAppIds.filter((installedAppId) => installedAppId !== appId);
+      await tx.member.update({
+        data: { installedAppIds: nextAppIds },
+        where: scopedWhere(organizationId, { id: locked.id }),
+      });
+      return nextAppIds;
+    });
   }
 
   count(filter: Prisma.MemberWhereInput): Promise<number> {

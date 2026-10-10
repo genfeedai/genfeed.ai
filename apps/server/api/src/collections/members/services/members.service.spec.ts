@@ -283,3 +283,108 @@ describe('MembersService', () => {
     });
   });
 });
+
+describe('MembersService installed apps (#5502)', () => {
+  const tx = {
+    $queryRaw: vi.fn(),
+    member: {
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
+  };
+  const prisma = {
+    $transaction: vi.fn(
+      async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    ),
+    member: { findFirst: vi.fn() },
+  };
+  let service: MembersService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new MembersService(
+      prisma as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      { invalidateForUser: vi.fn() } as never,
+    );
+  });
+
+  it('reads the caller membership in its organization and drops unknown ids', async () => {
+    prisma.member.findFirst.mockResolvedValue({
+      installedAppIds: ['turbo', 'retired', 'turbo', 'clips'],
+    });
+
+    await expect(
+      service.findInstalledAppIds('org-1', 'user-1'),
+    ).resolves.toEqual(['turbo', 'clips']);
+    expect(prisma.member.findFirst).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'asc' },
+      select: { installedAppIds: true },
+      where: { isDeleted: false, organizationId: 'org-1', userId: 'user-1' },
+    });
+  });
+
+  it('returns null without a live membership', async () => {
+    prisma.member.findFirst.mockResolvedValue(null);
+    await expect(
+      service.findInstalledAppIds('org-1', 'user-1'),
+    ).resolves.toBeNull();
+
+    tx.$queryRaw.mockResolvedValue([]);
+    await expect(
+      service.setAppInstalled('org-1', 'user-1', 'turbo', true),
+    ).resolves.toBeNull();
+    expect(tx.member.update).not.toHaveBeenCalled();
+  });
+
+  it('appends an installation to the locked membership row', async () => {
+    tx.$queryRaw.mockResolvedValue([{ id: 'member-1' }]);
+    tx.member.findFirst.mockResolvedValue({ installedAppIds: ['playground'] });
+
+    await expect(
+      service.setAppInstalled('org-1', 'user-1', 'turbo', true),
+    ).resolves.toEqual(['playground', 'turbo']);
+
+    const [lockQuery] = tx.$queryRaw.mock.calls[0] as [
+      { sql: string; values: unknown[] },
+    ];
+    expect(lockQuery.sql).toContain('FOR UPDATE');
+    expect(lockQuery.values).toEqual(['org-1', 'user-1']);
+    expect(tx.member.findFirst).toHaveBeenCalledWith({
+      select: { installedAppIds: true },
+      where: { id: 'member-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(tx.member.update).toHaveBeenCalledWith({
+      data: { installedAppIds: ['playground', 'turbo'] },
+      where: { id: 'member-1', isDeleted: false, organizationId: 'org-1' },
+    });
+  });
+
+  it('removes only the uninstalled app', async () => {
+    tx.$queryRaw.mockResolvedValue([{ id: 'member-1' }]);
+    tx.member.findFirst.mockResolvedValue({
+      installedAppIds: ['playground', 'turbo', 'discovery'],
+    });
+
+    await expect(
+      service.setAppInstalled('org-1', 'user-1', 'turbo', false),
+    ).resolves.toEqual(['playground', 'discovery']);
+    expect(tx.member.update).toHaveBeenCalledWith({
+      data: { installedAppIds: ['playground', 'discovery'] },
+      where: { id: 'member-1', isDeleted: false, organizationId: 'org-1' },
+    });
+  });
+
+  it('does not write when the installation already matches', async () => {
+    tx.$queryRaw.mockResolvedValue([{ id: 'member-1' }]);
+    tx.member.findFirst.mockResolvedValue({ installedAppIds: ['turbo'] });
+
+    await expect(
+      service.setAppInstalled('org-1', 'user-1', 'turbo', true),
+    ).resolves.toEqual(['turbo']);
+    await expect(
+      service.setAppInstalled('org-1', 'user-1', 'clips', false),
+    ).resolves.toEqual(['turbo']);
+    expect(tx.member.update).not.toHaveBeenCalled();
+  });
+});

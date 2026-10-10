@@ -63,9 +63,10 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organizations they belong to (org switcher, identity resolution,
     // onboarding). It never reads another user's rows. #5981 made handlers run
     // inside the tenant context, which turned this into a production 500.
+    // #5502 moved this unchanged discovery call four lines for native-app imports.
     {
       file: 'apps/server/api/src/collections/members/services/members.service.ts',
-      line: 129,
+      line: 133,
     },
     // #6120: hidden system-workflow mirror upsert. System-principal rows are
     // platform-global and owned by the system principal, not the request
