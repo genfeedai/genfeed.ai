@@ -1,4 +1,3 @@
-import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import 'reflect-metadata';
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
