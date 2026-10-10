@@ -76,13 +76,23 @@ const mocks = vi.hoisted(() => ({
   brand: { id: 'brand', slug: 'moonrise' },
   org: 'org',
   getService: vi.fn(),
+  media: vi.fn(),
   generate: vi.fn(),
   evaluate: vi.fn(),
   publish: vi.fn(),
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  return {
+    useFormatter: () => ({
+      dateTime: (value: Date, options?: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-US', {
+          ...options,
+          timeZone: 'UTC',
+        }).format(value),
+    }),
+    useTranslations: translateFromCatalog,
+  };
 });
 vi.mock('next/navigation', () => ({
   useParams: () => ({ orgSlug: 'acme', brandSlug: 'moonrise' }),
@@ -104,6 +114,9 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
+}));
+vi.mock('@hooks/ui/generation-receipts/use-generation-receipt-media', () => ({
+  useGenerationReceiptMedia: mocks.media,
 }));
 
 import GenerationReceiptsContent from './content';
@@ -187,6 +200,7 @@ describe('mounted saved receipt customer read flow', () => {
     mocks.query = new URLSearchParams();
     mocks.brand = { id: 'brand', slug: 'moonrise' };
     mocks.org = 'org';
+    mocks.media.mockReturnValue(new Map());
     const service = new BrandedGenerationReceiptsService('test-token');
     http = installMockHttp(service);
     mocks.getService.mockResolvedValue(service);
@@ -194,7 +208,9 @@ describe('mounted saved receipt customer read flow', () => {
   });
   it('lists, selects, explicitly loads history, pins a revision and reveals through the actual shared inspector/client', async () => {
     const view = render(<GenerationReceiptsContent />);
-    const row = await screen.findByRole('link', { name: /receipt · created/ });
+    const row = await screen.findByRole('link', {
+      name: /Text draft · receipt$/,
+    });
     expect(row).toHaveAttribute(
       'href',
       '/acme/moonrise/settings/agent/receipts?receiptId=receipt',
@@ -241,6 +257,106 @@ describe('mounted saved receipt customer read flow', () => {
       expect(http[method]).not.toHaveBeenCalled();
     for (const action of [mocks.generate, mocks.evaluate, mocks.publish])
       expect(action).not.toHaveBeenCalled();
+  });
+  it('renders a Studio image receipt with its kind, status, model and recorded credit cost', async () => {
+    const studioImage = {
+      ...metadata(),
+      id: 'image-receipt',
+      revision: 5,
+      state: 'ready',
+      surface: 'studio',
+      contentType: 'image',
+      format: 'image',
+      generationId: 'ingredient-1',
+      resolutionHash: hash,
+      prompts: {
+        original: { contentHash: hash, retention: 'retained', snapshotId: 'o' },
+        enhanced: null,
+        compiled: { contentHash: hash, retention: 'retained', snapshotId: 'c' },
+      },
+      learning: {
+        schemaVersion: 1,
+        brandFeedback: { status: 'not_applicable', sourceIds: [] },
+        global: {
+          status: 'not_applicable',
+          scope: { format: 'image', objective: 'engagement' },
+        },
+        privateAccount: {
+          mode: 'no_destination',
+          configVersion: 'media-raw-v1',
+          synthetic: false,
+          application: {
+            status: 'unavailable',
+            reasonCodes: ['no_destination'],
+            privatePolicyApplied: false,
+            sharedReleaseApplied: false,
+            revalidatedAt: time,
+          },
+        },
+      },
+      execution: {
+        provider: 'replicate',
+        model: 'replicate/flux',
+        providerAttemptRef: 'replicate:job-1',
+        dispatchClaimedAt: time,
+        providerAcceptedAt: time,
+        completedAt: time,
+        result: 'completed',
+      },
+      artifact: {
+        kind: 'ingredient',
+        id: 'ingredient-1',
+        mediaKind: 'image',
+        version: 's3:v:1',
+        parts: [
+          {
+            id: 'images/ingredient-1.png',
+            role: 'image',
+            version: 's3:v:1',
+            contentHash: hash,
+          },
+        ],
+        contentHash: hash,
+      },
+      costs: [
+        {
+          id: 'generation',
+          stage: 'generation',
+          status: 'known',
+          ledgerId: 'hold-1',
+          credits: 4,
+        },
+      ],
+      budget: { ...metadata().budget, generationAttemptsUsed: 1 },
+    };
+    http.get.mockResolvedValueOnce(
+      axiosResponse({
+        ...collectionDocument([studioImage, metadata()], {
+          type: 'branded-generation-receipt',
+        }),
+        links: { cursor: { hasMore: false, limit: 10, nextCursor: null } },
+      }),
+    );
+    render(<GenerationReceiptsContent />);
+
+    const row = await screen.findByRole('link', {
+      name: /^Image · image-receipt$/,
+    });
+    expect(row).toHaveAttribute(
+      'href',
+      '/acme/moonrise/settings/agent/receipts?receiptId=image-receipt',
+    );
+    const item = row.closest('li');
+    if (!item) throw new Error('Receipt row is not a list item');
+    expect(item).toHaveTextContent('Completed');
+    expect(item).toHaveTextContent('Model: replicate/flux');
+    expect(item).toHaveTextContent('4 credits');
+    // The text draft beside it keeps its own pending state and cost.
+    const text = screen.getByRole('link', { name: /^Text draft · receipt$/ });
+    expect(text.closest('li')).toHaveTextContent('Pending');
+    expect(text.closest('li')).toHaveTextContent('Cost pending');
+    // Only the media receipt asks for its Library output.
+    expect(mocks.media).toHaveBeenLastCalledWith(['ingredient-1']);
   });
   it.each([
     'revision=1',
@@ -333,9 +449,9 @@ describe('mounted saved receipt customer read flow', () => {
       },
     );
     const view = render(<GenerationReceiptsContent />);
-    await screen.findByRole('link', { name: /receipt · created/ });
+    await screen.findByRole('link', { name: /Text draft · receipt$/ });
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
-    await screen.findByRole('link', { name: /second · created/ });
+    await screen.findByRole('link', { name: /Text draft · second$/ });
     expect(http.get).toHaveBeenCalledWith('brand/generation-receipts', {
       params: { limit: 10, cursor: 'next' },
       signal: expect.any(AbortSignal),
@@ -407,7 +523,7 @@ describe('mounted saved receipt customer read flow', () => {
     );
     await waitFor(() =>
       expect(
-        screen.queryByRole('link', { name: /receipt · created/ }),
+        screen.queryByRole('link', { name: /Text draft · receipt$/ }),
       ).toBeNull(),
     );
   });
@@ -472,7 +588,7 @@ describe('mounted saved receipt customer read flow', () => {
     if (kind === 'history')
       mocks.query = new URLSearchParams('receiptId=receipt&revision=1');
     const view = render(<GenerationReceiptsContent />);
-    await screen.findByRole('link', { name: /receipt · created/ });
+    await screen.findByRole('link', { name: /Text draft · receipt$/ });
     if (kind === 'history') {
       await screen.findByRole('button', {
         name: 'Show saved prompt · original',
@@ -497,7 +613,7 @@ describe('mounted saved receipt customer read flow', () => {
       const initialName =
         kind === 'history'
           ? new RegExp(`Receipt revision ${firstRevision} ·`)
-          : /receipt · created/;
+          : /Text draft · receipt$/;
       http.get.mockRejectedValueOnce({
         isAxiosError: true,
         response: { status: 500 },
@@ -511,7 +627,7 @@ describe('mounted saved receipt customer read flow', () => {
       const secondName =
         kind === 'history'
           ? new RegExp(`Receipt revision ${firstRevision + 1} ·`)
-          : /second · created/;
+          : /Text draft · second$/;
       await screen.findByRole('link', { name: secondName });
       expect(screen.getAllByRole('link', { name: initialName })).toHaveLength(
         1,
@@ -562,7 +678,9 @@ describe('mounted saved receipt customer read flow', () => {
       expect(
         screen.getByRole('link', {
           name:
-            kind === 'history' ? /Receipt revision 1 ·/ : /receipt · created/,
+            kind === 'history'
+              ? /Receipt revision 1 ·/
+              : /Text draft · receipt$/,
         }),
       ).toBeVisible();
       expect(screen.getByRole('button', { name: 'Load more' })).toBeEnabled();
@@ -589,7 +707,7 @@ describe('mounted saved receipt customer read flow', () => {
         'Could not load saved generation details. Try again.',
       );
       expect(
-        screen.queryByRole('link', { name: /receipt · created/ }),
+        screen.queryByRole('link', { name: /Text draft · receipt$/ }),
       ).toBeNull();
       expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
       list.unmount();
@@ -673,9 +791,9 @@ describe('mounted saved receipt customer read flow', () => {
       // The next scope has its own successful page and cursor; the pending request cannot clear either.
       view.rerender(<GenerationReceiptsContent />);
       if (kind === 'list') {
-        await screen.findByRole('link', { name: /new-scope · created/ });
+        await screen.findByRole('link', { name: /Text draft · new-scope$/ });
         expect(
-          screen.queryByRole('link', { name: /receipt · created/ }),
+          screen.queryByRole('link', { name: /Text draft · receipt$/ }),
         ).toBeNull();
       } else {
         expect(
@@ -705,7 +823,7 @@ describe('mounted saved receipt customer read flow', () => {
           ).toBeVisible();
         } else
           expect(
-            screen.getByRole('link', { name: /new-scope · created/ }),
+            screen.getByRole('link', { name: /Text draft · new-scope$/ }),
           ).toBeVisible();
       });
       fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
