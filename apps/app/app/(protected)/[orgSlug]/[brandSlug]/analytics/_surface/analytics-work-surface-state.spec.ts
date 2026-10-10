@@ -46,6 +46,27 @@ describe('Analytics work surface state', () => {
     expect(restored.isCanonical).toBe(true);
   });
 
+  it('restores the Posts Winners view and drops unknown show values', () => {
+    const winners = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/posts',
+      searchParams: new URLSearchParams('show=winners'),
+    });
+    const unknown = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/posts',
+      searchParams: new URLSearchParams('show=everything'),
+    });
+    const elsewhere = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/accounts',
+      searchParams: new URLSearchParams('show=winners'),
+    });
+
+    expect(winners.filters.show).toBe('winners');
+    expect(winners.canonicalSearchParams.get('show')).toBe('winners');
+    expect(unknown.filters.show).toBeUndefined();
+    expect(unknown.canonicalSearchParams.get('show')).toBeNull();
+    expect(elsewhere.canonicalSearchParams.get('show')).toBeNull();
+  });
+
   it('canonicalizes unsafe filters and invalid future date ranges', () => {
     const restored = restoreAnalyticsSurfaceState({
       pathname: '/acme/moonrise/analytics/outliers',

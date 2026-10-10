@@ -1,5 +1,7 @@
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
+import { isFreeTrialEnforced } from '@api/collections/credits/services/free-trial-state.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   type PrismaTransactionClient,
@@ -16,14 +18,17 @@ import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_ANSWER_REWARD_CREDITS,
   ONBOARDING_SIGNUP_GIFT_CREDITS,
+  ONBOARDING_TRIAL_CREDITS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/contracts/types';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable, Optional } from '@nestjs/common';
 
 const REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const WELCOME_CAMPAIGN = 'onboarding-signup-gift';
+const TRIAL_CAMPAIGN = 'onboarding-trial';
 const ANSWER_CAMPAIGN = 'onboarding-answer';
 
 @Injectable()
@@ -32,6 +37,8 @@ export class OnboardingCreditGrantsService {
     private readonly transactionUtil: TransactionUtil,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly freeTrialService: FreeTrialService,
+    private readonly loggerService: LoggerService,
     @Optional()
     private readonly funnelCaptureService?: ServerFunnelCaptureService,
   ) {}
@@ -118,6 +125,103 @@ export class OnboardingCreditGrantsService {
         ONBOARDING_SIGNUP_GIFT_CREDITS,
         result,
       );
+  }
+
+  /**
+   * The 75 free-trial credits, granted once per user when onboarding is
+   * finished or skipped. They stack on the signup gift and on the per-answer
+   * rewards. Same entitlement rules as the signup gift: the organization's
+   * owner only, never for a proactive or warm-up workspace, and the ledger
+   * (keyed by user across every organization they own) is the only
+   * idempotency guard, so a second finish, a skip after a finish, or a
+   * concurrent call never pays twice. Nothing is granted once the trial is
+   * already over: those credits could not be spent and would only be swept.
+   * Returns whether this call granted the credits.
+   */
+  async grantTrialCredits(
+    organizationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    if (!isFreeTrialEnforced()) return false;
+    if ((await this.freeTrialService.getState(organizationId)).isTrialExpired)
+      return false;
+    const result = await this.runSerializable(async (tx) => {
+      const organization = await tx.organization.findFirst({
+        where: {
+          id: organizationId,
+          isDeleted: false,
+          userId,
+          isProactiveOnboarding: false,
+          warmupAccounts: { none: { isDeleted: false } },
+        },
+      });
+      if (!organization) return null;
+      const idempotencyKey = `onboarding:trial:${userId}`;
+      // tenant-scope-ignore: the trial entitlement is user-scoped across owned organizations; historical ledger evidence survives spent or expired credits.
+      const existing = await crossOrgUnsafe(
+        async () =>
+          // tenant-scope-ignore: the trial entitlement is user-scoped across owned organizations; historical ledger evidence survives spent or expired credits.
+          await tx.creditTransaction.findFirst({
+            where: {
+              category: CreditTransactionCategory.ADD,
+              isDeleted: false,
+              source: TRIAL_CAMPAIGN,
+              OR: [
+                { idempotencyKey },
+                { actorUserId: userId },
+                { organization: { userId } },
+              ],
+            },
+          }),
+      );
+      if (existing) return null;
+      return this.creditsUtilsService.addPromotionalCreditsInTransaction(
+        {
+          creditsToAdd: ONBOARDING_TRIAL_CREDITS,
+          description: 'Free trial credits',
+          expiresAt: new Date(Date.now() + REWARD_EXPIRY_MS),
+          organizationId,
+          source: TRIAL_CAMPAIGN,
+          options: {
+            actorUserId: userId,
+            billingAccountId: organization.billingAccountId ?? undefined,
+            idempotencyKey,
+            referenceId: userId,
+            referenceType: TRIAL_CAMPAIGN,
+            metadata: { kind: 'promotional', campaign: TRIAL_CAMPAIGN },
+          },
+        },
+        tx,
+      );
+    });
+    if (!result?.wasApplied) return false;
+    await this.creditsUtilsService.publishCreditAddition(
+      organizationId,
+      ONBOARDING_TRIAL_CREDITS,
+      result,
+    );
+    return true;
+  }
+
+  /**
+   * `grantTrialCredits` for paths that have already recorded onboarding and
+   * must not fail because of it. The next finish or skip retries the same
+   * idempotent grant.
+   */
+  async grantTrialCreditsBestEffort(
+    organizationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    try {
+      return await this.grantTrialCredits(organizationId, userId);
+    } catch (error: unknown) {
+      this.loggerService.warn('Could not grant free-trial credits', {
+        error: error instanceof Error ? error.message : String(error),
+        organizationId,
+        service: OnboardingCreditGrantsService.name,
+      });
+      return false;
+    }
   }
 
   async completeMissions(

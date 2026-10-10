@@ -31,12 +31,12 @@ export interface AccessStateContextValue {
   needsOnboarding: boolean;
   /**
    * Trial used up: billing on, no subscription, not a super admin, onboarding
-   * done, and the balance cannot pay for one default image
-   * (`accessState.canAffordDefaultGeneration === false`). Routes stay
-   * reachable; the shell shows the upgrade state, and a generation the
-   * balance cannot pay for is refused by the API and answered with the
-   * credits prompt. A future trial window (`trialEndsAt`) folds in here as
-   * another reason without changing consumers.
+   * done, and either the balance cannot pay for one default image
+   * (`accessState.canAffordDefaultGeneration === false`) or the 3-day free
+   * trial is over for an organization that never paid
+   * (`accessState.isTrialExpired`, see `trialEndsAt`). Routes stay reachable;
+   * the shell shows the upgrade state, and a generation is refused by the API
+   * and answered with the credits prompt.
    */
   isTrialUsedUp: boolean;
   /**
@@ -146,7 +146,8 @@ export function AccessStateProvider({
     !isSuperAdmin &&
     !isSubscribed &&
     !needsOnboarding &&
-    accessState?.canAffordDefaultGeneration === false;
+    (accessState?.canAffordDefaultGeneration === false ||
+      accessState?.isTrialExpired === true);
 
   // First-asset unlock gate. SaaS-only (isSaaS excludes cloud-connected Desktop);
   // super-admins bypass. Fail-open: locked ONLY when both flags are explicitly

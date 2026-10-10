@@ -71,6 +71,23 @@ export class InsufficientCreditsException extends BusinessLogicException {
 }
 
 /**
+ * The organization never paid and its free trial is over, so no credit spend
+ * is admitted (even while free credits still sit in the wallet, before the
+ * trial-expiry sweep removes them). Shares the `INSUFFICIENT_CREDITS` code so
+ * every caller and the app's paywall treat it exactly like an empty wallet;
+ * `meta.reason` tells the two apart.
+ */
+export class FreeTrialExpiredException extends BusinessLogicException {
+  constructor(trialEndsAt: Date) {
+    super(
+      'Your free trial has ended. Buy credits or choose a plan to keep creating.',
+      { reason: 'FREE_TRIAL_EXPIRED', trialEndsAt: trialEndsAt.toISOString() },
+      'INSUFFICIENT_CREDITS',
+    );
+  }
+}
+
+/**
  * A credit hold that is no longer RESERVED — released or expired — and so can
  * never be settled.
  *

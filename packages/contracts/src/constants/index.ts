@@ -20,6 +20,7 @@ export * from './expert-positioning.constant';
 export * from './feature-flags.constant';
 export * from './flux-3-image.constant';
 export * from './forwarded-request.constant';
+export * from './free-trial.constant';
 export * from './funnel-events.constant';
 export * from './gallery.constant';
 export * from './generation-dimensions.constant';

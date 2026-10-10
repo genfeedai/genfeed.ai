@@ -34,6 +34,7 @@ export const ANALYTICS_FILTER_SEARCH_KEYS = Object.freeze({
   platform: 'platform',
   postId: 'postId',
   query: 'q',
+  show: 'show',
   sort: 'sort',
   timeframe: 'timeframe',
   visibility: 'visibility',
@@ -66,7 +67,7 @@ function resolveDescriptor(route: string): AnalyticsSurfaceDescriptor {
       cacheMinutes: 15,
       defaultFilters: { metric: 'views' },
       exportKind: 'published-posts',
-      filterKeys: ['metric', 'platform', 'postId', 'query'],
+      filterKeys: ['metric', 'platform', 'postId', 'query', 'show'],
       label: 'Post analytics',
       maxVisibleResults: 50,
       metrics: ['views', 'engagement', 'likes'],
@@ -195,6 +196,9 @@ function normalizeFilterValue(
     return ['24h', '72h', '7d', '30d', '90d'].includes(normalized)
       ? normalized
       : undefined;
+  }
+  if (key === 'show') {
+    return normalized === 'winners' ? normalized : undefined;
   }
   if (key === 'visibility') {
     return ['private', 'public'].includes(normalized) ? normalized : undefined;

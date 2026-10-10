@@ -1,5 +1,6 @@
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
+import { UserOnboardingCompletionService } from '@api/collections/users/services/user-onboarding-completion.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -73,6 +74,13 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       {} as never,
       {} as never,
       {} as never,
+      // The trial is already over, so the trial-credit grant is a no-op here.
+      {
+        getState: vi
+          .fn()
+          .mockResolvedValue({ isTrialExpired: true, trialEndsAt: null }),
+      } as never,
+      { warn: vi.fn() } as never,
       serverFunnelCaptureService as never,
     );
 
@@ -83,7 +91,12 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       {} as never, // filesClientService
       userAccessCacheService as never,
       {} as never, // settingsService
-      serverFunnelCaptureService as never,
+      new UserOnboardingCompletionService(
+        usersService as never,
+        userAccessCacheService as never,
+        { emitAsync: vi.fn() } as never,
+        serverFunnelCaptureService as never,
+      ),
     );
 
     const handler = new AgentOnboardingToolHandler(
@@ -153,7 +166,12 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       {} as never,
       userAccessCacheService as never,
       {} as never, // settingsService
-      serverFunnelCaptureService as never,
+      new UserOnboardingCompletionService(
+        usersService as never,
+        userAccessCacheService as never,
+        { emitAsync: vi.fn() } as never,
+        serverFunnelCaptureService as never,
+      ),
     );
 
     await controller.updateMe(mockRequest, mockUser, {

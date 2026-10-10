@@ -1,6 +1,7 @@
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
@@ -76,6 +77,7 @@ export class AuthBootstrapService {
     private readonly streaksService: StreaksService,
     private readonly usersService: UsersService,
     private readonly defaultGenerationAffordability: DefaultGenerationAffordabilityService,
+    private readonly freeTrialService: FreeTrialService,
   ) {}
 
   private getOverviewBootstrapCacheKey(
@@ -378,20 +380,10 @@ export class AuthBootstrapService {
       };
     }
 
-    // Only the shell bootstrap carries the paywall signal; the overview
+    // Only the shell bootstrap carries the paywall signals; the overview
     // bootstrap shares `resolveBootstrapBase` and never prices a model.
     const access = organizationId
-      ? {
-          ...base.access,
-          canAffordDefaultGeneration:
-            await this.defaultGenerationAffordability.canAffordDefaultGeneration(
-              {
-                balance: base.access.creditsBalance,
-                organizationDefaultImageModel: base.settings?.defaultImageModel,
-                organizationId,
-              },
-            ),
-        }
+      ? await this.withPaywallSignals(base, organizationId)
       : base.access;
 
     const payload: AccessBootstrapCachePayload = {
@@ -412,6 +404,26 @@ export class AuthBootstrapService {
     }
 
     return payload;
+  }
+
+  private async withPaywallSignals(
+    base: BootstrapBaseData,
+    organizationId: string,
+  ): Promise<AccessBootstrapCachePayload['access']> {
+    const [canAffordDefaultGeneration, trial] = await Promise.all([
+      this.defaultGenerationAffordability.canAffordDefaultGeneration({
+        balance: base.access.creditsBalance,
+        organizationDefaultImageModel: base.settings?.defaultImageModel,
+        organizationId,
+      }),
+      this.freeTrialService.getState(organizationId),
+    ]);
+    return {
+      ...base.access,
+      canAffordDefaultGeneration,
+      isTrialExpired: trial.isTrialExpired,
+      trialEndsAt: trial.trialEndsAt?.toISOString() ?? null,
+    };
   }
 
   async getOverviewBootstrap(

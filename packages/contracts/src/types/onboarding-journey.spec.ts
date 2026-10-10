@@ -6,7 +6,9 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
   ONBOARDING_SIGNUP_GIFT_CREDITS,
+  ONBOARDING_STARTER_CREDITS,
   ONBOARDING_TOTAL_VISIBLE_CREDITS,
+  ONBOARDING_TRIAL_CREDITS,
   resolveMissionCtaHref,
 } from './onboarding-journey';
 
@@ -88,7 +90,13 @@ describe('onboarding credit economics', () => {
     ).toBeLessThan(provenRewards);
   });
 
-  it('counts the gift, answers and journey in the visible total', () => {
-    expect(ONBOARDING_TOTAL_VISIBLE_CREDITS).toBe(235);
+  it('stacks the 75 trial credits on the 25 signup gift', () => {
+    expect(ONBOARDING_SIGNUP_GIFT_CREDITS).toBe(25);
+    expect(ONBOARDING_TRIAL_CREDITS).toBe(75);
+    expect(ONBOARDING_STARTER_CREDITS).toBe(100);
+  });
+
+  it('counts the gift, trial credits, answers and journey in the visible total', () => {
+    expect(ONBOARDING_TOTAL_VISIBLE_CREDITS).toBe(310);
   });
 });

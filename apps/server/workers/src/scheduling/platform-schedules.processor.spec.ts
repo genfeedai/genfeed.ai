@@ -35,7 +35,10 @@ describe('PlatformSchedulesProcessor', () => {
   const patterns = { computeDailyPatterns: handler() };
   const posts = { publishScheduledPosts: handler() };
   const queueMetrics = { publishQueueMetrics: handler() };
-  const referrals = { settleDueRewards: handler() };
+  const credits = {
+    expireFreeTrials: handler(),
+    settleReferralRewards: handler(),
+  };
   const reviewGate = { resolveTimedOutReviewGates: handler() };
   const rss = { pollEnabledSources: handler() };
   const socialSourceResync = { resyncDueSources: handler() };
@@ -111,6 +114,7 @@ describe('PlatformSchedulesProcessor', () => {
         PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY,
         falModels.discoverNewModels,
       ],
+      [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY, credits.expireFreeTrials],
       [
         PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH,
         trends.refreshGlobalTrends,
@@ -163,7 +167,7 @@ describe('PlatformSchedulesProcessor', () => {
       ],
       [
         PLATFORM_SCHEDULED_TASKS.REFERRAL_REWARD_SETTLEMENT,
-        referrals.settleDueRewards,
+        credits.settleReferralRewards,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.REPLICATE_MODEL_DISCOVERY,
@@ -234,7 +238,7 @@ describe('PlatformSchedulesProcessor', () => {
       patterns as never,
       posts as never,
       queueMetrics as never,
-      referrals as never,
+      credits as never,
       reviewGate as never,
       rss as never,
       socialSourceResync as never,

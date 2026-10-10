@@ -494,6 +494,30 @@
           "policy_unreadable": "The strategy budget or posting policy could not be verified."
         }
       }
+    },
+    "winners": {
+      "allPosts": "All posts",
+      "columns": {
+        "evidence": "Why it won",
+        "post": "Post"
+      },
+      "empty": "No winners in this period. A post wins when a metric beats its account's usual result and there are enough mature posts to compare.",
+      "evidence": "{signal} {ratio}× baseline ({value} vs {baseline}, {sampleSize} posts)",
+      "loadError": "Winners could not be loaded.",
+      "showLabel": "Show posts",
+      "signals": {
+        "comments": "Comments",
+        "engagementRate": "Engagement rate",
+        "likes": "Likes",
+        "views": "Views"
+      },
+      "tableLabel": "Winning posts",
+      "tiers": {
+        "breakout": "Breakout",
+        "outlier": "Outlier"
+      },
+      "untitled": "Untitled post",
+      "winners": "Winners"
     }
   },
   "adsResearch": {
