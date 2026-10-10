@@ -17,7 +17,8 @@ export type StudioSurface = 'storyboard' | 'clips' | 'batch' | 'fastlane';
 
 export class StudioPage {
   readonly page: Page;
-  readonly url = `${E2E_BRAND_BASE}${APP_ROUTES.STUDIO.ROOT}`;
+  /** Playground; Studio has no root page since each tool is its own app. */
+  readonly url = `${E2E_BRAND_BASE}${APP_ROUTES.STUDIO.PLAYGROUND}`;
 
   // Main layout elements
   readonly sidebar: Locator;
@@ -161,7 +162,9 @@ export class StudioPage {
    * Navigate to a specific Studio production surface
    */
   async gotoSurface(surface: StudioSurface): Promise<void> {
-    await this.page.goto(`${this.url}/${surface}`);
+    await this.page.goto(
+      `${E2E_BRAND_BASE}${APP_ROUTES.STUDIO.ROOT}/${surface}`,
+    );
     await this.page.waitForURL(new RegExp(`/studio/${surface}(?:/|\\?|$)`));
     await this.waitForPageLoad();
   }

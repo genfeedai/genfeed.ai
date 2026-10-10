@@ -97,6 +97,8 @@ export interface ProjectState {
   sourceVideoUrl?: string;
   transcriptText?: string;
   status: string;
+  /** Creator-readable reason a failed project stopped. */
+  error?: string | null;
   highlights: IHighlight[];
   clips: ClipResult[];
   estimatedClips?: number;

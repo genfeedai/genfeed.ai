@@ -1,6 +1,7 @@
 'use client';
 
 import { isSaaS } from '@genfeedai/config/deployment';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus } from '@genfeedai/contracts';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
@@ -28,6 +29,16 @@ export interface AccessStateContextValue {
   hasPaygCredits: boolean;
   canAccessApp: boolean;
   needsOnboarding: boolean;
+  /**
+   * Trial used up: billing on, no subscription, not a super admin, onboarding
+   * done, and the balance cannot pay for one default image
+   * (`accessState.canAffordDefaultGeneration === false`). Routes stay
+   * reachable; the shell shows the upgrade state, and a generation the
+   * balance cannot pay for is refused by the API and answered with the
+   * credits prompt. A future trial window (`trialEndsAt`) folds in here as
+   * another reason without changing consumers.
+   */
+  isTrialUsedUp: boolean;
   /**
    * First-asset unlock gate (cloud SaaS only). True while the org has not yet
    * generated its first asset and this user has not dismissed the gate — the
@@ -130,6 +141,12 @@ export function AccessStateProvider({
     accessState?.hasEverHadCredits === true;
   const needsOnboarding = accessState?.isOnboardingCompleted !== true;
   const canAccessApp = isSuperAdmin || isSubscribed;
+  const isTrialUsedUp =
+    hasOrganizationBillingHint() &&
+    !isSuperAdmin &&
+    !isSubscribed &&
+    !needsOnboarding &&
+    accessState?.canAffordDefaultGeneration === false;
 
   // First-asset unlock gate. SaaS-only (isSaaS excludes cloud-connected Desktop);
   // super-admins bypass. Fail-open: locked ONLY when both flags are explicitly
@@ -178,6 +195,7 @@ export function AccessStateProvider({
       isLoading,
       isSubscribed,
       isSuperAdmin,
+      isTrialUsedUp,
       needsOnboarding,
       refreshAccessState,
     }),
@@ -190,6 +208,7 @@ export function AccessStateProvider({
       isLoading,
       isSubscribed,
       isSuperAdmin,
+      isTrialUsedUp,
       needsOnboarding,
       refreshAccessState,
     ],

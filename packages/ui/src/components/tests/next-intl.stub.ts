@@ -109,7 +109,11 @@ const UI_TEST_MESSAGES = {
   common: {
     appRail: {
       apps: 'Apps',
-      more: 'More',
+      launcher: 'Apps',
+      search: 'Search apps',
+      noApps: 'No apps installed yet.',
+      noMatches: 'No matching apps.',
+      store: 'Store',
       pin: 'Pin {app}',
       unpin: 'Unpin {app}',
       navigation: 'App navigation',
@@ -126,9 +130,29 @@ const UI_TEST_MESSAGES = {
         label: 'Workspace',
         description: 'Command center.',
       },
-      studio: {
-        label: 'Studio',
-        description: 'Create assets.',
+      playground: {
+        label: 'Playground',
+        description: 'Generate and iterate on assets.',
+      },
+      storyboard: {
+        label: 'Storyboard',
+        description: 'Plan scenes and shots.',
+      },
+      turbo: {
+        label: 'Turbo',
+        description: 'Produce content in volume.',
+      },
+      motion: {
+        label: 'Motion',
+        description: 'Compose animated visuals.',
+      },
+      clips: {
+        label: 'Clips',
+        description: 'Cut highlights from long videos.',
+      },
+      editor: {
+        label: 'Editor',
+        description: 'Finish videos on a timeline.',
       },
       library: {
         label: 'Library',

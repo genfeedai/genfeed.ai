@@ -58,6 +58,77 @@ function receipt(): BrandedGenerationReceiptV1 {
     isDeleted: false,
   };
 }
+/** A Studio image output recorded as a raw receipt and settled ready. */
+function studioImage(): BrandedGenerationReceiptV1 {
+  const v = receipt();
+  v.state = 'ready';
+  v.surface = 'studio';
+  v.contentType = 'image';
+  v.format = 'image';
+  v.generationId = 'ingredient-1';
+  v.revision = 5;
+  v.resolutionHash = hash;
+  v.prompts.compiled = {
+    contentHash: hash,
+    retention: 'retained',
+    snapshotId: 'compiled',
+  };
+  v.learning = {
+    schemaVersion: 1,
+    brandFeedback: { status: 'not_applicable', sourceIds: [] },
+    global: {
+      status: 'not_applicable',
+      scope: { format: 'image', objective: 'engagement' },
+    },
+    privateAccount: {
+      mode: 'no_destination',
+      configVersion: 'media-raw-v1',
+      synthetic: false,
+      application: {
+        status: 'unavailable',
+        reasonCodes: ['no_destination'],
+        privatePolicyApplied: false,
+        sharedReleaseApplied: false,
+        revalidatedAt: time,
+      },
+    },
+  };
+  v.execution = {
+    provider: 'replicate',
+    model: 'replicate/flux',
+    providerAttemptRef: 'replicate:job-1',
+    dispatchClaimedAt: time,
+    providerAcceptedAt: time,
+    completedAt: time,
+    result: 'completed',
+  };
+  v.budget.generationAttemptsUsed = 1;
+  v.artifact = {
+    kind: 'ingredient',
+    id: 'ingredient-1',
+    mediaKind: 'image',
+    version: 's3:v:1',
+    parts: [
+      {
+        id: 'images/ingredient-1.png',
+        role: 'image',
+        version: 's3:v:1',
+        contentHash: hash,
+      },
+    ],
+    contentHash: hash,
+  };
+  v.costs = [
+    {
+      id: 'generation',
+      stage: 'generation',
+      status: 'known',
+      ledgerId: 'hold-1',
+      credits: 4,
+    },
+  ];
+  return v;
+}
 function resolved(): BrandedGenerationReceiptV1 {
   const v = receipt();
   v.mode = 'approved_brand';
@@ -200,6 +271,42 @@ describe('validated public branded receipt serializer', () => {
       data: null,
     });
     expect(Reflect.get(BrandedGenerationReceiptSerializer, 'opts')).toBe(opts);
+  });
+  it('serializes a Studio media receipt with its output ingredient, model, known credit cost and no compliance claim', () => {
+    const v = studioImage();
+    const before = structuredClone(v);
+    const output = BrandedGenerationReceiptSerializer.serialize(v);
+    expect(output.data.type).toBe('branded-generation-receipt');
+    expect(output.data.attributes).toMatchObject({
+      state: 'ready',
+      mode: 'raw',
+      surface: 'studio',
+      contentType: 'image',
+      format: 'image',
+      generationId: 'ingredient-1',
+      compliance: 'not_claimed',
+      snapshot: null,
+      validation: null,
+      execution: {
+        provider: 'replicate',
+        model: 'replicate/flux',
+        result: 'completed',
+      },
+      artifact: { kind: 'ingredient', id: 'ingredient-1', mediaKind: 'image' },
+      costs: [
+        { id: 'generation', status: 'known', ledgerId: 'hold-1', credits: 4 },
+      ],
+    });
+    expect(JSON.stringify(output)).not.toContain('PRIVATE_');
+    expect(v).toEqual(before);
+  });
+  it('rejects a Studio media receipt that claims brand compliance', () => {
+    expect(() =>
+      BrandedGenerationReceiptSerializer.serialize({
+        ...studioImage(),
+        compliance: 'passed',
+      }),
+    ).toThrow();
   });
   it('preserves null slots and pending/unavailable cost omission without fake amounts', () => {
     const v = receipt();

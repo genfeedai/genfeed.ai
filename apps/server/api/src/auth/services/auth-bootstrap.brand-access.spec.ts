@@ -104,6 +104,9 @@ function fixture() {
         .fn()
         .mockResolvedValue({ id: 'opaque-user', isOnboardingCompleted: true }),
     } as unknown as Dependencies[7],
+    {
+      canAffordDefaultGeneration: vi.fn().mockResolvedValue(true),
+    } as unknown as Dependencies[8],
   );
   return {
     member,

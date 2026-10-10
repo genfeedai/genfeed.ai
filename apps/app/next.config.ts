@@ -341,31 +341,6 @@ const config = createAppNextConfig({
         '/analytics/trend-turnover',
       ),
     },
-    // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
-    // it to `/:org/:brand/review`) — that page never existed. Send both dead
-    // shapes to Publishing Review so stored thread links stop 404ing.
-    {
-      destination: APP_ROUTES.PUBLISHING.REVIEW,
-      permanent: true,
-      source: '/review',
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.PUBLISHING.REVIEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/review'),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.PUBLISHING.REVIEW,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', '/review'),
-    },
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
       destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
@@ -426,28 +401,9 @@ const config = createAppNextConfig({
         `${APP_ROUTES.SETTINGS.ROOT}/${segment}`,
       ),
     })),
-    {
-      destination: APP_ROUTES.STUDIO.PLAYGROUND,
-      permanent: false,
-      source: APP_ROUTES.STUDIO.ROOT,
-    },
-    {
-      // Studio has no root page — Storyboard is the production landing surface.
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.STUDIO.PLAYGROUND,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.STUDIO.ROOT,
-      ),
-    },
-    // Complete-path homes: bare `/[app]` → a named child. Discovery/Studio
-    // already redirect ROOT to one (discovery / storyboard); Library's home is
-    // the asset browser, not an overview tile grid.
+    // Complete-path homes: bare `/[app]` → a named child. Library's home is
+    // the asset browser, not an overview tile grid. Studio has no root: each
+    // Studio tool is its own app (#5502).
     ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appHomeRedirects(APP_ROUTES.AUTOMATION.ROOT),
     ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT),

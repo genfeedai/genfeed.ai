@@ -244,6 +244,7 @@ export default function GlobalModalsRenderer({
       <ModalUpgradePrompt
         currentTier={settings?.subscriptionTier as SubscriptionTier | undefined}
       />
+      <ModalUpgradePrompt reason="credits" />
 
       {postRemixData && (
         <LazyModalPostRemix

@@ -10,6 +10,7 @@ import {
 import {
   DEFAULT_PLATFORM_FLAGS,
   EXPERT_FIRST_SYSTEM_CREDIT_COST,
+  NATIVE_SECONDARY_APP_IDS,
 } from '@genfeedai/contracts/constants';
 import type {
   AdminModelPricingReport,
@@ -112,6 +113,7 @@ interface MockBrand {
 interface MockOrganizationSettings {
   hasOrganizationBilling: boolean;
   hasPaidModuleSubscription: boolean;
+  isReleasePreviewEnabled: boolean;
   moduleOverrides: Record<string, boolean>;
   id: string;
   isFleetNsfwVisible: boolean;
@@ -254,6 +256,9 @@ export function generateMockOrganizationSettings(
     id: 'org-settings-1',
     hasOrganizationBilling: true,
     hasPaidModuleSubscription: true,
+    // #5502 the e2e organization is on release preview, so founder-only
+    // modules follow their own module switches.
+    isReleasePreviewEnabled: true,
     moduleOverrides: {
       motion: true,
       clips: true,
@@ -2409,6 +2414,16 @@ export async function setupApiMocks(
 
   await routeApi('/users/me/organizations**', async (r) => {
     await handleUserMeOrganizationsRoute(r);
+  });
+
+  // #5502 the member has every native app installed, so the Apps launcher
+  // shows what each app's organization and release access allows.
+  await routeApi('/members/me/apps**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify({ installedAppIds: [...NATIVE_SECONDARY_APP_IDS] }),
+      contentType: 'application/json',
+      status: 200,
+    });
   });
 
   await routeApi('/brands**', async (r) => {

@@ -1712,8 +1712,8 @@ model Setting {
   // #5510 per-user favorite workflows; ids are validated against the
   // caller's organization on write and pruned of deleted workflows on read.
   favoriteWorkflowIds              String[]                   @default([])
-  // Apps promoted out of the rail More menu, in pin order. Only the
-  // pinnable app ids (studio, automation, messages, discovery) are valid.
+  // #5502 native secondary apps pinned onto the rail, in pin order. User-wide;
+  // a pin shows only where the app is installed and available.
   pinnedAppIds                     String[]                   @default([])
   isAgentAssetsPanelOpen          Boolean                    @default(false)
   generationPriority               GenerationPriority         @default(QUALITY)
@@ -1789,6 +1789,9 @@ model OrganizationSetting {
   defaultMusicModel              String?
   agentPolicy                    Json              @default("{}")
   moduleOverrides                Json              @default("{}")
+  // #5502 founder release preview. Only platform admins set it; on cloud,
+  // founder-only modules admit new work only in organizations with it on.
+  isReleasePreviewEnabled        Boolean           @default(false)
   fleetEvaluationPolicy          Json              @default("{}")
   byokKeys                       Json              @default("{}")
   createdAt                      DateTime          @default(now())

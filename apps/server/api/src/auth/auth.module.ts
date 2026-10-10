@@ -18,6 +18,7 @@ import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { RouterModule } from '@api/services/router/router.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
@@ -43,6 +44,7 @@ import { PassportModule } from '@nestjs/passport';
     OrganizationsModule,
     OrganizationSettingsModule,
     PostsModule,
+    RouterModule,
     StreaksModule,
     SubscriptionsModule,
     UserSetupModule,

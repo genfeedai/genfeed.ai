@@ -10,11 +10,16 @@ vi.mock('@genfeedai/config', async (original) => ({
   hasOrganizationBilling: config.hasOrganizationBilling,
 }));
 
-function createService(moduleOverrides: unknown = {}) {
+function createService(
+  moduleOverrides: unknown = {},
+  isReleasePreviewEnabled = true,
+) {
   const prisma = {
     organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
     organizationSetting: {
-      findUnique: vi.fn().mockResolvedValue({ moduleOverrides }),
+      findUnique: vi
+        .fn()
+        .mockResolvedValue({ isReleasePreviewEnabled, moduleOverrides }),
     },
   };
   const paidAccess = {
@@ -60,9 +65,51 @@ describe('OrganizationModuleAccessService', () => {
     });
     expect(prisma.organizationSetting.findUnique).toHaveBeenCalledWith({
       where: { organizationId: 'org-1' },
-      select: { moduleOverrides: true },
+      select: { isReleasePreviewEnabled: true, moduleOverrides: true },
     });
     expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
+  });
+
+  it.each(['motion', 'clips', 'editor', 'automation', 'messages'] as const)(
+    'refuses new %s work on cloud outside release preview (#5502)',
+    async (moduleId) => {
+      const { service, paidAccess } = createService(
+        { [moduleId]: true },
+        false,
+      );
+      await expect(
+        service.assertAccess('org-1', moduleId),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'ORGANIZATION_MODULE_UNRELEASED',
+          moduleId,
+        }),
+        status: 403,
+      });
+      await expect(service.canStartWork('org-1', moduleId)).resolves.toBe(
+        false,
+      );
+      expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps reads and exports of unreleased modules available', async () => {
+    const { service, prisma } = createService({ automation: true }, false);
+    await expect(
+      service.assertAccess('org-1', 'automation', 'read'),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.assertAccess('org-1', 'automation', 'export'),
+    ).resolves.toBeUndefined();
+    expect(prisma.organizationSetting.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('does not apply the release gate to self-hosted deployments', async () => {
+    config.hasOrganizationBilling.mockReturnValue(false);
+    const { service } = createService({}, false);
+    await expect(
+      service.assertAccess('org-1', 'motion'),
+    ).resolves.toBeUndefined();
   });
   it('allows an explicitly enabled credit-based module without a subscription', async () => {
     const { service, paidAccess } = createService({ batch: true });

@@ -39,6 +39,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
+import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -422,11 +423,12 @@ function AppLayoutWithDynamicMenu({
                       : menuItems;
   const lowCreditsBanner =
     hasOrganizationBillingHint() &&
-    isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
     !suppressShellLowCreditsBanner &&
     !isLibraryLandingRoute ? (
-      <LowCreditsBanner />
+      <LowCreditsBanner
+        isLowBalanceWarningEnabled={isLowCreditsBannerEnabled}
+      />
     ) : null;
   const shellBanner = (
     <>
@@ -644,11 +646,13 @@ function AppProtectedLayoutContent({
           !isEditorCanvasRoute && !isFocusedOnboardingRoute && !isWorkspaceRoute
         }
       >
-        <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
-          <OnboardingGuard>
-            <AssetGateGuard>{children}</AssetGateGuard>
-          </OnboardingGuard>
-        </AppLayoutWithDynamicMenu>
+        <InstalledAppsProvider>
+          <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
+            <OnboardingGuard>
+              <AssetGateGuard>{children}</AssetGateGuard>
+            </OnboardingGuard>
+          </AppLayoutWithDynamicMenu>
+        </InstalledAppsProvider>
       </ProtectedProviders>
     </WorkspaceNavPanelProvider>
   );

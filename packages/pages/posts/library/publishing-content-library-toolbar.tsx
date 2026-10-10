@@ -1,10 +1,9 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { PublishingContentTypeFilter } from '@pages/posts/library/publishing-content-library.helpers';
 import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
-import { Button } from '@ui/primitives/button';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -14,9 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { ClipboardCheck } from 'lucide-react';
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
 
 interface FilterOption {
   label: string;
@@ -24,8 +20,6 @@ interface FilterOption {
 }
 
 export interface PublishingContentLibraryToolbarProps {
-  /** Link to the approval queue, carrying any selected batch/item along. */
-  approvalQueueHref?: string;
   showSearch?: boolean;
   channelOptions: FilterOption[];
   channelValue: string;
@@ -59,30 +53,8 @@ export function PublishingContentLibrarySearch({
   );
 }
 
-export function PublishingContentLibraryQueueLink({
-  approvalQueueHref,
-}: Pick<PublishingContentLibraryToolbarProps, 'approvalQueueHref'>) {
-  const translate = useTranslations('pages.posts.library');
-  return approvalQueueHref ? (
-    <Button
-      asChild
-      size={ButtonSize.SM}
-      variant={ButtonVariant.GHOST}
-      withWrapper={false}
-    >
-      <Link aria-label={translate('approvalQueue')} href={approvalQueueHref}>
-        <ClipboardCheck aria-hidden="true" className="size-3.5" />
-        <span className="hidden @[64rem]/publishing:inline">
-          {translate('approvalQueue')}
-        </span>
-      </Link>
-    </Button>
-  ) : null;
-}
-
 export default function PublishingContentLibraryToolbar({
   showSearch = true,
-  approvalQueueHref,
   channelOptions,
   channelValue,
   searchValue,
@@ -157,10 +129,6 @@ export default function PublishingContentLibraryToolbar({
         values={statusValue}
         onChange={(_name, values) => onStatusChange(values)}
         placeholder="All statuses"
-      />
-
-      <PublishingContentLibraryQueueLink
-        approvalQueueHref={approvalQueueHref}
       />
     </div>
   );

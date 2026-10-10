@@ -1,8 +1,13 @@
+import type { ClipResult } from '@props/studio/clips.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-
 import type { ClipsApiService } from '../services/clips-api.service';
 import ClipsProgressView from './ClipsProgressView';
+
+// Clip cards need the app router; this suite covers the run-level status.
+vi.mock('./ClipResultCard', () => ({
+  default: ({ clip }: { clip: ClipResult }) => <div>{clip.title}</div>,
+}));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -106,6 +111,76 @@ describe('ClipsProgressView hook approval', () => {
           ),
         ),
       ).toBe(retryCount === 3);
+    },
+  );
+
+  it.each([
+    {
+      clips: [] as ClipResult[],
+      description:
+        'Clip generation stopped and this run can’t be retried. Start a new project to try again.',
+      hasClipRetry: false,
+    },
+    {
+      clips: [
+        {
+          duration: 30,
+          endTime: 30,
+          id: 'clip-1',
+          startTime: 0,
+          status: 'failed',
+          summary: 'Opening hook',
+          tags: [],
+          title: 'Hook',
+          viralityScore: 80,
+        } satisfies ClipResult,
+      ],
+      description:
+        'Clip generation stopped before it finished. Retry what failed below, or start a new project.',
+      hasClipRetry: true,
+    },
+  ])(
+    'shows why a quick run failed after transcription (clip retry: $hasClipRetry)',
+    ({ clips, description, hasClipRetry }) => {
+      render(
+        <ClipsProgressView
+          clipsService={{} as ClipsApiService}
+          isRetrying={false}
+          onReset={vi.fn()}
+          onRetryFailedClips={vi.fn()}
+          onRetrySource={vi.fn()}
+          project={{
+            clips,
+            error: 'Avatar provider rejected the job',
+            highlights: [],
+            mode: 'avatar',
+            projectId: 'quick-project',
+            status: 'failed',
+            source: {
+              schemaVersion: 1,
+              kind: 'youtube',
+              flow: 'quick',
+              status: 'completed',
+              fingerprint: 'quick-fingerprint',
+              retryCount: 0,
+              maxRetries: 3,
+              updatedAt: '2026-10-10T00:00:00Z',
+            },
+          }}
+          selectedCount={1}
+        />,
+      );
+
+      expect(
+        screen.getByRole('heading', { name: 'Clip generation failed' }),
+      ).toBeDefined();
+      expect(screen.getByText(description)).toBeDefined();
+      expect(screen.getByRole('status').textContent).toBe(
+        'Avatar provider rejected the job',
+      );
+      expect(
+        Boolean(screen.queryByRole('button', { name: 'Retry failed clips' })),
+      ).toBe(hasClipRetry);
     },
   );
 

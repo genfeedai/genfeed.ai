@@ -318,7 +318,9 @@ function ClipsProjectControls({
         ) : project.status === 'failed' ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-transparent bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {project.source?.failure?.message ?? t('sourceProcessingFailed')}
+              {project.source?.failure?.message ??
+                project.error ??
+                t('sourceProcessingFailed')}
             </div>
             {project.source?.status === 'failed' &&
             project.source.failure?.retryable ? (

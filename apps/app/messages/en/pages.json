@@ -948,6 +948,7 @@
     "noProjectsDescription": "Start from a YouTube link, an uploaded file, or a video in Library.",
     "noProjectsYet": "No clip projects yet",
     "pipelineFailed": "Clip generation stopped before it finished. Retry what failed below, or start a new project.",
+    "pipelineFailedNoRetry": "Clip generation stopped and this run can’t be retried. Start a new project to try again.",
     "processingAvatarClips": "Processing source media and generating avatar clips...",
     "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips…",
     "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts…",
@@ -2173,6 +2174,7 @@
         }
       },
       "viewToggle": {
+        "approvals": "Approvals",
         "board": "Board",
         "grid": "Grid",
         "list": "List"
@@ -2204,9 +2206,6 @@
       "reconnect": "Reconnect",
       "review": "Review",
       "untitled": "Untitled release"
-    },
-    "library": {
-      "approvalQueue": "Approval queue"
     }
   },
   "publishing": {
@@ -2539,8 +2538,7 @@
       },
       "approvalQueue": {
         "title": "Approval queue",
-        "description": "Drafts from generated batches that are waiting for a human decision. Posts is the complete publishing library.",
-        "openPosts": "Open in Posts"
+        "description": "Drafts from generated batches that are waiting for a human decision."
       }
     }
   },
@@ -5365,10 +5363,34 @@
     "open": "Generation receipts",
     "description": "Inspect the saved context and checks used for a generation.",
     "empty": "No generation receipts yet.",
-    "emptyCoverage": "Receipts are saved for text drafts written in approved-brand mode. Studio image and video generations don't create receipts yet.",
+    "emptyCoverage": "Receipts are saved for Studio image and video generations and for text drafts written in approved-brand mode.",
     "loading": "Loading generation receipts…",
     "refresh": "Reload saved details",
     "loadMore": "Load more",
+    "list": {
+      "kind": {
+        "image": "Image",
+        "video": "Video",
+        "text": "Text draft"
+      },
+      "status": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "needsReview": "Needs review",
+        "blocked": "Blocked",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "model": "Model: {model}",
+      "noModel": "not recorded",
+      "credits": "{count, plural, one {# credit} other {# credits}}",
+      "cost": {
+        "pending": "Cost pending",
+        "unavailable": "Cost unavailable",
+        "none": "No cost recorded"
+      },
+      "openOutput": "Open generated output"
+    },
     "select": "Select a generation to inspect.",
     "loadFailed": "Could not load saved generation details. Try again.",
     "unavailable": "This generation is unavailable or you no longer have access.",

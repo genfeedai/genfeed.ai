@@ -182,7 +182,8 @@ export default function AppProtectedLayoutSidebar({
         active: isStudioRoute,
         currentApp,
         items: studioMenuItems,
-        sectionLabel: 'Studio',
+        // Each Studio tool is its own app; there is no Studio parent label.
+        sectionLabel: currentApp ? APP_DISPLAY_LABELS[currentApp] : undefined,
       },
       {
         active: isAdminRoute,

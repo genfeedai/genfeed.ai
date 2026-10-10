@@ -3,8 +3,8 @@ import { ViewType } from '../../src/enums/view-type.enum';
 
 describe('view-type.enum', () => {
   describe('ViewType', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(ViewType)).toHaveLength(7);
+    it('should have 8 members', () => {
+      expect(Object.values(ViewType)).toHaveLength(8);
     });
 
     it('should have correct values', () => {
@@ -15,6 +15,7 @@ describe('view-type.enum', () => {
       expect(ViewType.MASONRY).toBe('masonry');
       expect(ViewType.CANVAS).toBe('canvas');
       expect(ViewType.TABLE).toBe('table');
+      expect(ViewType.APPROVALS).toBe('approvals');
     });
   });
 });

@@ -26,7 +26,12 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
+import { hasOrganizationBilling } from '@genfeedai/config';
 import { ByokProvider, MemberRole } from '@genfeedai/contracts';
+import {
+  findNewlyEnabledUnreleasedModules,
+  ORGANIZATION_MODULES,
+} from '@genfeedai/contracts/constants';
 import type {
   IByokProviderStatus,
   IWebhookDeliveryStatus,
@@ -220,8 +225,9 @@ export class OrganizationsSettingsController {
         'Onboarding journey state is managed by the server',
       );
     }
+    const isSuperAdmin = getIsSuperAdmin(req.user, req);
     if (
-      !getIsSuperAdmin(req.user, req) &&
+      !isSuperAdmin &&
       BILLING_CONTROLLED_SETTINGS.some((field) =>
         Object.hasOwn(settingsDto, field),
       )
@@ -229,6 +235,12 @@ export class OrganizationsSettingsController {
       throw new BadRequestException(
         'Plan limits and subscription tier are managed by billing',
       );
+    }
+    if (
+      !isSuperAdmin &&
+      Object.hasOwn(settingsDto, 'isReleasePreviewEnabled')
+    ) {
+      throw new ForbiddenException('Release preview is managed by Genfeed');
     }
     const resolvedOrganizationId = this.resolveOrganizationId(
       req,
@@ -253,6 +265,21 @@ export class OrganizationsSettingsController {
       await this.organizationSettingsService.ensureForOrganization(
         resolvedOrganizationId,
       );
+
+    const unreleased = isSuperAdmin
+      ? []
+      : findNewlyEnabledUnreleasedModules({
+          hasOrganizationBilling: hasOrganizationBilling(),
+          isReleasePreviewEnabled:
+            organizationSettings.isReleasePreviewEnabled === true,
+          nextOverrides: settingsDto.moduleOverrides,
+          previousOverrides: organizationSettings.moduleOverrides,
+        });
+    if (unreleased.length > 0) {
+      throw new ForbiddenException(
+        `${unreleased.map((id) => ORGANIZATION_MODULES[id].label).join(', ')} not released yet`,
+      );
+    }
 
     const normalizedSettingsDto =
       this.agentPolicyOverridesService.normalizeOverrides(settingsDto);

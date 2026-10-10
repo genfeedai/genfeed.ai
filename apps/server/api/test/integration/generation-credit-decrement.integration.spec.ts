@@ -294,6 +294,7 @@ const createImageGenerationService = () => {
     providerRegistry,
     sharedService as never,
     websocketService as never,
+    { open: vi.fn(), accepted: vi.fn() } as never,
   );
   const creditsService = new ImageGenerationCreditsService(
     creditsUtilsService as never,
