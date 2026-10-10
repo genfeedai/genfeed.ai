@@ -464,5 +464,16 @@
   },
   "runFailureCard": {
     "getCredits": "Get credits"
+  },
+  "onboardingChecklist": {
+    "brandContext": "Brand context",
+    "creditsEarned": "Credits earned",
+    "footer": "Every answer is saved to your brand and used in every post, image and video.",
+    "hintEmpty": "Starts with your website",
+    "hintPartial": "Each answer makes outputs more specific",
+    "hintStrong": "Strong: outputs will sound like you",
+    "rewardEarned": "+{credits} earned",
+    "rewardPending": "+{credits}",
+    "rowSkipped": "{label} (skipped)"
   }
 }
