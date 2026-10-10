@@ -3,9 +3,11 @@
 import { isSaaS } from '@genfeedai/config/deployment';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus } from '@genfeedai/contracts';
+import type { ICreditsEventData } from '@genfeedai/contracts/interfaces';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   type AccessBootstrapState,
@@ -17,7 +19,7 @@ import {
   loadClientProtectedBootstrap,
 } from '@providers/protected-bootstrap/client-protected-bootstrap';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, use, useCallback, useMemo } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo } from 'react';
 
 export interface AccessStateContextValue {
   accessState: AccessBootstrapState | null;
@@ -25,7 +27,17 @@ export interface AccessStateContextValue {
   refreshAccessState: () => Promise<void>;
   isSuperAdmin: boolean;
   isSubscribed: boolean;
+  /**
+   * The org has, or has ever had, Genfeed credits. Durable: it stays true
+   * after the balance is spent, so it is not a paywall signal.
+   */
   hasPaygCredits: boolean;
+  /**
+   * The org's current credit balance is above zero. Kept live from the
+   * `/credits/{organizationId}` socket so the unpaid-org paywall engages when
+   * the last credit is spent and lifts as soon as a purchase lands.
+   */
+  hasCreditsRemaining: boolean;
   canAccessApp: boolean;
   needsOnboarding: boolean;
   /**
@@ -125,9 +137,9 @@ export function AccessStateProvider({
   const isSubscribed =
     accessState?.subscriptionStatus === SubscriptionStatus.ACTIVE ||
     accessState?.subscriptionStatus === SubscriptionStatus.TRIALING;
+  const hasCreditsRemaining = (accessState?.creditsBalance ?? 0) > 0;
   const hasPaygCredits =
-    (accessState?.creditsBalance ?? 0) > 0 ||
-    accessState?.hasEverHadCredits === true;
+    hasCreditsRemaining || accessState?.hasEverHadCredits === true;
   const needsOnboarding = accessState?.isOnboardingCompleted !== true;
   const canAccessApp = isSuperAdmin || isSubscribed;
 
@@ -142,6 +154,43 @@ export function AccessStateProvider({
     accessState != null &&
     accessState.hasGeneratedFirstAsset === false &&
     accessState.hasDismissedAssetGate === false;
+
+  // Keep the balance live. Without this the paywall reads a bootstrap snapshot
+  // that is up to a minute old: an org that spends its last credit keeps
+  // browsing, and an org that just bought credits stays on the paywall.
+  const creditsOrganizationId = accessState?.organizationId || organizationId;
+  const { isReady: isSocketReady, subscribe } = useSocketManager();
+
+  useEffect(() => {
+    if (!isSocketReady || !creditsOrganizationId) {
+      return;
+    }
+
+    return subscribe<ICreditsEventData>(
+      `/credits/${creditsOrganizationId}`,
+      (data) => {
+        const balance = data?.balance;
+        if (typeof balance !== 'number' || !Number.isFinite(balance)) {
+          return;
+        }
+
+        queryClient.setQueryData<AccessBootstrapState | null>(
+          accessStateQueryKey,
+          (previous) =>
+            previous ? { ...previous, creditsBalance: balance } : previous,
+        );
+        // A later refetch must not re-serve the pre-change client snapshot
+        // over the live balance.
+        clearClientProtectedBootstrapCache();
+      },
+    );
+  }, [
+    accessStateQueryKey,
+    creditsOrganizationId,
+    isSocketReady,
+    queryClient,
+    subscribe,
+  ]);
 
   const refreshAccessState = useCallback(async () => {
     await refetch();
@@ -173,6 +222,7 @@ export function AccessStateProvider({
       accessState,
       canAccessApp,
       dismissAssetGate,
+      hasCreditsRemaining,
       hasPaygCredits,
       isAssetGateLocked,
       isLoading,
@@ -185,6 +235,7 @@ export function AccessStateProvider({
       accessState,
       canAccessApp,
       dismissAssetGate,
+      hasCreditsRemaining,
       hasPaygCredits,
       isAssetGateLocked,
       isLoading,

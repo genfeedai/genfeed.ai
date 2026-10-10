@@ -18,6 +18,7 @@ import {
   createOrganizationAppRoute,
   getResumeStep,
   ONBOARDING_STEPS,
+  parseScopedAppPath,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
@@ -36,7 +37,7 @@ export function useOnboardingRouteAccess(pathname: string) {
   const { currentUser, isLoading: isUserLoading } = useCurrentUser();
   const {
     accessState,
-    hasPaygCredits,
+    hasCreditsRemaining,
     isLoading: isAccessStateLoading,
     isSubscribed,
     isSuperAdmin,
@@ -77,11 +78,10 @@ export function useOnboardingRouteAccess(pathname: string) {
 
     if (hasNoBrandAccess) return null;
 
-    if (needsOnboarding) {
-      if (currentUser.isOnboardingCompleted === true) {
-        return null;
-      }
-
+    // The user record is the fresher signal right after completion: the
+    // access-state snapshot can still say "needs onboarding" for up to a
+    // minute. A finished user goes on to the credits check below.
+    if (needsOnboarding && currentUser.isOnboardingCompleted !== true) {
       if (isOnboardingRoute) {
         return null;
       }
@@ -115,7 +115,16 @@ export function useOnboardingRouteAccess(pathname: string) {
       return `/onboarding/${resumeStep}`;
     }
 
-    if (isBillingEnabled && !isSuperAdmin && !isSubscribed && !hasPaygCredits) {
+    // Funnel: signup -> onboarding (never paywalled, handled above) -> use the
+    // app on the onboarding credits -> paywall once the balance is spent. The
+    // check reads the live balance, not "has ever had credits": every new org
+    // gets the signup gift, so that durable flag would never paywall anyone.
+    if (
+      isBillingEnabled &&
+      !isSuperAdmin &&
+      !isSubscribed &&
+      !hasCreditsRemaining
+    ) {
       if (!hasAgentFirstOnboarding(isAgentModuleEnabled)) {
         return '/onboarding/summary';
       }
@@ -123,8 +132,10 @@ export function useOnboardingRouteAccess(pathname: string) {
       // Agent-first has no classic summary step (the proxy bounces it back to
       // brand settings, which looped). The paywall is the organization's
       // credits and subscription pages: buy a plan or a small credit pack, and
-      // nothing else renders until then.
-      const orgSlug = getBrandOrganizationSlug(brand);
+      // nothing else renders until then. An org without brands has no brand
+      // to read the slug from, so fall back to the org in the current URL.
+      const orgSlug =
+        getBrandOrganizationSlug(brand) || parseScopedAppPath(pathname).orgSlug;
       if (!orgSlug) {
         return null;
       }
@@ -149,7 +160,7 @@ export function useOnboardingRouteAccess(pathname: string) {
     currentUser,
     effectiveIsAuthLoaded,
     effectiveIsSignedIn,
-    hasPaygCredits,
+    hasCreditsRemaining,
     isAccessStateLoading,
     isBillingEnabled,
     isOnboardingRoute,
