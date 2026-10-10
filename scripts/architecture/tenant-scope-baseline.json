@@ -337,22 +337,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "c85d419727bd968f415f",
-      "method": "findMany",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "e256b44f87f90d2ba4cc",
-      "method": "findMany",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "moodBoard",
       "file": "apps/server/api/src/collections/mood-boards/services/mood-boards.service.ts",
       "fingerprint": "5643641aa98612e5d1b8",

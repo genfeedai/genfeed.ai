@@ -977,6 +977,7 @@ export class ModelsService extends BaseService<
         ...(filter ?? {}),
       }),
     );
+    // tenant-scope-ignore: registry reads are platform plus the active tenant: withPlatformTenantArm adds the tenant arm, and isDeleted is set in the where above
     const models = await this.prisma.model.findMany({
       where: dbWhere as Prisma.ModelWhereInput,
       include: {
@@ -999,6 +1000,7 @@ export class ModelsService extends BaseService<
 
     Object.assign(where, platformOrTenantScope(params.organizationId));
 
+    // tenant-scope-ignore: registry reads are platform plus the active tenant: platformOrTenantScope adds the tenant arm, and isDeleted is set in the where above
     const models = await this.prisma.model.findMany({
       where: where as Prisma.ModelWhereInput,
       include: {
