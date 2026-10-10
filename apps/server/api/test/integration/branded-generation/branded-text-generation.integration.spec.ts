@@ -311,7 +311,7 @@ describe('Branded text generation seam (real Postgres)', () => {
     const completed = await seam.generate(request(value));
     if (completed.kind !== 'completed') {
       throw new Error(
-        `Branded text generation stopped: ${completed.reasonCode}`,
+        `Branded text generation stopped: ${'reasonCode' in completed ? completed.reasonCode : completed.kind}`,
       );
     }
     expect(completed.kind).toBe('completed');
