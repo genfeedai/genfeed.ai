@@ -2170,6 +2170,7 @@
         }
       },
       "viewToggle": {
+        "approvals": "Approvals",
         "board": "Board",
         "grid": "Grid",
         "list": "List"
@@ -2201,9 +2202,6 @@
       "reconnect": "Reconnect",
       "review": "Review",
       "untitled": "Untitled release"
-    },
-    "library": {
-      "approvalQueue": "Approval queue"
     }
   },
   "publishing": {
@@ -2536,8 +2534,7 @@
       },
       "approvalQueue": {
         "title": "Approval queue",
-        "description": "Drafts from generated batches that are waiting for a human decision. Posts is the complete publishing library.",
-        "openPosts": "Open in Posts"
+        "description": "Drafts from generated batches that are waiting for a human decision."
       }
     }
   },

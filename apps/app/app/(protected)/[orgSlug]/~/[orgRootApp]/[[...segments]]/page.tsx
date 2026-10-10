@@ -42,7 +42,7 @@ import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/pa
 import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
-import PostsReviewPage from '../../../[brandSlug]/publishing/review/page';
+import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
 import EditorDetailPage from '../../../[brandSlug]/studio/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/editor/new/page';
@@ -369,6 +369,7 @@ export default async function OrgRootAppPage({
 
     if (publishingSegments.length === 1 && section === 'posts') {
       const postsListPage = await renderPostsListPage({
+        approvals: <ReviewQueueContent />,
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,
       });
@@ -383,14 +384,6 @@ export default async function OrgRootAppPage({
         searchParams: searchParams ?? Promise.resolve({}),
       });
       return null;
-    }
-
-    if (publishingSegments.length === 1 && section === 'review') {
-      return (
-        <PublishingLayoutContent>
-          <PostsReviewPage />
-        </PublishingLayoutContent>
-      );
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {

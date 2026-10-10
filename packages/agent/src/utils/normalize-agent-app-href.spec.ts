@@ -17,7 +17,7 @@ describe('normalizeAgentAppHref', () => {
 
   it('rewrites bare legacy publish paths and preserves query/hash', () => {
     expect(normalizeAgentAppHref('/review?tab=failed')).toBe(
-      `${APP_ROUTES.PUBLISHING.REVIEW}?tab=failed`,
+      `${APP_ROUTES.PUBLISHING.REVIEW}&tab=failed`,
     );
     expect(normalizeAgentAppHref('/calendar#week')).toBe(
       `${APP_ROUTES.PUBLISHING.CALENDAR}#week`,
@@ -35,7 +35,7 @@ describe('normalizeAgentAppHref', () => {
 
   it('rewrites brand-scoped and org-scoped review paths', () => {
     expect(normalizeAgentAppHref('/acme/launch/review?q=1')).toBe(
-      `/acme/launch${APP_ROUTES.PUBLISHING.REVIEW}?q=1`,
+      `/acme/launch${APP_ROUTES.PUBLISHING.REVIEW}&q=1`,
     );
     expect(normalizeAgentAppHref('/acme/~/review')).toBe(
       `/acme/~${APP_ROUTES.PUBLISHING.REVIEW}`,

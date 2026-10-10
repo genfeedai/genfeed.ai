@@ -223,21 +223,6 @@ describe('PublishingContentLibrary', () => {
     ).toHaveAttribute('href', '/acme/main/publishing/posts?release=release-1');
   });
 
-  it('links to the approval queue and carries the selected batch and item', async () => {
-    mocks.search = 'batch=batch-1&item=item-9&status=draft';
-
-    render(<PublishingContentLibrary />);
-
-    await waitFor(() => expect(mocks.setExportNode).toHaveBeenCalled());
-    const [toolbar] = mocks.setExportNode.mock.calls.at(-1) ?? [];
-    render(toolbar);
-
-    expect(screen.getByRole('link', { name: 'approvalQueue' })).toHaveAttribute(
-      'href',
-      '/acme/main/publishing/review?batch=batch-1&item=item-9',
-    );
-  });
-
   it('keeps the leading search tied to the URL and out of the right filters', async () => {
     mocks.search = 'status=draft&search=launch&page=3';
     render(<PublishingContentLibrary />);
@@ -395,6 +380,40 @@ describe('PublishingContentLibrary', () => {
     expect(
       screen.getByRole('link', { name: 'Open Social launch copy' }),
     ).toBeVisible();
+  });
+
+  it('renders the approval queue as a Posts view that owns the toolbar', () => {
+    mocks.search = 'view=approvals&batch=batch-1&item=item-9';
+    mocks.setFiltersNode.mockClear();
+    mocks.setLeadingNode.mockClear();
+
+    render(
+      <PublishingContentLibrary
+        approvals={<div>Approval queue content</div>}
+        calendar={<div>Calendar content</div>}
+      />,
+    );
+
+    expect(screen.getByText('Approval queue content')).toBeVisible();
+    expect(screen.queryByText('Calendar content')).not.toBeInTheDocument();
+    expect(mocks.setFiltersNode).not.toHaveBeenCalledWith(expect.anything());
+    expect(mocks.setLeadingNode).not.toHaveBeenCalledWith(expect.anything());
+
+    const [toggle] = mocks.setViewToggleNode.mock.calls.at(-1) ?? [];
+    render(toggle);
+    expect(screen.getByRole('radio', { name: 'Approvals' })).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', { name: 'List' }));
+    // Leaving approvals drops the queue's batch and item selection.
+    expect(mocks.replace.mock.calls.at(-1)?.[0]).toBe(
+      '/acme/main/publishing/posts?view=list',
+    );
+  });
+
+  it('hides the approvals view when no queue is provided', () => {
+    mocks.search = 'view=approvals';
+    render(<PublishingContentLibrary />);
+
+    expect(screen.getByText('3 posts')).toBeVisible();
   });
 
   it('retains the view selector around calendar content', () => {

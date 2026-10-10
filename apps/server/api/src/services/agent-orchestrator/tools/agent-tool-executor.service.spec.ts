@@ -4915,7 +4915,7 @@ describe('AgentToolExecutorService', () => {
           'LinkedIn · image · approved',
         ],
         primaryCta: {
-          href: `/publishing/review?batch=${testId('batchreview')}&filter=ready`,
+          href: `/publishing/posts?view=approvals&batch=${testId('batchreview')}&filter=ready`,
           label: 'Open reviews',
         },
         status: 'completed',
@@ -4978,7 +4978,7 @@ describe('AgentToolExecutorService', () => {
     });
     expect(result.nextActions?.[0]).toMatchObject({
       primaryCta: {
-        href: '/publishing/review?filter=ready',
+        href: '/publishing/posts?view=approvals&filter=ready',
         label: 'Open reviews',
       },
       title: 'Reviews loaded',
@@ -5040,7 +5040,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.error).toContain('cannot grant publish approval');
     expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
     expect(result.nextActions?.[0]?.primaryCta).toEqual({
-      href: `/publishing/review?batch=${testId('batchmodel')}&filter=ready`,
+      href: `/publishing/posts?view=approvals&batch=${testId('batchmodel')}&filter=ready`,
       label: 'Review exact versions',
     });
   });
