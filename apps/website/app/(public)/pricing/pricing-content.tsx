@@ -152,10 +152,13 @@ export default function PricingContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/pricing" isCompact kind="campaign" />
+        title={
+          <>
+            Your content.
+            <br />
+            Your way of working.
+          </>
         }
-        title={<>Your content. Your way of working.</>}
         description="Run it yourself with credits, or let our team handle strategy, production, and publishing. Choose how hands-on you want to be."
       >
         <WebSection maxWidth="full" py="sm">

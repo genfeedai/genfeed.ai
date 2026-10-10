@@ -89,7 +89,7 @@ describe('ServiceLandingPage', () => {
   it('puts the call first on /done-for-you and closes on the calendar', () => {
     render(<ServiceLandingPage slug="done-for-you" />);
 
-    const heroLinks = screen
+    const heroLinks = within(screen.getByRole('main'))
       .getAllByRole('link')
       .map((link) => link.textContent?.trim())
       .filter((label) => label === 'Book a call' || label === 'Start free');
