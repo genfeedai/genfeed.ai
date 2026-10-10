@@ -14,19 +14,28 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * actually runs for the allowed case); here it is mocked as `admin`-gated purely
  * to exercise the guard — the tool's real tier is irrelevant to this test.
  */
-vi.mock('@genfeedai/actions', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@genfeedai/actions')>()),
-  getToolByName: vi.fn((name: string) =>
-    name === 'get_job_status'
-      ? { name, requiredRole: 'admin', surfaces: { mcp: true } }
-      : undefined,
-  ),
-  getToolsForSurface: vi.fn(() => []),
-  toMcpTools: vi.fn((tools) => tools),
-}));
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    ...actual,
+    getToolByName: vi.fn((name: string) =>
+      name === 'get_job_status'
+        ? { name, requiredRole: 'admin', surfaces: { mcp: true } }
+        : actual.getToolByName(name),
+    ),
+    getToolsForSurface: vi.fn(() => []),
+    toMcpTools: vi.fn((tools) => tools),
+  };
+});
 
 function build(role: 'user' | 'admin') {
   const client = {
+    createApproval: vi.fn().mockResolvedValue({
+      id: 'apr-brand',
+      status: 'PENDING',
+      toolName: 'create_brand_from_url',
+    }),
+    executeAgentTool: vi.fn(),
     getJobStatus: vi
       .fn()
       .mockResolvedValue({ id: 'job_1', status: 'COMPLETED' }),
@@ -46,6 +55,33 @@ function build(role: 'user' | 'admin') {
 }
 
 describe('ToolRegistryService role enforcement (real guard)', () => {
+  it.each(['create_brand_from_url', 'onboard_brand'])(
+    'denies user-tier URL brand creation through %s before queuing or dispatch',
+    async (name) => {
+      const { client, registry } = build('user');
+      const result = await registry.handleToolCall({
+        name,
+        arguments: { action: 'create_from_url', url: 'https://example.com' },
+      });
+      expect(result).toMatchObject({ isError: true });
+      expect(client.createApproval).not.toHaveBeenCalled();
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    },
+  );
+
+  it('allows admin URL brand creation through the default onboarding tool', async () => {
+    const { client, registry } = build('admin');
+    await registry.handleToolCall({
+      name: 'onboard_brand',
+      arguments: { action: 'create_from_url', url: 'https://example.com' },
+    });
+    expect(client.createApproval).toHaveBeenCalledExactlyOnceWith(
+      'create_brand_from_url',
+      { url: 'https://example.com' },
+    );
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
+  });
+
   it('denies a user-tier caller an admin-gated tool before dispatch', async () => {
     const { client, registry } = build('user');
 

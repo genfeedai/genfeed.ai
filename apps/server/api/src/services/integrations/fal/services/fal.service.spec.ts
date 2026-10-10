@@ -184,6 +184,44 @@ describe('FalService', () => {
   });
 
   describe('generateVideo', () => {
+    it.each([
+      { width: 1280, height: 720, duration: 4.75 },
+      { width: 720, height: 1280, duration: 6 },
+    ])('preserves actual video quantities %o', async (quantities) => {
+      const { service } = createHarness();
+      falSubscribe.mockResolvedValue({
+        data: { video: { url: 'https://cdn.test/actual.mp4', ...quantities } },
+      });
+      await expect(
+        service.generateVideo('bytedance/seedance-2.5/text-to-video', {
+          width: 4096,
+          height: 4096,
+          duration: 30,
+        }),
+      ).resolves.toMatchObject(quantities);
+    });
+
+    it('omits invalid quantities instead of inferring them from the request', async () => {
+      const { service } = createHarness();
+      falSubscribe.mockResolvedValue({
+        data: {
+          video: {
+            url: 'https://cdn.test/invalid.mp4',
+            width: 0,
+            height: 720.5,
+            duration: Number.NaN,
+          },
+        },
+      });
+      const result = await service.generateVideo(
+        'bytedance/seedance-2.5/text-to-video',
+        { width: 1280, height: 720, duration: 5 },
+      );
+      expect(result).not.toHaveProperty('width');
+      expect(result).not.toHaveProperty('height');
+      expect(result).not.toHaveProperty('duration');
+    });
+
     it('does not mark remote submission when platform credentials are missing', async () => {
       const { service, post } = createHarness(null);
       const started = vi.fn();
@@ -198,7 +236,8 @@ describe('FalService', () => {
       const { service } = createHarness();
       const started = vi.fn();
       falSubscribe.mockImplementationOnce(async () => {
-        expect(started).toHaveBeenCalledExactlyOnceWith();
+        expect(started).toHaveBeenCalledTimes(1);
+        expect(started).toHaveBeenCalledWith();
         return { data: { video: { url: 'https://cdn.test/video.mp4' } } };
       });
       await service.generateVideo('fal-ai/kling', {}, undefined, started);

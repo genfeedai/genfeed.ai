@@ -5,6 +5,7 @@ import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/se
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
+import { bindSeedanceVideoReferences } from '@api/collections/videos/services/seedance-reference-evidence.util';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
@@ -1562,6 +1563,124 @@ describe('persisted video error identity', () => {
           cause: original,
         });
       expect((error as HttpException).getStatus()).toBe(409);
+    },
+  );
+});
+
+describe('native reference proof at the manual dispatch boundary', () => {
+  it.each([
+    'unchanged',
+    'missing-proof',
+    'swapped-url',
+    'swapped-asset',
+    'removed-proof',
+    'stale-bytes',
+  ])(
+    'preserves credits preparation and stops invalid dispatch: %s',
+    async (change) => {
+      const reference = {
+        assetId: 'video-1',
+        organizationId: 'org-1',
+        sourceKey: 'videos/stored.mp4',
+        sourceVersion: 'a'.repeat(64),
+        duration: 4,
+        width: 1280,
+        height: 720,
+        framesPerSecond: 24,
+        sizeBytes: 1_000_000,
+        url: 'https://storage.test/signed',
+      };
+      const endpoint = 'bytedance/seedance-2.5/reference-to-video';
+      const context = {
+        modelEndpoint: endpoint,
+        user: { organizationId: 'org-1' },
+        ingredientData: { id: 'persisted' },
+        pendingIngredientIds: ['persisted'],
+        nativeVideoReferences:
+          change === 'missing-proof' ? undefined : [reference],
+        preparedFalDispatch: {
+          endpoint,
+          input: { video_urls: [reference.url] },
+        },
+      };
+      const failure = new Error('Native reference validation failed');
+      const preparation = {
+        resolve: vi
+          .fn()
+          .mockResolvedValue({ model: `fal/${endpoint}`, user: context.user }),
+        prepare: vi.fn().mockResolvedValue(context),
+        assertFreshNativeVideoReferences:
+          change === 'stale-bytes'
+            ? vi.fn().mockRejectedValue(failure)
+            : vi.fn().mockResolvedValue(undefined),
+      };
+      const execution = {
+        prepareProviderDispatch: vi.fn(),
+        execute: vi.fn().mockResolvedValue(undefined),
+        failPlaceholderBeforeDispatch: vi.fn().mockRejectedValue(failure),
+      };
+      const completion = { complete: vi.fn().mockResolvedValue({}) };
+      const credits = {
+        ensureDeferredCredits: vi.fn().mockResolvedValue(undefined),
+      };
+      const service = new VideoGenerationService(
+        completion as never,
+        credits as never,
+        execution as never,
+        preparation as never,
+        {} as never,
+        {} as never,
+      );
+      const onCreditsPrepared = async () => {
+        if (change === 'swapped-url')
+          context.preparedFalDispatch.input.video_urls = [
+            'https://caller.test/replacement',
+          ];
+        if (change === 'swapped-asset')
+          context.nativeVideoReferences = [
+            { ...reference, assetId: 'video-2' },
+          ];
+        if (change === 'removed-proof')
+          context.nativeVideoReferences = undefined;
+      };
+      const result = service.generateVideo(
+        {} as never,
+        {} as never,
+        {} as never,
+        undefined,
+        undefined,
+        onCreditsPrepared,
+      );
+      if (change === 'unchanged') {
+        await expect(result).resolves.toEqual({});
+        expect(execution.execute).toHaveBeenCalledTimes(1);
+        expect(execution.execute).toHaveBeenCalledWith(context);
+        expect(
+          preparation.assertFreshNativeVideoReferences,
+        ).toHaveBeenCalledTimes(1);
+        expect(
+          preparation.assertFreshNativeVideoReferences,
+        ).toHaveBeenCalledWith(context);
+        const evidence = bindSeedanceVideoReferences(endpoint, 'org-1', [
+          reference,
+        ]);
+        expect(credits.ensureDeferredCredits).toHaveBeenCalledWith(
+          {},
+          `fal/${endpoint}`,
+          'org-1',
+          {},
+          context.preparedFalDispatch.input,
+          evidence,
+        );
+      } else {
+        await expect(result).rejects.toThrow();
+        expect(execution.execute).not.toHaveBeenCalled();
+        expect(execution.failPlaceholderBeforeDispatch).toHaveBeenCalledTimes(
+          1,
+        );
+      }
+      if (change === 'missing-proof')
+        expect(credits.ensureDeferredCredits).not.toHaveBeenCalled();
     },
   );
 });

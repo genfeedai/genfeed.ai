@@ -1,21 +1,40 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
 import { UpdateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/update-mcp-approval.dto';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
+import {
+  approvalGenerationQuote,
+  readMcpApprovalPricing,
+} from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
+import { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   type ApiKeyPublishingContext,
+  assertApiKeyAgentPublishingScope,
   assertApiKeyPublishingScope,
   isPublishingMcpApprovalTool,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { getToolByName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
-import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
+import { ActivityKey, ActivitySource, MemberRole } from '@genfeedai/contracts';
 import { McpApprovalStatus, Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 /**
  * Hard ceiling on concurrently-PENDING approvals per organization. Caps the
@@ -35,6 +54,8 @@ export class McpApprovalsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly activityRecorder: ActivityRecorderService,
+    @Optional() private readonly brandAccess?: BrandAccessService,
+    @Optional() private readonly pricing?: McpApprovalPricingService,
   ) {
     super(prisma, 'mcpApproval', logger);
   }
@@ -47,8 +68,15 @@ export class McpApprovalsService extends BaseService<
     options?: {
       threadId?: string;
       scope?: { brandId?: string; contextVersion: number };
+      generationContext?: Pick<
+        ToolExecutionContext,
+        'generationSettings' | 'generationModelOverride' | 'attachmentUrls'
+      >;
     },
   ): Promise<McpApprovalDocument> {
+    const needsGenerationQuote =
+      toolName === 'generate' &&
+      (args.type === 'image' || args.type === 'video');
     const idempotencyKey = buildLogicalWriteKey({
       arguments: args,
       organizationId,
@@ -67,6 +95,14 @@ export class McpApprovalsService extends BaseService<
       orderBy: { createdAt: 'desc' },
     })) as McpApprovalDocument | null;
     if (existing) {
+      if (
+        needsGenerationQuote &&
+        !readMcpApprovalPricing(existing.pricingQuote)
+      ) {
+        throw new BadRequestException(
+          'This generation approval has no verified quote. Decline it and request fresh consent with a supported model and complete settings.',
+        );
+      }
       return existing;
     }
 
@@ -80,6 +116,16 @@ export class McpApprovalsService extends BaseService<
       );
     }
 
+    if (needsGenerationQuote && !this.pricing) {
+      throw new BadRequestException(
+        'Model-specific approval pricing is unavailable.',
+      );
+    }
+    const pricingQuote = await this.pricing?.prepare(toolName, args, {
+      ...options?.generationContext,
+      organizationId,
+      userId,
+    });
     let approval: McpApprovalDocument;
     try {
       approval = (await this.delegate.create({
@@ -90,6 +136,7 @@ export class McpApprovalsService extends BaseService<
           status: McpApprovalStatus.PENDING,
           toolName,
           userId,
+          ...(pricingQuote ? { pricingQuote: toPrismaJson(pricingQuote) } : {}),
         },
       })) as McpApprovalDocument;
     } catch (error: unknown) {
@@ -103,7 +150,17 @@ export class McpApprovalsService extends BaseService<
           organizationId,
           idempotencyKey,
         );
-        if (concurrent) return concurrent;
+        if (concurrent) {
+          if (
+            needsGenerationQuote &&
+            !readMcpApprovalPricing(concurrent.pricingQuote)
+          ) {
+            throw new BadRequestException(
+              'The concurrent generation approval has no verified quote. Request fresh consent.',
+            );
+          }
+          return concurrent;
+        }
       }
       throw error;
     }
@@ -162,6 +219,9 @@ export class McpApprovalsService extends BaseService<
     return (await transaction.mcpApproval.create({
       data: {
         arguments: toPrismaJson(approval.arguments),
+        ...(approval.pricingQuote
+          ? { pricingQuote: toPrismaJson(approval.pricingQuote) }
+          : {}),
         idempotencyKey: approval.idempotencyKey,
         organizationId: approval.organizationId,
         userId: approval.userId,
@@ -181,6 +241,61 @@ export class McpApprovalsService extends BaseService<
     });
 
     return docs as McpApprovalDocument[];
+  }
+
+  async findStatusForActor(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<McpApprovalDocument> {
+    const userId = user.userId || user.id;
+    const { organizationId } = resolveTenantReadScope(user);
+    if (!userId || !organizationId || !this.brandAccess)
+      throw new ForbiddenException();
+    const approval = (await this.delegate.findFirst({
+      where: scopedWhere(organizationId, { id, userId }),
+    })) as McpApprovalDocument | null;
+    if (!approval) throw new NotFoundException('MCP approval');
+
+    const tool = getToolByName(approval.toolName);
+    if (!tool?.surfaces.mcp) throw new NotFoundException('MCP approval');
+    assertMcpAccessModeAllowsTool(user, approval.toolName, 'mcp');
+    const args = isRecord(approval.arguments) ? approval.arguments : {};
+    assertApiKeyAgentPublishingScope(user, approval.toolName, args);
+    const actor = { ...user, organizationId, userId };
+    const { role } = await this.brandAccess.resolve(actor);
+    if (
+      (tool.requiredRole === 'admin' &&
+        role !== MemberRole.OWNER &&
+        role !== MemberRole.ADMIN) ||
+      (tool.requiredRole === 'superadmin' && !getIsSuperAdmin(user))
+    )
+      throw new ForbiddenException();
+    const approvalBrand =
+      typeof args.brandId === 'string' ? args.brandId : undefined;
+    if (user.isApiKey && user.brandId && approvalBrand !== user.brandId) {
+      throw new ForbiddenException(
+        'Approval brand is outside the connected key scope',
+      );
+    }
+    for (const brandId of new Set(
+      [user.brandId, approvalBrand].filter((brandId): brandId is string =>
+        Boolean(brandId),
+      ),
+    )) {
+      await this.brandAccess.assert(actor, brandId);
+    }
+    return approval;
+  }
+
+  async findPricingForActor(id: string, user: AuthenticatedUser) {
+    const approval = await this.findStatusForActor(id, user);
+    const quote = approvalGenerationQuote(approval.pricingQuote);
+    return {
+      id: approval.id,
+      estimatedCredits: quote?.credits ?? null,
+      modelKey: quote?.modelKey ?? null,
+      quoteStatus: quote ? 'available' : 'unavailable',
+    };
   }
 
   async resolve(

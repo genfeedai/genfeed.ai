@@ -81,6 +81,8 @@ function unit(value: unknown): ProviderBillingUnit | null {
     case 'frame':
     case 'input-token':
     case 'output-token':
+    case 'video-token':
+    case 'input-video-token':
     case 'character':
     case 'reference':
       return value;
@@ -299,11 +301,24 @@ export function projectModelBillablePricingProfile(
   );
   const reviewed = reviewedPricing(model, contract);
   const ruleFields = variantRuleFields(reviewed?.variantRules ?? []);
+  const reviewedSelectorKeys = new Set([
+    ...(reviewed?.invariantSelectors ?? []),
+    ...(reviewed?.rates.flatMap((rate) => Object.keys(rate.when)) ?? []),
+  ]);
   const requiredSelectorKeys = [
     ...new Set([
-      ...deriveRequiredSelectorKeys(properties, model).filter(
-        (key) => !ruleFields.has(key),
-      ),
+      ...deriveRequiredSelectorKeys(properties, model)
+        .map((key) =>
+          // Legacy capability flags lack the provider field name. Prefer the
+          // approved contract's spelling when there is no schema field to bind.
+          key === 'audio' &&
+          !Object.hasOwn(properties, 'audio') &&
+          reviewedSelectorKeys.has('generate_audio') &&
+          !reviewedSelectorKeys.has('audio')
+            ? 'generate_audio'
+            : key,
+        )
+        .filter((key) => !ruleFields.has(key)),
       ...(reviewed?.variantRules?.map((rule) => rule.selectorKey) ?? []),
     ]),
   ];
@@ -336,6 +351,7 @@ export function projectModelBillablePricingProfile(
     requiredSelectorKeys,
     requiresReviewedRates:
       model.provider === 'crun' ||
+      model.pricingType === 'conditional' ||
       requiredSelectorKeys.length > 0 ||
       Object.keys(record(contract?.conditionalDimensions)).length > 0,
   };

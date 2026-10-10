@@ -1,4 +1,5 @@
 import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import type { ApprovedGenerationQuoteConstraint } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import type { ActivitySource } from '@genfeedai/contracts';
 import type {
   JsonApiResult,
@@ -37,6 +38,8 @@ export interface AgentGenerationCreditsAttribution {
 }
 
 export interface AgentGenerationInput {
+  /** Retrieved from claimed server-side consent, never copied from body. */
+  approvedGenerationQuote?: ApprovedGenerationQuoteConstraint;
   /** Server-owned caller text, before authorized selected context is appended. */
   originalPrompt?: string;
   body: Record<string, unknown>;

@@ -89,7 +89,25 @@ export class AgentClient {
           arguments: args,
           toolName,
         });
-        return response.data?.data as McpApprovalResource;
+        const approval = response.data?.data as McpApprovalResource;
+        if (toolName !== 'generate') return approval;
+        const priced = await http.get(
+          `/mcp-approvals/${encodeURIComponent(approval.id)}/pricing`,
+        );
+        const pricing = this.base.unwrapAttributes(priced);
+        return {
+          ...approval,
+          generationQuote: {
+            credits:
+              pricing.quoteStatus === 'available' &&
+              typeof pricing.estimatedCredits === 'number'
+                ? pricing.estimatedCredits
+                : null,
+            isAvailable: pricing.quoteStatus === 'available',
+            modelKey:
+              typeof pricing.modelKey === 'string' ? pricing.modelKey : null,
+          },
+        };
       },
       this.base.failWithDetail(`Failed to create approval for ${toolName}`),
     );

@@ -1,5 +1,6 @@
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import { generationQuoteIdentityHash } from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
   billableProfile,
   testModelCreditQuote,
@@ -34,6 +35,80 @@ describe('VideoGenerationCreditsService', () => {
 
   let service: VideoGenerationCreditsService;
 
+  it.each([
+    'same',
+    'outputs',
+    'dimensions',
+    'tariff',
+    'byok',
+    'ceiling',
+  ] as const)(
+    'binds actual MCP preparation before reservation: %s',
+    async (change) => {
+      const model = 'test/replicate-mcp-quote';
+      modelsService.findOne.mockResolvedValue({
+        key: model,
+        provider: 'replicate',
+        cost: 10,
+      });
+      const dto = { outputs: 1, width: 1024, height: 1024, duration: 5 };
+      const snapshot = await testModelCreditQuote(
+        modelsService as never,
+        'replicate',
+      ).quoteSnapshotByKey(model, {
+        organizationId: 'org-1',
+        provider: 'replicate',
+        outputs: 1,
+        requests: 1,
+        width: 1024,
+        height: 1024,
+        duration: 5,
+        selectors: {},
+      });
+      const request = {
+        body: { sourceActionId: 'mcp-quote-test' },
+        user: { userId: 'user-1' },
+        creditsConfig: {
+          deferred: true,
+          approvedGenerationQuote: {
+            model,
+            provider: snapshot.provider,
+            unitCredits: snapshot.credits,
+            maximumCredits: change === 'ceiling' ? 0 : snapshot.credits,
+            billingMode: 'credits' as const,
+            pricingHash: generationQuoteIdentityHash(snapshot),
+            quantities: snapshot.quantities,
+          },
+        },
+      };
+      if (change === 'outputs') dto.outputs = 2;
+      if (change === 'dimensions') dto.width = 2048;
+      if (change === 'tariff')
+        modelsService.findOne.mockResolvedValue({ cost: 11 });
+      if (change === 'byok')
+        byokService.resolveApiKey.mockResolvedValue({ apiKey: 'test-key' });
+      const admission = service.ensureDeferredCredits(
+        dto as never,
+        model,
+        'org-1',
+        request as never,
+      );
+      if (change === 'same') {
+        await expect(admission).resolves.toBeUndefined();
+        expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: snapshot.credits }),
+        );
+      } else {
+        await expect(admission).rejects.toThrow('fresh quote');
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        expect(
+          creditsUtilsService.checkOrganizationCreditsAvailable,
+        ).not.toHaveBeenCalled();
+        expect(request.creditsConfig.deferred).toBe(true);
+      }
+    },
+  );
+
   beforeEach(() => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue({ cost: 10 });
@@ -57,6 +132,85 @@ describe('VideoGenerationCreditsService', () => {
       testModelCreditQuote(modelsService as never, 'replicate'),
     );
   });
+
+  it.each([true, false])(
+    'requires authorized native reference evidence before reservation: %s',
+    async (hasEvidence) => {
+      const model = 'fal/bytedance/seedance-2.5/reference-to-video';
+      modelsService.findOne.mockResolvedValue(
+        billableProfile({
+          key: model,
+          provider: ModelProvider.FAL,
+          cost: 0,
+          pricingType: 'conditional',
+          requiresReviewedRates: true,
+          rateVersion: 'native-v1',
+          reviewedPricing: {
+            currency: 'USD',
+            reviewStatus: 'approved',
+            version: 'native-v1',
+            sourceUrl:
+              'https://fal.ai/models/bytedance/seedance-2.5/reference-to-video',
+            verifiedAt: '2026-09-30T00:00:00.000Z',
+            rates: [
+              {
+                component: 'output',
+                unit: 'video-token',
+                unitPriceUsd: 0.0000214,
+                when: { resolution: '720p' },
+              },
+              {
+                component: 'input',
+                unit: 'input-video-token',
+                unitPriceUsd: 0.00001284,
+                when: { resolution: '720p' },
+              },
+            ],
+          },
+        }),
+      );
+      const request = {
+        creditsConfig: { deferred: true },
+        user: { userId: 'user-1' },
+      };
+      const evidence = {
+        inputDuration: 4,
+        referenceEvidenceHash: 'a'.repeat(64),
+      };
+      const check = service.ensureDeferredCredits(
+        { outputs: 1, width: 1, height: 1, duration: 1 },
+        model,
+        'org-1',
+        request as never,
+        {
+          resolution: '720p',
+          aspect_ratio: '16:9',
+          duration: '5',
+          video_urls: ['https://storage.test/authorized'],
+        },
+        hasEvidence ? evidence : undefined,
+      );
+      if (!hasEvidence) {
+        await expect(check).rejects.toThrow();
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        return;
+      }
+      await expect(check).resolves.toBeUndefined();
+      expect(creditsUtilsService.reserveCredits).toHaveBeenCalledTimes(1);
+      expect(request.creditsConfig).toMatchObject({
+        modelQuote: {
+          provider: 'fal',
+          quantities: {
+            ...evidence,
+            width: 1280,
+            height: 720,
+            duration: 5,
+            framesPerSecond: 24,
+          },
+        },
+      });
+    },
+  );
 
   it('skips authorization when the request is not deferred', async () => {
     await service.ensureDeferredCredits(

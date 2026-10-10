@@ -3842,4 +3842,503 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
       },
     ],
   },
+  'bytedance/seedance-1.5-pro': {
+    sourceUrl: 'https://replicate.com/bytedance/seedance-1.5-pro/api/schema',
+    inputProperties: {
+      fps: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/fps',
+          },
+        ],
+        default: 24,
+        'x-order': 5,
+        description: 'Frame rate (frames per second)',
+      },
+      seed: {
+        type: 'integer',
+        title: 'Seed',
+        'x-order': 8,
+        nullable: true,
+        description: 'Random seed. Set for reproducible generation',
+      },
+      image: {
+        type: 'string',
+        title: 'Image',
+        format: 'uri',
+        'x-order': 1,
+        nullable: true,
+        description: 'Input image for image-to-video generation',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        description: 'Text prompt for video generation',
+      },
+      duration: {
+        type: 'integer',
+        title: 'Duration',
+        default: 5,
+        maximum: 12,
+        minimum: 2,
+        'x-order': 3,
+        description: 'Video duration in seconds',
+      },
+      aspect_ratio: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/aspect_ratio',
+          },
+        ],
+        default: '16:9',
+        'x-order': 4,
+        description: 'Video aspect ratio. Ignored if an image is used.',
+      },
+      camera_fixed: {
+        type: 'boolean',
+        title: 'Camera Fixed',
+        default: false,
+        'x-order': 6,
+        description: 'Whether to fix camera position',
+      },
+      generate_audio: {
+        type: 'boolean',
+        title: 'Generate Audio',
+        default: false,
+        'x-order': 7,
+        description:
+          'Generate audio synchronized with the video. When enabled, the model outputs a video with audio that matches the visuals.',
+      },
+      last_frame_image: {
+        type: 'string',
+        title: 'Last Frame Image',
+        format: 'uri',
+        'x-order': 2,
+        nullable: true,
+        description:
+          'Input image for last frame generation. This only works if an image start frame is given too.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'with_audio',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'with_audio',
+          },
+          {
+            description: '480p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '480p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or 40 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.025',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'without_audio',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'without_audio',
+          },
+          {
+            description: '480p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '480p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 76 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.013',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'with_audio',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'with_audio',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 19 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.052',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'without_audio',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'without_audio',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 38 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.026',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'with_audio',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'with_audio',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 83 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.12',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'without_audio',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'without_audio',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 16 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.06',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+    ],
+  },
+  'bytedance/seedance-2.0-mini': {
+    sourceUrl: 'https://replicate.com/bytedance/seedance-2.0-mini/api/schema',
+    inputProperties: {
+      seed: {
+        type: 'integer',
+        title: 'Seed',
+        default: null,
+        'x-order': 10,
+        nullable: true,
+        description: 'Random seed. Set for reproducible generation.',
+      },
+      image: {
+        type: 'string',
+        title: 'Image',
+        format: 'uri',
+        default: null,
+        'x-order': 1,
+        nullable: true,
+        description:
+          'Input image for image-to-video generation (first frame). Cannot be combined with reference images.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        maxLength: 4000,
+        description:
+          'Text prompt for video generation. Maximum 4000 characters. BytePlus recommends keeping prompts under 600 English words for best results.',
+      },
+      duration: {
+        type: 'integer',
+        title: 'Duration',
+        default: 5,
+        maximum: 15,
+        minimum: -1,
+        'x-order': 6,
+        description:
+          'Video duration in seconds. Set to -1 for intelligent duration (model picks the best length).',
+      },
+      resolution: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/resolution',
+          },
+        ],
+        default: '720p',
+        'x-order': 7,
+        description: 'Video resolution.',
+      },
+      aspect_ratio: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/aspect_ratio',
+          },
+        ],
+        default: '16:9',
+        'x-order': 8,
+        description:
+          "Video aspect ratio. Set to 'adaptive' to let the model choose the best ratio based on inputs.",
+      },
+      generate_audio: {
+        type: 'boolean',
+        title: 'Generate Audio',
+        default: true,
+        'x-order': 9,
+        description:
+          'Generate synchronized audio with the video, including dialogue (use double quotes in prompt), sound effects, and background music.',
+      },
+      last_frame_image: {
+        type: 'string',
+        title: 'Last Frame Image',
+        format: 'uri',
+        default: null,
+        'x-order': 2,
+        nullable: true,
+        description:
+          'Input image for last frame generation. Only works if a first frame image is also provided. Cannot be combined with reference images.',
+      },
+      reference_audios: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Reference Audios',
+        default: [],
+        'x-order': 5,
+        description:
+          'Reference audio files (up to 3, total duration max 15s) for audio-driven generation and lip-sync. Requires at least one reference image or video. Reference them in your prompt as [Audio1], [Audio2], etc.',
+      },
+      reference_images: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Reference Images',
+        default: [],
+        'x-order': 3,
+        description:
+          'Reference images (up to 9) for character consistency, style guidance, and scene composition. Cannot be used together with first/last frame images. You can reference them in your prompt as [Image1], [Image2], etc.',
+      },
+      reference_videos: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Reference Videos',
+        default: [],
+        'x-order': 4,
+        description:
+          'Reference videos (up to 3, total duration max 15s) for motion transfer, style reference, and editing. Reference them in your prompt as [Video1], [Video2], etc.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'video_in',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'video_in',
+          },
+          {
+            description: '480p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '480p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or 20 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.05',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'non_video_in',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'non_video_in',
+          },
+          {
+            description: '480p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '480p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or 25 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.04',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'video_in',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'video_in',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 90 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.11',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+      {
+        criteria: [
+          {
+            description: 'non_video_in',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'non_video_in',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: null,
+        prices: [
+          {
+            description: 'or around 11 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.09',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: null,
+      },
+    ],
+  },
 };

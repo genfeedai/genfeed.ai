@@ -10,6 +10,7 @@ import { ModelCreditQuoteService } from '@api/collections/models/services/model-
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { assertApprovedGenerationQuote } from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
   commitDeferredCredits,
   type DeferredCreditsRequest,
@@ -141,6 +142,11 @@ export class ImageGenerationCreditsService {
       organization,
       model,
       resolvedModelDoc?.provider,
+    );
+    assertApprovedGenerationQuote(
+      reqWithCredits.creditsConfig?.approvedGenerationQuote,
+      modelQuote,
+      Boolean(byok),
     );
     const approved = reqWithCredits.creditsConfig?.approvedImageQuote;
     if (approved) {

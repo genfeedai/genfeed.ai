@@ -3,6 +3,40 @@ import { describe, expect, it } from 'vitest';
 
 describe('mutation approval summary', () => {
   const context = { organizationId: 'org-1', userId: 'user-1' };
+  it.each([2, 64, 0])(
+    'uses the trusted selected-model quote of %i credits',
+    (credits) => {
+      const card = buildMutationApprovalCard(
+        'apr-1',
+        'generate',
+        { type: 'video', estimatedCredits: 999, maximumCredits: 999 },
+        context,
+        { credits, isAvailable: true, modelKey: 'selected-model' },
+      );
+      expect(card.data?.estimatedCredits).toBe(credits);
+      expect(card.description).toContain(`Estimated cost: ${credits} credits.`);
+    },
+  );
+  it.each([
+    undefined,
+    { credits: null, isAvailable: false, modelKey: null },
+    { credits: 2, isAvailable: true, modelKey: null },
+    { credits: Number.NaN, isAvailable: true, modelKey: 'model' },
+  ])(
+    'does not replace an unavailable generation quote with a floor: %j',
+    (quote) => {
+      const card = buildMutationApprovalCard(
+        'apr-1',
+        'generate',
+        { type: 'video', estimatedCredits: 64 },
+        context,
+        quote,
+      );
+      expect(card.data?.estimatedCredits).toBeUndefined();
+      expect(card.description).toContain('quote is unavailable');
+      expect(card.description).not.toContain('Estimated cost:');
+    },
+  );
   it('retains complete consequential nested values while excluding secrets', () => {
     const longCaption = 'Launch caption '.repeat(100);
     const card = buildMutationApprovalCard(

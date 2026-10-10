@@ -5,7 +5,7 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: X_READ_CREDIT_COST,
     description:
-      "Read X posts. postIdOrUrl opens one post and returns its text and stats. query searches recent posts by topic through the brand's connected X account and returns author, text, stats, and link; it explains clearly if that account cannot search. Pass exactly one of postIdOrUrl or query.",
+      "Read X posts. Costs 1 credit and requires confirmation. postIdOrUrl opens one post and returns its text and stats. query searches recent posts by topic through the brand's connected X account and returns author, text, stats, and link; it explains clearly if that account cannot search. Pass exactly one of postIdOrUrl or query.",
     name: 'get_x_posts',
     parameters: {
       properties: {

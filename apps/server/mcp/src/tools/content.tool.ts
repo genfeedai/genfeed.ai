@@ -87,7 +87,13 @@ export async function handleContentTool(
       const articleId =
         typeof args?.articleId === 'string' ? args.articleId.trim() : '';
       const query = typeof args?.query === 'string' ? args.query.trim() : '';
-      if (Boolean(articleId) === Boolean(query)) {
+      const hasArticleId = Object.hasOwn(args, 'articleId');
+      const hasQuery = Object.hasOwn(args, 'query');
+      if (
+        hasArticleId === hasQuery ||
+        (hasArticleId && !articleId) ||
+        (hasQuery && !query)
+      ) {
         throw new Error('Pass exactly one of articleId or query');
       }
       if (articleId) {

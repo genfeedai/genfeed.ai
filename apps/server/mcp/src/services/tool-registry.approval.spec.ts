@@ -1,6 +1,8 @@
+import { McpApprovalStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 
 /**
  * Covers the write-action approval queue: mutating tools persist a pending
@@ -12,11 +14,18 @@ const MOCK_TOOLS: Record<
   string,
   {
     mutationPolicy?: 'approval-required' | 'direct';
+    creditCost?: number;
     name: string;
     requiredRole?: string;
     surfaces: { mcp: boolean };
   }
 > = {
+  create_brand_from_url: {
+    mutationPolicy: 'approval-required',
+    name: 'create_brand_from_url',
+    requiredRole: 'admin',
+    surfaces: { mcp: true },
+  },
   create_ad_remix_workflow: {
     mutationPolicy: 'approval-required',
     name: 'create_ad_remix_workflow',
@@ -50,6 +59,12 @@ const MOCK_TOOLS: Record<
   create_scheduled_release: {
     mutationPolicy: 'approval-required',
     name: 'create_scheduled_release',
+    surfaces: { mcp: true },
+  },
+  repurpose_post: {
+    creditCost: 1,
+    mutationPolicy: 'direct',
+    name: 'repurpose_post',
     surfaces: { mcp: true },
   },
   get_job_status: {
@@ -109,12 +124,14 @@ function build() {
     getApproval: vi.fn(),
     // resolveApproval now performs the atomic CLAIM (PENDING -> APPROVED) and
     // returns the claimed approval, so its default resolves with toolName + args.
-    resolveApproval: vi.fn().mockResolvedValue({
-      arguments: { content: 'hello' },
-      id: 'apr-1',
-      status: 'APPROVED',
-      toolName: 'create_post',
-    }),
+    resolveApproval: vi
+      .fn<() => Promise<McpApprovalResource>>()
+      .mockResolvedValue({
+        arguments: { content: 'hello' },
+        id: 'apr-1',
+        status: McpApprovalStatus.APPROVED,
+        toolName: 'create_post',
+      }),
     getJobStatus: vi
       .fn()
       .mockResolvedValue({ progress: 100, status: 'completed' }),
@@ -134,6 +151,68 @@ function build() {
 }
 
 describe('ToolRegistryService — approval queue', () => {
+  it('executes deterministic repurposing without approval and gates the paid rewrite', async () => {
+    const { client, registry } = build();
+    const args = {
+      postId: 'post-1',
+      platform: 'linkedin',
+      mode: 'deterministic',
+    };
+    await registry.handleToolCall({ name: 'repurpose_post', arguments: args });
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).toHaveBeenCalledWith(
+      'repurpose_post',
+      args,
+      undefined,
+    );
+    await registry.handleToolCall({
+      name: 'repurpose_post',
+      arguments: { ...args, mode: 'agent' },
+    });
+    expect(client.createApproval).toHaveBeenCalledWith('repurpose_post', {
+      ...args,
+      mode: 'agent',
+    });
+    expect(client.executeAgentTool).toHaveBeenCalledTimes(1);
+  });
+  it('queues and executes URL brand creation with the same canonical identity', async () => {
+    const { client, registry } = build();
+    const args = {
+      url: 'https://example.com',
+      label: 'Example',
+      approve: false,
+    };
+    await registry.handleToolCall({
+      name: 'onboard_brand',
+      arguments: {
+        ...args,
+        action: 'create_from_url',
+        brandId: 'unrelated-brand',
+        goals: ['do not forward'],
+      },
+    });
+    expect(client.createApproval).toHaveBeenCalledExactlyOnceWith(
+      'create_brand_from_url',
+      args,
+    );
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
+    client.resolveApproval.mockResolvedValue({
+      arguments: args,
+      id: 'apr-1',
+      status: McpApprovalStatus.APPROVED,
+      toolName: 'create_brand_from_url',
+    });
+    await registry.handleToolCall({
+      name: 'resolve_approval',
+      arguments: { approvalId: 'apr-1', decision: 'approve' },
+    });
+    expect(client.executeAgentTool).toHaveBeenCalledExactlyOnceWith(
+      'create_brand_from_url',
+      args,
+      { approvedApprovalId: 'apr-1' },
+    );
+  });
+
   it.each([
     [
       'import_source_post',
@@ -187,16 +266,29 @@ describe('ToolRegistryService — approval queue', () => {
     expect(client.startRemixGeneration).not.toHaveBeenCalled();
   });
 
+  it('executes a bounded free MCP draft without queueing paid consent', async () => {
+    const { client, registry } = build();
+    const args = { content: 'A draft' };
+    await registry.handleToolCall({ name: 'create_post', arguments: args });
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).toHaveBeenCalledWith(
+      'create_post',
+      args,
+      undefined,
+    );
+  });
+
   it('queues a pending approval for a write tool instead of executing it', async () => {
     const { client, registry } = build();
 
     const result = (await registry.handleToolCall({
-      arguments: { content: 'hello' },
+      arguments: { content: 'hello', scheduledAt: '2030-01-01' },
       name: 'create_post',
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(client.createApproval).toHaveBeenCalledWith('create_post', {
       content: 'hello',
+      scheduledAt: '2030-01-01',
     });
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('requires approval');
@@ -219,7 +311,20 @@ describe('ToolRegistryService — approval queue', () => {
     expect(client.executeAgentTool).not.toHaveBeenCalled();
   });
 
-  it('queues scheduler mutations instead of calling the scheduler API', async () => {
+  it.each([
+    { status: 'scheduled' },
+    { scheduledDate: '2026-10-11T12:00:00Z' },
+    {
+      targets: [
+        {
+          credentialId: 'credential-1',
+          platform: 'linkedin',
+          scheduledDate: '2026-10-11T12:00:00Z',
+        },
+      ],
+    },
+    { status: 'unknown' },
+  ])('queues a scheduler dispatch with %j', async (effects) => {
     const { client, registry } = build();
 
     await registry.handleToolCall({
@@ -229,6 +334,7 @@ describe('ToolRegistryService — approval queue', () => {
           targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
           timezone: 'Europe/Malta',
           title: 'Launch',
+          ...effects,
         },
       },
       name: 'create_scheduled_release',
@@ -240,6 +346,29 @@ describe('ToolRegistryService — approval queue', () => {
     );
     expect(client.createScheduledRelease).not.toHaveBeenCalled();
   });
+
+  it.each([undefined, 'draft'])(
+    'creates a release draft with status %s without an approval',
+    async (status) => {
+      const { client, registry } = build();
+      const release = {
+        baseContent: 'Hello',
+        targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+        timezone: 'Europe/Malta',
+        title: 'Launch',
+        ...(status ? { status } : {}),
+      };
+      await registry.handleToolCall({
+        name: 'create_scheduled_release',
+        arguments: { release },
+      });
+      expect(client.createApproval).not.toHaveBeenCalled();
+      expect(client.createScheduledRelease).toHaveBeenCalledWith(
+        release,
+        undefined,
+      );
+    },
+  );
 
   it('declines an approval without executing the deferred tool', async () => {
     const { client, registry } = build();
@@ -380,7 +509,7 @@ describe('ToolRegistryService — approval queue', () => {
   });
 
   describe('approval redemption failures', () => {
-    const queued = {
+    const queued: McpApprovalResource = {
       arguments: { content: 'hello' },
       id: 'apr-1',
       status: 'APPROVED',

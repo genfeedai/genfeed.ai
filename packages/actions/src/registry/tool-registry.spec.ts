@@ -106,9 +106,12 @@ describe('tool registry', () => {
     expect(userTools.length).toBeLessThanOrEqual(adminTools.length);
     expect(adminTools.length).toBeLessThanOrEqual(superadminTools.length);
     expect(superadminTools).toEqual(getToolsForSurface('mcp'));
-    expect(
-      superadminTools.some((tool) => tool.requiredRole === 'superadmin'),
-    ).toBe(true);
+    expect(userTools.map((tool) => tool.name)).not.toContain(
+      'create_brand_from_url',
+    );
+    expect(adminTools.map((tool) => tool.name)).toContain(
+      'create_brand_from_url',
+    );
   });
 
   it('scopes role filtering to the requested surface', () => {

@@ -4,6 +4,27 @@ import {
 } from '@mcp/tools/onboarding.tool';
 
 describe('resolveOnboardBrandCall', () => {
+  it('creates a brand through the existing API handler without forwarding scope overrides', () => {
+    expect(
+      resolveOnboardBrandCall({
+        action: 'create_from_url',
+        url: 'https://example.com',
+        label: 'Example',
+        approve: false,
+        organizationId: 'other-org',
+        brandId: 'other-brand',
+        userId: 'other-user',
+      }),
+    ).toEqual({
+      agentToolName: 'create_brand_from_url',
+      parameters: {
+        url: 'https://example.com',
+        label: 'Example',
+        approve: false,
+      },
+      timeoutMs: ONBOARD_BRAND_SCAN_TIMEOUT_MS,
+    });
+  });
   it('maps save_answers onto save_onboarding_answers with only its fields', () => {
     expect(
       resolveOnboardBrandCall({

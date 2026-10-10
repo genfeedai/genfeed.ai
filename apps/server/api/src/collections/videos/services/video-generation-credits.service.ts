@@ -2,8 +2,10 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import type { SeedanceReferenceQuoteEvidence } from '@api/collections/videos/services/seedance-reference-evidence.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { assertApprovedGenerationQuote } from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
   commitDeferredCredits,
   type DeferredCreditsRequest,
@@ -81,6 +83,7 @@ export class VideoGenerationCreditsService {
     organization: string,
     request: Request,
     providerInput?: Record<string, unknown>,
+    referenceEvidence?: SeedanceReferenceQuoteEvidence,
   ): Promise<void> {
     await this.ensureDeferredCreditsResolved(
       createVideoDto,
@@ -89,6 +92,7 @@ export class VideoGenerationCreditsService {
       request,
       true,
       providerInput,
+      referenceEvidence,
     );
   }
 
@@ -107,6 +111,7 @@ export class VideoGenerationCreditsService {
     request: Request,
     isReservationEnabled: boolean,
     providerInput?: Record<string, unknown>,
+    referenceEvidence?: SeedanceReferenceQuoteEvidence,
   ): Promise<void> {
     const reqWithCredits = request as unknown as DeferredCreditsRequest;
     if (!isDeferredCreditsRequest(reqWithCredits)) {
@@ -119,11 +124,17 @@ export class VideoGenerationCreditsService {
         model,
         organization,
         providerInput,
+        referenceEvidence,
       );
     const byok = await this.resolveActiveByokKey(
       organization,
       model,
       resolvedModelDoc?.provider,
+    );
+    assertApprovedGenerationQuote(
+      reqWithCredits.creditsConfig?.approvedGenerationQuote,
+      modelQuote,
+      Boolean(byok),
     );
     if (
       !byok &&
@@ -379,6 +390,7 @@ export class VideoGenerationCreditsService {
     model: string,
     organizationId: string,
     providerInput?: Record<string, unknown>,
+    referenceEvidence?: SeedanceReferenceQuoteEvidence,
   ) {
     const resolvedModelDoc = await this.modelsService.findOne({ key: model });
     const outputs = createVideoDto.outputs ?? 1;
@@ -386,6 +398,7 @@ export class VideoGenerationCreditsService {
       organizationId,
       provider: resolvedModelDoc?.provider,
       providerInput,
+      ...referenceEvidence,
       duration: createVideoDto.duration,
       height: createVideoDto.height,
       width: createVideoDto.width,

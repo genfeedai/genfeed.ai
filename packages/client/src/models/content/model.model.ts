@@ -4,7 +4,6 @@ import type {
   ModelCategory,
   ModelLifecycle,
   ModelProvider,
-  PricingType,
   QualityTier,
   SpeedTier,
 } from '@genfeedai/contracts';
@@ -16,6 +15,7 @@ export class Model extends BaseEntity implements IModel {
   declare public category: ModelCategory;
   declare public provider: ModelProvider;
   declare public cost: number;
+  declare public hasReviewedPricing?: boolean;
   declare public isDefault: boolean;
   declare public isActive: boolean;
   declare public lifecycle: ModelLifecycle;
@@ -30,7 +30,7 @@ export class Model extends BaseEntity implements IModel {
   declare public supportsFeatures?: string[];
   declare public minDimensions?: { width: number; height: number };
   declare public maxDimensions?: { width: number; height: number };
-  declare public pricingType?: PricingType;
+  declare public pricingType?: IModel['pricingType'];
   declare public costPerUnit?: number;
   declare public minCost?: number;
   declare public isDiscovered?: boolean;

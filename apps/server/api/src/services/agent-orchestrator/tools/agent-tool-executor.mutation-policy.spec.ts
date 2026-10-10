@@ -497,10 +497,16 @@ describe('AgentToolExecutorService mutation policy', () => {
       'create_post',
       { content: 'hello' },
       {
-        threadId: expect.any(String),
+        generationContext: {
+          attachmentUrls: undefined,
+          generationModelOverride: undefined,
+          generationSettings: undefined,
+        },
+        threadId: testId('thread'),
         scope: expect.objectContaining({
           brandId: 'brand-1',
           contextVersion: 1,
+          threadId: testId('thread'),
         }),
       },
     );

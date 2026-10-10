@@ -7,6 +7,7 @@ import {
   validateProviderApprovalAndResolveCrunContract,
 } from '@api/collections/models/services/crun-model-contract.util';
 import {
+  PRICING_ATTENTION_SELECT,
   PUBLIC_MODEL_CATALOG_SELECT,
   type PublicModelCatalogDocument,
   type PublicModelCatalogFilters,
@@ -14,6 +15,10 @@ import {
 } from '@api/collections/models/services/public-model-catalog.types';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { withoutUnpriceableModels } from '@api/collections/models/utils/model-pricing-attention.util';
+import {
+  getModelProviderConfig,
+  projectRegistryModelDocument,
+} from '@api/collections/models/utils/model-reviewed-pricing.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -30,11 +35,7 @@ import type {
   ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
-import {
-  type Prisma,
-  type Model as PrismaModel,
-  toPrismaJson,
-} from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -63,7 +64,7 @@ type FindAvailableModelsParams = {
   organizationId?: string;
 };
 
-type RegistryReviewPatch = Partial<UpdateModelDto> & {
+type RegistryReviewPatch = Omit<Partial<UpdateModelDto>, 'providerCostUsd'> & {
   // Off the public create/update contract: `createModel` derives it from the
   // lifecycle, `transitionLifecycle` owns it, review approval clears it here.
   isLegacy?: boolean;
@@ -78,7 +79,7 @@ type RegistryReviewPatch = Partial<UpdateModelDto> & {
   providerSchemaFamily?: string;
   providerSyncStatus?: string;
   pricingType?: string;
-  providerCostUsd?: number;
+  providerCostUsd?: number | null;
   succeededBy?: string;
   aspectRatios?: string[];
   defaultAspectRatio?: string;
@@ -108,35 +109,6 @@ export class ModelsService extends BaseService<
 
   private isModelRecord(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
-  }
-
-  private getProviderConfig(document: unknown): Record<string, unknown> {
-    if (!this.isModelRecord(document)) {
-      return {};
-    }
-
-    if (this.isModelRecord(document.config)) {
-      return document.config;
-    }
-    return this.isModelRecord(document.providerConfig)
-      ? document.providerConfig
-      : {};
-  }
-
-  private normalizeModelDocument(document: PrismaModel): ModelDocument {
-    const { config: _config, ...model } = document;
-    // Virtual cost / costPerUnit / minCost: when providerCostUsd is present,
-    // project live credits via applyMargin (admin marginMultiplier). DB still
-    // stores providerCostUsd + optional baked fallbacks; UI/API always see
-    // margin-current values on read.
-    const withProviderConfig = {
-      ...model,
-      providerConfig: this.getProviderConfig(document),
-      inputControls: projectReviewedCrunModelInputControls(document),
-    };
-    return withLiveModelCreditPricing(
-      withProviderConfig,
-    ) as unknown as ModelDocument;
   }
 
   private readString(value: unknown): string | undefined {
@@ -422,11 +394,14 @@ export class ModelsService extends BaseService<
   ): Promise<ModelDocument | null> {
     // tenant-scope-ignore: withRegistryVisibility always sets isDeleted and restricts a supplied organizationId to org-or-global rows; the registry is intentionally global-plus-org
     const model = await this.prisma.model.findFirst({
+      include: {
+        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+      },
       where: this.normalizeWhereForModel(
         this.withRegistryVisibility(params),
       ) as Prisma.ModelWhereInput,
     });
-    return model ? this.normalizeModelDocument(model) : null;
+    return model ? projectRegistryModelDocument(model) : null;
   }
 
   override async find(
@@ -436,11 +411,14 @@ export class ModelsService extends BaseService<
     void populate;
     // tenant-scope-ignore: registry reads are platform plus the active tenant: withPlatformTenantArm adds the tenant arm, and isDeleted is part of the caller where
     const models = await this.prisma.model.findMany({
+      include: {
+        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+      },
       where: this.normalizeWhereForModel(
         withPlatformTenantArm(params),
       ) as Prisma.ModelWhereInput,
     });
-    return models.map((model) => this.normalizeModelDocument(model));
+    return models.map((model) => projectRegistryModelDocument(model));
   }
 
   override async create(
@@ -477,7 +455,7 @@ export class ModelsService extends BaseService<
     const created = await this.prisma.model.create({
       data: data as Prisma.ModelUncheckedCreateInput,
     });
-    return this.normalizeModelDocument(created);
+    return projectRegistryModelDocument(created);
   }
 
   override async patch(
@@ -491,14 +469,14 @@ export class ModelsService extends BaseService<
     const existing = await this.prisma.model.findUnique({ where });
     const data = this.splitModelData(
       updateDto as Record<string, unknown>,
-      this.getProviderConfig(existing),
+      getModelProviderConfig(existing),
     );
     // tenant-scope-ignore: patch is bound to the id plus the platform-or-active-tenant arm from withPlatformTenantArm
     const updated = await this.prisma.model.update({
       data: data as Prisma.ModelUpdateInput,
       where,
     });
-    return this.normalizeModelDocument(updated);
+    return projectRegistryModelDocument(updated);
   }
 
   override async remove(id: string): Promise<ModelDocument | null> {
@@ -510,7 +488,7 @@ export class ModelsService extends BaseService<
       data: { isDeleted: true },
       where: withPlatformTenantArm({ id }) as Prisma.ModelWhereUniqueInput,
     });
-    return this.normalizeModelDocument(removed);
+    return projectRegistryModelDocument(removed);
   }
 
   override async findAll(
@@ -528,6 +506,9 @@ export class ModelsService extends BaseService<
     const [docs, totalDocs] = await Promise.all([
       // tenant-scope-ignore: withRegistryVisibility always sets isDeleted and restricts a supplied organizationId to org-or-global rows; the registry is intentionally global-plus-org, so scopedWhere would hide the platform catalog
       this.prisma.model.findMany({
+        include: {
+          providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+        },
         orderBy,
         skip: isPaginated ? (page - 1) * limit : undefined,
         take: isPaginated ? limit : undefined,
@@ -537,7 +518,7 @@ export class ModelsService extends BaseService<
       this.prisma.model.count({ where: dbWhere }),
     ]);
     const normalizedDocs = docs.map((model) =>
-      this.normalizeModelDocument(model),
+      projectRegistryModelDocument(model),
     );
     const totalPages = isPaginated ? Math.ceil(totalDocs / limit) : 1;
 
@@ -860,7 +841,9 @@ export class ModelsService extends BaseService<
       patch.pendingProviderContractVersion = null;
       if (existing.provider !== ModelProvider.CRUN)
         patch.providerCostUsd =
-          Number(pendingContract.unitPriceMicros) / 1_000_000;
+          pendingContract.unitPriceMicros === null
+            ? null
+            : Number(pendingContract.unitPriceMicros) / 1_000_000;
       if (crunContract)
         Object.assign(patch, crunModelCatalogPatch(crunContract));
       patch.providerInputSchema = crunContract
@@ -882,7 +865,7 @@ export class ModelsService extends BaseService<
 
     const data = this.splitModelData(
       patch as Record<string, unknown>,
-      this.getProviderConfig(existing),
+      getModelProviderConfig(existing),
     );
     const updated = await this.prisma.$transaction(async (transaction) => {
       const nextModel = await transaction.model.update({
@@ -899,7 +882,7 @@ export class ModelsService extends BaseService<
       });
       return nextModel;
     });
-    return this.normalizeModelDocument(updated);
+    return projectRegistryModelDocument(updated);
   }
 
   async rejectRegistryModel(
@@ -936,7 +919,7 @@ export class ModelsService extends BaseService<
     });
 
     if (existing) {
-      return this.normalizeModelDocument(existing);
+      return projectRegistryModelDocument(existing);
     }
 
     const config = this.getTrainingConfig(training);
@@ -994,11 +977,15 @@ export class ModelsService extends BaseService<
         ...(filter ?? {}),
       }),
     );
+    // tenant-scope-ignore: registry reads are platform plus the active tenant: withPlatformTenantArm adds the tenant arm, and isDeleted is set in the where above
     const models = await this.prisma.model.findMany({
       where: dbWhere as Prisma.ModelWhereInput,
+      include: {
+        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+      },
     });
 
-    return models.map((model) => this.normalizeModelDocument(model));
+    return models.map((model) => projectRegistryModelDocument(model));
   }
 
   async findAvailableModels(
@@ -1013,10 +1000,14 @@ export class ModelsService extends BaseService<
 
     Object.assign(where, platformOrTenantScope(params.organizationId));
 
+    // tenant-scope-ignore: registry reads are platform plus the active tenant: platformOrTenantScope adds the tenant arm, and isDeleted is set in the where above
     const models = await this.prisma.model.findMany({
       where: where as Prisma.ModelWhereInput,
+      include: {
+        providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
+      },
     });
 
-    return models.map((model) => this.normalizeModelDocument(model));
+    return models.map((model) => projectRegistryModelDocument(model));
   }
 }

@@ -43,8 +43,11 @@ function sampleQuantities(
         ? defaultDuration
         : 5,
     frames: 24,
+    framesPerSecond: 24,
     height: 1024,
     inputDuration: 5,
+    // Synthetic tariff-classification sample only; never an admitted task.
+    referenceEvidenceHash: '0'.repeat(64),
     inputMegapixels: 1,
     inputTokens: 1000,
     outputTokens: 1000,

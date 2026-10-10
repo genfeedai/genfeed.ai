@@ -38,6 +38,8 @@ describe('McpApprovalsController', () => {
     createPending: vi.fn(),
     findByOrganization: vi.fn(),
     findOne: vi.fn(),
+    findStatusForActor: vi.fn(),
+    findPricingForActor: vi.fn(),
     resolve: vi.fn(),
   };
 
@@ -70,6 +72,57 @@ describe('McpApprovalsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('serializes only the authorized consent price and model without tariff evidence', async () => {
+    mockServiceMethods.findPricingForActor.mockResolvedValue({
+      id: 'approval-1',
+      estimatedCredits: 2,
+      modelKey: 'flux-schnell',
+      quoteStatus: 'available',
+      pricingQuote: { private: true },
+      arguments: { secret: 'hidden' },
+    });
+    const result = await controller.pricing(mockUser as never, 'approval-1');
+    expect(mockServiceMethods.findPricingForActor).toHaveBeenCalledWith(
+      'approval-1',
+      mockUser,
+    );
+    expect(result.data).toMatchObject({
+      id: 'approval-1',
+      attributes: {
+        estimatedCredits: 2,
+        modelKey: 'flux-schnell',
+        quoteStatus: 'available',
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain('pricingQuote');
+    expect(JSON.stringify(result)).not.toContain('hidden');
+  });
+
+  it('serializes only minimal status after scoped authorization', async () => {
+    mockServiceMethods.findStatusForActor.mockResolvedValue(fakeApproval);
+    const result = await controller.status(mockUser as never, 'approval-1');
+    expect(mockServiceMethods.findStatusForActor).toHaveBeenCalledWith(
+      'approval-1',
+      mockUser,
+    );
+    expect(result.data).toMatchObject({
+      id: 'approval-1',
+      attributes: { status: 'PENDING', toolName: 'delete_file' },
+    });
+    const serialized = JSON.stringify(result);
+    for (const field of [
+      'arguments',
+      'result',
+      'organizationId',
+      'userId',
+      'isDeleted',
+      'updatedAt',
+    ]) {
+      expect(serialized).not.toContain(`"${field}"`);
+    }
+    expect(serialized).not.toContain('/tmp/test.txt');
   });
 
   describe('POST /', () => {

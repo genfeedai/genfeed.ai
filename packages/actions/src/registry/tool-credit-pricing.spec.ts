@@ -94,7 +94,12 @@ describe('tool credit pricing', () => {
         `Variable cost: ${generate.creditPricing.minimum}–${generate.creditPricing.maximum} credits per generation.`,
       );
     }
-    expect(generate?.description).toContain('per-type floor');
+    expect(generate?.description).toContain(
+      'resolved model-specific quote and confirmation',
+    );
+    expect(generate?.description).toContain(
+      'an unresolved quote never means free generation',
+    );
     expect(batch?.creditPricing?.mode).toBe('variable');
     if (batch?.creditPricing?.mode === 'variable') {
       expect(batch.creditPricing.unit).toBe('batch');
@@ -115,6 +120,20 @@ describe('tool credit pricing', () => {
       mode: 'variable',
       unit: 'generation',
     });
+  });
+
+  it('keeps Enhance and X paid and confirmed while options stay free', () => {
+    for (const name of ['enhance_prompt', 'get_x_posts']) {
+      const tool = getToolByName(name);
+      expect(tool?.creditCost).toBe(1);
+      expect(requiresMcpApproval(tool)).toBe(true);
+      expect(tool?.description).toContain(
+        'Costs 1 credit and requires confirmation',
+      );
+    }
+    const options = getToolByName('get_generation_options');
+    expect(options?.creditCost).toBe(0);
+    expect(requiresMcpApproval(options)).toBe(false);
   });
 
   it('estimates from the same helpers the debit path uses', () => {

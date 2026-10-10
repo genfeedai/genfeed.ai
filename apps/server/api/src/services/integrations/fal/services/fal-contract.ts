@@ -5,6 +5,8 @@ export enum FalSchemaFamily {
   IMAGE_TEXT = 'image-text-v1',
   VIDEO_IMAGE = 'video-image-v1',
   VIDEO_TEXT = 'video-text-v1',
+  VIDEO_REFERENCE = 'video-reference-v1',
+  VIDEO_DRAFT = 'video-draft-v1',
 }
 
 export interface FalJsonSchema extends Record<string, unknown> {
@@ -180,15 +182,40 @@ export function classifyFalSchemaFamily(
   input: FalJsonSchema,
   output: FalJsonSchema,
 ): FalSchemaFamily | null {
-  if (!hasRequiredPrompt(input)) {
-    return null;
-  }
-
   const normalizedCategory = category?.trim().toLowerCase();
   const imageOutput =
     hasProperty(output, 'image') || hasProperty(output, 'images');
   const videoOutput =
     hasProperty(output, 'video') || hasProperty(output, 'videos');
+
+  if (
+    videoOutput &&
+    ['video-edit', 'video-to-video'].includes(normalizedCategory ?? '') &&
+    input.required?.includes('draft_id') &&
+    input.properties?.draft_id?.type === 'string'
+  ) {
+    return FalSchemaFamily.VIDEO_DRAFT;
+  }
+  if (
+    videoOutput &&
+    ['image-to-video', 'text-to-video'].includes(normalizedCategory ?? '') &&
+    hasProperty(input, 'prompt')
+  ) {
+    if (
+      ['image_urls', 'video_urls', 'audio_urls'].some((field) =>
+        hasProperty(input, field),
+      )
+    ) {
+      return FalSchemaFamily.VIDEO_REFERENCE;
+    }
+    if (
+      input.required?.includes('image_url') &&
+      hasProperty(input, 'image_url')
+    ) {
+      return FalSchemaFamily.VIDEO_IMAGE;
+    }
+  }
+  if (!hasRequiredPrompt(input)) return null;
 
   if (
     imageOutput &&
@@ -216,6 +243,7 @@ export function classifyFalSchemaFamily(
 }
 
 function matchesSchema(value: unknown, schema: FalJsonSchema): boolean {
+  if (schema.const !== undefined && value !== schema.const) return false;
   const variants = schema.oneOf ?? schema.anyOf;
   if (variants) {
     return variants.some((variant) => matchesSchema(value, variant));
@@ -228,6 +256,10 @@ function matchesSchema(value: unknown, schema: FalJsonSchema): boolean {
     case 'array':
       return (
         Array.isArray(value) &&
+        (typeof schema.minItems !== 'number' ||
+          value.length >= schema.minItems) &&
+        (typeof schema.maxItems !== 'number' ||
+          value.length <= schema.maxItems) &&
         (!schema.items ||
           value.every((item) =>
             matchesSchema(item, schema.items as FalJsonSchema),
@@ -325,7 +357,12 @@ export function adaptFalVideoRequest(
   request: FalVideoAdapterInput,
 ): Record<string, unknown> {
   if (
-    ![FalSchemaFamily.VIDEO_IMAGE, FalSchemaFamily.VIDEO_TEXT].includes(family)
+    ![
+      FalSchemaFamily.VIDEO_IMAGE,
+      FalSchemaFamily.VIDEO_TEXT,
+      FalSchemaFamily.VIDEO_REFERENCE,
+      FalSchemaFamily.VIDEO_DRAFT,
+    ].includes(family)
   ) {
     throw new Error(`Fal schema family is not a video adapter: ${family}`);
   }
@@ -337,7 +374,11 @@ export function adaptFalVideoRequest(
         Object.hasOwn(allowedProperties, key) && value !== undefined,
     ),
   );
-  input.prompt = request.prompt;
+  if (
+    allowedProperties.prompt &&
+    (request.prompt || schema.required?.includes('prompt'))
+  )
+    input.prompt = request.prompt;
   if (request.duration !== undefined && allowedProperties.duration) {
     input.duration = coerceReviewedValue(
       request.duration,
@@ -345,7 +386,7 @@ export function adaptFalVideoRequest(
     );
   }
   if (family === FalSchemaFamily.VIDEO_IMAGE) {
-    input.image_url = request.imageUrl;
+    input.image_url = request.imageUrl ?? input.image_url;
   }
 
   return validateFalInput(schema, input);

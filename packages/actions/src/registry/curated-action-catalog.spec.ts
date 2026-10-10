@@ -14,7 +14,7 @@ describe('curated action catalog', () => {
     (name) => {
       expect(getToolByName(name)).toMatchObject({
         toolset: 'brand',
-        requiredRole: 'user',
+        requiredRole: name === 'create_brand_from_url' ? 'admin' : 'user',
         surfaces: { agent: true, mcp: true },
       });
     },

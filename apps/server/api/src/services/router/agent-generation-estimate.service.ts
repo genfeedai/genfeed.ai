@@ -6,6 +6,8 @@ import {
 } from '@api/collections/images/services/image-generation-provider.util';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { getFalEndpointFromModelKey } from '@api/collections/models/utils/model-key.util';
+import { prepareFalVideoDispatch } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { buildVideoQuoteSelectors } from '@api/helpers/utils/credits/video-quote-selectors.util';
 import {
   hasProviderVideoDurationRule,
@@ -28,7 +30,11 @@ import {
   type AgentGenerationQuote,
   type AgentGenerationQuoteInput,
   AgentGenerationQuoteUnavailableReason,
+  type ModelBillableQuoteSnapshot,
 } from '@genfeedai/contracts/interfaces';
+import type { Model } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -36,6 +42,15 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+export type PreparedAgentGenerationQuote = AgentGenerationQuote & {
+  snapshot?: ModelBillableQuoteSnapshot;
+};
+
+type VideoEstimateModel = Pick<Model, 'provider'> &
+  Partial<
+    Pick<Model, 'endpoint' | 'providerInputSchema' | 'providerSchemaFamily'>
+  >;
 
 function unavailableQuote(
   unavailableReason: AgentGenerationQuoteUnavailableReason,
@@ -82,6 +97,15 @@ export class AgentGenerationEstimateService {
   async estimate(
     input: AgentGenerationQuoteInput,
   ): Promise<AgentGenerationQuote> {
+    const { snapshot: _snapshot, ...quote } =
+      await this.estimateWithSnapshot(input);
+    return quote;
+  }
+
+  /** Server-only consent preparation; the public estimate omits tariff evidence. */
+  async estimateWithSnapshot(
+    input: AgentGenerationQuoteInput,
+  ): Promise<PreparedAgentGenerationQuote> {
     if (
       input.outputs !== undefined &&
       (!Number.isInteger(input.outputs) ||
@@ -184,8 +208,8 @@ export class AgentGenerationEstimateService {
   private async quoteModel(
     input: AgentGenerationQuoteInput,
     modelKey: string,
-    model: { provider: string; providerInputSchema?: unknown },
-  ): Promise<AgentGenerationQuote> {
+    model: VideoEstimateModel,
+  ): Promise<PreparedAgentGenerationQuote> {
     const isVideo = input.category === 'video';
     const dimensions =
       input.dimensions ??
@@ -238,7 +262,7 @@ export class AgentGenerationEstimateService {
     });
     const credits = quote.credits;
     return Number.isFinite(credits) && credits >= 0
-      ? { credits, isAvailable: true, modelKey }
+      ? { credits, isAvailable: true, modelKey, snapshot: quote }
       : unavailableQuote(
           AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
         );
@@ -250,22 +274,56 @@ export class AgentGenerationEstimateService {
     modelKey: string,
     dimensions: { height: number; width: number },
     outputs: number,
-    model: { providerInputSchema?: unknown },
+    model: VideoEstimateModel,
     provider: string,
   ) {
     if (input.category === 'video') {
       const duration = input.duration ?? DEFAULT_AGENT_VIDEO_DURATION_SECONDS;
+      let providerInput = await this.buildVideoProviderInput(modelKey, {
+        ...dimensions,
+        duration,
+        isAudioEnabled: input.isAudioEnabled,
+        modelInputSchema: isRecord(model.providerInputSchema)
+          ? model.providerInputSchema
+          : undefined,
+        outputs,
+        references: input.referenceUrls,
+        resolution: input.resolution,
+      });
+      const endpoint = getFalEndpointFromModelKey(model.endpoint ?? modelKey);
+      if (
+        provider === 'fal' &&
+        /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/.test(
+          endpoint,
+        ) &&
+        model.providerSchemaFamily &&
+        isRecord(model.providerInputSchema)
+      ) {
+        try {
+          providerInput = prepareFalVideoDispatch({
+            ...dimensions,
+            duration,
+            imageUrl: input.referenceUrls?.[0],
+            model: modelKey,
+            modelEndpoint: endpoint,
+            modelInputSchema: model.providerInputSchema,
+            modelProvider: provider,
+            modelSchemaFamily: model.providerSchemaFamily,
+            prompt: input.prompt ?? 'Price estimate',
+            promptParams: providerInput ?? {},
+          }).input;
+        } catch {
+          throw new ServiceUnavailableException({
+            code: 'PRICING_UNAVAILABLE',
+            message: 'Provider input cannot be priced for the selected schema',
+          });
+        }
+      }
       return {
         duration,
         // The same provider input admission quotes, so a provider that
         // normalizes duration (Hailuo 5 s -> 6 s) is priced as executed.
-        providerInput: await this.buildVideoProviderInput(modelKey, {
-          ...dimensions,
-          duration,
-          isAudioEnabled: input.isAudioEnabled,
-          outputs,
-          resolution: input.resolution,
-        }),
+        providerInput,
         selectors: buildVideoQuoteSelectors({
           isAudioEnabled: input.isAudioEnabled,
           resolution: input.resolution,
@@ -333,7 +391,9 @@ export class AgentGenerationEstimateService {
       duration: number;
       height: number;
       isAudioEnabled?: boolean;
+      modelInputSchema?: Record<string, unknown>;
       outputs: number;
+      references?: string[];
       resolution?: string;
       width: number;
     },

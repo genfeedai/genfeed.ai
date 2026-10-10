@@ -1,3 +1,4 @@
+import { parseContractReviewedPricing } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model-schema-family.util';
 import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
 import { CRUN_MODEL_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
@@ -74,7 +75,12 @@ export function validateProviderApprovalAndResolveCrunContract(
       !pendingContract.schemaFamily ||
       !pendingContract.pricingType ||
       (existing.provider !== ModelProvider.CRUN &&
-        pendingContract.unitPriceMicros === null))
+        pendingContract.unitPriceMicros === null &&
+        (pendingContract.version !== pendingVersion ||
+          !parseContractReviewedPricing(
+            { ...existing, isFree: false },
+            pendingContract,
+          ))))
   ) {
     throw new BadRequestException(
       'The pending provider contract is quarantined and cannot be activated',
