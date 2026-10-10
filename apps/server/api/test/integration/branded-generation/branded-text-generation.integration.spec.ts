@@ -24,6 +24,7 @@ import {
   PrismaClient,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -100,7 +101,9 @@ describe('Branded text generation seam (real Postgres)', () => {
         { connectionString: scoped.toString() },
         { schema },
       ),
-    });
+    }).$extends(
+      createMediaUrlExtension({ cdnUrl: 'https://cdn.example.test' }),
+    ) as unknown as PrismaClient;
     const access = new BrandedGenerationReceiptAccessService(
       new BrandAccessService(prisma as unknown as PrismaService),
     );
@@ -306,8 +309,12 @@ describe('Branded text generation seam (real Postgres)', () => {
 
     const value = seamInput();
     const completed = await seam.generate(request(value));
+    if (completed.kind !== 'completed') {
+      throw new Error(
+        `Branded text generation stopped: ${'reasonCode' in completed ? completed.reasonCode : completed.kind}`,
+      );
+    }
     expect(completed.kind).toBe('completed');
-    if (completed.kind !== 'completed') throw new Error('not completed');
     expect(completed).toMatchObject({
       text: 'Seam post text',
       hasNewDispatch: true,

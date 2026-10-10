@@ -22,7 +22,6 @@ import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -292,9 +291,9 @@ export default function PricingContent() {
               <NeuralGrid columns={1} className="flex-1">
                 <NeuralGridItem
                   padding="sm"
-                  className="p-0 sm:p-0 bg-card hover:bg-card"
+                  className="p-6 sm:p-8 bg-card hover:bg-card"
                 >
-                  <div className="p-6 sm:p-8">
+                  <div className="mb-8">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                       <h3 className="text-2xl font-semibold tracking-[-0.02em]">
                         {serviceOffering.name}
@@ -310,22 +309,19 @@ export default function PricingContent() {
                       </span>
                       <span className="text-sm text-surface/55">/month</span>
                     </p>
-                    <p className="text-xs leading-5 text-surface/60">
+                    <p className="text-sm leading-6 text-surface/65">
                       {serviceOffering.priceNote}
                     </p>
                   </div>
-                  <div className="overflow-hidden [&_figure]:rounded-none">
-                    <MarketingArtwork page="/done-for-you" isCompact />
-                  </div>
-                  <div className="flex flex-1 flex-col p-6 sm:p-8">
-                    <p className="mb-6 text-sm leading-6 text-surface/65">
+                  <div className="flex flex-1 flex-col">
+                    <p className="mb-8 text-base leading-7 text-surface/75">
                       {serviceOffering.description}
                     </p>
                     <ul className="mb-auto space-y-4">
                       {serviceOffering.includes.map((feature) => (
                         <li key={feature} className="flex items-start gap-3">
-                          <CircleCheck className="mt-0.5 size-4 shrink-0 text-surface/55" />
-                          <span className="text-sm text-surface/65">
+                          <CircleCheck className="mt-1 size-4 shrink-0 text-surface/65" />
+                          <span className="text-base leading-6 text-surface/75">
                             {feature}
                           </span>
                         </li>
