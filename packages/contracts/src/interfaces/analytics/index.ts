@@ -15,3 +15,4 @@ export * from './training.interface';
 export * from './trend.interface';
 export * from './vote.interface';
 export * from './watchlist.interface';
+export * from './winner-classification.interface';
