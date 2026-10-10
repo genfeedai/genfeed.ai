@@ -12,7 +12,9 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
+import type { OrganizationOnboardingFinishedEvent } from '@api/collections/organizations/organization-events.types';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -67,6 +69,7 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 
 /**
@@ -96,6 +99,7 @@ export class OrganizationsSettingsController {
     private readonly byokService: ByokService,
     private readonly webhookDispatchService: WebhookDispatchService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly eventEmitter: EventEmitter2,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -293,6 +297,20 @@ export class OrganizationsSettingsController {
       organizationSettings.id,
       normalizedSettingsDto,
     );
+    // `isFirstLogin: false` is the classic onboarding skip (REST audit #1354);
+    // skipping still starts the free trial, so the trial credits are granted.
+    const actorUserId = req.user?.userId || req.user?.id;
+    if (settingsDto.isFirstLogin === false && actorUserId) {
+      const event: OrganizationOnboardingFinishedEvent = {
+        organizationId: resolvedOrganizationId,
+        outcome: 'skipped',
+        userId: actorUserId,
+      };
+      await this.eventEmitter.emitAsync(
+        ORGANIZATION_ONBOARDING_FINISHED_EVENT,
+        event,
+      );
+    }
     await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
 
     return serializeSingle(req, OrganizationSettingSerializer, data);

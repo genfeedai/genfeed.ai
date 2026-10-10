@@ -494,6 +494,30 @@
           "policy_unreadable": "The strategy budget or posting policy could not be verified."
         }
       }
+    },
+    "winners": {
+      "allPosts": "All posts",
+      "columns": {
+        "evidence": "Why it won",
+        "post": "Post"
+      },
+      "empty": "No winners in this period. A post wins when a metric beats its account's usual result and there are enough mature posts to compare.",
+      "evidence": "{signal} {ratio}× baseline ({value} vs {baseline}, {sampleSize} posts)",
+      "loadError": "Winners could not be loaded.",
+      "showLabel": "Show posts",
+      "signals": {
+        "comments": "Comments",
+        "engagementRate": "Engagement rate",
+        "likes": "Likes",
+        "views": "Views"
+      },
+      "tableLabel": "Winning posts",
+      "tiers": {
+        "breakout": "Breakout",
+        "outlier": "Outlier"
+      },
+      "untitled": "Untitled post",
+      "winners": "Winners"
     }
   },
   "adsResearch": {
@@ -2174,6 +2198,7 @@
         }
       },
       "viewToggle": {
+        "approvals": "Approvals",
         "board": "Board",
         "grid": "Grid",
         "list": "List"
@@ -2205,9 +2230,6 @@
       "reconnect": "Reconnect",
       "review": "Review",
       "untitled": "Untitled release"
-    },
-    "library": {
-      "approvalQueue": "Approval queue"
     }
   },
   "publishing": {
@@ -2540,8 +2562,7 @@
       },
       "approvalQueue": {
         "title": "Approval queue",
-        "description": "Drafts from generated batches that are waiting for a human decision. Posts is the complete publishing library.",
-        "openPosts": "Open in Posts"
+        "description": "Drafts from generated batches that are waiting for a human decision."
       }
     }
   },
@@ -2666,6 +2687,10 @@
         "origin": "Origin",
         "searchCharacters": "Search characters",
         "searchTags": "Search tags",
+        "showAll": "All assets",
+        "showAria": "Show",
+        "showRecent": "Recent",
+        "showStarred": "Starred",
         "sortAria": "Sort",
         "statusAll": "All",
         "statusAria": "Status",
@@ -2880,6 +2905,10 @@
       "makeClips": "Make clips",
       "moreVersions": "+{count} more",
       "viewMoreVersions": "View more versions"
+    },
+    "references": {
+      "description": "Reusable characters that generations reference by name.",
+      "title": "References"
     },
     "recovery": {
       "actions": {

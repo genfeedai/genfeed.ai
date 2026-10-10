@@ -243,18 +243,16 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects dead bare /review CTAs to publish/review', async () => {
+  it('hard-cuts the retired review routes (#5502): no redirects', async () => {
     const redirects = await config.redirects?.();
-    expect(redirects).toContainEqual({
-      destination: '/publishing/review',
-      permanent: true,
-      source: '/review',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/publishing/review',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/review',
-    });
+
+    expect(
+      redirects?.filter(
+        (redirect) =>
+          String(redirect.source).endsWith('/review') ||
+          String(redirect.destination).includes('/publishing/review'),
+      ),
+    ).toEqual([]);
   });
 
   it('never redirects /library/assets away — it is the Library home', async () => {

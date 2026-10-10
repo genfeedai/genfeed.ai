@@ -5,40 +5,37 @@ import {
 } from './library-menu-items.config';
 
 describe('LIBRARY_MENU_ITEMS', () => {
-  it('navigates by place and Characters, never by shelf, trash, or asset type', () => {
+  it('is Assets and References, never a shelf, trash, recency, or type (#5502)', () => {
+    expect(LIBRARY_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'Assets',
+      'References',
+    ]);
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
       '/library/assets',
-      '/library/assets?place=recent',
-      '/library/assets?place=starred',
-      '/library/elements/characters',
+      '/library/references',
     ]);
+    expect(
+      LIBRARY_MENU_ITEMS.some((item) => item.href?.includes('place=')),
+    ).toBe(false);
     expect(
       LIBRARY_MENU_ITEMS.some((item) => item.href?.includes('shelf=')),
     ).toBe(false);
-    expect(
-      LIBRARY_MENU_ITEMS.some((item) => item.href?.includes('trash')),
-    ).toBe(false);
   });
 
-  it('keeps Characters with the other Library links', () => {
-    const characters = LIBRARY_PLACE_MENU_ITEMS.find(
-      (item) => item.label === 'Characters',
+  it('keeps Assets lit while a Recent, Starred, or shelf filter is applied', () => {
+    const assets = LIBRARY_PLACE_MENU_ITEMS.find(
+      (item) => item.label === 'Assets',
     );
 
-    expect(characters).toEqual(
-      expect.objectContaining({
-        group: '',
-        href: '/library/elements/characters',
-      }),
-    );
+    expect(assets?.matchSearchParams).toBeUndefined();
   });
 
-  it('lights up All assets for every type-seeded deep link', () => {
-    const allAssets = LIBRARY_PLACE_MENU_ITEMS.find(
-      (item) => item.label === 'All assets',
+  it('lights up Assets for every type-seeded deep link', () => {
+    const assets = LIBRARY_PLACE_MENU_ITEMS.find(
+      (item) => item.label === 'Assets',
     );
 
-    expect(allAssets?.matchPaths).toEqual([
+    expect(assets?.matchPaths).toEqual([
       '/library/assets',
       '/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
       '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',

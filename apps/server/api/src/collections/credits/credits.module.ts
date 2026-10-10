@@ -6,10 +6,12 @@ and enforce usage limits.
 
 import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
+import { OnboardingTrialCreditsListener } from '@api/collections/credits/listeners/onboarding-trial-credits.listener';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
 import { GenerationLineReservationService } from '@api/collections/credits/services/generation-line-reservation.service';
@@ -42,6 +44,7 @@ import { Module } from '@nestjs/common';
     CreditReservationService,
     CreditTransactionsService,
     CreditsUtilsService,
+    FreeTrialService,
     GenerationBillingService,
     GenerationHoldRecoveryService,
     GenerationQuoteGroupService,
@@ -66,9 +69,11 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     OnboardingCreditGrantsService,
+    OnboardingTrialCreditsListener,
     CreditBalanceService,
     CreditReservationService,
     CreditTransactionsService,
+    FreeTrialService,
     GenerationBillingService,
     GenerationHoldRecoveryService,
     GenerationQuoteGroupService,

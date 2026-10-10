@@ -63,9 +63,10 @@ three are needed.
 **How to apply:**
 
 - `/library/assets` is the canonical home; bare `/library` redirects there.
-- Sidebar links are **All assets, Recent, Starred, and Characters**.
-  Characters stays the page at `/library/elements/characters`; it is not an
-  asset filter. **Folders** stay the nested tree under those links. Brand
+- Sidebar links are **Assets and References** (#5502). Recent and Starred are
+  the toolbar **Show** filter (`?place=recent|starred`), not destinations.
+  References is the page at `/library/references` for reusable identities
+  (characters today, more types via #6012); it is not an asset filter. **Folders** stay the nested tree under those links. Brand
   Knowledge is not a library destination — it lives at `/settings/knowledge`
   next to Brand Kit. `/library/knowledge` redirects there.
 - Shelves and Trash are one **Status** filter on the library toolbar, in

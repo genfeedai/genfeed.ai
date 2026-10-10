@@ -1,6 +1,7 @@
 import {
   IngredientCategory,
   IngredientOrigin,
+  LibraryPlace,
   LibraryShelf,
   TagMatchMode,
 } from '@genfeedai/contracts';
@@ -159,6 +160,7 @@ function renderToolbar(
       onClearOrigins={vi.fn()}
       onClearTags={vi.fn()}
       onOriginsChange={vi.fn()}
+      onPlaceChange={vi.fn()}
       onSortChange={vi.fn()}
       onStatusChange={vi.fn()}
       onTagMatchChange={vi.fn()}
@@ -208,6 +210,28 @@ describe('LibraryBrowserToolbar', () => {
     expect(onStatusChange).toHaveBeenCalledWith(null);
   });
 
+  it('filters Recent and Starred from the show control, not the nav (#5502)', () => {
+    const onPlaceChange = vi.fn();
+
+    renderToolbar({ onPlaceChange, place: LibraryPlace.STARRED });
+
+    expect(
+      screen.getByRole('button', { name: 'Show' }).parentElement,
+    ).toHaveAttribute('data-select-value', 'starred');
+    fireEvent.click(screen.getByRole('button', { name: 'Recent' }));
+    expect(onPlaceChange).toHaveBeenCalledWith(LibraryPlace.RECENT);
+    fireEvent.click(screen.getByRole('button', { name: 'All assets' }));
+    expect(onPlaceChange).toHaveBeenCalledWith(null);
+  });
+
+  it('shows every asset in the show control while Trash is the status', () => {
+    renderToolbar({ place: LibraryPlace.TRASH });
+
+    expect(
+      screen.getByRole('button', { name: 'Show' }).parentElement,
+    ).toHaveAttribute('data-select-value', 'all');
+  });
+
   it('hides presentation toggles only for grouped failure recovery', () => {
     renderToolbar({ isRecoveryView: true });
     expect(screen.queryByTestId('view-toggle')).not.toBeInTheDocument();
@@ -229,6 +253,7 @@ describe('LibraryBrowserToolbar', () => {
         onClearOrigins={vi.fn()}
         onClearTags={vi.fn()}
         onOriginsChange={vi.fn()}
+        onPlaceChange={vi.fn()}
         onSortChange={vi.fn()}
         onStatusChange={vi.fn()}
         onTagMatchChange={vi.fn()}

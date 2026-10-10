@@ -136,7 +136,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/publishing/review',
+              route: '/publishing/posts?view=approvals',
             },
             arguments: 'post-1',
           })
@@ -200,7 +200,10 @@ vi.mock('@genfeedai/agent', () => ({
         label: name === 'publish' ? 'Publish' : 'Remix',
         name,
         requiredScope: 'brand',
-        route: name === 'publish' ? '/publishing/review' : '/publishing/remix',
+        route:
+          name === 'publish'
+            ? '/publishing/posts?view=approvals'
+            : '/publishing/remix',
       };
     }
     if (name === 'workflow') {
@@ -1133,7 +1136,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/publishing/review',
+      '/acme/moonrise/publishing/posts?view=approvals',
     );
   });
 
@@ -1288,7 +1291,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).not.toHaveBeenCalledWith(
-      expect.stringContaining('/publishing/review'),
+      expect.stringContaining('/publishing/posts?view=approvals'),
     );
   });
 
@@ -1397,7 +1400,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('canonicalizes an unknown overlay without leaving the current route', () => {
-    navigation.pathname = '/acme/moonrise/publishing/review';
+    navigation.pathname = '/acme/moonrise/publishing/posts';
     navigation.searchParams = new URLSearchParams({
       overlay: 'untrusted-output',
       taskId: 'task-1',
@@ -1410,7 +1413,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/publishing/review?taskId=task-1',
+      '/acme/moonrise/publishing/posts?taskId=task-1',
     );
   });
 

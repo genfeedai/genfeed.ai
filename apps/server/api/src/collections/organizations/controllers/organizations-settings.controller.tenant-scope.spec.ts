@@ -24,6 +24,7 @@ import {
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
 import { ForbiddenException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
 
 describe('Organization settings authorized path reads (#6176)', () => {
@@ -57,6 +58,7 @@ describe('Organization settings authorized path reads (#6176)', () => {
         { provide: ByokService, useValue: { getStatus: byok } },
         { provide: WebhookDispatchService, useValue: {} },
         { provide: AccessBootstrapCacheService, useValue: {} },
+        { provide: EventEmitter2, useValue: { emitAsync: vi.fn() } },
         {
           provide: LoggerService,
           useValue: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },

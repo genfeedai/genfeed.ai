@@ -22,6 +22,11 @@ import type { ReactNode } from 'react';
 
 /** A library shelf, or Trash. `null` from the status control means All. */
 export type LibraryBrowserStatus = LibraryShelf | 'trash';
+/**
+ * #5502 Recent and Starred are toolbar filters, not navigation. `null` from
+ * the show control means every asset.
+ */
+export type LibraryBrowserPlace = LibraryPlace.RECENT | LibraryPlace.STARRED;
 export interface LibraryBrowserProps {
   place?: LibraryPlace;
   shelf?: LibraryShelf;
@@ -68,6 +73,8 @@ export interface LibraryBrowserToolbarProps {
   /** Soft-deleted assets still listed under Trash. */
   trashedCount?: number;
   onStatusChange: (status: LibraryBrowserStatus | null) => void;
+  /** Recent or Starred; Trash replaces them because all three use `place`. */
+  onPlaceChange: (place: LibraryBrowserPlace | null) => void;
   /** Selected character ids (`?characters=`). */
   characters: string[];
   /** Characters available to the active brand. Empty hides the filter. */
