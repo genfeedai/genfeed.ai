@@ -100,6 +100,7 @@ export default function PublishingContentLibrary({
   calendar?: React.ReactNode;
 }) {
   const translate = useTranslations('pages.posts.list.collection');
+  const translateList = useTranslations('pages.posts.list');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const isFetchReady = isCollectionFetchReady({
     brandId,
@@ -648,7 +649,7 @@ export default function PublishingContentLibrary({
                 {
                   type: ViewType.APPROVALS,
                   icon: <ClipboardCheck className="size-3.5" />,
-                  label: 'Approvals',
+                  label: translateList('viewToggle.approvals'),
                 },
               ]
             : []),
@@ -674,6 +675,7 @@ export default function PublishingContentLibrary({
     refetch,
     setRefresh,
     setViewToggleNode,
+    translateList,
   ]);
 
   useEffect(() => {

@@ -401,7 +401,9 @@ describe('PublishingContentLibrary', () => {
 
     const [toggle] = mocks.setViewToggleNode.mock.calls.at(-1) ?? [];
     render(toggle);
-    expect(screen.getByRole('radio', { name: 'Approvals' })).toBeChecked();
+    expect(
+      screen.getByRole('radio', { name: 'viewToggle.approvals' }),
+    ).toBeChecked();
     fireEvent.click(screen.getByRole('radio', { name: 'List' }));
     // Leaving approvals drops the queue's batch and item selection.
     expect(mocks.replace.mock.calls.at(-1)?.[0]).toBe(
