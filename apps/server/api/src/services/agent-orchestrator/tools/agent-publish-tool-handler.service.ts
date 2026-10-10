@@ -1042,10 +1042,8 @@ export class AgentPublishToolHandler {
           id: String(result.draft.id),
           mode,
           platform,
-          ...(result.reviewTurboRunId && {
-            reviewTurboRunId: result.reviewTurboRunId,
-          }),
-          ...(result.reviewItemId && { reviewItemId: result.reviewItemId }),
+          reviewTurboRunId: result.reviewTurboRunId || undefined,
+          reviewItemId: result.reviewItemId || undefined,
           status: PostStatus.DRAFT,
         },
         isBillingDelegated: true,

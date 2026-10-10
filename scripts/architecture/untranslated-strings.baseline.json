@@ -303,7 +303,7 @@
     "packages/agent/src/components/AgentTransferProvenanceCard.tsx": 2,
     "packages/agent/src/components/AiTextActionCard.tsx": 4,
     "packages/agent/src/components/AnalyticsSnapshotCard.tsx": 9,
-    "packages/agent/src/components/BatchGenerationCard.tsx": 12,
+    "packages/agent/src/components/TurboRunCard.tsx": 12,
     "packages/agent/src/components/blocks/DynamicBlockGrid.tsx": 4,
     "packages/agent/src/components/blocks/DynamicTable.tsx": 1,
     "packages/agent/src/components/BrandCreateCard.tsx": 6,

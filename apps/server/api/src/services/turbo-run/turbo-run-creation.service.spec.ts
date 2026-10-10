@@ -264,12 +264,10 @@ describe('TurboRunCreationService strategy attribution', () => {
         findFirst: vi.fn().mockResolvedValue(valid ? { id: 'strategy' } : null),
       },
       turboRun: {
-        create: vi
-          .fn()
-          .mockImplementation(async ({ data }) => ({
-            ...data,
-            id: 'turboRun',
-          })),
+        create: vi.fn().mockImplementation(async ({ data }) => ({
+          ...data,
+          id: 'turboRun',
+        })),
       },
       turboRunItem: { upsert: vi.fn().mockResolvedValue({}) },
     };

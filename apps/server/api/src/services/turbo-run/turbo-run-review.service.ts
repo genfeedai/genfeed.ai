@@ -15,10 +15,7 @@ import {
   TurboRunItemStatus,
   TurboRunStatus,
 } from '@genfeedai/contracts';
-import type {
-  ITurboRunSummary,
-  VideoContinuityQaReport,
-} from '@genfeedai/contracts/interfaces';
+import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
@@ -62,6 +59,10 @@ import {
   pinApprovedDrafts,
   scheduleApprovedReviewPost,
 } from '@api/services/turbo-run/turbo-run-review-approval';
+import {
+  getSelectedPostIds,
+  toReviewInboxItemSummary,
+} from '@api/services/turbo-run/turbo-run-review-items.util';
 import { withMediaAssessmentReasons } from '@api/services/turbo-run/turbo-run-review-media-assessment.util';
 import {
   applyTurboRewrites,
@@ -163,7 +164,7 @@ export class TurboRunReviewService {
       pendingCount,
       readyCount,
       recentItems: await withMediaAssessmentReasons(
-        readyRows.map((row) => this.toReviewInboxItemSummary(row)),
+        readyRows.map((row) => toReviewInboxItemSummary(row)),
         orgId,
         this.autonomousPublishPolicy,
       ),
@@ -251,7 +252,7 @@ export class TurboRunReviewService {
           autonomous,
           expectedPostVersions,
           reviewedAt: new Date().toISOString(),
-          selectedPostIds: this.getSelectedPostIds(turboRunItems, itemIdSet),
+          selectedPostIds: getSelectedPostIds(turboRunItems, itemIdSet),
         });
       },
     );
@@ -381,62 +382,6 @@ export class TurboRunReviewService {
       throw new NotFoundException('TurboRun', turboRunId);
     }
     return toTurboRunWithConfig(updated);
-  }
-
-  private toReviewInboxItemSummary(row: {
-    turboRunId: string;
-    createdAt: Date;
-    data: Prisma.JsonValue;
-    id: string;
-    status: string;
-  }): ReviewInboxItemSummary {
-    const data =
-      typeof row.data === 'object' &&
-      row.data !== null &&
-      !Array.isArray(row.data)
-        ? (row.data as Record<string, unknown>)
-        : {};
-    const format = typeof data.format === 'string' ? data.format : 'image';
-    const caption = typeof data.caption === 'string' ? data.caption : undefined;
-    const prompt = typeof data.prompt === 'string' ? data.prompt : undefined;
-
-    return {
-      turboRunId: row.turboRunId,
-      createdAt: row.createdAt.toISOString(),
-      format,
-      id: row.id,
-      mediaUrl: typeof data.mediaUrl === 'string' ? data.mediaUrl : undefined,
-      platform: typeof data.platform === 'string' ? data.platform : undefined,
-      postId: typeof data.postId === 'string' ? data.postId : undefined,
-      reviewDecision: ReviewDecision.UNSET,
-      status: row.status,
-      summary:
-        caption ??
-        prompt ??
-        `${format.charAt(0).toUpperCase()}${format.slice(1)} ready for review`,
-      continuityQa: isContinuityQaReport(data.continuityQa)
-        ? data.continuityQa
-        : undefined,
-    };
-  }
-
-  private getSelectedPostIds(
-    turboRunItems: TurboRunItemFull[],
-    itemIdSet: Set<string>,
-  ): string[] {
-    return [
-      ...new Set(
-        turboRunItems
-          .filter(
-            (item) =>
-              itemIdSet.has(item.id) &&
-              item.status === TurboRunItemStatus.COMPLETED &&
-              item.reviewDecision !== ReviewDecision.APPROVED &&
-              Boolean(item.postId),
-          )
-          .flatMap((item) => (item.postId ? [item.postId] : [])),
-      ),
-    ];
   }
 
   /**
@@ -992,16 +937,4 @@ export class TurboRunReviewService {
 
     return this.summaryService.toTurboRunSummary(updatedTurboRun);
   }
-}
-
-function isContinuityQaReport(
-  value: unknown,
-): value is VideoContinuityQaReport {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    (value as Record<string, unknown>).schemaVersion === 1 &&
-    Array.isArray((value as Record<string, unknown>).clips)
-  );
 }
