@@ -101,5 +101,5 @@ export const FREE_TRIAL_EMAILS = {
 export function isFreeTrialEmailTemplateKey(
   value: string,
 ): value is FreeTrialEmailTemplateKey {
-  return Object.hasOwn(FREE_TRIAL_EMAILS, value);
+  return Object.keys(FREE_TRIAL_EMAILS).includes(value);
 }
