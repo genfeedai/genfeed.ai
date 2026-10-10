@@ -2,6 +2,7 @@ import { creditUsageWhere } from '@api/collections/credits/services/credit-usage
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import type { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import type { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import type { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
@@ -15,6 +16,10 @@ import type { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.s
 import type { SystemEmailEligibilityService } from './system-email-eligibility.service';
 
 const sendDueTrialNotices = vi.fn().mockResolvedValue(null);
+// A paying organization whose latest grant makes 500 credits "low".
+const resolveLowCredit = vi
+  .fn()
+  .mockResolvedValue({ isTrialSubject: false, threshold: 500 });
 
 const request = {
   organizationId: 'org-1',
@@ -65,6 +70,7 @@ function fixture(count: number, isConnected = true) {
     { findForUser } as unknown as NotificationPreferenceService,
     {} as WorkflowExecutionQueueService,
     { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
+    { resolve: resolveLowCredit } as unknown as LowCreditThresholdService,
   );
   return { service, prisma, queueEmail, findForUser };
 }
@@ -265,6 +271,7 @@ function creditsFixture(overrides: {
     } as unknown as NotificationPreferenceService,
     {} as WorkflowExecutionQueueService,
     { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
+    { resolve: resolveLowCredit } as unknown as LowCreditThresholdService,
   );
   return { service, prisma, queueEmail };
 }
@@ -273,12 +280,37 @@ describe('credit balance alerts', () => {
   it('alerts once when the balance first drops below the threshold', async () => {
     const { service, queueEmail } = creditsFixture({ spendable: 400 });
     await service.credits(request);
+    expect(resolveLowCredit).toHaveBeenCalledWith('org-1');
     expect(queueEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         topic: 'billing.credits',
         templateKey: 'credit-low',
         userId: 'owner-1',
+        policyData: { lowCreditThreshold: 500 },
       }),
+    );
+  });
+  it('does not call a balance above the relative threshold low', async () => {
+    // 600 spendable used to be "low" against a fixed 1000.
+    const { service, queueEmail } = creditsFixture({ spendable: 600 });
+    await service.credits(request);
+    expect(queueEmail).not.toHaveBeenCalled();
+  });
+  it('sends no low alert when no threshold is known, but still the exhausted one', async () => {
+    resolveLowCredit.mockResolvedValueOnce({
+      isTrialSubject: false,
+      threshold: null,
+    });
+    const low = creditsFixture({ spendable: 10 });
+    await low.service.credits(request);
+    expect(low.queueEmail).not.toHaveBeenCalled();
+
+    resolveLowCredit.mockClear();
+    const empty = creditsFixture({ spendable: 0 });
+    await empty.service.credits(request);
+    expect(resolveLowCredit).not.toHaveBeenCalled();
+    expect(empty.queueEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ templateKey: 'credit-exhausted' }),
     );
   });
   it('does not repeat the same tier while the balance simply stays low', async () => {

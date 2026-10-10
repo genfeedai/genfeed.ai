@@ -97,6 +97,13 @@ vi.mock('@api/collections/credits/services/free-trial.service', () => ({
 }));
 
 vi.mock(
+  '@api/services/low-credit-threshold/low-credit-threshold.service',
+  () => ({
+    LowCreditThresholdService: class LowCreditThresholdService {},
+  }),
+);
+
+vi.mock(
   '@api/services/router/default-generation-affordability.service',
   () => ({
     DefaultGenerationAffordabilityService: class DefaultGenerationAffordabilityService {},
@@ -139,6 +146,9 @@ describe('AuthBootstrapService', () => {
   const freeTrialService = {
     getState: vi.fn(),
   };
+  const lowCreditThresholdService = {
+    resolve: vi.fn(),
+  };
 
   let service: AuthBootstrapService;
 
@@ -156,6 +166,7 @@ describe('AuthBootstrapService', () => {
       usersService as never,
       defaultGenerationAffordability as never,
       freeTrialService as never,
+      lowCreditThresholdService as never,
     );
 
     accessBootstrapCacheService.get.mockResolvedValue(null);
@@ -193,6 +204,10 @@ describe('AuthBootstrapService', () => {
     freeTrialService.getState.mockResolvedValue({
       isTrialExpired: false,
       trialEndsAt: null,
+    });
+    lowCreditThresholdService.resolve.mockResolvedValue({
+      isTrialSubject: false,
+      threshold: null,
     });
 
     mockGetIsSuperAdmin.mockReturnValue(false);
@@ -464,6 +479,21 @@ describe('AuthBootstrapService', () => {
     },
   );
 
+  it('carries the server-computed low-balance threshold for the banner', async () => {
+    lowCreditThresholdService.resolve.mockResolvedValue({
+      isTrialSubject: false,
+      threshold: 590,
+    });
+
+    const result = await service.getBootstrap({
+      context: { organizationId: 'org_1', userId: 'user_1' },
+      user: { id: 'user_1', organizationId: 'org_1', userId: 'user_1' },
+    } as never);
+
+    expect(result.access.lowCreditThreshold).toBe(590);
+    expect(lowCreditThresholdService.resolve).toHaveBeenCalledWith('org_1');
+  });
+
   it('reports no trial window for an organization outside the trial', async () => {
     const result = await service.getBootstrap({
       context: { organizationId: 'org_1', userId: 'user_1' },
@@ -581,6 +611,7 @@ describe('AuthBootstrapService', () => {
         isOnboardingCompleted: true,
         isSuperAdmin: false,
         isTrialExpired: false,
+        lowCreditThreshold: null,
         memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.TRIALING,

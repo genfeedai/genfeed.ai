@@ -91,9 +91,14 @@ export class SystemEmailEligibilityService {
         });
         if (!balance) return false;
         const spendable = balance.balance - balance.heldAmount;
+        // The relative threshold the alert was queued against
+        // (`LowCreditThresholdService`); a top-up since then cancels it.
+        const threshold = data.lowCreditThreshold;
         return input.templateKey === 'credit-exhausted'
           ? spendable <= 0
-          : spendable > 0 && spendable < 1000;
+          : typeof threshold === 'number' &&
+              spendable > 0 &&
+              spendable < threshold;
       }
       // A trial notice is stale once the organization pays (it leaves the
       // trial). "Ends soon" and "running low" are also stale once it ended.

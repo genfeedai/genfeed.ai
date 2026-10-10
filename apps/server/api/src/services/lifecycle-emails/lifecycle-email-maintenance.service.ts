@@ -6,6 +6,7 @@ import {
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -71,6 +72,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     private readonly preferences: NotificationPreferenceService,
     private readonly queue: WorkflowExecutionQueueService,
     private readonly freeTrialEmails: FreeTrialEmailsService,
+    private readonly lowCreditThreshold: LowCreditThresholdService,
   ) {}
 
   onModuleInit(): void {
@@ -610,7 +612,6 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     ]);
     if (!balance || !organization) return;
     const spendable = balance.balance - balance.heldAmount;
-    if (spendable >= 1000) return;
     // Only a customer who has paid is running low. Spending the free signup
     // grant is expected, so an organization with no Stripe-backed grant
     // (checkout session, subscription initial grant or invoice) gets no alert.
@@ -626,6 +627,18 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     });
     if (!paidGrant) return;
     const exhausted = spendable <= 0;
+    // "Low" is relative to what the organization buys
+    // (`LowCreditThresholdService`): 10% of its latest paid grant, never below
+    // one default image. A fixed 1000 credits made every small pack "low"
+    // forever and let a large plan drain far past it unnoticed.
+    const { threshold: lowCreditThreshold } = exhausted
+      ? { threshold: null }
+      : await this.lowCreditThreshold.resolve(request.organizationId);
+    if (
+      !exhausted &&
+      (lowCreditThreshold === null || spendable >= lowCreditThreshold)
+    )
+      return;
     const recipientId =
       organization.billingAccount?.members[0]?.userId ?? organization.userId;
     // One lookup across both tiers: a separate per-template window let a
@@ -666,6 +679,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       destinationUrl: `${this.appUrl()}/${encodeURIComponent(organization.slug)}/~/settings/credits`,
       actionLabel: 'Add credits',
       goal: 'buy_credits',
+      ...(lowCreditThreshold === null ? {} : { lowCreditThreshold }),
     });
   }
 
@@ -681,6 +695,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     actionLabel: string;
     goal: 'connect_account' | 'publish_content' | 'buy_credits';
     brandId?: string;
+    lowCreditThreshold?: number;
     periodStart?: string;
     periodEnd?: string;
   }): Promise<void> {
@@ -710,6 +725,9 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       goal: input.goal,
       policyData: {
         ...(input.brandId ? { brandId: input.brandId } : {}),
+        ...(input.lowCreditThreshold === undefined
+          ? {}
+          : { lowCreditThreshold: input.lowCreditThreshold }),
         ...(input.periodStart ? { periodStart: input.periodStart } : {}),
         ...(input.periodEnd ? { periodEnd: input.periodEnd } : {}),
       },

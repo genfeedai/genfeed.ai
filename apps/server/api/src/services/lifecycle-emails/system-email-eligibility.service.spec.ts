@@ -70,13 +70,28 @@ describe('send-time system email eligibility', () => {
   });
   it('subtracts held credits and cancels low-balance email after a top-up', async () => {
     const { prisma, service } = fixture();
-    expect(
-      await service.shouldSend({ ...input, templateKey: 'credit-low' }),
-    ).toBe(true);
+    const lowCredit = {
+      ...input,
+      templateKey: 'credit-low',
+      policyData: { lowCreditThreshold: 1000 },
+    };
+    expect(await service.shouldSend(lowCredit)).toBe(true);
     prisma.creditBalance.findFirst.mockResolvedValue({
       balance: 5000,
       heldAmount: 400,
     });
+    expect(await service.shouldSend(lowCredit)).toBe(false);
+  });
+  it('judges a low-balance email against the relative threshold it was queued with', async () => {
+    const { service } = fixture();
+    // 800 spendable: low against a 1000-credit threshold, not against 500.
+    expect(
+      await service.shouldSend({
+        ...input,
+        templateKey: 'credit-low',
+        policyData: { lowCreditThreshold: 500 },
+      }),
+    ).toBe(false);
     expect(
       await service.shouldSend({ ...input, templateKey: 'credit-low' }),
     ).toBe(false);
