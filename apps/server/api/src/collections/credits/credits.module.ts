@@ -32,6 +32,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaGenerationReceiptsModule } from '@api/services/media-generation-receipts/media-generation-receipts.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { usesMeteredCredits } from '@genfeedai/config';
+import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
@@ -58,6 +59,8 @@ import { Module } from '@nestjs/common';
     ApiKeyHelperModule,
     ByokModule,
     CommonModule,
+    // FreeTrialService reads FREE_TRIAL_ROLLOUT_AT.
+    ConfigModule,
     CreditDeductionModule,
     MediaGenerationReceiptsModule,
     NotificationsPublisherModule,

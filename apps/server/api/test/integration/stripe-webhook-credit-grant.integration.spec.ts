@@ -59,6 +59,7 @@ import { BillingAccountsService } from '@api/collections/billing-accounts/servic
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
@@ -283,6 +284,15 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           useValue: runtimeSettingsMock(),
         },
         CreditsUtilsService,
+        // Credit grants are never gated by the free trial; admission's trial
+        // gate has its own specs (free-trial.service.spec).
+        {
+          provide: FreeTrialService,
+          useValue: {
+            assertTrialActive: vi.fn(),
+            isTrialExpired: vi.fn().mockResolvedValue(false),
+          },
+        },
         CreditBalanceService,
         CreditTransactionsService,
         TransactionUtil,

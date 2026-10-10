@@ -23,6 +23,8 @@ function trialSubject(overrides: { subscriptions?: unknown[] } = {}) {
 
 describe('FreeTrialEmailsService', () => {
   let subject: ReturnType<typeof trialSubject>;
+  // A rollout long past unless a case sets it, so windows run from creation.
+  let rolloutAt = '2026-01-01T00:00:00.000Z';
   const organizationFindFirst = vi.fn(
     async (args: { select: Record<string, unknown> }) =>
       'slug' in args.select
@@ -41,7 +43,8 @@ describe('FreeTrialEmailsService', () => {
       organization: { findFirst: organizationFindFirst },
     } as unknown as PrismaService,
     {
-      get: vi.fn().mockReturnValue('https://app.genfeed.ai/'),
+      get: (key: string) =>
+        key === 'FREE_TRIAL_ROLLOUT_AT' ? rolloutAt : 'https://app.genfeed.ai/',
     } as unknown as ConfigService,
     { queueEmail } as unknown as EmailPerformanceService,
   );
@@ -51,6 +54,7 @@ describe('FreeTrialEmailsService', () => {
     vi.spyOn(deployment, 'usesMeteredCredits').mockReturnValue(true);
     vi.spyOn(deployment, 'isSelfHostedDeployment').mockReturnValue(false);
     subject = trialSubject();
+    rolloutAt = '2026-01-01T00:00:00.000Z';
     emailMessageFindFirst.mockResolvedValue(null);
   });
 
@@ -69,6 +73,38 @@ describe('FreeTrialEmailsService', () => {
       expected,
     );
     expect(queueEmail).toHaveBeenCalledTimes(expected ? 1 : 0);
+  });
+
+  it.each([
+    ['2026-10-12T00:00:00.000Z', null],
+    ['2026-10-13T02:00:00.000Z', 'trial-ending'],
+    ['2026-10-14T01:00:00.000Z', 'trial-ended'],
+    ['2026-10-15T01:00:00.000Z', null],
+  ])(
+    'gives a legacy organization its notices from the rollout (%s → %s)',
+    async (now, expected) => {
+      rolloutAt = '2026-10-11T00:00:00.000Z';
+      subject = {
+        ...trialSubject(),
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      };
+
+      await expect(
+        service.sendDueTrialNotices('org-1', new Date(now)),
+      ).resolves.toBe(expected);
+    },
+  );
+
+  it('never nudges an organization an operator comped', async () => {
+    subject = {
+      ...trialSubject(),
+      creditTransactions: [{ id: 'comp' }],
+    };
+
+    await expect(
+      service.sendDueTrialNotices('org-1', at(50)),
+    ).resolves.toBeNull();
+    expect(queueEmail).not.toHaveBeenCalled();
   });
 
   it('queues "ends in 24 hours" to the billing owner with a plans CTA', async () => {
