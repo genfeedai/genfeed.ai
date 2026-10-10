@@ -40,6 +40,15 @@ vi.mock(
   }),
 );
 
+// Wrap the real preview hook so a test can see the retry revision it receives.
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', async (load) => {
+  const actual =
+    await load<
+      typeof import('@genfeedai/hooks/media/use-authorized-media-preview')
+    >();
+  return { useAuthorizedMediaPreview: vi.fn(actual.useAuthorizedMediaPreview) };
+});
+
 vi.mock('@ui/masonry/shared/MasonryBrandLogo', () => ({
   default: () => <div data-testid="brand-logo" />,
 }));
@@ -95,6 +104,7 @@ vi.mock('next-intl', async () => {
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IImage } from '@genfeedai/contracts/interfaces';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 
 const defaultBrandContext = {
@@ -126,6 +136,19 @@ describe('MasonryImage', () => {
 
   beforeEach(() => {
     vi.mocked(useBrand).mockReturnValue(defaultBrandContext);
+  });
+
+  it('reauthorizes its preview when the surface bumps the retry revision', () => {
+    const { rerender } = render(<MasonryImage image={mockImage} />);
+    expect(vi.mocked(useAuthorizedMediaPreview)).toHaveBeenLastCalledWith(
+      mockImage,
+      0,
+    );
+    rerender(<MasonryImage image={mockImage} previewRetryRevision={2} />);
+    expect(vi.mocked(useAuthorizedMediaPreview)).toHaveBeenLastCalledWith(
+      mockImage,
+      2,
+    );
   });
 
   it('should render without crashing', () => {

@@ -92,6 +92,7 @@ function MasonryVideoTile({
   onResize,
   isDragEnabled = true,
   onHoverChange,
+  previewRetryRevision,
 }: MasonryVideoTileProps): React.ReactElement {
   const {
     videoRef,
@@ -118,6 +119,7 @@ function MasonryVideoTile({
     isDragEnabled,
     onUpdateParent,
     onHoverChange,
+    previewRetryRevision,
   });
 
   const failureReason = getIngredientFailureReason(video);

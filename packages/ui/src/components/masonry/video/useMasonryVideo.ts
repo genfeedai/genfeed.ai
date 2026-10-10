@@ -21,6 +21,7 @@ interface UseMasonryVideoParams {
   isDragEnabled: boolean;
   onUpdateParent?: ((ingredient: IVideo, parentId: string) => void) | undefined;
   onHoverChange?: ((isHovered: boolean) => void) | undefined;
+  previewRetryRevision?: number;
 }
 
 export function useMasonryVideo({
@@ -29,6 +30,7 @@ export function useMasonryVideo({
   isDragEnabled,
   onUpdateParent,
   onHoverChange,
+  previewRetryRevision = 0,
 }: UseMasonryVideoParams) {
   const { selectedBrand, settings } = useBrand();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -46,7 +48,7 @@ export function useMasonryVideo({
     return resolveIngredientReferenceUrl(video.references);
   }, [video]);
 
-  const mediaPreview = useAuthorizedMediaPreview(video);
+  const mediaPreview = useAuthorizedMediaPreview(video, previewRetryRevision);
   const ingredientUrl = mediaPreview
     ? (mediaPreview.url ?? '')
     : (video?.ingredientUrl ?? '');

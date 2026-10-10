@@ -31,7 +31,7 @@ vi.mock('next-intl', async () => {
 
 type VideoActionsBarProps = Parameters<typeof MasonryVideoActionsBar>[0];
 
-function renderFirstVideoCard() {
+function renderFirstVideoCard({ isHovered = true } = {}) {
   const onSelect = vi.fn();
   const handlePublish = vi.fn();
   const video = {
@@ -39,8 +39,8 @@ function renderFirstVideoCard() {
     category: IngredientCategory.VIDEO,
     status: IngredientStatus.GENERATED,
   } as IVideo;
-  render(
-    <div role="presentation" onClick={onSelect}>
+  const { container } = render(
+    <div className="group" role="presentation" onClick={onSelect}>
       <MasonryVideoActionsBar
         video={video}
         actionStates={{} as MasonryActionStates}
@@ -54,7 +54,7 @@ function renderFirstVideoCard() {
         handleQuickActionsMouseLeave={vi.fn()}
         isActionsEnabled
         isGeneratingCaptions={false}
-        isHovered
+        isHovered={isHovered}
         isMirroring={false}
         isPortraiting={false}
         isReversing={false}
@@ -63,7 +63,26 @@ function renderFirstVideoCard() {
       />
     </div>,
   );
-  return { handlePublish, onSelect, video };
+  const bar = container.firstElementChild?.firstElementChild as HTMLElement;
+  return { bar, handlePublish, onSelect, video };
+}
+
+// jsdom applies stylesheet declarations to getComputedStyle (which
+// user-event's pointer-events check reads) but cannot match `:hover`. These
+// rules emulate a tile whose CSS hover has revealed the bar before React has
+// seen a mouseenter: `.group` stands in for `.group:hover`.
+const HOVER_REVEAL_CSS = `
+  .opacity-0 { opacity: 0; }
+  .pointer-events-none { pointer-events: none; }
+  .group .group-hover\\:opacity-100 { opacity: 1; }
+  .group .group-hover\\:pointer-events-auto { pointer-events: auto; }
+`;
+
+function emulateCssHoverReveal(): () => void {
+  const style = document.createElement('style');
+  style.textContent = HOVER_REVEAL_CSS;
+  document.head.append(style);
+  return () => style.remove();
 }
 
 // Mirrors the image fixture: keep the real IngredientQuickActions, Radix menu
@@ -101,5 +120,21 @@ describe('first masonry video card overflow integration', () => {
     expect(handlePublish.mock.calls[0]?.[0]).toBe(video);
     expect(onSelect).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+  });
+
+  it('opens More as soon as CSS hover reveals it, before React hover state, without selecting the card', async () => {
+    const removeCss = emulateCssHoverReveal();
+    try {
+      const user = userEvent.setup();
+      const { bar, onSelect } = renderFirstVideoCard({ isHovered: false });
+      const trigger = screen.getByRole('button', { name: 'More' });
+      expect(getComputedStyle(bar).opacity).toBe('1');
+      expect(getComputedStyle(bar).pointerEvents).toBe('auto');
+      await user.click(trigger);
+      expect(await screen.findByRole('menu')).toBeVisible();
+      expect(onSelect).not.toHaveBeenCalled();
+    } finally {
+      removeCss();
+    }
   });
 });

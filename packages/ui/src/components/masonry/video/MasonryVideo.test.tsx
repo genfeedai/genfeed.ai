@@ -39,6 +39,15 @@ vi.mock('@genfeedai/utils/media/reference.util', () => ({
   resolveIngredientReferenceUrl: vi.fn(() => ''),
 }));
 
+// Wrap the real preview hook so a test can see the retry revision it receives.
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', async (load) => {
+  const actual =
+    await load<
+      typeof import('@genfeedai/hooks/media/use-authorized-media-preview')
+    >();
+  return { useAuthorizedMediaPreview: vi.fn(actual.useAuthorizedMediaPreview) };
+});
+
 vi.mock('@ui/masonry/shared/MasonryBrandLogo', () => ({
   default: () => <div data-testid="brand-logo" />,
 }));
@@ -100,6 +109,7 @@ vi.mock('next-intl', async () => {
 
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IVideo } from '@genfeedai/contracts/interfaces';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import MasonryVideo from '@ui/masonry/video/MasonryVideo';
 
 const mockVideo: IVideo = {
@@ -127,6 +137,19 @@ describe('MasonryVideo', () => {
       { key: 'Enter' },
     );
     expect(onClickIngredient).toHaveBeenCalledWith(mockVideo);
+  });
+
+  it('reauthorizes its preview when the surface bumps the retry revision', () => {
+    const { rerender } = render(<MasonryVideo video={mockVideo} />);
+    expect(vi.mocked(useAuthorizedMediaPreview)).toHaveBeenLastCalledWith(
+      mockVideo,
+      0,
+    );
+    rerender(<MasonryVideo video={mockVideo} previewRetryRevision={2} />);
+    expect(vi.mocked(useAuthorizedMediaPreview)).toHaveBeenLastCalledWith(
+      mockVideo,
+      2,
+    );
   });
 
   it('should prefer explicit thumbnails for video preview', () => {
