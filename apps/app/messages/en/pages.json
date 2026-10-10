@@ -5309,6 +5309,7 @@
     "open": "Generation receipts",
     "description": "Inspect the saved context and checks used for a generation.",
     "empty": "No generation receipts yet.",
+    "emptyCoverage": "Receipts are saved for text drafts written in approved-brand mode. Studio image and video generations don't create receipts yet.",
     "loading": "Loading generation receipts…",
     "refresh": "Reload saved details",
     "loadMore": "Load more",
