@@ -3,9 +3,11 @@
 The text suite compares both production judges (`content-quality` and
 `evaluations`) against human golden labels, with cross-family arms, harness
 judges, criteria-injection A/B, rubric alignment, thresholds, a scoring-surface
-lock, a CI evidence gate and a cost quote. AC-1's live metrics remain pending
-the paid-call gate and #4923's private fixtures. AC-2's gate and AC-3's injection
-rule are implemented; the measured keep/drop outcome remains pending.
+lock, a CI provenance check with optional calibration evidence, and a cost quote.
+Live metrics remain pending paid-call approval and #4923's private fixtures.
+Policy approved on 2026-10-10: paid calibration is optional and nonblocking;
+scoring-lock integrity and ordinary CI checks remain mandatory. The injection
+rule is implemented; its measured keep/drop outcome remains pending.
 Vision verdict κ and prompt-length sensitivity are deferred to the #4926 media
 golden set and a media re-judge mode. Reports carry `calibration.vision: null`.
 
@@ -30,7 +32,8 @@ bun scripts/content-eval/calibration/quote.ts --report="$OUT/stub-judge.json" > 
 
 Expected: `exit=1` because stub κ is below the threshold by design; jq prints
 `[null, 225]`. The summary has `evidenceKind: stub-dispatcher` and the quote
-includes `perRowExpectedUsd`. Stub evidence cannot satisfy the live gate.
+includes `perRowExpectedUsd`. Stub evidence does not measure live judge quality;
+linking it produces an advisory warning, not a CI failure or a live-evidence claim.
 
 ## Scales and metrics
 
@@ -109,8 +112,9 @@ Injection is OFF by default: no production caller passes the optional third
 keep iff pooled decision kappa delta >= 0.05, pooled band rows < 30 or pooled band kappa delta >= 0, and every kind with >= 30 decision rows has decision kappa delta >= -0.05; insufficient when pooled decision rows < 30; otherwise drop; a null delta fails its condition
 ```
 
-An enabling PR must cite the measured rule outcome and satisfy the calibration
-gate. No keep/drop outcome is claimed before the live run.
+Optional calibration does not authorize enabling injection or changing its
+measurement rule. An enabling PR must cite the measured rule outcome and retain
+valid scoring provenance. No keep/drop outcome is claimed before the live run.
 
 ## Cost quote
 
@@ -153,7 +157,7 @@ A one-row-per-kind live smoke is approximately $0.10. These are estimates;
 live calls need paid-call approval and a fresh quote from the intended fixtures.
 The synthetic `quote.ts` command appears in the example above.
 
-## Scoring-surface gate
+## Scoring provenance and optional calibration
 
 After changing a judge model, prompt, decoding or context surface, regenerate
 the committed lock:
@@ -162,22 +166,32 @@ the committed lock:
 bun scripts/content-eval/calibration/scoring-surface.ts --write
 ```
 
-For a changed text surface, commit a live summary under the reports directory
-and add this line to the PR body, substituting the summary filename:
+The CI step never dispatches judges or spends credits. Missing or stale head
+locks still fail, including bootstrap and no-base runs. Paid live calibration
+is optional; no report is required to merge a scoring change. A changed text or
+vision surface without accepted current live evidence emits an honest warning.
+Ordinary test, type, build, security and repository protection gates remain required.
+
+If an independently authorized live run is available, commit its summary under
+the reports directory and optionally add this line to the PR body, substituting
+the summary filename:
 
 ```text
 Calibration-Report: scripts/content-eval/calibration/reports/{file}.json
 ```
 
-The summary must match `calibrationSummarySchema`, have
+To be accepted as current live evidence, the summary must match `calibrationSummarySchema`, have
 `evidenceKind: live-dispatcher`, and measure the head text digest. It must also
 record at least one judge call, a fixture of at least `calibrationMinRows` rows,
 the current `thresholdsVersion`, a clean working tree, and, for the primary arm
 of each production judge, at least `calibrationMinRows` scored rows that carry a
 human band or decision label. Summaries
 contain neither row text nor scores. Keep full reports outside the repository.
-A linked report that fails thresholds produces a warning; passing thresholds
-are not required to link evidence. Re-run the job after a PR-body edit.
+A missing, unreadable, invalid, stub, stale or incomplete report produces a
+warning and is not accepted as current live evidence. A valid current live report
+that fails thresholds also produces a warning; its failed measurements remain
+unchanged. Optional evidence does not fabricate agreement, passing thresholds or
+an injection keep/drop decision. A later PR-body edit can be inspected in a later run.
 
 | Code | Result and condition |
 |---|---|
@@ -187,23 +201,23 @@ are not required to link evidence. Re-run the job after a PR-body edit.
 | bootstrap | Pass: base revision has no lock |
 | unchanged | Pass: both digests equal the base |
 | vision-unenforced | Pass with warning: only vision changed; calibration deferred |
-| merge-group | Pass: merge-group event after the preceding checks |
-| pr-body-unavailable | Fail: PR body could not be read |
-| link-missing | Fail: PR body lacks the report link |
-| report-missing | Fail: linked summary is absent |
-| report-invalid | Fail: linked summary does not match the schema |
-| report-stub | Fail: linked summary is not live-dispatcher evidence |
-| report-stale | Fail: summary text digest differs from the head |
-| report-incomplete | Fail: summary lacks calls, rows, current thresholds, a clean tree or labelled rows per production judge |
+| merge-group | Pass with warning: no live evidence was checked for the merge group |
+| pr-body-unavailable | Pass with warning: PR body could not be read |
+| link-missing | Pass with warning: no optional live report is linked |
+| report-missing | Pass with warning: linked summary is absent |
+| report-unreadable | Pass with warning: linked summary could not be read |
+| report-invalid | Pass with warning: linked summary does not match the schema |
+| report-stub | Pass with warning: linked summary is not live-dispatcher evidence |
+| report-stale | Pass with warning: summary text digest differs from the head |
+| report-incomplete | Pass with warning: summary lacks calls, rows, current thresholds, a clean tree or labelled rows per production judge |
 | linked | Pass: live summary measures this revision; warn if thresholds fail |
 
 Checks run in table order. Head-lock validation applies even to bootstrap and
 no-base runs. The initial lock introduction passes as bootstrap. Merge-group
-runs do not require another PR-body link; member PRs have already been checked.
-
-Only `pull_request` runs enforce the link. The step runs in no `push` workflow,
-so a direct push or an admin merge that skips PR CI is not gated; such a change
-needs its calibration evidence linked in a follow-up PR.
+runs also warn when a changed scoring surface has no checked live evidence.
+Passing this check establishes lock integrity; it does not establish judge quality.
+Optional evidence does not authorize skipping Static Checks, Tests Gate, other
+required checks, or repository protections.
 
 ## Compile settings and limitations
 
@@ -220,8 +234,8 @@ decoding rather than production free-text decoding; its schema omits
 brand-thread history or prior evaluations. Vision calibration is deferred.
 Content-eval tests are not in CI; that remains #4928.
 
-Known gaps from the #5991 post-merge review, deferred because each changes the
-text digest and so needs a live report: the lock omits the evaluations
+Known gaps from the #5991 post-merge review, tracked separately from this policy:
+the lock omits the evaluations
 prompt-builder path and the content-quality schema shape, and the
 content-quality arm repeats the service's temperature and token literals
 instead of sharing them. The lock no longer hashes `evaluations.service.ts`
