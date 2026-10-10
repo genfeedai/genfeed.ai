@@ -34,7 +34,7 @@ const COPY_SOURCES = [
   'packages/ui/marketing/PricingStrip.tsx',
   'app/(public)/pricing/page.tsx',
   'app/(public)/pricing/pricing-content.tsx',
-  'scripts/generate-llms-txt.ts',
+  'packages/data/llms-text.data.ts',
 ];
 
 /** Digits only, so the assertion survives any change to number formatting. */
