@@ -8,6 +8,8 @@ import {
 } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
+import { useWinnerPosts } from '@hooks/data/analytics/use-winner-posts/use-winner-posts';
+import AnalyticsWinnersTable from '@pages/analytics/posts-list/analytics-winners-table';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
@@ -24,6 +26,7 @@ import {
 import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
 import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
   useCallback,
@@ -65,6 +68,9 @@ const PLATFORM_OPTIONS = [
 
 type PlatformFilterValue = (typeof PLATFORM_OPTIONS)[number]['value'];
 
+const SHOW_ALL = 'all';
+const SHOW_WINNERS = 'winners';
+
 const renderPlatformOption = (
   option: (typeof PLATFORM_OPTIONS)[number],
 ): ReactNode => {
@@ -103,6 +109,8 @@ export default function AnalyticsPostsList() {
     | AnalyticsMetric.ENGAGEMENT
     | AnalyticsMetric.LIKES;
   const platform = (filters.platform ?? 'all') as PlatformFilterValue;
+  const isWinnersView = filters.show === SHOW_WINNERS;
+  const translateWinners = useTranslations('pages.analytics.winners');
 
   useEffect(() => {
     setLocalFocusedPostId(urlFocusedPostId || null);
@@ -126,6 +134,12 @@ export default function AnalyticsPostsList() {
   const { isLoading, topPosts, error, refetch } = useTopPosts({
     limit: 50,
     metric,
+    platform: platform === 'all' ? undefined : platform,
+  });
+
+  const winnerPosts = useWinnerPosts({
+    isEnabled: isWinnersView,
+    limit: 50,
     platform: platform === 'all' ? undefined : platform,
   });
 
@@ -250,23 +264,47 @@ export default function AnalyticsPostsList() {
         />
 
         <Select
-          value={metric}
-          onValueChange={(value) => setFilter('metric', value)}
+          value={isWinnersView ? SHOW_WINNERS : SHOW_ALL}
+          onValueChange={(value) =>
+            setFilter('show', value === SHOW_WINNERS ? value : undefined)
+          }
         >
           <SelectTrigger
-            aria-label="Sort post analytics by metric"
+            aria-label={translateWinners('showLabel')}
             className="w-full sm:w-36"
           >
-            <SelectValue placeholder="Metric" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {METRIC_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
+            <SelectItem value={SHOW_ALL}>
+              {translateWinners('allPosts')}
+            </SelectItem>
+            <SelectItem value={SHOW_WINNERS}>
+              {translateWinners('winners')}
+            </SelectItem>
           </SelectContent>
         </Select>
+
+        {isWinnersView ? null : (
+          <Select
+            value={metric}
+            onValueChange={(value) => setFilter('metric', value)}
+          >
+            <SelectTrigger
+              aria-label="Sort post analytics by metric"
+              className="w-full sm:w-36"
+            >
+              <SelectValue placeholder="Metric" />
+            </SelectTrigger>
+            <SelectContent>
+              {METRIC_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <Select
           value={platform}
@@ -292,6 +330,7 @@ export default function AnalyticsPostsList() {
     ),
     [
       focusedPostId,
+      isWinnersView,
       search,
       metric,
       platform,
@@ -299,6 +338,7 @@ export default function AnalyticsPostsList() {
       setFocusedPost,
       setFilter,
       push,
+      translateWinners,
     ],
   );
 
@@ -316,23 +356,34 @@ export default function AnalyticsPostsList() {
         </p>
       ) : null}
 
-      <Table<PostsListItem>
-        label="Top Posts"
-        items={items}
-        isLoading={isLoading}
-        error={
-          error
-            ? {
-                title: 'Post analytics could not be loaded.',
-                onRetry: () => refetch(),
-              }
-            : undefined
-        }
-        columns={columns}
-        emptyLabel="No posts found for this period"
-        getRowKey={(item) => item.postId}
-        onRowClick={(item) => setFocusedPost(item.postId)}
-      />
+      {isWinnersView ? (
+        <AnalyticsWinnersTable
+          winners={winnerPosts.winners}
+          search={search}
+          isLoading={winnerPosts.isLoading}
+          hasError={Boolean(winnerPosts.error)}
+          onRetry={() => winnerPosts.refetch()}
+          onSelectPost={setFocusedPost}
+        />
+      ) : (
+        <Table<PostsListItem>
+          label="Top Posts"
+          items={items}
+          isLoading={isLoading}
+          error={
+            error
+              ? {
+                  title: 'Post analytics could not be loaded.',
+                  onRetry: () => refetch(),
+                }
+              : undefined
+          }
+          columns={columns}
+          emptyLabel="No posts found for this period"
+          getRowKey={(item) => item.postId}
+          onRowClick={(item) => setFocusedPost(item.postId)}
+        />
+      )}
 
       <PostDetailOverlay
         postId={focusedPostId || null}
