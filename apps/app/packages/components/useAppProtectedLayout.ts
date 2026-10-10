@@ -27,6 +27,7 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
+  isReleasePreviewActive,
   ORGANIZATION_MODULES,
   resolveOrganizationModulePreferences,
 } from '@genfeedai/contracts/constants';
@@ -297,6 +298,9 @@ export function useAppProtectedLayout(
       ),
     [organizationSettings, settingsLoading],
   );
+  // #5502 founder-only destinations stay hidden until release preview is known.
+  const isReleasePreview =
+    !settingsLoading && isReleasePreviewActive(organizationSettings);
   const studioMenuItems = useMemo(
     () =>
       STUDIO_MENU_ITEMS.filter(
@@ -316,13 +320,15 @@ export function useAppProtectedLayout(
 
   const publishingMenuItems = useMemo(
     () =>
-      PUBLISHING_MENU_ITEMS.map(
+      PUBLISHING_MENU_ITEMS.filter(
+        (item) => !item.isFounderOnly || isReleasePreview,
+      ).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [taskContextSearchParams],
+    [isReleasePreview, taskContextSearchParams],
   );
 
   const libraryMenuItems = useMemo(
@@ -360,13 +366,15 @@ export function useAppProtectedLayout(
 
   const analyticsMenuItems = useMemo(
     () =>
-      getAnalyticsMenuItemsForScope(brandSlug).map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [brandSlug, taskContextSearchParams],
+      getAnalyticsMenuItemsForScope(brandSlug)
+        .filter((item) => !item.isFounderOnly || isReleasePreview)
+        .map(
+          (item): MenuItemConfig => ({
+            ...item,
+            href: withTaskContextHref(item.href, taskContextSearchParams),
+          }),
+        ),
+    [brandSlug, isReleasePreview, taskContextSearchParams],
   );
 
   const discoveryMenuItems = useMemo(

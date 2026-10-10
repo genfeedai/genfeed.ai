@@ -102,11 +102,19 @@ describe('ANALYTICS_MENU_ITEMS', () => {
   it('puts what-happened destinations ungrouped under Analytics', () => {
     expect(labelsInGroup('')).toEqual([
       'Overview',
-      'Accounts',
       'Posts',
+      'Accounts',
       'Brands',
       'Streaks',
     ]);
+  });
+
+  it('leaves customers Overview, Posts and Accounts; the rest is founder-only (#5502)', () => {
+    expect(
+      ANALYTICS_MENU_ITEMS.filter((item) => !item.isFounderOnly).map(
+        (item) => item.label,
+      ),
+    ).toEqual(['Overview', 'Posts', 'Accounts']);
   });
 
   it('puts derived analysis destinations under Intelligence', () => {

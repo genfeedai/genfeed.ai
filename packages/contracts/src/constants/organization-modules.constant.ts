@@ -140,6 +140,21 @@ export function isOrganizationModuleUnreleased(
   );
 }
 
+/**
+ * #5502 founder-only navigation (Campaigns, experimental Analytics) shows only
+ * where unreleased work is visible: self-hosted, or a cloud organization on
+ * release preview. Unknown settings hide it, like unknown module access.
+ */
+export function isReleasePreviewActive(
+  settings: OrganizationModulePreferenceInput | null | undefined,
+): boolean {
+  if (typeof settings?.hasOrganizationBilling !== 'boolean') return false;
+  return (
+    !settings.hasOrganizationBilling ||
+    settings.isReleasePreviewEnabled === true
+  );
+}
+
 export interface UnreleasedModuleChangeInput {
   hasOrganizationBilling: boolean;
   isReleasePreviewEnabled: boolean;
