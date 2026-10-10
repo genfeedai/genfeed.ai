@@ -134,7 +134,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       'visual-code.fail-internal',
       async (request) => this.failAdmittedExecution(request),
     );
-    this.workflows.registerTerminalFailure(
+    this.workflows.terminalFailures.register(
       'visual-code.execute',
       async ({ inputValues, organizationId }) =>
         this.settleUnreconciledExecution(inputValues, organizationId),

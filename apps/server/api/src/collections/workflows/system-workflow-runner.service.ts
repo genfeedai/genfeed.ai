@@ -7,7 +7,7 @@ import {
   type SystemWorkflowActionExecutor,
   type SystemWorkflowActionRequest,
   type SystemWorkflowProvenance,
-  type SystemWorkflowTerminalFailureHandler,
+  SystemWorkflowTerminalFailures,
   validateDefinition,
 } from '@api/collections/workflows/system-workflow-policy.util';
 import {
@@ -103,10 +103,7 @@ export class SystemWorkflowRunnerService
   private readonly moduleCompletionNodes = new AsyncLocalStorage<
     ReadonlySet<string>
   >();
-  private readonly terminalFailureHandlers = new Map<
-    string,
-    SystemWorkflowTerminalFailureHandler
-  >();
+  readonly terminalFailures = new SystemWorkflowTerminalFailures();
   private readonly workflowDefinitions = new Map<
     string,
     SystemWorkflowGraphDefinition
@@ -266,43 +263,6 @@ export class SystemWorkflowRunnerService
       );
     }
     return { canonicalId, inputValues: input.inputValues ?? {} };
-  }
-
-  /**
-   * Register the last resort for a workflow that owns a record: when the
-   * workflow and its failure workflow both fail, the record is still marked
-   * terminal instead of staying in flight forever (#6655).
-   */
-  registerTerminalFailure(
-    canonicalId: string,
-    handler: SystemWorkflowTerminalFailureHandler,
-  ): void {
-    if (this.terminalFailureHandlers.has(canonicalId)) {
-      throw new Error(
-        `Duplicate system workflow terminal failure handler: ${canonicalId}`,
-      );
-    }
-    this.terminalFailureHandlers.set(canonicalId, handler);
-  }
-
-  /** Returns whether a registered last resort settled the owned record. */
-  async settleTerminalFailure(
-    input: Pick<
-      RunSystemWorkflowInput,
-      'canonicalId' | 'inputValues' | 'organizationId'
-    >,
-    workflowError: string,
-  ): Promise<boolean> {
-    const handler = this.terminalFailureHandlers.get(input.canonicalId);
-    if (!handler) {
-      return false;
-    }
-    await handler({
-      inputValues: input.inputValues ?? {},
-      organizationId: input.organizationId,
-      workflowError,
-    });
-    return true;
   }
 
   registerWorkflow(definition: SystemWorkflowGraphDefinition): void {

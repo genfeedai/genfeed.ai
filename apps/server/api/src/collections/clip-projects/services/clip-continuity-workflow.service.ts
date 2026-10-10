@@ -68,7 +68,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     this.runner.registerWorkflow(
       buildClipContinuityFailureWorkflowDefinition(),
     );
-    this.runner.registerTerminalFailure(
+    this.runner.terminalFailures.register(
       CLIP_CONTINUITY_WORKFLOW_ID,
       ({ inputValues, organizationId }) =>
         this.settleTerminalFailure(inputValues, organizationId),

@@ -620,16 +620,16 @@ describe('SystemWorkflowRunnerService definitions', () => {
     };
 
     await expect(
-      runner.settleTerminalFailure(input, 'compensation failed'),
+      runner.terminalFailures.settle(input, 'compensation failed'),
     ).resolves.toBe(false);
 
-    runner.registerTerminalFailure('clip.analysis', handler);
+    runner.terminalFailures.register('clip.analysis', handler);
     expect(() =>
-      runner.registerTerminalFailure('clip.analysis', handler),
+      runner.terminalFailures.register('clip.analysis', handler),
     ).toThrow('Duplicate system workflow terminal failure handler');
 
     await expect(
-      runner.settleTerminalFailure(input, 'compensation failed'),
+      runner.terminalFailures.settle(input, 'compensation failed'),
     ).resolves.toBe(true);
     expect(handler).toHaveBeenCalledWith({
       inputValues: input.inputValues,

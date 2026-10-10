@@ -183,7 +183,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       (request) => this.failAnalysisAction(request),
     );
     this.workflowRunner.registerWorkflow(buildClipAnalysisWorkflowDefinition());
-    this.workflowRunner.registerTerminalFailure(
+    this.workflowRunner.terminalFailures.register(
       CLIP_ANALYSIS_WORKFLOW_ID,
       (request) => settleClipWorkflowFailure(this.clipProjectsService, request),
     );

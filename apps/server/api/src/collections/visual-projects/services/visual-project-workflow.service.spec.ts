@@ -49,7 +49,7 @@ function fixture() {
   } as unknown as VisualRevision;
   let executor: SystemWorkflowActionExecutor | undefined;
   const workflow = {
-    registerTerminalFailure: vi.fn(),
+    terminalFailures: { register: vi.fn() },
     registerWorkflow: vi.fn(),
     registerAction: vi.fn((_id, handler) => {
       if (_id === 'visual-code.execute-internal') executor = handler;
@@ -507,9 +507,9 @@ function failureFixture() {
     SystemWorkflowTerminalFailureHandler
   >();
   const workflows = {
-    registerTerminalFailure: vi.fn((id, handler) =>
-      terminalFailures.set(id, handler),
-    ),
+    terminalFailures: {
+      register: vi.fn((id, handler) => terminalFailures.set(id, handler)),
+    },
     registerWorkflow: vi.fn(),
     registerAction: vi.fn((id, handler) => handlers.set(id, handler)),
   };

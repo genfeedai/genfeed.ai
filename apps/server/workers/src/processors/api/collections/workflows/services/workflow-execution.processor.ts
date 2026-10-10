@@ -202,7 +202,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
   ): Promise<void> {
     let isSettled = false;
     try {
-      isSettled = await this.systemWorkflowRunner.settleTerminalFailure(
+      isSettled = await this.systemWorkflowRunner.terminalFailures.settle(
         input,
         workflowError instanceof Error
           ? workflowError.message

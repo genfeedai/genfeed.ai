@@ -46,11 +46,16 @@ describe('ClipAnalysisWorkflowService', () => {
         );
       },
     ),
-    registerTerminalFailure: vi.fn(
-      (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) => {
-        terminalFailures.set(canonicalId, handler);
-      },
-    ),
+    terminalFailures: {
+      register: vi.fn(
+        (
+          canonicalId: string,
+          handler: SystemWorkflowTerminalFailureHandler,
+        ) => {
+          terminalFailures.set(canonicalId, handler);
+        },
+      ),
+    },
     registerWorkflow: vi.fn(),
   };
   const service = new ClipAnalysisWorkflowService(

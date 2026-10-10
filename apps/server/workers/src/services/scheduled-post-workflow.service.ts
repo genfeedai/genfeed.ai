@@ -63,7 +63,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     );
     this.runner.registerWorkflow(buildScheduledPostWorkflowDefinition());
     this.runner.registerWorkflow(buildScheduledPostFailureWorkflowDefinition());
-    this.runner.registerTerminalFailure(
+    this.runner.terminalFailures.register(
       SCHEDULED_POST_WORKFLOW_ID,
       async ({ inputValues, organizationId, workflowError }) => {
         const request = this.readRequest(inputValues);

@@ -120,7 +120,7 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
       buildBatchProjectIdeaDispatchFailureWorkflowDefinition(),
     );
     // Last resort when the dispatch and its failure graph both failed (#6655).
-    this.workflowRunner.registerTerminalFailure(
+    this.workflowRunner.terminalFailures.register(
       BATCH_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
       async ({ inputValues, organizationId }) => {
         await this.failItem(

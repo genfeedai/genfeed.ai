@@ -73,10 +73,12 @@ function createHarness() {
     registerAction: vi.fn((actionId: string, action: RegisteredAction) => {
       registeredActions.set(actionId, action);
     }),
-    registerTerminalFailure: vi.fn(
-      (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) =>
-        terminalFailures.set(canonicalId, handler),
-    ),
+    terminalFailures: {
+      register: vi.fn(
+        (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) =>
+          terminalFailures.set(canonicalId, handler),
+      ),
+    },
     registerWorkflow: vi.fn(),
   };
   const logger = { warn: vi.fn(), error: vi.fn() };

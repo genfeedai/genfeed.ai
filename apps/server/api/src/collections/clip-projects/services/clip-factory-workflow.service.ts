@@ -71,7 +71,7 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
       (request) => this.finalizeChild(request),
     );
     this.runner.registerWorkflow(buildClipFactoryWorkflowDefinition());
-    this.runner.registerTerminalFailure(CLIP_FACTORY_WORKFLOW_ID, (request) =>
+    this.runner.terminalFailures.register(CLIP_FACTORY_WORKFLOW_ID, (request) =>
       settleClipWorkflowFailure(this.clipProjects, request),
     );
     this.runner.registerWorkflow(buildClipFactoryFailureWorkflowDefinition());

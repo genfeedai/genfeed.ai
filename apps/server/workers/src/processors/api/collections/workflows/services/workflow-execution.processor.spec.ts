@@ -70,7 +70,7 @@ function createMockSchedulerService() {
 function createMockSystemWorkflowRunner() {
   return {
     getRegisteredFailureWorkflow: vi.fn().mockReturnValue(undefined),
-    settleTerminalFailure: vi.fn().mockResolvedValue(false),
+    terminalFailures: { settle: vi.fn().mockResolvedValue(false) },
     runWithStoredWorkflowModule: vi.fn(
       async (_input: unknown, work: () => Promise<unknown>) => work(),
     ),
@@ -631,7 +631,7 @@ describe('WorkflowExecutionProcessor', () => {
       });
 
       it('settles the owned record through the last resort and reports it once', async () => {
-        mockSystemWorkflowRunner.settleTerminalFailure.mockResolvedValueOnce(
+        mockSystemWorkflowRunner.terminalFailures.settle.mockResolvedValueOnce(
           true,
         );
 
@@ -640,7 +640,7 @@ describe('WorkflowExecutionProcessor', () => {
         );
 
         expect(
-          mockSystemWorkflowRunner.settleTerminalFailure,
+          mockSystemWorkflowRunner.terminalFailures.settle,
         ).toHaveBeenCalledWith(
           input,
           'Action contract input validation failed [action=x]',
@@ -659,7 +659,7 @@ describe('WorkflowExecutionProcessor', () => {
       });
 
       it('still fails the job terminally when the last resort throws', async () => {
-        mockSystemWorkflowRunner.settleTerminalFailure.mockRejectedValueOnce(
+        mockSystemWorkflowRunner.terminalFailures.settle.mockRejectedValueOnce(
           new Error('database unavailable'),
         );
 

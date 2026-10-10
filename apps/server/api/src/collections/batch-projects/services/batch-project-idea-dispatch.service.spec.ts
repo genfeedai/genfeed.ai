@@ -88,10 +88,12 @@ describe('BatchProjectIdeaDispatchService', () => {
   >();
   const workflowRunner = {
     registerAction: vi.fn(),
-    registerTerminalFailure: vi.fn(
-      (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) =>
-        terminalFailures.set(canonicalId, handler),
-    ),
+    terminalFailures: {
+      register: vi.fn(
+        (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) =>
+          terminalFailures.set(canonicalId, handler),
+      ),
+    },
     registerWorkflow: vi.fn(),
     runWithRegisteredWorkflowModule: vi.fn(
       async <T>(
