@@ -422,11 +422,12 @@ function AppLayoutWithDynamicMenu({
                       : menuItems;
   const lowCreditsBanner =
     hasOrganizationBillingHint() &&
-    isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
     !suppressShellLowCreditsBanner &&
     !isLibraryLandingRoute ? (
-      <LowCreditsBanner />
+      <LowCreditsBanner
+        isLowBalanceWarningEnabled={isLowCreditsBannerEnabled}
+      />
     ) : null;
   const shellBanner = (
     <>

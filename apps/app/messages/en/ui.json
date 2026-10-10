@@ -440,5 +440,18 @@
     "lightingPlaceholder": "Lighting",
     "cameraMovement": "Camera movement",
     "cameraMovementPlaceholder": "Camera movement"
+  },
+  "creditsRequiredPrompt": {
+    "title": "Not enough credits",
+    "heading": "This needs more credits than you have left",
+    "body": "Everything you already made stays in your Library. Buy a credit pack or pick a plan to keep creating.",
+    "buyCredits": "Buy credits",
+    "seePlans": "See plans"
+  },
+  "lowCreditsBanner": {
+    "generationUnaffordableTitle": "Not enough credits to keep generating",
+    "generationUnaffordableBody": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
+    "buyCredits": "Buy credits",
+    "seePlans": "See plans"
   }
 }

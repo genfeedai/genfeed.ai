@@ -88,7 +88,11 @@ export class AgentEndpointInvoker {
     );
 
     if (endpoint.isSubscriptionCheckSkipped !== true) {
-      this.subscriptionGuard.assertActive(request, endpoint.creditsConfig);
+      await this.subscriptionGuard.assertActive(
+        request,
+        endpoint.creditsConfig,
+        endpoint.organizationModule.moduleId,
+      );
     }
 
     await this.creditsGuard.admit(

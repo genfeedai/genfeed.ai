@@ -3,8 +3,8 @@ import { ModalEnum } from '../../src/enums/modal.enum';
 
 describe('modal.enum', () => {
   describe('ModalEnum', () => {
-    it('should have 61 members', () => {
-      expect(Object.values(ModalEnum)).toHaveLength(61);
+    it('should have 62 members', () => {
+      expect(Object.values(ModalEnum)).toHaveLength(62);
     });
 
     it('should have correct values', () => {
@@ -23,6 +23,7 @@ describe('modal.enum', () => {
       expect(ModalEnum.CAPTION_DETAIL).toBe('modal-caption-detail');
       expect(ModalEnum.CLIP).toBe('modal-clip');
       expect(ModalEnum.CONFIRM).toBe('modal-confirm');
+      expect(ModalEnum.CREDITS_REQUIRED).toBe('modal-credits-required');
       expect(ModalEnum.CREDENTIAL).toBe('modal-credential');
       expect(ModalEnum.ERROR_DEBUG).toBe('modal-error-debug');
       expect(ModalEnum.EXPORT).toBe('modal-export');

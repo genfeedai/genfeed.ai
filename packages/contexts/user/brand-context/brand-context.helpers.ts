@@ -28,7 +28,7 @@ export function getBrandOrganizationId(
   // exposing the organization id as the brand's top-level `organizationId`
   // field. Fall back to it so the org scope resolves — otherwise
   // `scopedOrganizationId` stays empty, the access-state query never enables,
-  // `accessState` is null, and OnboardingGuard/SubscriptionGuard spin forever.
+  // `accessState` is null, and OnboardingGuard spins forever.
   if (typeof brand?.organizationId === 'string' && brand.organizationId) {
     return brand.organizationId;
   }

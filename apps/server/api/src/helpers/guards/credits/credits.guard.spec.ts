@@ -124,8 +124,12 @@ describe('CreditsGuard', () => {
       const context = createContext();
       context.switchToHttp().getRequest().user.subscriptionTier =
         SubscriptionTier.FREE;
-      const subscriptionGuard = new SubscriptionGuard(loggerService, reflector);
-      expect(subscriptionGuard.canActivate(context)).toBe(true);
+      const subscriptionGuard = new SubscriptionGuard(
+        loggerService,
+        reflector,
+        creditsUtilsService as unknown as CreditsUtilsService,
+      );
+      await expect(subscriptionGuard.canActivate(context)).resolves.toBe(true);
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).not.toHaveBeenCalled();

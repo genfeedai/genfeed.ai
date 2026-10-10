@@ -4,7 +4,6 @@ import {
   hasAgentFirstOnboarding,
   isCloudDeployment,
 } from '@genfeedai/config/deployment';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -14,8 +13,6 @@ import {
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { MemberRole } from '@genfeedai/contracts';
 import {
-  APP_ROUTES,
-  createOrganizationAppRoute,
   getResumeStep,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
@@ -36,7 +33,6 @@ export function useOnboardingRouteAccess(pathname: string) {
   const { currentUser, isLoading: isUserLoading } = useCurrentUser();
   const {
     accessState,
-    hasPaygCredits,
     isLoading: isAccessStateLoading,
     isSubscribed,
     isSuperAdmin,
@@ -52,7 +48,6 @@ export function useOnboardingRouteAccess(pathname: string) {
     accessState?.memberRole !== MemberRole.ADMIN;
   const brand = selectedBrand ?? brands[0];
   const isOnboardingRoute = pathname.startsWith('/onboarding');
-  const isBillingEnabled = hasOrganizationBillingHint();
 
   const redirectTarget = useMemo(() => {
     if (!effectiveIsAuthLoaded) {
@@ -115,31 +110,10 @@ export function useOnboardingRouteAccess(pathname: string) {
       return `/onboarding/${resumeStep}`;
     }
 
-    if (isBillingEnabled && !isSuperAdmin && !isSubscribed && !hasPaygCredits) {
-      if (!hasAgentFirstOnboarding(isAgentModuleEnabled)) {
-        return '/onboarding/summary';
-      }
-
-      // Agent-first has no classic summary step (the proxy bounces it back to
-      // brand settings, which looped). The paywall is the organization's
-      // credits and subscription pages: buy a plan or a small credit pack, and
-      // nothing else renders until then.
-      const orgSlug = getBrandOrganizationSlug(brand);
-      if (!orgSlug) {
-        return null;
-      }
-
-      const paywallHrefs = [
-        createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.CREDITS),
-        createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.SUBSCRIPTION),
-      ];
-      const isOnPaywall = paywallHrefs.some(
-        (href) => pathname === href || pathname.startsWith(`${href}/`),
-      );
-
-      return isOnPaywall ? null : paywallHrefs[0];
-    }
-
+    // Funnel: signup -> onboarding (above) -> the app. Running out of credits
+    // never locks routes: Library, Brand Kit and settings stay readable so the
+    // org can see what it made. Credit-spending actions are refused by the API
+    // and answered with the credits prompt (ModalEnum.CREDITS_REQUIRED).
     return null;
   }, [
     accessState,
@@ -149,9 +123,7 @@ export function useOnboardingRouteAccess(pathname: string) {
     currentUser,
     effectiveIsAuthLoaded,
     effectiveIsSignedIn,
-    hasPaygCredits,
     isAccessStateLoading,
-    isBillingEnabled,
     isOnboardingRoute,
     isSubscribed,
     isSuperAdmin,
