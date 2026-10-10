@@ -85,7 +85,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.tsx": 33,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/publishing-posting-sets-section.tsx": 13,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/publishing-rss-sources-section.tsx": 26,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/ClipsWorkspace.tsx": 14,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/ClipsWorkspace.tsx": 13,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipModeSelector.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipReferenceFrameSelector.tsx": 10,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipResultCard.tsx": 13,
