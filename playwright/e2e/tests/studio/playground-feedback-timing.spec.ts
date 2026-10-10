@@ -67,6 +67,14 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
       createdAt: '2026-10-10T00:00:00Z',
       ...(id.startsWith('sibling-') ? { parentId: 'fixture-parent' } : {}),
       prompt: { original: id },
+      generationHarness: {
+        brandId: 'brand-1',
+        originalPrompt: id,
+        enhancedPrompt: id,
+        status: 'skipped',
+        source: 'request',
+        appliedPacks: [],
+      },
       metadata: { label: id, model, width: 1024, height: 768 },
     },
   });

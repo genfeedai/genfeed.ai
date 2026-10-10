@@ -448,6 +448,33 @@ export function readStudioOriginalPrompt(
   return receipt.originalPrompt;
 }
 
+function boundedAssetLabel(name: string): string {
+  return name.length > 100 ? `${name.slice(0, 99)}…` : name;
+}
+
+/** Reference names preserve recorded labels, never a provider-prompt fallback. */
+export function studioIngredientAccessibleLabel(
+  ingredient: IIngredient,
+): string {
+  const original = readStudioOriginalPrompt(ingredient);
+  return boundedAssetLabel(
+    original?.trim() ||
+      ingredient.metadataLabel?.trim() ||
+      `Asset ${ingredient.id}`,
+  );
+}
+
+/** A control name is recorded intent or asset identity; the full recipe stays in its rail. */
+export function studioAssetAccessibleLabel(job: StudioPlaygroundJob): string {
+  const original =
+    job.recipe?.originalText ??
+    (job.ingredient ? readStudioOriginalPrompt(job.ingredient) : undefined);
+  const name =
+    original?.trim() ||
+    `${getStudioPlaygroundTypeConfig(job.type).label} ${job.id}`;
+  return boundedAssetLabel(name);
+}
+
 /**
  * The Recipe rail shows this string — the enriched request, not the raw box.
  * Look / brand / template fields that actually rode on `buildStudioPromptData`

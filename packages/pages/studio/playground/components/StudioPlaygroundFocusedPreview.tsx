@@ -9,6 +9,7 @@ import type {
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthorizedMediaPreview } from '@hooks/media/use-authorized-media-preview';
 import { resolveFocusedStudioJobs } from '@pages/studio/playground/utils/studio-playground-gallery';
+import { studioAssetAccessibleLabel } from '@pages/studio/playground/utils/studio-playground-recipe';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import Image from 'next/image';
@@ -28,7 +29,7 @@ function FocusedThumbnail({
         : job.ingredient?.thumbnailUrl
       : null
     : job.ingredient?.thumbnailUrl;
-  const label = job.ingredient?.metadataLabel || job.prompt || job.id;
+  const label = studioAssetAccessibleLabel(job);
   return (
     <Button
       ariaLabel={label}

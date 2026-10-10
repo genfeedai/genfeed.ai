@@ -43,6 +43,16 @@ function job(id: string, runId?: string): StudioPlaygroundJob {
     ingredientId: id,
     createdAt: 1,
     prompt: `Asset ${id}`,
+    recipe: {
+      originalText: `Asset ${id}`,
+      text: `Asset ${id}`,
+      type: 'image',
+      outputs: 1,
+      blacklist: [],
+      references: [],
+      tags: [],
+      isAudioEnabled: false,
+    },
     status: IngredientStatus.GENERATED,
     type: 'image',
     runId,
@@ -96,6 +106,41 @@ describe('focused Playground iteration', () => {
     expect(screen.getByText('Existing inspector')).toBeVisible();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
+  it('bounds recorded thumbnail intent and names unknown legacy assets without exposing provider recipes', async () => {
+    const originalText = 'Recorded composition '.repeat(10);
+    const legacy = {
+      ...job('legacy'),
+      recipe: undefined,
+      prompt: 'Provider enrichment '.repeat(100),
+    };
+    const recipe = jobs[0].recipe;
+    if (!recipe) throw new Error('Expected recorded fixture intent');
+    const recorded = {
+      ...job('recorded'),
+      prompt: 'Provider enrichment '.repeat(100),
+      recipe: { ...recipe, originalText },
+    };
+    const onSelect = vi.fn();
+    render(
+      <StudioPlaygroundFocusedPreview
+        job={legacy}
+        jobs={[legacy, recorded]}
+        onClose={vi.fn()}
+        onSelect={onSelect}
+      >
+        <div>Inspector</div>
+      </StudioPlaygroundFocusedPreview>,
+    );
+    expect(screen.getByRole('button', { name: 'Image legacy' })).toBeVisible();
+    const name = `${originalText.slice(0, 99)}…`;
+    await userEvent.click(screen.getByRole('button', { name }));
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith(recorded);
+    expect(recorded.recipe.originalText).toBe(originalText);
+    expect(
+      screen.queryByRole('button', { name: /Provider enrichment/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('uses stable gallery ordering for previous and next even on a recent asset', async () => {
     const { onSelect } = renderPreview(jobs[2]);
     expect(screen.getByRole('button', { name: 'Next asset' })).toBeDisabled();

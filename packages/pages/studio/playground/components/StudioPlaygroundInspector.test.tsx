@@ -724,6 +724,7 @@ describe('StudioPlaygroundInspector', () => {
       ...recipeJob,
       id: 'job-2',
       prompt: 'Sibling output',
+      recipe: { ...recipeJob.recipe, originalText: 'Sibling output' },
     };
 
     render(

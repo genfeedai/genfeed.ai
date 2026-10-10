@@ -109,6 +109,7 @@ import {
   recipeFromIngredient,
   recipeFromRepromptData,
   settingsPatchFromRecipe,
+  studioIngredientAccessibleLabel,
 } from '@pages/studio/playground/utils/studio-playground-recipe';
 import {
   pickStarterCharacter,
@@ -203,8 +204,7 @@ function toContentReference(
   return {
     item: {
       brandId: asset.brandId ?? null,
-      contentTitle:
-        asset.metadataLabel || asset.promptText || 'Generated reference',
+      contentTitle: studioIngredientAccessibleLabel(asset),
       contentType: String(asset.category),
       id: asset.id,
       thumbnailUrl,
@@ -224,7 +224,7 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
     id: asset.id,
     ingredientId: asset.id,
     kind: asset.category === IngredientCategory.VIDEO ? 'video' : 'image',
-    name: asset.metadataLabel || 'Upload',
+    name: studioIngredientAccessibleLabel(asset),
     previewUrl: url,
     status: UploadStatus.COMPLETED,
     url,
@@ -535,8 +535,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           ? 'continuation.animateSource'
           : 'continuation.variationSource',
         {
-          name:
-            ingredient.metadataLabel || translate('continuation.unnamedSource'),
+          name: studioIngredientAccessibleLabel(ingredient),
         },
       );
       prepareContinuation(() => {

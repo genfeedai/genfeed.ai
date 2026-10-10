@@ -17,7 +17,7 @@ import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioPlaygroundCardProps } from '@genfeedai/props/studio/studio-playground.props';
 import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { readStudioOriginalPrompt } from '@pages/studio/playground/utils/studio-playground-recipe';
+import { studioAssetAccessibleLabel } from '@pages/studio/playground/utils/studio-playground-recipe';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
 import { logger } from '@services/core/logger.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
@@ -138,12 +138,7 @@ export default function StudioPlaygroundCard({
   const translateRecovery = useTranslations('pages.library.recovery');
   const { href } = useOrgUrl();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
-  const originalPrompt =
-    job.recipe?.originalText ??
-    (job.ingredient ? readStudioOriginalPrompt(job.ingredient) : undefined);
-  const assetName = originalPrompt?.trim() || `${label} ${job.id}`;
-  const accessibleLabel =
-    assetName.length > 100 ? `${assetName.slice(0, 99)}…` : assetName;
+  const accessibleLabel = studioAssetAccessibleLabel(job);
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const cancelGeneration = async () => {
@@ -590,7 +585,7 @@ export default function StudioPlaygroundCard({
             audioUrl={job.url}
             className="pointer-events-auto w-full px-3"
             isTimelineVisible
-            label={job.prompt || label}
+            label={accessibleLabel}
             onError={handleMediaError}
           />
         ) : null}

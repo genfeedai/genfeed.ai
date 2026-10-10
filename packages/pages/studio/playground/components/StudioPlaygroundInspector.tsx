@@ -23,6 +23,8 @@ import {
 import {
   formatStudioRecipePrompt,
   resolveRecipeForJob,
+  studioAssetAccessibleLabel,
+  studioIngredientAccessibleLabel,
 } from '@pages/studio/playground/utils/studio-playground-recipe';
 import { getStudioPlaygroundTypeConfig } from '@pages/studio/playground/utils/studio-playground-types';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -382,7 +384,7 @@ export default function StudioPlaygroundInspector({
           audioUrl={previewUrl}
           className="w-full"
           isTimelineVisible
-          label={job.prompt || label}
+          label={studioAssetAccessibleLabel(continuationJob)}
         />
       );
     } else if (job.type === 'image' || job.type === 'image-edit') {
@@ -530,7 +532,7 @@ export default function StudioPlaygroundInspector({
                   <li key={sibling.id}>
                     <Button
                       className="h-auto w-full justify-start truncate px-0 text-xs text-foreground hover:underline"
-                      label={sibling.prompt || sibling.id}
+                      label={studioAssetAccessibleLabel(sibling)}
                       onClick={() => onSelect(sibling)}
                       variant={ButtonVariant.UNSTYLED}
                       withWrapper={false}
@@ -555,7 +557,7 @@ export default function StudioPlaygroundInspector({
                     className="truncate text-xs text-foreground/80"
                     key={child.id}
                   >
-                    {child.metadataLabel || child.promptText || child.id}
+                    {studioIngredientAccessibleLabel(child)}
                   </li>
                 ))}
               </ul>
