@@ -5,11 +5,13 @@ import {
   formatDateInTimezone,
   fromDateTimeLocalInput,
   getBrowserTimezone,
+  HYDRATION_TIME_ZONE,
   isValidTimezone,
+  resolveTimeZone,
   TIMEZONES,
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('TIMEZONES', () => {
   it('contains UTC with offset 0', () => {
@@ -58,6 +60,52 @@ describe('getBrowserTimezone', () => {
 
   it('returns a valid IANA timezone', () => {
     expect(isValidTimezone(getBrowserTimezone())).toBe(true);
+  });
+
+  describe('when the runtime reports no usable zone', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it.each([undefined, '', 'Not/AZone'])(
+      'falls back to the hydration zone for %j',
+      (timeZone) => {
+        const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+        vi.spyOn(
+          Intl.DateTimeFormat.prototype,
+          'resolvedOptions',
+        ).mockImplementation(function (this: Intl.DateTimeFormat) {
+          return Object.assign(resolvedOptions.call(this), { timeZone });
+        });
+
+        expect(getBrowserTimezone()).toBe(HYDRATION_TIME_ZONE);
+      },
+    );
+  });
+});
+
+describe('resolveTimeZone', () => {
+  it('keeps a valid IANA zone', () => {
+    expect(resolveTimeZone('America/New_York')).toBe('America/New_York');
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(resolveTimeZone(' Europe/Paris ')).toBe('Europe/Paris');
+  });
+
+  it.each([undefined, null, '', '   ', 'Not/AZone'])(
+    'uses the hydration zone for %j',
+    (candidate) => {
+      expect(resolveTimeZone(candidate)).toBe(HYDRATION_TIME_ZONE);
+    },
+  );
+
+  it('uses the given fallback for an unusable zone', () => {
+    expect(resolveTimeZone('Not/AZone', 'Asia/Tokyo')).toBe('Asia/Tokyo');
+  });
+
+  it('pins hydration to UTC', () => {
+    expect(HYDRATION_TIME_ZONE).toBe('UTC');
   });
 });
 
