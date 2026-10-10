@@ -164,6 +164,55 @@ describe('StudioPlaygroundInspector', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
+  it('opens the selected asset in the focused viewer through the shared preview control', async () => {
+    const onOpenPreview = vi.fn();
+    render(
+      <StudioPlaygroundInspector
+        job={recipeJob}
+        onOpenPreview={onOpenPreview}
+        onRemix={vi.fn()}
+        onVary={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Open preview' }));
+    expect(onOpenPreview).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the existing recipe and actions for the large focused preview without nesting another opener', () => {
+    const job = {
+      ...recipeJob,
+      ingredient: {
+        id: 'ing-1',
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        cdnUrl: 'https://cdn.example/saved.png',
+      } as IIngredient,
+    };
+    render(
+      <StudioPlaygroundInspector
+        isFocused
+        job={job}
+        onOpenPreview={vi.fn()}
+        onRemix={vi.fn()}
+        onVary={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+    expect(screen.getAllByTestId('studio-playground-inspector')).toHaveLength(
+      1,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Open preview' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Recipe' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Use in post' })).toBeVisible();
+  });
+
   it('retries a failed saved preview with only a category read, preserving action source and recipe', async () => {
     const ingredient = {
       id: 'ing-1',

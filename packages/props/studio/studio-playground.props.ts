@@ -217,7 +217,9 @@ export interface StudioPlaygroundCardProps {
 }
 
 export interface StudioPlaygroundInspectorProps {
+  isFocused?: boolean;
   job: StudioPlaygroundJob;
+  onOpenPreview?: () => void;
   /** Attaches a finished image to the composer as an image reference. */
   onRemix: (job: StudioPlaygroundJob) => void;
   onEdit?: (job: StudioPlaygroundJob) => void;
@@ -225,6 +227,20 @@ export interface StudioPlaygroundInspectorProps {
   onUseInPost: (ingredient: IIngredient) => void;
   onVary: (job: StudioPlaygroundJob) => void;
   runJobs: readonly StudioPlaygroundJob[];
+}
+
+export interface StudioPlaygroundFocusedPreviewProps {
+  children: ReactElement;
+  job: StudioPlaygroundJob;
+  jobs: readonly StudioPlaygroundJob[];
+  onClose: () => void;
+  onSelect: (job: StudioPlaygroundJob) => void;
+}
+
+export interface StudioPlaygroundFocusedThumbnailProps {
+  job: StudioPlaygroundJob;
+  isSelected: boolean;
+  onSelect: (job: StudioPlaygroundJob) => void;
 }
 
 export interface StudioGenerationSummaryProps {
