@@ -1,11 +1,15 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+import { isAxiosError } from 'axios';
+import { of, throwError } from 'rxjs';
 
 describe('HeyGenService', () => {
   let service: HeyGenService;
@@ -175,5 +179,184 @@ describe('HeyGenService', () => {
       'https://api.heygen.com/v3/models/videos/vid_1',
       expect.any(Object),
     );
+  });
+  describe('generateSpeech', () => {
+    const speechRequest = {
+      text: 'Hello from my instant voice.',
+      voiceId: 'voice_1',
+    };
+
+    function httpFailure(
+      status: number,
+      error: Record<string, string> = {},
+      headers: Record<string, string> = {},
+    ) {
+      return throwError(() =>
+        Object.assign(new Error(`status ${status}`), {
+          isAxiosError: true,
+          response: { data: { error }, headers, status },
+        }),
+      );
+    }
+
+    beforeEach(() => {
+      // The unit setup stubs axios, so give the real flag check back.
+      vi.mocked(isAxiosError).mockImplementation(
+        (value: unknown): value is never =>
+          (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
+      );
+      vi.spyOn(
+        service as unknown as { delay: (ms: number) => Promise<void> },
+        'delay',
+      ).mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.mocked(isAxiosError).mockReturnValue(false);
+    });
+
+    it('posts heygen-voice-1 to the synchronous TTS endpoint and counts billable characters', async () => {
+      httpServiceMock.post.mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              audio_url: 'https://files.heygen.ai/generated/model-speech.wav',
+              duration: 3.42,
+            },
+          },
+          status: 200,
+        }),
+      );
+
+      await expect(
+        service.generateSpeech({
+          ...speechRequest,
+          expressivenessBoost: 0.5,
+          language: 'en',
+        }),
+      ).resolves.toEqual({
+        audioUrl: 'https://files.heygen.ai/generated/model-speech.wav',
+        characters: 28,
+        duration: 3.42,
+      });
+      expect(httpServiceMock.post).toHaveBeenCalledWith(
+        'https://api.heygen.com/v3/models/audio/tts',
+        {
+          expressiveness_boost: 0.5,
+          language: 'en',
+          model: 'heygen-voice-1',
+          text: 'Hello from my instant voice.',
+          voice_id: 'voice_1',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Api-Key': 'test-api-key' }),
+        }),
+      );
+    });
+
+    it('leaves out a duration HeyGen does not report', async () => {
+      httpServiceMock.post.mockReturnValueOnce(
+        of({
+          data: { data: { audio_url: 'https://files.heygen.ai/a.wav' } },
+          status: 200,
+        }),
+      );
+
+      const result = await service.generateSpeech(speechRequest);
+
+      expect(result).not.toHaveProperty('duration');
+    });
+
+    it('refuses an audio url that is not https', async () => {
+      httpServiceMock.post.mockReturnValueOnce(
+        of({
+          data: { data: { audio_url: 'http://files.heygen.ai/a.wav' } },
+          status: 200,
+        }),
+      );
+
+      await expect(service.generateSpeech(speechRequest)).rejects.toThrow(
+        'no https audio url',
+      );
+    });
+
+    it('rejects text over 5,000 characters and empty text before calling HeyGen', async () => {
+      await expect(
+        service.generateSpeech({ ...speechRequest, text: 'a'.repeat(5001) }),
+      ).rejects.toThrow('at most 5000 characters');
+      await expect(
+        service.generateSpeech({ ...speechRequest, text: '   ' }),
+      ).rejects.toThrow('requires text');
+      expect(httpServiceMock.post).not.toHaveBeenCalled();
+    });
+
+    it('retries 503 and then succeeds', async () => {
+      httpServiceMock.post
+        .mockReturnValueOnce(httpFailure(503, { code: 'service_unavailable' }))
+        .mockReturnValueOnce(
+          of({
+            data: { data: { audio_url: 'https://files.heygen.ai/a.wav' } },
+            status: 200,
+          }),
+        );
+
+      await expect(
+        service.generateSpeech(speechRequest),
+      ).resolves.toMatchObject({ audioUrl: 'https://files.heygen.ai/a.wav' });
+      expect(httpServiceMock.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops after three attempts on a persistent 502', async () => {
+      httpServiceMock.post.mockReturnValue(
+        httpFailure(502, { code: 'voice_provider_error' }),
+      );
+
+      await expect(service.generateSpeech(speechRequest)).rejects.toThrow(
+        'unavailable',
+      );
+      expect(httpServiceMock.post).toHaveBeenCalledTimes(3);
+    });
+
+    it('never retries a dropped connection, because the charge is ambiguous', async () => {
+      httpServiceMock.post.mockReturnValue(
+        throwError(() =>
+          Object.assign(new Error('timeout'), { code: 'ECONNABORTED' }),
+        ),
+      );
+
+      await expect(service.generateSpeech(speechRequest)).rejects.toThrow(
+        'timeout',
+      );
+      expect(httpServiceMock.post).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [402, 'insufficient_credit', HeyGenSubmissionRejectedError],
+      [404, 'voice_not_found', NotFoundException],
+      [409, 'voice_not_ready', ConflictException],
+      [400, 'invalid_parameter', BadRequestException],
+    ])('maps a %i %s response without retrying', async (status, code, type) => {
+      httpServiceMock.post.mockReturnValue(httpFailure(status, { code }));
+
+      await expect(
+        service.generateSpeech(speechRequest),
+      ).rejects.toBeInstanceOf(type);
+      expect(httpServiceMock.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('tells the caller how long to wait on a 429', async () => {
+      httpServiceMock.post.mockReturnValue(
+        httpFailure(
+          429,
+          { code: 'rate_limit_exceeded' },
+          { 'retry-after': '12' },
+        ),
+      );
+
+      await expect(service.generateSpeech(speechRequest)).rejects.toThrow(
+        'Retry after 12 seconds',
+      );
+      expect(httpServiceMock.post).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -6,7 +6,7 @@ import {
   getScalePlan,
 } from '@genfeedai/pricing';
 import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import PricingContent, { getPriceQualifier } from './pricing-content';
@@ -44,25 +44,48 @@ vi.mock('@hooks/ui/use-marketing-entrance', () => ({
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: { app: 'https://app.genfeed.test' },
+    calendly: 'https://calendly.com/vincent-genfeed/30min',
   },
 }));
 
 describe('PricingContent launch pricing', () => {
-  it('renders the struck-through original price next to the launch price on the Hosted card', () => {
+  it('shows PAYG as a credit price alongside the subscription prices', () => {
     render(<PricingContent />);
-
-    const originalPrice = screen.getByText('$49');
-    expect(originalPrice).toHaveClass('line-through');
+    const payg = screen.getByText('$0.01');
+    expect(payg.parentElement).toHaveTextContent('$0.01/credit');
+    expect(screen.getByText('No monthly fee')).toBeInTheDocument();
+    expect(screen.queryByText('Free', { exact: true })).not.toBeInTheDocument();
     expect(screen.getByText('$39')).toBeInTheDocument();
-    expect(screen.getByText('$39')).not.toHaveClass('line-through');
+    expect(screen.getByText('$499')).toBeInTheDocument();
   });
 
-  it('renders the launch note under the Hosted card price', () => {
+  it('puts the monthly content service beside self-serve with a direct booking link', () => {
     render(<PricingContent />);
-
+    const managed = within(
+      screen.getByRole('region', { name: 'Done for you · we run it' }),
+    );
+    expect(managed.getByText('$2,500')).toBeInTheDocument();
+    expect(managed.getByText('/month')).toBeInTheDocument();
     expect(
-      screen.getByText(/earlygenfeed · 12 months, then \$49\/mo/i),
+      managed.getByText('Monthly retainer. Final scope agreed on a call.'),
     ).toBeInTheDocument();
+    expect(managed.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
+      'href',
+      'https://calendly.com/vincent-genfeed/30min',
+    );
+    expect(managed.getByText('Performance reporting')).toBeInTheDocument();
+    expect(
+      managed.getByRole('link', { name: 'Explore the service' }),
+    ).toHaveAttribute('href', '/done-for-you');
+  });
+
+  it('shows a clear Pro price with introductory terms below it', () => {
+    render(<PricingContent />);
+    expect(screen.getByText('$39')).toBeInTheDocument();
+    expect(screen.queryByText('$49', { exact: true })).not.toBeInTheDocument();
+    const terms = screen.getByText('EARLYGENFEED').parentElement;
+    expect(terms).toHaveTextContent('First 12 months, then $49/mo');
+    expect(terms).toHaveTextContent('Use code EARLYGENFEED at checkout');
   });
 
   it('uses the tokenized dark card surface for the popular plan', () => {
@@ -77,7 +100,7 @@ describe('PricingContent launch pricing', () => {
     render(<PricingContent />);
 
     const enterpriseCard = screen
-      .getByRole('heading', { name: 'Your own studio, fully managed.' })
+      .getByRole('heading', { name: 'Custom terms for your organization.' })
       .closest('.bg-background');
 
     expect(enterpriseCard).toHaveClass('bg-background');
@@ -138,9 +161,7 @@ describe('PricingContent launch pricing', () => {
     // here is what made the Scale card read "Unlimited seats" twice.
     expect(getPriceQualifier(getScalePlan())).toBe('60,000 credits included');
     expect(getPriceQualifier(getProPlan())).toBe('5,900 credits included');
-    expect(getPriceQualifier(getPlanByTier('payg'))).toBe(
-      'Credits at $0.01 each',
-    );
+    expect(getPriceQualifier(getPlanByTier('payg'))).toBe('No monthly fee');
   });
 
   it('keeps the pricing cards comparable row by row', () => {

@@ -1,3 +1,4 @@
+import { BOOKING_HREF } from '@data/booking.data';
 import * as PageModule from '@public/pricing/page';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import type { ResolvingMetadata } from 'next';
@@ -12,9 +13,7 @@ describe('pricing metadata', () => {
     const result = await PageModule.generateMetadata({}, parent);
 
     expect(result.description).toContain('unlimited team seats');
-    expect(result.description).toContain(
-      'Scale adds multi-organization workflows',
-    );
+    expect(result.description).toContain('Done for you from $2,500/month');
     expect(result.description).not.toContain('Scale unlocks unlimited seats');
   });
 
@@ -38,5 +37,31 @@ describe('pricing metadata', () => {
       'adds a shared credit pool and multi-organization workflows',
     );
     expect(jsonLd.description).not.toContain('adds unlimited seats');
+  });
+  it('describes PAYG per credit and the managed retainer as a separate service', () => {
+    const jsonLd = PageModule.buildPricingJsonLd();
+    const payg = jsonLd.mainEntity.offers.find(
+      (offer) => offer.name === 'Pay As You Go',
+    );
+    expect(payg?.price).toBe('0.01');
+    expect(payg?.priceSpecification).toMatchObject({
+      unitText: 'credit',
+      price: 0.01,
+    });
+    const pro = jsonLd.mainEntity.offers.find((offer) => offer.name === 'Pro');
+    expect(pro?.price).toBe('39');
+    expect(pro?.description).toContain('12 months, then $49/mo');
+    expect(jsonLd.about).toMatchObject({
+      '@type': 'Service',
+      name: 'Done for you',
+      offers: {
+        url: BOOKING_HREF,
+        priceSpecification: {
+          minPrice: 2500,
+          billingDuration: 'P1M',
+          priceCurrency: 'USD',
+        },
+      },
+    });
   });
 });

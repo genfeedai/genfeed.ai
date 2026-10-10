@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type ModelCategory, PricingType } from '..';
+import { ModelCategory, ModelLifecycle, ModelProvider, PricingType } from '..';
 import { MODEL_KEYS } from './model-keys.constant';
 import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 
@@ -36,5 +36,21 @@ describe('SELF_HOSTED_MODELS', () => {
     for (const count of defaultsByCategory.values()) {
       expect(count).toBe(1);
     }
+  });
+
+  it('carries HeyGen Voice as a Recommended voice row priced per 1,000 characters at the list price', () => {
+    const voice = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_VOICE,
+    );
+
+    expect(voice).toMatchObject({
+      category: ModelCategory.VOICE,
+      isDefault: false,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+      provider: ModelProvider.HEYGEN,
+      // $30 per 1M characters is $0.03 per 1,000; 3.33x margin is 10 credits.
+      providerCostUsd: 0.03,
+    });
+    expect(voice?.cost).toBe(10);
   });
 });
