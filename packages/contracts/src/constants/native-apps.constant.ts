@@ -115,7 +115,8 @@ export function isNativeSecondaryAppId(
   value: unknown,
 ): value is NativeSecondaryAppId {
   return (
-    typeof value === 'string' && Object.hasOwn(NATIVE_SECONDARY_APPS, value)
+    typeof value === 'string' &&
+    NATIVE_SECONDARY_APP_IDS.some((appId) => appId === value)
   );
 }
 
