@@ -1,0 +1,1 @@
+{ "extends": "./tsconfig.typecheck.specs.json", "include": ["**/*.d.ts", "next-env.d.ts"], "exclude": ["node_modules","dist",".next"], "files": ["app/(protected)/[orgSlug]/[brandSlug]/settings/agent/receipts/content.tsx","app/(protected)/[orgSlug]/[brandSlug]/settings/agent/receipts/content.test.tsx"] }
