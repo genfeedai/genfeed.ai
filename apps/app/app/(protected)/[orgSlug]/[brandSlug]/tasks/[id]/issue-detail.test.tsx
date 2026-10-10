@@ -139,6 +139,15 @@ describe('IssueDetail', () => {
         name: 'Ship shell-first loading',
       }),
     ).toBeInTheDocument();
+    // The task header keeps the visible title at level two, so the page has
+    // exactly one level-one heading: the task title, never the generic "Page".
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'Ship shell-first loading',
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId('issue-detail-loading'),
     ).not.toBeInTheDocument();
@@ -158,6 +167,9 @@ describe('IssueDetail', () => {
     ).toBeInTheDocument();
 
     expect(await screen.findByText('Issue not found')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Issue' }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId('issue-detail-loading'),
     ).not.toBeInTheDocument();
