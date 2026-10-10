@@ -5,12 +5,14 @@ import {
 } from './library-menu-items.config';
 
 describe('LIBRARY_MENU_ITEMS', () => {
-  it('is Assets and References, never a shelf, trash, recency, or type (#5502)', () => {
+  it('is Overview, Assets and References, never a shelf, trash, recency, or type (#5502)', () => {
     expect(LIBRARY_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'Overview',
       'Assets',
       'References',
     ]);
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
+      '/library/overview',
       '/library/assets',
       '/library/references',
     ]);
@@ -47,12 +49,16 @@ describe('LIBRARY_MENU_ITEMS', () => {
     ]);
   });
 
-  it('does not resurrect the retired overview tile grid', () => {
-    expect(
-      LIBRARY_MENU_ITEMS.some((item) => item.href === '/library/overview'),
-    ).toBe(false);
-    expect(LIBRARY_MENU_ITEMS.some((item) => item.label === 'Overview')).toBe(
-      false,
+  it('lights Overview only on the Library home, not on Assets', () => {
+    const overview = LIBRARY_PLACE_MENU_ITEMS.find(
+      (item) => item.label === 'Overview',
+    );
+
+    expect(overview).toEqual(
+      expect.objectContaining({
+        isExactMatch: true,
+        matchPaths: ['/library/overview', '/library'],
+      }),
     );
   });
 

@@ -84,6 +84,12 @@ vi.mock('@pages/ingredients/list/ingredients-list', () => ({
   ),
 }));
 
+vi.mock('@pages/library/overview/library-overview', () => ({
+  default: ({ scope }: { scope?: string }) => (
+    <div data-scope={scope} data-testid="library-overview" />
+  ),
+}));
+
 vi.mock('@pages/library/browser/library-browser', () => ({
   default: ({
     children,
@@ -356,7 +362,7 @@ describe('OrgRootAppPage', () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it('redirects the org Library root to the canonical All assets browser', async () => {
+  it('redirects the org Library root to the Library Overview (#5502)', async () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
@@ -364,9 +370,26 @@ describe('OrgRootAppPage', () => {
           orgSlug: 'acme',
         }),
       }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/library/assets');
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/library/overview');
 
-    expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/assets');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/overview');
+  });
+
+  it('renders the organization Library Overview without brand-only References', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'library',
+        orgSlug: 'acme',
+        segments: ['overview'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('library-overview')).toHaveAttribute(
+      'data-scope',
+      PageScope.ORGANIZATION,
+    );
   });
 
   it.each([

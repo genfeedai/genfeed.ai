@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Images, ScanFace } from 'lucide-react';
+import { Images, LayoutDashboard, ScanFace } from 'lucide-react';
 
 /**
  * Type-seeded entry points into the same asset browser.
@@ -23,7 +23,7 @@ export const LIBRARY_ASSET_ROUTES = [
 ] as const;
 
 /**
- * Library destinations (#5502): Assets and References.
+ * Library destinations (#5502): Overview, Assets and References.
  *
  * Recent, Starred, generation state and Trash are filters on the asset
  * browser toolbar, so every `?place=` and `?shelf=` view lights up Assets.
@@ -31,6 +31,15 @@ export const LIBRARY_ASSET_ROUTES = [
  * reference by name.
  */
 export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
+  {
+    group: '',
+    href: APP_ROUTES.LIBRARY.OVERVIEW,
+    isExactMatch: true,
+    label: 'Overview',
+    matchPaths: [APP_ROUTES.LIBRARY.OVERVIEW, APP_ROUTES.LIBRARY.ROOT],
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
+  },
   {
     group: '',
     href: APP_ROUTES.LIBRARY.ASSETS,

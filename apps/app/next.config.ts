@@ -406,7 +406,7 @@ const config = createAppNextConfig({
     // Studio tool is its own app (#5502).
     ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appHomeRedirects(APP_ROUTES.AUTOMATION.ROOT),
-    ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS),
+    ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
     ...appHomeRedirects(APP_ROUTES.PUBLISHING.ROOT),
   ],

@@ -172,6 +172,8 @@ export const APP_ROUTES = {
     GIFS: '/library/assets?categories=GIF',
     IMAGES: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
     MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
+    /** #5502 Library home: what needs attention, linking into Assets filters. */
+    OVERVIEW: '/library/overview',
     /** Assets touched most recently, newest first. */
     RECENT: '/library/assets?place=recent',
     /**
