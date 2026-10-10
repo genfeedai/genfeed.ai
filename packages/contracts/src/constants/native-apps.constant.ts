@@ -2,6 +2,17 @@ import type {
   NativeAppAvailabilityInput,
   NativeAppCatalogEntry,
 } from '../interfaces/ui/native-app.interface';
+import type {
+  NativeAppContextualEntry,
+  NativeAppReleaseEligibility,
+  NativeSecondaryAppId,
+} from '../types/native-app';
+
+export type {
+  NativeAppContextualEntry,
+  NativeAppReleaseEligibility,
+  NativeSecondaryAppId,
+};
 
 /**
  * Apps model for the unified navigation (#5502).
@@ -28,15 +39,12 @@ export type CoreAppId = (typeof CORE_APP_IDS)[number];
 export const NATIVE_APP_RELEASE_ELIGIBILITIES = [
   'released',
   'founder-only',
-] as const;
+] as const satisfies readonly NativeAppReleaseEligibility[];
 
-export type NativeAppReleaseEligibility =
-  (typeof NATIVE_APP_RELEASE_ELIGIBILITIES)[number];
-
-export const NATIVE_APP_CONTEXTUAL_ENTRIES = ['edit', 'clip'] as const;
-
-export type NativeAppContextualEntry =
-  (typeof NATIVE_APP_CONTEXTUAL_ENTRIES)[number];
+export const NATIVE_APP_CONTEXTUAL_ENTRIES = [
+  'edit',
+  'clip',
+] as const satisfies readonly NativeAppContextualEntry[];
 
 export const NATIVE_SECONDARY_APPS = {
   playground: {
@@ -103,9 +111,7 @@ export const NATIVE_SECONDARY_APPS = {
     releaseEligibility: 'released',
     contextualEntries: [],
   },
-} as const satisfies Record<string, NativeAppCatalogEntry>;
-
-export type NativeSecondaryAppId = keyof typeof NATIVE_SECONDARY_APPS;
+} as const satisfies Record<NativeSecondaryAppId, NativeAppCatalogEntry>;
 
 export const NATIVE_SECONDARY_APP_IDS = Object.keys(
   NATIVE_SECONDARY_APPS,

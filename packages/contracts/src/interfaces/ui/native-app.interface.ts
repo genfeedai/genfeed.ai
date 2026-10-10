@@ -1,12 +1,12 @@
 import type {
-  NativeAppContextualEntry,
-  NativeAppReleaseEligibility,
-  NativeSecondaryAppId,
-} from '../../constants/native-apps.constant';
-import type {
   OrganizationModuleAccess,
   OrganizationModuleId,
 } from '../../constants/organization-modules.constant';
+import type {
+  NativeAppContextualEntry,
+  NativeAppReleaseEligibility,
+  NativeSecondaryAppId,
+} from '../../types/native-app';
 
 /** A native app's catalog identity (#5502). Never an access grant. */
 export interface NativeAppCatalogEntry {
