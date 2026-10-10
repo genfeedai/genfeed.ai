@@ -8,6 +8,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { isAxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
 
 describe('HeyGenService', () => {
@@ -199,10 +200,19 @@ describe('HeyGenService', () => {
     }
 
     beforeEach(() => {
+      // The unit setup stubs axios, so give the real flag check back.
+      vi.mocked(isAxiosError).mockImplementation(
+        (value: unknown): value is never =>
+          (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
+      );
       vi.spyOn(
         service as unknown as { delay: (ms: number) => Promise<void> },
         'delay',
       ).mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.mocked(isAxiosError).mockReturnValue(false);
     });
 
     it('posts heygen-voice-1 to the synchronous TTS endpoint and counts billable characters', async () => {
