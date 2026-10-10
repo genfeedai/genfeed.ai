@@ -34,7 +34,7 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/library/images`,
     currentApp: 'library',
     sectionLabel: 'Library',
-    sidebarLabels: ['Library', 'All assets'],
+    sidebarLabels: ['Library', 'Assets'],
   },
   {
     // Studio tools are separate apps with their own nav (#5502).

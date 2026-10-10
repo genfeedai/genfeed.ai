@@ -75,6 +75,7 @@ const FILTER_WIDTH_CLASS = 'w-22 @[64rem]/library:w-32';
 
 /** "Needs review (21)" has to stay readable when the row is compact. */
 const STATUS_WIDTH_CLASS = 'w-40 @[64rem]/library:w-48';
+const PLACE_WIDTH_CLASS = 'w-32 @[64rem]/library:w-36';
 
 function statusOptionLabel(label: string, count: number | undefined): string {
   return typeof count === 'number' ? `${label} (${count})` : label;
@@ -153,6 +154,7 @@ export default function LibraryBrowserToolbar({
   categories,
   characterOptions,
   characters,
+  onPlaceChange,
   onStatusChange,
   origins,
   place,
@@ -220,6 +222,19 @@ export default function LibraryBrowserToolbar({
     return options;
   }, [shelfCounts, statusValue, translate, trashedCount]);
 
+  // Recent and Starred compose with a shelf; Trash replaces them.
+  const placeValue =
+    place === LibraryPlace.RECENT || place === LibraryPlace.STARRED
+      ? place
+      : 'all';
+  const handlePlaceValueChange = (value: string) => {
+    if (value === LibraryPlace.RECENT || value === LibraryPlace.STARRED) {
+      onPlaceChange(value);
+      return;
+    }
+    onPlaceChange(null);
+  };
+
   const handleStatusValueChange = (value: string) => {
     if (value === 'all') {
       onStatusChange(null);
@@ -277,6 +292,24 @@ export default function LibraryBrowserToolbar({
     // Container), so opening the inspector compacts the row instead of
     // wrapping it. Items only wrap as a last resort on narrow widths.
     <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2 @[44rem]/library:flex-nowrap">
+      <Select value={placeValue} onValueChange={handlePlaceValueChange}>
+        <SelectTrigger
+          aria-label={translate('showAria')}
+          className={PLACE_WIDTH_CLASS}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{translate('showAll')}</SelectItem>
+          <SelectItem value={LibraryPlace.RECENT}>
+            {translate('showRecent')}
+          </SelectItem>
+          <SelectItem value={LibraryPlace.STARRED}>
+            {translate('showStarred')}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+
       <Select value={statusValue} onValueChange={handleStatusValueChange}>
         <SelectTrigger
           aria-label={translate('statusAria')}

@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Clock, Images, ScanFace, Star } from 'lucide-react';
+import { Images, ScanFace } from 'lucide-react';
 
 /**
  * Type-seeded entry points into the same asset browser.
@@ -23,48 +23,28 @@ export const LIBRARY_ASSET_ROUTES = [
 ] as const;
 
 /**
- * Library destinations.
+ * Library destinations (#5502): Assets and References.
  *
- * All assets, Recent, and Starred are views over the asset browser. Characters
- * is its own page. Generation state and Trash are a status filter on the
- * browser, not rows in this list.
+ * Recent, Starred, generation state and Trash are filters on the asset
+ * browser toolbar, so every `?place=` and `?shelf=` view lights up Assets.
+ * References are the reusable identities (characters today) that generations
+ * reference by name.
  */
 export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: APP_ROUTES.LIBRARY.ASSETS,
-    label: 'All assets',
+    label: 'Assets',
     // Type routes are the same browser with a chip pre-selected, so they light
-    // up All assets rather than a nav row of their own.
+    // up Assets rather than a nav row of their own.
     matchPaths: [...LIBRARY_ASSET_ROUTES],
-    matchSearchParams: { place: null },
     outline: Images,
     solid: Images,
   },
   {
     group: '',
-    href: APP_ROUTES.LIBRARY.RECENT,
-    isExactMatch: true,
-    label: 'Recent',
-    matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
-    matchSearchParams: { place: 'recent' },
-    outline: Clock,
-    solid: Clock,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.LIBRARY.STARRED,
-    isExactMatch: true,
-    label: 'Starred',
-    matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
-    matchSearchParams: { place: 'starred' },
-    outline: Star,
-    solid: Star,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.LIBRARY.CHARACTERS,
-    label: 'Characters',
+    href: APP_ROUTES.LIBRARY.REFERENCES,
+    label: 'References',
     outline: ScanFace,
     solid: ScanFace,
   },

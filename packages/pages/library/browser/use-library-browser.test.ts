@@ -478,6 +478,27 @@ describe('useLibraryBrowser', () => {
     expect(next.get('view')).toBe('grid');
   });
 
+  it('filters Recent and Starred in place, keeping the shelf and leaving Trash (#5502)', () => {
+    state.search = 'place=trash&view=grid';
+    const fromTrash = renderHook(() => useLibraryBrowser({}));
+    act(() => {
+      fromTrash.result.current.handlePlaceChange(LibraryPlace.STARRED);
+    });
+    expect(new URLSearchParams(lastPushedSearch()).get('place')).toBe(
+      'starred',
+    );
+
+    state.search = 'place=recent&shelf=failed&view=grid';
+    const recent = renderHook(() => useLibraryBrowser({}));
+    act(() => {
+      recent.result.current.handlePlaceChange(null);
+    });
+    const cleared = new URLSearchParams(lastPushedSearch());
+    expect(cleared.get('place')).toBeNull();
+    expect(cleared.get('shelf')).toBe('failed');
+    expect(cleared.get('view')).toBe('grid');
+  });
+
   it('treats Trash and a shelf as mutually exclusive', () => {
     state.search = 'shelf=failed&view=grid';
 
