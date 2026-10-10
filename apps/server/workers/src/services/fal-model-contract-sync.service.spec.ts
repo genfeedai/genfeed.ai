@@ -63,7 +63,11 @@ const reviewedModel = {
   reviewedProviderContractVersion: 'sha256:reviewed',
 };
 
-function harness(reviewed: typeof reviewedContract | null = null) {
+type ReviewedContractFixture = Omit<typeof reviewedContract, 'pricing'> & {
+  pricing: unknown;
+};
+
+function harness(reviewed: ReviewedContractFixture | null = null) {
   const modelProviderContract = {
     findUnique: vi.fn(),
     update: vi.fn(),
@@ -190,6 +194,43 @@ describe('FalModelContractSyncService', () => {
     });
     expect(update.data).not.toHaveProperty('isActive');
     expect(update.data).not.toHaveProperty('isDefault');
+  });
+
+  it('rolls a rate-sheet contract verifiedAt forward when the same rates are observed', async () => {
+    const sheetPricing = {
+      currency: 'USD',
+      rates: [
+        { component: 'output', unit: 'output', unitPriceUsd: 0.025, when: {} },
+      ],
+      source: 'provider-model-page',
+      sourceUrl: 'https://fal.ai/models/fal-ai/per-image',
+      verifiedAt: '2026-10-06T21:45:00.000Z',
+    };
+    const { model, modelProviderContract, service } = harness({
+      ...reviewedContract,
+      pricing: sheetPricing,
+    });
+    const now = new Date('2026-12-05T00:00:00.000Z');
+
+    const result = await service.synchronizeModel(
+      reviewedModel,
+      providerModel(),
+      price('fal-ai/per-image'),
+      now,
+    );
+
+    expect(result.drifted).toBe(false);
+    expect(modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(modelProviderContract.update).toHaveBeenCalledWith({
+      data: {
+        lastSeenAt: now,
+        pricing: { ...sheetPricing, verifiedAt: now.toISOString() },
+      },
+      where: { id: 'reviewed-contract' },
+    });
+    expect(model.update.mock.calls[0]?.[0].data).toMatchObject({
+      providerSyncStatus: 'fresh',
+    });
   });
 
   it('fails the refresh, keeping the reviewed rate, when no readable price is returned', async () => {
