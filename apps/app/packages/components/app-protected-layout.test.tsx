@@ -1636,6 +1636,8 @@ describe('AppProtectedLayout', () => {
   it('updates an app nav without discarding existing project content', () => {
     mockPathname.value = '/studio/clips/project-123';
     mockBrandState.settings.hasOrganizationBilling = true;
+    // Release preview isolates the module switch from the #5502 release gate.
+    mockBrandState.settings.isReleasePreviewEnabled = true;
     mockBrandState.settings.moduleOverrides = { clips: true };
     const { rerender } = render(
       <AppProtectedLayout>

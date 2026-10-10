@@ -38,6 +38,9 @@ vi.mock('next-intl', async () => {
             subscriptionHelp:
               'Existing data remains readable and exportable. A paid plan is required to start new work.',
             manageSubscription: 'Manage subscription',
+            unreleasedTitle: '{module} is not released yet',
+            unreleasedHelp:
+              'Existing projects remain readable and exportable. New work opens when the module is released.',
             loading: 'Loading module settings…',
             unavailable: 'Module settings are unavailable.',
             retry: 'Retry loading',
@@ -84,17 +87,38 @@ beforeEach(() => {
   state.disposed.mockClear();
 });
 describe('credit-based module creation gate', () => {
-  it.each(['batch', 'clips', 'editor', 'motion'] as const)(
-    'does not mount %s creation under cloud defaults',
+  it('does not mount batch creation under cloud defaults', () => {
+    render(view('batch'));
+    expect(state.created).not.toHaveBeenCalled();
+    expect(screen.queryByText('Create a project')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Organization modules' }),
+    ).toHaveAttribute('href', '/acme/~/settings/general');
+  });
+  it.each(['clips', 'editor', 'motion'] as const)(
+    'shows %s as not released on cloud without release preview (#5502)',
     (moduleId) => {
+      state.settings = {
+        hasOrganizationBilling: true,
+        moduleOverrides: { [moduleId]: true },
+      };
       render(view(moduleId));
       expect(state.created).not.toHaveBeenCalled();
-      expect(screen.queryByText('Create a project')).not.toBeInTheDocument();
-      expect(
-        screen.getByRole('link', { name: 'Organization modules' }),
-      ).toHaveAttribute('href', '/acme/~/settings/general');
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'is not released yet',
+      );
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
     },
   );
+  it('mounts founder-only creation on release preview when enabled', () => {
+    state.settings = {
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+      moduleOverrides: { clips: true },
+    };
+    render(view('clips'));
+    expect(state.created).toHaveBeenCalledTimes(1);
+  });
   it('mounts enabled credit-based work without subscription or balance signals', () => {
     state.settings = {
       hasOrganizationBilling: true,
@@ -207,9 +231,11 @@ describe('paid module creation presentation', () => {
   it.each(['automation', 'messages', 'discovery'] as const)(
     'hides all %s creation UI behind the centered subscription state',
     (moduleId) => {
+      // Release preview isolates the subscription rule from the release gate.
       state.settings = {
         hasOrganizationBilling: true,
         hasPaidModuleSubscription: false,
+        isReleasePreviewEnabled: true,
         moduleOverrides: { [moduleId]: true },
       };
       render(view(moduleId));

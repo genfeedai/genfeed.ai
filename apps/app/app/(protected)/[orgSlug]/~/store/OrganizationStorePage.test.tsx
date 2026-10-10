@@ -195,6 +195,7 @@ describe('OrganizationStorePage (#5502)', () => {
     mocks.brand.settings = {
       hasOrganizationBilling: true,
       hasPaidModuleSubscription: true,
+      isReleasePreviewEnabled: true,
       moduleOverrides: { automation: true },
     };
     mocks.installed.installedAppIds = ['playground', 'automation'];
@@ -211,6 +212,7 @@ describe('OrganizationStorePage (#5502)', () => {
     mocks.brand.settings = {
       hasOrganizationBilling: true,
       hasPaidModuleSubscription: false,
+      isReleasePreviewEnabled: true,
       moduleOverrides: { automation: true },
     };
     rerender(<OrganizationStorePage />);

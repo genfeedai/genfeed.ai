@@ -113,6 +113,7 @@ interface MockBrand {
 interface MockOrganizationSettings {
   hasOrganizationBilling: boolean;
   hasPaidModuleSubscription: boolean;
+  isReleasePreviewEnabled: boolean;
   moduleOverrides: Record<string, boolean>;
   id: string;
   isFleetNsfwVisible: boolean;
@@ -255,6 +256,9 @@ export function generateMockOrganizationSettings(
     id: 'org-settings-1',
     hasOrganizationBilling: true,
     hasPaidModuleSubscription: true,
+    // #5502 the e2e organization is on release preview, so founder-only
+    // modules follow their own module switches.
+    isReleasePreviewEnabled: true,
     moduleOverrides: {
       motion: true,
       clips: true,

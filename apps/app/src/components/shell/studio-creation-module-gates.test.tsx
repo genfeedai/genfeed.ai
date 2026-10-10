@@ -7,10 +7,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   organizationId: 'org-1',
   settingsLoading: false,
-  settings: { hasOrganizationBilling: true, moduleOverrides: {} } as Record<
-    string,
-    unknown
-  >,
+  settings: {
+    hasOrganizationBilling: true,
+    isReleasePreviewEnabled: true,
+    moduleOverrides: {},
+  } as Record<string, unknown>,
   refreshSettings: vi.fn(),
   create: vi.fn(),
 }));
@@ -52,7 +53,11 @@ vi.mock(
   }),
 );
 beforeEach(() => {
-  state.settings = { hasOrganizationBilling: true, moduleOverrides: {} };
+  state.settings = {
+    hasOrganizationBilling: true,
+    isReleasePreviewEnabled: true,
+    moduleOverrides: {},
+  };
   state.create.mockClear();
 });
 describe('Studio creation routes', () => {
@@ -72,6 +77,7 @@ describe('Studio creation routes', () => {
       ).toHaveAttribute('href', '/acme/~/settings/general');
       state.settings = {
         hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
         moduleOverrides: { [moduleId]: true },
       };
       rerender(<Page />);
