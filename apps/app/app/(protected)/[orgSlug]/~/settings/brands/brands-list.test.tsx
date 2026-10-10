@@ -215,29 +215,32 @@ describe('BrandsList', () => {
     ).toHaveAttribute('href', '/default/testbrand/settings');
   });
 
-  it('offers no selection or move action to members who cannot move brands', () => {
+  it('offers no selection or move action to members who cannot move brands', async () => {
     render(<BrandsList />);
 
+    // Let the lazily loaded checkbox appear if it was going to.
+    await screen.findAllByRole('button', { name: 'Open settings' });
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Move to organization' }),
     ).not.toBeInTheDocument();
   });
 
-  it('lets an owner with another organization select brands to move', () => {
+  // The table loads its checkbox lazily, so wait for it.
+  it('lets an owner with another organization select brands to move', async () => {
     userRole.value = MemberRole.OWNER;
     render(<BrandsList />);
 
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole('checkbox')).length).toBeGreaterThan(0);
     expect(
       screen.getAllByRole('button', { name: 'Move to organization' }),
     ).toHaveLength(mockBrands.length);
   });
 
-  it('lets a superadmin move brands without an elevated role', () => {
+  it('lets a superadmin move brands without an elevated role', async () => {
     accessState.isSuperAdmin = true;
     render(<BrandsList />);
 
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole('checkbox')).length).toBeGreaterThan(0);
   });
 });
