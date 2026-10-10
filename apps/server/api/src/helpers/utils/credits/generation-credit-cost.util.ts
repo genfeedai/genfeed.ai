@@ -17,8 +17,16 @@ export type ApprovedImageQuoteConstraint = {
   pricingHash: string;
 };
 
+/** Server-owned consent constraint, never accepted from generation bodies. */
+export type ApprovedGenerationQuoteConstraint = ApprovedImageQuoteConstraint & {
+  provider: string;
+  maximumCredits: number;
+  quantities: ModelBillableQuoteSnapshot['quantities'];
+};
+
 export type DeferredCreditsConfig = {
   approvedImageQuote?: ApprovedImageQuoteConstraint;
+  approvedGenerationQuote?: ApprovedGenerationQuoteConstraint;
   amount?: number;
   /**
    * The org's own decrypted key for `provider`, resolved once alongside the
