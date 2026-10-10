@@ -11,3 +11,19 @@ export interface IFreeTrialState {
   isTrialExpired: boolean;
   trialEndsAt: Date | null;
 }
+
+export type FreeTrialEmailTemplateKey =
+  | 'trial-ending'
+  | 'trial-ended'
+  | 'trial-credits-low';
+
+export type FreeTrialEmailAction = 'credits' | 'plans';
+
+/** Copy for one free-trial product email (see `FREE_TRIAL_EMAILS`). */
+export interface IFreeTrialEmailDefinition {
+  action: FreeTrialEmailAction;
+  actionLabel: string;
+  paragraphs: readonly string[];
+  subject: string;
+  templateKey: FreeTrialEmailTemplateKey;
+}
