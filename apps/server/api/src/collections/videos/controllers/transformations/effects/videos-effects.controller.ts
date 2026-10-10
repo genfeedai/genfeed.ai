@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -45,6 +46,7 @@ function requirePath(value: unknown): string {
 
 @AutoSwagger()
 @Controller('videos')
+@OrganizationModule('playground')
 export class VideosEffectsController {
   private readonly constructorName = String(this.constructor.name);
 

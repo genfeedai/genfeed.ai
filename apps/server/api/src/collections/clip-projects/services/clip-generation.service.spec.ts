@@ -213,6 +213,21 @@ describe('ClipGenerationService workflow boundary', () => {
     ).resolves.toEqual({ ...hookResult, awaitingHookApproval: true });
   });
 
+  it('rejects a substituted tenant before creating or dispatching a clip', async () => {
+    const { actions, clipResults, provider } = createHarness();
+    await expect(
+      actions.get('clip.generation.generate-one')?.({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input: {
+          originalIndex: 0,
+          request: { ...request, orgId: 'foreign-org' },
+        },
+      } as never),
+    ).rejects.toThrow('does not match');
+    expect(clipResults.create).not.toHaveBeenCalled();
+    expect(provider.generateVideo).not.toHaveBeenCalled();
+  });
+
   it('dispatches exactly the highlight selected by the action node', async () => {
     const { actions, clipResults, provider } = createHarness();
     const executor = actions.get('clip.generation.generate-one');
@@ -221,7 +236,7 @@ describe('ClipGenerationService workflow boundary', () => {
     }
 
     await executor({
-      context: {} as never,
+      context: { organizationId: 'org-1', userId: 'user-1' } as never,
       input: { originalIndex: 1, request },
       provenance: {
         executionId: 'execution-1',

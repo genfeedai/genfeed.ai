@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -49,6 +50,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
+@OrganizationModule('playground')
 export class VideosEditsController {
   private readonly constructorName = String(this.constructor.name);
 

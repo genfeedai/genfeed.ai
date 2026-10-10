@@ -1,3 +1,4 @@
+import { readWorkflowFalCompletionEvidence } from '@api/collections/credits/services/workflow-fal-completion-evidence.util';
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
@@ -325,6 +326,7 @@ export class WorkflowGenerationBillingService {
   async recordContinuationProof(
     tx: Prisma.TransactionClient,
     continuation: {
+      id?: string;
       actionId: string;
       executionId: string;
       ingredientId: string;
@@ -379,6 +381,9 @@ export class WorkflowGenerationBillingService {
       return;
     }
     if (evidence.kind === 'completed') {
+      const fal = continuation.provider === 'fal'
+        ? await readWorkflowFalCompletionEvidence(tx, { ...continuation, id: continuation.id ?? '' }, allocation)
+        : undefined;
       await this.recordOperationProof(
         tx,
         continuation.executionId,
@@ -386,12 +391,12 @@ export class WorkflowGenerationBillingService {
         {
           artifacts: [
             {
-              assetKey: `workflow-generation/${continuation.ingredientId}`,
+              assetKey: fal?.assetKey ?? `workflow-generation/${continuation.ingredientId}`,
               ingredientId: continuation.ingredientId,
               role: 'primary',
             },
           ],
-          completion: {
+          completion: fal?.completion ?? {
             ...allocation.dispatch.quantities,
             completedOutputs: 1,
             successfulRequests: 1,

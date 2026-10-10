@@ -1,3 +1,5 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { assertWorkflowGenerationActorAdmission } from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
 import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowMediaBillingPlanService } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
@@ -35,6 +37,7 @@ export class WorkflowGenerationAdmissionPlanService {
     private readonly prisma: PrismaService,
     private readonly billingPlan: WorkflowMediaBillingPlanService,
     private readonly generationBilling: WorkflowGenerationBillingService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   async fundExecution(
@@ -62,6 +65,7 @@ export class WorkflowGenerationAdmissionPlanService {
     );
     if (source.state === 'redacted')
       unavailable('Workflow admission source is no longer available');
+    await assertWorkflowGenerationActorAdmission(this.brandAccess, source, this.prisma);
     const allocations = await this.compileAllocations(executionId, source);
     await this.generationBilling.prepareFunding({
       actorUserId: source.actorUserId,

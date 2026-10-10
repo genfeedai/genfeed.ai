@@ -4,6 +4,7 @@ import { CreateAdWatchedAdvertiserDto } from '@api/collections/ad-watched-advert
 import { UpdateAdWatchedAdvertiserDto } from '@api/collections/ad-watched-advertisers/dto/update-ad-watched-advertiser.dto';
 import type { AdWatchedAdvertiserDocument } from '@api/collections/ad-watched-advertisers/schemas/ad-watched-advertiser.schema';
 import { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -34,6 +35,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('ad-watched-advertisers')
 @UseGuards(RolesGuard)
+@OrganizationModule('discovery')
 export class AdWatchedAdvertisersController extends BaseCRUDController<
   AdWatchedAdvertiserDocument,
   CreateAdWatchedAdvertiserDto,

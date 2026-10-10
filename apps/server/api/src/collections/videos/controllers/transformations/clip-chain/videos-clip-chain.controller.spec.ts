@@ -13,7 +13,6 @@ import {
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import {
@@ -227,7 +226,7 @@ describe('VideosClipChainController', () => {
     expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
   });
 
-  it('guards the route with subscription, credits, and model validation', () => {
+  it('guards the Playground route with credits and model validation', () => {
     const handler = Object.getOwnPropertyDescriptor(
       VideosClipChainController.prototype,
       'createClipChain',
@@ -241,7 +240,6 @@ describe('VideosClipChainController', () => {
       Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler),
     ).toBe(true);
     expect(Reflect.getMetadata('__guards__', handler)).toEqual([
-      SubscriptionGuard,
       CreditsGuard,
       ModelsGuard,
     ]);

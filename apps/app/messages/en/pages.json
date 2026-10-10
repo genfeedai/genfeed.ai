@@ -4572,6 +4572,12 @@
     "saveError": "Failed to save the flag",
     "saved": "{label} switched {state}"
   },
+  "platformFlags": {
+    "unavailable": {
+      "description": "We could not load the workspace settings. Try again to continue.",
+      "title": "Workspace settings unavailable"
+    }
+  },
   "platformSettings": {
     "typedDecisionLabel": "Provider",
     "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy.",

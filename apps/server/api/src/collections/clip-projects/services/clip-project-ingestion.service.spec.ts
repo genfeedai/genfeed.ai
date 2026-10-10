@@ -36,6 +36,9 @@ describe('ClipProjectIngestionService', () => {
   const http = { get: vi.fn() };
   let clipProjectsService: {
     claimDraft: ReturnType<typeof vi.fn>;
+    claimSourceRetry: ReturnType<typeof vi.fn>;
+    releaseSourceRetry: ReturnType<typeof vi.fn>;
+    markSourceDispatchFailed: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
@@ -75,6 +78,9 @@ describe('ClipProjectIngestionService', () => {
     vi.setSystemTime(new Date('2026-08-26T12:00:00.000Z'));
     clipProjectsService = {
       claimDraft: vi.fn().mockResolvedValue(true),
+      claimSourceRetry: vi.fn().mockResolvedValue(true),
+      releaseSourceRetry: vi.fn().mockResolvedValue(undefined),
+      markSourceDispatchFailed: vi.fn().mockResolvedValue(undefined),
       create: vi.fn().mockResolvedValue({
         id: 'project-1',
       } as ClipProjectDocument),
@@ -914,11 +920,80 @@ describe('ClipProjectIngestionService', () => {
         source: expect.objectContaining({ retryCount: 1, status: 'queued' }),
       }),
     );
-    expect(clipProjectsService.patch).toHaveBeenCalledWith(
-      'project-1',
-      expect.objectContaining({ error: null, status: 'pending' }),
-      [],
+    expect(clipProjectsService.claimSourceRetry).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'project-1' }),
       'org-1',
+      expect.objectContaining({ retryCount: 1, status: 'queued' }),
+    );
+    expect(
+      clipProjectsService.claimSourceRetry.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      clipAnalysisWorkflowQueue.enqueue.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(clipProjectsService.patch).not.toHaveBeenCalled();
+  });
+
+  it.each(['collision', 'dispatch failure'] as const)(
+    'keeps source retry admission consistent on %s',
+    async (failure) => {
+      const project = {
+        id: 'project-1',
+        status: 'failed',
+        organizationId: 'org-1',
+        settings: { flow: 'review' },
+        sourceVideoUrl: 'https://youtu.be/abc123def45',
+        source: {
+          fingerprint: 'sha256:source',
+          flow: 'review',
+          jobId: 'clip-analysis-project-1',
+          kind: 'youtube',
+          maxRetries: 3,
+          retryCount: 0,
+          schemaVersion: 1,
+          status: 'failed',
+        },
+      };
+      clipProjectsService.findOne.mockResolvedValue(project);
+      if (failure === 'collision')
+        clipProjectsService.claimSourceRetry.mockResolvedValue(false);
+      else
+        clipAnalysisWorkflowQueue.enqueue.mockRejectedValue(
+          new Error('Queue unavailable'),
+        );
+      await expect(
+        service.retrySource(currentUser as never, 'project-1'),
+      ).rejects.toThrow(
+        failure === 'collision' ? 'already retried' : 'Queue unavailable',
+      );
+      if (failure === 'collision') {
+        expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
+        expect(clipProjectsService.releaseSourceRetry).not.toHaveBeenCalled();
+      } else {
+        expect(clipProjectsService.releaseSourceRetry).toHaveBeenCalledWith(
+          project,
+          'org-1',
+          1,
+        );
+      }
+    },
+  );
+
+  it('marks an imported YouTube source recoverable when initial dispatch fails', async () => {
+    clipAnalysisWorkflowQueue.enqueue.mockRejectedValue(
+      new Error('Queue unavailable'),
+    );
+    await expect(
+      service.analyzeYoutube(currentUser as never, {
+        youtubeUrl: 'https://youtu.be/abc123def45',
+      }),
+    ).rejects.toThrow('Queue unavailable');
+    expect(clipProjectsService.markSourceDispatchFailed).toHaveBeenCalledWith(
+      'project-1',
+      'org-1',
+      expect.objectContaining({
+        jobId: 'clip-analysis-project-1',
+        retryCount: 0,
+      }),
     );
   });
 
@@ -941,6 +1016,28 @@ describe('ClipProjectIngestionService', () => {
     expect(presignedUploadService.getPresignedUploadUrl).not.toHaveBeenCalled();
     expect(clipProjectsService.create).not.toHaveBeenCalled();
     expect(clipProjectsService.patchDraft).not.toHaveBeenCalled();
+  });
+
+  it('accepts audio for analysis without requiring avatar generation defaults', async () => {
+    await service.prepareUpload(currentUser as never, {
+      contentType: 'audio/mpeg',
+      filename: 'podcast.mp3',
+      flow: 'review',
+      mode: 'raw-cut',
+      sizeBytes: 10_000,
+    });
+    expect(presignedUploadService.getPresignedUploadUrl).toHaveBeenCalledOnce();
+    expect(clipProjectsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ flow: 'review' }),
+        source: expect.objectContaining({
+          kind: 'upload',
+          contentType: 'audio/mpeg',
+        }),
+      }),
+    );
+    expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
+    expect(clipIdentityResolutionService.resolve).not.toHaveBeenCalled();
   });
 
   it('rejects raw-cut generation for an audio-only upload', async () => {

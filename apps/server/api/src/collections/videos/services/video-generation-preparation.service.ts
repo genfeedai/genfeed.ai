@@ -1,3 +1,4 @@
+import { measureStoredSeedanceVideoReferences } from '@api/collections/videos/services/seedance-reference-measurement.util';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -15,7 +16,6 @@ import {
   assertSeedanceReferenceBinding,
   assertSeedanceReferenceVideoDuration,
   bindSeedanceVideoReferences,
-  measuredSeedanceVideoReference,
   requireSeedanceStoredReferenceKey,
   type SeedanceVideoReferenceEvidence,
   seedanceVideoReferenceLimit,
@@ -408,41 +408,13 @@ export class VideoGenerationPreparationService {
       !createVideoDto.videoReferences?.length
     )
       return undefined;
-    const organizationId = user.organizationId;
-    const assetIds = createVideoDto.videoReferences.map(String);
-    const references: SeedanceVideoReferenceEvidence[] = [];
-    for (const assetId of assetIds) {
-      const ingredient = await this.ingredientsService.findOne({
-        id: assetId,
-        organizationId,
-        isDeleted: false,
-        category: IngredientCategory.VIDEO,
-      });
-      const sourceKey = requireSeedanceStoredReferenceKey(ingredient?.s3Key);
-      const url =
-        await this.filesClientService.getPresignedDownloadUrlForObjectKey(
-          sourceKey,
-        );
-      const before = await this.filesClientService.fingerprintMedia(url);
-      const probe = await this.filesClientService.probeMediaFromUrl(
-        url,
-        'video',
-      );
-      const after = await this.filesClientService.fingerprintMedia(url);
-      references.push(
-        measuredSeedanceVideoReference({
-          assetId,
-          organizationId,
-          sourceKey,
-          url,
-          before,
-          probe,
-          after,
-        }),
-      );
-    }
-    bindSeedanceVideoReferences(endpoint, organizationId, references);
-    return references;
+    return measureStoredSeedanceVideoReferences({
+      files: this.filesClientService,
+      findStoredVideo: async (id, organizationId) => {
+        const ingredient = await this.ingredientsService.findOne({ id, organizationId, isDeleted: false, category: IngredientCategory.VIDEO });
+        return ingredient ? { s3Key: ingredient.s3Key ?? null } : null;
+      },
+    }, { endpoint, organizationId: user.organizationId, assetIds: createVideoDto.videoReferences.map(String) });
   }
 
   async assertFreshNativeVideoReferences(

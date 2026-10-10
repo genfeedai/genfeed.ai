@@ -63,6 +63,7 @@ function contentGenerationDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    organizationModule: 'playground',
     definition: {
       edges: [
         {
@@ -199,6 +200,7 @@ function contentGenerationChildDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    organizationModule: 'playground',
     definition: {
       edges: [
         {

@@ -80,6 +80,27 @@ const project = {
 } as unknown as ClipProjectDocument;
 
 describe('ClipContinuityWorkflowService', () => {
+  it.each([
+    'clip.continuity.begin',
+    'clip.continuity.fail',
+    'clip.continuity.persist-report',
+  ])(
+    'rejects a forged actor before continuity effects for %s',
+    async (actionId) => {
+      const { actions, prisma } = createHarness();
+      const executor = actions.get(actionId);
+      expect(executor).toBeDefined();
+      await expect(
+        executor?.({
+          context: { organizationId: 'org-1', userId: 'user-1' },
+          input: { projectId: 'project-1', userId: 'foreign-user' },
+        } as never),
+      ).rejects.toThrow('does not match');
+      expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    },
+  );
+
   it('keeps optional QA pending and saved reads available when Clips access cannot start work', async () => {
     const { moduleAccess, prisma, clipResults, queue, service } =
       createHarness();
@@ -172,7 +193,7 @@ describe('ClipContinuityWorkflowService', () => {
 
     await expect(
       persist({
-        context: { organizationId: 'org-1' } as never,
+        context: { organizationId: 'org-1', userId: 'user-1' } as never,
         input: {
           clipDescriptors: [
             {

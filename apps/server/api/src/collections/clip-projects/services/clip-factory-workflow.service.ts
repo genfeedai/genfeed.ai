@@ -1,3 +1,4 @@
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import {
   buildClipFactoryFailureWorkflowDefinition,
@@ -80,6 +81,7 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
     const request = highlighted
       ? this.toGenerationRequest(highlighted)
       : this.readGenerationRequest(action.input.request);
+    assertClipWorkflowActor(action, request);
     const { highlights } = request;
     const reviewContext = this.readReviewContext(action.input.reviewContext);
     const mode = request.mode ?? DEFAULT_CLIP_RESULT_MODE;
@@ -188,6 +190,7 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
     action: SystemWorkflowActionRequest,
   ): Promise<{ projectId: string; status: 'failed' }> {
     const data = this.readJobData(action.input.job);
+    assertClipWorkflowActor(action, data);
     const workflowError = this.requiredString(
       action.input.workflowError,
       'workflowError',
@@ -215,6 +218,7 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
     }
   > {
     const request = this.readGenerationRequest(action.input.request);
+    assertClipWorkflowActor(action, request);
     const originalIndex = this.requiredNumber(
       action.input.originalIndex,
       'originalIndex',

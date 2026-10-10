@@ -24,6 +24,7 @@ export const ARTICLE_REVIEW_WORKFLOW_ID = 'article.review.workflow';
 export function buildArticleGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: ARTICLE_GENERATION_WORKFLOW_ID,
+    organizationModule: 'playground',
     definition: {
       edges: [
         {
@@ -133,6 +134,7 @@ export function buildArticleGenerationWorkflowDefinition(): SystemWorkflowGraphD
 export function articleGenerationChildWorkflow(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: ARTICLE_GENERATION_CHILD_WORKFLOW_ID,
+    organizationModule: 'playground',
     definition: {
       edges: [
         {
@@ -177,6 +179,7 @@ export function articleGenerationChildWorkflow(): SystemWorkflowGraphDefinition 
 export function articleReviewWorkflow(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: ARTICLE_REVIEW_WORKFLOW_ID,
+    organizationModule: 'playground',
     definition: {
       edges: [
         {

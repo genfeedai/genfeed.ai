@@ -7,6 +7,7 @@ import { SuggestHashtagsDto } from '@api/collections/optimizers/dto/hashtags.dto
 import { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto';
 import { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -15,7 +16,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
@@ -43,6 +43,7 @@ import type { Request } from 'express';
 @ApiTags('Optimizers')
 @Controller('optimizers')
 @UseInterceptors(CreditsInterceptor)
+@OrganizationModule('playground')
 export class OptimizersController {
   constructor(
     private readonly optimizersService: OptimizersService,
@@ -54,7 +55,7 @@ export class OptimizersController {
    * Analyze content and get score + suggestions
    */
   @Post('analyze')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Optimizer analysis (text model)',
     source: ActivitySource.SCRIPT,
@@ -93,7 +94,7 @@ export class OptimizersController {
    * Optimize content
    */
   @Post('optimize')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Optimizer rewrite (text model)',
     source: ActivitySource.SCRIPT,
@@ -132,7 +133,7 @@ export class OptimizersController {
    * Suggest hashtags
    */
   @Post('hashtags')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Hashtag suggestions (text model)',
     source: ActivitySource.SCRIPT,
@@ -170,7 +171,7 @@ export class OptimizersController {
    * Generate A/B test variants
    */
   @Post('variants')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Variant generation (text model)',
     source: ActivitySource.SCRIPT,
@@ -208,7 +209,7 @@ export class OptimizersController {
    * Generate creative prompts from idea or variations
    */
   @Post('prompts')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Prompt generation (text model)',
     source: ActivitySource.SCRIPT,
@@ -246,7 +247,7 @@ export class OptimizersController {
    * Get best posting times
    */
   @Get('times')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'Best posting times (text model)',
     source: ActivitySource.SCRIPT,

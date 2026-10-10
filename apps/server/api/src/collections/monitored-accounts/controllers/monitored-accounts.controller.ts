@@ -5,6 +5,7 @@ import { UpdateMonitoredAccountDto } from '@api/collections/monitored-accounts/d
 import { ValidateTwitterUsernameDto } from '@api/collections/monitored-accounts/dto/validate-twitter-username.dto';
 import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -32,6 +33,7 @@ import type { Request } from 'express';
 @ApiTags('Monitored Accounts')
 @AutoSwagger()
 @Controller('monitored-accounts')
+@OrganizationModule('discovery')
 export class MonitoredAccountsController extends BaseCRUDController<
   MonitoredAccountDocument,
   CreateMonitoredAccountDto,

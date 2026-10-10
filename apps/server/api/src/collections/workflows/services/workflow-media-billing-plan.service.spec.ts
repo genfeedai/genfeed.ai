@@ -436,7 +436,7 @@ describe('server-owned single-operation workflow media billing compiler', () => 
           id: 'upscale-1',
         }),
       }),
-    ).rejects.toThrow('No direct Replicate');
+    ).rejects.toThrow('No direct media preparation contract');
     const planned = await f.service.prepareAllocation(args);
     await expect(
       f.service.validateDispatch(

@@ -14,6 +14,7 @@ import { CreateRemixArticleDto } from '@api/collections/articles/dto/create-remi
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -22,7 +23,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
@@ -70,6 +70,7 @@ const ARTICLE_NOT_FOUND_TYPE = 'ArticlesController';
 @Controller('articles')
 @UseInterceptors(CreditsInterceptor)
 @UseGuards(RolesGuard)
+@OrganizationModule('playground')
 export class ArticlesTransformationsController {
   private readonly serializer = ArticleSerializer;
 
@@ -98,7 +99,7 @@ export class ArticlesTransformationsController {
   }
 
   @Post(':articleId/virality-analyses')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     allowByokBypass: true,
     description: 'Article virality analysis (text model)',
@@ -122,7 +123,7 @@ export class ArticlesTransformationsController {
   }
 
   @Post(':articleId/seo-scores')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     description: 'SEO scoring (text model)',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
@@ -209,7 +210,7 @@ export class ArticlesTransformationsController {
   }
 
   @Post(':articleId/prompts')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     // DEFAULT_MINI_TEXT_MODEL completes through OpenRouter; the guard-resolved
     // key reaches dispatch via the workflow's non-persisted runtimeContext.

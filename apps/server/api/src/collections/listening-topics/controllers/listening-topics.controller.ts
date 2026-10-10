@@ -14,6 +14,7 @@ import { ListeningTopicAnalysisService } from '@api/collections/listening-topics
 import { ListeningTopicAttributionService } from '@api/collections/listening-topics/services/listening-topic-attribution.service';
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -49,6 +50,7 @@ import type { Request } from 'express';
 @ApiTags('Listening Topics')
 @Controller('listening-topics')
 @UseGuards(RolesGuard)
+@OrganizationModule('analytics')
 export class ListeningTopicsController {
   constructor(
     private readonly listeningTopicsService: ListeningTopicsService,

@@ -115,6 +115,14 @@ describe('SystemWorkflowRunnerService definitions', () => {
     );
   });
 
+  it('refuses synchronous execution of a funded system graph before creating a mirror or output', async () => {
+    const { runner } = createRunner();
+    runner.registerWorkflow({ ...definition, canonicalId: 'funded-generation', generationAdmission: true });
+    const input = { actionType: 'video.extend', canonicalId: 'funded-generation', organizationId: 'org-1', source: 'test', userId: 'user-1' };
+    await expect(runner.startWorkflow(input)).rejects.toThrow('queued execution admission');
+    await expect(runner.runWorkflow(input)).rejects.toThrow('queued execution admission');
+  });
+
   it('rejects a registered workflow whose result node is absent', () => {
     expect(() =>
       service.registerWorkflow({

@@ -478,6 +478,28 @@ describe('WebhooksService', () => {
       );
     });
 
+    it('verifies the stored file before publishing completion or settling credits', async () => {
+      ingredientsService.findOne.mockResolvedValue({ ...mockVideoIngredientDoc, metadataId: mockMetadataId.toString() });
+      metadataService.findOne.mockResolvedValue(mockVideoMetadataDoc);
+      const beforeFinalize = vi.fn().mockResolvedValue(undefined);
+      await service.processMediaForIngredient(mockIngredientId.toString(), IngredientCategory.VIDEO, url, externalId, { beforeFinalize });
+      expect(beforeFinalize).toHaveBeenCalledWith(mockUploadMeta);
+      expect(mediaUploadService.uploadAndUpdateMetadata.mock.invocationCallOrder[0]).toBeLessThan(beforeFinalize.mock.invocationCallOrder[0]);
+      expect(beforeFinalize.mock.invocationCallOrder[0]).toBeLessThan(ingredientsService.patchAll.mock.invocationCallOrder[0]);
+      expect(beforeFinalize.mock.invocationCallOrder[0]).toBeLessThan(generationBilling.settleOutput.mock.invocationCallOrder[0]);
+    });
+
+    it('keeps accepted work pending when the stored-file proof fails', async () => {
+      ingredientsService.findOne.mockResolvedValue({ ...mockVideoIngredientDoc, metadataId: mockMetadataId.toString() });
+      const beforeFinalize = vi.fn().mockRejectedValue(new Error('Stored output changed'));
+      await expect(service.processMediaForIngredient(mockIngredientId.toString(), IngredientCategory.VIDEO, url, externalId, { beforeFinalize })).rejects.toThrow('Stored output changed');
+      expect(mediaUploadService.uploadAndUpdateMetadata).toHaveBeenCalled();
+      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+      expect(websocketService.publishVideoComplete).not.toHaveBeenCalled();
+    });
+
     it('should process music from webhook successfully', async () => {
       metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
         ingredient: mockMusicIngredientDoc,

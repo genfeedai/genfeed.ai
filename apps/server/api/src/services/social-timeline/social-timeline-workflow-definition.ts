@@ -6,6 +6,7 @@ export const SOCIAL_TIMELINE_WORKFLOW_ID = 'social.timeline.native-action';
 export function buildSocialTimelineActionWorkflow(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: SOCIAL_TIMELINE_WORKFLOW_ID,
+    organizationModule: 'discovery',
     label: 'Execute Following Action',
     description:
       'Reserves one scoped idempotent native action, publishes once, and preserves its confirmation receipt.',

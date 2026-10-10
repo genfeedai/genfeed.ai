@@ -498,7 +498,7 @@ describe('WorkflowMediaProviderPlanService', () => {
         new Map(),
         context,
       ),
-    ).rejects.toThrow('No direct Replicate media preparation contract');
+    ).rejects.toThrow('No direct media preparation contract');
     const absent = new WorkflowMediaProviderPlanService(
       {} as WorkflowEngineExecutorHelperService,
       {} as LoggerService,

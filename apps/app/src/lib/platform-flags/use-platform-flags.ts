@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_PLATFORM_FLAGS } from '@genfeedai/contracts/constants';
+import { PLATFORM_FLAG_KEYS } from '@genfeedai/contracts/constants';
 import type { IPlatformFlags } from '@genfeedai/contracts/interfaces';
 import { logger } from '@services/core/logger.service';
 import { PublicService } from '@services/external/public.service';
@@ -10,9 +10,14 @@ import {
   subscribePlatformFlagsChanged,
 } from './platform-flags-sync';
 
+const UNRESOLVED_FLAGS: IPlatformFlags = Object.freeze(
+  Object.fromEntries(PLATFORM_FLAG_KEYS.map((key) => [key, false])),
+) as IPlatformFlags;
+
 interface PlatformFlagsState {
   flags: IPlatformFlags;
   isReady: boolean;
+  isUnavailable: boolean;
 }
 
 /**
@@ -22,16 +27,18 @@ interface PlatformFlagsState {
  * and at once after an operator saves one in Admin, so a switched-off module
  * disappears without a reload.
  *
- * Until the first answer — or when the API is unreachable (offline desktop) —
- * every flag is on, the same default a fresh deployment has; a later failed
- * read keeps the last flags this tab saw.
+ * Before a successful answer the state stays unresolved and flags are off.
+ * A failed read never presents deployment defaults as confirmed Admin values;
+ * a later failed refresh keeps the last confirmed flags. Visibility changes,
+ * Admin updates and the refresh interval all retry without a reload.
  */
 export function usePlatformFlags(
   initialFlags?: IPlatformFlags | null,
 ): PlatformFlagsState {
   const [state, setState] = useState<PlatformFlagsState>(() => ({
-    flags: initialFlags ?? DEFAULT_PLATFORM_FLAGS,
+    flags: initialFlags ?? UNRESOLVED_FLAGS,
     isReady: Boolean(initialFlags),
+    isUnavailable: false,
   }));
 
   useEffect(() => {
@@ -39,6 +46,11 @@ export function usePlatformFlags(
 
     function refresh(): void {
       controller?.abort();
+      setState((previous) =>
+        previous.isUnavailable
+          ? { ...previous, isUnavailable: false }
+          : previous,
+      );
       const current = new AbortController();
       controller = current;
 
@@ -46,7 +58,7 @@ export function usePlatformFlags(
         .getPlatformFlags(current.signal)
         .then((flags) => {
           if (!current.signal.aborted) {
-            setState({ flags, isReady: true });
+            setState({ flags, isReady: true, isUnavailable: false });
           }
         })
         .catch((error: unknown) => {
@@ -57,7 +69,12 @@ export function usePlatformFlags(
             error,
             reportToSentry: false,
           });
-          setState((previous) => ({ flags: previous.flags, isReady: true }));
+          // Keep readiness as well as values: only a successful read resolves
+          // an initial outage. Confirmed server/client values remain usable.
+          setState((previous) => ({
+            ...previous,
+            isUnavailable: !previous.isReady,
+          }));
         });
     }
 
@@ -67,7 +84,9 @@ export function usePlatformFlags(
       }
     }
 
-    if (!initialFlags) {
+    if (initialFlags) {
+      setState({ flags: initialFlags, isReady: true, isUnavailable: false });
+    } else {
       refresh();
     }
     const interval = window.setInterval(

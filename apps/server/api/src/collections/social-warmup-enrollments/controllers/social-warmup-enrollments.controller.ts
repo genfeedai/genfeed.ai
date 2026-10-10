@@ -4,6 +4,7 @@ import { CreateSocialWarmupEnrollmentDto } from '@api/collections/social-warmup-
 import { SocialWarmupEnrollmentsQueryDto } from '@api/collections/social-warmup-enrollments/dto/social-warmup-enrollments-query.dto';
 import { UpsertSocialWarmupSignalDto } from '@api/collections/social-warmup-enrollments/dto/upsert-social-warmup-signal.dto';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -29,6 +30,7 @@ import type { Request } from 'express';
 @ApiTags('Social Warmup Enrollments')
 @Controller('social-warmup-enrollments')
 @UseGuards(RolesGuard)
+@OrganizationModule('publishing')
 export class SocialWarmupEnrollmentsController {
   constructor(
     private readonly socialWarmupEnrollmentsService: SocialWarmupEnrollmentsService,

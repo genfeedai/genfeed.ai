@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -11,7 +12,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -52,7 +52,8 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
-@UseGuards(SubscriptionGuard, CreditsGuard)
+@OrganizationModule('playground')
+@UseGuards(CreditsGuard)
 export class VideosLipSyncController {
   private readonly constructorName = String(this.constructor.name);
 

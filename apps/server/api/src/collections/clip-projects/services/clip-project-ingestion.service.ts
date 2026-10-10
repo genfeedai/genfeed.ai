@@ -239,6 +239,7 @@ export class ClipProjectIngestionService {
           source: queuedSource,
         });
       },
+      { projectId, source: queuedSource },
     );
 
     return {
@@ -292,24 +293,29 @@ export class ClipProjectIngestionService {
 
     const projectId = String(project.id);
     const queuedSource = this.withJobId(source, `clip-analysis-${projectId}`);
-    await this.dispatchOrReleaseDraft(dto.draftProjectId, orgId, async () => {
-      await this.clipProjectsService.patch(
-        projectId,
-        { source: queuedSource },
-        [],
-        orgId,
-      );
-      return await this.clipAnalysisWorkflowQueue.enqueue({
-        language: dto.language ?? 'en',
-        maxClips: dto.maxClips ?? 10,
-        minViralityScore: dto.minViralityScore ?? 50,
-        orgId,
-        projectId,
-        userId,
-        youtubeUrl: dto.youtubeUrl,
-        source: queuedSource,
-      });
-    });
+    await this.dispatchOrReleaseDraft(
+      dto.draftProjectId,
+      orgId,
+      async () => {
+        await this.clipProjectsService.patch(
+          projectId,
+          { source: queuedSource },
+          [],
+          orgId,
+        );
+        return await this.clipAnalysisWorkflowQueue.enqueue({
+          language: dto.language ?? 'en',
+          maxClips: dto.maxClips ?? 10,
+          minViralityScore: dto.minViralityScore ?? 50,
+          orgId,
+          projectId,
+          userId,
+          youtubeUrl: dto.youtubeUrl,
+          source: queuedSource,
+        });
+      },
+      { projectId, source: queuedSource },
+    );
 
     return { identity, projectId, status: 'analyzing' };
   }
@@ -322,7 +328,11 @@ export class ClipProjectIngestionService {
     const flow = dto.flow ?? 'quick';
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
-    if (dto.contentType.startsWith('audio/') && mode === 'raw-cut') {
+    if (
+      flow === 'quick' &&
+      dto.contentType.startsWith('audio/') &&
+      mode === 'raw-cut'
+    ) {
       throw new BadRequestException(
         'Audio sources require avatar mode because raw-cut clips need source video.',
       );
@@ -573,31 +583,41 @@ export class ClipProjectIngestionService {
     if (!sourceUrl) {
       throw new BadRequestException('The clip source URL is unavailable.');
     }
-    const batchJobId =
-      flow === 'review'
-        ? await this.clipAnalysisWorkflowQueue.enqueue({
-            language: project.settings?.language ?? project.language ?? 'en',
-            maxClips: project.settings?.maxClips ?? 10,
-            minViralityScore: project.settings?.minViralityScore ?? 50,
-            orgId: user.organizationId,
-            projectId,
-            source: nextSource,
-            userId: user.userId ?? user.id,
-            youtubeUrl: sourceUrl,
-          })
-        : (await this.enqueueUploadedProject(user, project, nextSource))
-            .batchJobId;
-
-    await this.clipProjectsService.patch(
-      projectId,
-      {
-        error: null,
-        source: nextSource,
-        status: 'pending',
-      },
-      [],
+    const claimed = await this.clipProjectsService.claimSourceRetry(
+      project,
       user.organizationId,
+      nextSource,
     );
+    if (!claimed) {
+      throw new ConflictException(
+        'This source was already retried or changed.',
+      );
+    }
+
+    let batchJobId: string;
+    try {
+      batchJobId =
+        flow === 'review'
+          ? await this.clipAnalysisWorkflowQueue.enqueue({
+              language: project.settings?.language ?? project.language ?? 'en',
+              maxClips: project.settings?.maxClips ?? 10,
+              minViralityScore: project.settings?.minViralityScore ?? 50,
+              orgId: user.organizationId,
+              projectId,
+              source: nextSource,
+              userId: user.userId ?? user.id,
+              youtubeUrl: sourceUrl,
+            })
+          : (await this.enqueueUploadedProject(user, project, nextSource))
+              .batchJobId;
+    } catch (error: unknown) {
+      await this.clipProjectsService.releaseSourceRetry(
+        project,
+        user.organizationId,
+        nextSource.retryCount,
+      );
+      throw error;
+    }
 
     return {
       batchJobId,
@@ -653,6 +673,7 @@ export class ClipProjectIngestionService {
             youtubeUrl: sourceUrl,
           });
         },
+        source.retryCount === 0 ? { projectId, source } : undefined,
       );
       return {
         batchJobId,
@@ -740,6 +761,7 @@ export class ClipProjectIngestionService {
           youtubeUrl: sourceUrl,
         });
       },
+      source.retryCount === 0 ? { projectId, source } : undefined,
     );
 
     return {
@@ -894,6 +916,7 @@ export class ClipProjectIngestionService {
     draftProjectId: string | undefined,
     organizationId: string,
     dispatch: () => Promise<T>,
+    failedSource?: { projectId: string; source: ClipSourceContract },
   ): Promise<T> {
     try {
       return await dispatch();
@@ -902,6 +925,12 @@ export class ClipProjectIngestionService {
         await this.clipProjectsService.releaseDraft(
           draftProjectId,
           organizationId,
+        );
+      } else if (failedSource) {
+        await this.clipProjectsService.markSourceDispatchFailed(
+          failedSource.projectId,
+          organizationId,
+          failedSource.source,
         );
       }
       throw error;

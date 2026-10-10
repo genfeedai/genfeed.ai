@@ -12,6 +12,7 @@ export const ARTICLE_HEADER_PROMPT_ACTION_IDS = {
 export function buildArticleHeaderPromptWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: ARTICLE_HEADER_PROMPT_WORKFLOW_ID,
+    organizationModule: 'playground',
     definition: {
       edges: [
         {

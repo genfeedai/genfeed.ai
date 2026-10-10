@@ -180,7 +180,9 @@ export class WorkflowEngineExecutorHelperService {
     runProvider: (
       ingredientId: string,
       continuationId: string,
-    ) => Promise<string>;
+    ) => Promise<string | { externalId: string; completionQuantities?: { width?: number; height?: number; duration?: number } }>;
+    /** Runs only after durable provider acceptance; remote output uses canonical file ingestion. */
+    onProviderAccepted?: (output: PendingWorkflowOutput, continuationId: string) => Promise<void>;
     resultUrl: (ingredientId: string) => string;
   }): Promise<PendingWorkflowOutput> {
     if (!this.metadataService) {
@@ -198,11 +200,14 @@ export class WorkflowEngineExecutorHelperService {
       ingredientId: pendingOutput.ingredientId,
     });
     let externalId: string;
+    let completionQuantities: { width?: number; height?: number; duration?: number } | undefined;
     try {
-      externalId = await args.runProvider(
+      const accepted = await args.runProvider(
         pendingOutput.ingredientId,
         continuation.continuationId,
       );
+      externalId = typeof accepted === 'string' ? accepted : accepted.externalId;
+      completionQuantities = typeof accepted === 'string' ? undefined : accepted.completionQuantities;
     } catch (error: unknown) {
       if (isReplicateSubmissionRejected(error)) {
         await this.failProviderContinuationSubmission({
@@ -219,6 +224,7 @@ export class WorkflowEngineExecutorHelperService {
     await this.markProviderContinuationSubmitted({
       continuationId: continuation.continuationId,
       externalId,
+      ...(completionQuantities ? { completionQuantities } : {}),
       organizationId: args.continuation.context.organizationId,
     });
 
@@ -235,6 +241,8 @@ export class WorkflowEngineExecutorHelperService {
         }),
       )
       .catch(() => undefined);
+
+    await args.onProviderAccepted?.(pendingOutput, continuation.continuationId);
 
     return pendingOutput;
   }
@@ -271,11 +279,17 @@ export class WorkflowEngineExecutorHelperService {
     continuationId: string;
     externalId: string;
     organizationId: string;
+    completionQuantities?: { width?: number; height?: number; duration?: number };
   }): Promise<void> {
     if (!this.continuationService) {
       throw new Error('Workflow continuation service is not available');
     }
     await this.continuationService.markProviderSubmitted(input);
+  }
+
+  async recordFalOutputMeasurement(input: Parameters<WorkflowNodeContinuationService['recordFalOutputMeasurement']>[0]): Promise<void> {
+    if (!this.continuationService) throw new Error('Workflow continuation service is not available');
+    await this.continuationService.recordFalOutputMeasurement(input);
   }
 
   async failProviderContinuationSubmission(input: {

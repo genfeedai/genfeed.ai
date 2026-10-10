@@ -58,6 +58,8 @@ export function buildBatchGenerationWorkflowDefinition(): SystemWorkflowGraphDef
 
   return {
     canonicalId: BATCH_GENERATION_WORKFLOW_ID,
+    organizationModule: 'batch',
+    moduleCompletionNodeIds: ['settle-credits'],
     definition: {
       edges,
       inputVariables: [

@@ -1,3 +1,4 @@
+import { buildPlaygroundNativeExtendWorkflowDefinition, buildPlaygroundFabricatedExtendWorkflowDefinition } from '@api/collections/workflows/services/playground-extend-workflow-definition';
 import {
   AD_BULK_UPLOAD_CHILD_WORKFLOWS,
   buildAdBulkUploadWorkflowDefinition,
@@ -57,6 +58,8 @@ export class SystemWorkflowDefinitionRegistrarService implements OnModuleInit {
       ...AUTOMATION_CHILD_WORKFLOWS,
       ...AUTOMATION_PARENT_WORKFLOWS,
       buildCampaignDispatchWorkflowDefinition(),
+      buildPlaygroundNativeExtendWorkflowDefinition(),
+      buildPlaygroundFabricatedExtendWorkflowDefinition(),
     ];
     for (const definition of definitions) {
       this.runner.registerWorkflow(definition);

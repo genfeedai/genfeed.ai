@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   type GenerationBillingRequest,
@@ -18,7 +19,6 @@ import {
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   returnNotFound,
@@ -66,6 +66,7 @@ import {
 
 @AutoSwagger()
 @Controller('videos')
+@OrganizationModule('playground')
 export class VideosUpscaleController {
   private readonly constructorName = String(this.constructor.name);
 
@@ -86,7 +87,7 @@ export class VideosUpscaleController {
   ) {}
 
   @Post(':videoId/upscale')
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseGuards(CreditsGuard, ModelsGuard)
   // CreditsGuard prices via modelKey; CreditsInterceptor deducts on success only.
   // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({

@@ -62,6 +62,38 @@ describe('WorkflowNodeContinuationService', () => {
     );
   });
 
+  it('records URL-only Fal acceptance before any file measurements', async () => {
+    workflowNodeContinuation.findFirst.mockResolvedValue({ ...baseContinuation, provider: 'fal', externalId: null, status: WorkflowNodeContinuationStatus.PENDING_SUBMISSION });
+    await service.markProviderSubmitted({ continuationId: 'continuation-1', organizationId: 'org-1', externalId: 'https://fal.example/output.mp4' });
+    expect(workflowNodeContinuation.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: WorkflowNodeContinuationStatus.WAITING_PROVIDER, providerResult: { acceptedFalOutput: { externalId: 'https://fal.example/output.mp4' } } }) }));
+  });
+
+  it('records measurements only against the accepted tenant, ingredient and URL', async () => {
+    const externalId = 'https://fal.example/output.mp4';
+    workflowNodeContinuation.findFirst.mockResolvedValue({ ...baseContinuation, provider: 'fal', externalId, providerResult: { acceptedFalOutput: { externalId } } });
+    workflowNodeContinuation.updateMany.mockResolvedValue({ count: 1 });
+    const measurement = { width: 864, height: 496, duration: 6, framesPerSecond: 24, assetHash: 'a'.repeat(64), sizeBytes: 1000, assetKey: 'org-1/ingredient-1/video.mp4' };
+    await service.recordFalOutputMeasurement({ continuationId: 'continuation-1', organizationId: 'org-1', ingredientId: 'ingredient-1', externalId, measurement });
+    expect(workflowNodeContinuation.findFirst).toHaveBeenCalledWith({ where: { id: 'continuation-1', organizationId: 'org-1', ingredientId: 'ingredient-1', externalId, provider: 'fal', status: WorkflowNodeContinuationStatus.WAITING_PROVIDER } });
+    expect(workflowNodeContinuation.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ organizationId: 'org-1', updatedAt: baseContinuation.updatedAt }), data: { providerResult: { acceptedFalOutput: { externalId }, measuredFalOutput: { externalId, measurement } } } }));
+  });
+
+  it.each(['missing-continuation', 'different-accepted-url', 'provider-disagreement', 'changed-measurement', 'lost-claim'])('retains accepted work when measurement is rejected: %s', async (kind) => {
+    const externalId = 'https://fal.example/output.mp4';
+    const measurement = { width: 864, height: 496, duration: 6, framesPerSecond: 24, assetHash: 'a'.repeat(64), sizeBytes: 1000, assetKey: 'org-1/ingredient-1/video.mp4' };
+    workflowNodeContinuation.findFirst.mockResolvedValue(kind === 'missing-continuation' ? null : {
+      ...baseContinuation, provider: 'fal', externalId,
+      providerResult: {
+        acceptedFalOutput: { externalId: kind === 'different-accepted-url' ? 'different-url' : externalId, ...(kind === 'provider-disagreement' ? { completionQuantities: { duration: 8 } } : {}) },
+        ...(kind === 'changed-measurement' ? { measuredFalOutput: { externalId, measurement: { ...measurement, assetHash: 'b'.repeat(64) } } } : {}),
+      },
+    });
+    workflowNodeContinuation.updateMany.mockResolvedValue({ count: kind === 'lost-claim' ? 0 : 1 });
+    await expect(service.recordFalOutputMeasurement({ continuationId: 'continuation-1', organizationId: 'org-1', ingredientId: 'ingredient-1', externalId, measurement })).rejects.toThrow();
+    if (kind !== 'lost-claim') expect(workflowNodeContinuation.updateMany).not.toHaveBeenCalled();
+    expect(workflowNodeContinuation.create).not.toHaveBeenCalled();
+  });
+
   it('fails closed when an execution node already owns an ambiguous provider submission', async () => {
     prisma.workflowExecution.findFirst.mockResolvedValue({ id: 'execution-1' });
     prisma.ingredient.findFirst.mockResolvedValue({ id: 'ingredient-1' });

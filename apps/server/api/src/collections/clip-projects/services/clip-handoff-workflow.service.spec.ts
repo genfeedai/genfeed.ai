@@ -70,6 +70,28 @@ const actionRequest = {
 };
 
 describe('ClipHandoffWorkflowService', () => {
+  it.each([
+    'clip.handoff.create-editor',
+    'clip.handoff.prepare-publish',
+    'clip.handoff.link-library',
+  ])(
+    'rejects a forged tenant before any handoff lookup for %s',
+    async (actionId) => {
+      const { actions, clipProjects, clipResults, editors, clipLibrary } =
+        createHarness();
+      await expect(
+        actions.get(actionId)?.({
+          ...actionRequest,
+          input: { ...actionRequest.input, organizationId: 'foreign-org' },
+        }),
+      ).rejects.toThrow('does not match');
+      expect(clipProjects.findOne).not.toHaveBeenCalled();
+      expect(clipResults.findProjectResultForHandoff).not.toHaveBeenCalled();
+      expect(editors.create).not.toHaveBeenCalled();
+      expect(clipLibrary.linkReadyClip).not.toHaveBeenCalled();
+    },
+  );
+
   it('registers every handoff operation as an action node', () => {
     const { actions } = createHarness();
 

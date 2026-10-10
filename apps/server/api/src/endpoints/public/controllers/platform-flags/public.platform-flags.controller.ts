@@ -2,7 +2,12 @@ import { PlatformSettingsService } from '@api/collections/platform-settings/serv
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import type { IPlatformFlags } from '@genfeedai/contracts/interfaces';
 import { Public } from '@libs/decorators/public.decorator';
-import { Controller, Get, Header } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Header,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 @AutoSwagger()
 @Public()
@@ -20,7 +25,13 @@ export class PublicPlatformFlagsController {
   @Get()
   @Header('Cache-Control', 'no-store')
   async getFlags(): Promise<IPlatformFlags> {
-    const { flags } = await this.platformSettingsService.getFeatureSettings();
-    return flags;
+    const { isResolved, settings } =
+      await this.platformSettingsService.getFeatureSettingsState();
+    if (!isResolved) {
+      throw new ServiceUnavailableException(
+        'Platform flags are temporarily unavailable. Try again.',
+      );
+    }
+    return settings.flags;
   }
 }

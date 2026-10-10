@@ -88,6 +88,16 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    ...(requiresRequest
+      ? {
+          organizationModule:
+            canonicalId === AI_INFLUENCER_WORKFLOW_IDS.PUBLISH_PLATFORM
+              ? ('publishing' as const)
+              : canonicalId === AI_INFLUENCER_WORKFLOW_IDS.DAILY_POST
+                ? ('automation' as const)
+                : ('playground' as const),
+        }
+      : {}),
     definition: {
       edges,
       inputVariables: requiresRequest

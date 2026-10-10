@@ -1,3 +1,6 @@
+import { VideoExtensionExecutionService } from '@api/collections/videos/services/video-extension-execution.service';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 /**
  * Videos Module (Core)
  * Core video CRUD, captions, relationships, and upload functionality.
@@ -89,6 +92,8 @@ import { Module } from '@nestjs/common';
     VideosUploadController,
   ],
   exports: [
+    VideoExtensionExecutionService,
+    FalVideoGenerationProviderAdapter,
     LiveSessionCreditsService,
     VideoGenerationCreditsService,
     VideoGenerationService,
@@ -97,6 +102,8 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
   ],
   imports: [
+    BrandAccessModule,
+    WorkflowsCoreModule,
     PersonasCoreModule,
     MediaUrlsModule,
     PlatformSettingsModule,
@@ -140,6 +147,7 @@ import { Module } from '@nestjs/common';
     WhisperModule,
   ],
   providers: [
+    VideoExtensionExecutionService,
     CrunVideoGenerationService,
     CrunVideoInputService,
     CrunVideoPreviewQuoteService,

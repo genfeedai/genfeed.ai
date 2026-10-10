@@ -1,3 +1,4 @@
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import {
   buildClipContinuityFailureWorkflowDefinition,
@@ -235,6 +236,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     projectId: string;
     status: 'running';
   }> {
+    assertClipWorkflowActor(request);
     const projectId = this.requiredString(request.input.projectId, 'projectId');
     const updated = await this.prisma.clipProject.updateMany({
       data: {
@@ -256,6 +258,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     projectId: string;
     status: 'failed';
   }> {
+    assertClipWorkflowActor(request);
     const projectId = this.requiredString(request.input.projectId, 'projectId');
     const updated = await this.prisma.clipProject.updateMany({
       data: { continuityQaStatus: 'failed' },
@@ -273,6 +276,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
   private async persistReport(
     request: SystemWorkflowActionRequest,
   ): Promise<VideoContinuityQaReport> {
+    assertClipWorkflowActor(request);
     const projectId = this.requiredString(request.input.projectId, 'projectId');
     const generationWorkflowExecutionId = this.requiredString(
       request.input.generationWorkflowExecutionId,

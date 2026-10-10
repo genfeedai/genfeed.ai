@@ -7,6 +7,7 @@ import { CreateProfileDto } from '@api/collections/profiles/dto/create-profile.d
 import { GenerateFromExamplesDto } from '@api/collections/profiles/dto/generate-from-examples.dto';
 import { UpdateProfileDto } from '@api/collections/profiles/dto/update-profile.dto';
 import { ProfilesService } from '@api/collections/profiles/services/profiles.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -16,7 +17,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
@@ -51,6 +51,7 @@ import type { Request } from 'express';
 @ApiTags('Profiles')
 @Controller('profiles')
 @UseInterceptors(CreditsInterceptor)
+@OrganizationModule('playground')
 export class ProfilesController {
   constructor(
     private readonly profilesService: ProfilesService,
@@ -152,7 +153,7 @@ export class ProfilesController {
    * Apply profile to prompt
    */
   @Post(':profileId/apply')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     allowByokBypass: true,
     description: 'Profile prompt application (text model)',
@@ -195,7 +196,7 @@ export class ProfilesController {
    * Analyze content for tone compliance
    */
   @Post(':profileId/analyze')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     allowByokBypass: true,
     description: 'Profile tone analysis (text model)',
@@ -238,7 +239,7 @@ export class ProfilesController {
    * Generate profile from examples
    */
   @Post('generate')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @Credits({
     allowByokBypass: true,
     description: 'Profile generation from examples (text model)',

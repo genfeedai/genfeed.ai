@@ -71,7 +71,6 @@ function preparationContract(
   if (
     brief.status !== 'compiled' ||
     brief.modelKey !== prepared.model ||
-    prepared.provider !== 'replicate' ||
     output.modelKey !== prepared.model ||
     output.provider !== prepared.provider ||
     quoteSnapshotHash(output.target) !== quoteSnapshotHash(prepared.target)
@@ -120,12 +119,15 @@ export class WorkflowMediaBillingPlanService {
     )
       unavailable('Workflow generation brief contract is unresolved');
     const projection = projectWorkflowMediaProviderInput(prepared.input);
-    const output = await findReviewedReplicateOutputContract(
-      this.prisma,
-      prepared.model,
-      prepared.input,
-      args.context.organizationId,
-    );
+    const output =
+      prepared.provider === 'fal'
+        ? { status: 'reviewed' as const, contract: prepared.reviewedOutput }
+        : await findReviewedReplicateOutputContract(
+            this.prisma,
+            prepared.model,
+            prepared.input,
+            args.context.organizationId,
+          );
     if (output.status === 'unresolved')
       unavailable(
         `Workflow provider output contract is unresolved: ${output.reason}`,
@@ -133,12 +135,13 @@ export class WorkflowMediaBillingPlanService {
     const contract = preparationContract(prepared, output.contract);
     const route = await this.credentials.prepareRoute(
       args.context.organizationId,
-      ByokProvider.REPLICATE,
+      prepared.provider === 'fal' ? ByokProvider.FAL : ByokProvider.REPLICATE,
     );
     const quote =
       route.kind === 'platform'
         ? await this.quotes.quoteSnapshotByKey(prepared.model, {
             ...projection.dimensions,
+            ...(prepared.provider === 'fal' ? prepared.referenceQuoteEvidence : {}),
             requests: 1,
             outputs: 1,
             provider: prepared.provider,
@@ -263,6 +266,7 @@ export class WorkflowMediaBillingPlanService {
         prepared.model,
         {
           ...projection.dimensions,
+          ...(prepared.provider === 'fal' ? prepared.referenceQuoteEvidence : {}),
           requests: 1,
           outputs: 1,
           provider: prepared.provider,
@@ -288,7 +292,7 @@ export class WorkflowMediaBillingPlanService {
       unavailable('Workflow final billable quantities changed');
     const credential = await this.credentials.resolvePinnedCredential(
       args.context.organizationId,
-      ByokProvider.REPLICATE,
+      prepared.provider === 'fal' ? ByokProvider.FAL : ByokProvider.REPLICATE,
       frozen.dispatch.credentialRoute,
     );
     return {

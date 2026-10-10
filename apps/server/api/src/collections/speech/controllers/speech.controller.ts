@@ -7,12 +7,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TranscribeAudioDto } from '@api/collections/speech/dto/transcribe-audio.dto';
 import { TranscribeUrlDto } from '@api/collections/speech/dto/transcribe-url.dto';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -41,6 +41,7 @@ import type { Request } from 'express';
  */
 @AutoSwagger()
 @Controller('speech')
+@OrganizationModule('playground')
 export class SpeechController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -51,7 +52,7 @@ export class SpeechController {
 
   @Post('transcribe/audio')
   @Credits({ amount: 1, description: 'Speech transcription from audio file' })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(
     CreditsInterceptor,
     FileInterceptor('audio', {
@@ -133,7 +134,7 @@ export class SpeechController {
 
   @Post('transcribe/url')
   @Credits({ amount: 1, description: 'Speech transcription from URL' })
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async transcribeUrl(

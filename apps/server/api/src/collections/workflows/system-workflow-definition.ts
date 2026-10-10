@@ -31,6 +31,8 @@ export type SystemWorkflowGraphMetadata = {
   label: string;
   /** Code-owned product admission; never read from editable mirror metadata. */
   organizationModule?: OrganizationModuleId;
+  /** Only an exact registered generation graph may receive frozen funding admission. */
+  generationAdmission?: boolean;
   /** Code-owned terminal compensation; callers cannot select a failure graph. */
   failureWorkflowCanonicalId?: string;
   /** Terminal state projection after an admitted side effect; never new work. */
@@ -55,5 +57,7 @@ export type RunSystemWorkflowInput = {
   source: string;
   trigger?: WorkflowExecutionTrigger;
   userId?: string;
+  apiKeyId?: string;
+  actorScopes?: string[];
   runtimeContext?: unknown;
 };

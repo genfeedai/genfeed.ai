@@ -92,6 +92,58 @@ describe('ClipProjectsService', () => {
     );
   });
 
+  it('claims source retries against the tenant and exact project version while preserving transcript config', async () => {
+    const source = { retryCount: 1, status: 'queued' };
+    prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
+    const updatedAt = new Date('2026-10-09T10:00:00Z');
+    await expect(
+      service.claimSourceRetry(
+        {
+          id: 'project-1',
+          status: 'failed',
+          updatedAt,
+          source: { status: 'failed' },
+          config: {
+            transcriptText: 'Already transcribed.',
+            source: { status: 'failed' },
+          },
+        } as never,
+        'org-1',
+        source as never,
+      ),
+    ).resolves.toBe(true);
+    expect(prisma.clipProject.updateMany).toHaveBeenCalledWith({
+      data: {
+        config: { transcriptText: 'Already transcribed.', source },
+        error: null,
+        readiness: expect.anything(),
+        status: 'pending',
+        terminalAt: null,
+      },
+      where: {
+        id: 'project-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: 'failed',
+        updatedAt,
+      },
+    });
+  });
+
+  it('does not restore failed state once a retry worker has started', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      id: 'project-1',
+      status: 'analyzing',
+      config: { source: { retryCount: 1, status: 'extracting' } },
+    });
+    await service.releaseSourceRetry(
+      { id: 'project-1', status: 'failed' } as never,
+      'org-1',
+      1,
+    );
+    expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
+  });
+
   it('maps create DTO fields to durable columns and config JSON', async () => {
     prisma.clipProject.create.mockResolvedValue({
       brandId: 'brand-1',

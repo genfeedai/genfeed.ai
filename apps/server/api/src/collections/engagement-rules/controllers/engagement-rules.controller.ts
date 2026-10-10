@@ -4,6 +4,7 @@ import { EngagementRulesQueryDto } from '@api/collections/engagement-rules/dto/e
 import { UpdateEngagementRuleDto } from '@api/collections/engagement-rules/dto/update-engagement-rule.dto';
 import type { EngagementRuleScope } from '@api/collections/engagement-rules/schemas/engagement-rule.schema';
 import { EngagementRulesService } from '@api/collections/engagement-rules/services/engagement-rules.service';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -35,6 +36,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('EngagementRules')
 @Controller('engagement-rules')
+@OrganizationModule('publishing')
 export class EngagementRulesController {
   constructor(
     private readonly engagementRulesService: EngagementRulesService,

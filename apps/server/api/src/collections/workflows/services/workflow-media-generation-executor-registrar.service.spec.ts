@@ -78,6 +78,60 @@ function getActionExecutor(
 }
 
 describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
+  it('refuses a Fal preparation before creating output or resolving a Replicate credential', async () => {
+    const createAndLinkProcessingOutput = vi.fn();
+    const runModel = vi.fn();
+    const resolveApiKey = vi.fn();
+    const helper = {
+      createAndLinkProcessingOutput,
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const plan = {
+      prepareVideo: vi
+        .fn()
+        .mockResolvedValue({ provider: 'fal', actionId: 'videoGen' }),
+      canPrepareImage: false,
+    } as unknown as WorkflowMediaProviderPlanService;
+    const engine = new WorkflowEngine();
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      plan,
+      undefined,
+      undefined,
+      { runModel } as never,
+      undefined,
+      { resolveApiKey } as never,
+    ).register(engine);
+    const executor = getActionExecutor(engine, 'videoGen');
+    expect(executor).toBeDefined();
+    await expect(
+      executor?.(
+        {
+          id: 'fal-1',
+          type: 'videoGen',
+          label: 'Fal video',
+          config: {
+            model: 'fal/bytedance/seedance-2.5/text-to-video',
+            brandId: 'brand-1',
+            prompt: 'Continue',
+          },
+          inputs: [],
+        },
+        new Map(),
+        {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          runId: 'run-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow('funded native dispatch adapter');
+    expect(createAndLinkProcessingOutput).not.toHaveBeenCalled();
+    expect(runModel).not.toHaveBeenCalled();
+    expect(resolveApiKey).not.toHaveBeenCalled();
+  });
   it('persists native video extension lineage and dispatches the Seedance extension contract', async () => {
     const createAndLinkProcessingOutput = vi.fn(
       async (

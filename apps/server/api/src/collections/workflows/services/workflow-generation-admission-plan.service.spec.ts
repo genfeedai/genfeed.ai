@@ -112,6 +112,7 @@ function makeService(overrides?: { billing?: unknown; source?: unknown }) {
     prisma as never,
     billingPlan as never,
     generationBilling as never,
+    { assert: vi.fn().mockResolvedValue(undefined) } as never,
   );
   return { billingPlan, generationBilling, prisma, service };
 }

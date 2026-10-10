@@ -1,3 +1,5 @@
+import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
@@ -166,6 +168,8 @@ import { Module } from '@nestjs/common';
     YoutubeLongFormWorkflowService,
   ],
   imports: [
+    BrandAccessModule,
+    WebhooksMediaModule,
     OrganizationModuleAccessModule,
     PersonasCoreModule,
     MediaUrlsModule,

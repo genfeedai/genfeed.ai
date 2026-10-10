@@ -1,3 +1,4 @@
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -31,6 +32,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
+@OrganizationModule('playground')
 export class VideosGifController {
   private readonly constructorName = String(this.constructor.name);
 

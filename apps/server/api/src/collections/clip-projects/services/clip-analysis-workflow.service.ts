@@ -1,3 +1,4 @@
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 /**
  * Action executors and queue entry for the clip analysis workflow:
  * 1. Download audio from YouTube via files microservice
@@ -18,6 +19,10 @@ import {
   buildClipAnalysisWorkflowDefinition,
   CLIP_ANALYSIS_ACTION_IDS,
 } from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
+import {
+  type ClipAnalysisTranscription,
+  readSavedClipTranscription,
+} from '@api/collections/clip-projects/services/clip-analysis-transcription.util';
 import { ClipHighlightDetector } from '@api/collections/clip-projects/services/clip-highlight-detector.service';
 import {
   type SystemWorkflowActionRequest,
@@ -100,6 +105,7 @@ type PreparedClipAnalysis = {
   data: ClipAnalysisWorkflowInput;
   sourceArtifact?: ClipSourceArtifact;
   sourceUrl: string;
+  savedTranscription?: ClipAnalysisTranscription;
 };
 
 type TranscribedClipAnalysis = PreparedClipAnalysis & {
@@ -164,6 +170,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<PreparedClipAnalysis> {
     const data = this.readJobData(request.input.job);
+    assertClipWorkflowActor(request, data);
     const sourceArtifact = data.source?.artifact;
     await this.updateProject(
       data.projectId,
@@ -175,6 +182,16 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       data.source?.kind === 'youtube' ? 'downloading' : 'extracting',
     );
     const sourceUrl = sourceArtifact?.mediaUrl ?? data.youtubeUrl;
+    const savedTranscription = await this.readPersistedTranscription(data);
+    if (savedTranscription) {
+      return {
+        audioUrl: sourceUrl,
+        data,
+        savedTranscription,
+        ...(sourceArtifact ? { sourceArtifact } : {}),
+        sourceUrl,
+      };
+    }
     const extraction: AudioExtractionResult =
       data.source?.contentType?.startsWith('audio/')
         ? { audioUrl: sourceUrl }
@@ -208,10 +225,13 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<TranscribedClipAnalysis> {
     const prepared = this.readPrepared(request.input.prepared);
-    const transcription = await this.whisperService.transcribeUrl(
-      prepared.audioUrl,
-      prepared.data.language,
-    );
+    assertClipWorkflowActor(request, prepared.data);
+    const transcription =
+      prepared.savedTranscription ??
+      (await this.whisperService.transcribeUrl(
+        prepared.audioUrl,
+        prepared.data.language,
+      ));
     await this.updateProject(
       prepared.data.projectId,
       {
@@ -219,6 +239,15 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
         transcriptSegments: transcription.segments,
         transcriptSrt: transcription.srt,
         transcriptText: transcription.text,
+        ...(prepared.data.source
+          ? {
+              analysisTranscription: {
+                requestedLanguage: prepared.data.language,
+                sourceFingerprint: prepared.data.source.fingerprint,
+                transcription,
+              },
+            }
+          : {}),
       },
       prepared.data.orgId,
     );
@@ -230,6 +259,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<HighlightedClipAnalysis> {
     const transcribed = this.readTranscribed(request.input.transcribed);
+    assertClipWorkflowActor(request, transcribed.data);
     const rawHighlights = await this.highlightDetector.detectHighlights(
       transcribed.transcription.text,
       transcribed.transcription.segments,
@@ -252,6 +282,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<ReferencedClipAnalysis> {
     const highlighted = this.readHighlighted(request.input.highlighted);
+    assertClipWorkflowActor(request, highlighted.data);
     const { data, highlights } = highlighted;
     const referenceTimestamps = deriveReferenceTimestamps(highlights);
     let referenceFrames: ClipReferenceFrameSet;
@@ -304,6 +335,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<ClipAnalysisWorkflowResult> {
     const referenced = this.readReferenced(request.input.referenced);
+    assertClipWorkflowActor(request, referenced.data);
     await this.updateProject(
       referenced.data.projectId,
       {
@@ -323,10 +355,31 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<{ status: 'failed' }> {
     const data = this.readJobData(request.input.job);
+    assertClipWorkflowActor(request, data);
     const errorMessage = this.requiredString(
       request.input.workflowError,
       'workflowError',
     );
+    if (
+      data.source &&
+      !data.projectId.startsWith(PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX)
+    ) {
+      const project = await this.clipProjectsService.findOne({
+        id: data.projectId,
+        isDeleted: false,
+        organizationId: data.orgId,
+      });
+      if (
+        project?.source &&
+        (project.source.fingerprint !== data.source.fingerprint ||
+          project.source.retryCount !== data.source.retryCount)
+      ) {
+        return { status: 'failed' };
+      }
+      // The failure graph carries the original queue payload. Keep artifacts
+      // materialized by earlier nodes instead of restoring that old snapshot.
+      data.source = project?.source ?? data.source;
+    }
     await this.updateProject(
       data.projectId,
       { error: errorMessage, status: 'failed' },
@@ -334,6 +387,28 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     );
     await this.updateSource(data, 'failed', errorMessage);
     return { status: 'failed' };
+  }
+
+  private async readPersistedTranscription(
+    data: ClipAnalysisWorkflowInput,
+  ): Promise<ClipAnalysisTranscription | undefined> {
+    if (
+      !data.source ||
+      data.source.retryCount === 0 ||
+      data.projectId.startsWith(PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX)
+    ) {
+      return undefined;
+    }
+    const project = await this.clipProjectsService.findOne({
+      id: data.projectId,
+      isDeleted: false,
+      organizationId: data.orgId,
+    });
+    return readSavedClipTranscription(
+      project?.analysisTranscription,
+      data.source.fingerprint,
+      data.language,
+    );
   }
 
   private readJobData(value: unknown): ClipAnalysisWorkflowInput {
@@ -633,7 +708,9 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
           : {}),
         ...(data.source ? { source: data.source } : {}),
         sourceVideoS3Key: artifact.storageKey,
-        sourceVideoUrl: artifact.mediaUrl,
+        ...(data.source?.kind === 'youtube'
+          ? {}
+          : { sourceVideoUrl: artifact.mediaUrl }),
       },
       data.orgId,
     );
