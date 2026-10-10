@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { redirect } from 'next/navigation';
 
-/** Bare `/library` → All assets, the unified browser with no axis seeded. */
+/** Bare `/library` → Overview, the Library home (#5502). */
 export default function LibraryIndexPage() {
-  redirect(APP_ROUTES.LIBRARY.ASSETS);
+  redirect(APP_ROUTES.LIBRARY.OVERVIEW);
 }

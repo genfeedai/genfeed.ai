@@ -349,11 +349,11 @@ describe('app next.config', () => {
     },
   );
 
-  it('permanently redirects bare /library to All assets, not an overview', async () => {
+  it('permanently redirects bare /library to the Library Overview (#5502)', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.LIBRARY.ASSETS,
+      destination: APP_ROUTES.LIBRARY.OVERVIEW,
       permanent: true,
       source: APP_ROUTES.LIBRARY.ROOT,
     });
@@ -361,7 +361,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.ASSETS,
+        APP_ROUTES.LIBRARY.OVERVIEW,
       ),
       permanent: true,
       source: createBrandAppRoute(
@@ -387,7 +387,6 @@ describe('app next.config', () => {
     '/overview',
     '/settings/policy',
     '/library/ingredients',
-    '/library/overview',
     '/publishing/outreach-campaigns',
     '/automation/outreach-campaigns',
     '/automation/reply-campaigns',

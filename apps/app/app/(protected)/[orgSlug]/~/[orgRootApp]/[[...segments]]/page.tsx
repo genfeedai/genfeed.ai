@@ -24,6 +24,7 @@ import {
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
+import LibraryOverview from '@pages/library/overview/library-overview';
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
@@ -62,7 +63,6 @@ const ORG_LIBRARY_CANONICAL_SEGMENT: Readonly<Record<string, string>> = {
   image: 'images',
   musics: 'music',
   moodboard: 'assets',
-  overview: 'assets',
   video: 'videos',
   voice: 'voices',
 };
@@ -271,8 +271,18 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'library') {
-    if (!segments?.[0] || segments[0] === 'ingredients') {
+    if (!segments?.[0]) {
+      redirect(
+        createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.OVERVIEW),
+      );
+    }
+
+    if (segments[0] === 'ingredients') {
       redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.ASSETS));
+    }
+
+    if (segments[0] === 'overview' && segments.length === 1) {
+      return <LibraryOverview scope={PageScope.ORGANIZATION} />;
     }
 
     const canonicalSegment = ORG_LIBRARY_CANONICAL_SEGMENT[segments[0]];

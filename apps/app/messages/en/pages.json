@@ -2888,6 +2888,51 @@
       "description": "Reusable characters that generations reference by name.",
       "title": "References"
     },
+    "overview": {
+      "actionsTitle": "Jump back in",
+      "cards": {
+        "failed": {
+          "cta": "Open failed",
+          "description": "{count, plural, one {# asset} other {# assets}} failed to generate. Retry or discard them.",
+          "label": "Failed"
+        },
+        "recent": {
+          "cta": "Open recent",
+          "description": "Assets touched most recently, newest first.",
+          "label": "Recent"
+        },
+        "references": {
+          "cta": "Open references",
+          "description": "Reusable characters that generations reference by name.",
+          "label": "References"
+        },
+        "review": {
+          "cta": "Review assets",
+          "empty": "Nothing waiting. New generations land here for review.",
+          "label": "Needs review",
+          "pending": "{count, plural, one {# asset} other {# assets}} waiting for a decision."
+        },
+        "starred": {
+          "count": "{count, plural, one {# starred asset} other {# starred assets}}.",
+          "cta": "Open starred",
+          "empty": "Star the assets you reuse to keep them one click away.",
+          "label": "Starred"
+        }
+      },
+      "description": "Everything this brand has uploaded, imported or generated, and what needs you.",
+      "error": "Library counts could not be loaded.",
+      "kpi": {
+        "failed": "Failed",
+        "failedHelp": "Generations that did not finish",
+        "needsReview": "Needs review",
+        "needsReviewHelp": "Waiting for a decision",
+        "storage": "Storage",
+        "storageHelp": "Across every asset in the library",
+        "total": "Assets",
+        "totalHelp": "Excluding trash and archive"
+      },
+      "title": "Overview"
+    },
     "recovery": {
       "actions": {
         "retry": "Retry",

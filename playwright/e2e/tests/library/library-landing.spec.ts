@@ -31,15 +31,17 @@ test.describe('Library', () => {
     await mockContentLibrary(authenticatedPage, 'videos', 3);
   });
 
-  test('opens the asset browser at the Library root', async ({
+  test('opens the Library Overview at the Library root (#5502)', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      brandRoute(APP_ROUTES.LIBRARY.ASSETS),
+      brandRoute(APP_ROUTES.LIBRARY.OVERVIEW),
     );
 
-    await expect(authenticatedPage).not.toHaveURL(/library\/overview/);
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Review assets' }),
+    ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('link', { name: 'Assets', exact: true }),
     ).toBeVisible();
@@ -56,7 +58,7 @@ test.describe('Library', () => {
     const rail = authenticatedPage.getByTestId('desktop-sidebar-rail');
 
     // #5502: Recent and Starred are a toolbar filter, not navigation.
-    for (const label of ['Assets', 'References']) {
+    for (const label of ['Overview', 'Assets', 'References']) {
       await expect(
         rail.getByRole('link', { name: label, exact: true }),
       ).toBeVisible();
