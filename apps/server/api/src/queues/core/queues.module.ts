@@ -9,6 +9,7 @@
 
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { SERVER_TOKENS } from '@api/index';
 import { QueueService } from '@api/queues/core/queue.service';
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
@@ -46,6 +47,7 @@ import { Module } from '@nestjs/common';
     WorkflowExecutionQueueService,
   ],
   imports: [
+    OrganizationModuleAccessModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
