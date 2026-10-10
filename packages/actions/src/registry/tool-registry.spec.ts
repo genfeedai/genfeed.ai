@@ -103,11 +103,18 @@ describe('tool registry', () => {
     expect(adminTools.every((tool) => tool.requiredRole !== 'superadmin')).toBe(
       true,
     );
-    expect(userTools.length).toBeLessThanOrEqual(adminTools.length);
+    expect(userTools.length).toBeLessThan(adminTools.length);
     expect(adminTools.length).toBeLessThanOrEqual(superadminTools.length);
     expect(superadminTools).toEqual(getToolsForSurface('mcp'));
+    // resolve_approval is org-admin gated: hidden from users, visible to admins.
+    expect(userTools.some((tool) => tool.name === 'resolve_approval')).toBe(
+      false,
+    );
     expect(
-      superadminTools.some((tool) => tool.requiredRole === 'superadmin'),
+      adminTools.some(
+        (tool) =>
+          tool.name === 'resolve_approval' && tool.requiredRole === 'admin',
+      ),
     ).toBe(true);
   });
 
