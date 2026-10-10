@@ -5,12 +5,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   const findByIds = vi.fn();
+  const getInstance = vi.fn(() => ({ findByIds }));
   // useAuthedService returns a stable getter across renders.
-  const getService = async () => ({ findByIds });
-  return { findByIds, getService };
+  const getToken = async () => 'token';
+  return { findByIds, getInstance, getToken };
 });
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getService,
+  useAuthedService: () => mocks.getToken,
+}));
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
+  IngredientsService: { getInstance: mocks.getInstance },
 }));
 
 function ingredient(id: string, isDeleted = false): IIngredient {
@@ -34,6 +38,7 @@ describe('useGenerationReceiptMedia', () => {
 
     await waitFor(() => expect(result.current.size).toBe(50));
     expect(mocks.findByIds).toHaveBeenCalledTimes(2);
+    expect(mocks.getInstance).toHaveBeenCalledWith('token');
     expect(
       mocks.findByIds.mock.calls.map(([batch]) => batch.length).sort(),
     ).toEqual([1, 50]);

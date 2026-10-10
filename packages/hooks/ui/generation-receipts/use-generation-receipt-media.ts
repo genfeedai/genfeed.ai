@@ -1,6 +1,5 @@
 'use client';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -16,9 +15,9 @@ const EMPTY: ReadonlyMap<string, IIngredient> = new Map();
 export function useGenerationReceiptMedia(
   ingredientIds: readonly string[],
 ): ReadonlyMap<string, IIngredient> {
-  const getService = useAuthedService((token) =>
-    IngredientsService.getInstance(token),
-  );
+  // The ingredients client loads with the first media page, not with the
+  // receipts route, so the token is resolved here and the client lazily.
+  const getToken = useAuthedService((token) => token);
   const key = useMemo(
     () => [...new Set(ingredientIds)].sort().join(','),
     [ingredientIds],
@@ -31,8 +30,12 @@ export function useGenerationReceiptMedia(
     const ids = key.split(',');
     const load = async () => {
       try {
-        const service = await getService();
+        const [token, { IngredientsService }] = await Promise.all([
+          getToken(),
+          import('@genfeedai/services/content/ingredients.service'),
+        ]);
         if (controller.signal.aborted) return;
+        const service = IngredientsService.getInstance(token);
         const batches: string[][] = [];
         for (let index = 0; index < ids.length; index += BATCH_LIMIT)
           batches.push(ids.slice(index, index + BATCH_LIMIT));
@@ -53,7 +56,7 @@ export function useGenerationReceiptMedia(
     };
     void load();
     return () => controller.abort();
-  }, [key, getService]);
+  }, [key, getToken]);
 
   // Lookups are by id, so the previous page's map stays usable while a
   // longer list reloads instead of blanking every thumbnail.

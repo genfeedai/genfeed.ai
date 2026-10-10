@@ -49,6 +49,11 @@ vi.mock('next-intl', async () => {
     }),
   };
 });
+// The preview is code-split in the app; tests render the loaded module.
+vi.mock('next/dynamic', async () => {
+  const { default: Preview } = await import('./GenerationReceiptMediaPreview');
+  return { default: () => Preview };
+});
 vi.mock('next/image', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
     <img alt={alt} src={src} />

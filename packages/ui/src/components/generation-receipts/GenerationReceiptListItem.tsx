@@ -1,29 +1,33 @@
 'use client';
 import { ComponentSize } from '@genfeedai/contracts';
-import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import type {
   GenerationReceiptListItemProps,
-  GenerationReceiptMediaPreviewProps,
   GenerationReceiptStatusKey,
 } from '@genfeedai/props/content/branded-generation-receipt.props';
 import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
-import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
-import {
-  getIngredientPreviewUrl,
-  isRasterPreviewUrl,
-} from '@genfeedai/utils/media/ingredient-preview.util';
-import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import Badge from '@ui/display/badge/Badge';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import { format } from 'date-fns';
 import { FileText, Film, ImageIcon } from 'lucide-react';
-import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
   getGenerationReceiptCost,
   getGenerationReceiptStatus,
 } from './generation-receipt-summary.util';
+
+/**
+ * The preview pulls in the media player and the authorized-grant client, so
+ * it loads only once a row actually has a Studio output to show.
+ */
+const GenerationReceiptMediaPreview = dynamic(
+  () => import('./GenerationReceiptMediaPreview'),
+  {
+    ssr: false,
+    loading: () => (
+      <ImageIcon aria-hidden="true" className="size-5 text-foreground/30" />
+    ),
+  },
+);
 
 const STATUS_VARIANT: Readonly<
   Record<GenerationReceiptStatusKey, BadgeProps['variant']>
@@ -35,72 +39,6 @@ const STATUS_VARIANT: Readonly<
   failed: 'error',
   cancelled: 'secondary',
 };
-
-/** The output's authorized preview, linked to the full asset once ready. */
-function GenerationReceiptMediaPreview({
-  ingredient,
-  label,
-}: GenerationReceiptMediaPreviewProps) {
-  const t = useTranslations('pages.generationReceipts.list');
-  const grant = useAuthorizedMediaPreview(ingredient);
-  const isVideo = isVideoIngredient(ingredient);
-  // A pending or failed grant never falls back to a retained raw URL.
-  const assetUrl = grant
-    ? grant.state === 'READY'
-      ? grant.url
-      : null
-    : ingredient.ingredientUrl || null;
-  const imageUrl = isVideo
-    ? undefined
-    : grant
-      ? assetUrl && isRasterPreviewUrl(assetUrl)
-        ? assetUrl
-        : undefined
-      : getIngredientPreviewUrl(ingredient);
-  const preview =
-    isVideo && assetUrl ? (
-      <VideoPlayer
-        ariaLabel={label}
-        className="size-full"
-        config={{
-          controls: false,
-          loop: false,
-          muted: true,
-          playsInline: true,
-          preload: 'metadata',
-        }}
-        mediaClassName="object-cover"
-        mediaProps={{ tabIndex: -1 }}
-        src={`${assetUrl.split('#')[0]}#t=0.001`}
-      />
-    ) : imageUrl ? (
-      <Image
-        alt={label}
-        className="object-cover"
-        fill
-        sizes="64px"
-        src={imageUrl}
-        unoptimized={!canOptimizeImageSource(imageUrl)}
-      />
-    ) : isVideo ? (
-      <Film aria-hidden="true" className="size-5 text-foreground/30" />
-    ) : (
-      <ImageIcon aria-hidden="true" className="size-5 text-foreground/30" />
-    );
-  return assetUrl ? (
-    <Link
-      aria-label={t('openOutput')}
-      className="relative flex size-full items-center justify-center"
-      href={assetUrl}
-      rel="noreferrer"
-      target="_blank"
-    >
-      {preview}
-    </Link>
-  ) : (
-    preview
-  );
-}
 
 /**
  * One saved generation in the receipts list: what was made, its status, the
@@ -152,7 +90,10 @@ export default function GenerationReceiptListItem({
           {t('model', { model: receipt.execution?.model ?? t('noModel') })} ·{' '}
           {costLabel} ·{' '}
           <time dateTime={receipt.createdAt}>
-            {format(new Date(receipt.createdAt), 'PP p')}
+            {new Date(receipt.createdAt).toLocaleString(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
           </time>
         </p>
       </div>
