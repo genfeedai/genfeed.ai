@@ -28,29 +28,34 @@ const SPINNER_STYLES = `
 
 function RefreshSpinner() {
   return (
-    <svg
-      aria-hidden="true"
-      className={SHELL_ICON_CLASS}
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <style>{SPINNER_STYLES}</style>
-      {SPOKE_ANGLES.map((angle, index) => (
-        <line
-          key={angle}
-          className="gen-refresh-spinner-spoke"
-          style={{ animationDelay: `${index * 0.125 - 1}s` }}
-          transform={`rotate(${angle} 12 12)`}
-          x1="12"
-          x2="12"
-          y1="2"
-          y2="6"
-        />
-      ))}
-    </svg>
+    <>
+      {/* Hoisted to <head>: an in-place <style> breaks hydration (#6601). */}
+      <style href="genfeed-refresh-spinner" precedence="genfeed-component">
+        {SPINNER_STYLES}
+      </style>
+      <svg
+        aria-hidden="true"
+        className={SHELL_ICON_CLASS}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+      >
+        {SPOKE_ANGLES.map((angle, index) => (
+          <line
+            key={angle}
+            className="gen-refresh-spinner-spoke"
+            style={{ animationDelay: `${index * 0.125 - 1}s` }}
+            transform={`rotate(${angle} 12 12)`}
+            x1="12"
+            x2="12"
+            y1="2"
+            y2="6"
+          />
+        ))}
+      </svg>
+    </>
   );
 }
 

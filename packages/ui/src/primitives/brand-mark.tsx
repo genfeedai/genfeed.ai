@@ -54,22 +54,34 @@ const ANIMATION_STYLES = `
   }
 `;
 
+/**
+ * The animation CSS is a React 19 hoisted style resource (`href` +
+ * `precedence`): it renders once in `<head>`, deduplicated across every
+ * loader, instead of in place inside the SVG. An in-place `<style>` breaks
+ * hydration whenever a browser extension such as Dark Reader inserts its own
+ * sibling `<style>` next to it before React hydrates (#6601). A hoisted style
+ * must sit outside the SVG, so it is a sibling of the `<svg>`.
+ */
 export default function BrandMark() {
   return (
-    <svg
-      aria-hidden="true"
-      className="size-full overflow-visible"
-      viewBox="0 0 500 500"
-    >
-      <style>{ANIMATION_STYLES}</style>
-      <g transform="translate(0,500) scale(0.1,-0.1)">
-        <path className="genfeed-loader-fill" d={GENFEED_MARK_PATH} />
-        <path
-          className="genfeed-loader-trace"
-          d={GENFEED_MARK_PATH}
-          pathLength="1"
-        />
-      </g>
-    </svg>
+    <>
+      <style href="genfeed-brand-mark" precedence="genfeed-component">
+        {ANIMATION_STYLES}
+      </style>
+      <svg
+        aria-hidden="true"
+        className="size-full overflow-visible"
+        viewBox="0 0 500 500"
+      >
+        <g transform="translate(0,500) scale(0.1,-0.1)">
+          <path className="genfeed-loader-fill" d={GENFEED_MARK_PATH} />
+          <path
+            className="genfeed-loader-trace"
+            d={GENFEED_MARK_PATH}
+            pathLength="1"
+          />
+        </g>
+      </svg>
+    </>
   );
 }

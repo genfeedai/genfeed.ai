@@ -2,7 +2,8 @@ import type { ReactElement } from 'react';
 
 export function AgentChatInputStyles(): ReactElement {
   return (
-    <style>{`
+    // Hoisted to <head>: an in-place <style> breaks hydration (#6601).
+    <style href="genfeed-agent-chat-input" precedence="genfeed-component">{`
         [data-density='dock'] .ProseMirror {
           min-height: 56px;
         }
