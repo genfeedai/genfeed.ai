@@ -302,18 +302,6 @@ export function isAppRailItemLocked(
   );
 }
 
-export function resolveAppRailHref(
-  app: AppRailItemConfig,
-  apps: readonly AppRailItemConfig[],
-  scope: AppRailScope,
-): string {
-  const href = getAppRailHref(app, scope);
-  const agent = apps.find((candidate) => candidate.id === 'agent');
-  if (!isAppRailItemLocked(app, scope.isAssetGateLocked) || !agent) return href;
-  const agentHref = getAppRailHref(agent, scope);
-  return `${agentHref}${agentHref.includes('?') ? '&' : '?'}locked=${encodeURIComponent(app.id)}`;
-}
-
 export function getAppRailShortcut(
   index: number,
   isDesktop: boolean,

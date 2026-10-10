@@ -507,9 +507,14 @@ describe('AppRail', () => {
     expect(labels.at(-2)).toBe('Analytics');
   });
 
-  it('locks gated apps behind the first asset and routes them to the agent', () => {
+  it('locks gated apps behind the first asset but keeps their own route for the teaser', () => {
     render(<AppRail orgSlug="acme" brandSlug="my-brand" isAssetGateLocked />);
 
+    const hrefs = {
+      analytics: '/acme/my-brand/analytics/overview',
+      library: '/acme/my-brand/library/assets',
+      workspace: '/acme/my-brand/workspace/overview',
+    } as const;
     for (const [label, id] of [
       ['Workspace', 'workspace'],
       ['Library', 'library'],
@@ -518,7 +523,7 @@ describe('AppRail', () => {
       const link = screen.getByRole('link', {
         name: `${label} — locked. Generate your first asset to unlock.`,
       });
-      expect(link).toHaveAttribute('href', `/acme/my-brand/agent?locked=${id}`);
+      expect(link).toHaveAttribute('href', hrefs[id]);
       expect(link).toHaveClass('opacity-60');
     }
     openMoreMenu();
