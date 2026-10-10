@@ -21,7 +21,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/HookAnalysisSection.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/HookStatCards.tsx": 4,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/PlatformPerformanceSection.tsx": 4,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/insights/insights-overview.tsx": 4,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/insights/insights-overview.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/insights/social-intelligence-inbox.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/[agentId]/AgentOpportunityPanel.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/[agentId]/AgentWorkflowBindCard.tsx": 5,

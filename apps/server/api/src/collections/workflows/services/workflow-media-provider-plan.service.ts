@@ -321,55 +321,14 @@ export class WorkflowMediaProviderPlanService {
     };
   }
 
-  async prepareVideo({
-    model,
-    params,
-    context,
-    node,
-  }: WorkflowMediaProviderPlanInput): Promise<WorkflowVideoProviderPlan> {
-    const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
-    if (params.sourceEvidence !== undefined) {
-      if (!this.prisma || !this.filesClientService)
-        throw new Error('Workflow Extend source measurement is unavailable');
-      await assertWorkflowExtensionSourceEvidence(
-        this.prisma,
-        this.filesClientService,
-        {
-          organizationId: context.organizationId,
-          brandId,
-          parentIngredientId: params.parentIngredientId,
-          sourceEvidence: params.sourceEvidence,
-          frameIngredientId: params.frameIngredientId,
-        },
-      );
-    }
-    // Admit the raw inputs first: later steps replace bare ids with synthetic
-    // names that no character could match.
-    const identityReferences = readIdentityReferences(
-      params.identityReferences,
-    );
-    if (isFalDestination(model) && identityReferences.length > 0) {
-      throw new Error(
-        'Fal workflow identity locks require a reviewed reference mapping',
-      );
-    }
-    const { availableAvatarIds, personaId } = await this.admitCharacters({
-      brandId,
-      organizationId: context.organizationId,
-      values: [
-        ...readStrings(params.references),
-        params.lastFrame,
-        ...readStrings(params.videoReferences),
-        ...identityReferences.map((reference) => reference.assetId),
-        params.parentIngredientId,
-      ],
-    });
-    const {
-      endFrameId,
-      referenceAssetIds,
-      referenceReplacements,
-      videoReferenceAssetIds,
-    } = await this.resolveVideoReferenceInputs(params, context.organizationId);
+  private async resolveExtensionAssetUrls(
+    params: Record<string, unknown>,
+    context: ExecutionContext,
+    brandId: string,
+    referenceAssetIds: string[] | undefined,
+    videoReferenceAssetIds: string[],
+    referenceReplacements: Map<string, string>,
+  ): Promise<void> {
     if (typeof params.frameIngredientId === 'string') {
       if (
         referenceAssetIds?.length !== 1 ||
@@ -434,6 +393,75 @@ export class WorkflowMediaProviderPlanService {
         ),
       );
     }
+  }
+
+  private async admitVideoSource({
+    model,
+    params,
+    context,
+  }: WorkflowMediaProviderPlanInput) {
+    const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
+    if (params.sourceEvidence !== undefined) {
+      if (!this.prisma || !this.filesClientService)
+        throw new Error('Workflow Extend source measurement is unavailable');
+      await assertWorkflowExtensionSourceEvidence(
+        this.prisma,
+        this.filesClientService,
+        {
+          organizationId: context.organizationId,
+          brandId,
+          parentIngredientId: params.parentIngredientId,
+          sourceEvidence: params.sourceEvidence,
+          frameIngredientId: params.frameIngredientId,
+        },
+      );
+    }
+    // Admit the raw inputs first: later steps replace bare ids with synthetic
+    // names that no character could match.
+    const identityReferences = readIdentityReferences(
+      params.identityReferences,
+    );
+    if (isFalDestination(model) && identityReferences.length > 0) {
+      throw new Error(
+        'Fal workflow identity locks require a reviewed reference mapping',
+      );
+    }
+    const { availableAvatarIds, personaId } = await this.admitCharacters({
+      brandId,
+      organizationId: context.organizationId,
+      values: [
+        ...readStrings(params.references),
+        params.lastFrame,
+        ...readStrings(params.videoReferences),
+        ...identityReferences.map((reference) => reference.assetId),
+        params.parentIngredientId,
+      ],
+    });
+    return { brandId, identityReferences, availableAvatarIds, personaId };
+  }
+
+  async prepareVideo({
+    model,
+    params,
+    context,
+    node,
+  }: WorkflowMediaProviderPlanInput): Promise<WorkflowVideoProviderPlan> {
+    const { brandId, identityReferences, availableAvatarIds, personaId } =
+      await this.admitVideoSource({ model, params, context, node });
+    const {
+      endFrameId,
+      referenceAssetIds,
+      referenceReplacements,
+      videoReferenceAssetIds,
+    } = await this.resolveVideoReferenceInputs(params, context.organizationId);
+    await this.resolveExtensionAssetUrls(
+      params,
+      context,
+      brandId,
+      referenceAssetIds,
+      videoReferenceAssetIds,
+      referenceReplacements,
+    );
     const prompt = typeof params.prompt === 'string' ? params.prompt : '';
     const height = typeof params.height === 'number' ? params.height : 1080;
     const width = typeof params.width === 'number' ? params.width : 1920;
@@ -655,38 +683,13 @@ export class WorkflowMediaProviderPlanService {
     });
     if (preparedFalDispatch.endpoint !== reviewed.contract.endpoint)
       throw new Error('Fal workflow dispatch changed its reviewed endpoint');
-    for (const [field, values] of [
-      ['image_urls', images],
-      ['video_urls', videos],
-    ] as const) {
-      if (
-        values.length > 0 &&
-        field === 'video_urls' &&
-        JSON.stringify(preparedFalDispatch.input[field]) !==
-          JSON.stringify(values)
-      )
-        throw new Error('Fal workflow cannot honor its video references');
-      if (
-        values.length > 1 &&
-        field === 'image_urls' &&
-        JSON.stringify(preparedFalDispatch.input[field]) !==
-          JSON.stringify(values)
-      )
-        throw new Error('Fal workflow cannot honor its image references');
-    }
-    if (
-      args.endFrameId &&
-      preparedFalDispatch.input.end_image_url !== resolve(args.endFrameId)
-    )
-      throw new Error('Fal workflow cannot honor its last frame');
-    if (
-      images.length === 1 &&
-      preparedFalDispatch.input.image_url !== images[0] &&
-      JSON.stringify(preparedFalDispatch.input.image_urls) !==
-        JSON.stringify(images)
-    ) {
-      throw new Error('Fal workflow cannot honor its first frame');
-    }
+    this.assertFalReferenceMapping(
+      preparedFalDispatch.input,
+      images,
+      videos,
+      args.endFrameId,
+      resolve,
+    );
     return {
       provider: 'fal' as const,
       target: { endpoint: preparedFalDispatch.endpoint },
@@ -709,6 +712,41 @@ export class WorkflowMediaProviderPlanService {
       ),
       ...(referenceQuoteEvidence ? { referenceQuoteEvidence } : {}),
     };
+  }
+
+  private assertFalReferenceMapping(
+    input: Record<string, unknown>,
+    images: string[],
+    videos: string[],
+    endFrameId: string | undefined,
+    resolve: (assetId: string) => string,
+  ): void {
+    for (const [field, values] of [
+      ['image_urls', images],
+      ['video_urls', videos],
+    ] as const) {
+      if (
+        values.length > 0 &&
+        field === 'video_urls' &&
+        JSON.stringify(input[field]) !== JSON.stringify(values)
+      )
+        throw new Error('Fal workflow cannot honor its video references');
+      if (
+        values.length > 1 &&
+        field === 'image_urls' &&
+        JSON.stringify(input[field]) !== JSON.stringify(values)
+      )
+        throw new Error('Fal workflow cannot honor its image references');
+    }
+    if (endFrameId && input.end_image_url !== resolve(endFrameId))
+      throw new Error('Fal workflow cannot honor its last frame');
+    if (
+      images.length === 1 &&
+      input.image_url !== images[0] &&
+      JSON.stringify(input.image_urls) !== JSON.stringify(images)
+    ) {
+      throw new Error('Fal workflow cannot honor its first frame');
+    }
   }
 
   private requireReferenceFiles(): FilesClientService {

@@ -250,14 +250,12 @@ export class PostsGenerationController {
       }
 
       this.logger.error('Failed to generate account content', error);
-      throw new HttpException(
-        {
-          detail: generationFailureMessage(
-            error,
-            'An error occurred while generating account content',
-          ),
-          title: 'Failed to generate account content',
-        },
+      throw createPostsGenerationHttpException(
+        generationFailureMessage(
+          error,
+          'An error occurred while generating account content',
+        ),
+        'Failed to generate account content',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

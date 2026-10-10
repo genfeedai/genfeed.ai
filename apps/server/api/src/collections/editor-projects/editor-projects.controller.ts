@@ -6,6 +6,10 @@ import { type EditorProjectDocument } from '@api/collections/editor-projects/sch
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
 import { buildEditorProjectListAggregate } from '@api/collections/editor-projects/utils/editor-project-list-query.util';
+import {
+  editorTrackIngredientIds,
+  relinkEditorTracks,
+} from '@api/collections/editor-projects/utils/editor-track-media.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
@@ -378,14 +382,7 @@ export class EditorProjectsController {
     tracks: IEditorTrack[],
     organizationId: string,
   ): Promise<IEditorTrack[]> {
-    const ingredientIds = Array.from(
-      new Set(
-        tracks
-          .filter((track) => track.type !== EditorTrackType.TEXT)
-          .flatMap((track) => track.clips.map((clip) => clip.ingredientId))
-          .filter((ingredientId) => Boolean(ingredientId)),
-      ),
-    );
+    const ingredientIds = editorTrackIngredientIds(tracks);
 
     if (ingredientIds.length === 0) {
       return tracks;
@@ -409,17 +406,7 @@ export class EditorProjectsController {
       ]),
     );
 
-    return tracks.map((track) =>
-      track.type === EditorTrackType.TEXT
-        ? track
-        : {
-            ...track,
-            clips: track.clips.map((clip) => {
-              const ingredientUrl = urlByIngredientId.get(clip.ingredientId);
-              return ingredientUrl ? { ...clip, ingredientUrl } : clip;
-            }),
-          },
-    );
+    return relinkEditorTracks(tracks, urlByIngredientId);
   }
 
   @Delete(':id')

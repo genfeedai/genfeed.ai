@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   type ClipProjectCreateInput,
@@ -16,6 +15,12 @@ import { ClipAnalysisWorkflowQueueService } from '@api/collections/clip-projects
 import { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/services/clip-factory-workflow-queue.service';
 import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import {
+  buildYoutubeSource,
+  DEFAULT_CLIP_SOURCE_MAX_RETRIES,
+  hashSource as hashClipSource,
+  withClipSourceJobId,
+} from '@api/collections/clip-projects/services/clip-source-contract.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
@@ -45,7 +50,6 @@ import {
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
-const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 const DRAFT_CLAIM_ATTEMPTS = 3;
 
 export interface ClipProjectAnalysisResult {
@@ -181,7 +185,7 @@ export class ClipProjectIngestionService {
       throw new InsufficientCreditsException(estimatedClips, currentBalance);
     }
 
-    const source = this.buildYoutubeSource(dto.youtubeUrl, 'quick');
+    const source = buildYoutubeSource(dto.youtubeUrl, 'quick');
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId,
       language: dto.language ?? 'en',
@@ -210,7 +214,10 @@ export class ClipProjectIngestionService {
     });
 
     const projectId = String(project.id);
-    const queuedSource = this.withJobId(source, `clip-factory-${projectId}`);
+    const queuedSource = withClipSourceJobId(
+      source,
+      `clip-factory-${projectId}`,
+    );
     const batchJobId = await this.dispatchOrReleaseDraft(
       dto.draftProjectId,
       orgId,
@@ -267,7 +274,7 @@ export class ClipProjectIngestionService {
       organizationId: orgId,
     });
 
-    const source = this.buildYoutubeSource(dto.youtubeUrl, 'review');
+    const source = buildYoutubeSource(dto.youtubeUrl, 'review');
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId,
       language: dto.language ?? 'en',
@@ -292,7 +299,10 @@ export class ClipProjectIngestionService {
     });
 
     const projectId = String(project.id);
-    const queuedSource = this.withJobId(source, `clip-analysis-${projectId}`);
+    const queuedSource = withClipSourceJobId(
+      source,
+      `clip-analysis-${projectId}`,
+    );
     await this.dispatchOrReleaseDraft(
       dto.draftProjectId,
       orgId,
@@ -371,7 +381,7 @@ export class ClipProjectIngestionService {
       },
       contentType: dto.contentType,
       filename: dto.filename,
-      fingerprint: this.hashSource(
+      fingerprint: hashClipSource(
         `${upload.id}:${dto.filename}:${dto.sizeBytes}:${dto.contentType}`,
       ),
       flow,
@@ -950,37 +960,6 @@ export class ClipProjectIngestionService {
       throw new NotFoundException('ClipProject', projectId);
     }
     return project;
-  }
-
-  private buildYoutubeSource(
-    youtubeUrl: string,
-    flow: ClipProcessingFlow,
-  ): ClipSourceContract {
-    return {
-      fingerprint: this.hashSource(youtubeUrl),
-      flow,
-      kind: 'youtube',
-      maxRetries: DEFAULT_CLIP_SOURCE_MAX_RETRIES,
-      retryCount: 0,
-      schemaVersion: CLIP_SOURCE_SCHEMA_VERSION,
-      status: 'queued',
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private withJobId(
-    source: ClipSourceContract,
-    jobId: string,
-  ): ClipSourceContract {
-    return {
-      ...source,
-      jobId,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  private hashSource(value: string): string {
-    return `sha256:${createHash('sha256').update(value).digest('hex')}`;
   }
 
   private needsAvatarIdentity(mode: string, provider: string): boolean {

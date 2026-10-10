@@ -7,6 +7,7 @@ import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows
 import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
 import { WorkflowMediaBillingPlanService } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
 import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
+import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
@@ -248,6 +249,7 @@ import { Module } from '@nestjs/common';
     WorkflowMediaProviderPlanService,
     WorkflowMediaBillingPlanService,
     WorkflowGenerationAdmissionPlanService,
+    WorkflowMediaDispatchAdmissionService,
     WorkflowMediaGenerationExecutorRegistrarService,
     WorkflowKnowledgeGroundingService,
     WorkflowContentExecutorRegistrarService,

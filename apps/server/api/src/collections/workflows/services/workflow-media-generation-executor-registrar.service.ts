@@ -1,4 +1,3 @@
-import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
@@ -8,16 +7,10 @@ import {
 } from '@api/collections/workflow-executions/services/workflow-generation-dispatch.context';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
-import {
-  type ValidatedWorkflowMediaDispatch,
-  WorkflowMediaBillingPlanService,
-} from '@api/collections/workflows/services/workflow-media-billing-plan.service';
+import type { ValidatedWorkflowMediaDispatch } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
+import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
-import { assertWorkflowGenerationActorAdmission } from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
-import { parseWorkflowGenerationAdmissionSource } from '@api/collections/workflows/utils/workflow-generation-admission-source.util';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { workflowExecutionGenerationBillingSchema } from '@api/helpers/utils/credits/workflow-generation-billing.schema';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
@@ -25,7 +18,6 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaLocalizationService } from '@api/services/media-localization/media-localization.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ByokProvider,
   IngredientCategory,
@@ -63,15 +55,13 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     @Optional() private readonly byokService?: ByokService,
     @Optional()
     private readonly mediaLocalizationService?: MediaLocalizationService,
-    @Optional() private readonly billingPlan?: WorkflowMediaBillingPlanService,
-    @Optional() private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly dispatchAdmission?: WorkflowMediaDispatchAdmissionService,
     @Optional() private readonly configService?: ConfigService,
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
     @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly falVideo?: FalVideoGenerationProviderAdapter,
-    @Optional() _webhooks?: WebhooksService,
-    @Optional() private readonly brandAccess?: BrandAccessService,
     @Optional()
     private readonly falOutputFinalization?: WorkflowFalOutputFinalizationService,
   ) {}
@@ -725,76 +715,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     return params.buildReturn(pendingOutput.ingredientId, outputCategory);
   }
 
-  private async authorizeMediaDispatch(
+  private authorizeMediaDispatch(
     node: ExecutableNode,
     context: ExecutionContext,
   ): Promise<ValidatedWorkflowMediaDispatch | undefined> {
-    if (!context.executionId || !this.billingPlan || !this.prisma) {
-      return undefined;
-    }
-    const execution = await this.prisma.workflowExecution.findFirst({
-      select: {
-        generationAdmissionSource: true,
-        generationBilling: true,
-      },
-      where: {
-        id: context.executionId,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
-    });
-    if (!execution) {
-      throw new BusinessLogicException('Workflow execution is unavailable');
-    }
-    if (!execution.generationAdmissionSource && !execution.generationBilling) {
-      return undefined;
-    }
-    if (!execution.generationBilling) {
-      throw new BusinessLogicException(
-        'Workflow funded dispatch is unavailable',
-      );
-    }
-    if (execution.generationAdmissionSource) {
-      const source = parseWorkflowGenerationAdmissionSource(
-        execution.generationAdmissionSource,
-      );
-      if (
-        !this.brandAccess ||
-        source.state !== 'available' ||
-        source.organizationId !== context.organizationId ||
-        source.actorUserId !== context.userId ||
-        source.workflowVersionId !== context.workflowVersionId
-      )
-        throw new BusinessLogicException(
-          'Workflow generation actor admission is unavailable',
-        );
-      await assertWorkflowGenerationActorAdmission(
-        this.brandAccess,
-        source,
-        this.prisma,
-        node.id,
-      );
-    }
-    const dispatch = currentWorkflowGenerationDispatch();
-    if (
-      !dispatch ||
-      dispatch.executionId !== context.executionId ||
-      dispatch.organizationId !== context.organizationId
-    ) {
-      throw new BusinessLogicException(
-        'Workflow dispatch context is unavailable',
-      );
-    }
-    return this.billingPlan.validateDispatch({
-      context: { ...context, executionId: context.executionId },
-      executionId: context.executionId,
-      funding: workflowExecutionGenerationBillingSchema.parse(
-        execution.generationBilling,
-      ),
-      inputs: dispatch.inputs,
-      node,
-      operationId: dispatch.operationId,
-    });
+    return (
+      this.dispatchAdmission?.authorize(node, context) ??
+      Promise.resolve(undefined)
+    );
   }
 
   private async dispatchFundedMedia<T>(

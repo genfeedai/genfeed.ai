@@ -55,6 +55,8 @@ export class VisualProjectDispatchService {
     const bound = await this.prisma.visualRevision.updateMany({
       where: {
         ...scope,
+        organizationId: revision.organizationId,
+        isDeleted: false,
         OR: [
           { workflowExecutionId: null },
           { workflowExecutionId: executionId },
@@ -82,6 +84,8 @@ export class VisualProjectDispatchService {
     const stopped = await this.prisma.visualRevision.updateMany({
       where: {
         ...scope,
+        organizationId: revision.organizationId,
+        isDeleted: false,
         workflowExecutionId: executionId,
         status: current.status,
         receipts: { equals: toPrismaJson(current.receipts) },

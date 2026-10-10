@@ -1,6 +1,7 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/config', async (original) => ({
@@ -89,6 +90,18 @@ describe('readonly paid module eligibility', () => {
       expect(row.hasPaidModuleSubscription).toBe(true);
     },
   );
+  it('keeps paid eligibility unavailable outside the active tenant without querying billing', async () => {
+    vi.mocked(hasOrganizationBilling).mockReturnValue(true);
+    const { service, fresh, get } = create(false);
+    const result = await runWithTenantContext(
+      { organizationId: 'selected-other-org' },
+      () => service.findOne({ organizationId: 'org-1' }),
+    );
+    expect(result?.hasPaidModuleSubscription).toBeNull();
+    expect(fresh).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
+  });
+
   it('does not allow a forged row value to grant access when lookup fails', async () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(true);
     const { service } = create(false, true);

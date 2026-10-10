@@ -1,4 +1,5 @@
 import {
+  buildClipAnalysisFailureWorkflowDefinition,
   buildClipAnalysisWorkflowDefinition,
   CLIP_ANALYSIS_ACTION_IDS,
   CLIP_ANALYSIS_WORKFLOW_ID,
@@ -21,5 +22,24 @@ describe('buildClipAnalysisWorkflowDefinition', () => {
       CLIP_ANALYSIS_ACTION_IDS.PERSIST,
     ]);
     expect(workflow.definition.edges).toHaveLength(4);
+  });
+});
+
+describe('buildClipAnalysisFailureWorkflowDefinition', () => {
+  it('binds the terminal error and original job into the failure action', () => {
+    const workflow = buildClipAnalysisFailureWorkflowDefinition();
+    expect(workflow.definition.inputVariables).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'workflowError',
+          required: true,
+          type: 'string',
+        }),
+      ]),
+    );
+    expect(workflow.definition.nodes?.[0].data.inputVariableKeys).toEqual([
+      'job',
+      'workflowError',
+    ]);
   });
 });

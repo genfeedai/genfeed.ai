@@ -360,10 +360,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       request.input.workflowError,
       'workflowError',
     );
-    if (
-      data.source &&
-      !data.projectId.startsWith(PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX)
-    ) {
+    if (!data.projectId.startsWith(PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX)) {
       const project = await this.clipProjectsService.findOne({
         id: data.projectId,
         isDeleted: false,
@@ -371,8 +368,10 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       });
       if (
         project?.source &&
-        (project.source.fingerprint !== data.source.fingerprint ||
-          project.source.retryCount !== data.source.retryCount)
+        (data.source
+          ? project.source.fingerprint !== data.source.fingerprint ||
+            project.source.retryCount !== data.source.retryCount
+          : project.source.retryCount > 0)
       ) {
         return { status: 'failed' };
       }

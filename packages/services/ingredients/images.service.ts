@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { IImageEditParams } from '@genfeedai/contracts/interfaces/components/image-edit.interface';
 import type { ImageGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import type { Image } from '@genfeedai/models/ingredients/image.model';
 import type {
   SplitFrameResult,
@@ -20,12 +21,16 @@ import {
 } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
-import { parseCrunQuoteResponse } from '@services/core/crun-quote-response';
+import {
+  isExpectedCrunQuoteConflict,
+  parseCrunQuoteResponse,
+} from '@services/core/crun-quote-response';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
 } from '@services/core/service-instance-manager';
+import type { AxiosRequestConfig } from 'axios';
 
 const imageInstances = new ServiceInstanceManager<ImagesService>();
 
@@ -53,8 +58,11 @@ export class ImagesService extends IngredientsService<Image> {
       | (CrunImageQuoteRequest & { crunQuoteId: string }),
   ) {
     const data = ImageGenerationSerializer.serialize(body);
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handlesErrorResponse: isExpectedCrunQuoteConflict,
+    };
     return await this.instance
-      .post<JsonApiResponseDocument>('', data) // Empty string for root path, data as second argument
+      .post<JsonApiResponseDocument>('', data, config) // Empty string for root path, data as second argument
       .then((res) => this.mapOne(res.data));
   }
 

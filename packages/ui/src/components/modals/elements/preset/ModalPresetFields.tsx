@@ -8,6 +8,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 
 export default function ModalPresetFields({
   control,
@@ -21,37 +22,36 @@ export default function ModalPresetFields({
   onEnhance,
   onUndo,
 }: ModalPresetFieldsProps) {
+  const t = useTranslations('ui.presetFields');
   return (
     <>
-      <FormControl label="Label">
+      <FormControl label={t('label')}>
         <Input
           type="text"
           name="label"
           control={control}
           onChange={onChange}
-          placeholder="Enter display label"
+          placeholder={t('labelPlaceholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
       </FormControl>
 
-      <FormControl label="Key">
+      <FormControl label={t('key')}>
         <Input
           type="text"
           name="key"
           control={control}
           onChange={onChange}
-          placeholder="lowercase-with-hyphens"
+          placeholder={t('keyPlaceholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
 
-        <p className="text-xs text-foreground/70 mt-1">
-          Unique identifier (lowercase, alphanumeric with hyphens)
-        </p>
+        <p className="text-xs text-foreground/70 mt-1">{t('keyHelp')}</p>
       </FormControl>
 
-      <FormControl label="Type">
+      <FormControl label={t('type')}>
         <SelectField
           name="category"
           control={control}
@@ -74,7 +74,7 @@ export default function ModalPresetFields({
       <FormControl
         label={
           <TextareaLabelActions
-            label="Description"
+            label={t('description')}
             onCopy={onCopy}
             onEnhance={onEnhance}
             onUndo={onUndo}
@@ -91,31 +91,39 @@ export default function ModalPresetFields({
           name="description"
           control={control}
           onChange={onChange}
-          placeholder="Enter description (optional)"
+          placeholder={t('descriptionPlaceholder')}
           isDisabled={isSubmitting || isEnhancing}
         />
       </FormControl>
-      <FormControl label="Generation prompt">
+      <FormControl label={t('prompt')}>
         <Textarea
           name="prompt"
           control={control}
           onChange={onChange}
           isDisabled={isSubmitting}
-          placeholder="Suggested prompt when the creator's prompt is empty"
+          placeholder={t('promptPlaceholder')}
         />
       </FormControl>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {(
           [
-            ['aspectRatio', 'Aspect ratio', '16:9'],
-            ['promptTemplate', 'Prompt template', 'Template key'],
-            ['style', 'Style', 'Visual style'],
-            ['mood', 'Mood', 'Mood'],
-            ['scene', 'Scene', 'Scene description'],
-            ['camera', 'Camera', 'Camera angle'],
-            ['lens', 'Lens', 'Lens'],
-            ['lighting', 'Lighting', 'Lighting'],
-            ['cameraMovement', 'Camera movement', 'Camera movement'],
+            ['aspectRatio', t('aspectRatio'), t('aspectRatioPlaceholder')],
+            [
+              'promptTemplate',
+              t('promptTemplate'),
+              t('promptTemplatePlaceholder'),
+            ],
+            ['style', t('style'), t('stylePlaceholder')],
+            ['mood', t('mood'), t('moodPlaceholder')],
+            ['scene', t('scene'), t('scenePlaceholder')],
+            ['camera', t('camera'), t('cameraPlaceholder')],
+            ['lens', t('lens'), t('lensPlaceholder')],
+            ['lighting', t('lighting'), t('lightingPlaceholder')],
+            [
+              'cameraMovement',
+              t('cameraMovement'),
+              t('cameraMovementPlaceholder'),
+            ],
           ] as const
         ).map(([name, label, placeholder]) => (
           <FormControl key={name} label={label}>
@@ -128,7 +136,7 @@ export default function ModalPresetFields({
             />
           </FormControl>
         ))}
-        <FormControl label="Video duration (seconds)">
+        <FormControl label={t('duration')}>
           <Input
             type="number"
             min={0.01}
@@ -143,7 +151,7 @@ export default function ModalPresetFields({
       </div>
       <Checkbox
         name="isActive"
-        label="Active"
+        label={t('active')}
         control={control}
         isDisabled={isSubmitting}
       />

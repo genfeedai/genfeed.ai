@@ -7,7 +7,10 @@ import {
   Platform,
   SubscriptionStatus,
 } from '@genfeedai/contracts';
-import { EXPERT_FIRST_SYSTEM_CREDIT_COST } from '@genfeedai/contracts/constants';
+import {
+  DEFAULT_PLATFORM_FLAGS,
+  EXPERT_FIRST_SYSTEM_CREDIT_COST,
+} from '@genfeedai/contracts/constants';
 import type {
   AdminModelPricingReport,
   AdsResearchResponse,
@@ -107,6 +110,9 @@ interface MockBrand {
 }
 
 interface MockOrganizationSettings {
+  hasOrganizationBilling: boolean;
+  hasPaidModuleSubscription: boolean;
+  moduleOverrides: Record<string, boolean>;
   id: string;
   isFleetNsfwVisible: boolean;
   defaultAvatarIngredientId: string | null;
@@ -246,6 +252,16 @@ export function generateMockOrganizationSettings(
     defaultVoiceId: null,
     defaultVoiceRef: null,
     id: 'org-settings-1',
+    hasOrganizationBilling: true,
+    hasPaidModuleSubscription: true,
+    moduleOverrides: {
+      motion: true,
+      clips: true,
+      batch: true,
+      editor: true,
+      automation: true,
+      messages: true,
+    },
     isFleetNsfwVisible: false,
     ...overrides,
   };
@@ -2371,6 +2387,14 @@ export async function setupApiMocks(
     await page.route(`${PROD_API_V1}${pathPattern}`, handler);
     await page.route(`${playwrightApiEndpoint}${pathPattern}`, handler);
   };
+
+  await routeApi('/public/platform-flags**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(DEFAULT_PLATFORM_FLAGS),
+    });
+  });
 
   // Users — register the generic handler first because Playwright matches
   // routes in reverse registration order. More specific /users/me/* mocks

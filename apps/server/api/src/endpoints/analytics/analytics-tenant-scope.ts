@@ -228,3 +228,10 @@ export function buildTopContentAnalyticsCacheKey(
     request.query?.source || '',
   ]);
 }
+
+export function resolveAnalyticsOrganizationId(
+  user: Parameters<typeof resolveAnalyticsTenantScope>[0],
+  request?: Parameters<typeof resolveAnalyticsTenantScope>[1],
+): string | undefined {
+  return resolveAnalyticsTenantScope(user, request).organizationId;
+}

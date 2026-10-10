@@ -1,6 +1,6 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
 import { RouterController } from '@api/services/router/router.controller';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { describe, expect, it } from 'vitest';
@@ -21,6 +21,9 @@ describe('controller auth guard metadata', () => {
     const guards = getControllerGuards(AvatarVideoController);
 
     expect(guards).not.toContain(BetterAuthGuard);
-    expect(guards).toEqual([SubscriptionGuard]);
+    expect(guards).toEqual([]);
+    expect(
+      Reflect.getMetadata(ORGANIZATION_MODULE_KEY, AvatarVideoController),
+    ).toMatchObject({ moduleId: 'playground' });
   });
 });

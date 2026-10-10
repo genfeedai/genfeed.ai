@@ -3,12 +3,12 @@ import {
   resolveOrganizationPaidGrant,
 } from '@api/common/subscriptions/paid-subscription-access.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BillingAccountScope,
-  billingAccountScopedWhere,
   resolveBillingAccountAccess,
-} from '@api/index';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+} from '@api/tenancy/billing-account-scope';
+import { billingAccountScopedWhere } from '@api/tenancy/scoped-where';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

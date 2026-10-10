@@ -18,6 +18,7 @@ import type {
   IVideoTextOverlayParams,
 } from '@genfeedai/contracts/interfaces/components/video-operations.interface';
 import type { VideoGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { buildResourcePath } from '@genfeedai/helpers/formatting/url/url.helper';
 import { Caption } from '@genfeedai/models/content/caption.model';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
@@ -30,13 +31,16 @@ import {
 } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
-
-import { parseCrunQuoteResponse } from '@services/core/crun-quote-response';
+import {
+  isExpectedCrunQuoteConflict,
+  parseCrunQuoteResponse,
+} from '@services/core/crun-quote-response';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
 } from '@services/core/service-instance-manager';
+import type { AxiosRequestConfig } from 'axios';
 
 const videoInstances = new ServiceInstanceManager<VideosService>();
 
@@ -77,8 +81,12 @@ export class VideosService extends IngredientsService<Video> {
     signal?: AbortSignal,
   ) {
     const data = VideoGenerationSerializer.serialize(body);
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      signal,
+      handlesErrorResponse: isExpectedCrunQuoteConflict,
+    };
     return await this.instance
-      .post<JsonApiResponseDocument>('', data, { signal }) // Empty string for root path, data as second argument
+      .post<JsonApiResponseDocument>('', data, config) // Empty string for root path, data as second argument
       .then((res) => this.mapOne(res.data));
   }
 

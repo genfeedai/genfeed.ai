@@ -31,6 +31,112 @@ export class WorkflowFalOutputFinalizationService {
     private readonly logger: LoggerService,
   ) {}
 
+  private async verifyStoredOutput(
+    uploaded: Pick<
+      IFileMetadata,
+      's3Key' | 'width' | 'height' | 'duration' | 'size'
+    >,
+    ceiling: {
+      width?: number;
+      height?: number;
+      duration?: number;
+      framesPerSecond?: number;
+    },
+    identity: {
+      continuationId: string;
+      organizationId: string;
+      ingredientId: string;
+      externalId: string;
+      metadataId: string;
+    },
+  ): Promise<void> {
+    if (!uploaded.s3Key)
+      throw new Error('Accepted Fal output has no stored object identity');
+    const url = await this.files.getPresignedDownloadUrlForObjectKey(
+      uploaded.s3Key,
+    );
+    const before = await this.files.fingerprintMedia(url);
+    const probe = await this.files.probeMediaFromUrl(url, 'video');
+    const after = await this.files.fingerprintMedia(url);
+    if (
+      before.assetHash !== after.assetHash ||
+      before.sizeBytes !== after.sizeBytes ||
+      probe.sizeBytes !== after.sizeBytes ||
+      !probe.width ||
+      !probe.height ||
+      !probe.durationSeconds ||
+      !probe.frameRate ||
+      probe.width !== uploaded.width ||
+      probe.height !== uploaded.height ||
+      probe.durationSeconds !== uploaded.duration ||
+      after.sizeBytes !== uploaded.size
+    )
+      throw new Error(
+        'Accepted Fal output has no matching stable stored video',
+      );
+    if (
+      (ceiling.width !== undefined && probe.width > ceiling.width) ||
+      (ceiling.height !== undefined && probe.height > ceiling.height) ||
+      (ceiling.duration !== undefined &&
+        probe.durationSeconds > ceiling.duration) ||
+      (ceiling.framesPerSecond !== undefined &&
+        probe.frameRate > ceiling.framesPerSecond)
+    )
+      throw new Error('Accepted Fal output exceeds its funded quantities');
+    await this.continuations.recordFalOutputMeasurement({
+      continuationId: identity.continuationId,
+      organizationId: identity.organizationId,
+      ingredientId: identity.ingredientId,
+      externalId: identity.externalId,
+      measurement: {
+        width: probe.width,
+        height: probe.height,
+        duration: probe.durationSeconds,
+        framesPerSecond: probe.frameRate,
+        assetHash: after.assetHash,
+        sizeBytes: after.sizeBytes,
+        assetKey: uploaded.s3Key,
+      },
+    });
+    await this.metadata.patch(
+      identity.metadataId,
+      new MetadataEntity({ fps: probe.frameRate }),
+    );
+  }
+
+  private async releaseIngestionLease(
+    continuationId: string,
+    organizationId: string,
+    leaseId: string,
+  ): Promise<void> {
+    try {
+      const current = await this.prisma.workflowNodeContinuation.findFirst({
+        select: { providerResult: true },
+        where: { id: continuationId, organizationId },
+      });
+      const { falOutputIngestion: _lease, ...result } = record(
+        current?.providerResult,
+      );
+      await this.prisma.workflowNodeContinuation.updateMany({
+        where: {
+          id: continuationId,
+          organizationId: organizationId,
+          providerResult: {
+            path: ['falOutputIngestion', 'leaseId'],
+            equals: leaseId,
+          },
+        },
+        data: { providerResult: result as Prisma.InputJsonValue },
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        'Workflow Fal ingestion lease release remains recoverable',
+        error,
+        { continuationId, organizationId },
+      );
+    }
+  }
+
   async reconcile(): Promise<void> {
     // tenant-scope-ignore: bounded platform backstop discovers persisted owners, then each attempt reloads that exact tenant.
     const rows = await this.prisma.workflowNodeContinuation.findMany({
@@ -54,7 +160,7 @@ export class WorkflowFalOutputFinalizationService {
     const row = await this.prisma.workflowNodeContinuation.findFirst({
       where: {
         id: continuationId,
-        organizationId,
+        organizationId: organizationId,
         provider: 'fal',
         actionId: 'videoGen',
         status: WorkflowNodeContinuationStatus.WAITING_PROVIDER,
@@ -74,7 +180,7 @@ export class WorkflowFalOutputFinalizationService {
     const claimed = await this.prisma.workflowNodeContinuation.updateMany({
       where: {
         id: row.id,
-        organizationId,
+        organizationId: organizationId,
         status: row.status,
         updatedAt: row.updatedAt,
       },
@@ -91,7 +197,7 @@ export class WorkflowFalOutputFinalizationService {
         include: { metadata: true },
         where: {
           id: row.ingredientId,
-          organizationId,
+          organizationId: organizationId,
           isDeleted: false,
           category: IngredientCategory.VIDEO,
         },
@@ -100,7 +206,7 @@ export class WorkflowFalOutputFinalizationService {
         select: { generationBilling: true },
         where: {
           id: row.executionId,
-          organizationId,
+          organizationId: organizationId,
           workflowVersionId: row.workflowVersionId,
           isDeleted: false,
         },
@@ -130,58 +236,16 @@ export class WorkflowFalOutputFinalizationService {
           's3Key' | 'width' | 'height' | 'duration' | 'size'
         >,
       ): Promise<void> => {
-        if (!uploaded.s3Key)
-          throw new Error('Accepted Fal output has no stored object identity');
-        const url = await this.files.getPresignedDownloadUrlForObjectKey(
-          uploaded.s3Key,
-        );
-        const before = await this.files.fingerprintMedia(url);
-        const probe = await this.files.probeMediaFromUrl(url, 'video');
-        const after = await this.files.fingerprintMedia(url);
-        if (
-          before.assetHash !== after.assetHash ||
-          before.sizeBytes !== after.sizeBytes ||
-          probe.sizeBytes !== after.sizeBytes ||
-          !probe.width ||
-          !probe.height ||
-          !probe.durationSeconds ||
-          !probe.frameRate ||
-          probe.width !== uploaded.width ||
-          probe.height !== uploaded.height ||
-          probe.durationSeconds !== uploaded.duration ||
-          after.sizeBytes !== uploaded.size
-        )
-          throw new Error(
-            'Accepted Fal output has no matching stable stored video',
-          );
-        const ceiling = allocation.dispatch.quantities;
-        if (
-          (ceiling.width !== undefined && probe.width > ceiling.width) ||
-          (ceiling.height !== undefined && probe.height > ceiling.height) ||
-          (ceiling.duration !== undefined &&
-            probe.durationSeconds > ceiling.duration) ||
-          (ceiling.framesPerSecond !== undefined &&
-            probe.frameRate > ceiling.framesPerSecond)
-        )
-          throw new Error('Accepted Fal output exceeds its funded quantities');
-        await this.continuations.recordFalOutputMeasurement({
-          continuationId,
-          organizationId,
-          ingredientId: row.ingredientId,
-          externalId: acceptedExternalId,
-          measurement: {
-            width: probe.width,
-            height: probe.height,
-            duration: probe.durationSeconds,
-            framesPerSecond: probe.frameRate,
-            assetHash: after.assetHash,
-            sizeBytes: after.sizeBytes,
-            assetKey: uploaded.s3Key,
+        await this.verifyStoredOutput(
+          uploaded,
+          allocation.dispatch.quantities,
+          {
+            continuationId,
+            organizationId,
+            ingredientId: row.ingredientId,
+            externalId: acceptedExternalId,
+            metadataId: artifactMetadata.id,
           },
-        });
-        await this.metadata.patch(
-          artifactMetadata.id,
-          new MetadataEntity({ fps: probe.frameRate }),
         );
       };
       if (artifact.status === IngredientStatus.PROCESSING) {
@@ -208,7 +272,7 @@ export class WorkflowFalOutputFinalizationService {
         select: { s3Key: true, status: true },
         where: {
           id: row.ingredientId,
-          organizationId,
+          organizationId: organizationId,
           isDeleted: false,
           category: IngredientCategory.VIDEO,
         },
@@ -234,32 +298,7 @@ export class WorkflowFalOutputFinalizationService {
       );
       return false;
     } finally {
-      try {
-        const current = await this.prisma.workflowNodeContinuation.findFirst({
-          select: { providerResult: true },
-          where: { id: continuationId, organizationId },
-        });
-        const { falOutputIngestion: _lease, ...result } = record(
-          current?.providerResult,
-        );
-        await this.prisma.workflowNodeContinuation.updateMany({
-          where: {
-            id: continuationId,
-            organizationId,
-            providerResult: {
-              path: ['falOutputIngestion', 'leaseId'],
-              equals: leaseId,
-            },
-          },
-          data: { providerResult: result as Prisma.InputJsonValue },
-        });
-      } catch (error: unknown) {
-        this.logger.error(
-          'Workflow Fal ingestion lease release remains recoverable',
-          error,
-          { continuationId, organizationId },
-        );
-      }
+      await this.releaseIngestionLease(continuationId, organizationId, leaseId);
     }
   }
 }

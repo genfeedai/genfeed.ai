@@ -45,50 +45,15 @@ export class VideoExtensionExecutionService {
     private readonly runner: SystemWorkflowRunnerService,
   ) {}
 
-  async enqueue(
+  private async prepareSource(
     user: AuthenticatedUser,
     sourceId: string,
+    sourceKey: string,
     dto: VideoExtendDto,
+    model: { provider: string; endpoint: string | null },
   ) {
-    const actorUserId = user.userId ?? user.id;
-    const source = await this.prisma.ingredient.findFirst({
-      where: {
-        id: sourceId,
-        organizationId: user.organizationId,
-        isDeleted: false,
-        category: IngredientCategory.VIDEO,
-        status: {
-          in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-        },
-      },
-    });
-    if (!source?.s3Key || !source.brandId)
-      throw new BadRequestException(
-        'A stored completed video and source brand are required to extend',
-      );
-    await this.brandAccess.assert(
-      { ...user, userId: actorUserId },
-      source.brandId,
-    );
-    await this.personas.resolveCharacterReferences({
-      brandId: source.brandId,
-      ingredientIds: [sourceId],
-      organizationId: user.organizationId,
-      path: 'video-extend',
-    });
-    const model = await this.prisma.model.findFirst({
-      where: {
-        key: dto.model,
-        isActive: true,
-        isDeleted: false,
-        ...platformOrTenantScope(user.organizationId),
-      },
-    });
-    if (!model)
-      throw new BadRequestException('The extension model is unavailable');
-    const sourceUrl = await this.files.getPresignedDownloadUrlForObjectKey(
-      source.s3Key,
-    );
+    const sourceUrl =
+      await this.files.getPresignedDownloadUrlForObjectKey(sourceKey);
     const before = await this.files.fingerprintMedia(sourceUrl);
     const probe = await this.files.probeMediaFromUrl(sourceUrl, 'video');
     const after = await this.files.fingerprintMedia(sourceUrl);
@@ -104,7 +69,7 @@ export class VideoExtensionExecutionService {
       );
     const sourceEvidence = {
       assetId: sourceId,
-      sourceKey: source.s3Key,
+      sourceKey: sourceKey,
       sourceVersion: after.assetHash,
       sizeBytes: after.sizeBytes,
     };
@@ -139,7 +104,7 @@ export class VideoExtensionExecutionService {
         measuredSeedanceVideoReference({
           assetId: sourceId,
           organizationId: user.organizationId,
-          sourceKey: source.s3Key,
+          sourceKey: sourceKey,
           url: sourceUrl,
           before,
           probe,
@@ -147,86 +112,164 @@ export class VideoExtensionExecutionService {
         }),
       ]);
     }
+    return {
+      sourceUrl,
+      durationSeconds: probe.durationSeconds,
+      sourceEvidence,
+      canonicalSourceUrl,
+      native,
+    };
+  }
+
+  private async prepareLastFrame(
+    user: AuthenticatedUser,
+    actorUserId: string,
+    sourceId: string,
+    brandId: string,
+    sourceUrl: string,
+    durationSeconds: number,
+    sourceEvidence: Record<string, string | number>,
+  ) {
+    const frameUrl: unknown = await this.files.generateThumbnail(
+      sourceUrl,
+      sourceId,
+      Math.max(0, durationSeconds - 0.05),
+    );
+    if (typeof frameUrl !== 'string' || !frameUrl)
+      throw new BadRequestException(
+        'The source last frame could not be extracted',
+      );
+    const { ingredientData } = await this.shared.createMediaDocumentsInternal({
+      brandId: brandId,
+      organizationId: user.organizationId,
+      userId: actorUserId,
+      category: IngredientCategory.IMAGE,
+      extension: MetadataExtension.JPG,
+      origin: IngredientOrigin.GENERATED,
+      status: IngredientStatus.PROCESSING,
+      parentId: sourceId,
+      sourceIds: [sourceId],
+      generationSource: 'video-extension:last-frame',
+      providerData: {
+        sourceEvidence,
+        timestampSeconds: Math.max(0, durationSeconds - 0.05),
+      },
+    });
+    const frameIngredientId = ingredientData.id.toString();
+    try {
+      await this.media.processMediaForIngredient(
+        frameIngredientId,
+        IngredientCategory.IMAGE,
+        frameUrl,
+      );
+    } catch (error: unknown) {
+      await this.prisma.ingredient.updateMany({
+        where: {
+          id: frameIngredientId,
+          organizationId: user.organizationId,
+          brandId: brandId,
+          parentId: sourceId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+        data: { status: IngredientStatus.FAILED },
+      });
+      throw error;
+    }
+    const storedFrame = await this.prisma.ingredient.findFirst({
+      where: {
+        id: frameIngredientId,
+        organizationId: user.organizationId,
+        brandId: brandId,
+        isDeleted: false,
+        category: IngredientCategory.IMAGE,
+        parentId: sourceId,
+        status: {
+          in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+        },
+      },
+    });
+    if (!storedFrame?.s3Key)
+      throw new BadRequestException(
+        'The extracted last frame has not been stored',
+      );
+    const storedFrameUrl = await this.files.getPresignedDownloadUrlForObjectKey(
+      storedFrame.s3Key,
+    );
+    const frameFingerprint = await this.files.fingerprintMedia(storedFrameUrl);
+    const frameEvidence = {
+      assetId: frameIngredientId,
+      sourceKey: storedFrame.s3Key,
+      sourceVersion: frameFingerprint.assetHash,
+      sizeBytes: frameFingerprint.sizeBytes,
+    };
+    const image = `${this.config.ingredientsEndpoint}/images/${frameIngredientId}`;
+    return { frameIngredientId, frameEvidence, image };
+  }
+
+  async enqueue(
+    user: AuthenticatedUser,
+    sourceId: string,
+    dto: VideoExtendDto,
+  ) {
+    const actorUserId = user.userId ?? user.id;
+    const source = await this.prisma.ingredient.findFirst({
+      where: {
+        id: sourceId,
+        organizationId: user.organizationId,
+        isDeleted: false,
+        category: IngredientCategory.VIDEO,
+        status: {
+          in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+        },
+      },
+    });
+    if (!source?.s3Key || !source.brandId)
+      throw new BadRequestException(
+        'A stored completed video and source brand are required to extend',
+      );
+    await this.brandAccess.assert(
+      { ...user, userId: actorUserId },
+      source.brandId,
+    );
+    await this.personas.resolveCharacterReferences({
+      brandId: source.brandId,
+      ingredientIds: [sourceId],
+      organizationId: user.organizationId,
+      path: 'video-extend',
+    });
+    // tenant-scope-ignore: model is a platform-or-tenant registry; platformOrTenantScope restricts reads to global rows or this organization, with isDeleted:false.
+    const model = await this.prisma.model.findFirst({
+      where: {
+        key: dto.model,
+        isActive: true,
+        isDeleted: false,
+        ...platformOrTenantScope(user.organizationId),
+      },
+    });
+    if (!model)
+      throw new BadRequestException('The extension model is unavailable');
+    const {
+      sourceUrl,
+      durationSeconds,
+      sourceEvidence,
+      canonicalSourceUrl,
+      native,
+    } = await this.prepareSource(user, sourceId, source.s3Key, dto, model);
     let frameIngredientId: string | undefined;
     let image: string | undefined;
     let frameEvidence: Record<string, string | number> | undefined;
     if (!native) {
-      const frameUrl: unknown = await this.files.generateThumbnail(
-        sourceUrl,
-        sourceId,
-        Math.max(0, probe.durationSeconds - 0.05),
-      );
-      if (typeof frameUrl !== 'string' || !frameUrl)
-        throw new BadRequestException(
-          'The source last frame could not be extracted',
-        );
-      const { ingredientData } = await this.shared.createMediaDocumentsInternal(
-        {
-          brandId: source.brandId,
-          organizationId: user.organizationId,
-          userId: actorUserId,
-          category: IngredientCategory.IMAGE,
-          extension: MetadataExtension.JPG,
-          origin: IngredientOrigin.GENERATED,
-          status: IngredientStatus.PROCESSING,
-          parentId: sourceId,
-          sourceIds: [sourceId],
-          generationSource: 'video-extension:last-frame',
-          providerData: {
-            sourceEvidence,
-            timestampSeconds: Math.max(0, probe.durationSeconds - 0.05),
-          },
-        },
-      );
-      frameIngredientId = ingredientData.id.toString();
-      try {
-        await this.media.processMediaForIngredient(
-          frameIngredientId,
-          IngredientCategory.IMAGE,
-          frameUrl,
-        );
-      } catch (error: unknown) {
-        await this.prisma.ingredient.updateMany({
-          where: {
-            id: frameIngredientId,
-            organizationId: user.organizationId,
-            brandId: source.brandId,
-            parentId: sourceId,
-            isDeleted: false,
-            status: IngredientStatus.PROCESSING,
-          },
-          data: { status: IngredientStatus.FAILED },
-        });
-        throw error;
-      }
-      const storedFrame = await this.prisma.ingredient.findFirst({
-        where: {
-          id: frameIngredientId,
-          organizationId: user.organizationId,
-          brandId: source.brandId,
-          isDeleted: false,
-          category: IngredientCategory.IMAGE,
-          parentId: sourceId,
-          status: {
-            in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-          },
-        },
-      });
-      if (!storedFrame?.s3Key)
-        throw new BadRequestException(
-          'The extracted last frame has not been stored',
-        );
-      const storedFrameUrl =
-        await this.files.getPresignedDownloadUrlForObjectKey(storedFrame.s3Key);
-      const frameFingerprint =
-        await this.files.fingerprintMedia(storedFrameUrl);
-      frameEvidence = {
-        assetId: frameIngredientId,
-        sourceKey: storedFrame.s3Key,
-        sourceVersion: frameFingerprint.assetHash,
-        sizeBytes: frameFingerprint.sizeBytes,
-      };
-      image = `${this.config.ingredientsEndpoint}/images/${frameIngredientId}`;
+      ({ frameIngredientId, frameEvidence, image } =
+        await this.prepareLastFrame(
+          user,
+          actorUserId,
+          sourceId,
+          source.brandId,
+          sourceUrl,
+          durationSeconds,
+          sourceEvidence,
+        ));
     }
     return this.runner.enqueueWorkflow(
       {

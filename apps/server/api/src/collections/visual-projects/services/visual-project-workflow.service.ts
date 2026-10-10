@@ -97,6 +97,19 @@ type VisualExecutionOwnership = WorkflowNodeClaimLease & {
 export class VisualProjectWorkflowService implements OnModuleInit {
   private readonly ownership =
     new AsyncLocalStorage<VisualExecutionOwnership>();
+  /** Shared system-principal lookup for both normal and failure binding proofs. */
+  private readSystemWorkflowMirror(workflowId: string) {
+    return crossOrgUnsafe(() =>
+      this.prisma.workflow.findFirstOrThrow({
+        where: {
+          id: workflowId,
+          organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          isDeleted: false,
+        },
+      }),
+    );
+  }
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflows: SystemWorkflowRunnerService,
@@ -206,16 +219,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       [failure, buildVisualProjectFailureWorkflowDefinition()],
       [original, buildVisualProjectWorkflowDefinition()],
     ] as const) {
-      const mirror = await crossOrgUnsafe(() =>
-        this.prisma.workflow.findFirstOrThrow({
-          where: {
-            id: execution.workflowId,
-            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-            userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-            isDeleted: false,
-          },
-        }),
-      );
+      const mirror = await this.readSystemWorkflowMirror(execution.workflowId);
       if (
         !isHiddenSystemWorkflowMetadata(mirror.metadata) ||
         !isProtectedSystemWorkflowMetadata(mirror.metadata) ||
@@ -303,17 +307,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     // The hidden system workflow mirror is platform-global (owned by the
     // system principal), so this binding check reads it as an explicit
     // cross-org operation.
-    const mirror = await crossOrgUnsafe(
-      async () =>
-        await this.prisma.workflow.findFirstOrThrow({
-          where: {
-            id: execution.workflowId,
-            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-            userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-            isDeleted: false,
-          },
-        }),
-    );
+    const mirror = await this.readSystemWorkflowMirror(execution.workflowId);
     const canonical = getSystemWorkflowMetadata(mirror.metadata);
     const result = z
       .object({

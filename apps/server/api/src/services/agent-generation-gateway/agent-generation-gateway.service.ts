@@ -525,7 +525,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
         isSubscriptionCheckSkipped: true,
         hasCreditsInterceptor: true,
         hasRolesGuard: false,
-        modelValidation: { category: ModelCategory.IMAGE_EDIT },
+        modelValidation: { category: ModelCategory.IMAGE_UPSCALE },
         originalUrl: `/v1/images/${input.resourceId}/upscale`,
         params: { imageId: input.resourceId },
       },

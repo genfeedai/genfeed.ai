@@ -79,6 +79,12 @@ export class OrganizationSettingsService extends BaseService<
     if (!settings) return null;
     if (!settings.hasOrganizationBilling)
       return { ...settings, hasPaidModuleSubscription: true };
+    // Internal credential/onboarding reads can retain their caller-owned settings
+    // while a selected superadmin GET has another active tenant. A runtime
+    // entitlement hint must remain unavailable rather than query that other scope.
+    const tenant = getTenantContext();
+    if (tenant && tenant.organizationId !== settings.organizationId)
+      return settings;
     try {
       const paidAccess = this.moduleRef.get(OrganizationPaidAccessService, {
         strict: false,

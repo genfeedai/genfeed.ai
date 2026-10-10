@@ -34,6 +34,8 @@ function videoResource(
 ): Record<string, unknown> {
   return {
     attributes: {
+      brandId: 'brand-1',
+      organizationId: 'mock-org-id-e2e-test',
       category: IngredientCategory.VIDEO,
       cdnUrl: `https://cdn.genfeed.ai/mock/${id}.mp4`,
       createdAt: '2026-09-28T10:00:00.000Z',
@@ -81,6 +83,8 @@ async function mockVideoModels(page: Page): Promise<void> {
             durations: [5],
             isActive: true,
             isDeleted: false,
+            maxOutputs: 1,
+            maxReferences: 1,
             key: EXTEND_MODEL_KEY,
             label: 'E2E Video Model',
           },

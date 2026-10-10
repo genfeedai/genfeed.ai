@@ -95,6 +95,12 @@ export function buildClipAnalysisFailureWorkflowDefinition(): SystemWorkflowGrap
       edges: [],
       inputVariables: [
         {
+          key: 'workflowError',
+          label: 'Workflow failure',
+          required: true,
+          type: 'string',
+        },
+        {
           key: 'job',
           label: 'Failed clip analysis request',
           required: true,
@@ -105,7 +111,7 @@ export function buildClipAnalysisFailureWorkflowDefinition(): SystemWorkflowGrap
         createGenfeedActionNode({
           actionId: CLIP_ANALYSIS_ACTION_IDS.FAIL,
           id: 'fail-analysis',
-          inputVariableKeys: ['job'],
+          inputVariableKeys: ['job', 'workflowError'],
           position: { x: 0, y: 0 },
         }),
       ],
@@ -113,6 +119,6 @@ export function buildClipAnalysisFailureWorkflowDefinition(): SystemWorkflowGrap
     description: 'Projects terminal failure for one clip analysis.',
     label: 'Fail Clip Analysis',
     resultNodeId: 'fail-analysis',
-    version: 1,
+    version: 2,
   };
 }

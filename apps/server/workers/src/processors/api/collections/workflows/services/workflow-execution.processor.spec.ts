@@ -312,7 +312,10 @@ describe('WorkflowExecutionProcessor', () => {
         expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
           canonicalId: 'visual-code.failure',
           actionType: 'visual-code.failure',
-          inputValues: input.inputValues,
+          inputValues: {
+            ...input.inputValues,
+            workflowError: 'Motion disabled',
+          },
           metadata: {
             failedCanonicalId: 'visual-code.execute',
             failedJobId: 'system-workflow-motion-execution',
@@ -569,7 +572,10 @@ describe('WorkflowExecutionProcessor', () => {
               systemRun: {
                 failureWorkflow: {
                   canonicalId: 'clip.continuity.failure',
-                  inputValues: { projectId: 'project-1' },
+                  inputValues: {
+                    projectId: 'project-1',
+                    workflowError: 'stale queued error',
+                  },
                 },
                 input,
               },
@@ -582,7 +588,7 @@ describe('WorkflowExecutionProcessor', () => {
       expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
         actionType: 'clip.continuity.failure',
         canonicalId: 'clip.continuity.failure',
-        inputValues: { projectId: 'project-1' },
+        inputValues: { projectId: 'project-1', workflowError: 'QA failed' },
         metadata: {
           failedCanonicalId: 'clip.continuity',
           failedJobId: 'job-1',
@@ -682,6 +688,34 @@ describe('WorkflowExecutionProcessor', () => {
           ),
         ).rejects.toBeInstanceOf(UnrecoverableError);
         expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledTimes(1);
+      });
+
+      it('keeps a failed terminal compensation unrecoverable and retains both causes', async () => {
+        mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
+          new Error('Source acquisition rejected'),
+        );
+        mockSystemWorkflowRunner.runWorkflow.mockRejectedValueOnce(
+          new Error('Failure projection rejected'),
+        );
+        const failure = await processor
+          .process(
+            createMockJob(
+              {
+                type: 'system-run',
+                systemRun: {
+                  input,
+                  failureWorkflow: { canonicalId: 'clip.analysis.failure' },
+                },
+              },
+              { opts: { attempts: 3 } },
+            ) as never,
+          )
+          .catch((error: unknown) => error);
+        expect(failure).toBeInstanceOf(UnrecoverableError);
+        expect((failure as Error).cause).toBeInstanceOf(AggregateError);
+        expect(
+          ((failure as Error).cause as AggregateError).errors,
+        ).toHaveLength(2);
       });
 
       it('keeps a transient node failure retryable', async () => {

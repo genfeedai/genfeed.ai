@@ -47,7 +47,7 @@ describe('VideosService', () => {
     expect(http.post).toHaveBeenCalledWith(
       '',
       { label: 'Video' },
-      { signal: controller.signal },
+      { signal: controller.signal, handlesErrorResponse: expect.any(Function) },
     );
     expect(result.id).toBe('video_1');
   });
@@ -270,7 +270,10 @@ describe('VideosService canonical Crun transport', () => {
     };
     const signal = new AbortController().signal;
     const result = await service.post(body, signal);
-    expect(http.post).toHaveBeenCalledWith('', body, { signal });
+    expect(http.post).toHaveBeenCalledWith('', body, {
+      signal,
+      handlesErrorResponse: expect.any(Function),
+    });
     expect(result).toMatchObject({
       pendingIngredientIds: ['v1', 'v2', 'v3', 'v4'],
     });

@@ -395,4 +395,31 @@ describe('ClipAnalysisWorkflowService', () => {
     } as never);
     expect(clipProjects.patch).not.toHaveBeenCalled();
   });
+  it.each([0, 1])(
+    'projects a legacy source failure only before any retry (%s)',
+    async (retryCount) => {
+      clipProjects.findOne.mockResolvedValue({
+        source: { fingerprint: 'sha256:source', kind: 'youtube', retryCount },
+      });
+      await actions.get('clip.analysis.fail')?.({
+        input: {
+          job: { orgId: 'org-1', userId: 'user-1', projectId: 'project-1' },
+          workflowError: 'Audio acquisition failed',
+        },
+      } as never);
+      if (retryCount === 0) {
+        expect(clipProjects.patch).toHaveBeenCalledWith(
+          'project-1',
+          {
+            source: expect.objectContaining({
+              status: 'failed',
+              retryCount: 0,
+            }),
+          },
+          [],
+          'org-1',
+        );
+      } else expect(clipProjects.patch).not.toHaveBeenCalled();
+    },
+  );
 });

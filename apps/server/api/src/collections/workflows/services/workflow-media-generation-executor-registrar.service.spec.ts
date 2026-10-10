@@ -1,4 +1,5 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowMediaDispatchAdmissionService } from '@api/collections/workflows/services/workflow-media-dispatch-admission.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
@@ -1031,8 +1032,11 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         files as never,
         undefined,
         undefined,
-        undefined,
-        undefined,
+        new WorkflowMediaDispatchAdmissionService(
+          undefined,
+          undefined,
+          undefined,
+        ),
         { isAuthorizedMediaDeliveryEnabled: true } as never,
         issuer as never,
       ).register(engine);

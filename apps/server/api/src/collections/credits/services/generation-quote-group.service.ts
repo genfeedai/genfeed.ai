@@ -405,61 +405,15 @@ export class GenerationQuoteGroupService {
       successfulRequests:
         reservedRequests === 1 ? Number(completedCount > 0) : completedCount,
     };
-    const native =
-      metadata.modelQuote.pricingProfile.reviewedPricing?.rates.some(
-        (rate) =>
-          rate.unit === 'video-token' || rate.unit === 'input-video-token',
-      );
-    if (native && completedCount > 0) {
-      const proofs = [...completedIds].map((id) =>
-        metadata.providerCompletions.filter(
-          (proof) => proof.ingredientId === id,
-        ),
-      );
-      if (
-        metadata.modelQuote.provider !== 'fal' ||
-        metadata.modelQuote.providerQuote ||
-        metadata.providerCompletionConflicts.length ||
-        proofs.some((entries) => entries.length !== 1)
-      ) {
-        this.logger.warn(
-          'Native completion proof is unresolved; retain funding',
-          { reservationId, organizationId },
-        );
-        return;
-      }
-      const values = proofs.map(([proof]) => proof);
-      const first = values[0];
-      if (
-        new Set(values.map((proof) => proof.externalIdHash)).size !==
-          values.length ||
-        values.some(
-          (proof) =>
-            metadata.boundOutputIds[proof.outputIndex] !== proof.ingredientId ||
-            proof.modelKey !== metadata.modelQuote.modelKey ||
-            proof.quoteHash !== quoteSnapshotHash(metadata.modelQuote) ||
-            proof.width !== first.width ||
-            proof.height !== first.height ||
-            proof.duration !== first.duration,
-        )
-      ) {
-        // The existing aggregate calculator requires homogeneous output quantities.
-        // A heterogeneous aggregate needs an approved contract, never per-slot rounding.
-        this.logger.warn(
-          'Native aggregate completion differs from its frozen contract; retain funding',
-          { reservationId, organizationId },
-        );
-        return;
-      }
-      Object.assign(completionInput, {
-        width: first.width,
-        height: first.height,
-        duration: first.duration,
-        inputDuration: metadata.modelQuote.quantities.inputDuration,
-        referenceEvidenceHash:
-          metadata.modelQuote.quantities.referenceEvidenceHash,
-      });
-    }
+    if (
+      !this.applyNativeCompletionEvidence(
+        metadata,
+        completedIds,
+        completionInput,
+        { reservationId, organizationId },
+      )
+    )
+      return;
     const completion = quoteModelBillableCompletion(
       metadata.modelQuote,
       completionInput,
@@ -499,6 +453,71 @@ export class GenerationQuoteGroupService {
         },
       });
     }
+  }
+
+  private applyNativeCompletionEvidence(
+    metadata: z.infer<typeof metadataSchema>,
+    completedIds: ReadonlySet<string>,
+    completionInput: ModelBillableCompletionInput,
+    identity: { reservationId: string; organizationId: string },
+  ): boolean {
+    const completedCount = completedIds.size;
+    const native =
+      metadata.modelQuote.pricingProfile.reviewedPricing?.rates.some(
+        (rate) =>
+          rate.unit === 'video-token' || rate.unit === 'input-video-token',
+      );
+    if (native && completedCount > 0) {
+      const proofs = [...completedIds].map((id) =>
+        metadata.providerCompletions.filter(
+          (proof) => proof.ingredientId === id,
+        ),
+      );
+      if (
+        metadata.modelQuote.provider !== 'fal' ||
+        metadata.modelQuote.providerQuote ||
+        metadata.providerCompletionConflicts.length ||
+        proofs.some((entries) => entries.length !== 1)
+      ) {
+        this.logger.warn(
+          'Native completion proof is unresolved; retain funding',
+          identity,
+        );
+        return false;
+      }
+      const values = proofs.map(([proof]) => proof);
+      const first = values[0];
+      if (
+        new Set(values.map((proof) => proof.externalIdHash)).size !==
+          values.length ||
+        values.some(
+          (proof) =>
+            metadata.boundOutputIds[proof.outputIndex] !== proof.ingredientId ||
+            proof.modelKey !== metadata.modelQuote.modelKey ||
+            proof.quoteHash !== quoteSnapshotHash(metadata.modelQuote) ||
+            proof.width !== first.width ||
+            proof.height !== first.height ||
+            proof.duration !== first.duration,
+        )
+      ) {
+        // The existing aggregate calculator requires homogeneous output quantities.
+        // A heterogeneous aggregate needs an approved contract, never per-slot rounding.
+        this.logger.warn(
+          'Native aggregate completion differs from its frozen contract; retain funding',
+          identity,
+        );
+        return false;
+      }
+      Object.assign(completionInput, {
+        width: first.width,
+        height: first.height,
+        duration: first.duration,
+        inputDuration: metadata.modelQuote.quantities.inputDuration,
+        referenceEvidenceHash:
+          metadata.modelQuote.quantities.referenceEvidenceHash,
+      });
+    }
+    return true;
   }
 
   async reconcile(now = new Date()): Promise<number> {

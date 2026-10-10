@@ -156,7 +156,12 @@ export class WorkflowExecutionProcessor extends WorkerHost {
         await this.systemWorkflowRunner.runWorkflow({
           actionType: failureWorkflow.canonicalId,
           canonicalId: failureWorkflow.canonicalId,
-          inputValues: failureWorkflow.inputValues,
+          inputValues: {
+            ...failureWorkflow.inputValues,
+            // Terminal compensation receives the actual server error, never a queued override.
+            workflowError:
+              error instanceof Error ? error.message : String(error),
+          },
           metadata: {
             failedCanonicalId: systemRun.input.canonicalId,
             failedJobId: job.id,
@@ -166,9 +171,11 @@ export class WorkflowExecutionProcessor extends WorkerHost {
           userId: systemRun.input.userId,
         });
       } catch (compensationError: unknown) {
-        throw new AggregateError(
-          [error, compensationError],
-          `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${failureWorkflow.canonicalId} both failed`,
+        throw toTerminalSystemRunError(
+          new AggregateError(
+            [error, compensationError],
+            `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${failureWorkflow.canonicalId} both failed`,
+          ),
         );
       }
       throw error;

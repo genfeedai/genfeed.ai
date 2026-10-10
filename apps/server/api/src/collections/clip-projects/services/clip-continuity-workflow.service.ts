@@ -128,28 +128,11 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
         `Clip continuity found no persisted clip results for generation execution ${generationWorkflowExecutionId}`,
       );
     }
-    const clipsById = new Map(clipRows.map((clip) => [clip.id, clip]));
-    const hasCanonicalReferences = references.length > 0;
-    let qaIndex = 0;
-    const descriptors: ClipDescriptor[] = orderedClipIds.flatMap((id) => {
-      const clip = clipsById.get(id);
-      if (!clip) {
-        return [];
-      }
-      const videoUrl =
-        this.readString(clip.captionedVideoUrl) ??
-        this.readString(clip.videoUrl);
-      const descriptor: ClipDescriptor = {
-        id,
-        status: String(clip.status),
-        ...(videoUrl && hasCanonicalReferences
-          ? { qaIndex: qaIndex++, videoUrl }
-          : videoUrl
-            ? { videoUrl }
-            : {}),
-      };
-      return [descriptor];
-    });
+    const descriptors = this.buildClipDescriptors(
+      clipRows,
+      orderedClipIds,
+      references.length > 0,
+    );
     const referenceAssetIds = {
       character: references
         .filter((reference) => reference.role === 'character')
@@ -230,6 +213,34 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       });
       throw error;
     }
+  }
+
+  private buildClipDescriptors(
+    clipRows: Awaited<ReturnType<ClipResultsService['findByProject']>>,
+    orderedClipIds: string[],
+    hasCanonicalReferences: boolean,
+  ): ClipDescriptor[] {
+    const clipsById = new Map(clipRows.map((clip) => [clip.id, clip]));
+    let qaIndex = 0;
+    return orderedClipIds.flatMap((id) => {
+      const clip = clipsById.get(id);
+      if (!clip) {
+        return [];
+      }
+      const videoUrl =
+        this.readString(clip.captionedVideoUrl) ??
+        this.readString(clip.videoUrl);
+      const descriptor: ClipDescriptor = {
+        id,
+        status: String(clip.status),
+        ...(videoUrl && hasCanonicalReferences
+          ? { qaIndex: qaIndex++, videoUrl }
+          : videoUrl
+            ? { videoUrl }
+            : {}),
+      };
+      return [descriptor];
+    });
   }
 
   private async begin(request: SystemWorkflowActionRequest): Promise<{
