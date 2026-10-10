@@ -65,6 +65,9 @@ describe('Batch to Turbo rename migration (#5936)', () => {
   });
 
   it('aborts when any renamed table changes row count', () => {
+    // One explicit transaction: a failed count check rolls back every rename.
+    expect(migrationSource).toMatch(/^BEGIN;$/m);
+    expect(migrationSource.trimEnd().endsWith('COMMIT;')).toBe(true);
     expect(migrationSource).toContain(
       'CREATE TEMP TABLE "_turbo_rename_counts"',
     );

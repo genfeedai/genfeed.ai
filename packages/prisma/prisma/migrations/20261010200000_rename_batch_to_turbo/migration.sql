@@ -18,6 +18,8 @@
 -- code by canonical id, so old in-flight runs must be drained before deploy
 -- (see the PR runbook).
 
+BEGIN;
+
 CREATE TEMP TABLE "_turbo_rename_counts" ON COMMIT DROP AS
 SELECT
   (SELECT count(*) FROM "batches") AS runs,
@@ -150,3 +152,5 @@ BEGIN
     RAISE EXCEPTION 'Turbo rename changed row counts; aborting';
   END IF;
 END $$;
+
+COMMIT;
