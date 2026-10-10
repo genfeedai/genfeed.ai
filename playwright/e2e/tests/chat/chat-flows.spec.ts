@@ -352,12 +352,14 @@ test.describe('Agent Chat', () => {
             uiActions: [
               {
                 ctas: [
+                  // A saved transcript's retired `/content/posts` link.
                   {
                     href: '/content/posts',
                     label: 'Open Posts',
                   },
+                  // A current canonical, unscoped Publishing deep link.
                   {
-                    href: '/content/posts/published',
+                    href: '/publishing/posts?publicationState=posted',
                     label: 'Open Published',
                   },
                 ],
@@ -432,12 +434,17 @@ test.describe('Agent Chat', () => {
         'Publish confirmed. Your post is ready to review.',
       ),
     ).toBeVisible({ timeout: 20_000 });
+    // Agent CTAs resolve through the scoped route helpers (#6533): the retired
+    // path is rewritten to Publishing, and both stay in the thread's scope.
     await expect(
       conversation.getByRole('link', { name: 'Open Posts' }),
-    ).toHaveAttribute('href', /\/content\/posts$/);
+    ).toHaveAttribute('href', '/test-org/~/publishing/posts');
     await expect(
       conversation.getByRole('link', { name: 'Open Published' }),
-    ).toHaveAttribute('href', /\/content\/posts\/published$/);
+    ).toHaveAttribute(
+      'href',
+      '/test-org/~/publishing/posts?publicationState=posted',
+    );
     // respondToUiAction sends the thread's brandId/contextVersion alongside
     // the action (see agent-chat-container.ui-actions.ts), and the card
     // normalizes the datetime-local input to an ISO instant in the browser's

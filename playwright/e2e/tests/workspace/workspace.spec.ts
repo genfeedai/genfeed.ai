@@ -1,10 +1,19 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { Locator, Page } from '@playwright/test';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
   mockWorkspaceTasks,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+
+/** The workspace sidebar's first entry: the Overview home (#6533 renamed it from Dashboard). */
+function workspaceOverviewLink(page: Page): Locator {
+  return page
+    .getByRole('link', { name: 'Overview', exact: true })
+    .and(page.locator(`a[href$="${APP_ROUTES.WORKSPACE.OVERVIEW}"]`))
+    .first();
+}
 
 test.describe('Workspace', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -24,9 +33,7 @@ test.describe('Workspace', () => {
     });
 
     await expect(authenticatedPage).toHaveURL(/\/workspace(?:\/|$|\?)/);
-    await expect(
-      authenticatedPage.getByRole('link', { name: 'Dashboard' }).first(),
-    ).toBeVisible();
+    await expect(workspaceOverviewLink(authenticatedPage)).toBeVisible();
     await expect(
       authenticatedPage.getByRole('link', { name: 'Inbox' }).first(),
     ).toBeVisible();
@@ -106,9 +113,7 @@ test.describe('Workspace', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(
-      authenticatedPage.getByRole('link', { name: 'Dashboard' }).first(),
-    ).toBeVisible();
+    await expect(workspaceOverviewLink(authenticatedPage)).toBeVisible();
     await expect(
       authenticatedPage.getByRole('link', { name: 'Inbox' }).first(),
     ).toBeVisible();
