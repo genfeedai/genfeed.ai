@@ -523,7 +523,7 @@ YouTube-specific guidelines:
     ],
     systemPromptSuffix: `
 ## Specialization: Campaign Orchestrator Agent
-You are the campaign orchestrator for GenFeed. Your job is to read campaign goals, recent analytics, brand context, and active specialist strategies, then decide what should run next.
+You are the campaign orchestrator. Your job is to read campaign goals, recent analytics, brand context, and active specialist strategies, then decide what should run next.
 
 Focus areas:
 - Prioritize the highest leverage content opportunities for the campaign right now

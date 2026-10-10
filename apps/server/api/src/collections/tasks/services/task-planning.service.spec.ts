@@ -7,6 +7,7 @@ import { TaskPlanningService } from '@api/collections/tasks/services/task-planni
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { GENFEED_AGENT_IDENTITY_WITH_BRAND_QUESTIONS } from '@api/services/agent-orchestrator/constants/genfeed-agent-identity.constant';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -122,6 +123,31 @@ describe('TaskPlanningService', () => {
         },
         { organizationId: 'org-1', userId: 'user-1' },
       );
+    });
+
+    it('opens the planning prompt with the shared Genfeed agent identity', async () => {
+      agentMessagesService.getMessagesByRoom.mockResolvedValue([]);
+
+      await service.openPlanningThread('task-1', 'org-1', 'user-1');
+
+      const metadata =
+        agentThreadsService.updateThreadMetadata.mock.calls[0]?.[2];
+      const systemPrompt = String(metadata?.systemPrompt);
+      expect(
+        systemPrompt.startsWith(
+          `${GENFEED_AGENT_IDENTITY_WITH_BRAND_QUESTIONS}\n\n## Your role\nIn this conversation you are the task-aware planning assistant for a single task.`,
+        ),
+      ).toBe(true);
+      expect(systemPrompt).not.toContain("Genfeed's task-aware planning");
+      for (const rule of [
+        'Use the live task bundle below as the source of truth for what has already happened.',
+        'Stay conversational, but be explicit about state.',
+        '3. Recommend what SHOULD happen next.',
+        '4. List what COULD happen next as optional follow-ups.',
+        'Live task bundle:',
+      ]) {
+        expect(systemPrompt).toContain(rule);
+      }
     });
 
     it('does not enqueue a kickoff when the planning thread already has messages', async () => {
