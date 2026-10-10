@@ -219,6 +219,33 @@ describe('ClipAnalysisWorkflowService', () => {
       expect.anything(),
     );
   });
+  it('keeps the files service reason when audio extraction fails', async () => {
+    http.post.mockReturnValue(of({ data: { jobId: 'job-7' } }));
+    http.get.mockReturnValue(
+      of({
+        data: {
+          failedReason: 'Source video is unreadable',
+          jobId: 'job-7',
+          state: 'failed',
+        },
+      }),
+    );
+
+    await expect(
+      actions.get('clip.analysis.prepare-source')?.({
+        input: {
+          job: {
+            orgId: 'org-1',
+            projectId: 'project-1',
+            userId: 'user-1',
+            youtubeUrl: 'https://www.youtube.com/watch?v=abc123def45',
+          },
+        },
+      } as never),
+    ).rejects.toThrow(
+      'Audio extraction job job-7 failed: Source video is unreadable',
+    );
+  });
   it.each([
     ['clip.analysis.prepare-source', 'job'],
     ['clip.analysis.transcribe', 'prepared'],
@@ -438,6 +465,53 @@ describe('ClipAnalysisWorkflowService', () => {
       {
         source: expect.objectContaining({
           artifact: source.artifact,
+          status: 'failed',
+        }),
+      },
+      [],
+      'org-1',
+    );
+  });
+
+  it('shows the creator the failure reason without the internal step name', async () => {
+    const source = {
+      fingerprint: 'sha256:source',
+      kind: 'library',
+      retryCount: 0,
+    };
+    clipProjects.findOne.mockResolvedValue({ source });
+    await actions.get('clip.analysis.fail')?.({
+      input: {
+        job: {
+          orgId: 'org-1',
+          userId: 'user-1',
+          projectId: 'project-1',
+          source,
+        },
+        workflowError:
+          'Nodes failed: prepare-source: Audio extraction job 7 failed: Source video is unreadable',
+      },
+    } as never);
+    expect(clipProjects.patch).toHaveBeenCalledWith(
+      'project-1',
+      {
+        error:
+          'Nodes failed: prepare-source: Audio extraction job 7 failed: Source video is unreadable',
+        status: 'failed',
+      },
+      [],
+      'org-1',
+    );
+    expect(clipProjects.patch).toHaveBeenCalledWith(
+      'project-1',
+      {
+        source: expect.objectContaining({
+          failure: {
+            code: 'clip_source_processing_failed',
+            message:
+              'Audio extraction job 7 failed: Source video is unreadable',
+            retryable: true,
+          },
           status: 'failed',
         }),
       },

@@ -45,6 +45,18 @@ const PRESET_CONFIG_FIELDS = [
   'style',
 ] as const;
 
+/**
+ * A `null` config value means "no setting" (an operator emptied Duration), so
+ * it is removed rather than stored.
+ */
+function withoutClearedFields(
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(config).filter(([, value]) => value !== null),
+  );
+}
+
 @Injectable()
 export class PresetsService extends BaseService<
   PresetDocument,
@@ -74,7 +86,9 @@ export class PresetsService extends BaseService<
       return await super.create(
         {
           ...pickDefinedFields(createDto, PRESET_CREATE_SCALAR_FIELDS),
-          config: pickDefinedFields(createDto, PRESET_CONFIG_FIELDS),
+          config: withoutClearedFields(
+            pickDefinedFields(createDto, PRESET_CONFIG_FIELDS),
+          ),
         } as unknown as CreatePresetDto,
         populate,
       );
@@ -323,11 +337,12 @@ export class PresetsService extends BaseService<
     updateDto: Partial<UpdatePresetDto>,
     existingConfig?: Record<string, unknown>,
   ): Partial<UpdatePresetDto> {
+    // Omitted fields keep their stored value; `null` clears it.
     const config = existingConfig
-      ? {
+      ? withoutClearedFields({
           ...existingConfig,
           ...pickDefinedFields(updateDto, PRESET_CONFIG_FIELDS),
-        }
+        })
       : undefined;
 
     return {

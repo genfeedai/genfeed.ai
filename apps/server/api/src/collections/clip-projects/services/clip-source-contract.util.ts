@@ -36,3 +36,11 @@ export function withClipSourceJobId(
 export function hashSource(value: string): string {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
+
+/**
+ * A failed workflow graph reports `Nodes failed: <node>: <reason>`. The node
+ * id is an internal step name; the creator sees only the reason.
+ */
+export function toClipSourceFailureMessage(workflowError: string): string {
+  return workflowError.replace(/^Nodes failed: [\w.-]+: /, '');
+}

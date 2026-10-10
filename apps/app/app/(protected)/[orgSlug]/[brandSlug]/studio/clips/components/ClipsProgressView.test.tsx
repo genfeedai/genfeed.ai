@@ -85,6 +85,17 @@ describe('ClipsProgressView hook approval', () => {
       const retry = screen.getByRole('button', {
         name: 'Retry source processing',
       });
+      expect(
+        screen.getByRole('heading', {
+          name: 'This source couldn’t be processed',
+        }),
+      ).toBeDefined();
+      expect(
+        screen.getByText(
+          'No clips were made. Retry source processing, or start a new project with another source.',
+        ),
+      ).toBeDefined();
+      expect(screen.queryByText(/Check logs/)).toBeNull();
       expect(retry).toHaveProperty('disabled', retryCount === 3);
       fireEvent.click(retry);
       expect(onRetrySource).toHaveBeenCalledTimes(retryCount === 3 ? 0 : 1);

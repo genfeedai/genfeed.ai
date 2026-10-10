@@ -147,4 +147,32 @@ describe('ModalPreset', () => {
     });
     expect(fixture.values?.().duration).toBeUndefined();
   });
+  it('clears a stored duration when an edit empties it', () => {
+    renderPreset(
+      <ModalPreset
+        item={{ ...input, id: 'preset-1', duration: 5 } as IPreset}
+        onConfirm={vi.fn()}
+      />,
+    );
+    expect(fixture.transform?.({ ...input, duration: undefined })).toEqual({
+      ...input,
+      duration: null,
+    });
+    expect(fixture.transform?.({ ...input, duration: 8 })).toEqual({
+      ...input,
+      duration: 8,
+    });
+  });
+  it('omits duration for an edit of a preset that never had one', () => {
+    renderPreset(
+      <ModalPreset
+        item={{ ...input, id: 'preset-1' } as IPreset}
+        onConfirm={vi.fn()}
+      />,
+    );
+    expect(fixture.transform?.({ ...input, duration: undefined })).toEqual({
+      ...input,
+      duration: undefined,
+    });
+  });
 });
