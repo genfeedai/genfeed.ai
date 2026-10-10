@@ -248,7 +248,7 @@ test('retains all connected cases and their real fixture-owning API job', () => 
   assert.match(config, /include: \[.*'src\/\*\*\/\*\.spec\.ts'/);
   for (const [index, file] of CONNECTED_SOURCE_CONTRACT_FILES.entries()) {
     const source = readFileSync(path.join(root, file), 'utf8');
-    assert.equal(literalCaseCount(source, file), [18, 23, 10, 6][index]);
+    assert.equal(literalCaseCount(source, file), [18, 23, 10, 7][index]);
     assert.doesNotMatch(
       source,
       /\b(?:it|describe)\.(?:skip|todo|only|skipIf|runIf)\b/,
