@@ -478,13 +478,20 @@
       "description": "Each brand takes its content, connected accounts, and workflows with it. Members who only have access through this organization lose access. This cannot be easily undone.",
       "destinationLabel": "Destination organization",
       "destinationPlaceholder": "Choose an organization",
-      "membersLostMany": "{count} members lost access.",
-      "membersLostOne": "1 member lost access.",
+      "batchAllFailed": "{count, plural, one {Couldn't move {count} brand.} other {Couldn't move {count} brands.}}",
+      "batchMoved": "{count, plural, one {Moved {count} brand.} other {Moved {count} brands.}}",
+      "batchPartial": "{moved, plural, one {Moved {moved} brand} other {Moved {moved} brands}}; {failed} couldn't be moved.",
+      "checkFailed": "Couldn't check this brand.",
+      "membersLost": "{count, plural, one {{count} member lost access.} other {{count} members lost access.}}",
+      "membersWillLose": "{count, plural, one {{count} member will lose access.} other {{count} members will lose access.}}",
+      "moveFailed": "Couldn't move this brand.",
       "moveMany": "Move {count} brands",
       "moveNone": "Move",
       "moveOne": "Move 1 brand",
       "moveSelected": "Move {count} selected",
+      "onlyBrand": "An organization keeps at least one brand, so its last brand can't be moved.",
       "rowAction": "Move to organization",
+      "setupFailed": "Couldn't start the move. Please try again.",
       "status": {
         "blocked": "Blocked",
         "checking": "Checking",
@@ -494,7 +501,8 @@
         "ready": "Ready"
       },
       "titleMany": "Move {count} brands to another organization",
-      "titleOne": "Move 1 brand to another organization"
+      "titleOne": "Move 1 brand to another organization",
+      "workflowsMove": "{count, plural, one {{count} dedicated workflow moves with it.} other {{count} dedicated workflows move with it.}}"
     },
     "characters": {
       "availability": {

@@ -143,6 +143,12 @@ function BrandsListContent() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [brandsToMove, setBrandsToMove] = useState<Brand[]>([]);
 
+  // Selection is per page: ids picked on another page aren't in `selectedBrands`.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on page change only
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [currentPage]);
+
   const [blocked, setBlocked] = useState<{
     brand: Brand;
     characters: BlockedCharacter[];

@@ -32,3 +32,9 @@ export interface BrandMoveDialogProps {
   /** Called once after a batch that moved at least one brand. */
   onMoved: () => Promise<void> | void;
 }
+
+/** The slice of next-intl's translator the brand-move helpers use. */
+export type BrandMoveTranslate = (
+  key: string,
+  values?: Record<string, number | string>,
+) => string;

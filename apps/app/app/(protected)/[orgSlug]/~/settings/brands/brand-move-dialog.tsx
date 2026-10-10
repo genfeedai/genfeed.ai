@@ -101,7 +101,23 @@ export default function BrandMoveDialog({
       setPhase('checking');
       setEntries(brands.map((brand) => ({ brand, status: 'checking' })));
 
-      const service = await getBrandsService();
+      let service: BrandsService;
+      try {
+        service = await getBrandsService();
+      } catch (error) {
+        logger.error('Failed to prepare brand move preview', error);
+        if (runId === runIdRef.current) {
+          setEntries(
+            brands.map((brand) => ({
+              brand,
+              reason: translate('setupFailed'),
+              status: 'blocked',
+            })),
+          );
+          setPhase('review');
+        }
+        return;
+      }
       const checked: BrandMoveEntry[] = [];
 
       for (const brand of brands) {
@@ -116,7 +132,7 @@ export default function BrandMoveDialog({
           logger.error('Failed to preview brand move', error);
           entry = {
             brand,
-            reason: errorReason(error, "Couldn't check this brand."),
+            reason: errorReason(error, translate('checkFailed')),
             status: 'blocked',
           };
         }
@@ -128,10 +144,12 @@ export default function BrandMoveDialog({
         updateEntry(brand.id, entry);
       }
 
-      setEntries(markOnlyBrandBlocked(checked, sourceBrandCount));
+      setEntries(
+        markOnlyBrandBlocked(checked, sourceBrandCount, translate('onlyBrand')),
+      );
       setPhase('review');
     },
-    [brands, getBrandsService, sourceBrandCount, updateEntry],
+    [brands, getBrandsService, sourceBrandCount, translate, updateEntry],
   );
 
   const handleDestinationChange = useCallback(
@@ -143,7 +161,16 @@ export default function BrandMoveDialog({
 
   const handleMove = useCallback(async () => {
     setPhase('moving');
-    const service = await getBrandsService();
+    let service: BrandsService;
+    try {
+      service = await getBrandsService();
+    } catch (error) {
+      // Nothing was moved, so go back to review and let the user retry.
+      logger.error('Failed to prepare brand move', error);
+      notificationsService.error(translate('setupFailed'));
+      setPhase('review');
+      return;
+    }
     const results: BrandMoveEntry[] = [];
 
     for (const entry of entries) {
@@ -167,7 +194,7 @@ export default function BrandMoveDialog({
         logger.error('Failed to move brand', error);
         result = {
           ...entry,
-          reason: errorReason(error, "Couldn't move this brand."),
+          reason: errorReason(error, translate('moveFailed')),
           status: 'failed',
         };
       }
@@ -177,11 +204,16 @@ export default function BrandMoveDialog({
 
     const movedCount = countByStatus(results, 'moved');
     if (movedCount > 0) {
-      await onMoved();
-      await refreshBrands();
+      // The moves are done; a failed refresh must not leave the dialog busy.
+      try {
+        await onMoved();
+        await refreshBrands();
+      } catch (error) {
+        logger.error('Failed to refresh brands after move', error);
+      }
     }
 
-    const message = summarizeBatch(results);
+    const message = summarizeBatch(results, translate);
     if (countByStatus(results, 'failed') > 0) {
       notificationsService.error(message);
     } else {
@@ -195,6 +227,7 @@ export default function BrandMoveDialog({
     notificationsService,
     onMoved,
     refreshBrands,
+    translate,
     updateEntry,
   ]);
 
@@ -240,13 +273,9 @@ export default function BrandMoveDialog({
             {entries.map((entry) => {
               const detail =
                 entry.status === 'ready' && entry.preview
-                  ? describePreview(entry.preview)
+                  ? describePreview(entry.preview, translate)
                   : entry.status === 'moved' && entry.membersSevered
-                    ? entry.membersSevered === 1
-                      ? translate('membersLostOne')
-                      : translate('membersLostMany', {
-                          count: entry.membersSevered,
-                        })
+                    ? translate('membersLost', { count: entry.membersSevered })
                     : entry.reason;
               return (
                 <li

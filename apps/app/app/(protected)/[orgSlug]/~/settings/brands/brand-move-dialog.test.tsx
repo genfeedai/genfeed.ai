@@ -16,6 +16,7 @@ const selectState = vi.hoisted(() => ({
     | ((event: ChangeEvent<HTMLSelectElement>) => void)
     | undefined,
 }));
+const serviceState = vi.hoisted(() => ({ isUnavailable: false }));
 const service = vi.hoisted(() => ({
   getRelocationPreview: vi.fn(),
   relocateBrand: vi.fn(),
@@ -35,7 +36,12 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => service,
+  useAuthedService: () => async () => {
+    if (serviceState.isUnavailable) {
+      throw new Error('No token');
+    }
+    return service;
+  },
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -82,6 +88,7 @@ describe('BrandMoveDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     selectState.onChange = undefined;
+    serviceState.isUnavailable = false;
   });
 
   function renderDialog(onMoved = vi.fn()) {
@@ -160,5 +167,20 @@ describe('BrandMoveDialog', () => {
       'A record in the destination conflicts.',
     );
     expect(onMoved).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns to review with a retryable message when the service is unavailable', async () => {
+    serviceState.isUnavailable = true;
+    renderDialog();
+
+    await pickDestination();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('brand-move-b1')).toHaveTextContent(
+        "Couldn't start the move. Please try again.",
+      ),
+    );
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    expect(service.getRelocationPreview).not.toHaveBeenCalled();
   });
 });

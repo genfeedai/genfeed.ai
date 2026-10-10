@@ -2,11 +2,9 @@ import type { IBrandRelocationPreview } from '@genfeedai/services/social/brand-r
 import type {
   BrandMoveEntry,
   BrandMoveEntryStatus,
+  BrandMoveTranslate,
 } from '@props/settings/brand-move.props';
 import { buildMovingResourcesSummary } from '@ui/modals/brands/brand/brand-relocation-summary.util';
-
-export const ONLY_BRAND_REASON =
-  "An organization keeps at least one brand, so its last brand can't be moved.";
 
 /**
  * An org keeps at least one brand. When the whole org is selected, the server
@@ -16,6 +14,7 @@ export const ONLY_BRAND_REASON =
 export function markOnlyBrandBlocked(
   entries: BrandMoveEntry[],
   sourceBrandCount: number | undefined,
+  reason: string,
 ): BrandMoveEntry[] {
   const readyIndexes = entries.flatMap((entry, index) =>
     entry.status === 'ready' ? [index] : [],
@@ -32,29 +31,29 @@ export function markOnlyBrandBlocked(
 
   const lastReadyIndex = readyIndexes[readyIndexes.length - 1];
   return entries.map((entry, index) =>
-    index === lastReadyIndex
-      ? { ...entry, reason: ONLY_BRAND_REASON, status: 'blocked' }
-      : entry,
+    index === lastReadyIndex ? { ...entry, reason, status: 'blocked' } : entry,
   );
 }
 
-export function describePreview(preview: IBrandRelocationPreview): string {
+export function describePreview(
+  preview: IBrandRelocationPreview,
+  translate: BrandMoveTranslate,
+): string {
   const parts: string[] = [];
+  // The moving-resources line is shared with the single-brand modal and its
+  // labels come from the API.
   const resources = buildMovingResourcesSummary(preview.movingResources);
   if (resources) {
     parts.push(resources);
   } else if (preview.counts.soleBrandWorkflows > 0) {
-    const count = preview.counts.soleBrandWorkflows;
     parts.push(
-      `${count} dedicated workflow${count === 1 ? '' : 's'} ${count === 1 ? 'moves' : 'move'} with it.`,
+      translate('workflowsMove', { count: preview.counts.soleBrandWorkflows }),
     );
   }
 
   const { staleMembers } = preview.counts;
   if (staleMembers > 0) {
-    parts.push(
-      `${staleMembers} member${staleMembers === 1 ? '' : 's'} will lose access.`,
-    );
+    parts.push(translate('membersWillLose', { count: staleMembers }));
   }
 
   return parts.join(' ');
@@ -67,16 +66,18 @@ export function countByStatus(
   return entries.filter((entry) => entry.status === status).length;
 }
 
-export function summarizeBatch(entries: readonly BrandMoveEntry[]): string {
+export function summarizeBatch(
+  entries: readonly BrandMoveEntry[],
+  translate: BrandMoveTranslate,
+): string {
   const moved = countByStatus(entries, 'moved');
   const failed = countByStatus(entries, 'failed');
-  const noun = (count: number) => (count === 1 ? 'brand' : 'brands');
 
   if (failed === 0) {
-    return `Moved ${moved} ${noun(moved)}.`;
+    return translate('batchMoved', { count: moved });
   }
   if (moved === 0) {
-    return `Couldn't move ${failed} ${noun(failed)}.`;
+    return translate('batchAllFailed', { count: failed });
   }
-  return `Moved ${moved} ${noun(moved)}; ${failed} couldn't be moved.`;
+  return translate('batchPartial', { failed, moved });
 }
