@@ -63,6 +63,9 @@ const BREAKDOWN_PRICING_TYPES = new Set<string>([
 
 /** Paid rows with a missing or non-positive credit price stay off promotion. */
 function isPaidModelPricingLocked(model: IModel): boolean {
+  if (model.isFree === true) return false;
+  if (model.pricingType === 'conditional')
+    return model.hasReviewedPricing !== true;
   return (
     model.isFree !== true && (!Number.isFinite(model.cost) || model.cost <= 0)
   );
@@ -139,6 +142,9 @@ function formatAdminCostTooltip(
       'table.pricingLockedReason',
     )}`;
   }
+
+  if (model.pricingType === 'conditional' && model.hasReviewedPricing)
+    return translate('table.variablePricingDescription');
 
   const providerCostUsd = model.providerCostUsd;
   const credits = Number.isFinite(model.cost)
@@ -296,10 +302,16 @@ function ModelLifecycleControl({
   );
 }
 
-function formatModelCreditCost(model: IModel): string {
+function formatModelCreditCost(
+  model: IModel,
+  translate: ModelsTableTranslate,
+): string {
   if (model.isFree) {
     return 'Free';
   }
+
+  if (model.pricingType === 'conditional' && model.hasReviewedPricing)
+    return translate('table.variablePricing');
 
   if (!Number.isFinite(model.cost) || model.cost <= 0) return 'Unresolved';
 
@@ -469,7 +481,7 @@ export function buildModelsTableColumns({
             className="rounded-sm text-xs tabular-nums text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             tabIndex={breakdown ? 0 : undefined}
           >
-            {formatModelCreditCost(model)}
+            {formatModelCreditCost(model, translate)}
           </span>
         );
 

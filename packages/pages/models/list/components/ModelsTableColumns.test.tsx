@@ -52,6 +52,9 @@ const TABLE_COPY: Record<string, string> = {
   'table.secondsUnit': 'seconds',
   'table.seededStatus': 'Seeded',
   'table.successorWithLabel': 'Successor: {label}',
+  'table.variablePricing': 'Variable',
+  'table.variablePricingDescription':
+    'Uses reviewed rates. Final cost depends on the generation settings.',
 };
 
 function translate(
@@ -617,6 +620,34 @@ describe('paid model pricing lock', () => {
     expect(switches[2]).toBeEnabled();
     expect(switches[3]).toBeEnabled();
   });
+
+  it('allows a server-validated conditional tariff and refuses scalar or sync-flag substitutes', () => {
+    for (const fields of [
+      { cost: 0, hasReviewedPricing: true },
+      { cost: 50, hasReviewedPricing: false },
+      {
+        cost: 0,
+        providerSyncStatus: 'fresh' as const,
+        reviewedProviderContractVersion: 'rates:v1',
+      },
+    ]) {
+      renderColumn(
+        '',
+        buildModel({
+          ...fields,
+          isFree: false,
+          pricingType: 'conditional',
+        }),
+        false,
+        vi.fn(),
+        { isModelEnabled: () => false },
+      );
+    }
+    const switches = screen.getAllByRole('switch');
+    expect(switches[0]).toBeEnabled();
+    expect(switches[1]).toBeDisabled();
+    expect(switches[2]).toBeDisabled();
+  });
 });
 
 describe('admin cost breakdown', () => {
@@ -625,6 +656,25 @@ describe('admin cost breakdown', () => {
     fireEvent.focus(cost);
     return { cost, tooltip: screen.getByRole('tooltip') };
   }
+
+  it('labels reviewed conditional pricing as variable without inventing a flat or free amount', () => {
+    renderColumn(
+      'Cost',
+      buildModel({
+        cost: 0,
+        isFree: false,
+        hasReviewedPricing: true,
+        pricingType: 'conditional',
+      }),
+      true,
+    );
+    const { tooltip } = focusCost('Variable');
+    expect(tooltip).toHaveTextContent(
+      'Uses reviewed rates. Final cost depends on the generation settings.',
+    );
+    expect(screen.queryByText('Free')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unresolved')).not.toBeInTheDocument();
+  });
 
   it('shows provider base, uplift margin, and customer total for a flat price', () => {
     renderColumn(

@@ -3531,7 +3531,9 @@
       "secondUnit": "second",
       "secondsUnit": "seconds",
       "seededStatus": "Seeded",
-      "successorWithLabel": "Successor: {label}"
+      "successorWithLabel": "Successor: {label}",
+      "variablePricing": "Variable",
+      "variablePricingDescription": "Uses reviewed rates. Final cost depends on the generation settings."
     },
     "allCategories": "All categories",
     "allProviders": "All providers",
