@@ -61,6 +61,8 @@ export interface WinnerClassificationResult {
 /** #5502 an own post that won, as `GET /analytics/winners` returns it. */
 export interface IWinnerPost {
   postId: string;
+  brandId: string;
+  brandName: string | null;
   label: string | null;
   description: string | null;
   platform: string;
@@ -76,7 +78,8 @@ export interface IWinnerPost {
 
 export interface WinnerPostsQuery {
   organizationId: string;
-  brandId: string;
+  /** Omitted: every brand in the organization, still baselined per account. */
+  brandId?: string;
   /** Only posts published in this window are returned; baselines use all history. */
   publishedFrom?: Date;
   publishedTo?: Date;

@@ -6,6 +6,8 @@ import { createEntityAttributes } from '@genfeedai/helpers';
  */
 export const analyticsWinnerPostAttributes = createEntityAttributes([
   'postId',
+  'brandId',
+  'brandName',
   'label',
   'description',
   'platform',

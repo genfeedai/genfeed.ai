@@ -9,9 +9,10 @@ import type { WinnerClassificationService } from '@api/collections/outliers/serv
 import type { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsWinnersController } from '@api/endpoints/analytics/analytics-winners.controller';
 import type { WinnerPostsQueryDto } from '@api/endpoints/analytics/dto/winner-posts-query.dto';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AnalyticsWinnerPostSerializer } from '@genfeedai/serializers';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
 
 describe('AnalyticsWinnersController (#5502)', () => {
@@ -64,9 +65,28 @@ describe('AnalyticsWinnersController (#5502)', () => {
     );
   });
 
+  it('reads every brand in the organization when no brand is named', async () => {
+    winnerClassificationService.findWinners.mockResolvedValue([]);
+    const { brandId: _brandId, ...organizationQuery } = query;
+
+    await controller.findWinners(
+      user,
+      request,
+      organizationQuery as WinnerPostsQueryDto,
+    );
+
+    expect(analyticsService.assertBrandInScope).toHaveBeenCalledWith(
+      undefined,
+      'org-1',
+    );
+    expect(winnerClassificationService.findWinners).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: undefined, organizationId: 'org-1' }),
+    );
+  });
+
   it('refuses a brand outside the caller organization', async () => {
     analyticsService.assertBrandInScope.mockRejectedValue(
-      new NotFoundException(),
+      new NotFoundException('Brand', 'brand-1'),
     );
 
     await expect(

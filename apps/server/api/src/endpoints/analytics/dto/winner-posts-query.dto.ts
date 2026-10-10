@@ -4,11 +4,15 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
-/** #5502 `GET /analytics/winners`: one brand's winners published in the range. */
+/** #5502 `GET /analytics/winners`: winners published in the range, optionally for one brand. */
 export class WinnerPostsQueryDto extends AnalyticsDateRangeDto {
-  @ApiProperty({ description: 'Brand whose own posts are classified' })
+  @ApiProperty({
+    description: 'Brand whose own posts are classified; omitted for all brands',
+    required: false,
+  })
+  @IsOptional()
   @IsEntityId()
-  declare brandId: string;
+  brandId?: string;
 
   @ApiProperty({ description: 'Platform to filter by', required: false })
   @IsOptional()

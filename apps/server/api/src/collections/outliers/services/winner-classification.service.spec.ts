@@ -32,6 +32,8 @@ function row(postId: string, daysAgo: number, overrides: RowOverrides = {}) {
     metricAvailability: { views: 'observed' },
     platform: 'INSTAGRAM',
     post: {
+      brand: { label: 'Brand A' },
+      brandId: 'brand-a',
       category: 'VIDEO',
       credentialId: 'credential-a',
       description: `${postId} description`,
@@ -84,6 +86,16 @@ describe('WinnerClassificationService (#5502)', () => {
     );
   });
 
+  it('reads every brand in the organization when no brand is named', async () => {
+    const { findMany, service } = createService([]);
+
+    await service.findWinners({ organizationId: 'org-a' }, NOW);
+
+    const { where } = findMany.mock.calls[0][0];
+    expect(where).toMatchObject({ isDeleted: false, organizationId: 'org-a' });
+    expect(where).not.toHaveProperty('brandId');
+  });
+
   it('returns a post that beats its baseline on any signal, with evidence', async () => {
     const { service } = createService([
       row('winner', 3, { totalComments: 60 }),
@@ -97,6 +109,8 @@ describe('WinnerClassificationService (#5502)', () => {
 
     expect(winners).toHaveLength(1);
     expect(winners[0]).toMatchObject({
+      brandId: 'brand-a',
+      brandName: 'Brand A',
       contentType: 'video',
       platform: 'instagram',
       postId: 'winner',

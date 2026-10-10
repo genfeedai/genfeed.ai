@@ -146,6 +146,8 @@ export class WinnerClassificationService {
         platform: true,
         post: {
           select: {
+            brand: { select: { label: true } },
+            brandId: true,
             category: true,
             credentialId: true,
             description: true,
@@ -162,7 +164,7 @@ export class WinnerClassificationService {
       },
       take: MAX_ANALYTICS_ROWS,
       where: scopedWhere(organizationId, {
-        brandId,
+        ...(brandId ? { brandId } : {}),
         isDeleted: false,
         organizationId,
         ...(platform ? { platform } : {}),
@@ -208,6 +210,8 @@ export class WinnerClassificationService {
           publishedAtMs: publishedAt?.getTime() ?? Number.NaN,
         },
         post: {
+          brandId: row.post.brandId,
+          brandName: row.post.brand?.label ?? null,
           contentType,
           description: row.post.description ?? null,
           engagementRate: metrics.engagementRate,
