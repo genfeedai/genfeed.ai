@@ -541,7 +541,7 @@ Tweet 3: Tech innovation is changing the world.`,
         creditCost: 2,
         groupId: 'group-1',
         requestedCount: 3,
-        reviewBatchId: 'batch-1',
+        reviewTurboRunId: 'batch-1',
         sourceKind: 'owned-post',
         voiceMode: 'brand-voice',
         voiceModeLabel: 'Brand voice',
@@ -959,7 +959,7 @@ Tweet 3: Tech innovation is changing the world.`,
   // PATCH /posts/batch - batchUpdate
   // ==========================================================================
   describe('batchUpdate', () => {
-    const batchScheduleDto = {
+    const turboRunScheduleDto = {
       credentialId,
       items: [
         {
@@ -1001,7 +1001,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should schedule the whole batch with one service call', async () => {
       const result = await controller.batchUpdate(
         mockRequest,
-        batchScheduleDto,
+        turboRunScheduleDto,
         mockUser,
       );
 
@@ -1036,7 +1036,7 @@ Tweet 3: Tech innovation is changing the world.`,
         await expect(
           controller.batchUpdate(
             mockRequest,
-            batchScheduleDto,
+            turboRunScheduleDto,
             apiKeyUser(scopes),
           ),
         ).rejects.toMatchObject({
@@ -1051,7 +1051,7 @@ Tweet 3: Tech innovation is changing the world.`,
     );
 
     it('should record every scheduled activity in one insert', async () => {
-      await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
+      await controller.batchUpdate(mockRequest, turboRunScheduleDto, mockUser);
 
       expect(mockActivitiesService.recordMany).toHaveBeenCalledTimes(1);
       expect(mockActivitiesService.record).not.toHaveBeenCalled();
@@ -1064,7 +1064,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockCredentialsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
-        controller.batchUpdate(mockRequest, batchScheduleDto, mockUser),
+        controller.batchUpdate(mockRequest, turboRunScheduleDto, mockUser),
       ).rejects.toThrow(HttpException);
     });
 
@@ -1079,7 +1079,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
       const result = await controller.batchUpdate(
         mockRequest,
-        batchScheduleDto,
+        turboRunScheduleDto,
         mockUser,
       );
 
@@ -1090,7 +1090,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should handle ingredient lookup for items with ingredientId', async () => {
       mockIngredientsService.findByIds.mockResolvedValueOnce([mockIngredient]);
 
-      await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
+      await controller.batchUpdate(mockRequest, turboRunScheduleDto, mockUser);
 
       expect(mockIngredientsService.findByIds).toHaveBeenCalled();
     });
@@ -1101,7 +1101,7 @@ Tweet 3: Tech innovation is changing the world.`,
       // leave the post without the media its target expected.
       mockIngredientsService.findByIds.mockResolvedValueOnce([]);
 
-      await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
+      await controller.batchUpdate(mockRequest, turboRunScheduleDto, mockUser);
 
       expect(mockPostsService.batchSchedule).toHaveBeenCalledWith(
         [expect.objectContaining({ postId, text: 'Scheduled tweet 1' })],

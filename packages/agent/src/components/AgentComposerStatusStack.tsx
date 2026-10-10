@@ -77,7 +77,7 @@ const GENERIC_TOOL_LABELS = new Set([
 const GENERATION_TOOL_NAMES = new Set([
   'generate',
   'generate_content',
-  'generate_content_batch',
+  'generate_turbo_content',
   'ingest_source_media',
   'prepare_generation',
   'suggest_ingredient_alternatives',

@@ -4,7 +4,7 @@ describe('restricted OAuth agent execution', () => {
   it.each([
     'generate',
     'execute_workflow',
-    'generate_content_batch',
+    'generate_turbo_content',
     'send_chat_message',
     'resolve_approval',
   ])('rejects %s on both execution surfaces', (name) => {

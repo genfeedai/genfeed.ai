@@ -1,8 +1,8 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 
 export interface ReviewItemsTableProps {
   activeItemId: string | null;
-  items: IBatchItem[];
+  items: ITurboRunItem[];
   selectedIds: Set<string>;
   rewritingIds?: ReadonlySet<string>;
   onSelectItem: (itemId: string) => void;

@@ -17,7 +17,7 @@ import {
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import type { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import type { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import type { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import {
   AgentAutonomyMode,
   AgentPublishDecision,
@@ -76,7 +76,7 @@ export async function createProactiveAgentTextPost(
   ctx: ToolExecutionContext,
   visibility: PostVisibility,
   deps: {
-    batchGenerationService?: BatchGenerationService;
+    turboRunService?: TurboRunService;
     postGroupsService: PostGroupsService;
     readPublishRequest: (params: Record<string, unknown>) => PublishRequest;
     resolveBrandCredentials: (params: {
@@ -108,7 +108,7 @@ export async function createProactiveAgentTextPost(
     !ctx.strategyId ||
     !caption ||
     !platforms.length ||
-    !deps.batchGenerationService
+    !deps.turboRunService
   ) {
     return {
       creditsUsed: 0,
@@ -240,7 +240,7 @@ export async function createProactiveAgentTextPost(
     postGroupId: release.id,
   });
   if (requiresApproval)
-    await deps.batchGenerationService.createManualReviewBatch(
+    await deps.turboRunService.createManualReviewTurboRun(
       {
         brandId,
         agentStrategyId: ctx.strategyId,
@@ -465,7 +465,7 @@ function withMediaReasons(
 export async function finishConfirmedPublish(input: {
   autoPublishPolicy: { policyId: string };
   baseContent: string;
-  batchGenerationService?: BatchGenerationService;
+  turboRunService?: TurboRunService;
   contentId: string;
   createdPlatforms: string[];
   ctx: ToolExecutionContext;
@@ -530,12 +530,12 @@ export async function finishConfirmedPublish(input: {
     String(target.id),
   );
   if (requiresApproval && ctx.isProactive) {
-    if (!input.batchGenerationService || !ingredientBrandId) {
+    if (!input.turboRunService || !ingredientBrandId) {
       throw new Error(
         'Agent review queue is unavailable. Drafts were retained.',
       );
     }
-    await input.batchGenerationService.createManualReviewBatch(
+    await input.turboRunService.createManualReviewTurboRun(
       {
         brandId: ingredientBrandId,
         agentStrategyId: ctx.strategyId,

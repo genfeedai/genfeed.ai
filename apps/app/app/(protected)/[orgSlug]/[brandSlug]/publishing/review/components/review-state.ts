@@ -1,40 +1,40 @@
 import {
-  BatchItemStatus,
+  TurboRunItemStatus,
   normalizeReviewDecision,
   ReviewDecision,
 } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 
-export function isApproved(item: IBatchItem): boolean {
+export function isApproved(item: ITurboRunItem): boolean {
   return (
     normalizeReviewDecision(item.reviewDecision) === ReviewDecision.APPROVED
   );
 }
 
-export function isChangesRequested(item: IBatchItem): boolean {
+export function isChangesRequested(item: ITurboRunItem): boolean {
   return (
     normalizeReviewDecision(item.reviewDecision) ===
     ReviewDecision.REQUEST_CHANGES
   );
 }
 
-export function isRejected(item: IBatchItem): boolean {
+export function isRejected(item: ITurboRunItem): boolean {
   return (
     normalizeReviewDecision(item.reviewDecision) === ReviewDecision.REJECTED ||
-    item.status === BatchItemStatus.SKIPPED
+    item.status === TurboRunItemStatus.SKIPPED
   );
 }
 
-export function isReadyToReview(item: IBatchItem): boolean {
+export function isReadyToReview(item: ITurboRunItem): boolean {
   return (
-    item.status === BatchItemStatus.COMPLETED &&
+    item.status === TurboRunItemStatus.COMPLETED &&
     normalizeReviewDecision(item.reviewDecision) === ReviewDecision.UNSET
   );
 }
 
-export function isPendingReview(item: IBatchItem): boolean {
+export function isPendingReview(item: ITurboRunItem): boolean {
   return (
-    item.status === BatchItemStatus.PENDING ||
-    item.status === BatchItemStatus.PROCESSING
+    item.status === TurboRunItemStatus.PENDING ||
+    item.status === TurboRunItemStatus.PROCESSING
   );
 }

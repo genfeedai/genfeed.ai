@@ -6,7 +6,7 @@ import { AgentMessageBusService } from '@api/services/agent-campaign/agent-messa
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
-import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
+import { AgentOrchestratorTurboRunService } from '@api/services/agent-orchestrator/agent-orchestrator-turbo-run.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import {
@@ -39,7 +39,7 @@ import {
   maybeUpdateThreadTitle,
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import {
-  BATCH_SCOPED_ALLOWED_TOOLS,
+  TURBO_RUN_SCOPED_ALLOWED_TOOLS,
   buildAgentChatCompletionParams,
   buildToolDefinitions,
   mergeAllowedTools,
@@ -63,7 +63,7 @@ export class AgentOrchestratorSyncLoopService {
     private readonly agentMessagesService: AgentMessagesService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly turnRoundRunner: AgentTurnRoundRunnerService,
-    private readonly batchService: AgentOrchestratorBatchService,
+    private readonly turboRunService: AgentOrchestratorTurboRunService,
     private readonly contextService: AgentOrchestratorContextService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
@@ -329,8 +329,8 @@ export class AgentOrchestratorSyncLoopService {
       mergeAllowedTools(
         syncBaseTools,
         request.source !== 'proactive' &&
-          this.batchService.isBatchGenerationIntent(request.content)
-          ? BATCH_SCOPED_ALLOWED_TOOLS
+          this.turboRunService.isTurboRunIntent(request.content)
+          ? TURBO_RUN_SCOPED_ALLOWED_TOOLS
           : undefined,
       ),
       resolveBlockedTools({ source: request.source }),

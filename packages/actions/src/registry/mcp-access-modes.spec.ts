@@ -41,7 +41,7 @@ describe('Claude MCP access policy', () => {
     for (const name of [
       'generate',
       'transform_media',
-      'generate_content_batch',
+      'generate_turbo_content',
       'execute_workflow',
       'start_remix_generation',
       'resolve_approval',

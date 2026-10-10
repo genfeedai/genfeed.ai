@@ -41,7 +41,7 @@ describe('mutation approval summary', () => {
     const longCaption = 'Launch caption '.repeat(100);
     const card = buildMutationApprovalCard(
       'apr-1',
-      'generate_content_batch',
+      'generate_turbo_content',
       {
         count: 5,
         content: longCaption,

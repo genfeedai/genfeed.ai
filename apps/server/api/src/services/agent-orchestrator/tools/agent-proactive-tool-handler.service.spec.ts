@@ -158,14 +158,14 @@ describe('AgentProactiveToolHandler', () => {
   });
 
   it('drafts an engagement reply directly into the manual review queue', async () => {
-    const createManualReviewBatch = vi
+    const createManualReviewTurboRun = vi
       .fn()
       .mockResolvedValue({ id: 'batch-1' });
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,
       {} as never,
       undefined,
-      { createManualReviewBatch } as never,
+      { createManualReviewTurboRun } as never,
     );
 
     const result = await handler.draftEngagementReply(
@@ -181,8 +181,8 @@ describe('AgentProactiveToolHandler', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({ batchId: 'batch-1' });
-    expect(createManualReviewBatch).toHaveBeenCalledWith(
+    expect(result.data).toMatchObject({ turboRunId: 'batch-1' });
+    expect(createManualReviewTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         items: [
@@ -204,14 +204,14 @@ describe('AgentProactiveToolHandler', () => {
   });
 
   it('does not swallow failures from the manual review batch call', async () => {
-    const createManualReviewBatch = vi
+    const createManualReviewTurboRun = vi
       .fn()
       .mockRejectedValue(new Error('batch creation failed'));
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,
       {} as never,
       undefined,
-      { createManualReviewBatch } as never,
+      { createManualReviewTurboRun } as never,
     );
 
     const result = await handler.draftEngagementReply(

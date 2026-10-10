@@ -172,8 +172,8 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform global trends corpus refresh.',
   },
   {
-    file: 'apps/server/workers/src/crons/batch-generation/cron.batch-generation-reconcile.service.ts',
-    id: 'batch-generation-reconcile',
+    file: 'apps/server/workers/src/crons/turbo-run/cron.turbo-run-reconcile.service.ts',
+    id: 'turbo-run-reconcile',
     methodName: 'reconcileSettlementShortfalls',
     reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },

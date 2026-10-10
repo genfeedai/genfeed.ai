@@ -500,7 +500,7 @@ enum LeadStatus {
   LOST
 }
 
-enum BatchStatus {
+enum TurboRunStatus {
   PENDING
   PROCESSING
   COMPLETED
@@ -509,7 +509,7 @@ enum BatchStatus {
   CANCELLED
 }
 
-enum BatchItemStatus {
+enum TurboRunItemStatus {
   PENDING
   PROCESSING
   COMPLETED
@@ -517,12 +517,12 @@ enum BatchItemStatus {
   SKIPPED
 }
 
-enum BatchProjectKind {
+enum TurboProjectKind {
   IDEAS
   WORKFLOW
 }
 
-enum BatchProjectStatus {
+enum TurboProjectStatus {
   DRAFT
   GENERATING
   REVIEWING
@@ -532,7 +532,7 @@ enum BatchProjectStatus {
   CANCELLED
 }
 
-enum BatchProjectItemStatus {
+enum TurboProjectItemStatus {
   PENDING
   GENERATING
   READY
@@ -733,8 +733,8 @@ contentLearningOperations ContentLearningOperation[]
   contentPlans              ContentPlan[]
   evaluations               Evaluation[]
   editorProjects            EditorProject[]
-  batches                   Batch[]
-  assignedBatchItems        BatchItem[]               @relation("batch_item_assignee")
+  turboRuns                   TurboRun[]
+  assignedTurboRunItems        TurboRunItem[]               @relation("turbo_run_item_assignee")
   assets                    Asset[]
   subscriptions             Subscription[]
   userSubscription          UserSubscription?
@@ -945,8 +945,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   billingAccountLinks           BillingAccountOrganization[]
   creditReservations            CreditReservation[]
   liveSessions                  LiveSession[]
-  batchProjects                 BatchProject[]
-  batchProjectItems             BatchProjectItem[]
+  turboProjects                 TurboProject[]
+  turboProjectItems             TurboProjectItem[]
   referralCodesRewardTarget     ReferralCode[]                 @relation("referral_code_reward_organization")
   referralsAsReferrer           Referral[]                     @relation("referral_referrer_organization")
   referralsAsReferred           Referral[]                     @relation("referral_referred_organization")
@@ -973,8 +973,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   skillReceipts                 SkillReceipt[]
   templates                     Template[]
   templateUsages                TemplateUsage[]
-  batches                       Batch[]
-  batchItems                    BatchItem[]
+  turboRuns                       TurboRun[]
+  turboRunItems                    TurboRunItem[]
   profiles                      Profile[]
   activities                    Activity[]
   apiKeys                       ApiKey[]
@@ -1165,8 +1165,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   trackedLinks               TrackedLink[]
   proactiveLeads             Lead[]                     @relation("lead_proactive_brand")
   contentPlans               ContentPlan[]
-  batches                    Batch[]
-  batchItems                 BatchItem[]
+  turboRuns                    TurboRun[]
+  turboRunItems                 TurboRunItem[]
   activities                 Activity[]
   contextBases               ContextBase[]              @relation("context_base_source_brand")
   schedules                  Schedule[]
@@ -2871,7 +2871,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   promptUsed                     String?
   // Knowledge source versions whose passages shaped this post's generation.
   knowledgeReceipts              Json               @default("[]")
-  reviewBatchId                  String?
+  reviewTurboRunId                  String?
   reviewItemId                   String?
   reviewDecision                 ReviewDecision?
   reviewVersionPinId             String?
@@ -4830,7 +4830,7 @@ model AgentStrategy {
   reports       AgentStrategyReport[]
   campaigns     AgentCampaign[]            @relation("campaign_agents")
   campaignLeads AgentCampaign[]            @relation("campaign_lead")
-  batches       Batch[]
+  turboRuns       TurboRun[]
 
   agentType String?
   platforms String[] @default([])
@@ -7400,7 +7400,7 @@ model Profile {
   @@map("profiles")
 }
 
-model Batch {
+model TurboRun {
   id                     String         @id @default(cuid())
   organizationId         String
   organization           Organization   @relation(fields: [organizationId], references: [id])
@@ -7411,7 +7411,7 @@ model Batch {
   agentStrategyId        String?
   agentStrategy          AgentStrategy? @relation(fields: [agentStrategyId], references: [id])
   items                  Json           @default("[]")
-  status                 BatchStatus    @default(PENDING)
+  status                 TurboRunStatus    @default(PENDING)
   config                 Json           @default("{}")
   settlementShortfall    Float?
   settlementShortfallSeq Int?
@@ -7419,85 +7419,85 @@ model Batch {
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 
-  batchItems BatchItem[]
+  turboRunItems TurboRunItem[]
 
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "batches_org_deleted_created_at_idx")
-  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "batches_org_brand_deleted_created_at_idx")
-  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "batches_org_deleted_status_created_at_idx")
-  @@index([isDeleted, settlementShortfall], map: "batches_deleted_settlement_shortfall_idx")
-  @@map("batches")
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "turbo_runs_org_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "turbo_runs_org_brand_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "turbo_runs_org_deleted_status_created_at_idx")
+  @@index([isDeleted, settlementShortfall], map: "turbo_runs_deleted_settlement_shortfall_idx")
+  @@map("turbo_runs")
 }
 
-model BatchItem {
+model TurboRunItem {
   id             String          @id
   organizationId String
   organization   Organization    @relation(fields: [organizationId], references: [id])
   brandId        String?
   brand          Brand?          @relation(fields: [brandId], references: [id])
-  batchId        String
-  batch          Batch           @relation(fields: [batchId], references: [id])
-  status         BatchItemStatus @default(PENDING)
+  turboRunId        String
+  turboRun          TurboRun           @relation(fields: [turboRunId], references: [id])
+  status         TurboRunItemStatus @default(PENDING)
   reviewDecision ReviewDecision?
   assigneeId     String?
-  assignee       User?           @relation("batch_item_assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee       User?           @relation("turbo_run_item_assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   isDeleted      Boolean         @default(false)
   data           Json            @default("{}")
 
-  @@index([organizationId, isDeleted, status, reviewDecision, createdAt(sort: Desc)], map: "batch_items_org_status_review_created_idx")
-  @@index([organizationId, brandId, isDeleted, status, reviewDecision, createdAt(sort: Desc)], map: "batch_items_org_brand_status_review_created_idx")
-  @@index([batchId, isDeleted, createdAt], map: "batch_items_batch_created_idx")
-  @@index([organizationId, assigneeId, isDeleted], map: "batch_items_org_assignee_deleted_idx")
-  @@map("batch_items")
+  @@index([organizationId, isDeleted, status, reviewDecision, createdAt(sort: Desc)], map: "turbo_run_items_org_status_review_created_idx")
+  @@index([organizationId, brandId, isDeleted, status, reviewDecision, createdAt(sort: Desc)], map: "turbo_run_items_org_brand_status_review_created_idx")
+  @@index([turboRunId, isDeleted, createdAt], map: "turbo_run_items_turbo_run_created_idx")
+  @@index([organizationId, assigneeId, isDeleted], map: "turbo_run_items_org_assignee_deleted_idx")
+  @@map("turbo_run_items")
 }
 
-/// A saved Studio Batch run (#5463): ideas or a workflow applied to many
+/// A saved Studio Turbo project (#5463): ideas or a workflow applied to many
 /// inputs. Every step, input and per-item state persists here so a reload
 /// restores the run. Outputs reach publishing through the review inbox
-/// (`reviewBatchId` links the manual-review Batch the items are appended to).
-model BatchProject {
+/// (`reviewTurboRunId` links the manual-review Turbo run the items are appended to).
+model TurboProject {
   id             String                @id @default(cuid())
   organizationId String
   organization   Organization          @relation(fields: [organizationId], references: [id])
   brandId        String
   userId         String
-  kind           BatchProjectKind
+  kind           TurboProjectKind
   name           String
-  status         BatchProjectStatus    @default(DRAFT)
-  /// Wizard step, lowercase product vocabulary (`BatchProjectStep`).
+  status         TurboProjectStatus    @default(DRAFT)
+  /// Wizard step, lowercase product vocabulary (`TurboProjectStep`).
   step           String
   workflowId     String?
   /// Idea inputs (formats, count, angle) and schedule choices (targets,
-  /// posting set, timezone). Shape: `IBatchProjectSettings`.
+  /// posting set, timezone). Shape: `ITurboProjectSettings`.
   settings       Json                  @default("{}")
   /// Bumped by every change that affects cost (inputs, ideas, workflow); an
   /// accepted quote is bound to the revision it priced.
   revision       Int                   @default(0)
-  /// Latest credit quote for idea generation. Shape: `IBatchProjectQuote`.
+  /// Latest credit quote for idea generation. Shape: `ITurboProjectQuote`.
   quote          Json?
-  reviewBatchId  String?
+  reviewTurboRunId  String?
   isDeleted      Boolean               @default(false)
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
-  items          BatchProjectItem[]
+  items          TurboProjectItem[]
 
   @@index([organizationId, brandId, isDeleted, updatedAt(sort: Desc)])
   @@index([status, isDeleted, updatedAt])
-  @@map("batch_projects")
+  @@map("turbo_projects")
 }
 
-/// One input of a BatchProject: an idea brief or an input ingredient, with its
+/// One input of a TurboProject: an idea brief or an input ingredient, with its
 /// generation, review and scheduling state.
-model BatchProjectItem {
+model TurboProjectItem {
   id                  String                 @id @default(cuid())
   organizationId      String
   organization        Organization           @relation(fields: [organizationId], references: [id])
   projectId           String
-  project             BatchProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project             TurboProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   position            Int
-  status              BatchProjectItemStatus @default(PENDING)
-  /// Idea brief for idea batches. Shape: `BatchIdea`.
+  status              TurboProjectItemStatus @default(PENDING)
+  /// Idea brief for idea Turbo projects. Shape: `TurboIdea`.
   idea                Json?
   inputIngredientId   String?
   inputCategory       String?
@@ -7510,7 +7510,7 @@ model BatchProjectItem {
   error               String?
   dispatchedAt        DateTime?
   postId              String?
-  reviewBatchId       String?
+  reviewTurboRunId       String?
   reviewItemId        String?
   scheduledAt         DateTime?
   /// Destinations this item scheduled to: `[{ credentialId, postId, scheduledAt }]`.
@@ -7518,15 +7518,15 @@ model BatchProjectItem {
   /// Retry attempts; each attempt dispatches under its own idempotency key.
   retryCount          Int                    @default(0)
   /// Server-side idea generation: accepted quote line, credit reservation and
-  /// its settlement state. Shape: `IBatchProjectItemDispatch`.
+  /// its settlement state. Shape: `ITurboProjectItemDispatch`.
   dispatch            Json?
   isDeleted           Boolean                @default(false)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
-  @@index([organizationId, projectId, isDeleted, position], map: "batch_project_items_org_project_position_idx")
+  @@index([organizationId, projectId, isDeleted, position], map: "turbo_project_items_org_project_position_idx")
   @@index([organizationId, reviewItemId, isDeleted])
-  @@map("batch_project_items")
+  @@map("turbo_project_items")
 }
 
 // ═══════════════════════════════════════════════════════════════

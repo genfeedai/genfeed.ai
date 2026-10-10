@@ -1783,17 +1783,17 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Transcribes one prepared clip-analysis source.',
   ),
   internalAction(
-    'content.batch.plan',
+    'content.turbo.plan',
     'Plan Content Batch',
     'Builds the bounded child inputs for one content batch.',
   ),
   internalAction(
-    'content.batch.item.prepare',
+    'content.turbo.item.prepare',
     'Prepare Content Batch Item',
     'Projects one batch item into the exact input of a fixed skill workflow.',
   ),
   internalAction(
-    'content.batch.rank',
+    'content.turbo.rank',
     'Rank Content Batch',
     'Ranks the completed items in one content batch.',
   ),
@@ -2482,27 +2482,27 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Finalizes one campaign trigger evaluation.',
   ),
   internalAction(
-    'batch.generation.mark-queued',
+    'turbo.run.mark-queued',
     'Mark Batch Generation Queued',
     'Claims one batch generation request for workflow execution.',
   ),
   internalAction(
-    'batch.generation.process',
+    'turbo.run.process',
     'Process Batch Generation',
     'Generates one claimed batch through the shared generation service.',
   ),
   internalAction(
-    'batch.generation.settle',
+    'turbo.run.settle',
     'Settle Batch Generation',
     'Finalizes credits and durable state for one batch generation run.',
   ),
   internalAction(
-    'batch-project.idea.dispatch-item',
+    'turbo-project.idea.dispatch-item',
     'Dispatch Batch Project Idea',
     'Reserves one accepted quote line and starts generation of one batch idea.',
   ),
   internalAction(
-    'batch-project.idea.fail-item',
+    'turbo-project.idea.fail-item',
     'Fail Batch Project Idea',
     'Fails one batch idea whose generation could not start and releases its hold.',
   ),

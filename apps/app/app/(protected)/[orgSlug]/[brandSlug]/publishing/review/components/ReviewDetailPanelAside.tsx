@@ -1,4 +1,4 @@
-import { BatchItemStatus } from '@genfeedai/contracts';
+import { TurboRunItemStatus } from '@genfeedai/contracts';
 import {
   DefinitionDetail,
   DefinitionList,
@@ -201,7 +201,7 @@ export default function ReviewDetailPanelAside({
         </Section>
       ) : null}
 
-      {item.status === BatchItemStatus.FAILED && item.error ? (
+      {item.status === TurboRunItemStatus.FAILED && item.error ? (
         <Section title="Failure">
           <p className="text-sm leading-6 text-destructive">{item.error}</p>
         </Section>

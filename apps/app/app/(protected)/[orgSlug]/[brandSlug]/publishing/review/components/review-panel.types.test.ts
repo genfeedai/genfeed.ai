@@ -1,10 +1,10 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 
 import type { ReviewPanelItem } from './review-panel.types';
 
 describe('ReviewPanelItem', () => {
   it('extends the batch item contract with optional review metadata', () => {
-    expectTypeOf<ReviewPanelItem>().toMatchTypeOf<IBatchItem>();
+    expectTypeOf<ReviewPanelItem>().toMatchTypeOf<ITurboRunItem>();
     expectTypeOf<
       Pick<
         ReviewPanelItem,

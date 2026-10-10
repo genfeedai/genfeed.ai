@@ -33,7 +33,7 @@ const mocks = vi.hoisted(() => ({
     organizationId?: string;
   } | null,
   activityRefresh: vi.fn(async () => undefined),
-  batchItemAction: vi.fn(async () => ({})),
+  turboRunItemAction: vi.fn(async () => ({})),
   cancelExecution: vi.fn(async () => undefined),
   executions: [] as IWorkflowExecution[],
   publications: [] as IReleaseGroup[],
@@ -127,8 +127,8 @@ vi.mock('@services/content/release-groups.service', () => ({
 }));
 
 vi.mock('@services/batch/batches.service', () => ({
-  BatchesService: {
-    getInstance: () => ({ itemAction: mocks.batchItemAction }),
+  TurboRunsService: {
+    getInstance: () => ({ itemAction: mocks.turboRunItemAction }),
   },
 }));
 
@@ -246,7 +246,7 @@ const { default: OperationalHomeContent } = await import('./content');
 
 function buildReviewItem(id: string): ReviewInboxItem {
   return {
-    batchId: 'batch_1',
+    turboRunId: 'turbo_run_1',
     createdAt: '2026-08-08T12:00:00.000Z',
     format: 'image',
     id,
@@ -784,7 +784,7 @@ describe('OperationalHomeContent', () => {
       queue.getByRole('link', { name: 'Open Review item_1' }),
     ).toHaveAttribute(
       'href',
-      '/acme/moonrise/publishing/review?batch=batch_1&item=item_1',
+      '/acme/moonrise/publishing/review?batch=turbo_run_1&item=item_1',
     );
     expect(queue.getByRole('button', { name: 'Approve' })).toHaveClass(
       'size-8',
@@ -886,7 +886,7 @@ describe('OperationalHomeContent', () => {
   it('approves a review item and refreshes the overview on success', async () => {
     mocks.reviewInboxRecentItems = [
       {
-        batchId: 'batch_1',
+        turboRunId: 'turbo_run_1',
         createdAt: '2026-08-08T12:00:00.000Z',
         format: 'image',
         id: 'item_1',
@@ -908,7 +908,7 @@ describe('OperationalHomeContent', () => {
     );
 
     await waitFor(() =>
-      expect(mocks.batchItemAction).toHaveBeenCalledWith('batch_1', {
+      expect(mocks.turboRunItemAction).toHaveBeenCalledWith('turbo_run_1', {
         action: 'approve',
         itemIds: ['item_1'],
       }),
@@ -920,7 +920,7 @@ describe('OperationalHomeContent', () => {
   it('surfaces a notification when approving a review item fails', async () => {
     mocks.reviewInboxRecentItems = [
       {
-        batchId: 'batch_1',
+        turboRunId: 'turbo_run_1',
         createdAt: '2026-08-08T12:00:00.000Z',
         format: 'image',
         id: 'item_1',
@@ -931,7 +931,7 @@ describe('OperationalHomeContent', () => {
         summary: 'Product hero shot',
       },
     ];
-    mocks.batchItemAction.mockRejectedValueOnce(new Error('approve failed'));
+    mocks.turboRunItemAction.mockRejectedValueOnce(new Error('approve failed'));
 
     render(<OperationalHomeContent />);
 

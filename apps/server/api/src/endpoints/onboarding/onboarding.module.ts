@@ -18,7 +18,7 @@ import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/o
 import { OnboardingStarterAssetsService } from '@api/endpoints/onboarding/services/onboarding-starter-assets.service';
 import { OnboardingStarterAssetsQueueService } from '@api/endpoints/onboarding/services/onboarding-starter-assets-queue.service';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
-import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -40,7 +40,7 @@ import { Module } from '@nestjs/common';
   exports: [OnboardingService, OnboardingStarterAssetsService],
   imports: [
     AgentGenerationGatewayModule,
-    BatchGenerationModule,
+    TurboRunModule,
     BrandScraperModule,
     BrandsModule,
     ByokModule,

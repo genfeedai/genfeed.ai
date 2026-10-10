@@ -501,7 +501,7 @@ export const brandRemixGenerationClaimSchema = z
 export const brandRemixReviewSchema = z
   .object({
     approvedPostIds: z.array(opaqueIdSchema).max(8).default([]),
-    batchId: opaqueIdSchema,
+    turboRunId: opaqueIdSchema,
     postIds: z.array(opaqueIdSchema).max(8),
     workflowExecutionId: opaqueIdSchema.optional(),
     workflowId: opaqueIdSchema.optional(),

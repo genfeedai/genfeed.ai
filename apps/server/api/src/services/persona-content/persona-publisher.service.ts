@@ -6,7 +6,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import {
   AgentPublishDecision,
   fromPrismaCredentialPlatform,
@@ -51,7 +51,7 @@ export class PersonaPublisherService {
     private readonly personasService: PersonasService,
     private readonly credentialsService: CredentialsService,
     private readonly postsService: PostsService,
-    private readonly batchGenerationService: BatchGenerationService,
+    private readonly turboRunService: TurboRunService,
     private readonly publishPolicy: AutonomousPublishPolicyService,
     private readonly moduleAccess: OrganizationModuleAccessService,
   ) {}
@@ -117,7 +117,7 @@ export class PersonaPublisherService {
 
         const postId = String(post.id);
         postIds.push(postId);
-        const batch = await this.batchGenerationService.createManualReviewBatch(
+        const turboRun = await this.turboRunService.createManualReviewTurboRun(
           {
             brandId: input.brandId,
             items: [
@@ -141,9 +141,9 @@ export class PersonaPublisherService {
           postId,
         });
         if (policy.result.decision === AgentPublishDecision.PERMITTED) {
-          await this.batchGenerationService.approveAutonomousItems(
-            batch.id,
-            batch.items.map((item) => item.id),
+          await this.turboRunService.approveAutonomousItems(
+            turboRun.id,
+            turboRun.items.map((item) => item.id),
             input.organizationId,
             input.userId,
           );

@@ -14,7 +14,7 @@ import ReviewQueueContent from './review-queue-content';
 import { useReviewQueueContent } from './useReviewQueueContent';
 
 const mocks = vi.hoisted(() => ({
-  getBatchesService: vi.fn(),
+  getTurboRunsService: vi.fn(),
   loggerError: vi.fn(),
   notificationError: vi.fn(),
   notificationSuccess: vi.fn(),
@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => ({
   setFiltersNode: vi.fn(),
   setQueryData: vi.fn(),
   startRewrite: vi.fn(),
-  useBatchRewriteJob: vi.fn(),
+  useTurboRewriteJob: vi.fn(),
   useQuery: vi.fn(),
 }));
 const searchParamsState = new URLSearchParams();
@@ -41,7 +41,7 @@ type ConfirmConfig = {
 };
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getBatchesService,
+  useAuthedService: () => mocks.getTurboRunsService,
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -72,9 +72,9 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('./useBatchRewriteJob', () => ({
-  useBatchRewriteJob: (params: unknown) => {
-    mocks.useBatchRewriteJob(params);
+vi.mock('./useTurboRewriteJob', () => ({
+  useTurboRewriteJob: (params: unknown) => {
+    mocks.useTurboRewriteJob(params);
     return {
       isRewriteStarting: false,
       rewriteProgress: null,
@@ -134,7 +134,7 @@ vi.mock('./components/ReviewGrid', () => ({
         Bulk Reject
       </button>
       <button type="button" onClick={() => onBulkRewrite()}>
-        Rewrite batch
+        Rewrite turboRun
       </button>
     </div>
   ),
@@ -309,9 +309,9 @@ vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
     value: string;
   }) => (
     <div>
-      <div>Selected batch: {value}</div>
+      <div>Selected turboRun: {value}</div>
       <button type="button" onClick={() => onChange('review-batch', 'batch-2')}>
-        Select batch-2
+        Select turboRun-2
       </button>
     </div>
   ),
@@ -345,13 +345,13 @@ vi.mock('next/navigation', () => ({
 describe('ReviewQueueContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    searchParamsState.delete('batch');
+    searchParamsState.delete('turboRun');
     searchParamsState.delete('filter');
     searchParamsState.delete('item');
   });
 
   function mockReviewQueries({
-    activeBatch = {
+    activeTurboRun = {
       id: 'batch-1',
       items: [
         {
@@ -378,8 +378,8 @@ describe('ReviewQueueContent', () => {
       status: 'COMPLETED',
       totalCount: 3,
     },
-    activeBatchError = null,
-    batchList = [
+    activeTurboRunError = null,
+    turboRunList = [
       {
         id: 'batch-1',
         status: 'COMPLETED',
@@ -391,35 +391,35 @@ describe('ReviewQueueContent', () => {
         totalCount: 2,
       },
     ],
-    batchesError = null,
-    isBatchLoading = false,
-    isBatchesLoading = false,
+    turboRunsError = null,
+    isTurboRunLoading = false,
+    isTurboRunsLoading = false,
     refetch = vi.fn().mockResolvedValue(undefined),
   }: {
-    activeBatch?: unknown;
-    activeBatchError?: Error | null;
-    batchList?: unknown;
-    batchesError?: Error | null;
-    isBatchLoading?: boolean;
-    isBatchesLoading?: boolean;
+    activeTurboRun?: unknown;
+    activeTurboRunError?: Error | null;
+    turboRunList?: unknown;
+    turboRunsError?: Error | null;
+    isTurboRunLoading?: boolean;
+    isTurboRunsLoading?: boolean;
     refetch?: ReturnType<typeof vi.fn>;
   } = {}) {
     mocks.useQuery.mockImplementation((options: { queryKey: unknown[] }) => {
       if (options.queryKey[0] === 'review-batches') {
         return {
-          data: batchList,
-          error: batchesError,
-          isFetching: isBatchesLoading,
-          isLoading: isBatchesLoading,
+          data: turboRunList,
+          error: turboRunsError,
+          isFetching: isTurboRunsLoading,
+          isLoading: isTurboRunsLoading,
           refetch: refetch,
         };
       }
 
       return {
-        data: activeBatch,
-        error: activeBatchError,
-        isFetching: isBatchLoading,
-        isLoading: isBatchLoading,
+        data: activeTurboRun,
+        error: activeTurboRunError,
+        isFetching: isTurboRunLoading,
+        isLoading: isTurboRunLoading,
         refetch,
       };
     });
@@ -444,7 +444,7 @@ describe('ReviewQueueContent', () => {
   }
 
   it('shows an error state when the batch payload is invalid', () => {
-    mocks.getBatchesService.mockResolvedValue({
+    mocks.getTurboRunsService.mockResolvedValue({
       itemAction: vi.fn(),
     });
     mocks.useQuery.mockImplementation((options: { queryKey: unknown[] }) => {
@@ -477,7 +477,7 @@ describe('ReviewQueueContent', () => {
 
   it('shows the subscription denial instead of generic batch API advice', () => {
     mockReviewQueries({
-      batchesError: Object.assign(new Error('Request rejected'), {
+      turboRunsError: Object.assign(new Error('Request rejected'), {
         errors: [
           {
             status: '403',
@@ -506,7 +506,7 @@ describe('ReviewQueueContent', () => {
     const itemAction = vi.fn().mockResolvedValue({});
     const refetch = vi.fn().mockResolvedValue(undefined);
 
-    mocks.getBatchesService.mockResolvedValue({
+    mocks.getTurboRunsService.mockResolvedValue({
       itemAction,
     });
     mocks.useQuery.mockImplementation((options: { queryKey: unknown[] }) => {
@@ -592,13 +592,13 @@ describe('ReviewQueueContent', () => {
       ],
     });
 
-    mocks.getBatchesService.mockResolvedValue({
+    mocks.getTurboRunsService.mockResolvedValue({
       assignItem,
       itemAction: vi.fn(),
       unassignItem,
     });
     mockReviewQueries({
-      activeBatch: {
+      activeTurboRun: {
         id: 'batch-1',
         items: [
           {
@@ -629,7 +629,7 @@ describe('ReviewQueueContent', () => {
   });
 
   it('frames itself as the approval queue and links back to Posts with the selection', () => {
-    searchParamsState.set('batch', 'batch-1');
+    searchParamsState.set('turboRun', 'batch-1');
     searchParamsState.set('item', 'item-1');
     mockReviewQueries();
 
@@ -648,7 +648,7 @@ describe('ReviewQueueContent', () => {
 
   it('loads review batches, syncs the active item, and handles batch/filter changes', async () => {
     const itemAction = vi.fn().mockResolvedValue({});
-    mocks.getBatchesService.mockResolvedValue({ itemAction });
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction });
     mockReviewQueries();
 
     render(<ReviewQueueContent />);
@@ -685,7 +685,7 @@ describe('ReviewQueueContent', () => {
 
   it('explains automatic ready-filter broadening once across rerenders and refetches', async () => {
     const { refetch } = mockReviewQueries({
-      activeBatch: {
+      activeTurboRun: {
         id: 'batch-1',
         items: [
           {
@@ -734,7 +734,7 @@ describe('ReviewQueueContent', () => {
 
   it('explains a later distinct ready-to-all automatic broaden edge', async () => {
     mockReviewQueries({
-      activeBatch: {
+      activeTurboRun: {
         id: 'batch-1',
         items: [
           {
@@ -769,7 +769,7 @@ describe('ReviewQueueContent', () => {
   it('handles bulk approve, bulk reject, request changes, and reject actions', async () => {
     const itemAction = vi.fn().mockResolvedValue({});
     const { refetch } = mockReviewQueries();
-    mocks.getBatchesService.mockResolvedValue({ itemAction });
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction });
 
     render(<ReviewQueueContent />);
     expect(await screen.findByText('Review Grid')).toBeInTheDocument();
@@ -819,7 +819,7 @@ describe('ReviewQueueContent', () => {
     });
   });
 
-  async function clickDiscardBatchFromActionRail(
+  async function clickDiscardTurboRunFromActionRail(
     user: ReturnType<typeof userEvent.setup>,
   ) {
     // Discard batch lives in the publish layout action rail (filtersNode),
@@ -833,16 +833,16 @@ describe('ReviewQueueContent', () => {
 
   it('requires confirmation before discarding a review batch', async () => {
     const user = userEvent.setup();
-    const cancelBatch = vi.fn();
+    const cancelTurboRun = vi.fn();
     const itemAction = vi.fn();
     mockReviewQueries();
-    mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
+    mocks.getTurboRunsService.mockResolvedValue({ cancelTurboRun, itemAction });
 
     render(<ReviewQueueContent />);
-    await clickDiscardBatchFromActionRail(user);
+    await clickDiscardTurboRunFromActionRail(user);
 
     expect(itemAction).not.toHaveBeenCalled();
-    expect(cancelBatch).not.toHaveBeenCalled();
+    expect(cancelTurboRun).not.toHaveBeenCalled();
     expect(mocks.openConfirm).toHaveBeenCalledWith(
       expect.objectContaining({
         confirmLabel: 'Discard batch',
@@ -854,7 +854,7 @@ describe('ReviewQueueContent', () => {
 
   it('surfaces a retryable partial failure when cancellation fails after rejection', async () => {
     const user = userEvent.setup();
-    const rejectedBatch = {
+    const rejectedTurboRun = {
       id: 'batch-1',
       items: [
         { id: 'item-1', status: 'SKIPPED' },
@@ -864,13 +864,13 @@ describe('ReviewQueueContent', () => {
       status: 'COMPLETED',
       totalCount: 3,
     };
-    const itemAction = vi.fn().mockResolvedValue(rejectedBatch);
-    const cancelBatch = vi.fn().mockRejectedValue(new Error('cancel failed'));
+    const itemAction = vi.fn().mockResolvedValue(rejectedTurboRun);
+    const cancelTurboRun = vi.fn().mockRejectedValue(new Error('cancel failed'));
     const { refetch } = mockReviewQueries();
-    mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
+    mocks.getTurboRunsService.mockResolvedValue({ cancelTurboRun, itemAction });
 
     render(<ReviewQueueContent />);
-    await clickDiscardBatchFromActionRail(user);
+    await clickDiscardTurboRunFromActionRail(user);
     await act(async () => latestConfirm().onConfirm());
 
     expect(itemAction).toHaveBeenCalledWith('batch-1', {
@@ -878,11 +878,11 @@ describe('ReviewQueueContent', () => {
       feedback: 'Review batch discarded.',
       itemIds: ['item-1', 'item-2'],
     });
-    expect(cancelBatch).toHaveBeenCalledWith('batch-1');
+    expect(cancelTurboRun).toHaveBeenCalledWith('batch-1');
     expect(
       itemAction.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
     ).toBeLessThan(
-      cancelBatch.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+      cancelTurboRun.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
     );
     expect(mocks.notificationWarning).toHaveBeenCalledWith(
       'Ready drafts were discarded, but unfinished items could not be cancelled. Retry Discard batch to finish.',
@@ -896,7 +896,7 @@ describe('ReviewQueueContent', () => {
 
   it('renders the canonical empty state after a review batch is discarded', async () => {
     const user = userEvent.setup();
-    const cancelledBatch = {
+    const cancelledTurboRun = {
       id: 'batch-1',
       items: [
         { id: 'item-1', status: 'SKIPPED' },
@@ -906,19 +906,19 @@ describe('ReviewQueueContent', () => {
       status: 'CANCELLED',
       totalCount: 3,
     };
-    const itemAction = vi.fn().mockResolvedValue(cancelledBatch);
-    const cancelBatch = vi.fn().mockResolvedValue(cancelledBatch);
+    const itemAction = vi.fn().mockResolvedValue(cancelledTurboRun);
+    const cancelTurboRun = vi.fn().mockResolvedValue(cancelledTurboRun);
     mockReviewQueries();
-    mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
+    mocks.getTurboRunsService.mockResolvedValue({ cancelTurboRun, itemAction });
 
     const { rerender } = render(<ReviewQueueContent />);
-    await clickDiscardBatchFromActionRail(user);
+    await clickDiscardTurboRunFromActionRail(user);
     await act(async () => latestConfirm().onConfirm());
 
     mocks.useQuery.mockReset();
     mockReviewQueries({
-      activeBatch: cancelledBatch,
-      batchList: [cancelledBatch],
+      activeTurboRun: cancelledTurboRun,
+      turboRunList: [cancelledTurboRun],
     });
     rerender(<ReviewQueueContent />);
 
@@ -938,7 +938,7 @@ describe('ReviewQueueContent', () => {
   it('queues a background rewrite of the selection and keeps the page usable', async () => {
     mockReviewQueries();
     mocks.startRewrite.mockResolvedValue(true);
-    mocks.getBatchesService.mockResolvedValue({ itemAction: vi.fn() });
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction: vi.fn() });
     render(<ReviewQueueContent />);
     fireEvent.click(
       await screen.findByRole('button', { name: 'Toggle item-1' }),
@@ -953,15 +953,15 @@ describe('ReviewQueueContent', () => {
       expect(screen.getByText('Selected count: 0')).toBeInTheDocument(),
     );
     expect(screen.getByText('Actioning: false')).toBeInTheDocument();
-    expect(mocks.useBatchRewriteJob).toHaveBeenLastCalledWith(
-      expect.objectContaining({ batchId: 'batch-1' }),
+    expect(mocks.useTurboRewriteJob).toHaveBeenLastCalledWith(
+      expect.objectContaining({ turboRunId: 'batch-1' }),
     );
   });
 
   it('keeps the selection when the rewrite could not be queued', async () => {
     mockReviewQueries();
     mocks.startRewrite.mockResolvedValue(false);
-    mocks.getBatchesService.mockResolvedValue({ itemAction: vi.fn() });
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction: vi.fn() });
     render(<ReviewQueueContent />);
     fireEvent.click(
       await screen.findByRole('button', { name: 'Toggle item-1' }),
@@ -973,26 +973,26 @@ describe('ReviewQueueContent', () => {
   });
 
   it('renders loading, empty, selected-batch error, and unresolved detail states', () => {
-    mocks.getBatchesService.mockResolvedValue({ itemAction: vi.fn() });
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction: vi.fn() });
 
-    mockReviewQueries({ isBatchesLoading: true });
+    mockReviewQueries({ isTurboRunsLoading: true });
     const { rerender } = render(<ReviewQueueContent />);
     expect(screen.getByText('Loading…')).toBeInTheDocument();
 
     mocks.useQuery.mockReset();
-    mockReviewQueries({ batchList: [] });
+    mockReviewQueries({ turboRunList: [] });
     rerender(<ReviewQueueContent />);
     expect(screen.getByText('No review work waiting')).toBeInTheDocument();
 
     mocks.useQuery.mockReset();
-    mockReviewQueries({ activeBatchError: new Error('batch failed') });
+    mockReviewQueries({ activeTurboRunError: new Error('batch failed') });
     rerender(<ReviewQueueContent />);
     expect(
       screen.getByText('Unable to load the selected batch'),
     ).toBeInTheDocument();
 
     mocks.useQuery.mockReset();
-    mockReviewQueries({ activeBatch: null });
+    mockReviewQueries({ activeTurboRun: null });
     rerender(<ReviewQueueContent />);
     expect(
       screen.getByText('No batch details are available'),
@@ -1002,7 +1002,7 @@ describe('ReviewQueueContent', () => {
   it('logs action failures without crashing the review queue', async () => {
     const itemAction = vi.fn().mockRejectedValue(new Error('action failed'));
     mockReviewQueries();
-    mocks.getBatchesService.mockResolvedValue({ itemAction });
+    mocks.getTurboRunsService.mockResolvedValue({ itemAction });
 
     render(<ReviewQueueContent />);
     expect(await screen.findByText('Review Grid')).toBeInTheDocument();

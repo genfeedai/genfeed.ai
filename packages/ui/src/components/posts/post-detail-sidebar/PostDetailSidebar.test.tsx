@@ -71,7 +71,7 @@ describe('PostDetailSidebar', () => {
         reviewSummary={{
           generationId: 'gen-123',
           promptUsed: 'Write a launch clip',
-          reviewBatchId: 'batch-1',
+          reviewTurboRunId: 'batch-1',
           reviewDecision: ReviewDecision.REQUEST_CHANGES,
           reviewEvents: [
             {

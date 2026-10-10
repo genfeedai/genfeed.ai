@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { BatchItemStatus } from '@genfeedai/contracts';
+import { TurboRunItemStatus } from '@genfeedai/contracts';
 import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -75,7 +75,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 vi.mock('@services/batch/batches.service', () => ({
-  BatchesService: { getInstance: vi.fn() },
+  TurboRunsService: { getInstance: vi.fn() },
 }));
 
 vi.mock('@services/social/brands.service', () => ({
@@ -300,21 +300,21 @@ describe('PublishingOverviewPage', () => {
           {
             id: 'batch-1',
             items: [
-              { id: 'ready-1', status: BatchItemStatus.COMPLETED },
+              { id: 'ready-1', status: TurboRunItemStatus.COMPLETED },
               {
                 id: 'approved-1',
                 reviewDecision: 'approved',
-                status: BatchItemStatus.COMPLETED,
+                status: TurboRunItemStatus.COMPLETED,
               },
-              { id: 'failed-1', status: BatchItemStatus.FAILED },
-              { id: 'pending-1', status: BatchItemStatus.PENDING },
+              { id: 'failed-1', status: TurboRunItemStatus.FAILED },
+              { id: 'pending-1', status: TurboRunItemStatus.PENDING },
             ],
           },
           {
             id: 'batch-2',
             items: [
-              { id: 'ready-2', status: BatchItemStatus.COMPLETED },
-              { id: 'processing-1', status: BatchItemStatus.PROCESSING },
+              { id: 'ready-2', status: TurboRunItemStatus.COMPLETED },
+              { id: 'processing-1', status: TurboRunItemStatus.PROCESSING },
             ],
           },
         ],

@@ -98,9 +98,9 @@ describe('ToolRegistryService.classify', () => {
     ['get_account_info', 'unknown'],
     ['list_brands', 'unknown'],
     ['post_social_reply', 'social-messages'],
-    // generate_content_batch is an CuratedActionName, so it routes through the
+    // generate_turbo_content is an CuratedActionName, so it routes through the
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
-    ['generate_content_batch', 'agent-executor'],
+    ['generate_turbo_content', 'agent-executor'],
     ['list_instagram_inspiration', 'agent-executor'],
     ['get_x_posts', 'agent-executor'],
     ['list_x_account_activity', 'agent-executor'],

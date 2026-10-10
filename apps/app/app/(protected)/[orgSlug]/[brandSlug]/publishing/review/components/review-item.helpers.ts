@@ -1,5 +1,5 @@
 import {
-  BatchItemStatus,
+  TurboRunItemStatus,
   ContentFormat,
   PostVisibility,
   parsePlatform,
@@ -11,7 +11,7 @@ import {
   TargetValidationState,
 } from '@genfeedai/contracts';
 import type {
-  IBatchItem,
+  ITurboRunItem,
   IReleaseMediaReference,
 } from '@genfeedai/contracts/interfaces';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
@@ -23,7 +23,7 @@ import {
   isRejected,
 } from './review-state';
 
-export function formatReviewItemStatus(item: IBatchItem): string {
+export function formatReviewItemStatus(item: ITurboRunItem): string {
   if (isApproved(item)) {
     return 'Approved';
   }
@@ -35,13 +35,13 @@ export function formatReviewItemStatus(item: IBatchItem): string {
     return 'Rejected';
   }
   switch (item.status) {
-    case BatchItemStatus.COMPLETED:
+    case TurboRunItemStatus.COMPLETED:
       return 'Ready';
-    case BatchItemStatus.FAILED:
+    case TurboRunItemStatus.FAILED:
       return 'Failed';
-    case BatchItemStatus.PROCESSING:
+    case TurboRunItemStatus.PROCESSING:
       return 'Generating';
-    case BatchItemStatus.PENDING:
+    case TurboRunItemStatus.PENDING:
       return 'Pending';
     default:
       return String(item.status).replaceAll('_', ' ').toLowerCase();
@@ -50,7 +50,7 @@ export function formatReviewItemStatus(item: IBatchItem): string {
 
 /** Badge status token — only when it matches the product label we show. */
 export function getReviewItemBadgeStatus(
-  item: IBatchItem,
+  item: ITurboRunItem,
 ): 'completed' | 'failed' | 'pending' | undefined {
   if (isApproved(item)) {
     return 'completed';
@@ -61,10 +61,10 @@ export function getReviewItemBadgeStatus(
   if (isChangesRequested(item)) {
     return undefined;
   }
-  if (item.status === BatchItemStatus.FAILED) {
+  if (item.status === TurboRunItemStatus.FAILED) {
     return 'failed';
   }
-  if (item.status === BatchItemStatus.PENDING) {
+  if (item.status === TurboRunItemStatus.PENDING) {
     return 'pending';
   }
   // COMPLETED/ready, PROCESSING, etc. — use children label, not Badge's
@@ -72,7 +72,7 @@ export function getReviewItemBadgeStatus(
   return undefined;
 }
 
-export function getReviewItemTitle(item: IBatchItem): string {
+export function getReviewItemTitle(item: ITurboRunItem): string {
   return (
     item.caption?.trim() ||
     item.prompt?.trim() ||
@@ -80,11 +80,11 @@ export function getReviewItemTitle(item: IBatchItem): string {
   );
 }
 
-export function isReviewItemSelectable(item: IBatchItem): boolean {
+export function isReviewItemSelectable(item: ITurboRunItem): boolean {
   return isReadyToReview(item);
 }
 
-function resolveReviewItemMediaKind(item: IBatchItem): string {
+function resolveReviewItemMediaKind(item: ITurboRunItem): string {
   const format = String(item.format ?? '').toLowerCase();
   if (format === ContentFormat.REEL || format.includes('reel')) {
     return 'short_video';
@@ -98,7 +98,7 @@ function resolveReviewItemMediaKind(item: IBatchItem): string {
   return 'image';
 }
 
-function buildReviewItemMedia(item: IBatchItem): IReleaseMediaReference[] {
+function buildReviewItemMedia(item: ITurboRunItem): IReleaseMediaReference[] {
   if (!item.mediaUrl) {
     return [];
   }
@@ -124,7 +124,7 @@ function buildReviewItemMedia(item: IBatchItem): IReleaseMediaReference[] {
  * inert defaults purely to satisfy the shared contract's type.
  */
 export function buildReviewItemTargetPreview(
-  item: IBatchItem,
+  item: ITurboRunItem,
 ): TargetPreviewProps | null {
   const platform = parsePlatform(item.platform);
   if (!platform) {
@@ -169,7 +169,7 @@ export function buildReviewItemTargetPreview(
       isDeleted: false,
       order: 0,
       platform,
-      releaseId: item.batchId,
+      releaseId: item.turboRunId,
       retryCount: 0,
       settings: { caption },
       source: ReleaseTargetSource.MANUAL,

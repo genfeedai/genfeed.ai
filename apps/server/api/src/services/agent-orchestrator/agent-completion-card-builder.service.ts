@@ -379,13 +379,13 @@ export class AgentCompletionCardBuilderService {
 
     if (
       uiActionTypes.has('content_preview_card') ||
-      uiActionTypes.has('batch_generation_card') ||
-      uiActionTypes.has('batch_generation_result_card') ||
+      uiActionTypes.has('turbo_run_card') ||
+      uiActionTypes.has('turbo_run_result_card') ||
       uiActionTypes.has('clip_run_card') ||
       uiActionTypes.has('clip_workflow_run_card') ||
       hasCompletedTool(
         'generate_content',
-        'generate_content_batch',
+        'generate_turbo_content',
         'generate',
         'generate_as_identity',
       )

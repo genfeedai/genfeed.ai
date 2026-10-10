@@ -64,11 +64,11 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('bounds review-inbox bootstrap scans in production source', () => {
-    const source = readSourceOf('BatchGenerationReviewService', {
+    const source = readSourceOf('TurboRunReviewService', {
       root: API_SRC,
     });
-    expect(source).toContain('this.prisma.batchItem.groupBy({');
-    expect(source).toContain('this.prisma.batchItem.findMany({');
+    expect(source).toContain('this.prisma.turboRunItem.groupBy({');
+    expect(source).toContain('this.prisma.turboRunItem.findMany({');
     expect(source).toContain('take: recentLimit');
     expect(source).toContain("by: ['status', 'reviewDecision']");
   });
@@ -195,7 +195,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('rejects invalid batch platforms before content generation (#2696)', () => {
-    const processing = readSourceOf('BatchGenerationProcessingService', {
+    const processing = readSourceOf('TurboRunProcessingService', {
       root: API_SRC,
     });
     const generateIdx = processing.indexOf(
@@ -209,17 +209,17 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('cancels the batch when the agent tool credit reserve fails (#2696)', () => {
-    const source = readSourceOf('AgentMediaBatchGenerationService', {
+    const source = readSourceOf('AgentMediaTurboRunService', {
       root: API_SRC,
     });
     expect(source).toContain('reserveCreditsOrCancel');
-    expect(source).toContain('cancelBatch');
+    expect(source).toContain('cancelTurboRun');
     expect(source).toContain(
       'failed to cancel batch after credit reserve failure',
     );
     expect(source).toContain('this.creditsUtilsService.reserveCredits');
     expect(source).toContain(
-      `idempotencyKey: \`batch-generation:\${params.batchId}\``,
+      `idempotencyKey: \`turbo-run:\${params.turboRunId}\``,
     );
   });
 

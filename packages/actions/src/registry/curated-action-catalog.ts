@@ -52,7 +52,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'inspiration',
   },
-  { name: 'batch_approve_reject', surfaces: ['agent'], toolset: 'content' },
+  { name: 'review_turbo_items', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'cancel_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
@@ -196,7 +196,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_clips', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'generate_content', surfaces: ['agent', 'mcp'], toolset: 'content' },
   {
-    name: 'generate_content_batch',
+    name: 'generate_turbo_content',
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
   },

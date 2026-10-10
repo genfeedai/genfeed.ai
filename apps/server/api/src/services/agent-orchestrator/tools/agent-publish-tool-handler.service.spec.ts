@@ -145,8 +145,8 @@ function createHandler() {
       }),
     }),
   };
-  const batchGenerationService = {
-    createManualReviewBatch: vi.fn().mockResolvedValue({ id: 'review' }),
+  const turboRunService = {
+    createManualReviewTurboRun: vi.fn().mockResolvedValue({ id: 'review' }),
   };
   const handler = new AgentPublishToolHandler(
     postGroupsService as never,
@@ -162,12 +162,12 @@ function createHandler() {
     cacheService as never,
     mediaReadinessService as never,
     autonomousPolicy as never,
-    batchGenerationService as never,
+    turboRunService as never,
   );
 
   return {
     autonomousPolicy,
-    batchGenerationService,
+    turboRunService,
     agentPublishAuditsService,
     agentScopeContextService,
     agentStrategiesService,
@@ -1041,7 +1041,7 @@ describe('proactive publishing review boundary', () => {
     expect(target?.scheduledAt).toBeUndefined();
     expect(h.postGroupsService.publishNow).not.toHaveBeenCalled();
     expect(
-      h.batchGenerationService.createManualReviewBatch,
+      h.turboRunService.createManualReviewTurboRun,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         agentStrategyId: 'strategy-1',
@@ -1102,7 +1102,7 @@ it('creates proactive text as canonical channel targets and review items, never 
       workflowExecutionId: 'run-1',
     }),
   );
-  expect(f.batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
+  expect(f.turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
     expect.objectContaining({
       items: [
         expect.objectContaining({ postId: 'target-1', platform: 'twitter' }),
@@ -1151,7 +1151,7 @@ describe('authorized proactive text draft constraint', () => {
     expect(release).not.toHaveProperty('scheduledDate');
     expect(release.targets[0].scheduledDate).toBeUndefined();
     expect(
-      f.batchGenerationService.createManualReviewBatch,
+      f.turboRunService.createManualReviewTurboRun,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
@@ -1199,7 +1199,7 @@ describe('authorized proactive text draft constraint', () => {
       expect(result.error).toContain('existing release');
       expect(f.agentPublishAuditsService.createAudit).not.toHaveBeenCalled();
       expect(
-        f.batchGenerationService.createManualReviewBatch,
+        f.turboRunService.createManualReviewTurboRun,
       ).not.toHaveBeenCalled();
       expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
     },
@@ -1217,7 +1217,7 @@ describe('authorized proactive text draft constraint', () => {
       (call) => call[2].idempotencyKey,
     );
     const reviewKeys =
-      f.batchGenerationService.createManualReviewBatch.mock.calls.map(
+      f.turboRunService.createManualReviewTurboRun.mock.calls.map(
         (call) => call[3],
       );
     expect(releaseKeys[0]).toMatch(/^[a-f0-9]{64}$/);
@@ -1242,7 +1242,7 @@ describe('authorized proactive text draft constraint', () => {
     ).toBe(true);
     expect(f.postGroupsService.publishNow).toHaveBeenCalledOnce();
     expect(
-      f.batchGenerationService.createManualReviewBatch,
+      f.turboRunService.createManualReviewTurboRun,
     ).not.toHaveBeenCalled();
   });
 
@@ -1282,7 +1282,7 @@ describe('authorized proactive text draft constraint', () => {
       expect((await f.handler.createPost(params, f.ctx)).success).toBe(false);
       expect(f.postGroupsService.create).not.toHaveBeenCalled();
       expect(
-        f.batchGenerationService.createManualReviewBatch,
+        f.turboRunService.createManualReviewTurboRun,
       ).not.toHaveBeenCalled();
       expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
     },
@@ -1303,7 +1303,7 @@ describe('authorized proactive text draft constraint', () => {
     ).toBe(false);
     expect(f.postGroupsService.create).not.toHaveBeenCalled();
     expect(
-      f.batchGenerationService.createManualReviewBatch,
+      f.turboRunService.createManualReviewTurboRun,
     ).not.toHaveBeenCalled();
     expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
   });
@@ -1327,7 +1327,7 @@ describe('authorized proactive text draft constraint', () => {
     });
     expect(f.postGroupsService.create).not.toHaveBeenCalled();
     expect(
-      f.batchGenerationService.createManualReviewBatch,
+      f.turboRunService.createManualReviewTurboRun,
     ).not.toHaveBeenCalled();
     expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
   });

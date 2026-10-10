@@ -29,7 +29,7 @@ describe('BrandRemixRunReviewService', () => {
     ingredient: { findMany: vi.fn() },
     post: { findMany: vi.fn() },
   } as unknown as PrismaService;
-  const batchGenerationService = { createManualReviewBatch: vi.fn() };
+  const turboRunService = { createManualReviewTurboRun: vi.fn() };
   const actions = new Map<string, CapturedWorkflowAction>();
   const systemWorkflowRunner = {
     registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
@@ -51,7 +51,7 @@ describe('BrandRemixRunReviewService', () => {
     const graph = assembleBrandRemixRunsGraph({
       adsResearchService: {} as never,
       avatarVideoGenerationService: {} as never,
-      batchGenerationService: batchGenerationService as never,
+      turboRunService: turboRunService as never,
       brandsService: {
         findOne: vi.fn().mockResolvedValue({
           agentConfig: {},
@@ -202,7 +202,7 @@ describe('BrandRemixRunReviewService', () => {
       review.submit('org-1', 'run-1', 'user-1', {}),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(
-      batchGenerationService.createManualReviewBatch,
+      turboRunService.createManualReviewTurboRun,
     ).not.toHaveBeenCalled();
     expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

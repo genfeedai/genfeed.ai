@@ -7,7 +7,7 @@ import {
 } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -53,7 +53,7 @@ export interface RepurposePostParams {
 export interface RepurposePostResult {
   adjustments: ChannelRepurposeAdjustment[];
   draft: PostDocument;
-  reviewBatchId?: string;
+  reviewTurboRunId?: string;
   reviewItemId?: string;
 }
 
@@ -106,7 +106,7 @@ export class PostRepurposeService {
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
     private readonly contentGeneratorService: ContentGeneratorService,
-    private readonly batchGenerationService: BatchGenerationService,
+    private readonly turboRunService: TurboRunService,
     private readonly postGroupPersistenceService: PostGroupPersistenceService,
     private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
@@ -220,7 +220,7 @@ export class PostRepurposeService {
       previewMedia?.id,
     );
 
-    const batch = await this.batchGenerationService.createManualReviewBatch(
+    const turboRun = await this.turboRunService.createManualReviewTurboRun(
       {
         brandId: source.brandId,
         items: [
@@ -241,7 +241,7 @@ export class PostRepurposeService {
       params.organizationId,
     );
 
-    const reviewItem = batch.items[0];
+    const reviewItem = turboRun.items[0];
     if (!reviewItem?.postId) {
       throw new BadGatewayException(
         'The review batch was created without a draft post.',
@@ -268,7 +268,7 @@ export class PostRepurposeService {
     }
 
     this.logger.log('Post repurposed via agent rewrite', {
-      batchId: batch.id,
+      turboRunId: turboRun.id,
       draftId: reviewItem.postId,
       platform: params.platform,
       sourcePostId: source.id,
@@ -277,7 +277,7 @@ export class PostRepurposeService {
     return {
       adjustments: [],
       draft,
-      reviewBatchId: batch.id,
+      reviewTurboRunId: turboRun.id,
       reviewItemId: reviewItem.id,
     };
   }
@@ -286,7 +286,7 @@ export class PostRepurposeService {
    * Stamps the repurpose lineage and scheduler-target state onto the draft the
    * manual review batch created. A separate scoped write on purpose: the
    * review-batch DTO deliberately knows nothing about groups or variants, and
-   * this mirrors how the batch itself links `reviewBatchId` after creation.
+   * this mirrors how the batch itself links `reviewTurboRunId` after creation.
    */
   private async linkAgentDraftLineage(
     params: RepurposePostParams,

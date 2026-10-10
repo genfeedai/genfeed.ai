@@ -852,7 +852,7 @@ describe('shared-fenced immutable artifact binding', () => {
     expect(f.tx.post.findFirst).not.toHaveBeenCalled();
   });
 });
-function batchFixture(count = 20) {
+function turboRunFixture(count = 20) {
   const f = decisionFixture(count);
   const store = new Map<number, ContentLearningDecision>();
   f.tx.contentLearningDecision.findFirst.mockImplementation(
@@ -873,7 +873,7 @@ function batchFixture(count = 20) {
     return decision;
   });
   const { context, ...shared } = f.input;
-  const batch = {
+  const turboRun = {
     ...shared,
     context: { credentialId: context.credentialId, requestKey: 'request' },
     candidates: [
@@ -882,12 +882,12 @@ function batchFixture(count = 20) {
       { candidateIndex: 2, generationId: 'post-2' },
     ],
   };
-  return { ...f, store, batch };
+  return { ...f, store, turboRun };
 }
 describe('batch decision resolution for one generation request', () => {
   it('freezes one baseline and creates index-aligned decisions sharing one decision time', async () => {
-    const f = batchFixture();
-    const results = await f.service.resolveBatchForGeneration(f.batch);
+    const f = turboRunFixture();
+    const results = await f.service.resolveTurboRunForGeneration(f.turboRun);
     expect(results.map((r) => r.receipt.decisionId)).toEqual([
       'decision-0',
       'decision-1',
@@ -898,7 +898,7 @@ describe('batch decision resolution for one generation request', () => {
       parts.join('').includes('pg_advisory_xact_lock'),
     );
     expect(fences).toHaveLength(2);
-    expect(fences[1].slice(1)).toEqual([5729, f.batch.organizationId]);
+    expect(fences[1].slice(1)).toEqual([5729, f.turboRun.organizationId]);
     expect(f.checkpoints.freeze).toHaveBeenCalledTimes(1);
     expect(f.scopes.ensure).toHaveBeenCalledTimes(1);
     expect(f.tx.accountAnalyticsSnapshot.findFirst).toHaveBeenCalledTimes(1);
@@ -919,9 +919,9 @@ describe('batch decision resolution for one generation request', () => {
     for (const result of results) expect(result.contribution).toEqual({});
   });
   it('computes the same payload hash as a single-candidate resolution', async () => {
-    const batch = batchFixture();
-    await batch.service.resolveBatchForGeneration({
-      ...batch.batch,
+    const turboRun = turboRunFixture();
+    await turboRun.service.resolveTurboRunForGeneration({
+      ...turboRun.turboRun,
       candidates: [{ candidateIndex: 0, generationId: 'post-0' }],
     });
     const single = decisionFixture();
@@ -929,17 +929,17 @@ describe('batch decision resolution for one generation request', () => {
       ...single.input,
       context: { ...single.input.context, generationId: 'post-0' },
     });
-    expect(batch.store.get(0)?.payloadHash).toBe(single.recorded?.payloadHash);
-    expect(batch.store.get(0)?.destinationKey).toBe(
+    expect(turboRun.store.get(0)?.payloadHash).toBe(single.recorded?.payloadHash);
+    expect(turboRun.store.get(0)?.destinationKey).toBe(
       single.recorded?.destinationKey,
     );
   });
   it('replays every candidate without freeze or writes', async () => {
-    const f = batchFixture();
-    const original = await f.service.resolveBatchForGeneration(f.batch);
+    const f = turboRunFixture();
+    const original = await f.service.resolveTurboRunForGeneration(f.turboRun);
     f.checkpoints.freeze.mockClear();
     f.tx.contentLearningDecision.create.mockClear();
-    const replay = await f.service.resolveBatchForGeneration(f.batch);
+    const replay = await f.service.resolveTurboRunForGeneration(f.turboRun);
     expect(replay.map((r) => r.receipt)).toEqual(
       original.map((r) => r.receipt),
     );
@@ -947,19 +947,19 @@ describe('batch decision resolution for one generation request', () => {
     expect(f.tx.contentLearningDecision.create).not.toHaveBeenCalled();
   });
   it('rejects a changed prompt for an existing identity', async () => {
-    const f = batchFixture();
-    await f.service.resolveBatchForGeneration(f.batch);
+    const f = turboRunFixture();
+    await f.service.resolveTurboRunForGeneration(f.turboRun);
     await expect(
-      f.service.resolveBatchForGeneration({
-        ...f.batch,
+      f.service.resolveTurboRunForGeneration({
+        ...f.turboRun,
         originalPrompt: 'changed',
       }),
     ).rejects.toThrow('payload conflict');
   });
   it('revalidates without creating when replay-only identities are missing', async () => {
-    const f = batchFixture();
-    const results = await f.service.resolveBatchForGeneration({
-      ...f.batch,
+    const f = turboRunFixture();
+    const results = await f.service.resolveTurboRunForGeneration({
+      ...f.turboRun,
       replayOnly: true,
     });
     expect(results.map((r) => r.receipt)).toEqual(
@@ -976,15 +976,15 @@ describe('batch decision resolution for one generation request', () => {
   it.each(['paused', 'shadow', 'epoch', 'control', 'scope'])(
     'replay-only revalidation suppresses current %s changes',
     async (mutation) => {
-      const f = batchFixture();
-      await f.service.resolveBatchForGeneration(f.batch);
+      const f = turboRunFixture();
+      await f.service.resolveTurboRunForGeneration(f.turboRun);
       if (mutation === 'paused' || mutation === 'shadow')
         f.account.mode = mutation;
       if (mutation === 'epoch') f.account.epoch++;
       if (mutation === 'control') f.account.revision++;
       if (mutation === 'scope') f.scope.revision++;
-      const results = await f.service.resolveBatchForGeneration({
-        ...f.batch,
+      const results = await f.service.resolveTurboRunForGeneration({
+        ...f.turboRun,
         replayOnly: true,
       });
       const expected = ['paused', 'shadow'].includes(mutation)
@@ -999,17 +999,17 @@ describe('batch decision resolution for one generation request', () => {
     },
   );
   it('returns disabled and unsupported fallbacks for every candidate', async () => {
-    const disabled = batchFixture();
+    const disabled = turboRunFixture();
     disabled.accounts.ensure.mockResolvedValue({
       ...disabled.account,
       mode: 'disabled',
     });
     expect(
-      (await disabled.service.resolveBatchForGeneration(disabled.batch)).map(
+      (await disabled.service.resolveTurboRunForGeneration(disabled.turboRun)).map(
         (r) => r.receipt.reason,
       ),
     ).toEqual(['disabled', 'disabled', 'disabled']);
-    const unsupported = batchFixture();
+    const unsupported = turboRunFixture();
     unsupported.accounts.credential.mockResolvedValue({
       id: 'credential',
       brandId: 'brand',
@@ -1017,7 +1017,7 @@ describe('batch decision resolution for one generation request', () => {
     });
     expect(
       (
-        await unsupported.service.resolveBatchForGeneration(unsupported.batch)
+        await unsupported.service.resolveTurboRunForGeneration(unsupported.turboRun)
       ).map((r) => r.receipt.reason),
     ).toEqual(['unsupported_cell', 'unsupported_cell', 'unsupported_cell']);
     expect(
@@ -1030,7 +1030,7 @@ describe('batch decision resolution for one generation request', () => {
     ['empty candidates', { candidates: 0 }],
     ['oversized generation id', { generationId: 'x'.repeat(257) }],
   ])('rejects %s with 400', async (_, variant) => {
-    const f = batchFixture();
+    const f = turboRunFixture();
     const candidates =
       'candidates' in variant
         ? Array.from({ length: Number(variant.candidates) }, (_, i) => ({
@@ -1040,7 +1040,7 @@ describe('batch decision resolution for one generation request', () => {
           ? [{ candidateIndex: 0 }, { candidateIndex: 0 }]
           : [{ candidateIndex: 0, generationId: variant.generationId }];
     await expect(
-      f.service.resolveBatchForGeneration({ ...f.batch, candidates }),
+      f.service.resolveTurboRunForGeneration({ ...f.turboRun, candidates }),
     ).rejects.toThrow('Invalid learning request identity');
     expect(f.tx.$queryRaw).not.toHaveBeenCalled();
   });

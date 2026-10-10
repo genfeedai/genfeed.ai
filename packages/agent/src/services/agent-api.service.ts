@@ -19,7 +19,7 @@ export type {
   GenerateIngredientResult,
   GenerationModel,
   GetGenerationModelsParams,
-  ManualReviewBatchPayload,
+  ManualReviewTurboRunPayload,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
   WorkflowTriggerScope,
@@ -118,7 +118,7 @@ export class AgentApiService extends AgentBaseApiService {
   // Workflows / batches
   getWorkflowInterface = workflowsApi.getWorkflowInterface.bind(null, this);
   triggerWorkflow = workflowsApi.triggerWorkflow.bind(null, this);
-  createManualReviewBatch = workflowsApi.createManualReviewBatch.bind(
+  createManualReviewTurboRun = workflowsApi.createManualReviewTurboRun.bind(
     null,
     this,
   );

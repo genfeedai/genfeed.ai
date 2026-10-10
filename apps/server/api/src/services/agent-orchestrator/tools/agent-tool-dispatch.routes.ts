@@ -293,8 +293,8 @@ function dispatchMediaFamily(
       return handlers.mediaGenerationHandler.generate(params, ctx);
     case 'transform_media':
       return handlers.mediaGenerationHandler.transformMedia(params, ctx);
-    case 'generate_content_batch':
-      return handlers.mediaGenerationHandler.generateContentBatch(params, ctx);
+    case 'generate_turbo_content':
+      return handlers.mediaGenerationHandler.generateTurboContent(params, ctx);
     case 'generate_as_identity':
       return handlers.mediaGenerationHandler.generateAsIdentity(params, ctx);
     default:
@@ -311,8 +311,8 @@ function dispatchGrowthFamily(
   switch (toolName) {
     case 'list_review_queue':
       return handlers.reviewHandler.listReviewQueue(params, ctx);
-    case 'batch_approve_reject':
-      return handlers.reviewHandler.batchApproveReject(params, ctx);
+    case 'review_turbo_items':
+      return handlers.reviewHandler.reviewTurboItems(params, ctx);
     case 'create_outreach_sequence':
       return handlers.campaignHandler.createCampaign(params, ctx);
     case 'start_outreach_sequence':

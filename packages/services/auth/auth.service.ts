@@ -49,7 +49,7 @@ export interface OverviewBootstrapPayload {
     pendingCount: number;
     readyCount: number;
     recentItems: Array<{
-      batchId: string;
+      turboRunId: string;
       createdAt: string;
       format: string;
       id: string;

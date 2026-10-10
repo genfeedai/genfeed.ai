@@ -1,8 +1,8 @@
-import { BatchStatus } from '@genfeedai/contracts';
-import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
+import { TurboRunStatus } from '@genfeedai/contracts';
+import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
-import { BatchesService } from '@services/batch/batches.service';
+import { TurboRunsService } from '@services/batch/batches.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,22 +19,22 @@ import {
   serializeReviewFilters,
 } from './components/review-grid.helpers';
 import { isReadyToReview } from './components/review-state';
-import { useBatchRewriteJob } from './useBatchRewriteJob';
+import { useTurboRewriteJob } from './useTurboRewriteJob';
 
 const DEFAULT_STATUS_FILTERS: ReviewStatusFilter[] = ['ready'];
 
 function buildReviewQuery(input: {
-  batchId: string | null;
+  turboRunId: string | null;
   filters: readonly ReviewStatusFilter[];
   itemId: string | null;
   baseParams: URLSearchParams;
 }): string {
   const params = new URLSearchParams(input.baseParams.toString());
 
-  if (input.batchId) {
-    params.set('batch', input.batchId);
+  if (input.turboRunId) {
+    params.set('turboRun', input.turboRunId);
   } else {
-    params.delete('batch');
+    params.delete('turboRun');
   }
 
   params.set('filter', serializeReviewFilters(input.filters));
@@ -52,20 +52,20 @@ export function useReviewQueueContent() {
   const { openConfirm } = useConfirmModal();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
-  const getBatchesService = useAuthedService((token: string) =>
-    BatchesService.getInstance(token),
+  const getTurboRunsService = useAuthedService((token: string) =>
+    TurboRunsService.getInstance(token),
   );
   const pathname = usePathname();
   const { replace } = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const requestedBatchId = searchParams.get('batch');
+  const requestedTurboRunId = searchParams.get('turboRun');
   const filterParam = searchParams.get('filter');
   const requestedFilters = parseReviewFilters(filterParam);
   const requestedItemId = searchParams.get('item');
 
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(
-    requestedBatchId,
+  const [selectedTurboRunId, setSelectedTurboRunId] = useState<string | null>(
+    requestedTurboRunId,
   );
   const [activeFilters, setActiveFilters] = useState<ReviewStatusFilter[]>(
     () => requestedFilters ?? DEFAULT_STATUS_FILTERS,
@@ -82,35 +82,35 @@ export function useReviewQueueContent() {
   const hasExplainedAutoBroadenRef = useRef(false);
 
   const {
-    data: batches = [],
-    error: batchesError,
-    isFetching: isBatchesFetching,
-    isLoading: isBatchesLoading,
-    refetch: refetchBatches,
+    data: turboRuns = [],
+    error: turboRunsError,
+    isFetching: isTurboRunsFetching,
+    isLoading: isTurboRunsLoading,
+    refetch: refetchTurboRuns,
   } = useQuery({
     queryKey: ['review-batches'],
     queryFn: async () => {
-      const service = await getBatchesService();
-      return service.getBatches();
+      const service = await getTurboRunsService();
+      return service.getTurboRuns();
     },
   });
 
-  const batchList = useMemo(
-    () => (Array.isArray(batches) ? batches : []),
-    [batches],
+  const turboRunList = useMemo(
+    () => (Array.isArray(turboRuns) ? turboRuns : []),
+    [turboRuns],
   );
-  const hasInvalidBatchPayload = !Array.isArray(batches);
-  const activeBatchId =
-    selectedBatchId ?? requestedBatchId ?? batchList[0]?.id ?? null;
+  const hasInvalidTurboRunPayload = !Array.isArray(turboRuns);
+  const activeTurboRunId =
+    selectedTurboRunId ?? requestedTurboRunId ?? turboRunList[0]?.id ?? null;
 
   const syncReviewLocation = useCallback(
     (input: {
-      batchId?: string | null;
+      turboRunId?: string | null;
       filters?: readonly ReviewStatusFilter[];
       itemId?: string | null;
     }) => {
-      const nextBatchId =
-        input.batchId === undefined ? activeBatchId : input.batchId;
+      const nextTurboRunId =
+        input.turboRunId === undefined ? activeTurboRunId : input.turboRunId;
       const nextFilters =
         input.filters === undefined ? activeFilters : input.filters;
       const nextItemId =
@@ -118,7 +118,7 @@ export function useReviewQueueContent() {
 
       const nextQuery = buildReviewQuery({
         baseParams: new URLSearchParams(searchParamsString),
-        batchId: nextBatchId,
+        turboRunId: nextTurboRunId,
         filters: nextFilters,
         itemId: nextItemId,
       });
@@ -135,7 +135,7 @@ export function useReviewQueueContent() {
       replace(nextHref, { scroll: false });
     },
     [
-      activeBatchId,
+      activeTurboRunId,
       activeFilters,
       activeItemId,
       pathname,
@@ -145,54 +145,54 @@ export function useReviewQueueContent() {
   );
 
   const {
-    data: activeBatch = null,
-    error: activeBatchError,
-    isFetching: isBatchFetching,
-    isLoading: isBatchLoading,
-    refetch: refetchBatch,
+    data: activeTurboRun = null,
+    error: activeTurboRunError,
+    isFetching: isTurboRunFetching,
+    isLoading: isTurboRunLoading,
+    refetch: refetchTurboRun,
   } = useQuery({
-    queryKey: ['review-batch', activeBatchId],
+    queryKey: ['review-batch', activeTurboRunId],
     queryFn: async () => {
-      if (!activeBatchId) {
+      if (!activeTurboRunId) {
         return null;
       }
-      const service = await getBatchesService();
-      return service.getBatch(activeBatchId);
+      const service = await getTurboRunsService();
+      return service.getTurboRun(activeTurboRunId);
     },
-    enabled: !!activeBatchId,
+    enabled: !!activeTurboRunId,
   });
 
-  const refreshBatch = useCallback(async () => {
-    await refetchBatch();
-  }, [refetchBatch]);
+  const refreshTurboRun = useCallback(async () => {
+    await refetchTurboRun();
+  }, [refetchTurboRun]);
 
   const { isRewriteStarting, rewriteProgress, rewritingIds, startRewrite } =
-    useBatchRewriteJob({
-      batchId: activeBatchId,
-      onItemsRewritten: refreshBatch,
+    useTurboRewriteJob({
+      turboRunId: activeTurboRunId,
+      onItemsRewritten: refreshTurboRun,
     });
 
   const refreshQueue = useCallback(async () => {
-    await Promise.all([refetchBatches(), refetchBatch()]);
-  }, [refetchBatch, refetchBatches]);
+    await Promise.all([refetchTurboRuns(), refetchTurboRun()]);
+  }, [refetchTurboRun, refetchTurboRuns]);
 
   const actionableItems = useMemo(
-    () => activeBatch?.items.filter((item) => isReadyToReview(item)) ?? [],
-    [activeBatch],
+    () => activeTurboRun?.items.filter((item) => isReadyToReview(item)) ?? [],
+    [activeTurboRun],
   );
 
   const filterCounts = useMemo(
-    () => getReviewFilterCounts(activeBatch?.items ?? []),
-    [activeBatch?.items],
+    () => getReviewFilterCounts(activeTurboRun?.items ?? []),
+    [activeTurboRun?.items],
   );
 
   const visibleItems = useMemo(
-    () => getVisibleReviewItems(activeBatch?.items ?? [], activeFilters),
-    [activeBatch?.items, activeFilters],
+    () => getVisibleReviewItems(activeTurboRun?.items ?? [], activeFilters),
+    [activeTurboRun?.items, activeFilters],
   );
 
-  const canDiscardBatch =
-    activeBatch !== null && activeBatch.status !== BatchStatus.CANCELLED;
+  const canDiscardTurboRun =
+    activeTurboRun !== null && activeTurboRun.status !== TurboRunStatus.CANCELLED;
 
   const activeItem = useMemo(
     () => visibleItems.find((item) => item.id === activeItemId) ?? null,
@@ -200,14 +200,14 @@ export function useReviewQueueContent() {
   );
 
   useEffect(() => {
-    if (selectedBatchId || !requestedBatchId) {
+    if (selectedTurboRunId || !requestedTurboRunId) {
       return;
     }
 
-    if (batchList.some((batch) => batch.id === requestedBatchId)) {
-      setSelectedBatchId(requestedBatchId);
+    if (turboRunList.some((turboRun) => turboRun.id === requestedTurboRunId)) {
+      setSelectedTurboRunId(requestedTurboRunId);
     }
-  }, [batchList, requestedBatchId, selectedBatchId]);
+  }, [turboRunList, requestedTurboRunId, selectedTurboRunId]);
 
   // External URL changes only (back/forward / pasted link). Skip our own writes.
   useEffect(() => {
@@ -222,9 +222,9 @@ export function useReviewQueueContent() {
       );
     }
 
-    if (requestedBatchId) {
-      setSelectedBatchId((current) =>
-        current === requestedBatchId ? current : requestedBatchId,
+    if (requestedTurboRunId) {
+      setSelectedTurboRunId((current) =>
+        current === requestedTurboRunId ? current : requestedTurboRunId,
       );
     }
 
@@ -235,7 +235,7 @@ export function useReviewQueueContent() {
       // URL dropped item — keep local selection until visible-items guard runs.
       return current;
     });
-  }, [filterParam, requestedBatchId, requestedItemId, searchParamsString]);
+  }, [filterParam, requestedTurboRunId, requestedItemId, searchParamsString]);
 
   // Ensure the active row is always inside the current filter window (local only).
   // URL writes happen once below when local + URL actually disagree.
@@ -262,34 +262,34 @@ export function useReviewQueueContent() {
 
   // Single URL write path for settled local state — only when query would change.
   useEffect(() => {
-    if (!activeBatchId) {
+    if (!activeTurboRunId) {
       return;
     }
 
     // Wait until batch list is known so we don't thrash empty filters.
-    if (activeBatch === null && isBatchLoading) {
+    if (activeTurboRun === null && isTurboRunLoading) {
       return;
     }
 
     syncReviewLocation({
-      batchId: activeBatchId,
+      turboRunId: activeTurboRunId,
       filters: activeFilters,
       itemId: activeItemId,
     });
   }, [
-    activeBatch,
-    activeBatchId,
+    activeTurboRun,
+    activeTurboRunId,
     activeFilters,
     activeItemId,
-    isBatchLoading,
+    isTurboRunLoading,
     syncReviewLocation,
   ]);
 
   // Default ready-only view is empty but the batch has other work — open all.
   useEffect(() => {
     const shouldAutoBroaden =
-      activeBatch &&
-      activeBatch.status !== BatchStatus.CANCELLED &&
+      activeTurboRun &&
+      activeTurboRun.status !== TurboRunStatus.CANCELLED &&
       activeFilters.length === 1 &&
       activeFilters[0] === 'ready' &&
       filterCounts.ready === 0 &&
@@ -306,7 +306,7 @@ export function useReviewQueueContent() {
     }
 
     setActiveFilters([]);
-  }, [activeBatch, activeFilters, filterCounts, notifications]);
+  }, [activeTurboRun, activeFilters, filterCounts, notifications]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -341,7 +341,7 @@ export function useReviewQueueContent() {
   const handleFilterChange = useCallback(
     (filters: ReviewStatusFilter[]) => {
       const nextVisibleItems = getVisibleReviewItems(
-        activeBatch?.items ?? [],
+        activeTurboRun?.items ?? [],
         filters,
       );
       const nextItemId = getNextActiveItemId(nextVisibleItems, activeItemId);
@@ -349,12 +349,12 @@ export function useReviewQueueContent() {
       setActiveFilters(filters);
       setActiveItemId(nextItemId);
     },
-    [activeBatch?.items, activeItemId],
+    [activeTurboRun?.items, activeItemId],
   );
 
   const handleBulkAction = useCallback(
     async (action: 'approve' | 'reject') => {
-      if (selectedIds.size === 0 || !activeBatchId) {
+      if (selectedIds.size === 0 || !activeTurboRunId) {
         return;
       }
 
@@ -365,14 +365,14 @@ export function useReviewQueueContent() {
 
       setIsActioning(true);
       try {
-        const service = await getBatchesService();
-        await service.itemAction(activeBatchId, {
+        const service = await getTurboRunsService();
+        await service.itemAction(activeTurboRunId, {
           action,
           itemIds: selectedItemIds,
         });
 
         setSelectedIds(new Set());
-        await refreshBatch();
+        await refreshTurboRun();
         const nextItemId = getNextActiveItemId(remainingItems, activeItemId);
         setActiveItemId(nextItemId);
         captureWorkspaceShellApproval({
@@ -392,10 +392,10 @@ export function useReviewQueueContent() {
       }
     },
     [
-      activeBatchId,
+      activeTurboRunId,
       activeItemId,
-      getBatchesService,
-      refreshBatch,
+      getTurboRunsService,
+      refreshTurboRun,
       selectedIds,
       visibleItems,
     ],
@@ -409,45 +409,45 @@ export function useReviewQueueContent() {
     }
   }, [isActioning, selectedIds, startRewrite]);
 
-  const updateBatchCaches = useCallback(
-    (batch: IBatchSummary) => {
-      queryClient.setQueryData(['review-batch', batch.id], batch);
-      queryClient.setQueryData<IBatchSummary[]>(
+  const updateTurboRunCaches = useCallback(
+    (turboRun: ITurboRunSummary) => {
+      queryClient.setQueryData(['review-batch', turboRun.id], turboRun);
+      queryClient.setQueryData<ITurboRunSummary[]>(
         ['review-batches'],
-        (currentBatches) =>
-          currentBatches?.map((currentBatch) =>
-            currentBatch.id === batch.id ? batch : currentBatch,
-          ) ?? [batch],
+        (currentTurboRuns) =>
+          currentTurboRuns?.map((currentTurboRun) =>
+            currentTurboRun.id === turboRun.id ? turboRun : currentTurboRun,
+          ) ?? [turboRun],
       );
     },
     [queryClient],
   );
 
-  const executeDiscardBatch = useCallback(
-    async (batchId: string, reviewableItemIds: string[]) => {
+  const executeDiscardTurboRun = useCallback(
+    async (turboRunId: string, reviewableItemIds: string[]) => {
       setIsActioning(true);
-      let rejectedBatch: IBatchSummary | null = null;
+      let rejectedTurboRun: ITurboRunSummary | null = null;
 
       try {
-        const service = await getBatchesService();
+        const service = await getTurboRunsService();
 
         if (reviewableItemIds.length > 0) {
-          rejectedBatch = await service.itemAction(batchId, {
+          rejectedTurboRun = await service.itemAction(turboRunId, {
             action: 'reject',
             feedback: 'Review batch discarded.',
             itemIds: reviewableItemIds,
           });
         }
 
-        const cancelledBatch = await service.cancelBatch(batchId);
-        updateBatchCaches(cancelledBatch);
+        const cancelledTurboRun = await service.cancelTurboRun(turboRunId);
+        updateTurboRunCaches(cancelledTurboRun);
         setSelectedIds(new Set());
         setActiveItemId(null);
         setActiveFilters(DEFAULT_STATUS_FILTERS);
         notifications.success('Review batch discarded');
       } catch (error) {
-        if (rejectedBatch) {
-          updateBatchCaches(rejectedBatch);
+        if (rejectedTurboRun) {
+          updateTurboRunCaches(rejectedTurboRun);
           setSelectedIds(new Set());
           notifications.warning(
             'Ready drafts were discarded, but unfinished items could not be cancelled. Retry Discard batch to finish.',
@@ -472,15 +472,15 @@ export function useReviewQueueContent() {
         setIsActioning(false);
       }
     },
-    [getBatchesService, notifications, refreshQueue, updateBatchCaches],
+    [getTurboRunsService, notifications, refreshQueue, updateTurboRunCaches],
   );
 
-  const handleDiscardBatch = useCallback(() => {
-    if (!activeBatch || !canDiscardBatch || isActioning) {
+  const handleDiscardTurboRun = useCallback(() => {
+    if (!activeTurboRun || !canDiscardTurboRun || isActioning) {
       return;
     }
 
-    const reviewableItemIds = activeBatch.items
+    const reviewableItemIds = activeTurboRun.items
       .filter((item) => isReadyToReview(item))
       .map((item) => item.id);
 
@@ -490,35 +490,35 @@ export function useReviewQueueContent() {
       label: 'Discard review batch',
       message:
         'Ready drafts will be rejected and unfinished items will be cancelled. Prior review decisions stay unchanged. This action cannot be undone.',
-      onConfirm: () => executeDiscardBatch(activeBatch.id, reviewableItemIds),
+      onConfirm: () => executeDiscardTurboRun(activeTurboRun.id, reviewableItemIds),
     });
   }, [
-    activeBatch,
-    canDiscardBatch,
-    executeDiscardBatch,
+    activeTurboRun,
+    canDiscardTurboRun,
+    executeDiscardTurboRun,
     isActioning,
     openConfirm,
   ]);
 
   const handleApproveItem = useCallback(
     async (itemId: string) => {
-      if (!activeBatchId) {
+      if (!activeTurboRunId) {
         return;
       }
 
       const approvedItem =
-        activeBatch?.items.find((item) => item.id === itemId) ?? null;
+        activeTurboRun?.items.find((item) => item.id === itemId) ?? null;
       const remainingItems = visibleItems.filter((item) => item.id !== itemId);
 
       setIsActioning(true);
       try {
-        const service = await getBatchesService();
-        await service.itemAction(activeBatchId, {
+        const service = await getTurboRunsService();
+        await service.itemAction(activeTurboRunId, {
           action: 'approve',
           itemIds: [itemId],
         });
 
-        await refreshBatch();
+        await refreshTurboRun();
         captureWorkspaceShellApproval({
           action: 'approve',
           integrity: 'not_applicable',
@@ -552,12 +552,12 @@ export function useReviewQueueContent() {
         setIsActioning(false);
       }
     },
-    [activeBatch, activeBatchId, getBatchesService, refreshBatch, visibleItems],
+    [activeTurboRun, activeTurboRunId, getTurboRunsService, refreshTurboRun, visibleItems],
   );
 
   const handleRequestChanges = useCallback(
     async (itemId: string, feedback?: string) => {
-      if (!activeBatchId) {
+      if (!activeTurboRunId) {
         return;
       }
 
@@ -565,14 +565,14 @@ export function useReviewQueueContent() {
 
       setIsActioning(true);
       try {
-        const service = await getBatchesService();
-        await service.itemAction(activeBatchId, {
+        const service = await getTurboRunsService();
+        await service.itemAction(activeTurboRunId, {
           action: 'request_changes',
           feedback,
           itemIds: [itemId],
         });
 
-        await refreshBatch();
+        await refreshTurboRun();
         setSelectedIds((prev) => {
           if (!prev.has(itemId)) {
             return prev;
@@ -590,56 +590,56 @@ export function useReviewQueueContent() {
         setIsActioning(false);
       }
     },
-    [activeBatchId, getBatchesService, refreshBatch, visibleItems],
+    [activeTurboRunId, getTurboRunsService, refreshTurboRun, visibleItems],
   );
 
   const handleAssignItem = useCallback(
     async (itemId: string, assigneeId: string) => {
-      if (!activeBatchId) {
+      if (!activeTurboRunId) {
         return;
       }
 
       setIsActioning(true);
       try {
-        const service = await getBatchesService();
-        const batch = await service.assignItem(
-          activeBatchId,
+        const service = await getTurboRunsService();
+        const turboRun = await service.assignItem(
+          activeTurboRunId,
           itemId,
           assigneeId,
         );
-        updateBatchCaches(batch);
+        updateTurboRunCaches(turboRun);
       } catch (error) {
         logger.error('Assign review item failed', error);
       } finally {
         setIsActioning(false);
       }
     },
-    [activeBatchId, getBatchesService, updateBatchCaches],
+    [activeTurboRunId, getTurboRunsService, updateTurboRunCaches],
   );
 
   const handleUnassignItem = useCallback(
     async (itemId: string) => {
-      if (!activeBatchId) {
+      if (!activeTurboRunId) {
         return;
       }
 
       setIsActioning(true);
       try {
-        const service = await getBatchesService();
-        const batch = await service.unassignItem(activeBatchId, itemId);
-        updateBatchCaches(batch);
+        const service = await getTurboRunsService();
+        const turboRun = await service.unassignItem(activeTurboRunId, itemId);
+        updateTurboRunCaches(turboRun);
       } catch (error) {
         logger.error('Unassign review item failed', error);
       } finally {
         setIsActioning(false);
       }
     },
-    [activeBatchId, getBatchesService, updateBatchCaches],
+    [activeTurboRunId, getTurboRunsService, updateTurboRunCaches],
   );
 
   const handleRejectItem = useCallback(
     async (itemId: string, feedback?: string) => {
-      if (!activeBatchId) {
+      if (!activeTurboRunId) {
         return;
       }
 
@@ -647,14 +647,14 @@ export function useReviewQueueContent() {
 
       setIsActioning(true);
       try {
-        const service = await getBatchesService();
-        await service.itemAction(activeBatchId, {
+        const service = await getTurboRunsService();
+        await service.itemAction(activeTurboRunId, {
           action: 'reject',
           feedback,
           itemIds: [itemId],
         });
 
-        await refreshBatch();
+        await refreshTurboRun();
         captureWorkspaceShellApproval({
           action: 'reject',
           integrity: 'not_applicable',
@@ -684,11 +684,11 @@ export function useReviewQueueContent() {
         setIsActioning(false);
       }
     },
-    [activeBatchId, getBatchesService, refreshBatch, visibleItems],
+    [activeTurboRunId, getTurboRunsService, refreshTurboRun, visibleItems],
   );
 
-  const handleBatchChange = useCallback((value: string) => {
-    setSelectedBatchId(value);
+  const handleTurboRunChange = useCallback((value: string) => {
+    setSelectedTurboRunId(value);
     setActiveItemId(null);
     setSelectedIds(new Set());
     setActiveFilters(DEFAULT_STATUS_FILTERS);
@@ -697,31 +697,31 @@ export function useReviewQueueContent() {
   return {
     activeFilters,
     activeItem,
-    activeBatch,
-    activeBatchError,
-    activeBatchId,
-    batchList,
-    batchesError,
-    canDiscardBatch,
+    activeTurboRun,
+    activeTurboRunError,
+    activeTurboRunId,
+    turboRunList,
+    turboRunsError,
+    canDiscardTurboRun,
     filterCounts,
-    hasInvalidBatchPayload,
+    hasInvalidTurboRunPayload,
     isActioning,
-    isBatchesLoading,
-    isBatchLoading,
-    isRefreshing: isBatchesFetching || isBatchFetching,
+    isTurboRunsLoading,
+    isTurboRunLoading,
+    isRefreshing: isTurboRunsFetching || isTurboRunFetching,
     refreshQueue,
     selectedIds,
     selectedPostId,
     visibleItems,
     handleApproveItem,
     handleAssignItem,
-    handleBatchChange,
+    handleTurboRunChange,
     handleBulkAction,
     handleBulkRewrite,
     isRewriteStarting,
     rewriteProgress,
     rewritingIds,
-    handleDiscardBatch,
+    handleDiscardTurboRun,
     handleFilterChange,
     handleRequestChanges,
     handleRejectItem,

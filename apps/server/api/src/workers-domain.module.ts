@@ -121,10 +121,10 @@ import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/ag
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
-import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
-import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
+import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
+import { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.service';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
@@ -271,11 +271,11 @@ const WORKER_DOMAIN_SERVICES = [
   AuthorReplyLoopService,
   AvatarVideoGenerationService,
   AvatarVideoLifecycleService,
-  BatchGenerationCreditsService,
-  BatchGenerationReconcileService,
-  BatchGenerationService,
+  TurboRunCreditsService,
+  TurboRunReconcileService,
+  TurboRunService,
   BillingAccountsService,
-  BatchGenerationStreamService,
+  TurboRunStreamService,
   BeehiivPublisherService,
   BotActionExecutorService,
   BrandMemorySyncService,

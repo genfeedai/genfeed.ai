@@ -509,7 +509,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'workflowInputOverrides',
     ],
     listFields: [
-      'batches',
+      'turboRuns',
       'campaignLeads',
       'campaigns',
       'executionReadScopes',
@@ -949,7 +949,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
-  Batch: {
+  TurboRun: {
     allFields: [
       'agentStrategy',
       'agentStrategyId',
@@ -969,9 +969,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'user',
       'userId',
     ],
-    listFields: ['batchItems'],
+    listFields: ['turboRunItems'],
     enumFields: {
-      status: { enumType: 'BatchStatus', isRequired: true },
+      status: { enumType: 'TurboRunStatus', isRequired: true },
     },
     relationIdFields: {
       agentStrategy: 'agentStrategyId',
@@ -980,12 +980,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
-  BatchItem: {
+  TurboRunItem: {
     allFields: [
       'assignee',
       'assigneeId',
-      'batch',
-      'batchId',
+      'turboRun',
+      'turboRunId',
       'brand',
       'brandId',
       'createdAt',
@@ -1001,16 +1001,16 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {
       reviewDecision: { enumType: 'ReviewDecision', isRequired: false },
-      status: { enumType: 'BatchItemStatus', isRequired: true },
+      status: { enumType: 'TurboRunItemStatus', isRequired: true },
     },
     relationIdFields: {
       assignee: 'assigneeId',
-      batch: 'batchId',
+      turboRun: 'turboRunId',
       brand: 'brandId',
       organization: 'organizationId',
     },
   },
-  BatchProject: {
+  TurboProject: {
     allFields: [
       'brandId',
       'createdAt',
@@ -1021,7 +1021,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'organization',
       'organizationId',
       'quote',
-      'reviewBatchId',
+      'reviewTurboRunId',
       'revision',
       'settings',
       'status',
@@ -1032,14 +1032,14 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['items'],
     enumFields: {
-      kind: { enumType: 'BatchProjectKind', isRequired: true },
-      status: { enumType: 'BatchProjectStatus', isRequired: true },
+      kind: { enumType: 'TurboProjectKind', isRequired: true },
+      status: { enumType: 'TurboProjectStatus', isRequired: true },
     },
     relationIdFields: {
       organization: 'organizationId',
     },
   },
-  BatchProjectItem: {
+  TurboProjectItem: {
     allFields: [
       'caption',
       'createdAt',
@@ -1060,7 +1060,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'project',
       'projectId',
       'retryCount',
-      'reviewBatchId',
+      'reviewTurboRunId',
       'reviewItemId',
       'scheduledAt',
       'scheduledTargets',
@@ -1071,7 +1071,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {
-      status: { enumType: 'BatchProjectItemStatus', isRequired: true },
+      status: { enumType: 'TurboProjectItemStatus', isRequired: true },
     },
     relationIdFields: {
       organization: 'organizationId',
@@ -1375,8 +1375,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'apiKeyDefaults',
       'articleAnalytics',
       'articles',
-      'batchItems',
-      'batches',
+      'turboRunItems',
+      'turboRuns',
       'bookmarks',
       'botActivities',
       'bots',
@@ -5324,10 +5324,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'apiKeys',
       'articleAnalytics',
       'articles',
-      'batchItems',
-      'batchProjectItems',
-      'batchProjects',
-      'batches',
+      'turboRunItems',
+      'turboProjectItems',
+      'turboProjects',
+      'turboRuns',
       'billingAccountLinks',
       'billingRevenueEvents',
       'bookmarks',
@@ -5985,7 +5985,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'repeatFrequency',
       'repeatInterval',
       'retryCount',
-      'reviewBatchId',
+      'reviewTurboRunId',
       'reviewDecision',
       'reviewEvents',
       'reviewFeedback',
@@ -8212,8 +8212,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'articleAnalytics',
       'articles',
       'assets',
-      'assignedBatchItems',
-      'batches',
+      'assignedTurboRunItems',
+      'turboRuns',
       'billingAccountMembers',
       'bookmarks',
       'botAccountLinks',

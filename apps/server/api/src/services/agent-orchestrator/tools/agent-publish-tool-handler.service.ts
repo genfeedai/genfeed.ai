@@ -48,7 +48,7 @@ import {
   verifyPendingToolConfirmation,
 } from '@api/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import {
@@ -64,7 +64,7 @@ import {
 } from '@genfeedai/contracts';
 import { evaluateAgentAutoPublishPolicies } from '@genfeedai/contracts/api-types/contracts/agent-auto-publish.contract';
 import { type AgentPublishPolicyResult } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
-import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
+import { TURBO_RUN_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
   type AgentToolResult,
@@ -122,7 +122,7 @@ export class AgentPublishToolHandler {
     @Optional()
     private readonly autonomousPublishPolicyService?: AutonomousPublishPolicyService,
     @Optional()
-    private readonly batchGenerationService?: BatchGenerationService,
+    private readonly turboRunService?: TurboRunService,
   ) {}
 
   async recordExternalPublication(
@@ -357,7 +357,7 @@ export class AgentPublishToolHandler {
     return finishConfirmedPublish({
       autoPublishPolicy,
       baseContent,
-      batchGenerationService: this.batchGenerationService,
+      turboRunService: this.turboRunService,
       contentId,
       createdPlatforms,
       ctx,
@@ -938,7 +938,7 @@ export class AgentPublishToolHandler {
     visibility: PostVisibility,
   ): Promise<AgentToolResult> {
     return createProactiveAgentTextPost(params, ctx, visibility, {
-      batchGenerationService: this.batchGenerationService,
+      turboRunService: this.turboRunService,
       postGroupsService: this.postGroupsService,
       readPublishRequest: (value) => this.readPublishRequest(value),
       resolveBrandCredentials: (value) => this.resolveBrandCredentials(value),
@@ -1023,7 +1023,7 @@ export class AgentPublishToolHandler {
       }
 
       const creditsUsed =
-        mode === PostRepurposeMode.AGENT ? BATCH_CAPTION_BASE_CREDITS : 0;
+        mode === PostRepurposeMode.AGENT ? TURBO_RUN_CAPTION_BASE_CREDITS : 0;
       if (creditsUsed > 0 && this.creditsUtilsService) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
           ctx.organizationId,
@@ -1042,7 +1042,7 @@ export class AgentPublishToolHandler {
           id: String(result.draft.id),
           mode,
           platform,
-          ...(result.reviewBatchId && { reviewBatchId: result.reviewBatchId }),
+          ...(result.reviewTurboRunId && { reviewTurboRunId: result.reviewTurboRunId }),
           ...(result.reviewItemId && { reviewItemId: result.reviewItemId }),
           status: PostStatus.DRAFT,
         },

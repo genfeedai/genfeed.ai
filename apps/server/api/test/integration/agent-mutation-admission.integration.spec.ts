@@ -77,7 +77,7 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
       data: {
         organizationId,
         userId,
-        toolName: 'generate_content_batch',
+        toolName: 'generate_turbo_content',
         arguments: args,
         idempotencyKey: buildLogicalWriteKey({
           organizationId,
@@ -85,7 +85,7 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
           threadId,
           scope,
           arguments: args,
-          toolName: 'generate_content_batch',
+          toolName: 'generate_turbo_content',
         }),
       },
     });
@@ -220,7 +220,7 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
       data: {
         organizationId,
         userId,
-        toolName: 'generate_content_batch',
+        toolName: 'generate_turbo_content',
         arguments: args,
         idempotencyKey: buildLogicalWriteKey({
           organizationId,
@@ -228,7 +228,7 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
           threadId,
           scope,
           arguments: args,
-          toolName: 'generate_content_batch',
+          toolName: 'generate_turbo_content',
         }),
       },
     });
@@ -342,7 +342,7 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
       data: {
         organizationId,
         userId,
-        toolName: 'generate_content_batch',
+        toolName: 'generate_turbo_content',
         arguments: args,
         idempotencyKey: buildLogicalWriteKey({
           organizationId,
@@ -350,7 +350,7 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
           threadId,
           scope,
           arguments: args,
-          toolName: 'generate_content_batch',
+          toolName: 'generate_turbo_content',
         }),
       },
     });

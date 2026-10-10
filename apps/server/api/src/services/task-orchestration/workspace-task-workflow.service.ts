@@ -131,12 +131,12 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
 
   private finalizeTask(request: SystemWorkflowActionRequest): unknown {
     const input = this.readRequest(request);
-    const batch = this.readForEachResult(
+    const turboRun = this.readForEachResult(
       input.outputType === 'facecam'
-        ? request.input.facecamBatch
-        : request.input.agentBatch,
+        ? request.input.facecamTurboRun
+        : request.input.agentTurboRun,
     );
-    const first = batch.results.at(0);
+    const first = turboRun.results.at(0);
     if (!first) {
       throw new Error(
         `Workspace task ${input.taskId} completed without result`,
@@ -252,8 +252,8 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<{ executionIds: string[]; taskId: string }> {
     const input = this.readRequest(request);
-    const batch = this.readForEachResult(request.input.batch);
-    const executionIds = [...batch.results]
+    const turboRun = this.readForEachResult(request.input.turboRun);
+    const executionIds = [...turboRun.results]
       .sort((left, right) => left.index - right.index)
       .map((entry) => this.readAgentExecutionState(entry.result).executionId);
 

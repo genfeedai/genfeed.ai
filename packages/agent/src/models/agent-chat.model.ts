@@ -203,8 +203,8 @@ export interface AgentUiAction {
     | 'workflow_execute_card'
     | 'trending_topics_card'
     | 'content_calendar_card'
-    | 'batch_generation_card'
-    | 'batch_generation_result_card'
+    | 'turbo_run_card'
+    | 'turbo_run_result_card'
     | 'voice_clone_card'
     | 'brand_voice_profile_card'
     | 'ai_text_action_card'
@@ -339,7 +339,7 @@ export interface AgentUiAction {
     date: string;
     postCount: number;
   }[];
-  batchCount?: number;
+  turboRunCount?: number;
   completedCount?: number;
   failedCount?: number;
   creditsUsed?: number;

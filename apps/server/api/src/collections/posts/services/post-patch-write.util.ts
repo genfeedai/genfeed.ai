@@ -71,7 +71,7 @@ export const POST_SCALAR_FIELDS = [
   'repeatFrequency',
   'repeatInterval',
   'reviewFeedback',
-  'reviewBatchId',
+  'reviewTurboRunId',
   'reviewDecision',
   'reviewEvents',
   'reviewItemId',

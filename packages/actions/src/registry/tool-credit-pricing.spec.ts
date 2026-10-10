@@ -1,7 +1,7 @@
 import {
-  BATCH_CAPTION_BASE_CREDITS,
-  estimateBatchGenerationCredits,
-} from '@genfeedai/contracts/constants/batch-generation-pricing.constant';
+  TURBO_RUN_CAPTION_BASE_CREDITS,
+  estimateTurboRunCredits,
+} from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
 import {
   BRAND_INTERVIEW_CREDIT_COST,
   CLIP_CREDIT_PER_CLIP,
@@ -79,10 +79,10 @@ describe('tool credit pricing', () => {
     expect(offenders.map((tool) => tool.name)).toEqual([]);
   });
 
-  it('describes generate and generate_content_batch as variable ranges', () => {
+  it('describes generate and generate_turbo_content as variable ranges', () => {
     const floors = Object.values(MEDIA_GENERATION_CREDIT_FLOORS);
     const generate = getToolByName('generate');
-    const batch = getToolByName('generate_content_batch');
+    const turboRun = getToolByName('generate_turbo_content');
     expect(generate?.creditPricing).toEqual({
       maximum: Math.max(...floors),
       minimum: Math.min(...floors),
@@ -100,19 +100,19 @@ describe('tool credit pricing', () => {
     expect(generate?.description).toContain(
       'an unresolved quote never means free generation',
     );
-    expect(batch?.creditPricing?.mode).toBe('variable');
-    if (batch?.creditPricing?.mode === 'variable') {
-      expect(batch.creditPricing.unit).toBe('batch');
-      expect(batch.creditPricing.minimum).toBeGreaterThan(0);
-      expect(batch.creditPricing.maximum).toBeGreaterThan(
-        batch.creditPricing.minimum,
+    expect(turboRun?.creditPricing?.mode).toBe('variable');
+    if (turboRun?.creditPricing?.mode === 'variable') {
+      expect(turboRun.creditPricing.unit).toBe('turboRun');
+      expect(turboRun.creditPricing.minimum).toBeGreaterThan(0);
+      expect(turboRun.creditPricing.maximum).toBeGreaterThan(
+        turboRun.creditPricing.minimum,
       );
-      expect(batch.description).toContain(
-        `Variable cost: ${batch.creditPricing.minimum}–${batch.creditPricing.maximum} credits per batch.`,
+      expect(turboRun.description).toContain(
+        `Variable cost: ${turboRun.creditPricing.minimum}–${turboRun.creditPricing.maximum} credits per batch.`,
       );
     }
     const [listed] = toMcpTools(
-      [generate, batch].filter(
+      [generate, turboRun].filter(
         (tool): tool is NonNullable<typeof tool> => tool !== undefined,
       ),
     );
@@ -143,12 +143,12 @@ describe('tool credit pricing', () => {
     ).toBe(MEDIA_GENERATION_CREDIT_FLOORS.image);
     expect(
       estimateToolCreditCost(
-        'generate_content_batch',
+        'generate_turbo_content',
         { count: 4 },
-        pricingOf('generate_content_batch'),
+        pricingOf('generate_turbo_content'),
       ),
     ).toBe(
-      estimateBatchGenerationCredits({ count: 4 }, { includeMedia: false }),
+      estimateTurboRunCredits({ count: 4 }, { includeMedia: false }),
     );
     expect(
       estimateToolCreditCost(
@@ -156,7 +156,7 @@ describe('tool credit pricing', () => {
         { mode: 'agent' },
         pricingOf('repurpose_post'),
       ),
-    ).toBe(BATCH_CAPTION_BASE_CREDITS);
+    ).toBe(TURBO_RUN_CAPTION_BASE_CREDITS);
     expect(
       estimateToolCreditCost(
         'repurpose_post',

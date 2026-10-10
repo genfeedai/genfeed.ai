@@ -72,7 +72,7 @@ describe('summarizeStreamingProgress', () => {
       summarizeStreamingProgress(
         {
           ...idleStream,
-          activeToolCalls: [toolCall('generate_content_batch')],
+          activeToolCalls: [toolCall('generate_turbo_content')],
         },
         [],
       ).label,

@@ -1,11 +1,11 @@
 import { ContentFormat } from '@genfeedai/contracts';
 import {
-  BATCH_CAPTION_BASE_CREDITS,
-  BATCH_GENERATION_COUNT_MAXIMUM,
-  batchItemCredits,
+  TURBO_RUN_CAPTION_BASE_CREDITS,
+  TURBO_RUN_COUNT_MAXIMUM,
+  turboRunItemCredits,
   contentMixFromToolArguments,
-  estimateBatchGenerationCredits,
-} from '@genfeedai/contracts/constants/batch-generation-pricing.constant';
+  estimateTurboRunCredits,
+} from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
 import {
   BRAND_INTERVIEW_CREDIT_COST,
   CLIP_CREDIT_PER_CLIP,
@@ -42,7 +42,7 @@ function floorBounds(): { maximum: number; minimum: number } {
   return { maximum: Math.max(...floors), minimum: Math.min(...floors) };
 }
 
-function batchCreditRange(): { maximum: number; minimum: number } {
+function turboRunCreditRange(): { maximum: number; minimum: number } {
   const packaging = { includeMedia: false as const };
   const withMedia = {
     includeMedia: true as const,
@@ -53,15 +53,15 @@ function batchCreditRange(): { maximum: number; minimum: number } {
   for (const format of Object.values(ContentFormat)) {
     minimum = Math.min(
       minimum,
-      batchItemCredits({ format, hasMedia: false }, packaging),
+      turboRunItemCredits({ format, hasMedia: false }, packaging),
     );
     itemMaximum = Math.max(
       itemMaximum,
-      batchItemCredits({ format, hasMedia: true }, withMedia),
+      turboRunItemCredits({ format, hasMedia: true }, withMedia),
     );
   }
   return {
-    maximum: itemMaximum * BATCH_GENERATION_COUNT_MAXIMUM,
+    maximum: itemMaximum * TURBO_RUN_COUNT_MAXIMUM,
     minimum,
   };
 }
@@ -80,9 +80,9 @@ export function toolCreditPricingFor(
     const bounds = floorBounds();
     return { mode: 'variable', unit: 'generation', ...bounds };
   }
-  if (name === 'generate_content_batch') {
-    const bounds = batchCreditRange();
-    return { mode: 'variable', unit: 'batch', ...bounds };
+  if (name === 'generate_turbo_content') {
+    const bounds = turboRunCreditRange();
+    return { mode: 'variable', unit: 'turboRun', ...bounds };
   }
   if (name === MEDIA_TRANSFORM_TOOL_NAME) {
     return {
@@ -94,7 +94,7 @@ export function toolCreditPricingFor(
   }
   if (name === 'repurpose_post') {
     return {
-      maximum: BATCH_CAPTION_BASE_CREDITS,
+      maximum: TURBO_RUN_CAPTION_BASE_CREDITS,
       minimum: 0,
       mode: 'variable',
       unit: 'repurpose',
@@ -218,15 +218,15 @@ export function estimateToolCreditCost(
   if (name === MEDIA_GENERATION_TOOL_NAME) {
     return getMediaGenerationCreditFloor(args);
   }
-  if (name === 'generate_content_batch') {
+  if (name === 'generate_turbo_content') {
     const requested =
       typeof args.count === 'number' && args.count > 0
         ? Math.floor(args.count)
         : 10;
-    return estimateBatchGenerationCredits(
+    return estimateTurboRunCredits(
       {
         contentMix: contentMixFromToolArguments(args.contentMix),
-        count: Math.min(requested, BATCH_GENERATION_COUNT_MAXIMUM),
+        count: Math.min(requested, TURBO_RUN_COUNT_MAXIMUM),
       },
       { includeMedia: false },
     );
@@ -238,7 +238,7 @@ export function estimateToolCreditCost(
     return MEDIA_GENERATION_CREDIT_FLOORS.image;
   }
   if (name === 'repurpose_post') {
-    return args.mode === 'agent' ? BATCH_CAPTION_BASE_CREDITS : 0;
+    return args.mode === 'agent' ? TURBO_RUN_CAPTION_BASE_CREDITS : 0;
   }
   if (
     name === 'create_clip_project_from_youtube' ||

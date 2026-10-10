@@ -341,7 +341,7 @@ describe('AgentDetailPage', () => {
       posts: [
         {
           id: 'draft-1',
-          reviewBatchId: 'batch-1',
+          reviewTurboRunId: 'batch-1',
           reviewDecision: 'unset',
           targetExecutionState: 'draft',
         },

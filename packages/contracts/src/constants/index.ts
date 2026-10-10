@@ -7,7 +7,7 @@ export * from './api.constant';
 export * from './api-key-presets.constant';
 export * from './api-key-scope-labels.constant';
 export * from './app-display.constant';
-export * from './batch-generation-pricing.constant';
+export * from './turbo-run-pricing.constant';
 export * from './brand-handle.constant';
 export * from './carousel.constant';
 export * from './context-embedding.constant';

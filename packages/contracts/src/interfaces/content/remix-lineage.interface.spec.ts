@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { IBatchItem } from '../batch/batch.interface';
+import type { ITurboRunItem } from '../turbo/turbo-run.interface';
 import type { IPost } from './post.interface';
 
 describe('remix downstream lineage contracts', () => {
   it('keeps run and variant identities on review items and posts', () => {
-    const batchLineage = {
+    const turboRunLineage = {
       contentRunId: 'run-1',
       variantId: 'variant-1',
-    } satisfies Pick<IBatchItem, 'contentRunId' | 'variantId'>;
+    } satisfies Pick<ITurboRunItem, 'contentRunId' | 'variantId'>;
     const postLineage = {
       contentRunId: 'run-1',
       variantId: 'variant-1',
@@ -17,8 +17,8 @@ describe('remix downstream lineage contracts', () => {
       'contentRunId' | 'variantId' | 'workflowExecutionId'
     >;
 
-    expect({ batchLineage, postLineage }).toEqual({
-      batchLineage: {
+    expect({ turboRunLineage, postLineage }).toEqual({
+      turboRunLineage: {
         contentRunId: 'run-1',
         variantId: 'variant-1',
       },

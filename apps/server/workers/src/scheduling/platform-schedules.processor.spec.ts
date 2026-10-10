@@ -14,10 +14,10 @@ function handler() {
 
 describe('PlatformSchedulesProcessor', () => {
   const config = { isDevSchedulersEnabled: true };
-  const batchGeneration = {
-    reconcileBatchProjects: handler(),
+  const turboRun = {
+    reconcileTurboProjects: handler(),
     reconcileSettlementShortfalls: handler(),
-    resumeStrandedBatches: handler(),
+    resumeStrandedTurboRuns: handler(),
   };
   const credentials = { refreshExpiringTokens: handler() };
   const engagement = { processArmedRules: handler() };
@@ -84,16 +84,16 @@ describe('PlatformSchedulesProcessor', () => {
         workflowSchedules.sweep,
       ],
       [
-        PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE,
-        batchGeneration.reconcileSettlementShortfalls,
+        PLATFORM_SCHEDULED_TASKS.TURBO_RUN_CREDIT_SETTLEMENT_RECONCILE,
+        turboRun.reconcileSettlementShortfalls,
       ],
       [
-        PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE,
-        batchGeneration.resumeStrandedBatches,
+        PLATFORM_SCHEDULED_TASKS.TURBO_RUN_RECONCILE,
+        turboRun.resumeStrandedTurboRuns,
       ],
       [
-        PLATFORM_SCHEDULED_TASKS.BATCH_PROJECT_RECONCILE,
-        batchGeneration.reconcileBatchProjects,
+        PLATFORM_SCHEDULED_TASKS.TURBO_PROJECT_RECONCILE,
+        turboRun.reconcileTurboProjects,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH,
@@ -221,7 +221,7 @@ describe('PlatformSchedulesProcessor', () => {
     config.isDevSchedulersEnabled = true;
     processor = new PlatformSchedulesProcessor(
       config as never,
-      batchGeneration as never,
+      turboRun as never,
       credentials as never,
       engagement as never,
       falModels as never,

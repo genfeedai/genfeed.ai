@@ -1,8 +1,8 @@
 import type { ActionOriginContext, DistributionPlatform } from '../..';
 
-export interface BatchGenerationWorkflowInput {
+export interface TurboRunWorkflowInput {
   actionContext?: ActionOriginContext;
-  batchId: string;
+  turboRunId: string;
   isResume?: boolean;
   organizationId: string;
   runId?: string;

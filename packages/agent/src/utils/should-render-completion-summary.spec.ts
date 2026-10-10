@@ -17,13 +17,13 @@ function completion(partial: Partial<AgentUiAction> = {}): AgentUiAction {
   };
 }
 
-function batchResult(partial: Partial<AgentUiAction> = {}): AgentUiAction {
+function turboRunResult(partial: Partial<AgentUiAction> = {}): AgentUiAction {
   return {
     id: 'batch-1',
-    type: 'batch_generation_result_card',
+    type: 'turbo_run_result_card',
     title: 'Batch generation complete',
     description: 'Generated 20 X drafts.',
-    batchCount: 20,
+    turboRunCount: 20,
     completedCount: 0,
     failedCount: 20,
     ...partial,
@@ -41,7 +41,7 @@ function contentPreview(partial: Partial<AgentUiAction> = {}): AgentUiAction {
 
 describe('shouldRenderCompletionSummary', () => {
   it('hides generic Done when sibling batch fully failed', () => {
-    expect(shouldRenderCompletionSummary(completion(), [batchResult()])).toBe(
+    expect(shouldRenderCompletionSummary(completion(), [turboRunResult()])).toBe(
       false,
     );
   });
@@ -73,7 +73,7 @@ describe('shouldRenderCompletionSummary', () => {
   it('hides generic Done on successful batch when Done has no extra signal', () => {
     expect(
       shouldRenderCompletionSummary(completion(), [
-        batchResult({ completedCount: 18, failedCount: 2 }),
+        turboRunResult({ completedCount: 18, failedCount: 2 }),
       ]),
     ).toBe(false);
   });
@@ -86,7 +86,7 @@ describe('shouldRenderCompletionSummary', () => {
             { id: 'v1', kind: 'image', url: 'https://cdn.example/a.png' },
           ],
         }),
-        [batchResult()],
+        [turboRunResult()],
       ),
     ).toBe(false);
   });
@@ -117,7 +117,7 @@ describe('shouldRenderCompletionSummary', () => {
           outcomeBullets: ['3 drafts ready in review'],
           summaryText: 'Batch finished with partial success',
         }),
-        [batchResult({ completedCount: 3, failedCount: 17 })],
+        [turboRunResult({ completedCount: 3, failedCount: 17 })],
       ),
     ).toBe(false);
   });
@@ -164,7 +164,7 @@ describe('completionSummaryHasOutcomeSignal', () => {
 
 describe('hasProductResultCard', () => {
   it('detects product result types', () => {
-    expect(hasProductResultCard([batchResult()])).toBe(true);
+    expect(hasProductResultCard([turboRunResult()])).toBe(true);
     expect(hasProductResultCard([completion()])).toBe(false);
   });
 });

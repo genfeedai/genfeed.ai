@@ -10,7 +10,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import {
@@ -58,8 +58,8 @@ interface AgentBrandsServiceLike {
   ) => Promise<Record<string, unknown> | null>;
 }
 
-interface BatchGenerationRunnerLike {
-  generateBatch: (
+interface TurboRunRunnerLike {
+  generateTurboRun: (
     params: Record<string, unknown>,
   ) => Promise<Record<string, unknown>>;
 }
@@ -100,7 +100,7 @@ export class AgentBrandContentToolHandler {
     private readonly requestContext: RequestContextMiddleware,
     private readonly prisma: PrismaService,
     @Optional()
-    private readonly batchGenerationService?: BatchGenerationService,
+    private readonly turboRunService?: TurboRunService,
     @Optional() private readonly brandFromUrlService?: BrandFromUrlService,
     @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
@@ -111,7 +111,7 @@ export class AgentBrandContentToolHandler {
     const brandId = params.brandId as string;
     const platforms = (params.platforms as string[]) || ['twitter'];
 
-    if (!this.batchGenerationService) {
+    if (!this.turboRunService) {
       return {
         creditsUsed: 0,
         error: 'Batch generation service not available',
@@ -124,9 +124,9 @@ export class AgentBrandContentToolHandler {
       const endDate = new Date(now);
       endDate.setDate(endDate.getDate() + 30);
 
-      const batchResult = await (
-        this.batchGenerationService as unknown as BatchGenerationRunnerLike
-      ).generateBatch({
+      const turboRunResult = await (
+        this.turboRunService as unknown as TurboRunRunnerLike
+      ).generateTurboRun({
         brandId,
         contentMix: {
           carouselPercent: 0,
@@ -148,9 +148,9 @@ export class AgentBrandContentToolHandler {
       return {
         creditsUsed: 5,
         data: {
-          batchId: batchResult.batchId,
-          itemCount: batchResult.itemCount,
-          message: `Created a 30-day content calendar with ${batchResult.itemCount} items. Review them in the Calendar or Review page.`,
+          turboRunId: turboRunResult.turboRunId,
+          itemCount: turboRunResult.itemCount,
+          message: `Created a 30-day content calendar with ${turboRunResult.itemCount} items. Review them in the Calendar or Review page.`,
         },
         nextActions: [
           {
@@ -164,8 +164,8 @@ export class AgentBrandContentToolHandler {
                 label: 'Review Queue',
               },
             ],
-            description: `${batchResult.itemCount} content items scheduled over the next 30 days`,
-            id: `calendar-gen-${batchResult.batchId}`,
+            description: `${turboRunResult.itemCount} content items scheduled over the next 30 days`,
+            id: `calendar-gen-${turboRunResult.turboRunId}`,
             title: '30-day content calendar created',
             type: 'content_preview_card',
           },

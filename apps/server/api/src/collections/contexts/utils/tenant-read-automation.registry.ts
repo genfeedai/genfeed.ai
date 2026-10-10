@@ -4,7 +4,7 @@ import { AgentStrategiesController } from '@api/collections/agent-strategies/con
 import { AgentRunsController } from '@api/collections/agent-threads/controllers/agent-runs.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentTransfersController } from '@api/collections/agent-transfers/controllers/agent-transfers.controller';
-import { BatchProjectsController } from '@api/collections/batch-projects/controllers/batch-projects.controller';
+import { TurboProjectsController } from '@api/collections/turbo-projects/controllers/turbo-projects.controller';
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
@@ -27,7 +27,7 @@ import { WorkflowWebhookManagementController } from '@api/collections/workflows/
 import { AgentBrandContextController } from '@api/services/agent-orchestrator/agent-brand-context.controller';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
-import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
+import { TurboRunController } from '@api/services/turbo-run/turbo-run.controller';
 import { GenerationHarnessController } from '@api/services/harness/generation-harness.controller';
 import { AgentWorkflowsController } from '@api/workflows/agent-workflows.controller';
 
@@ -136,9 +136,9 @@ export const TENANT_READ_AUTOMATION_ROUTES = [
     policy: 'owner',
   },
   {
-    controller: BatchProjectsController,
+    controller: TurboProjectsController,
     handler: 'findOne',
-    route: '/v1/batch-projects/{id}',
+    route: '/v1/turbo-projects/{id}',
     policy: 'mutating',
   },
   {
@@ -376,15 +376,15 @@ export const TENANT_READ_AUTOMATION_ROUTES = [
     policy: 'mutating',
   },
   {
-    controller: BatchGenerationController,
-    handler: 'getBatches',
-    route: '/v1/batches',
+    controller: TurboRunController,
+    handler: 'getTurboRuns',
+    route: '/v1/turbo-runs',
     policy: 'selected',
   },
   {
-    controller: BatchGenerationController,
-    handler: 'getBatch',
-    route: '/v1/batches/{id}',
+    controller: TurboRunController,
+    handler: 'getTurboRun',
+    route: '/v1/turbo-runs/{id}',
     policy: 'selected',
   },
   {

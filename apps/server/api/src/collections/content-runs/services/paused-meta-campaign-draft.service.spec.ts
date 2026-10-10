@@ -76,7 +76,7 @@ describe('PausedMetaCampaignDraftService', () => {
       recipeVersion: 1 as const,
       review: {
         approvedPostIds: ['post-1'],
-        batchId: 'batch-1',
+        turboRunId: 'batch-1',
         postIds: ['post-1'],
         workflowExecutionId: 'review-workflow-execution-1',
         workflowId: 'review-workflow-1',

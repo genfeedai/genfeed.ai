@@ -49,7 +49,7 @@ describe('platform flags (#5468)', () => {
     expect(getPlatformFlagChildren('studio')).toEqual([
       ...PLATFORM_STUDIO_FLAG_KEYS,
     ]);
-    expect(getPlatformFlagChildren('studio_batch')).toEqual(['batch_ideas']);
+    expect(getPlatformFlagChildren('studio_turbo')).toEqual(['turbo_ideas']);
     expect(getPlatformFlagChildren('agent')).toEqual([]);
   });
 
@@ -67,20 +67,20 @@ describe('platform flags (#5468)', () => {
 
     expect(flags.studio).toBe(false);
     expect(flags.studio_motion).toBe(false);
-    expect(flags.studio_batch).toBe(false);
-    expect(flags.batch_ideas).toBe(false);
+    expect(flags.studio_turbo).toBe(false);
+    expect(flags.turbo_ideas).toBe(false);
     expect(flags.library_canvas).toBe(true);
   });
 
   it('keeps a parent on when only a nested flag is off', () => {
     const flags = resolvePlatformFlags(
-      parsePlatformFlags({ studio_batch: false }),
+      parsePlatformFlags({ studio_turbo: false }),
     );
 
     expect(flags.studio).toBe(true);
     expect(flags.studio_motion).toBe(true);
-    expect(flags.studio_batch).toBe(false);
-    expect(flags.batch_ideas).toBe(false);
+    expect(flags.studio_turbo).toBe(false);
+    expect(flags.turbo_ideas).toBe(false);
   });
 
   it('leaves the defaults all on', () => {

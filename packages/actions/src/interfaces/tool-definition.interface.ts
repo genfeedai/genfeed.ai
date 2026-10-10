@@ -13,7 +13,7 @@ export type ToolUiActionType =
   | 'engagement_opportunity_card'
   | 'generation_action_card'
   | 'mutation_approval_card'
-  | 'batch_generation_card'
+  | 'turbo_run_card'
   | 'voice_clone_card'
   | 'content_calendar_card'
   | 'credits_balance_card'

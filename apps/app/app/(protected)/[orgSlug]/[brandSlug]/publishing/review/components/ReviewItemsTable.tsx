@@ -1,5 +1,5 @@
-import { BatchItemStatus, ComponentSize } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import { TurboRunItemStatus, ComponentSize } from '@genfeedai/contracts';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
@@ -38,12 +38,12 @@ export default function ReviewItemsTable({
   onSelectItem,
   onToggleSelect,
 }: ReviewItemsTableProps) {
-  const translate = useTranslations('common.batchRewrite');
+  const translate = useTranslations('common.turboRewrite');
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const router = useRouter();
   const { href } = useOrgUrl();
 
-  const rowActions = useMemo<TableAction<IBatchItem>[]>(
+  const rowActions = useMemo<TableAction<ITurboRunItem>[]>(
     () => [
       {
         icon: <PanelRightOpen className="size-3.5" />,
@@ -86,7 +86,7 @@ export default function ReviewItemsTable({
     [href, onSelectItem, router],
   );
 
-  const columns = useMemo<TableColumn<IBatchItem>[]>(
+  const columns = useMemo<TableColumn<ITurboRunItem>[]>(
     () => [
       {
         className: 'w-10',
@@ -245,7 +245,7 @@ export default function ReviewItemsTable({
   );
 
   return (
-    <AppTable<IBatchItem>
+    <AppTable<ITurboRunItem>
       actions={rowActions}
       columns={columns}
       emptyDescription="Try All statuses, or pick another batch."
@@ -254,7 +254,7 @@ export default function ReviewItemsTable({
       getRowClassName={(item) =>
         cn(
           activeItemId === item.id && 'bg-primary/[0.06]',
-          item.status === BatchItemStatus.FAILED && 'bg-destructive/[0.03]',
+          item.status === TurboRunItemStatus.FAILED && 'bg-destructive/[0.03]',
         )
       }
       getRowKey={(item) => item.id}

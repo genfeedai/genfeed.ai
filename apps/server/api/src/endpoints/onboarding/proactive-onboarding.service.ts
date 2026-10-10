@@ -23,7 +23,7 @@ import {
 } from '@api/endpoints/onboarding/services/proactive-onboarding-value.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -56,7 +56,7 @@ type LeadData = {
   phone?: string;
   company?: string;
   proactiveStatus?: ProactiveOnboardingStatus;
-  proactiveBatchId?: string;
+  proactiveTurboRunId?: string;
   invitedAt?: string;
   claimedAt?: string;
   paymentMadeAt?: string;
@@ -79,7 +79,7 @@ export class ProactiveOnboardingService {
     private readonly brandsService: BrandsService,
     private readonly organizationsService: OrganizationsService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly batchGenerationService: BatchGenerationService,
+    private readonly turboRunService: TurboRunService,
     private readonly invitationService: InvitationService,
     private readonly usersService: UsersService,
     private readonly membersService: MembersService,
@@ -369,13 +369,13 @@ export class ProactiveOnboardingService {
   }
 
   /**
-   * Step 2: Generate content using BatchGenerationService
+   * Step 2: Generate content using TurboRunService
    */
   async generateContent(
     leadId: string,
     organizationId: string,
     dto: CrmGenerateContentDto,
-  ): Promise<{ success: boolean; batchId: string }> {
+  ): Promise<{ success: boolean; turboRunId: string }> {
     const lead = await this.getLead(leadId, organizationId);
 
     if (lead.data.proactiveStatus !== ProactiveOnboardingStatus.BRAND_READY) {
@@ -418,7 +418,7 @@ export class ProactiveOnboardingService {
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + 31);
 
-      const batch = await this.batchGenerationService.createBatch(
+      const turboRun = await this.turboRunService.createTurboRun(
         {
           brandId,
           count,
@@ -437,16 +437,16 @@ export class ProactiveOnboardingService {
         leadId,
         organizationId,
         ProactiveOnboardingStatus.CONTENT_READY,
-        { proactiveBatchId: batch.id },
+        { proactiveTurboRunId: turboRun.id },
       );
 
       this.loggerService.log('Proactive onboarding: content generated', {
-        batchId: batch.id,
+        turboRunId: turboRun.id,
         count,
         leadId,
       });
 
-      return { batchId: batch.id, success: true };
+      return { turboRunId: turboRun.id, success: true };
     } catch (error: unknown) {
       await this.updateLeadStatus(
         leadId,
@@ -605,20 +605,20 @@ export class ProactiveOnboardingService {
     }
 
     // Fetch batch details if available
-    if (lead.data.proactiveBatchId && lead.proactiveOrganizationId) {
+    if (lead.data.proactiveTurboRunId && lead.proactiveOrganizationId) {
       try {
-        const batch = await this.batchGenerationService.getBatch(
-          lead.data.proactiveBatchId,
+        const turboRun = await this.turboRunService.getTurboRun(
+          lead.data.proactiveTurboRunId,
           lead.proactiveOrganizationId,
         );
 
-        if (batch) {
-          result.generatedAssetCount = batch.completedItems ?? 0;
-          result.batch = {
-            completedPosts: batch.completedItems ?? 0,
-            id: batch.id,
-            platforms: batch.platforms ?? [],
-            totalPosts: batch.totalItems ?? 0,
+        if (turboRun) {
+          result.generatedAssetCount = turboRun.completedItems ?? 0;
+          result.turboRun = {
+            completedPosts: turboRun.completedItems ?? 0,
+            id: turboRun.id,
+            platforms: turboRun.platforms ?? [],
+            totalPosts: turboRun.totalItems ?? 0,
           };
         }
       } catch {
@@ -663,9 +663,9 @@ export class ProactiveOnboardingService {
     if (
       result.proactiveStatus === ProactiveOnboardingStatus.CONTENT_READY &&
       result.generatedAssetCount === 0 &&
-      result.batch
+      result.turboRun
     ) {
-      result.generatedAssetCount = result.batch.completedPosts;
+      result.generatedAssetCount = result.turboRun.completedPosts;
     }
 
     return result;

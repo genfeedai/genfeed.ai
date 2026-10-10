@@ -33,7 +33,7 @@ describe('BrandRemixRunPaidDraftService', () => {
     const graph = assembleBrandRemixRunsGraph({
       adsResearchService: {} as never,
       avatarVideoGenerationService: {} as never,
-      batchGenerationService: {} as never,
+      turboRunService: {} as never,
       brandsService: {
         findOne: vi.fn().mockResolvedValue({
           agentConfig: {},
@@ -112,7 +112,7 @@ describe('BrandRemixRunPaidDraftService', () => {
       revision: 1,
       review: {
         approvedPostIds: ['post-1'],
-        batchId: 'batch-1',
+        turboRunId: 'batch-1',
         postIds: ['post-1'],
         workflowExecutionId: 'workflow-execution-1',
         workflowId: 'workflow-1',

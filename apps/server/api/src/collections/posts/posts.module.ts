@@ -42,7 +42,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
-import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -84,7 +84,7 @@ import { Module } from '@nestjs/common';
     ActivitiesModule,
     ApiKeysModule,
     PostsCoreModule,
-    BatchGenerationModule,
+    TurboRunModule,
     BrandsCoreModule,
     ByokModule,
     ContentIntelligenceModule,

@@ -756,7 +756,7 @@ export async function createProactiveProductionTurnFixture() {
         '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service'
       ),
       import(
-        '@api/services/agent-orchestrator/agent-orchestrator-batch.service'
+        '@api/services/agent-orchestrator/agent-orchestrator-turbo-run.service'
       ),
       import(
         '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service'

@@ -152,7 +152,7 @@ describe('semantic theme surface contracts', () => {
   // must be a direct list child (a wrapper would make every row "last").
   it('uses the theme border token for batch job dividers', () => {
     const page = readSource(
-      'src/features/workflows/pages/batch/BatchProjectsPage.tsx',
+      'src/features/workflows/pages/batch/TurboProjectsPage.tsx',
     );
     const listRow = readSource(
       '../../packages/ui/src/components/lists/list-row/ListRow.tsx',

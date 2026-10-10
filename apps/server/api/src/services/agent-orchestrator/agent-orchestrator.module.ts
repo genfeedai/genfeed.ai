@@ -68,7 +68,7 @@ import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestra
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
+import { AgentOrchestratorTurboRunService } from '@api/services/agent-orchestrator/agent-orchestrator-turbo-run.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
@@ -108,7 +108,7 @@ import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orches
 import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
-import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
+import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tools/agent-media-turbo-run.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
@@ -140,7 +140,7 @@ import { AgentSourceIngestModule } from '@api/services/agent-source-ingest/agent
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
-import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
@@ -198,7 +198,7 @@ import { Module } from '@nestjs/common';
     AgentGenerationGatewayModule,
     AnalyticsModule,
     ArticlesModule,
-    BatchGenerationModule,
+    TurboRunModule,
     AutonomousPublishingModule,
     BrandInterviewModule,
     RequestContextModule,
@@ -258,7 +258,7 @@ import { Module } from '@nestjs/common';
     AgentAnalyticsToolHandler,
     AgentGenerationScopeService,
     AgentMediaAssetGenerationService,
-    AgentMediaBatchGenerationService,
+    AgentMediaTurboRunService,
     AgentMediaGenerationToolHandler,
     AgentMediaTextGenerationService,
     AgentMediaTransformService,
@@ -292,7 +292,7 @@ import { Module } from '@nestjs/common';
     AgentReviewToolHandler,
     AgentTrendsToolHandler,
     AgentWorkspaceToolHandler,
-    AgentOrchestratorBatchService,
+    AgentOrchestratorTurboRunService,
     AgentOrchestratorContextService,
     AgentOrchestratorPlanModeService,
     AgentOrchestratorRecurringTaskService,

@@ -40,7 +40,7 @@ describe('extractLastGeneratedAssetFromMetadata', () => {
               },
             ],
             title: 'Clip',
-            type: 'batch_generation_result_card',
+            type: 'turbo_run_result_card',
           },
         ],
       }),

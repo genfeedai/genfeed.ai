@@ -66,7 +66,7 @@ export const postAttributes = createEntityAttributes([
   'generationId',
   'knowledgeReceipts',
   'promptUsed',
-  'reviewBatchId',
+  'reviewTurboRunId',
   'reviewItemId',
   'reviewDecision',
   'reviewVersionPinId',

@@ -47,7 +47,7 @@ export function readReviewQueueSnapshot(
     changesRequestedCount,
     pendingCount,
     readyCount,
-    scope: typeof result.data.batchId === 'string' ? 'batch' : 'inbox',
+    scope: typeof result.data.turboRunId === 'string' ? 'turboRun' : 'inbox',
   };
 }
 
@@ -63,12 +63,12 @@ export function buildReviewSuggestedActions(
     .find((toolCall) =>
       [
         'list_review_queue',
-        'batch_approve_reject',
+        'review_turbo_items',
         'get_approval_summary',
       ].includes(toolCall.toolName),
     );
   if (latestReviewTool?.status !== 'completed') return [];
-  if (latestReviewTool.toolName === 'batch_approve_reject') {
+  if (latestReviewTool.toolName === 'review_turbo_items') {
     return [
       {
         id: 'review-refresh',

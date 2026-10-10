@@ -561,8 +561,8 @@ export function usePostsList({
             );
             router.push(
               href(
-                draft.reviewBatchId
-                  ? `/publishing/review?batch=${draft.reviewBatchId}&filter=ready`
+                draft.reviewTurboRunId
+                  ? `/publishing/review?batch=${draft.reviewTurboRunId}&filter=ready`
                   : '/publishing/review',
               ),
             );

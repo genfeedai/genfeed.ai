@@ -5,7 +5,7 @@ import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/an
 export interface PostReviewSummary {
   generationId?: string;
   promptUsed?: string;
-  reviewBatchId?: string;
+  reviewTurboRunId?: string;
   /** Canonical lowercase decision projected from the Post persistence value. */
   reviewDecision?: ReviewDecision;
   reviewEvents?: Array<{

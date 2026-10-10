@@ -271,7 +271,7 @@ export function useClipWorkflowRunCard({
     let nextUrl = draftReviewUrl;
 
     if (action.brandId) {
-      const batch = await apiService.createManualReviewBatch({
+      const turboRun = await apiService.createManualReviewTurboRun({
         brandId: action.brandId,
         items: [
           {
@@ -287,8 +287,8 @@ export function useClipWorkflowRunCard({
           },
         ],
       });
-      const firstItemId = batch.items[0]?.id;
-      const params = new URLSearchParams({ batch: batch.id });
+      const firstItemId = turboRun.items[0]?.id;
+      const params = new URLSearchParams({ turboRun: turboRun.id });
       if (firstItemId) {
         params.set('item', firstItemId);
       }

@@ -1,5 +1,5 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import { TurboRunItemStatus, ContentFormat } from '@genfeedai/contracts';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -40,17 +40,17 @@ vi.mock('./ReviewDetailPanelHeader', () => ({
 
 import ReviewDetailPanel from './ReviewDetailPanel';
 
-const baseItem: IBatchItem = {
-  batchId: 'batch-1',
+const baseItem: ITurboRunItem = {
+  turboRunId: 'batch-1',
   caption: 'Ship the review rail',
   createdAt: '2026-03-10T10:00:00.000Z',
   format: ContentFormat.IMAGE,
   id: 'item-1',
   platform: 'twitter',
-  status: BatchItemStatus.COMPLETED,
+  status: TurboRunItemStatus.COMPLETED,
 };
 
-function renderPanel(item: IBatchItem) {
+function renderPanel(item: ITurboRunItem) {
   return render(
     <ReviewDetailPanel
       isActioning={false}

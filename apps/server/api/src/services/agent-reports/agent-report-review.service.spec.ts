@@ -14,7 +14,7 @@ const receipt: AgentReportReviewToken = {
     channelId: 'chat',
   },
   strategyId: 'strategy',
-  batchId: 'batch',
+  turboRunId: 'turboRun',
   itemId: 'item',
   postId: 'post',
   postVersion: '2026-09-24T10:00:00.000Z',
@@ -60,7 +60,7 @@ describe('bound agent report review', () => {
     const f = fixture();
     await f.service.resolve('telegram', f.input);
     expect(f.review.approveItems).toHaveBeenCalledWith(
-      'batch',
+      'turboRun',
       ['item'],
       'org',
       'canonical-user',
@@ -118,7 +118,7 @@ describe('bound agent report review', () => {
     const f = fixture();
     await f.service.resolve('telegram', { ...f.input, decision: 'reject' });
     expect(f.review.rejectItems).toHaveBeenCalledWith(
-      'batch',
+      'turboRun',
       ['item'],
       'org',
       'Rejected from agent report',

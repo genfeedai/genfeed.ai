@@ -73,7 +73,7 @@ export default function PostDetailSidebar({
     Boolean(post.publicationDate) ||
     post.targetExecutionState === TargetExecutionState.PUBLISHED;
   const hasReviewLineage =
-    Boolean(reviewSummary?.reviewBatchId) ||
+    Boolean(reviewSummary?.reviewTurboRunId) ||
     Boolean(reviewSummary?.reviewItemId) ||
     Boolean(reviewSummary?.sourceWorkflowName) ||
     Boolean(reviewSummary?.sourceActionId) ||

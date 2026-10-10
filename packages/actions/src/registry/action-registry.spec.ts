@@ -347,8 +347,8 @@ describe('Genfeed action registry', () => {
 
   it('owns the batch project idea dispatch actions with closed job contracts', () => {
     for (const actionId of [
-      'batch-project.idea.dispatch-item',
-      'batch-project.idea.fail-item',
+      'turbo-project.idea.dispatch-item',
+      'turbo-project.idea.fail-item',
     ]) {
       const definition = getActionDefinition(actionId);
       expect(definition).toMatchObject({

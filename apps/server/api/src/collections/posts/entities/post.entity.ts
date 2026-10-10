@@ -89,7 +89,7 @@ export class PostEntity extends BaseEntity {
   declare readonly creativeVersion?: string;
   declare readonly scheduleSlot?: string;
   declare readonly publishIntent?: string;
-  declare readonly reviewBatchId?: string;
+  declare readonly reviewTurboRunId?: string;
   declare readonly reviewItemId?: string;
   declare readonly reviewDecision?: ReviewDecision;
   declare readonly reviewFeedback?: string;

@@ -46,8 +46,8 @@ function setup(source = 'proactive', priorMessageCount = 0) {
   const plan = {
     tryHandlePlanModeTurnStream: vi.fn().mockResolvedValue(false),
   };
-  const batch = {
-    tryHandleBatchGenerationTurnStream: vi.fn().mockResolvedValue(false),
+  const turboRun = {
+    tryHandleTurboRunTurnStream: vi.fn().mockResolvedValue(false),
   };
   const recurring = {
     tryHandleRecurringTaskDraftTurnStream: vi.fn().mockResolvedValue(false),
@@ -82,7 +82,7 @@ function setup(source = 'proactive', priorMessageCount = 0) {
     },
     context,
     plan,
-    batch,
+    turboRun,
     recurring,
     stream,
     {},
@@ -101,7 +101,7 @@ function setup(source = 'proactive', priorMessageCount = 0) {
     service,
     prisma,
     plan,
-    batch,
+    turboRun,
     recurring,
     stream,
     context,
@@ -125,7 +125,7 @@ const request = {
 
 describe('trusted proactive turn limits and memory routing', () => {
   it('executes configured cadence through the active workflow before paid chat inference', async () => {
-    const { service, batch, context } = setup('proactive');
+    const { service, turboRun, context } = setup('proactive');
     const final = {
       artifactReferences: [],
       artifactVersionPinIds: [],
@@ -135,7 +135,7 @@ describe('trusted proactive turn limits and memory routing', () => {
       model: null,
       threadId: 'thread',
     };
-    Object.assign(batch, {
+    Object.assign(turboRun, {
       tryExecuteCadence: vi.fn().mockResolvedValue(final),
     });
     const prepared = await service.prepare(request, workflowContext);
@@ -265,7 +265,7 @@ describe('trusted proactive turn limits and memory routing', () => {
     );
   });
   it('projects trusted limits and uses assembled memory while bypassing deterministic paths', async () => {
-    const { service, stream, plan, batch, recurring } = setup();
+    const { service, stream, plan, turboRun, recurring } = setup();
     const prepared = await service.prepare(request, workflowContext);
     expect(prepared.state.request).toMatchObject({
       creditBudget: 5,
@@ -274,7 +274,7 @@ describe('trusted proactive turn limits and memory routing', () => {
     });
     await service.execute(prepared.state);
     expect(plan.tryHandlePlanModeTurnStream).not.toHaveBeenCalled();
-    expect(batch.tryHandleBatchGenerationTurnStream).not.toHaveBeenCalled();
+    expect(turboRun.tryHandleTurboRunTurnStream).not.toHaveBeenCalled();
     expect(
       recurring.tryHandleRecurringTaskDraftTurnStream,
     ).not.toHaveBeenCalled();
@@ -299,7 +299,7 @@ describe('trusted proactive turn limits and memory routing', () => {
     );
   });
   it('preserves ordinary interactive routing', async () => {
-    const { service, plan, batch, recurring, prisma } = setup('api');
+    const { service, plan, turboRun, recurring, prisma } = setup('api');
     const prepared = await service.prepare(
       { content: 'Create a weekly task', threadId: 'thread', source: 'agent' },
       workflowContext,
@@ -307,7 +307,7 @@ describe('trusted proactive turn limits and memory routing', () => {
     await service.execute(prepared.state);
     expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
     expect(plan.tryHandlePlanModeTurnStream).toHaveBeenCalledOnce();
-    expect(batch.tryHandleBatchGenerationTurnStream).toHaveBeenCalledOnce();
+    expect(turboRun.tryHandleTurboRunTurnStream).toHaveBeenCalledOnce();
     expect(
       recurring.tryHandleRecurringTaskDraftTurnStream,
     ).toHaveBeenCalledOnce();

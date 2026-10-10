@@ -1,4 +1,4 @@
-import { BatchItemStatus } from '@genfeedai/contracts';
+import { TurboRunItemStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   isApproved,
@@ -17,18 +17,18 @@ describe('review-state', () => {
   });
 
   it('treats skipped items as rejected', () => {
-    expect(isRejected({ status: BatchItemStatus.SKIPPED } as never)).toBe(true);
+    expect(isRejected({ status: TurboRunItemStatus.SKIPPED } as never)).toBe(true);
   });
 
   it('derives review readiness from batch status', () => {
     expect(
-      isReadyToReview({ status: BatchItemStatus.COMPLETED } as never),
+      isReadyToReview({ status: TurboRunItemStatus.COMPLETED } as never),
     ).toBe(true);
-    expect(isPendingReview({ status: BatchItemStatus.PENDING } as never)).toBe(
+    expect(isPendingReview({ status: TurboRunItemStatus.PENDING } as never)).toBe(
       true,
     );
     expect(
-      isPendingReview({ status: BatchItemStatus.PROCESSING } as never),
+      isPendingReview({ status: TurboRunItemStatus.PROCESSING } as never),
     ).toBe(true);
   });
 });

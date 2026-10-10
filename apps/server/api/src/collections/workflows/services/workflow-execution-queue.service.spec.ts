@@ -115,7 +115,7 @@ describe('WorkflowExecutionQueueService', () => {
   describe('trusted module queue admission', () => {
     it('captures the authenticated scope and ignores input metadata claiming another module', async () => {
       await runWithOrganizationModule(
-        { organizationId: 'org-1', moduleId: 'batch' },
+        { organizationId: 'org-1', moduleId: 'turboRun' },
         () =>
           service.queueSystemWorkflow(
             {
@@ -136,14 +136,14 @@ describe('WorkflowExecutionQueueService', () => {
       );
       expect(mockModuleAccess.assertAccess).toHaveBeenCalledWith(
         'org-1',
-        'batch',
+        'turboRun',
       );
       expect(mockQueue.add).toHaveBeenCalledWith(
         'system-run',
         expect.objectContaining({
           organizationModuleContext: {
             organizationId: 'org-1',
-            moduleId: 'batch',
+            moduleId: 'turboRun',
           },
         }),
         expect.any(Object),
@@ -156,7 +156,7 @@ describe('WorkflowExecutionQueueService', () => {
       );
       await expect(
         runWithOrganizationModule(
-          { organizationId: 'org-1', moduleId: 'batch' },
+          { organizationId: 'org-1', moduleId: 'turboRun' },
           () =>
             service.queueSystemWorkflow(
               {
@@ -177,7 +177,7 @@ describe('WorkflowExecutionQueueService', () => {
     it('rejects cross-organization fanout instead of borrowing the parent grant', async () => {
       await expect(
         runWithOrganizationModule(
-          { organizationId: 'other-org', moduleId: 'batch' },
+          { organizationId: 'other-org', moduleId: 'turboRun' },
           () => service.queueTriggerEvent(createTriggerEvent()),
         ),
       ).rejects.toThrow('Invalid queued organization module execution context');
@@ -471,7 +471,7 @@ describe('WorkflowExecutionQueueService', () => {
         actionType: 'workflow.batch.execute',
         canonicalId: 'workflow.batch.execute',
         organizationId: 'org-1',
-        source: 'batch',
+        source: 'turboRun',
         userId: 'user-1',
       };
       const priorExecution = {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AgentStrategyRunStatus } from '../../src/enums/agent-strategy.enum';
 import { ArticleStatus } from '../../src/enums/article.enum';
-import { BatchStatus } from '../../src/enums/batch.enum';
+import { TurboRunStatus } from '../../src/enums/turbo.enum';
 import { BotStatus } from '../../src/enums/bot.enum';
 import { CampaignTargetStatus } from '../../src/enums/campaign.enum';
 import { formatEnumLabel, toEnumSlug } from '../../src/enums/enum-label.util';
@@ -20,7 +20,7 @@ import { WorkflowExecutionStatus } from '../../src/enums/workflow.enum';
 const RENDERED_SCREAMING_ENUMS: Readonly<Record<string, object>> = {
   AgentStrategyRunStatus,
   ArticleStatus,
-  BatchStatus,
+  TurboRunStatus,
   BotStatus,
   CampaignTargetStatus,
   IngredientCategory,

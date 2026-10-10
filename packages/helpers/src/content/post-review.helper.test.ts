@@ -11,7 +11,7 @@ describe('hasPostReviewLineage', () => {
   });
 
   it('is true once a review batch id is present', () => {
-    expect(hasPostReviewLineage({ reviewBatchId: 'batch-1' })).toBe(true);
+    expect(hasPostReviewLineage({ reviewTurboRunId: 'batch-1' })).toBe(true);
   });
 
   it('is true once a review item id is present', () => {
@@ -29,7 +29,7 @@ describe('isPostAwaitingReview', () => {
   it('is false for a rejected post even with review lineage', () => {
     expect(
       isPostAwaitingReview({
-        reviewBatchId: 'batch-1',
+        reviewTurboRunId: 'batch-1',
         reviewDecision: ReviewDecision.REJECTED,
       }),
     ).toBe(false);
@@ -38,7 +38,7 @@ describe('isPostAwaitingReview', () => {
   it('is false for an approved post even with review lineage', () => {
     expect(
       isPostAwaitingReview({
-        reviewBatchId: 'batch-1',
+        reviewTurboRunId: 'batch-1',
         reviewDecision: ReviewDecision.APPROVED,
       }),
     ).toBe(false);

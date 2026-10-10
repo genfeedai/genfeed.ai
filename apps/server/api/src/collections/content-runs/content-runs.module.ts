@@ -51,7 +51,7 @@ import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.m
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -90,7 +90,7 @@ import { Module } from '@nestjs/common';
     VideoStitchModule,
     AdsResearchModule,
     AdCreativeMappingsModule,
-    BatchGenerationModule,
+    TurboRunModule,
     BrandsCoreModule,
     ByokModule,
     ContentIntelligenceModule,

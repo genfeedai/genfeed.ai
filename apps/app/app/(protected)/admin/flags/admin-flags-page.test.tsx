@@ -154,7 +154,7 @@ describe('AdminFlagsPage (#5468)', () => {
       'Motion',
       'Storyboard',
       'Clips',
-      'Batch',
+      'TurboRun',
       'Batch ideas',
       'Editor',
     ]) {
@@ -171,14 +171,14 @@ describe('AdminFlagsPage (#5468)', () => {
   });
 
   it('names the switched-off flag that keeps a nested row off', async () => {
-    mocks.getSettings.mockResolvedValue({ flags: { studio_batch: false } });
+    mocks.getSettings.mockResolvedValue({ flags: { studio_turbo: false } });
     render(<AdminFlagsPage />);
 
-    const batchIdeas = await screen.findByRole('switch', {
+    const turboIdeas = await screen.findByRole('switch', {
       name: 'Batch ideas',
     });
-    expect(batchIdeas).toBeDisabled();
-    expect(batchIdeas.getAttribute('aria-description')).toContain(
+    expect(turboIdeas).toBeDisabled();
+    expect(turboIdeas.getAttribute('aria-description')).toContain(
       'Needs Batch. Off while Batch is off.',
     );
     expect(screen.getByRole('switch', { name: 'Motion' })).toBeEnabled();
@@ -187,7 +187,7 @@ describe('AdminFlagsPage (#5468)', () => {
   it('lists every Studio surface as its own switch', async () => {
     render(<AdminFlagsPage />);
 
-    for (const name of ['Motion', 'Storyboard', 'Clips', 'Batch', 'Editor']) {
+    for (const name of ['Motion', 'Storyboard', 'Clips', 'TurboRun', 'Editor']) {
       expect(await screen.findByRole('switch', { name })).toBeInTheDocument();
     }
   });

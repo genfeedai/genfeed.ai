@@ -79,15 +79,15 @@ describe('published action catalog', () => {
 });
 
 describe('tool mutation approval output contract', () => {
-  const action = getActionDefinition('generate_content_batch');
-  const contract = compileActionContract('generate_content_batch', {
+  const action = getActionDefinition('generate_turbo_content');
+  const contract = compileActionContract('generate_turbo_content', {
     inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
     outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
   });
   const provenance = {
     nodeId: 'execute-tool',
     runId: 'run-batch',
-    workflowId: 'agent.tool.generate_content_batch',
+    workflowId: 'agent.tool.generate_turbo_content',
     workflowVersionId: 'v1',
   };
   const output = {
@@ -98,7 +98,7 @@ describe('tool mutation approval output contract', () => {
       approvalId: 'approval-1',
       mutationPolicy: 'approval-required',
       status: 'pending',
-      toolName: 'generate_content_batch',
+      toolName: 'generate_turbo_content',
     },
     mutationPolicy: 'approval-required',
     nextActions: [],
@@ -126,16 +126,16 @@ describe('tool mutation approval output contract', () => {
   });
 });
 
-describe('generate_content_batch input contract', () => {
-  const action = getActionDefinition('generate_content_batch');
-  const contract = compileActionContract('generate_content_batch', {
+describe('generate_turbo_content input contract', () => {
+  const action = getActionDefinition('generate_turbo_content');
+  const contract = compileActionContract('generate_turbo_content', {
     inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
     outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
   });
   const provenance = {
     nodeId: 'execute-tool',
     runId: 'run-batch',
-    workflowId: 'agent.tool.generate_content_batch',
+    workflowId: 'agent.tool.generate_turbo_content',
     workflowVersionId: 'v1',
   };
   const input = { count: 5, platforms: ['instagram'] };

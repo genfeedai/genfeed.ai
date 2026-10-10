@@ -243,11 +243,11 @@ export const TASK_FIXTURES: readonly TaskFixture[] = [
     },
   },
   {
-    id: 'batch-generation-approval',
+    id: 'turbo-run-approval',
     kind: 'action-policy',
     task: 'Batch generation remains pending approval rather than completed.',
     input: {
-      action: 'generate_content_batch',
+      action: 'generate_turbo_content',
       surface: 'agent',
       hasTrustedApproval: false,
       hostSupportsApproval: true,

@@ -65,7 +65,7 @@ function setup() {
     messages as never,
     credits as never,
     runner as never,
-    { isBatchGenerationIntent: vi.fn().mockReturnValue(false) } as never,
+    { isTurboRunIntent: vi.fn().mockReturnValue(false) } as never,
     context as never,
     {
       buildAssistantUiActions: vi.fn().mockReturnValue({

@@ -330,7 +330,7 @@ describeWithDatabase('Brand remix paid draft integration', () => {
       readiness: { issues: [], state: 'ready' },
       review: {
         approvedPostIds: [fixture.postId],
-        batchId: 'batch-x-1',
+        turboRunId: 'batch-x-1',
         postIds: [fixture.postId],
         workflowExecutionId: 'review-x-execution-1',
         workflowId: 'review-x-workflow-1',
@@ -541,7 +541,7 @@ describeWithDatabase('Brand remix paid draft integration', () => {
     assembleBrandRemixRunsGraph({
       adsResearchService: (options?.adsResearchService ?? {}) as never,
       avatarVideoGenerationService: {} as never,
-      batchGenerationService: {} as never,
+      turboRunService: {} as never,
       brandsService: {
         findOne: vi.fn().mockResolvedValue({
           agentConfig: {},
@@ -629,7 +629,7 @@ const approvedConfig = (fixture: RemixFixture) =>
     recipeVersion: BRAND_REMIX_RUN_VERSION,
     review: {
       approvedPostIds: [fixture.postId],
-      batchId: 'batch-1',
+      turboRunId: 'batch-1',
       postIds: [fixture.postId],
       workflowExecutionId: 'review-workflow-execution-1',
       workflowId: 'review-workflow-1',

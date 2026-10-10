@@ -184,10 +184,10 @@ export function mergeAllowedTools(
   return scoped ?? preferred;
 }
 
-/** Tools allowed when the user prompt looks like a batch-generation intent. */
-export const BATCH_SCOPED_ALLOWED_TOOLS: CuratedActionName[] = [
-  'generate_content_batch',
-  'batch_approve_reject',
+/** Tools allowed when the user prompt looks like a turbo-run intent. */
+export const TURBO_RUN_SCOPED_ALLOWED_TOOLS: CuratedActionName[] = [
+  'generate_turbo_content',
+  'review_turbo_items',
   'get_current_brand',
   'get_brands',
   'list_review_queue',

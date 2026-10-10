@@ -6,7 +6,7 @@ import { getAiInfluencerActionContract } from './ai-influencer-action-contracts'
 import { getAnalyticsActionContract } from './analytics-action-contracts';
 import { getAuthorReplyActionContract } from './author-reply-action-contracts';
 import { getAutomationActionContract } from './automation-action-contracts';
-import { getBatchActionContract } from './batch-action-contracts';
+import { getBatchActionContract } from './turbo-run-action-contracts';
 import { getBrandRemixActionContract } from './brand-remix-action-contracts';
 import { getCampaignOutreachActionContract } from './campaign-outreach-action-contracts';
 import { getClipActionContract } from './clip-action-contracts';

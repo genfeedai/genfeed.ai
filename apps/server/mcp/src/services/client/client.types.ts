@@ -50,7 +50,7 @@ export interface AdsGatewayInsightsParams {
   loginCustomerId?: string;
 }
 
-export interface CreateBatchParams {
+export interface CreateTurboRunParams {
   brandId: string;
   count: number;
   platforms: string[];
@@ -59,8 +59,8 @@ export interface CreateBatchParams {
   style?: string;
 }
 
-export interface ListBatchesParams {
-  batchId?: string;
+export interface ListTurboRunsParams {
+  turboRunId?: string;
   status?: string;
   limit?: number;
   offset?: number;

@@ -589,18 +589,18 @@ describe('ClientService (MCP) domain clients', () => {
     it('creates a content batch as a JSON:API resource', async () => {
       (mockAxiosInstance.post as Mock).mockResolvedValue({
         data: {
-          data: { attributes: { batchId: 'batch-1', status: 'PENDING' } },
+          data: { attributes: { turboRunId: 'batch-1', status: 'PENDING' } },
         },
       });
 
-      const result = await service.createBatch({
+      const result = await service.createTurboRun({
         brandId: 'brand-1',
         count: 3,
         platforms: ['instagram'],
         topics: ['Daily post ideas'],
       });
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/batches', {
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/turbo-runs', {
         data: {
           attributes: {
             brandId: 'brand-1',
@@ -608,10 +608,10 @@ describe('ClientService (MCP) domain clients', () => {
             platforms: ['instagram'],
             topics: ['Daily post ideas'],
           },
-          type: 'batches',
+          type: 'turboRuns',
         },
       });
-      expect(result).toEqual({ batchId: 'batch-1', status: 'PENDING' });
+      expect(result).toEqual({ turboRunId: 'batch-1', status: 'PENDING' });
     });
 
     it('surfaces API error detail when batch creation fails', async () => {
@@ -621,7 +621,7 @@ describe('ClientService (MCP) domain clients', () => {
       });
 
       await expect(
-        service.createBatch({
+        service.createTurboRun({
           brandId: 'brand-1',
           count: 1,
           platforms: ['instagram'],
@@ -636,15 +636,15 @@ describe('ClientService (MCP) domain clients', () => {
         },
       });
 
-      const result = await service.listBatches({
-        batchId: 'batch-1',
+      const result = await service.listTurboRuns({
+        turboRunId: 'batch-1',
         limit: 5,
         status: 'PROCESSING',
       });
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/batches', {
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/turbo-runs', {
         params: {
-          'filter[batchId]': 'batch-1',
+          'filter[turboRunId]': 'batch-1',
           'filter[status]': 'PROCESSING',
           'page[limit]': 5,
           'page[offset]': 0,
@@ -658,7 +658,7 @@ describe('ClientService (MCP) domain clients', () => {
         data: { data: null },
       });
 
-      const result = await service.listBatches();
+      const result = await service.listTurboRuns();
 
       expect(result).toEqual([]);
     });

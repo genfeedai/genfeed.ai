@@ -109,11 +109,11 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List content waiting for review. batchId is optional — omit it for the whole brand/workspace. Only pass a real batch id from the operator or a prior result; never invent one.',
+      'List content waiting for review. turboRunId is optional — omit it for the whole brand/workspace. Only pass a real batch id from the operator or a prior result; never invent one.',
     name: 'list_review_queue',
     parameters: {
       properties: {
-        batchId: {
+        turboRunId: {
           description:
             'Optional real batch entity id. Omit for the full review inbox. Do not pass placeholders like "pending", "all", or "null".',
           type: 'string',
@@ -137,7 +137,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
     creditCost: 1,
     description:
       'Reject items in a batch. Approval is intentionally unavailable to model tools and requires the authenticated version-bound review control.',
-    name: 'batch_approve_reject',
+    name: 'review_turbo_items',
     parameters: {
       properties: {
         action: {
@@ -145,7 +145,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
           enum: ['reject'],
           type: 'string',
         },
-        batchId: {
+        turboRunId: {
           description: 'Batch ID containing the items',
           type: 'string',
         },
@@ -155,7 +155,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
           type: 'array',
         },
       },
-      required: ['batchId', 'action', 'itemIds'],
+      required: ['turboRunId', 'action', 'itemIds'],
       type: 'object',
     },
     requiredRole: 'user',

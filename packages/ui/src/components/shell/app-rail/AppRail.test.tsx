@@ -21,7 +21,7 @@ const featureFlags = vi.hoisted(() => ({
   publishing: true,
   discovery: true,
   studio: true,
-  studio_batch: true,
+  studio_turbo: true,
   studio_clips: true,
   studio_editor: true,
   studio_motion: true,
@@ -433,7 +433,7 @@ describe('AppRail', () => {
       'href',
       '/acme/~/store',
     );
-    for (const retired of ['Studio', 'Batch', 'More', 'Admin']) {
+    for (const retired of ['Studio', 'TurboRun', 'More', 'Admin']) {
       expect(
         screen.queryByRole('link', { name: retired }),
       ).not.toBeInTheDocument();
@@ -1265,7 +1265,7 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/batch"
+        currentPath="/acme/my-brand/studio/turbo"
       />,
     );
     openLauncher();
@@ -1313,7 +1313,7 @@ describe('AppRail', () => {
   describe('active selection follows pin placement', () => {
     it.each([
       ['editor', '/studio/editor/project-1'],
-      ['turbo', '/studio/batch/project-1'],
+      ['turbo', '/studio/turbo/project-1'],
       ['automation', '/automation/runs/run-1'],
       ['messages', '/messages/thread-1'],
       ['discovery', '/discovery/ads/ad-1'],
@@ -1475,7 +1475,7 @@ describe('AppRail', () => {
 
       for (const [label, href] of [
         ['Playground', '/acme/~/studio/playground'],
-        ['Turbo', '/acme/~/studio/batch'],
+        ['Turbo', '/acme/~/studio/turbo'],
         ['Editor', '/acme/~/studio/editor'],
         ['Library', '/acme/~/library/assets'],
         ['Discovery', '/acme/~/discovery/overview'],

@@ -1,7 +1,7 @@
 import { normalizeReviewDecision, ReviewDecision } from '@genfeedai/contracts';
 
 export interface PostReviewLineageFields {
-  reviewBatchId?: string | null;
+  reviewTurboRunId?: string | null;
   reviewItemId?: string | null;
 }
 
@@ -14,7 +14,7 @@ export interface PostAwaitingReviewFields extends PostReviewLineageFields {
  * or item. A post created outside review flow never has either field set.
  */
 export function hasPostReviewLineage(post: PostReviewLineageFields): boolean {
-  return Boolean(post.reviewBatchId) || Boolean(post.reviewItemId);
+  return Boolean(post.reviewTurboRunId) || Boolean(post.reviewItemId);
 }
 
 /**

@@ -306,7 +306,7 @@ describe('proactive production turn acceptance', () => {
         publishedAt: null,
         brandId: actor.brandId,
       });
-      const batches = await fixture.prisma.batch.findMany({
+      const turboRuns = await fixture.prisma.turboRun.findMany({
         where: {
           organizationId: actor.organizationId,
           isDeleted: false,
@@ -314,13 +314,13 @@ describe('proactive production turn acceptance', () => {
           agentStrategyId: actor.strategyId,
         },
       });
-      expect(batches).toHaveLength(1);
-      const items = await fixture.prisma.batchItem.findMany({
+      expect(turboRuns).toHaveLength(1);
+      const items = await fixture.prisma.turboRunItem.findMany({
         where: {
           organizationId: actor.organizationId,
           isDeleted: false,
           brandId: actor.brandId,
-          batchId: batches[0].id,
+          turboRunId: turboRuns[0].id,
         },
       });
       expect(items).toHaveLength(1);

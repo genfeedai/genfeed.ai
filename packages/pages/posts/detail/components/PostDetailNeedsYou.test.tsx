@@ -116,7 +116,7 @@ describe('PostDetailNeedsYou', () => {
         isPublished={false}
         onReviewHref="/publishing/review"
         post={buildPost({
-          reviewBatchId: 'batch-1',
+          reviewTurboRunId: 'batch-1',
           reviewDecision: ReviewDecision.UNSET,
           targetExecutionState: TargetExecutionState.DRAFT,
         })}
@@ -150,7 +150,7 @@ describe('PostDetailNeedsYou', () => {
         isPublished={false}
         onReviewHref="/publishing/review"
         post={buildPost({
-          reviewBatchId: 'batch-1',
+          reviewTurboRunId: 'batch-1',
           reviewDecision: ReviewDecision.REJECTED,
           targetExecutionState: TargetExecutionState.DRAFT,
         })}

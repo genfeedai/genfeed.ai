@@ -237,8 +237,8 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       'imageUrl',
       'ingredientId',
     ]);
-    const voiceResult = this.firstChildResult(request.input.voiceBatch);
-    const videoResult = this.firstChildResult(request.input.videoBatch);
+    const voiceResult = this.firstChildResult(request.input.voiceTurboRun);
+    const videoResult = this.firstChildResult(request.input.videoTurboRun);
     const completed = {
       ...state,
       ...(videoResult ? { videoResult: videoResult as GenerationResult } : {}),
@@ -276,13 +276,13 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       'imageUrl',
       'ingredientId',
     ]);
-    const publishBatch = this.readForEachResult(request.input.publishBatch);
+    const publishTurboRun = this.readForEachResult(request.input.publishTurboRun);
     return {
       caption: state.caption as string,
       imageUrl: state.imageUrl as string,
       ingredientId: state.ingredientId as string,
       personaSlug: state.personaSlug,
-      publishResults: [...publishBatch.results]
+      publishResults: [...publishTurboRun.results]
         .sort((left, right) => left.index - right.index)
         .map((entry) => entry.result as PlatformPublishResult),
       ...(state.videoResult ? { videoResult: state.videoResult } : {}),
@@ -315,8 +315,8 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<GeneratePostResult> {
     const input = this.readPostRequest(request);
-    const batch = this.readForEachResult(request.input.postBatch);
-    const result = batch.results.at(0)?.result as
+    const turboRun = this.readForEachResult(request.input.postTurboRun);
+    const result = turboRun.results.at(0)?.result as
       | GeneratePostResult
       | undefined;
     if (!result) {
@@ -334,10 +334,10 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
     generated: number;
     results: GeneratePostResult[];
   } {
-    const batch = this.readForEachResult(request.input.batch);
+    const turboRun = this.readForEachResult(request.input.turboRun);
     return {
-      generated: batch.count,
-      results: [...batch.results]
+      generated: turboRun.count,
+      results: [...turboRun.results]
         .sort((left, right) => left.index - right.index)
         .map((entry) => entry.result as GeneratePostResult),
     };

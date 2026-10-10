@@ -3,7 +3,7 @@ import { PostGroupPersistenceService } from '@api/collections/post-groups/servic
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -56,7 +56,7 @@ describe('PostRepurposeService', () => {
   };
 
   const contentGeneratorService = { generateContent: vi.fn() };
-  const batchGenerationService = { createManualReviewBatch: vi.fn() };
+  const turboRunService = { createManualReviewTurboRun: vi.fn() };
   const postGroupPersistenceService = { hydrateWithDerivedStatus: vi.fn() };
   const mediaIssuer = { isEnabled: false };
 
@@ -71,7 +71,7 @@ describe('PostRepurposeService', () => {
         { provide: PostsService, useValue: postsService },
         { provide: PrismaService, useValue: prisma },
         { provide: ContentGeneratorService, useValue: contentGeneratorService },
-        { provide: BatchGenerationService, useValue: batchGenerationService },
+        { provide: TurboRunService, useValue: turboRunService },
         {
           provide: PostGroupPersistenceService,
           useValue: postGroupPersistenceService,
@@ -284,15 +284,15 @@ describe('PostRepurposeService', () => {
       contentGeneratorService.generateContent.mockResolvedValue([
         { content: 'Rewritten for the target channel.', hashtags: [] },
       ]);
-      batchGenerationService.createManualReviewBatch.mockResolvedValue({
-        id: 'batch_1',
+      turboRunService.createManualReviewTurboRun.mockResolvedValue({
+        id: 'turbo_run_1',
         items: [{ id: 'item_1', postId: 'draft_agent_1' }],
       });
       postsService.findOne
         .mockResolvedValueOnce({ ...baseSourcePost })
         .mockResolvedValueOnce({
           id: 'draft_agent_1',
-          reviewBatchId: 'batch_1',
+          reviewTurboRunId: 'turbo_run_1',
           reviewItemId: 'item_1',
         });
     });
@@ -309,7 +309,7 @@ describe('PostRepurposeService', () => {
         })
         .mockResolvedValueOnce({
           id: 'draft_agent_1',
-          reviewBatchId: 'batch_1',
+          reviewTurboRunId: 'turbo_run_1',
           reviewItemId: 'item_1',
         });
       prisma.ingredient.findFirst.mockResolvedValue({
@@ -323,7 +323,7 @@ describe('PostRepurposeService', () => {
         userId,
       });
       expect(
-        batchGenerationService.createManualReviewBatch,
+        turboRunService.createManualReviewTurboRun,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           items: [
@@ -357,7 +357,7 @@ describe('PostRepurposeService', () => {
         }),
       );
       expect(
-        batchGenerationService.createManualReviewBatch,
+        turboRunService.createManualReviewTurboRun,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId,
@@ -385,7 +385,7 @@ describe('PostRepurposeService', () => {
           }),
         }),
       );
-      expect(result.reviewBatchId).toBe('batch_1');
+      expect(result.reviewTurboRunId).toBe('turbo_run_1');
       expect(result.reviewItemId).toBe('item_1');
       expect(result.draft.id).toBe('draft_agent_1');
     });

@@ -58,7 +58,7 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'generate_ad_pack',
   'generate_as_identity',
   'generate_clips',
-  'generate_content_batch',
+  'generate_turbo_content',
   'generate_monthly_content',
   'generate_onboarding_content',
   'transform_media',

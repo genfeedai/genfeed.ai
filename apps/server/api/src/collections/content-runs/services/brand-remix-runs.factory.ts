@@ -23,14 +23,14 @@ import type { AvatarVideoGenerationService } from '@api/collections/videos/servi
 import type { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
-import type { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import type { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 export interface BrandRemixRunsCollaborators {
   adsResearchService: AdsResearchService;
   avatarVideoGenerationService: AvatarVideoGenerationService;
-  batchGenerationService: BatchGenerationService;
+  turboRunService: TurboRunService;
   brandsService: BrandsService;
   byokService: ByokService;
   contentGeneratorService: ContentGeneratorService;
@@ -103,7 +103,7 @@ export function assembleBrandRemixRunsGraph(
     planning,
     persistence,
     state,
-    collaborators.batchGenerationService,
+    collaborators.turboRunService,
     collaborators.trendReferenceCorpusService,
     collaborators.systemWorkflowRunner,
     collaborators.runtime,

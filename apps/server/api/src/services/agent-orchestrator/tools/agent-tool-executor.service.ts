@@ -113,7 +113,7 @@ export function agentToolCreditEstimate(
   parameters: Record<string, unknown>,
 ): number | undefined {
   // Batch preparation enforces its authoritative quote against the remaining cap before reserving credits.
-  if (toolName === 'generate_content_batch') return 0;
+  if (toolName === 'generate_turbo_content') return 0;
   // Merging clips runs on the local files queue and is never charged.
   if (getMediaTransformOperation(toolName, parameters) === 'merge') return 0;
   if (UNQUOTED_PAID_AGENT_TOOLS.has(toolName)) return undefined;
@@ -181,7 +181,7 @@ export interface ToolExecutionContext {
   /** Agent strategy ID for content attribution */
   strategyId?: string;
   /** Keep batch generation attached to the current live run and stream item previews */
-  streamBatchToUser?: boolean;
+  streamTurboRunToUser?: boolean;
   /** Server-validated immutable organization + mutable brand/version scope. */
   validatedScope?: ValidatedAgentScope;
   /** Server-only proof that this execution came from a confirmed thread UI action. */

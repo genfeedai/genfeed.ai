@@ -2,7 +2,7 @@ import {
   type BrandAccessActor,
   BrandAccessService,
 } from '@api/authorization/brand-access/brand-access.service';
-import type { GenerateBatchIdeasDto } from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
+import type { GenerateTurboIdeasDto } from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import type { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
@@ -73,7 +73,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import type {
-  BatchIdea,
+  TurboIdea,
   IBrandKitApplyResult,
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
@@ -915,12 +915,12 @@ export class BrandsService extends BaseService<
     );
   }
 
-  async generateBatchIdeas(
+  async generateTurboIdeas(
     brandId: string,
-    dto: GenerateBatchIdeasDto,
+    dto: GenerateTurboIdeasDto,
     organizationId: string,
-  ): Promise<BatchIdea[]> {
-    return this.brandGenerationService.generateBatchIdeas(
+  ): Promise<TurboIdea[]> {
+    return this.brandGenerationService.generateTurboIdeas(
       brandId,
       dto,
       organizationId,

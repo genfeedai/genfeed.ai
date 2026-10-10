@@ -3,7 +3,7 @@ import { PersonasCoreModule } from '@api/collections/personas/personas-core.modu
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
-import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -20,7 +20,7 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     AutonomousPublishingModule,
-    BatchGenerationModule,
+    TurboRunModule,
     CredentialsCoreModule,
     ElevenLabsModule,
     HedraModule,

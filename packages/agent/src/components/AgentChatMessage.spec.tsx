@@ -42,13 +42,13 @@ vi.mock('./AdsAgentCards', () => ({
 vi.mock('./AnalyticsSnapshotCard', () => ({
   AnalyticsSnapshotCard: () => null,
 }));
-vi.mock('./BatchGenerationCard', () => ({
-  BatchGenerationCard: () => null,
+vi.mock('./TurboRunCard', () => ({
+  TurboRunCard: () => null,
 }));
-vi.mock('./BatchGenerationResultCard', () => ({
-  BatchGenerationResultCard: () => (
-    <div data-testid="batch-generation-result-card">
-      Batch generation result
+vi.mock('./TurboRunResultCard', () => ({
+  TurboRunResultCard: () => (
+    <div data-testid="turbo-run-result-card">
+      TurboRun generation result
     </div>
   ),
 }));
@@ -484,13 +484,13 @@ describe('AgentChatMessage', () => {
           metadata: {
             uiActions: [
               {
-                batchCount: 20,
+                turboRunCount: 20,
                 creditsUsed: 5,
                 id: 'batch-result-1',
                 platforms: ['instagram', 'twitter'],
                 status: 'processing',
                 title: 'Batch generation started',
-                type: 'batch_generation_result_card',
+                type: 'turbo_run_result_card',
               },
             ],
           },
@@ -499,7 +499,7 @@ describe('AgentChatMessage', () => {
     );
 
     expect(
-      screen.getByTestId('batch-generation-result-card'),
+      screen.getByTestId('turbo-run-result-card'),
     ).toBeInTheDocument();
   });
 
@@ -703,7 +703,7 @@ describe('AgentChatMessage', () => {
 
     expect(
       screen.getByText(
-        /Created a recurring automation for your Instagram batch\./,
+        /Created a recurring automation for your Instagram turboRun\./,
       ),
     ).toBeInTheDocument();
     expect(

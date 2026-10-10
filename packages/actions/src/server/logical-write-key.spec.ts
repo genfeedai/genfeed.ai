@@ -9,7 +9,7 @@ describe('buildLogicalWriteKey', () => {
       organizationId: 'org-1',
       userId: 'user-1',
       threadId: 'thread-1',
-      toolName: 'generate_content_batch',
+      toolName: 'generate_turbo_content',
     };
     const original = buildLogicalWriteKey(input);
     expect(buildLogicalWriteKey({ ...input, scope: undefined })).toBe(original);

@@ -4,7 +4,7 @@
  * Production `as never` is a shrinking ratchet — counts may only go down.
  *
  * These casts hide real type holes (domain enum vs Prisma enum was the
- * BatchStatus crash class). When an `as never` file hits zero, drop its
+ * TurboRunStatus crash class). When an `as never` file hits zero, drop its
  * baseline entry in the same PR. Do not add `as any` / `@ts-expect-error` baseline
  * entries — remove the cast.
  *

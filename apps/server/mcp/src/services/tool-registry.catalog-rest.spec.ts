@@ -26,7 +26,7 @@ const APPROVAL_GATED_NAMES = [
   'create_post',
   'create_article_draft',
   'publish_article',
-  'generate_content_batch',
+  'generate_turbo_content',
   'start_brand_interview',
   'submit_brand_interview_answer',
   'skip_brand_interview_question',

@@ -1,4 +1,4 @@
-import { BatchItemStatus } from '@genfeedai/contracts';
+import { TurboRunItemStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -25,13 +25,13 @@ describe('review multi-status filters', () => {
 
   it('unions multi-status selections', () => {
     const items = [
-      { id: 'ready', status: BatchItemStatus.COMPLETED },
+      { id: 'ready', status: TurboRunItemStatus.COMPLETED },
       {
         id: 'approved',
         reviewDecision: 'approved',
-        status: BatchItemStatus.COMPLETED,
+        status: TurboRunItemStatus.COMPLETED,
       },
-      { id: 'failed', status: BatchItemStatus.FAILED },
+      { id: 'failed', status: TurboRunItemStatus.FAILED },
     ];
 
     expect(

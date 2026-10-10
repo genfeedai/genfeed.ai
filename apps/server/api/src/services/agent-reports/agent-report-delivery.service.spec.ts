@@ -33,8 +33,8 @@ function fixture() {
           { id: 'post', updatedAt: new Date('2026-09-24'), label: 'Draft' },
         ]),
     },
-    batchItem: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'item', batchId: 'batch' }),
+    turboRunItem: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'item', turboRunId: 'turboRun' }),
     },
   };
   const http = {

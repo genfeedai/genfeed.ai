@@ -32,7 +32,7 @@ export interface AgentReportReviewToken {
   platform: 'telegram' | 'discord';
   binding: AgentReportBinding;
   strategyId: string;
-  batchId: string;
+  turboRunId: string;
   itemId: string;
   postId: string;
   postVersion: string;

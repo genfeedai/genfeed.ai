@@ -401,7 +401,7 @@ describe('PostsService', () => {
     });
   });
 
-  describe('batchScheduleTweets', () => {
+  describe('turboRunScheduleTweets', () => {
     it('should batch schedule tweets', async () => {
       mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
@@ -421,7 +421,7 @@ describe('PostsService', () => {
         ],
       };
 
-      const result = await service.batchScheduleTweets(data);
+      const result = await service.turboRunScheduleTweets(data);
 
       expect(mockInstance.patch).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/batch',
@@ -446,7 +446,7 @@ describe('PostsService', () => {
         ],
       };
 
-      await service.batchScheduleTweets(data);
+      await service.turboRunScheduleTweets(data);
 
       expect(mockInstance.patch).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/batch',
@@ -490,7 +490,7 @@ describe('PostsService', () => {
             creditCost: 1,
             groupId: 'group-1',
             requestedCount: 3,
-            reviewBatchId: 'batch-1',
+            reviewTurboRunId: 'batch-1',
             sourceKind: 'owned-post',
             voiceMode: 'brand-voice',
             voiceModeLabel: 'Brand voice',
@@ -512,7 +512,7 @@ describe('PostsService', () => {
       expect(result.posts).toHaveLength(1);
       expect(result.meta).toMatchObject({
         actualCount: 1,
-        reviewBatchId: 'batch-1',
+        reviewTurboRunId: 'batch-1',
       });
     });
   });

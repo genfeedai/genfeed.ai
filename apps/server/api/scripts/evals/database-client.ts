@@ -94,9 +94,9 @@ export function createGoldenSetDatabaseClient() {
           },
         }),
     },
-    batchItem: {
+    turboRunItem: {
       findMany: (args) =>
-        prisma.batchItem.findMany({
+        prisma.turboRunItem.findMany({
           ...common(args),
           where: {
             ...common(args).where,

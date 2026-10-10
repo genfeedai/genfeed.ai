@@ -1,6 +1,6 @@
 import {
-  BatchItemStatus,
-  BatchRewriteJobStatus,
+  TurboRunItemStatus,
+  TurboRewriteJobStatus,
   ContentFormat,
 } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -30,14 +30,14 @@ vi.mock('next-intl', () => ({
 
 const mockItems = [
   {
-    batchId: 'batch-1',
+    turboRunId: 'batch-1',
     caption: 'Draft caption',
     createdAt: '2026-03-09T10:00:00.000Z',
     format: ContentFormat.IMAGE,
     id: 'item-1',
     platform: 'instagram',
     postId: 'post-1',
-    status: BatchItemStatus.COMPLETED,
+    status: TurboRunItemStatus.COMPLETED,
   },
 ];
 
@@ -142,7 +142,7 @@ describe('ReviewGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
     fireEvent.click(
-      screen.getByRole('button', { name: 'catalog:batchRewrite.action' }),
+      screen.getByRole('button', { name: 'catalog:turboRewrite.action' }),
     );
 
     expect(onSelectItem).toHaveBeenCalledWith('item-1');
@@ -200,13 +200,13 @@ describe('ReviewGrid', () => {
         rewriteProgress={{
           isCancelling: false,
           job: {
-            batchId: 'batch-1',
+            turboRunId: 'batch-1',
             completedItemIds: ['item-1'],
             failedItems: [],
             id: 'job-1',
             isCancelRequested: false,
             itemIds: ['item-1', 'item-2'],
-            status: BatchRewriteJobStatus.PROCESSING,
+            status: TurboRewriteJobStatus.PROCESSING,
           },
           onCancel,
         }}
@@ -216,7 +216,7 @@ describe('ReviewGrid', () => {
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'catalog:batchRewrite.action' }),
+      screen.getByRole('button', { name: 'catalog:turboRewrite.action' }),
     ).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'catalog:cancel' }));
     expect(onCancel).toHaveBeenCalledOnce();
@@ -224,13 +224,13 @@ describe('ReviewGrid', () => {
 
   it('counts and filters review statuses', () => {
     const items = [
-      { id: 'ready', status: BatchItemStatus.COMPLETED },
+      { id: 'ready', status: TurboRunItemStatus.COMPLETED },
       {
         id: 'approved',
         reviewDecision: 'approved',
-        status: BatchItemStatus.COMPLETED,
+        status: TurboRunItemStatus.COMPLETED,
       },
-      { id: 'failed', status: BatchItemStatus.FAILED },
+      { id: 'failed', status: TurboRunItemStatus.FAILED },
     ];
 
     expect(getReviewFilterCounts(items as never).ready).toBe(1);

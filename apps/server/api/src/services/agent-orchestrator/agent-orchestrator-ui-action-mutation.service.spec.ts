@@ -33,7 +33,7 @@ describe('persisted mutation approvals', () => {
     organizationId: 'org-1',
     userId: 'user-1',
     arguments: args,
-    toolName: 'generate_content_batch',
+    toolName: 'generate_turbo_content',
     status: 'PENDING',
     isDeleted: false,
     idempotencyKey: buildLogicalWriteKey({
@@ -42,7 +42,7 @@ describe('persisted mutation approvals', () => {
       userId: 'user-1',
       threadId: 'thread-1',
       scope: { brandId: 'brand-1', contextVersion: 2 },
-      toolName: 'generate_content_batch',
+      toolName: 'generate_turbo_content',
     }),
   });
   const card = () => ({
@@ -120,7 +120,7 @@ describe('persisted mutation approvals', () => {
   it('executes stored arguments and consumes the original card', async () => {
     await service.execute('confirm_mutation', params());
     expect(executor.executeTool).toHaveBeenCalledWith(
-      'generate_content_batch',
+      'generate_turbo_content',
       args,
       expect.objectContaining({
         approvedApprovalId: 'apr-1',
@@ -244,7 +244,7 @@ describe('persisted mutation approvals', () => {
         userId: 'user-1',
         threadId: 'thread-1',
         scope: { brandId: 'brand-2', contextVersion: 3 },
-        toolName: 'generate_content_batch',
+        toolName: 'generate_turbo_content',
       }),
     });
     messages.getMessagesByRoom.mockResolvedValue([
@@ -257,7 +257,7 @@ describe('persisted mutation approvals', () => {
     await service.execute('confirm_mutation', request);
     expect(executor.executeTool).toHaveBeenCalledTimes(1);
     expect(executor.executeTool).toHaveBeenCalledWith(
-      'generate_content_batch',
+      'generate_turbo_content',
       args,
       expect.objectContaining({
         brandId: 'brand-2',

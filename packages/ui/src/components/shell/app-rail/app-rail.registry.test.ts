@@ -50,7 +50,7 @@ describe('app rail registry', () => {
       '/acme/selected/agent',
       '/acme/~/workspace/overview',
       '/acme/selected/studio/playground',
-      '/acme/selected/studio/batch',
+      '/acme/selected/studio/turbo',
       '/acme/selected/studio/editor',
     ]);
     expect(getAppRailHref(app('clips'), { orgSlug: 'acme' })).toBe(
@@ -80,7 +80,7 @@ describe('app rail registry', () => {
       'clips',
     );
     expect(
-      getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio/batch/new'),
+      getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio/turbo/new'),
     ).toBe('turbo');
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio')).toBe(
       undefined,
@@ -121,7 +121,7 @@ describe('app rail registry', () => {
       motion: 'studio_motion',
       playground: null,
       storyboard: 'studio_storyboard',
-      turbo: 'studio_batch',
+      turbo: 'studio_turbo',
     });
   });
 

@@ -3,7 +3,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
-import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
+import { CronTurboRunReconcileService } from '@workers/crons/turbo-run/cron.turbo-run-reconcile.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
@@ -53,7 +53,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly batchGeneration: CronBatchGenerationReconcileService,
+    private readonly turboRun: CronTurboRunReconcileService,
     private readonly credentials: CronCredentialsService,
     private readonly engagementTriggers: CronEngagementTriggersService,
     private readonly falModelWatcher: CronFalModelWatcherService,
@@ -112,12 +112,12 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.workflowSchedules.sweep('content-loop-autopilot', job.timestamp),
       [PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS]: () =>
         this.lifecycleEmails.processLifecycleEmails(),
-      [PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE]: () =>
-        this.batchGeneration.reconcileSettlementShortfalls(),
-      [PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE]: () =>
-        this.batchGeneration.resumeStrandedBatches(),
-      [PLATFORM_SCHEDULED_TASKS.BATCH_PROJECT_RECONCILE]: () =>
-        this.batchGeneration.reconcileBatchProjects(),
+      [PLATFORM_SCHEDULED_TASKS.TURBO_RUN_CREDIT_SETTLEMENT_RECONCILE]: () =>
+        this.turboRun.reconcileSettlementShortfalls(),
+      [PLATFORM_SCHEDULED_TASKS.TURBO_RUN_RECONCILE]: () =>
+        this.turboRun.resumeStrandedTurboRuns(),
+      [PLATFORM_SCHEDULED_TASKS.TURBO_PROJECT_RECONCILE]: () =>
+        this.turboRun.reconcileTurboProjects(),
       [PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH]: () =>
         this.credentials.refreshExpiringTokens(),
       [PLATFORM_SCHEDULED_TASKS.EDITOR_RENDER_RECONCILE]: () =>

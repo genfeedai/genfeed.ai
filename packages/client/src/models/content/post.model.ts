@@ -54,7 +54,7 @@ export class Post extends BaseEntity implements IPost {
   declare public retryCount?: number;
   declare public targetError?: IChannelTargetError | null;
   declare public originalPostId?: string | null;
-  declare public reviewBatchId?: string | null;
+  declare public reviewTurboRunId?: string | null;
   declare public reviewItemId?: string | null;
   declare public parent?: string;
   declare public children?: IPost[];

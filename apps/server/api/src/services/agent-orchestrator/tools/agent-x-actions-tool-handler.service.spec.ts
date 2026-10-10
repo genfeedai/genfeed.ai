@@ -36,19 +36,19 @@ describe('AgentXActionsToolHandler', () => {
       ),
     };
 
-    const batchGenerationService = {
-      createManualReviewBatch: vi.fn().mockResolvedValue({ id: 'batch-1' }),
+    const turboRunService = {
+      createManualReviewTurboRun: vi.fn().mockResolvedValue({ id: 'batch-1' }),
     };
 
     const handler = new AgentXActionsToolHandler(
       loggerService,
       twitterService as never,
       credentialsService as never,
-      batchGenerationService as never,
+      turboRunService as never,
     );
 
     return {
-      batchGenerationService,
+      turboRunService,
       credentialsService,
       handler,
       loggerService,
@@ -348,7 +348,7 @@ describe('AgentXActionsToolHandler', () => {
   });
 
   it('drafts a quote for review', async () => {
-    const { batchGenerationService, handler } = createHandler();
+    const { turboRunService, handler } = createHandler();
 
     const result = await handler.execute(
       'draft_x_quote',
@@ -362,7 +362,7 @@ describe('AgentXActionsToolHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.requiresConfirmation).toBe(true);
-    expect(batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
+    expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         items: [
@@ -381,7 +381,7 @@ describe('AgentXActionsToolHandler', () => {
   });
 
   it('drafts a repost for review', async () => {
-    const { batchGenerationService, handler } = createHandler();
+    const { turboRunService, handler } = createHandler();
 
     const result = await handler.execute(
       'draft_x_repost',
@@ -391,7 +391,7 @@ describe('AgentXActionsToolHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.action).toBe('repost');
-    expect(batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
+    expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
         items: [
           expect.objectContaining({
@@ -408,8 +408,8 @@ describe('AgentXActionsToolHandler', () => {
   });
 
   it('returns the add-item error instead of a silent success', async () => {
-    const { batchGenerationService, handler } = createHandler();
-    batchGenerationService.createManualReviewBatch.mockRejectedValue(
+    const { turboRunService, handler } = createHandler();
+    turboRunService.createManualReviewTurboRun.mockRejectedValue(
       new Error('add item failed'),
     );
 

@@ -44,11 +44,11 @@ import {
 } from '@api/collections/workflows/workflows.tokens';
 import { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
-import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
-import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
-import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
-import { BatchReviewLockService } from '@api/services/batch-generation/batch-review-lock';
+import { TurboRunCreationService } from '@api/services/turbo-run/turbo-run-creation.service';
+import { TurboRunProcessingService } from '@api/services/turbo-run/turbo-run-processing.service';
+import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
+import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
+import { TurboRunReviewLockService } from '@api/services/turbo-run/turbo-run-review-lock';
 import { CacheService } from '@api/services/cache/cache.service';
 import {
   assertOwnedPinsUnchanged,
@@ -160,11 +160,11 @@ export class ProactiveAgentRuntimeFixture {
   readonly runner: SystemWorkflowRunnerService;
   readonly queueService: WorkflowExecutionQueueService;
   readonly publishQueue: ScheduledPostWorkflowQueueService;
-  readonly review: BatchGenerationReviewService;
-  readonly reviewLocks: BatchReviewLockService;
+  readonly review: TurboRunReviewService;
+  readonly reviewLocks: TurboRunReviewLockService;
   readonly policy: AutonomousPublishPolicyService;
-  readonly creation: BatchGenerationCreationService;
-  readonly processing: BatchGenerationProcessingService;
+  readonly creation: TurboRunCreationService;
+  readonly processing: TurboRunProcessingService;
   autopilot: AgentAutopilotWorkflowService;
   readonly credits = { getOrganizationCreditsBalance: async () => 1000 };
   readonly schedules: PlatformWorkflowSchedulesService;
@@ -308,11 +308,11 @@ export class ProactiveAgentRuntimeFixture {
       approvals,
       this.publishQueue,
     );
-    const summary = new BatchGenerationSummaryService(
+    const summary = new TurboRunSummaryService(
       this.prisma as never,
       approvals,
     );
-    this.reviewLocks = new BatchReviewLockService(
+    this.reviewLocks = new TurboRunReviewLockService(
       {
         get: (key: string) =>
           key === 'DATABASE_URL' ? this.databaseUrl : undefined,
@@ -323,7 +323,7 @@ export class ProactiveAgentRuntimeFixture {
       this.prisma as never,
       this.activity as never,
     );
-    this.review = new BatchGenerationReviewService(
+    this.review = new TurboRunReviewService(
       this.prisma as never,
       this.logger as never,
       artifacts,
@@ -334,7 +334,7 @@ export class ProactiveAgentRuntimeFixture {
       this.activity as never,
       this.reviewLocks,
     );
-    this.creation = new BatchGenerationCreationService(
+    this.creation = new TurboRunCreationService(
       this.prisma as never,
       this.logger as never,
       {
@@ -351,7 +351,7 @@ export class ProactiveAgentRuntimeFixture {
       this.cache,
       summary,
     );
-    this.processing = new BatchGenerationProcessingService(
+    this.processing = new TurboRunProcessingService(
       this.prisma as never,
       this.logger as never,
       posts,
@@ -540,7 +540,7 @@ export class ProactiveAgentRuntimeFixture {
         const topics = winners?.length
           ? [winners[0]]
           : (strategy.topics as string[]);
-        const batch = await this.creation.createBatch(
+        const turboRun = await this.creation.createTurboRun(
           {
             brandId: String(request.brandId),
             count: 1,
@@ -563,13 +563,13 @@ export class ProactiveAgentRuntimeFixture {
           undefined,
           String(request.strategyId),
         );
-        await this.processing.processBatch(
-          batch.id,
+        await this.processing.processTurboRun(
+          turboRun.id,
           action.context.organizationId,
         );
-        const items = await this.prisma.batchItem.findMany({
+        const items = await this.prisma.turboRunItem.findMany({
           where: {
-            batchId: batch.id,
+            turboRunId: turboRun.id,
             organizationId: action.context.organizationId,
             isDeleted: false,
           },
@@ -600,7 +600,7 @@ export class ProactiveAgentRuntimeFixture {
         });
         return {
           decision: 'final',
-          final: { batchId: batch.id },
+          final: { turboRunId: turboRun.id },
           state,
           toolItems: [],
         };
@@ -1116,8 +1116,8 @@ export class ProactiveAgentRuntimeFixture {
               data: { publishApprovalId: null, reviewVersionPinId: null },
             }),
           () => this.prisma.publishApproval.deleteMany({ where }),
-          () => this.prisma.batchItem.deleteMany({ where }),
-          () => this.prisma.batch.deleteMany({ where }),
+          () => this.prisma.turboRunItem.deleteMany({ where }),
+          () => this.prisma.turboRun.deleteMany({ where }),
           () => this.prisma.contentPerformance.deleteMany({ where }),
           () => this.prisma.postAnalytics.deleteMany({ where }),
           () => this.prisma.agentPublishAudit.deleteMany({ where }),

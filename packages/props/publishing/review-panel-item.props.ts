@@ -1,6 +1,6 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 
-export type ReviewPanelItem = IBatchItem & {
+export type ReviewPanelItem = ITurboRunItem & {
   gateOverallScore?: number;
   gateReasons?: string[];
   opportunitySourceType?: 'trend' | 'event' | 'evergreen';

@@ -2,8 +2,8 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   mapTwitterApiError,
@@ -51,7 +51,7 @@ export class AgentXActionsToolHandler {
     @Optional() private readonly twitterService: TwitterService | undefined,
     private readonly credentialsService: CredentialsService,
     @Optional()
-    private readonly batchGenerationService?: BatchGenerationService,
+    private readonly turboRunService?: TurboRunService,
     @Optional() private readonly moduleRef?: ModuleRef,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
   ) {}
@@ -413,7 +413,7 @@ export class AgentXActionsToolHandler {
     ctx: ToolExecutionContext,
     action: 'quote' | 'repost',
   ): Promise<AgentToolResult> {
-    if (!this.batchGenerationService) {
+    if (!this.turboRunService) {
       return {
         creditsUsed: 0,
         error: 'Batch generation service not available',
@@ -462,7 +462,7 @@ export class AgentXActionsToolHandler {
     const targetPostContent = readOptionalString(params.targetPostContent);
     const targetPostUrl = buildTwitterStatusUrl(targetPostId, targetAuthor);
 
-    const dto: CreateManualReviewBatchDto = {
+    const dto: CreateManualReviewTurboRunDto = {
       brandId,
       items: [
         {
@@ -480,7 +480,7 @@ export class AgentXActionsToolHandler {
     };
 
     try {
-      const batch = await this.batchGenerationService.createManualReviewBatch(
+      const turboRun = await this.turboRunService.createManualReviewTurboRun(
         dto,
         ctx.userId,
         ctx.organizationId,
@@ -490,7 +490,7 @@ export class AgentXActionsToolHandler {
         creditsUsed: 1,
         data: {
           action,
-          batchId: batch.id,
+          turboRunId: turboRun.id,
           message:
             action === 'quote'
               ? 'Quote draft is ready for review. Nothing posts until you approve it.'

@@ -65,7 +65,7 @@ function snapshot(): GoldenSetScopeSnapshot {
       reviewDecision: ReviewDecision.APPROVED,
       reviewEvents: [],
     })),
-    batchItems: [],
+    turboRunItems: [],
     evaluations: [],
     newsletters: [],
     profiles: [],
@@ -74,7 +74,7 @@ function snapshot(): GoldenSetScopeSnapshot {
     linkedPosts: [],
     linkedArticles: [],
     linkedNewsletters: [],
-    linkedBatchItems: [],
+    linkedTurboRunItems: [],
     threadChildren: [],
   };
 }
@@ -147,7 +147,7 @@ describe('golden set pipeline', () => {
           },
         },
       });
-      const batchItem = {
+      const turboRunItem = {
         ...scoped,
         id: `batch-${suffix}`,
         brandId: 'synthetic-brand',
@@ -157,9 +157,9 @@ describe('golden set pipeline', () => {
           caption: `Invented script ${suffix}`,
         },
       };
-      source.batchItems.push(batchItem);
-      source.linkedBatchItems.push({
-        ...batchItem,
+      source.turboRunItems.push(turboRunItem);
+      source.linkedTurboRunItems.push({
+        ...turboRunItem,
         id: `linked-batch-${suffix}`,
       });
       const newsletter = {
@@ -203,7 +203,7 @@ describe('golden set pipeline', () => {
       credentials: [...source.credentials].reverse(),
       members: [...source.members].reverse(),
       posts: [...source.posts].reverse(),
-      batchItems: [...source.batchItems].reverse(),
+      turboRunItems: [...source.turboRunItems].reverse(),
       evaluations: [...source.evaluations].reverse(),
       newsletters: [...source.newsletters].reverse(),
       profiles: [...source.profiles].reverse(),
@@ -212,7 +212,7 @@ describe('golden set pipeline', () => {
       linkedPosts: [...source.linkedPosts].reverse(),
       linkedArticles: [...source.linkedArticles].reverse(),
       linkedNewsletters: [...source.linkedNewsletters].reverse(),
-      linkedBatchItems: [...source.linkedBatchItems].reverse(),
+      linkedTurboRunItems: [...source.linkedTurboRunItems].reverse(),
       threadChildren: [...source.threadChildren].reverse(),
     };
     expect(build()).toEqual(build());

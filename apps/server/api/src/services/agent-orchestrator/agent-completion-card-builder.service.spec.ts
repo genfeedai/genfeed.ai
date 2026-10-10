@@ -387,7 +387,7 @@ describe('AgentCompletionCardBuilderService', () => {
         ids: ['review-progress'],
       },
       {
-        reviewQueue: { ...emptyQueue, scope: 'batch' as const },
+        reviewQueue: { ...emptyQueue, scope: 'turboRun' as const },
         ids: ['review-open'],
       },
       {
@@ -458,7 +458,7 @@ describe('AgentCompletionCardBuilderService', () => {
               toolName: 'list_review_queue',
               reviewQueue: { ...emptyQueue, readyCount: 3 },
             },
-            { status, toolName: 'batch_approve_reject' },
+            { status, toolName: 'review_turbo_items' },
           ],
           uiActions: [],
         });

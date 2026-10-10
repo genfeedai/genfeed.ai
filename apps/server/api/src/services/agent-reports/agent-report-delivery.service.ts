@@ -10,7 +10,7 @@ import {
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { BatchItemStatus } from '@genfeedai/contracts';
+import { TurboRunItemStatus } from '@genfeedai/contracts';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/prisma';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -105,15 +105,15 @@ export class AgentReportDeliveryService {
         : [];
     const buttons: Array<{ token: string; label: string }> = [];
     for (const post of posts) {
-      const item = await this.prisma.batchItem.findFirst({
+      const item = await this.prisma.turboRunItem.findFirst({
         where: scopedWhere(input.organizationId, {
           brandId: strategy.brandId,
           reviewDecision: null,
-          status: BatchItemStatus.COMPLETED,
+          status: TurboRunItemStatus.COMPLETED,
           data: { path: ['postId'], equals: post.id },
         }),
         orderBy: { createdAt: 'desc' },
-        select: { id: true, batchId: true },
+        select: { id: true, turboRunId: true },
       });
       if (!item) continue;
       const token = randomBytes(16).toString('hex');
@@ -123,7 +123,7 @@ export class AgentReportDeliveryService {
         platform: input.channel,
         binding,
         strategyId: strategy.id,
-        batchId: item.batchId,
+        turboRunId: item.turboRunId,
         itemId: item.id,
         postId: post.id,
         postVersion: post.updatedAt.toISOString(),

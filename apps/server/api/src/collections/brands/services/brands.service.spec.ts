@@ -35,7 +35,7 @@ import type { FilesClientService } from '@api/services/files-microservice/client
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ReferenceImageCategory } from '@genfeedai/contracts';
-import type { BatchIdeaFormat } from '@genfeedai/contracts/interfaces';
+import type { TurboIdeaFormat } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
@@ -1785,7 +1785,7 @@ describe('BrandsService', () => {
     });
   });
 
-  describe('generateBatchIdeas', () => {
+  describe('generateTurboIdeas', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';
 
@@ -1824,9 +1824,9 @@ describe('BrandsService', () => {
         ],
       });
 
-      const result = await service.generateBatchIdeas(
+      const result = await service.generateTurboIdeas(
         brandId,
-        { count: 2, formats: ['image', 'avatar'] as BatchIdeaFormat[] },
+        { count: 2, formats: ['image', 'avatar'] as TurboIdeaFormat[] },
         organizationId,
       );
 
@@ -1843,9 +1843,9 @@ describe('BrandsService', () => {
       delegate.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.generateBatchIdeas(
+        service.generateTurboIdeas(
           brandId,
-          { count: 2, formats: ['image'] as BatchIdeaFormat[] },
+          { count: 2, formats: ['image'] as TurboIdeaFormat[] },
           organizationId,
         ),
       ).rejects.toThrow(NotFoundException);
@@ -1862,9 +1862,9 @@ describe('BrandsService', () => {
       });
 
       await expect(
-        service.generateBatchIdeas(
+        service.generateTurboIdeas(
           brandId,
-          { count: 2, formats: ['image'] as BatchIdeaFormat[] },
+          { count: 2, formats: ['image'] as TurboIdeaFormat[] },
           organizationId,
         ),
       ).rejects.toThrow(BadRequestException);
@@ -1883,9 +1883,9 @@ describe('BrandsService', () => {
         choices: [{ message: { content: 'not json at all' } }],
       });
 
-      const result = await service.generateBatchIdeas(
+      const result = await service.generateTurboIdeas(
         brandId,
-        { count: 2, formats: ['image'] as BatchIdeaFormat[] },
+        { count: 2, formats: ['image'] as TurboIdeaFormat[] },
         organizationId,
       );
 

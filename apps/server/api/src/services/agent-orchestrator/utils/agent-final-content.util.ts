@@ -10,15 +10,15 @@ export function normalizeFinalAssistantContent(
   toolCalls: ToolCallSummary[],
   uiActions: AgentUiAction[],
 ): { content: string; isFallback: boolean } {
-  const hasBatchGenerationResultCard = uiActions.some(
-    (action) => action.type === 'batch_generation_result_card',
+  const hasTurboRunResultCard = uiActions.some(
+    (action) => action.type === 'turbo_run_result_card',
   );
 
   if (content.trim().length > 0) {
-    if (hasBatchGenerationResultCard) {
-      const normalizedBatchContent = content
-        .replace(/^\s*Batch Details:\s*$/gim, '')
-        .replace(/^\s*Batch ID:.*$/gim, '')
+    if (hasTurboRunResultCard) {
+      const normalizedTurboContent = content
+        .replace(/^\s*TurboRun Details:\s*$/gim, '')
+        .replace(/^\s*TurboRun ID:.*$/gim, '')
         .replace(/^\s*Status:.*$/gim, '')
         .replace(/^\s*Credits used:.*$/gim, '')
         .replace(/\n{3,}/g, '\n\n')
@@ -26,8 +26,8 @@ export function normalizeFinalAssistantContent(
 
       return {
         content:
-          normalizedBatchContent.length > 0
-            ? normalizedBatchContent
+          normalizedTurboContent.length > 0
+            ? normalizedTurboContent
             : 'Your batch is in motion. The latest status is below.',
         isFallback: false,
       };

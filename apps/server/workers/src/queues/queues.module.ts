@@ -12,7 +12,7 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   AGENT_TURN_QUEUE,
-  BATCH_REWRITE_QUEUE,
+  TURBO_REWRITE_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -203,7 +203,7 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnComplete: { age: 24 * 60 * 60 },
           removeOnFail: { age: 24 * 60 * 60 },
         },
-        name: BATCH_REWRITE_QUEUE,
+        name: TURBO_REWRITE_QUEUE,
       },
     ),
   ],

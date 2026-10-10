@@ -1,4 +1,4 @@
-import { BatchItemStatus } from '@genfeedai/contracts';
+import { TurboRunItemStatus } from '@genfeedai/contracts';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import {
   formatDateInTimezone,
@@ -75,7 +75,7 @@ export default function ReviewDetailPanel({
             Preview
           </p>
           {targetPreview ? <TargetPreview {...targetPreview} /> : null}
-          {item.status === BatchItemStatus.FAILED && item.error ? (
+          {item.status === TurboRunItemStatus.FAILED && item.error ? (
             <p className="text-xs leading-5 text-destructive">{item.error}</p>
           ) : null}
 

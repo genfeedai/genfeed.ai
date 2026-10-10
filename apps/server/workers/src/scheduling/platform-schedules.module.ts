@@ -16,7 +16,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
-import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
+import { CronTurboRunModule } from '@workers/crons/turbo-run/cron.turbo-run.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
 import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.module';
@@ -78,7 +78,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
       // The registry drains platform-sweep jobs queued here before #5162.
       { name: WORKFLOW_EXECUTION_QUEUE },
     ),
-    CronBatchGenerationModule,
+    CronTurboRunModule,
     CronCredentialsModule,
     CronEngagementModule,
     CronFalModelWatcherModule,

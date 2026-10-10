@@ -1,24 +1,24 @@
-import { BatchStatus } from '@genfeedai/contracts';
-import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
+import { TurboRunStatus } from '@genfeedai/contracts';
+import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 
-import { getBatchOptionLabel } from './ReviewQueueView';
+import { getTurboRunOptionLabel } from './ReviewQueueView';
 
-describe('getBatchOptionLabel', () => {
+describe('getTurboRunOptionLabel', () => {
   it('humanizes SCREAMING batch status for the publish header dropdown', () => {
-    const batchId = testId('batch');
-    const batch = {
+    const turboRunId = testId('turboRun');
+    const turboRun = {
       completedCount: 20,
       failedCount: 0,
-      id: batchId,
+      id: turboRunId,
       pendingCount: 0,
-      status: BatchStatus.COMPLETED,
+      status: TurboRunStatus.COMPLETED,
       totalCount: 20,
-    } as IBatchSummary;
+    } as ITurboRunSummary;
 
-    expect(getBatchOptionLabel(batch)).toBe(
-      `${batchId.slice(-6)} · 20 items · completed`,
+    expect(getTurboRunOptionLabel(turboRun)).toBe(
+      `${turboRunId.slice(-6)} · 20 items · completed`,
     );
   });
 });

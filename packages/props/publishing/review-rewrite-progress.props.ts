@@ -1,13 +1,13 @@
-import type { IBatchRewriteJob } from '@genfeedai/contracts/interfaces';
+import type { ITurboRewriteJob } from '@genfeedai/contracts/interfaces';
 
 export interface ReviewRewriteProgressProps {
   isCancelling: boolean;
-  job: IBatchRewriteJob;
+  job: ITurboRewriteJob;
   onCancel: () => void;
 }
 
-export interface UseBatchRewriteJobParams {
-  readonly batchId: string | null;
+export interface UseTurboRewriteJobParams {
+  readonly turboRunId: string | null;
   /** Called whenever rewritten captions land, so the page can refetch rows. */
   readonly onItemsRewritten: () => void | Promise<void>;
 }

@@ -25,7 +25,7 @@ const MCP_QUEUED_WRITES = [
   'create_post',
   'create_scheduled_release',
   'generate_clips',
-  'generate_content_batch',
+  'generate_turbo_content',
   'install_skills_pro_skill',
   'post_social_reply',
   'send_social_dm',

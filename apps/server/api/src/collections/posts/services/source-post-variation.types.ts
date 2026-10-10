@@ -24,7 +24,7 @@ export interface PostVariationResponseMeta {
   groupId: string;
   partialReason?: string;
   requestedCount: number;
-  reviewBatchId: string;
+  reviewTurboRunId: string;
   sourceKind: PostVariationSourceKind;
   voiceMode: PostVariationVoiceMode;
   voiceModeLabel: string;

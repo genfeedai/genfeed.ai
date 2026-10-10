@@ -4,7 +4,7 @@
  * send the same concrete request.
  *
  * The prompt is explicit enough for the agent to call
- * `generate_content_batch` without follow-up questions: the window is
+ * `generate_turbo_content` without follow-up questions: the window is
  * resolved against the "Current Time" section the client sends as page
  * context (browser timezone), and slots are spaced one hour apart.
  */

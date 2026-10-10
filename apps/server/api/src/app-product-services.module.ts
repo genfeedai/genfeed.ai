@@ -13,8 +13,8 @@ import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AiInfluencerModule } from '@api/services/ai-influencer/ai-influencer.module';
-import { BatchContentModule } from '@api/services/batch-content/batch-content.module';
-import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { TurboContentModule } from '@api/services/turbo-content/turbo-content.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { BrandOsExportModule } from '@api/services/brand-os-export/brand-os-export.module';
 import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
@@ -34,8 +34,8 @@ import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
-    BatchContentModule,
-    BatchGenerationModule,
+    TurboContentModule,
+    TurboRunModule,
     BrandOsExportModule,
     ContentEngineModule,
     ContentGatewayModule,

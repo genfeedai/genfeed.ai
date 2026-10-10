@@ -52,7 +52,7 @@ export interface IPost extends IBaseEntity {
   retryCount?: number;
   targetError?: IChannelTargetError | null;
   originalPostId?: string | null;
-  reviewBatchId?: string | null;
+  reviewTurboRunId?: string | null;
   reviewDecision?: ReviewDecision;
   reviewEvents?: Array<{
     decision: ReviewDecision;
@@ -121,7 +121,7 @@ export interface IPostVariationMeta {
   partialReason?: string;
   requestedCount: number;
   /** Optional on the client for the same unvalidated-transport reason. */
-  reviewBatchId?: string;
+  reviewTurboRunId?: string;
   sourceKind: PostVariationSourceKind;
   voiceMode: PostVariationVoiceMode;
   voiceModeLabel: string;

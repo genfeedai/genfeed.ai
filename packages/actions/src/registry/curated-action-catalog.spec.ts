@@ -367,7 +367,7 @@ describe('curated action catalog', () => {
       ['resolve_approval', 'core'],
       ['create_post', 'content'],
       ['repurpose_post', 'content'],
-      ['generate_content_batch', 'content'],
+      ['generate_turbo_content', 'content'],
       ['generate', 'generation'],
       ['generate_visual_code', 'visual-code'],
       ['create_storyboard_remix', 'inspiration'],

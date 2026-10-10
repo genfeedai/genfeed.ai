@@ -1,8 +1,8 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import type { ContextSidebarSelectionOrigin } from '@props/ui/context-sidebar.props';
 
 export interface ReviewWorkspaceSurfaceAdapterProps {
-  activeItem: IBatchItem | null;
+  activeItem: ITurboRunItem | null;
   activeItemOrigin: ContextSidebarSelectionOrigin;
   isActioning: boolean;
   isSelected: boolean;

@@ -1,6 +1,6 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 
-export type ReviewEvent = NonNullable<IBatchItem['reviewEvents']>[number];
+export type ReviewEvent = NonNullable<ITurboRunItem['reviewEvents']>[number];
 
 export interface ReviewHistoryPanelProps {
   browserTimezone: string;

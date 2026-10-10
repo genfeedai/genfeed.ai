@@ -1,6 +1,6 @@
 import type {
-  IBatchItem,
-  IBatchSummary,
+  ITurboRunItem,
+  ITurboRunSummary,
 } from '@genfeedai/contracts/interfaces';
 import type {
   ReviewFilterCounts,
@@ -10,31 +10,31 @@ import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrit
 
 export interface ReviewQueueViewProps {
   activeFilters: readonly ReviewStatusFilter[];
-  activeItem: IBatchItem | null;
-  activeBatch: IBatchSummary | null;
-  activeBatchError: Error | null;
-  activeBatchId: string | null;
-  batchList: IBatchSummary[];
-  batchesError: Error | null;
-  canDiscardBatch: boolean;
+  activeItem: ITurboRunItem | null;
+  activeTurboRun: ITurboRunSummary | null;
+  activeTurboRunError: Error | null;
+  activeTurboRunId: string | null;
+  turboRunList: ITurboRunSummary[];
+  turboRunsError: Error | null;
+  canDiscardTurboRun: boolean;
   filterCounts: ReviewFilterCounts;
-  hasInvalidBatchPayload: boolean;
+  hasInvalidTurboRunPayload: boolean;
   isActioning: boolean;
-  isBatchLoading: boolean;
+  isTurboRunLoading: boolean;
   isRefreshing?: boolean;
   selectedIds: Set<string>;
   rewritingIds?: ReadonlySet<string>;
   isRewriteStarting?: boolean;
   rewriteProgress?: ReviewRewriteProgressProps | null;
   selectedPostId: string | null;
-  visibleItems: IBatchItem[];
+  visibleItems: ITurboRunItem[];
   onApprove: (itemId: string) => Promise<void>;
   onAssign: (itemId: string, assigneeId: string) => Promise<void>;
-  onBatchChange: (value: string) => void;
+  onTurboRunChange: (value: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
   onBulkRewrite: () => void;
-  onDiscardBatch: () => void;
+  onDiscardTurboRun: () => void;
   onClosePostDetail: () => void;
   onFilterChange: (filters: ReviewStatusFilter[]) => void;
   onRefresh: () => void | Promise<void>;

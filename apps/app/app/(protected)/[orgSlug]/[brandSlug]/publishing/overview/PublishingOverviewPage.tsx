@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { BatchItemStatus, TargetExecutionState } from '@genfeedai/contracts';
+import { TurboRunItemStatus, TargetExecutionState } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
@@ -16,7 +16,7 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AsyncState } from '@props/shared';
-import { BatchesService } from '@services/batch/batches.service';
+import { TurboRunsService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { useQuery } from '@tanstack/react-query';
@@ -93,8 +93,8 @@ export default function PublishingOverviewPage() {
   const { brandId, organizationId } = collectionScope;
   const isCollectionReady = isCollectionFetchReady(collectionScope);
   const isBrandReady = isBrandResourceReady(collectionScope);
-  const getBatchesService = useAuthedService((token: string) =>
-    BatchesService.getInstance(token),
+  const getTurboRunsService = useAuthedService((token: string) =>
+    TurboRunsService.getInstance(token),
   );
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
@@ -103,12 +103,12 @@ export default function PublishingOverviewPage() {
     CredentialsService.getInstance(token),
   );
 
-  const batchesQuery = useQuery({
+  const turboRunsQuery = useQuery({
     enabled: isCollectionReady,
     queryKey: ['publish-overview-batches', organizationId],
     queryFn: async () => {
-      const service = await getBatchesService();
-      return service.getBatches();
+      const service = await getTurboRunsService();
+      return service.getTurboRuns();
     },
   });
 
@@ -192,7 +192,7 @@ export default function PublishingOverviewPage() {
     },
   });
 
-  const batches = batchesQuery.data ?? [];
+  const turboRuns = turboRunsQuery.data ?? [];
   const notPostedTotal = notPostedTotalQuery.data ?? 0;
   const publishedTotal = publishedTotalQuery.data ?? 0;
   const upcomingReleases = upcomingReleasesQuery.data ?? [];
@@ -271,20 +271,20 @@ export default function PublishingOverviewPage() {
   };
 
   const reviewPulse = useMemo(() => {
-    const batchList = Array.isArray(batches) ? batches : [];
+    const turboRunList = Array.isArray(turboRuns) ? turboRuns : [];
     let ready = 0;
     let failed = 0;
     let pending = 0;
 
-    for (const batch of batchList) {
-      for (const item of batch.items ?? []) {
+    for (const turboRun of turboRunList) {
+      for (const item of turboRun.items ?? []) {
         if (isReadyToReview(item)) {
           ready += 1;
-        } else if (item.status === BatchItemStatus.FAILED) {
+        } else if (item.status === TurboRunItemStatus.FAILED) {
           failed += 1;
         } else if (
-          item.status === BatchItemStatus.PENDING ||
-          item.status === BatchItemStatus.PROCESSING
+          item.status === TurboRunItemStatus.PENDING ||
+          item.status === TurboRunItemStatus.PROCESSING
         ) {
           pending += 1;
         }
@@ -292,19 +292,19 @@ export default function PublishingOverviewPage() {
     }
 
     return {
-      activeBatches: batchList.length,
+      activeTurboRuns: turboRunList.length,
       failed,
       pending,
       ready,
     };
-  }, [batches]);
+  }, [turboRuns]);
 
   const isMetricsLoading =
-    batchesQuery.isLoading ||
+    turboRunsQuery.isLoading ||
     notPostedTotalQuery.isLoading ||
     publishedTotalQuery.isLoading;
   const isMetricsError =
-    batchesQuery.isError ||
+    turboRunsQuery.isError ||
     notPostedTotalQuery.isError ||
     publishedTotalQuery.isError;
 
@@ -340,9 +340,9 @@ export default function PublishingOverviewPage() {
     {
       color: 'bg-emerald-500/12 text-emerald-300',
       cta: 'Open Review',
-      description: batchesQuery.isError
+      description: turboRunsQuery.isError
         ? 'Review queue could not be loaded.'
-        : batchesQuery.isLoading
+        : turboRunsQuery.isLoading
           ? 'Loading review queue...'
           : reviewPulse.ready > 0
             ? `${reviewPulse.ready} item${reviewPulse.ready === 1 ? '' : 's'} ready to approve or reject.`

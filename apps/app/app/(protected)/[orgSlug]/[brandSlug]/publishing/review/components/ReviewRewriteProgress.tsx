@@ -1,5 +1,5 @@
 import {
-  BatchRewriteJobStatus,
+  TurboRewriteJobStatus,
   ButtonSize,
   ButtonVariant,
   CardVariant,
@@ -20,10 +20,10 @@ export default function ReviewRewriteProgress({
   job,
   onCancel,
 }: ReviewRewriteProgressProps) {
-  const translate = useTranslations('common.batchRewrite');
+  const translate = useTranslations('common.turboRewrite');
   const total = job.itemIds.length;
   const handled = job.completedItemIds.length + job.failedItems.length;
-  const isQueued = job.status === BatchRewriteJobStatus.QUEUED;
+  const isQueued = job.status === TurboRewriteJobStatus.QUEUED;
 
   return (
     <Card

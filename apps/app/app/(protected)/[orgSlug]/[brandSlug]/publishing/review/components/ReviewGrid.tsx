@@ -57,7 +57,7 @@ export default function ReviewGrid({
               withWrapper={false}
             >
               <Sparkles className="size-3.5" />
-              {translate('batchRewrite.action')}
+              {translate('turboRewrite.action')}
             </Button>
             <Button
               className="h-7 gap-1 px-2 text-xs"

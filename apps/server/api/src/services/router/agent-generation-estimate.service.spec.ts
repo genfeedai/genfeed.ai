@@ -1,4 +1,4 @@
-import { resolveIdeaGenerationParams } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
+import { resolveIdeaGenerationParams } from '@api/collections/turbo-projects/services/turbo-project-dispatch.util';
 import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';

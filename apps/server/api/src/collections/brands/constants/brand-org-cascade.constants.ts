@@ -522,8 +522,8 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
-    delegate: 'batchProject',
-    table: 'batch_projects',
+    delegate: 'turboProject',
+    table: 'turbo_projects',
     brandField: 'brandId',
     orgField: 'organizationId',
   },
@@ -718,14 +718,14 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'proactiveOrganizationId',
   },
   {
-    delegate: 'batch',
-    table: 'batches',
+    delegate: 'turboRun',
+    table: 'turboRuns',
     brandField: 'brandId',
     orgField: 'organizationId',
   },
   {
-    delegate: 'batchItem',
-    table: 'batch_items',
+    delegate: 'turboRunItem',
+    table: 'turbo_run_items',
     brandField: 'brandId',
     orgField: 'organizationId',
   },
@@ -747,12 +747,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
   {
-    delegate: 'batchProjectItem',
-    table: 'batch_project_items',
+    delegate: 'turboProjectItem',
+    table: 'turbo_project_items',
     orgField: 'organizationId',
     parents: [
       {
-        parentDelegate: 'batchProject',
+        parentDelegate: 'turboProject',
         parentBrandField: 'brandId',
         fkField: 'projectId',
       },

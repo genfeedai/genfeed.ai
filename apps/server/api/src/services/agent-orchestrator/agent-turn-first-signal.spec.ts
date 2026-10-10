@@ -122,7 +122,7 @@ function setup() {
     },
     context,
     { tryHandlePlanModeTurnStream: vi.fn().mockResolvedValue(false) },
-    { tryHandleBatchGenerationTurnStream: vi.fn().mockResolvedValue(false) },
+    { tryHandleTurboRunTurnStream: vi.fn().mockResolvedValue(false) },
     { tryHandleRecurringTaskDraftTurnStream: vi.fn().mockResolvedValue(false) },
     streamLoop,
     {},

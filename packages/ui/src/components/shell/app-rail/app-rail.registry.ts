@@ -126,16 +126,16 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   },
   {
     // Turbo runs on the Batch surface until #5936 renames it.
-    activePathRoots: [APP_ROUTES.STUDIO.BATCH],
+    activePathRoots: [APP_ROUTES.STUDIO.TURBO_RUN],
     description: 'turbo.description',
     icon: Layers,
     group: 'app',
     id: 'turbo',
     isBrandAware: true,
     label: 'turbo.label',
-    organizationModule: 'batch',
-    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.BATCH }),
-    surfaceFlagKey: 'studio_batch',
+    organizationModule: 'turboRun',
+    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.TURBO_RUN }),
+    surfaceFlagKey: 'studio_turbo',
     visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
   },
   {

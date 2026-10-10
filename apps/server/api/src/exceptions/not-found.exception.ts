@@ -6,8 +6,8 @@ import { HttpException, HttpStatus } from '@nestjs/common';
  * `{ title, detail, source? }` response shape.
  *
  * Two forms:
- * - `new NotFoundException('Batch', batchId)` — builds
- *   `"Batch with identifier 'batchId' not found"` and sets `source.parameter`.
+ * - `new NotFoundException('Batch', turboRunId)` — builds
+ *   `"Batch with identifier 'turboRunId' not found"` and sets `source.parameter`.
  * - `new NotFoundException('Persona')` — builds `"Persona not found"`.
  * - `new NotFoundException({ message })` — uses `message` verbatim as `detail`,
  *   for the handful of cases whose 404 text is a full sentence rather than a

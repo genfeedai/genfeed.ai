@@ -11,13 +11,13 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 
 describe('PostVariationService', () => {
   const contentGeneratorService = { generateContent: vi.fn() };
-  const batchGenerationService = { createManualReviewBatch: vi.fn() };
+  const turboRunService = { createManualReviewTurboRun: vi.fn() };
   const postsService = { findAllByOrganization: vi.fn() };
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
   const cacheInvalidationService = { invalidateByTags: vi.fn() };
@@ -46,7 +46,7 @@ describe('PostVariationService', () => {
     service = new PostVariationService(
       prisma as unknown as PrismaService,
       contentGeneratorService as unknown as ContentGeneratorService,
-      batchGenerationService as unknown as BatchGenerationService,
+      turboRunService as unknown as TurboRunService,
       postsService as unknown as PostsService,
       trendReferenceCorpusService as unknown as TrendReferenceCorpusService,
       cacheInvalidationService as unknown as CacheInvalidationService,
@@ -62,7 +62,7 @@ describe('PostVariationService', () => {
       },
       { content: 'Use a checklist to explain a durable publishing system.' },
     ]);
-    batchGenerationService.createManualReviewBatch.mockImplementation(
+    turboRunService.createManualReviewTurboRun.mockImplementation(
       async (dto: { items: Array<{ caption: string }> }) => ({
         id: 'batch-1',
         items: dto.items.map((item, index) => ({
@@ -99,7 +99,7 @@ describe('PostVariationService', () => {
         variationsCount: 3,
       }),
     );
-    expect(batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
+    expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
         items: expect.arrayContaining([
           expect.objectContaining({
@@ -140,7 +140,7 @@ describe('PostVariationService', () => {
       actualCount: 3,
       creditCost: 3,
       requestedCount: 3,
-      reviewBatchId: 'batch-1',
+      reviewTurboRunId: 'batch-1',
       voiceMode: 'brand-voice',
     });
   });
@@ -169,9 +169,9 @@ describe('PostVariationService', () => {
       voiceModeLabel: 'Organization defaults (no brand voice configured)',
     });
     expect(result.meta.partialReason).toContain('Generated 1 of 3');
-    const batchInput = batchGenerationService.createManualReviewBatch.mock
+    const turboRunInput = turboRunService.createManualReviewTurboRun.mock
       .calls[0]?.[0] as { items: unknown[] };
-    expect(batchInput.items).toHaveLength(1);
+    expect(turboRunInput.items).toHaveLength(1);
   });
 
   it('reads the persisted variations with one scoped query and invalidates post caches after the update batch', async () => {

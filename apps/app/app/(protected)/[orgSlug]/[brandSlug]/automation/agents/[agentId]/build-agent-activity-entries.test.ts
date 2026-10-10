@@ -32,7 +32,7 @@ describe('buildContentActivityEntries', () => {
     const entries = buildContentActivityEntries(
       [
         buildPost({
-          reviewBatchId: 'batch-1',
+          reviewTurboRunId: 'batch-1',
           reviewDecision: ReviewDecision.UNSET,
           targetExecutionState: TargetExecutionState.DRAFT,
         }),

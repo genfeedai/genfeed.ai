@@ -9,7 +9,7 @@ describe('Studio surface flags', () => {
     ['/acme/brand/studio/motion', 'studio_motion'],
     ['/acme/brand/studio/storyboard/new', 'studio_storyboard'],
     ['/acme/brand/studio/clips/clip-1?tab=highlights', 'studio_clips'],
-    ['/acme/brand/studio/batch/new', 'studio_batch'],
+    ['/acme/brand/studio/turbo/new', 'studio_turbo'],
     ['/acme/~/studio/editor/new', 'studio_editor'],
     ['/studio/editor', 'studio_editor'],
   ])('maps %s to %s', (path, flagKey) => {

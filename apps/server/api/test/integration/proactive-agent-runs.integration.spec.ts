@@ -3,8 +3,8 @@ import { AgentStrategiesService } from '@api/collections/agent-strategies/servic
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
-import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
-import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
+import { TurboRunCreationService } from '@api/services/turbo-run/turbo-run-creation.service';
+import { TurboRunProcessingService } from '@api/services/turbo-run/turbo-run-processing.service';
 import {
   ProactiveAgentRuntimeFixture,
   readRuntimeBrief,
@@ -31,7 +31,7 @@ type Row = Record<string, unknown>;
 async function assertExpiredRuntimeReview(
   fixture: ProactiveAgentRuntimeFixture,
   postId: string,
-  batchId: string,
+  turboRunId: string,
   itemId: string,
 ) {
   const scope = { organizationId: fixture.organizationId, isDeleted: false };
@@ -43,14 +43,14 @@ async function assertExpiredRuntimeReview(
     },
   });
   await fixture.review.approveItems(
-    batchId,
+    turboRunId,
     [itemId],
     fixture.organizationId,
     fixture.userId,
   );
   expect(
-    await fixture.prisma.batchItem.findFirstOrThrow({
-      where: { ...scope, id: itemId, batchId },
+    await fixture.prisma.turboRunItem.findFirstOrThrow({
+      where: { ...scope, id: itemId, turboRunId },
     }),
   ).toMatchObject({ status: 'SKIPPED', reviewDecision: 'REJECTED' });
   expect(
@@ -250,7 +250,7 @@ describe('proactive organization to strategy run and attributed draft integratio
     vi.setSystemTime(new Date('2026-09-24T08:00:00Z'));
     const organizations: Row[] = [];
     let strategy: Row | null = null;
-    let batch: Row | null = null;
+    let turboRun: Row | null = null;
     const posts: Row[] = [];
     const executions = new Map<string, Row>();
     const slots = new Set<string>();
@@ -374,18 +374,18 @@ describe('proactive organization to strategy run and attributed draft integratio
         ]),
       },
       post: { count: vi.fn(async () => 0) },
-      batch: {
+      turboRun: {
         create: vi.fn(async ({ data }) => {
-          batch = { id: 'batch', ...data };
-          return batch;
+          turboRun = { id: 'turboRun', ...data };
+          return turboRun;
         }),
-        findFirst: vi.fn(async () => batch),
+        findFirst: vi.fn(async () => turboRun),
         updateMany: vi.fn(async ({ data }) => {
-          batch = { ...batch, ...data };
+          turboRun = { ...turboRun, ...data };
           return { count: 1 };
         }),
       },
-      batchItem: { upsert: vi.fn().mockResolvedValue({}) },
+      turboRunItem: { upsert: vi.fn().mockResolvedValue({}) },
       credential: { findMany: vi.fn().mockResolvedValue([]) },
       // #5136: buildSyntheticUserMessage looks up the strategy's brand for
       // its agentConfig (voice/strategy defaults) before dispatching.
@@ -569,8 +569,8 @@ describe('proactive organization to strategy run and attributed draft integratio
       metadata: { strategyId: 'strategy', canonicalId: 'agent.turn.execute' },
     });
 
-    const summary = { toBatchSummary: (value: unknown) => value };
-    const creation = new BatchGenerationCreationService(
+    const summary = { toTurboRunSummary: (value: unknown) => value };
+    const creation = new TurboRunCreationService(
       prisma as never,
       logger as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'brand' }) } as never,
@@ -578,7 +578,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       {} as never,
       summary as never,
     );
-    await creation.createBatch(
+    await creation.createTurboRun(
       {
         brandId: 'brand',
         count: 1,
@@ -590,7 +590,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       undefined,
       'strategy',
     );
-    const processing = new BatchGenerationProcessingService(
+    const processing = new TurboRunProcessingService(
       prisma as never,
       logger as never,
       {
@@ -613,8 +613,8 @@ describe('proactive organization to strategy run and attributed draft integratio
       } as never,
       { approveItems: vi.fn() } as never,
     );
-    await processing.processBatch('batch', 'org');
-    expect(batch).toMatchObject({ agentStrategyId: 'strategy' });
+    await processing.processTurboRun('turboRun', 'org');
+    expect(turboRun).toMatchObject({ agentStrategyId: 'strategy' });
     expect(posts).toHaveLength(1);
     expect(posts[0]).toMatchObject({
       agentStrategyId: 'strategy',
@@ -715,10 +715,10 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     expect(fixture.generated).toHaveBeenCalledTimes(1);
     expect(fixture.published).not.toHaveBeenCalled();
     await fixture.stopWorkers();
-    if (!post.reviewBatchId || !post.reviewItemId)
+    if (!post.reviewTurboRunId || !post.reviewItemId)
       throw new Error('Generated draft lost its review attribution');
     await fixture.review.approveItems(
-      post.reviewBatchId,
+      post.reviewTurboRunId,
       [post.reviewItemId],
       fixture.organizationId,
       fixture.userId,
@@ -739,7 +739,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
       where: { id: agent.id },
     });
     await fixture.review.approveItems(
-      post.reviewBatchId,
+      post.reviewTurboRunId,
       [post.reviewItemId],
       fixture.organizationId,
       fixture.userId,
@@ -1237,16 +1237,16 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
         isDeleted: false,
       },
     });
-    if (!post.reviewBatchId || !post.reviewItemId)
+    if (!post.reviewTurboRunId || !post.reviewItemId)
       throw new Error('Review attribution missing');
     const outcomes = await Promise.allSettled([
-      fixture.review.expireAutonomousReviewBatch(
-        post.reviewBatchId,
+      fixture.review.expireAutonomousReviewTurboRun(
+        post.reviewTurboRunId,
         fixture.organizationId,
         new Date(Date.now() + 25 * 3_600_000),
       ),
       fixture.review.approveItems(
-        post.reviewBatchId,
+        post.reviewTurboRunId,
         [post.reviewItemId],
         fixture.organizationId,
         fixture.userId,
@@ -1270,7 +1270,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
       await assertExpiredRuntimeReview(
         fixture,
         post.id,
-        post.reviewBatchId,
+        post.reviewTurboRunId,
         post.reviewItemId,
       );
       await expect(
@@ -1298,11 +1298,11 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
         isDeleted: false,
       },
     });
-    if (!expired.reviewBatchId || !expired.reviewItemId)
+    if (!expired.reviewTurboRunId || !expired.reviewItemId)
       throw new Error('Expiry-first review attribution missing');
     expect(
-      await fixture.review.expireAutonomousReviewBatch(
-        expired.reviewBatchId,
+      await fixture.review.expireAutonomousReviewTurboRun(
+        expired.reviewTurboRunId,
         fixture.organizationId,
         new Date(Date.now() + 25 * 3_600_000),
       ),
@@ -1310,7 +1310,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     await assertExpiredRuntimeReview(
       fixture,
       expired.id,
-      expired.reviewBatchId,
+      expired.reviewTurboRunId,
       expired.reviewItemId,
     );
   }, 60_000);

@@ -3,8 +3,8 @@ import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-o
 import { agentPostPreviewInclude } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
@@ -23,7 +23,7 @@ import { ModuleRef } from '@nestjs/core';
  * discover_engagements is wired through TwitterService so X discovery never silently
  * returns empty for a missing trends endpoint (#2663). draft_engagement_reply lands
  * the drafted reply directly in the human review queue via
- * BatchGenerationService.createManualReviewBatch — no HTTP loopback.
+ * TurboRunService.createManualReviewTurboRun — no HTTP loopback.
  */
 @Injectable()
 export class AgentProactiveToolHandler {
@@ -34,7 +34,7 @@ export class AgentProactiveToolHandler {
     private readonly postsService: PostsService,
     @Optional() private readonly twitterService?: TwitterService,
     @Optional()
-    private readonly batchGenerationService?: BatchGenerationService,
+    private readonly turboRunService?: TurboRunService,
     @Optional() private readonly moduleRef?: ModuleRef,
     @Optional() private readonly prisma?: PrismaService,
   ) {}
@@ -42,7 +42,7 @@ export class AgentProactiveToolHandler {
   async getApprovalSummary(
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.batchGenerationService) {
+    if (!this.turboRunService) {
       return {
         creditsUsed: 0,
         error: 'Batch generation service not available',
@@ -50,7 +50,7 @@ export class AgentProactiveToolHandler {
       };
     }
 
-    const result = await this.batchGenerationService.getBatches(
+    const result = await this.turboRunService.getTurboRuns(
       ctx.organizationId,
       { limit: 50 },
     );
@@ -60,20 +60,20 @@ export class AgentProactiveToolHandler {
     let engagementPending = 0;
     let oldestPendingAge = 0;
 
-    for (const batch of result.items) {
-      totalPending += batch.pendingCount ?? 0;
+    for (const turboRun of result.items) {
+      totalPending += turboRun.pendingCount ?? 0;
       // Aggregate counts based on source
       if (
-        (batch as unknown as Record<string, unknown>).source === 'proactive'
+        (turboRun as unknown as Record<string, unknown>).source === 'proactive'
       ) {
-        engagementPending += batch.pendingCount ?? 0;
+        engagementPending += turboRun.pendingCount ?? 0;
       } else {
-        contentPending += batch.pendingCount ?? 0;
+        contentPending += turboRun.pendingCount ?? 0;
       }
 
-      if (batch.createdAt) {
-        const age = Date.now() - new Date(batch.createdAt as string).getTime();
-        if (age > oldestPendingAge && (batch.pendingCount ?? 0) > 0) {
+      if (turboRun.createdAt) {
+        const age = Date.now() - new Date(turboRun.createdAt as string).getTime();
+        if (age > oldestPendingAge && (turboRun.pendingCount ?? 0) > 0) {
           oldestPendingAge = age;
         }
       }
@@ -87,7 +87,7 @@ export class AgentProactiveToolHandler {
         contentPending,
         engagementPending,
         oldestPendingHours,
-        totalBatches: result.total,
+        totalTurboRuns: result.total,
         totalPending,
       },
       success: true,
@@ -332,7 +332,7 @@ export class AgentProactiveToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.batchGenerationService) {
+    if (!this.turboRunService) {
       return {
         creditsUsed: 0,
         error: 'Batch generation service not available',
@@ -361,7 +361,7 @@ export class AgentProactiveToolHandler {
       };
     }
 
-    const dto: CreateManualReviewBatchDto = {
+    const dto: CreateManualReviewTurboRunDto = {
       brandId,
       items: [
         {
@@ -378,7 +378,7 @@ export class AgentProactiveToolHandler {
     };
 
     try {
-      const batch = await this.batchGenerationService.createManualReviewBatch(
+      const turboRun = await this.turboRunService.createManualReviewTurboRun(
         dto,
         ctx.userId,
         ctx.organizationId,
@@ -387,7 +387,7 @@ export class AgentProactiveToolHandler {
       return {
         creditsUsed: 1,
         data: {
-          batchId: batch.id,
+          turboRunId: turboRun.id,
           message:
             'Reply draft is ready for review. Nothing posts until you approve it.',
           platform,

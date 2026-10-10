@@ -1,4 +1,4 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
+import { TurboRunItemStatus, ContentFormat } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -10,13 +10,13 @@ import {
 } from './review-item.helpers';
 
 const baseItem = {
-  batchId: 'batch-1',
+  turboRunId: 'batch-1',
   caption: '  Ship it  ',
   createdAt: '2026-03-10T10:00:00.000Z',
   format: ContentFormat.IMAGE,
   id: 'item-1',
   platform: 'twitter',
-  status: BatchItemStatus.COMPLETED,
+  status: TurboRunItemStatus.COMPLETED,
 };
 
 describe('review-item.helpers', () => {
@@ -31,13 +31,13 @@ describe('review-item.helpers', () => {
     expect(
       formatReviewItemStatus({
         ...baseItem,
-        status: BatchItemStatus.FAILED,
+        status: TurboRunItemStatus.FAILED,
       }),
     ).toBe('Failed');
     expect(
       formatReviewItemStatus({
         ...baseItem,
-        status: BatchItemStatus.SKIPPED,
+        status: TurboRunItemStatus.SKIPPED,
       }),
     ).toBe('Rejected');
     expect(
@@ -72,7 +72,7 @@ describe('review-item.helpers', () => {
     expect(
       isReviewItemSelectable({
         ...baseItem,
-        status: BatchItemStatus.PENDING,
+        status: TurboRunItemStatus.PENDING,
       }),
     ).toBe(false);
   });
@@ -163,19 +163,19 @@ describe('review-item.helpers', () => {
     expect(
       getReviewItemBadgeStatus({
         ...baseItem,
-        status: BatchItemStatus.SKIPPED,
+        status: TurboRunItemStatus.SKIPPED,
       }),
     ).toBe('failed');
     expect(
       getReviewItemBadgeStatus({
         ...baseItem,
-        status: BatchItemStatus.FAILED,
+        status: TurboRunItemStatus.FAILED,
       }),
     ).toBe('failed');
     expect(
       getReviewItemBadgeStatus({
         ...baseItem,
-        status: BatchItemStatus.PENDING,
+        status: TurboRunItemStatus.PENDING,
       }),
     ).toBe('pending');
     expect(

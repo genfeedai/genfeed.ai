@@ -4714,29 +4714,29 @@ export async function mockPostPublishing(
 export async function mockReviewQueue(
   page: Page,
   options: {
-    batchId?: string;
+    turboRunId?: string;
     itemAttributes?: Record<string, unknown>;
     itemId?: string;
     onItemAction?: (body: Record<string, unknown>) => void;
     postId?: string;
   } = {},
 ): Promise<void> {
-  const batchId = options.batchId || 'batch-1';
+  const turboRunId = options.turboRunId || 'batch-1';
   const itemId = options.itemId || 'item-1';
   const postId = options.postId || 'post-review-001';
   const now = new Date().toISOString();
 
-  const batchListItem = {
+  const turboRunListItem = {
     approvedCount: 0,
     failedCount: 0,
-    id: batchId,
+    id: turboRunId,
     pendingCount: 1,
     status: 'completed',
     totalCount: 1,
   };
 
-  const batchDetail = {
-    id: batchId,
+  const turboRunDetail = {
+    id: turboRunId,
     items: [
       {
         createdAt: now,
@@ -4758,10 +4758,10 @@ export async function mockReviewQueue(
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiCollection('batches', [
+          buildJsonApiCollection('turboRuns', [
             {
-              attributes: batchListItem,
-              id: batchId,
+              attributes: turboRunListItem,
+              id: turboRunId,
             },
           ]),
         ),
@@ -4773,11 +4773,11 @@ export async function mockReviewQueue(
     await route.continue();
   });
 
-  await routeApiPattern(page, `/batches/${batchId}`, async (route) => {
+  await routeApiPattern(page, `/turbo-runs/${turboRunId}`, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiDocument('batches', batchId, batchDetail),
+          buildJsonApiDocument('turboRuns', turboRunId, turboRunDetail),
         ),
         contentType: 'application/json',
         status: 200,
@@ -4789,7 +4789,7 @@ export async function mockReviewQueue(
 
   await routeApiPattern(
     page,
-    `/batches/${batchId}/items/action`,
+    `/turbo-runs/${turboRunId}/items/action`,
     async (route) => {
       if (route.request().method() === 'POST') {
         options.onItemAction?.(
@@ -4797,7 +4797,7 @@ export async function mockReviewQueue(
         );
         await route.fulfill({
           body: JSON.stringify(
-            buildJsonApiDocument('batches', batchId, batchDetail),
+            buildJsonApiDocument('turboRuns', turboRunId, turboRunDetail),
           ),
           contentType: 'application/json',
           status: 200,

@@ -4,7 +4,7 @@ import {
   agentReportBindings,
   agentReportTokenKey,
 } from '@api/services/agent-reports/agent-report-binding';
-import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
+import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -24,7 +24,7 @@ export class AgentReportReviewService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly access: AgentReportAccessService,
-    private readonly review: BatchGenerationReviewService,
+    private readonly review: TurboRunReviewService,
   ) {}
   async resolve(
     platform: 'telegram' | 'discord',
@@ -83,7 +83,7 @@ export class AgentReportReviewService {
     const expected = { [receipt.postId]: receipt.postVersion };
     if (input.decision === 'approve') {
       await this.review.approveItems(
-        receipt.batchId,
+        receipt.turboRunId,
         [receipt.itemId],
         input.organizationId,
         receipt.binding.userId,
@@ -92,7 +92,7 @@ export class AgentReportReviewService {
       );
     } else {
       await this.review.rejectItems(
-        receipt.batchId,
+        receipt.turboRunId,
         [receipt.itemId],
         input.organizationId,
         'Rejected from agent report',

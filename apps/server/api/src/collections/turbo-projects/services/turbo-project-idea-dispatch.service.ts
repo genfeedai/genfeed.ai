@@ -1,0 +1,507 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { TurboProjectCreditsService } from '@api/collections/turbo-projects/services/turbo-project-credits.service';
+import {
+  IDEA_OUTPUT_ASPECT_RATIO,
+  ideaPromptText,
+  ideaSpeechText,
+  parseTurboProjectItemDispatch,
+  resolveIdeaGenerationParams,
+} from '@api/collections/turbo-projects/services/turbo-project-dispatch.util';
+import { readTurboProjectIdea } from '@api/collections/turbo-projects/services/turbo-project-idea.util';
+import {
+  TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS,
+  TURBO_PROJECT_IDEA_DISPATCH_FAILURE_WORKFLOW_ID,
+  TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+  buildTurboProjectIdeaDispatchFailureWorkflowDefinition,
+  buildTurboProjectIdeaDispatchWorkflowDefinition,
+} from '@api/collections/turbo-projects/services/turbo-project-idea-dispatch-workflow.definition';
+import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  TurboProjectItemStatus,
+  IngredientCategory,
+} from '@genfeedai/contracts';
+import type {
+  TurboIdea,
+  ITurboProjectItemDispatch,
+} from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
+import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  ConflictException,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
+
+/** Job input of one idea generation attempt. */
+export type TurboProjectIdeaDispatchJob = {
+  itemId: string;
+  key: string;
+  organizationId: string;
+  projectId: string;
+  userId: string;
+};
+
+type IdeaGenerationRequest = RequestWithContext & DeferredCreditsRequest;
+
+type DispatchTarget = {
+  dispatch: ITurboProjectItemDispatch;
+  idea: TurboIdea;
+  item: TurboProjectItem;
+  project: TurboProject;
+};
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error && error.message
+    ? error.message
+    : 'Generation could not start';
+}
+
+/**
+ * Starts idea generation server-side (#5463) so an idea batch keeps
+ * generating after the creator leaves. Each accepted quote line runs as one
+ * durable system-workflow job keyed by its dispatch key:
+ *
+ * 1. the generation service creates the placeholder ingredient, which is
+ *    recorded on the item before anything else happens;
+ * 2. immediately before the provider call, the line's credits are reserved
+ *    (image/video reserve inside the generation service with deferred
+ *    credits; avatar reserves here) and checked against the accepted quote —
+ *    a mismatch or a missing reservation aborts before the provider;
+ * 3. the provider runs; reconciliation settles the hold when a usable output
+ *    lands and releases it when generation fails.
+ */
+@Injectable()
+export class TurboProjectIdeaDispatchService implements OnModuleInit {
+  private readonly context = TurboProjectIdeaDispatchService.name;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
+    private readonly credits: TurboProjectCreditsService,
+    private readonly brandKitAssets: BrandKitAssetsService,
+    private readonly imageGeneration: ImageGenerationService,
+    private readonly videoGeneration: VideoGenerationService,
+    private readonly avatarGeneration: AvatarVideoGenerationService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
+  ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS.DISPATCH,
+      (request) => this.dispatchAction(request),
+    );
+    this.workflowRunner.registerAction(
+      TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS.FAIL,
+      (request) => this.failAction(request),
+    );
+    this.workflowRunner.registerWorkflow(
+      buildTurboProjectIdeaDispatchWorkflowDefinition(),
+    );
+    this.workflowRunner.registerWorkflow(
+      buildTurboProjectIdeaDispatchFailureWorkflowDefinition(),
+    );
+    // Last resort when the dispatch and its failure graph both failed (#6655).
+    this.workflowRunner.terminalFailures.register(
+      TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+      async ({ inputValues, organizationId }) => {
+        await this.failItem(
+          this.readJob(inputValues.job, organizationId),
+          'Generation could not start',
+        );
+      },
+    );
+  }
+
+  /** Queue one attempt; the job id makes a repeated enqueue a no-op. */
+  async enqueue(job: TurboProjectIdeaDispatchJob): Promise<void> {
+    await this.workflowRunner.runWithRegisteredWorkflowModule(
+      {
+        canonicalId: TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+        organizationId: job.organizationId,
+      },
+      () => this.enqueueAdmitted(job),
+    );
+  }
+
+  private async enqueueAdmitted(
+    job: TurboProjectIdeaDispatchJob,
+  ): Promise<void> {
+    const attempt = job.key.split(':').pop() ?? '0';
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+        canonicalId: TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+        inputValues: { job },
+        metadata: { turboProjectId: job.projectId, itemId: job.itemId },
+        organizationId: job.organizationId,
+        source: 'turbo-project-idea-dispatch',
+        userId: job.userId,
+      },
+      `turbo-project-idea-${job.itemId}-${attempt}`,
+      {
+        attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        failureWorkflow: {
+          canonicalId: TURBO_PROJECT_IDEA_DISPATCH_FAILURE_WORKFLOW_ID,
+          inputValues: { job },
+        },
+      },
+    );
+  }
+
+  /** Generate one attempt; stale or already dispatched attempts are no-ops. */
+  async dispatch(
+    job: TurboProjectIdeaDispatchJob,
+  ): Promise<{ status: 'dispatched' | 'failed' | 'skipped' }> {
+    return this.workflowRunner.runWithRegisteredWorkflowModule(
+      {
+        canonicalId: TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
+        organizationId: job.organizationId,
+      },
+      () => this.dispatchAdmitted(job),
+    );
+  }
+
+  private async dispatchAdmitted(
+    job: TurboProjectIdeaDispatchJob,
+  ): Promise<{ status: 'dispatched' | 'failed' | 'skipped' }> {
+    const target = await this.loadTarget(job);
+    if (!target) {
+      return { status: 'skipped' };
+    }
+    try {
+      await this.generate(job, target);
+      return { status: 'dispatched' };
+    } catch (error: unknown) {
+      await this.failItem(job, errorMessage(error));
+      return { status: 'failed' };
+    }
+  }
+
+  /**
+   * Fail an attempt that could not start and release whatever it reserved.
+   * Guarded by the dispatch key, so it never touches a newer attempt.
+   */
+  async failItem(job: TurboProjectIdeaDispatchJob, error: string) {
+    const item = await this.prisma.turboProjectItem.findFirst({
+      where: scopedWhere(job.organizationId, {
+        id: job.itemId,
+        projectId: job.projectId,
+        status: TurboProjectItemStatus.GENERATING,
+      }),
+    });
+    const dispatch = parseTurboProjectItemDispatch(item?.dispatch);
+    if (!item || !dispatch || dispatch.key !== job.key) {
+      return;
+    }
+    // Only a recorded hold is released: an attempt that never reached its
+    // reservation has nothing to return.
+    if (dispatch.state === 'reserved') {
+      await this.credits.release({
+        dispatch,
+        organizationId: job.organizationId,
+      });
+    }
+    await this.prisma.turboProjectItem.updateMany({
+      data: {
+        dispatch: toPrismaJson({ ...dispatch, state: 'released' }),
+        error,
+        status: TurboProjectItemStatus.FAILED,
+      },
+      where: scopedWhere(job.organizationId, {
+        dispatch: { equals: job.key, path: ['key'] },
+        id: item.id,
+        status: TurboProjectItemStatus.GENERATING,
+      }),
+    });
+    this.logger.warn('Batch project idea failed to start', {
+      turboProjectId: job.projectId,
+      turboProjectItemId: job.itemId,
+      context: this.context,
+      error,
+      organizationId: job.organizationId,
+    });
+  }
+
+  private dispatchAction(request: SystemWorkflowActionRequest) {
+    return this.dispatch(
+      this.readJob(request.input.job, request.context.organizationId),
+    );
+  }
+
+  private async failAction(request: SystemWorkflowActionRequest) {
+    await this.failItem(
+      this.readJob(request.input.job, request.context.organizationId),
+      'Generation could not start',
+    );
+    return { status: 'failed' };
+  }
+
+  private readJob(value: unknown, organizationId: string | undefined) {
+    const job = readRecord(value);
+    const parsed = {
+      itemId: readString(job.itemId),
+      key: readString(job.key),
+      organizationId: readString(job.organizationId),
+      projectId: readString(job.projectId),
+      userId: readString(job.userId),
+    };
+    if (
+      !parsed.itemId ||
+      !parsed.key ||
+      !parsed.organizationId ||
+      !parsed.projectId ||
+      !parsed.userId ||
+      parsed.organizationId !== organizationId
+    ) {
+      throw new ConflictException('Invalid batch project idea dispatch job.');
+    }
+    return parsed as TurboProjectIdeaDispatchJob;
+  }
+
+  private async loadTarget(
+    job: TurboProjectIdeaDispatchJob,
+  ): Promise<DispatchTarget | null> {
+    const [project, item] = await Promise.all([
+      this.prisma.turboProject.findFirst({
+        where: scopedWhere(job.organizationId, { id: job.projectId }),
+      }),
+      this.prisma.turboProjectItem.findFirst({
+        where: scopedWhere(job.organizationId, {
+          id: job.itemId,
+          projectId: job.projectId,
+        }),
+      }),
+    ]);
+    const dispatch = parseTurboProjectItemDispatch(item?.dispatch);
+    const idea = readTurboProjectIdea(item?.idea);
+    if (
+      !project ||
+      !item ||
+      !dispatch ||
+      !idea ||
+      item.status !== TurboProjectItemStatus.GENERATING ||
+      dispatch.key !== job.key ||
+      dispatch.state !== 'queued' ||
+      item.outputIngredientId
+    ) {
+      return null;
+    }
+    return { dispatch, idea, item, project };
+  }
+
+  private async generate(
+    job: TurboProjectIdeaDispatchJob,
+    target: DispatchTarget,
+  ): Promise<void> {
+    const { dispatch, idea, item, project } = target;
+    const user: AuthenticatedUser = {
+      brandId: project.brandId,
+      id: job.userId,
+      organizationId: job.organizationId,
+      userId: job.userId,
+    };
+    const placeholderScope: GenerationPlaceholderScope = {
+      groupId: project.id,
+      groupIndex: item.position,
+      isByokBypass: dispatch.billingMode === 'byok',
+      settleCreditsExternally: true,
+    };
+    const onPlaceholderCreated = async (ingredientId: string) => {
+      await this.recordPlaceholder(job, idea, ingredientId);
+    };
+
+    if (idea.format === 'avatar') {
+      // The avatar service resolves the brand's (else the organization's)
+      // default avatar and saved voice into provider identities.
+      await this.avatarGeneration.generateAvatarVideo(
+        {
+          aspectRatio: IDEA_OUTPUT_ASPECT_RATIO,
+          text: ideaSpeechText(idea),
+          useIdentity: true,
+        },
+        {
+          brandId: project.brandId,
+          organizationId: job.organizationId,
+          userId: job.userId,
+        },
+        onPlaceholderCreated,
+        placeholderScope,
+        async (price) => {
+          if (
+            price.billingMode !== dispatch.billingMode ||
+            price.credits !== dispatch.credits
+          ) {
+            throw new ConflictException(
+              'Avatar funding changed after the accepted quote. Retry with a fresh quote.',
+            );
+          }
+          await this.reserveLine(job, dispatch, project.brandId);
+        },
+      );
+      return;
+    }
+
+    const request = {
+      body: { sourceActionId: dispatch.key },
+      creditsConfig: { deferred: true },
+      user,
+    } as IdeaGenerationRequest;
+    const references = (
+      await this.brandKitAssets.resolveBrandKitAssets(
+        project.brandId,
+        job.organizationId,
+      )
+    ).references.map((reference) => reference.id);
+    const { duration, height, width } = resolveIdeaGenerationParams(
+      idea.format,
+    );
+    const media = {
+      autoSelectModel: false,
+      brandId: project.brandId,
+      brandingMode: 'brand',
+      ...(duration ? { duration } : {}),
+      height,
+      isBrandingEnabled: true,
+      model: dispatch.model,
+      outputs: 1,
+      references,
+      sourceActionId: dispatch.key,
+      text: ideaPromptText(idea),
+      width,
+    };
+    const onCreditsPrepared = () =>
+      this.recordGenerationReservation(job, dispatch, request);
+
+    if (idea.format === 'video') {
+      await this.videoGeneration.generateVideo(
+        user,
+        media as CreateVideoDto,
+        request,
+        onPlaceholderCreated,
+        placeholderScope,
+        onCreditsPrepared,
+      );
+      return;
+    }
+    await this.imageGeneration.generateImage(
+      user,
+      { ...media, waitForCompletion: false } as CreateImageDto,
+      request,
+      onPlaceholderCreated,
+      placeholderScope,
+      onCreditsPrepared,
+    );
+  }
+
+  private async recordPlaceholder(
+    job: TurboProjectIdeaDispatchJob,
+    idea: TurboIdea,
+    ingredientId: string,
+  ): Promise<void> {
+    await this.prisma.turboProjectItem.updateMany({
+      data: {
+        outputCategory:
+          idea.format === 'image'
+            ? IngredientCategory.IMAGE
+            : idea.format === 'avatar'
+              ? IngredientCategory.AVATAR
+              : IngredientCategory.VIDEO,
+        outputIngredientId: ingredientId,
+      },
+      where: scopedWhere(job.organizationId, {
+        dispatch: { equals: job.key, path: ['key'] },
+        id: job.itemId,
+        outputIngredientId: null,
+        status: TurboProjectItemStatus.GENERATING,
+      }),
+    });
+  }
+
+  /** Avatar lines reserve here, right before the provider call. */
+  private async reserveLine(
+    job: TurboProjectIdeaDispatchJob,
+    dispatch: ITurboProjectItemDispatch,
+    brandId: string | null | undefined,
+  ): Promise<void> {
+    const reservationId = await this.credits.reserve({
+      actorUserId: job.userId,
+      brandId,
+      dispatch,
+      organizationId: job.organizationId,
+    });
+    await this.markReserved(job, dispatch, reservationId);
+  }
+
+  /**
+   * Image and video services reserve the request's price themselves before
+   * their provider call; accept it only when it is exactly the accepted line.
+   */
+  private async recordGenerationReservation(
+    job: TurboProjectIdeaDispatchJob,
+    dispatch: ITurboProjectItemDispatch,
+    request: IdeaGenerationRequest,
+  ): Promise<void> {
+    const credits = request.creditsConfig;
+    const isByok = Boolean(credits?.isByokBypass);
+    const amount = isByok ? 0 : (credits?.amount ?? 0);
+    if (
+      !credits ||
+      credits.modelKey !== dispatch.model ||
+      isByok !== (dispatch.billingMode === 'byok') ||
+      amount !== dispatch.credits ||
+      (dispatch.credits > 0 && !credits.reservationId)
+    ) {
+      if (credits?.reservationId) {
+        await this.credits.release({
+          dispatch: { ...dispatch, reservationId: credits.reservationId },
+          organizationId: job.organizationId,
+        });
+      }
+      throw new ConflictException(
+        'Generation pricing changed after the accepted quote. Retry with a fresh quote.',
+      );
+    }
+    await this.markReserved(job, dispatch, credits.reservationId);
+  }
+
+  private async markReserved(
+    job: TurboProjectIdeaDispatchJob,
+    dispatch: ITurboProjectItemDispatch,
+    reservationId: string | undefined,
+  ): Promise<void> {
+    await this.prisma.turboProjectItem.updateMany({
+      data: {
+        dispatch: toPrismaJson({
+          ...dispatch,
+          state: 'reserved',
+          ...(reservationId ? { reservationId } : {}),
+        }),
+      },
+      where: scopedWhere(job.organizationId, {
+        dispatch: { equals: job.key, path: ['key'] },
+        id: job.itemId,
+        status: TurboProjectItemStatus.GENERATING,
+      }),
+    });
+  }
+}

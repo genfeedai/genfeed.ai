@@ -88,8 +88,8 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getSubscriptionTier: mockGetSubscriptionTier,
 }));
 
-vi.mock('@api/services/batch-generation/batch-generation.service', () => ({
-  BatchGenerationService: class BatchGenerationService {},
+vi.mock('@api/services/turbo-run/turbo-run.service', () => ({
+  TurboRunService: class TurboRunService {},
 }));
 
 vi.mock(
@@ -114,7 +114,7 @@ describe('AuthBootstrapService', () => {
   const creditsUtilsService = {
     getOrganizationCreditsBalance: vi.fn(),
   };
-  const batchGenerationService = {
+  const turboRunService = {
     getReviewInboxSummary: vi.fn(),
   };
   const membersService = {
@@ -142,7 +142,7 @@ describe('AuthBootstrapService', () => {
       accessBootstrapCacheService as never,
       brandsService as never,
       creditsUtilsService as never,
-      batchGenerationService as never,
+      turboRunService as never,
       membersService as never,
       organizationSettingsService as never,
       streaksService as never,
@@ -154,14 +154,14 @@ describe('AuthBootstrapService', () => {
     accessBootstrapCacheService.set.mockResolvedValue(undefined);
     brandsService.findForOrganization.mockResolvedValue([]);
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
-    batchGenerationService.getReviewInboxSummary.mockResolvedValue({
+    turboRunService.getReviewInboxSummary.mockResolvedValue({
       approvedCount: 1,
       changesRequestedCount: 0,
       pendingCount: 2,
       readyCount: 3,
       recentItems: [
         {
-          batchId: 'batch-1',
+          turboRunId: 'batch-1',
           createdAt: '2026-03-25T10:00:00.000Z',
           format: 'image',
           id: 'item-1',
@@ -753,7 +753,7 @@ describe('AuthBootstrapService', () => {
 
     expect(getBootstrapSpy).not.toHaveBeenCalled();
     expect(usersService.findOne).not.toHaveBeenCalled();
-    expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledWith(
+    expect(turboRunService.getReviewInboxSummary).toHaveBeenCalledWith(
       organizationId,
       brandId,
       5,
@@ -767,7 +767,7 @@ describe('AuthBootstrapService', () => {
         readyCount: 3,
         recentItems: [
           {
-            batchId: 'batch-1',
+            turboRunId: 'batch-1',
             createdAt: '2026-03-25T10:00:00.000Z',
             format: 'image',
             id: 'item-1',
@@ -828,7 +828,7 @@ describe('AuthBootstrapService', () => {
     const result2 = await service.getOverviewBootstrap(request);
 
     expect(result1).toEqual(result2);
-    expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledTimes(
+    expect(turboRunService.getReviewInboxSummary).toHaveBeenCalledTimes(
       1,
     );
     expect(accessBootstrapCacheService.get).toHaveBeenCalledTimes(1);

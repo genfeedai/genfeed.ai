@@ -1,4 +1,4 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 
 export type ReviewPerformanceSignal =
   | 'winning'
@@ -7,7 +7,7 @@ export type ReviewPerformanceSignal =
   | null;
 
 export function getReviewPerformanceSignal(
-  item: IBatchItem,
+  item: ITurboRunItem,
 ): ReviewPerformanceSignal {
   if (!item.postStatus || item.postStatus !== 'public') {
     return null;

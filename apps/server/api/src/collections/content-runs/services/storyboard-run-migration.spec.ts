@@ -240,7 +240,7 @@ describe('Lossless in-place Storyboard converter', () => {
     const { record, context, config } = fixture();
     config.phase = 'paid_draft_ready';
     config.review = {
-      batchId: 'batch:original',
+      turboRunId: 'batch:original',
       postIds: ['post:original'],
       approvedPostIds: ['post:original'],
       workflowExecutionId: 'review-execution:original',

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import {
-  BATCH_IDEA_FORMATS,
-  type GenerateBatchIdeasDto,
-} from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
+  TURBO_IDEA_FORMATS,
+  type GenerateTurboIdeasDto,
+} from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import type {
   GenerateBrandVoiceDto,
   GeneratedBrandVoice,
@@ -27,8 +27,8 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { LinkCategory } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
-  type BatchIdea,
-  type BatchIdeaFormat,
+  type TurboIdea,
+  type TurboIdeaFormat,
   BrandVoiceFailureCode,
   type IBrandVoiceCorpus,
   type IBrandVoiceSample,
@@ -339,17 +339,17 @@ export class BrandGenerationService {
    * Org-scoped: the brand is loaded with the caller's organizationId so a brand
    * from another org cannot be targeted. Requires a configured brand voice.
    */
-  async generateBatchIdeas(
+  async generateTurboIdeas(
     brandId: string,
-    dto: GenerateBatchIdeasDto,
+    dto: GenerateTurboIdeasDto,
     organizationId: string,
     findBrand: BrandFinder,
-  ): Promise<BatchIdea[]> {
+  ): Promise<TurboIdea[]> {
     this.logger.debug('Generating batch ideas', {
       brandId,
       count: dto.count,
       formats: dto.formats,
-      operation: 'generateBatchIdeas',
+      operation: 'generateTurboIdeas',
       service: this.constructorName,
     });
 
@@ -430,14 +430,14 @@ Respond ONLY with the JSON array.`;
 
       return parsed
         .filter(
-          (item): item is Partial<BatchIdea> =>
+          (item): item is Partial<TurboIdea> =>
             Boolean(item) && typeof item === 'object',
         )
         .map((item) => {
-          const format: BatchIdeaFormat = BATCH_IDEA_FORMATS.includes(
-            item.format as BatchIdeaFormat,
+          const format: TurboIdeaFormat = TURBO_IDEA_FORMATS.includes(
+            item.format as TurboIdeaFormat,
           )
-            ? (item.format as BatchIdeaFormat)
+            ? (item.format as TurboIdeaFormat)
             : dto.formats[0];
 
           return {
@@ -455,7 +455,7 @@ Respond ONLY with the JSON array.`;
               typeof item.speechText === 'string' ? item.speechText : undefined,
             visualPrompt:
               typeof item.visualPrompt === 'string' ? item.visualPrompt : '',
-          } satisfies BatchIdea;
+          } satisfies TurboIdea;
         })
         .filter((idea) => idea.hook || idea.caption || idea.visualPrompt);
     } catch {

@@ -1,5 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IBatchItemAssignee } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItemAssignee } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Member } from '@models/organization/member.model';
 import type {
@@ -44,7 +44,7 @@ function toMemberOption(member: Member): ReviewAssignmentMemberOption | null {
   };
 }
 
-function formatAssignee(assignee: IBatchItemAssignee): string {
+function formatAssignee(assignee: ITurboRunItemAssignee): string {
   if (assignee.displayName && assignee.handle) {
     return `${assignee.displayName} (@${assignee.handle})`;
   }

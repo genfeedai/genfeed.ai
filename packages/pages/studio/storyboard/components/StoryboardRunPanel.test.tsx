@@ -277,7 +277,7 @@ describe('StoryboardRunPanel', () => {
       },
       review: {
         approvedPostIds: [],
-        batchId: 'batch-1',
+        turboRunId: 'batch-1',
         postIds: ['post-1'],
         workflowExecutionId: 'workflow-execution-1',
         workflowId: 'workflow-1',
@@ -340,7 +340,7 @@ describe('StoryboardRunPanel', () => {
           phase: 'approved',
           review: {
             approvedPostIds: ['post-1'],
-            batchId: 'batch-1',
+            turboRunId: 'batch-1',
             postIds: ['post-1'],
             workflowExecutionId: 'workflow-execution-1',
             workflowId: 'workflow-1',
@@ -381,7 +381,7 @@ describe('StoryboardRunPanel', () => {
           phase: 'approved',
           review: {
             approvedPostIds: ['post-1'],
-            batchId: 'batch-1',
+            turboRunId: 'batch-1',
             postIds: ['post-1'],
             workflowExecutionId: 'workflow-execution-1',
             workflowId: 'workflow-1',

@@ -20,7 +20,7 @@ const DIRECT_VISUAL_GENERATION_TOOLS = new Set<string>([
 const NON_MEDIA_GENERATE_TOOLS = new Set<string>([
   'generate_ad_pack',
   'generate_content',
-  'generate_content_batch',
+  'generate_turbo_content',
   'generate_monthly_content',
   'generate_music',
   'generate_onboarding_content',

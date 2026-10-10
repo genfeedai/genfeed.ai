@@ -373,7 +373,7 @@ async function routeRemixRun(
         phase: 'in_review' as const,
         review: {
           approvedPostIds: [],
-          batchId: 'review-batch-1',
+          turboRunId: 'review-batch-1',
           postIds: ['draft-post-1'],
           workflowExecutionId: 'review-workflow-execution-1',
           workflowId: 'review-workflow-1',
@@ -400,7 +400,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     );
     await routeTikTokTrend(authenticatedPage);
     await mockReviewQueue(authenticatedPage, {
-      batchId: 'review-batch-1',
+      turboRunId: 'review-batch-1',
       itemAttributes: {
         contentRunId: 'run-tiktok-1',
         creativeVersion: 'recipe-1',
@@ -451,7 +451,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     });
     await expect(reviewLink).toHaveAttribute(
       'href',
-      /\/publishing\/review\?batch=review-batch-1$/,
+      /\/publishing\/review\?turboRun=review-turboRun-1$/,
     );
     await reviewLink.click();
     await expect(
@@ -883,7 +883,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       phase: 'approved',
       review: {
         approvedPostIds: ['draft-post-1'],
-        batchId: 'review-batch-1',
+        turboRunId: 'review-batch-1',
         postIds: ['draft-post-1'],
         workflowExecutionId: 'review-workflow-execution-1',
         workflowId: 'review-workflow-1',
@@ -991,7 +991,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       (route) => fulfillJson(route, []),
     );
     await mockReviewQueue(authenticatedPage, {
-      batchId: 'review-batch-1',
+      turboRunId: 'review-batch-1',
       itemAttributes: {
         contentRunId: 'run-meta-paid-1',
         creativeVersion: 'recipe-1',
@@ -1048,7 +1048,7 @@ test.describe('Discovery prefilled remix handoff', () => {
             phase: 'paid_draft_ready',
             review: {
               approvedPostIds: ['draft-post-1'],
-              batchId: 'review-batch-1',
+              turboRunId: 'review-batch-1',
               postIds: ['draft-post-1'],
               workflowExecutionId: 'review-workflow-execution-1',
               workflowId: 'review-workflow-1',

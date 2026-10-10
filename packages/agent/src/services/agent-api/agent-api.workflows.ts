@@ -1,5 +1,5 @@
 import type {
-  ManualReviewBatchPayload,
+  ManualReviewTurboRunPayload,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
   WorkflowTriggerScope,
@@ -51,9 +51,9 @@ export async function triggerWorkflow(
   );
 }
 
-export async function createManualReviewBatch(
+export async function createManualReviewTurboRun(
   api: AgentBaseApiService,
-  payload: ManualReviewBatchPayload,
+  payload: ManualReviewTurboRunPayload,
   signal?: AbortSignal,
 ): Promise<{
   id: string;
@@ -63,7 +63,7 @@ export async function createManualReviewBatch(
     id: string;
     items: Array<{ id: string; postId?: string }>;
   }>(
-    `${api.config.baseUrl}/batches/manual-review`,
+    `${api.config.baseUrl}/turbo-runs/manual-review`,
     {
       body: JSON.stringify(payload),
       method: 'POST',

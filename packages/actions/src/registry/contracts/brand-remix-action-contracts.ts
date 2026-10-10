@@ -121,7 +121,7 @@ const REVIEW_CLAIMED = {
 const REVIEW_HANDOFF = {
   ...REVIEW_CLAIMED,
   completed: state({
-    batchId: STRING_SCHEMA,
+    turboRunId: STRING_SCHEMA,
     postIds: arraySchema(STRING_SCHEMA),
     workflowExecutionId: STRING_SCHEMA,
     workflowId: STRING_SCHEMA,
@@ -216,14 +216,14 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   ),
   'brand-remix.generate.reconcile': contract(
     closedObjectSchema(
-      { batch: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
+      { turboRun: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
       ['state'],
     ),
     state(GENERATE_STATE, GENERATE_STATE_OPTIONAL),
   ),
   'brand-remix.generate.reserve-credits': contract(
     closedObjectSchema(
-      { batch: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
+      { turboRun: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
       ['state'],
     ),
     state(

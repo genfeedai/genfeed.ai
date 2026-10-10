@@ -138,7 +138,7 @@ export default function PostDetail({
     ? {
         generationId: (post as { generationId?: string }).generationId,
         promptUsed: (post as { promptUsed?: string }).promptUsed,
-        reviewBatchId: (post as { reviewBatchId?: string }).reviewBatchId,
+        reviewTurboRunId: (post as { reviewTurboRunId?: string }).reviewTurboRunId,
         reviewDecision: normalizeReviewDecision(post.reviewDecision),
         reviewEvents: post.reviewEvents,
         reviewedAt: (post as { reviewedAt?: string }).reviewedAt,
@@ -185,8 +185,8 @@ export default function PostDetail({
             );
             router.push(
               href(
-                draft.reviewBatchId
-                  ? `/publishing/review?batch=${draft.reviewBatchId}&filter=ready`
+                draft.reviewTurboRunId
+                  ? `/publishing/review?batch=${draft.reviewTurboRunId}&filter=ready`
                   : '/publishing/review',
               ),
             );

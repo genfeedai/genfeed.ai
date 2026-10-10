@@ -18,7 +18,7 @@ import {
   AI_INFLUENCER_WORKFLOW_DEFINITIONS,
   AI_INFLUENCER_WORKFLOW_IDS,
 } from '@api/services/ai-influencer/ai-influencer-workflow-definition';
-import { buildBatchGenerationWorkflowDefinition } from '@api/services/batch-generation/batch-generation-workflow-definition';
+import { buildTurboRunWorkflowDefinition } from '@api/services/turbo-run/turbo-run-workflow-definition';
 import {
   AB_TEST_WORKFLOW_DEFINITIONS,
   AB_TEST_WORKFLOW_IDS,
@@ -59,13 +59,13 @@ describe('code-owned product workflow module inventory', () => {
   });
 
   it('allows only settlement to finish a Batch whose module was disabled after generation', () => {
-    const graph = buildBatchGenerationWorkflowDefinition();
-    expect(graph.organizationModule).toBe('batch');
+    const graph = buildTurboRunWorkflowDefinition();
+    expect(graph.organizationModule).toBe('turboRun');
     expect(graph.moduleCompletionNodeIds).toEqual(['settle-credits']);
     expect(
       graph.definition.nodes.find((node) => node.id === 'settle-credits')?.data
         .config.actionId,
-    ).toBe('batch.generation.settle');
+    ).toBe('turbo.run.settle');
     expect(graph.moduleCompletionNodeIds).not.toContain('process-batch');
   });
 

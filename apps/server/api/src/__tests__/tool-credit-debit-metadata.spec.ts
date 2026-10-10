@@ -17,7 +17,7 @@ const ALLOWED_FILES = new Set([
   'agent-cadence-execution.service.ts',
   'agent-llm-round-reservation.util.ts',
   'agent-turn-round-runner.service.ts',
-  'batch-project-credits.service.ts',
+  'turbo-project-credits.service.ts',
   // Server-owned breakout response generation: native admission, not an agent tool; specs verify the hold and settlement.
   'breakout-output-quality.service.ts',
   'breakout-text-output-generation.service.ts',
@@ -47,7 +47,7 @@ const TOOLS_BY_FILE: Record<string, readonly string[]> = {
     'get_x_posts',
     'list_x_account_activity',
   ],
-  'batch-generation-credits.service.ts': ['generate_content_batch'],
+  'turbo-run-credits.service.ts': ['generate_turbo_content'],
   'brand-from-url.service.ts': ['create_brand_from_url'],
   'brand-interview.service.ts': ['start_brand_interview'],
   'brand-remix-run-execution.service.ts': ['start_remix_generation'],

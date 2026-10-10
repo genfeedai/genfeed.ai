@@ -5,7 +5,7 @@ export type {
   CredentialMentionItem,
   GenerateIngredientResult,
   GenerationModel,
-  ManualReviewBatchPayload,
+  ManualReviewTurboRunPayload,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
   WorkflowTriggerScope,

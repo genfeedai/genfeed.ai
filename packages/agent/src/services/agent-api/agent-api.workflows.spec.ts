@@ -1,6 +1,6 @@
 import { mockFetch, mockOk } from '@agent-tests/json-api-fetch.mock';
 import {
-  createManualReviewBatch,
+  createManualReviewTurboRun,
   getWorkflowInterface,
   triggerWorkflow,
 } from '@genfeedai/agent/services/agent-api/agent-api.workflows';
@@ -88,17 +88,17 @@ describe('agent-api.workflows', () => {
     });
   });
 
-  it('createManualReviewBatch posts the payload', async () => {
+  it('createManualReviewTurboRun posts the payload', async () => {
     mockOk({ id: 'batch-1', items: [{ id: 'item-1', postId: 'post-1' }] });
 
-    const result = await createManualReviewBatch(makeApi(), {
+    const result = await createManualReviewTurboRun(makeApi(), {
       items: [],
       name: 'Review batch',
     } as never);
 
     expect(result.id).toBe('batch-1');
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://api.test/batches/manual-review',
+      'http://api.test/turbo-runs/manual-review',
       expect.objectContaining({ method: 'POST' }),
     );
   });

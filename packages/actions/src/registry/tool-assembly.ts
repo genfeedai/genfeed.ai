@@ -41,7 +41,7 @@ const UI_ACTION_MAP: Partial<
   discover_engagements: 'engagement_opportunity_card',
   generate: 'generation_action_card',
   generate_as_identity: 'generation_action_card',
-  generate_content_batch: 'batch_generation_card',
+  generate_turbo_content: 'turbo_run_card',
   get_account: 'credits_balance_card',
   get_analytics: 'analytics_snapshot_card',
   get_outreach_sequence_analytics: 'analytics_snapshot_card',

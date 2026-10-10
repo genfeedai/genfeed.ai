@@ -312,7 +312,7 @@ describe('workflow template wiring guard (#5533)', () => {
     );
     for (const unregistered of [
       'effect-text-overlay',
-      'generate_content_batch',
+      'generate_turbo_content',
       'output-webhook',
       'process-resize',
       'process-transform',

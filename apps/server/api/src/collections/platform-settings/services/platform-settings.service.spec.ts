@@ -521,9 +521,9 @@ describe('PlatformSettingsService', () => {
         flags: {
           ...DEFAULT_PLATFORM_FLAGS,
           analytics: false,
-          batch_ideas: false,
+          turbo_ideas: false,
           studio: false,
-          studio_batch: false,
+          studio_turbo: false,
           studio_clips: false,
           studio_editor: false,
           studio_motion: false,

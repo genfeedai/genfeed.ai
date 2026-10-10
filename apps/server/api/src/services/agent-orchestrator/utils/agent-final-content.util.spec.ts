@@ -21,7 +21,7 @@ describe('agent-final-content.util', () => {
       normalizeFinalAssistantContent(
         content,
         [],
-        [{ type: 'batch_generation_result_card' } as never],
+        [{ type: 'turbo_run_result_card' } as never],
       ),
     ).toEqual({
       content: 'Here is your batch.',

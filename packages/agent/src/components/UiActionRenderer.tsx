@@ -12,8 +12,8 @@ import { AgentCompletionSummaryCard } from '@genfeedai/agent/components/AgentCom
 import { AgentTransferProvenanceCard } from '@genfeedai/agent/components/AgentTransferProvenanceCard';
 import { AiTextActionCard } from '@genfeedai/agent/components/AiTextActionCard';
 import { AnalyticsSnapshotCard } from '@genfeedai/agent/components/AnalyticsSnapshotCard';
-import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGenerationCard';
-import { BatchGenerationResultCard } from '@genfeedai/agent/components/BatchGenerationResultCard';
+import { TurboRunCard } from '@genfeedai/agent/components/TurboRunCard';
+import { TurboRunResultCard } from '@genfeedai/agent/components/TurboRunResultCard';
 import { BrandCreateCard } from '@genfeedai/agent/components/BrandCreateCard';
 import { BrandIdentityConfirmationCard } from '@genfeedai/agent/components/BrandIdentityConfirmationCard';
 import { BrandInterviewCompleteCard } from '@genfeedai/agent/components/BrandInterviewCompleteCard';
@@ -279,11 +279,11 @@ export function UiActionRenderer({
     case 'content_calendar_card':
       card = <ContentCalendarCard action={action} />;
       break;
-    case 'batch_generation_card':
-      card = <BatchGenerationCard action={action} />;
+    case 'turbo_run_card':
+      card = <TurboRunCard action={action} />;
       break;
-    case 'batch_generation_result_card':
-      card = <BatchGenerationResultCard action={action} />;
+    case 'turbo_run_result_card':
+      card = <TurboRunResultCard action={action} />;
       break;
     case 'voice_clone_card':
       card = liveApiService ? (

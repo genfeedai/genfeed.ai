@@ -362,7 +362,7 @@ export default function StoryboardRunPanel({
                 ? 'run.review.summaryOne'
                 : 'run.review.summaryMany',
               {
-                batchId: run.review.batchId,
+                turboRunId: run.review.turboRunId,
                 count: run.review.postIds.length,
               },
             )}
@@ -371,7 +371,7 @@ export default function StoryboardRunPanel({
             <Link
               className="font-medium text-primary hover:text-primary/80"
               href={activeHref(
-                `${APP_ROUTES.PUBLISHING.REVIEW}?batch=${encodeURIComponent(run.review.batchId)}`,
+                `${APP_ROUTES.PUBLISHING.REVIEW}?batch=${encodeURIComponent(run.review.turboRunId)}`,
               )}
             >
               {translate('run.review.open')}

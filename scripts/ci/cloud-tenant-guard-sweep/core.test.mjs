@@ -63,7 +63,7 @@ test('fake env covers every CLOUD-required schema key, including API overrides',
   const keys = requiredEnvKeys(sources);
   // Outside conditionalRequired(): services/microservices/microservices.service.ts,
   // auth/better-auth/{better-auth.config,better-auth.module}.ts in the API,
-  // packages/libs/prisma/prisma.service.ts, services/batch-generation/batch-review-lock.ts,
+  // packages/libs/prisma/prisma.service.ts, services/turbo-run/turbo-run-review-lock.ts,
   // and packages/config/src/schemas/base.schema.ts.
   keys.push(
     'GENFEEDAI_MICROSERVICES_FILES_URL',

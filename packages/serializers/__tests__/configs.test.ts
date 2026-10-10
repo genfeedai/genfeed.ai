@@ -81,7 +81,7 @@ describe('Serializer Configurations', () => {
         generationId: 'gen-123',
         id: 'post-123',
         promptUsed: 'Write a launch post',
-        reviewBatchId: 'batch-1',
+        reviewTurboRunId: 'batch-1',
         reviewDecision: 'approved',
         reviewItemId: 'item-1',
         source: 'source-post-variations:source-post',

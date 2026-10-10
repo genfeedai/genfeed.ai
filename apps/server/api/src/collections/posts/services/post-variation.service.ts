@@ -15,7 +15,7 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
@@ -42,7 +42,7 @@ export class PostVariationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contentGeneratorService: ContentGeneratorService,
-    private readonly batchGenerationService: BatchGenerationService,
+    private readonly turboRunService: TurboRunService,
     private readonly postsService: PostsService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
     private readonly cacheInvalidationService: CacheInvalidationService,
@@ -86,7 +86,7 @@ export class PostVariationService {
     }
 
     const groupId = randomUUID();
-    const batch = await this.batchGenerationService.createManualReviewBatch(
+    const turboRun = await this.turboRunService.createManualReviewTurboRun(
       {
         brandId: params.brandId,
         items: filtered.accepted.map((caption, index) => ({
@@ -105,7 +105,7 @@ export class PostVariationService {
       params.organizationId,
     );
 
-    const postIds = batch.items.flatMap((item) =>
+    const postIds = turboRun.items.flatMap((item) =>
       item.postId ? [item.postId] : [],
     );
     if (postIds.length !== actualCount) {
@@ -157,7 +157,7 @@ export class PostVariationService {
         groupId,
         ...(partialReason && { partialReason }),
         requestedCount: params.count,
-        reviewBatchId: batch.id,
+        reviewTurboRunId: turboRun.id,
         sourceKind: params.source.kind,
         voiceMode,
         voiceModeLabel:

@@ -286,7 +286,7 @@ export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
     provide: BrandGenerationService,
     useValue: {
       generateBrandVoice: () => Promise.resolve(null),
-      generateBatchIdeas: () => Promise.resolve([]),
+      generateTurboIdeas: () => Promise.resolve([]),
     },
   },
   {
@@ -464,8 +464,8 @@ export class TestDatabaseHelper {
     'task',
     'creditTransaction',
     'liveSession',
-    'batchProjectItem',
-    'batchProject',
+    'turboProjectItem',
+    'turboProject',
     'creditReservation',
     'creditBalance',
     'billingAccountOrganization',

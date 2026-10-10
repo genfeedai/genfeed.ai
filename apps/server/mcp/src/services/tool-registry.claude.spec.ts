@@ -25,7 +25,7 @@ describe('Claude connector execution boundary', () => {
   it.each([
     'generate',
     'transform_media',
-    'generate_content_batch',
+    'generate_turbo_content',
     'execute_workflow',
     'start_remix_generation',
     'send_chat_message',
@@ -72,7 +72,7 @@ describe('Claude connector execution boundary', () => {
       name: 'find_tools',
       arguments: { query: 'generate' },
     });
-    expect(JSON.stringify(discovery)).not.toContain('generate_content_batch');
+    expect(JSON.stringify(discovery)).not.toContain('generate_turbo_content');
     expect(JSON.stringify(discovery)).not.toContain('execute_workflow');
   });
 });

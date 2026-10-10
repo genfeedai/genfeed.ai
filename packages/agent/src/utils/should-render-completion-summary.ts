@@ -26,8 +26,8 @@ function isToolInventoryBullet(bullet: string): boolean {
  * stacked on top is pure chrome noise (T3/Codex density).
  */
 export const PRODUCT_RESULT_CARD_TYPES = new Set<AgentUiAction['type']>([
-  'batch_generation_result_card',
-  'batch_generation_card',
+  'turbo_run_result_card',
+  'turbo_run_card',
   'content_preview_card',
   'image_transform_card',
   'clip_run_card',

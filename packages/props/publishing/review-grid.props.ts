@@ -1,10 +1,10 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrite-progress.props';
 
 export interface ReviewGridProps {
-  activeItem: IBatchItem | null;
+  activeItem: ITurboRunItem | null;
   isActioning: boolean;
-  items: IBatchItem[];
+  items: ITurboRunItem[];
   selectedIds: Set<string>;
   rewritingIds?: ReadonlySet<string>;
   isRewriteStarting?: boolean;

@@ -117,7 +117,7 @@ export interface WorkflowTriggerScope {
   threadId: string;
 }
 
-export interface ManualReviewBatchPayload {
+export interface ManualReviewTurboRunPayload {
   brandId: string;
   items: Array<{
     caption?: string;

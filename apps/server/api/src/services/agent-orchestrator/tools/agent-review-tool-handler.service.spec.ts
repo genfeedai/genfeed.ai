@@ -1,11 +1,11 @@
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { readReviewQueueSnapshot } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
-import { BatchItemStatus, ReviewDecision } from '@genfeedai/contracts';
+import { TurboRunItemStatus, ReviewDecision } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it, vi } from 'vitest';
 
-const batchId = testId('reviewbatch');
+const turboRunId = testId('reviewturboRun');
 const ctx = { organizationId: 'org-1', userId: 'user-1' };
 const builder = new AgentCompletionCardBuilderService();
 
@@ -44,28 +44,28 @@ describe('review result follow-ups', () => {
 
   it('counts the entire filtered batch before pagination and excludes unfinished and failed items from ready', async () => {
     const handler = new AgentReviewToolHandler({
-      getBatch: vi.fn().mockResolvedValue({
-        id: batchId,
+      getTurboRun: vi.fn().mockResolvedValue({
+        id: turboRunId,
         totalCount: 6,
         items: [
-          { id: 'pending', status: BatchItemStatus.PENDING },
-          { id: 'processing', status: BatchItemStatus.PROCESSING },
-          { id: 'failed', status: BatchItemStatus.FAILED },
-          { id: 'ready', status: BatchItemStatus.COMPLETED },
+          { id: 'pending', status: TurboRunItemStatus.PENDING },
+          { id: 'processing', status: TurboRunItemStatus.PROCESSING },
+          { id: 'failed', status: TurboRunItemStatus.FAILED },
+          { id: 'ready', status: TurboRunItemStatus.COMPLETED },
           {
             id: 'approved',
-            status: BatchItemStatus.COMPLETED,
+            status: TurboRunItemStatus.COMPLETED,
             reviewDecision: ReviewDecision.APPROVED,
           },
           {
             id: 'changes',
-            status: BatchItemStatus.COMPLETED,
+            status: TurboRunItemStatus.COMPLETED,
             reviewDecision: ReviewDecision.REQUEST_CHANGES,
           },
         ],
       }),
     } as never);
-    const result = await handler.listReviewQueue({ batchId, limit: 1 }, ctx);
+    const result = await handler.listReviewQueue({ turboRunId, limit: 1 }, ctx);
     expect(result.data).toMatchObject({
       approvedCount: 1,
       changesRequestedCount: 1,
@@ -74,7 +74,7 @@ describe('review result follow-ups', () => {
     });
     expect(result.data?.items).toHaveLength(1);
     const filtered = await handler.listReviewQueue(
-      { batchId, status: BatchItemStatus.PROCESSING },
+      { turboRunId, status: TurboRunItemStatus.PROCESSING },
       ctx,
     );
     const ui = builder.buildAssistantUiActions({
@@ -95,19 +95,19 @@ describe('review result follow-ups', () => {
   it.each([
     'completed',
     'ready',
-    BatchItemStatus.FAILED,
-    BatchItemStatus.SKIPPED,
+    TurboRunItemStatus.FAILED,
+    TurboRunItemStatus.SKIPPED,
   ])(
     'does not infer an empty inbox from a zero-match batch filter: %s',
     async (status) => {
       const handler = new AgentReviewToolHandler({
-        getBatch: vi.fn().mockResolvedValue({
-          id: batchId,
+        getTurboRun: vi.fn().mockResolvedValue({
+          id: turboRunId,
           totalCount: 1,
-          items: [{ id: 'ready', status: BatchItemStatus.COMPLETED }],
+          items: [{ id: 'ready', status: TurboRunItemStatus.COMPLETED }],
         }),
       } as never);
-      const result = await handler.listReviewQueue({ batchId, status }, ctx);
+      const result = await handler.listReviewQueue({ turboRunId, status }, ctx);
       const ui = builder.buildAssistantUiActions({
         reviewRequired: false,
         toolCalls: [

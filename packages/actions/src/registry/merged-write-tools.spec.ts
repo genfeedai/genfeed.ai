@@ -12,7 +12,7 @@ describe('generate_content as the single content generation tool', () => {
   });
 
   it('keeps batch generation as a separate approval-required tool', () => {
-    expect(getToolByName('generate_content_batch')?.mutationPolicy).toBe(
+    expect(getToolByName('generate_turbo_content')?.mutationPolicy).toBe(
       'approval-required',
     );
   });

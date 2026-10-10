@@ -1,5 +1,5 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import { TurboRunItemStatus, ContentFormat } from '@genfeedai/contracts';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -51,12 +51,12 @@ vi.mock('@ui/primitives/select', () => ({
 
 import ReviewAssignmentPanel from './ReviewAssignmentPanel';
 
-const baseItem: IBatchItem = {
-  batchId: 'batch-1',
+const baseItem: ITurboRunItem = {
+  turboRunId: 'batch-1',
   createdAt: '2026-08-19T10:00:00.000Z',
   format: ContentFormat.IMAGE,
   id: 'item-1',
-  status: BatchItemStatus.COMPLETED,
+  status: TurboRunItemStatus.COMPLETED,
 };
 
 describe('ReviewAssignmentPanel', () => {

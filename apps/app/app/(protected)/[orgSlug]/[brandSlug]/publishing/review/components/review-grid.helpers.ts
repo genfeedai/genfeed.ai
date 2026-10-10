@@ -1,5 +1,5 @@
-import { BatchItemStatus } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import { TurboRunItemStatus } from '@genfeedai/contracts';
+import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import type {
   ReviewFilter,
   ReviewFilterCounts,
@@ -28,7 +28,7 @@ export const REVIEW_STATUS_FILTER_VALUES: ReviewStatusFilter[] = [
   'skipped',
 ];
 
-export function getReviewFilterCounts(items: IBatchItem[]): ReviewFilterCounts {
+export function getReviewFilterCounts(items: ITurboRunItem[]): ReviewFilterCounts {
   return items.reduce<ReviewFilterCounts>(
     (counts, item) => {
       counts.all += 1;
@@ -48,7 +48,7 @@ export function getReviewFilterCounts(items: IBatchItem[]): ReviewFilterCounts {
         return counts;
       }
 
-      if (item.status === BatchItemStatus.FAILED) {
+      if (item.status === TurboRunItemStatus.FAILED) {
         counts.failed += 1;
         return counts;
       }
@@ -77,7 +77,7 @@ export function getReviewFilterCounts(items: IBatchItem[]): ReviewFilterCounts {
 }
 
 export function itemMatchesReviewFilter(
-  item: IBatchItem,
+  item: ITurboRunItem,
   filter: ReviewFilter,
 ): boolean {
   switch (filter) {
@@ -88,7 +88,7 @@ export function itemMatchesReviewFilter(
     case 'changes_requested':
       return isChangesRequested(item);
     case 'failed':
-      return item.status === BatchItemStatus.FAILED;
+      return item.status === TurboRunItemStatus.FAILED;
     case 'pending':
       return isPendingReview(item);
     case 'ready':
@@ -106,9 +106,9 @@ export function itemMatchesReviewFilter(
  * Multiple statuses are a union (OR).
  */
 export function getVisibleReviewItems(
-  items: IBatchItem[],
+  items: ITurboRunItem[],
   activeFilters: readonly ReviewFilter[],
-): IBatchItem[] {
+): ITurboRunItem[] {
   const normalized = normalizeReviewFilters(activeFilters);
   if (normalized.length === 0) {
     return items;
@@ -120,7 +120,7 @@ export function getVisibleReviewItems(
 }
 
 export function getNextActiveItemId(
-  items: IBatchItem[],
+  items: ITurboRunItem[],
   currentItemId: string | null,
 ): string | null {
   if (items.length === 0) {

@@ -1,6 +1,6 @@
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
-import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
+import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tools/agent-media-turbo-run.service';
 import { resolveGenerationReferences } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
@@ -61,11 +61,11 @@ function createHandler() {
       textGenerationCredits as never,
     ),
     assetGeneration,
-    new AgentMediaBatchGenerationService(
+    new AgentMediaTurboRunService(
       logger as never,
       {} as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
-      { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
+      { queueTurboRun: vi.fn().mockResolvedValue('job-1') } as never,
     ),
     new AgentMediaTransformService(assetGeneration, gateway as never),
   );
@@ -141,8 +141,8 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
       generateAsIdentity: vi.fn().mockResolvedValue(result),
       generateImage: vi.fn().mockResolvedValue(result),
     };
-    const batchGeneration = {
-      generateContentBatch: vi.fn().mockResolvedValue(result),
+    const turboRun = {
+      generateTurboContent: vi.fn().mockResolvedValue(result),
     };
     const transformGeneration = {
       transformMedia: vi.fn().mockResolvedValue(result),
@@ -150,7 +150,7 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
     const handler = new AgentMediaGenerationToolHandler(
       textGeneration as never,
       assetGeneration as never,
-      batchGeneration as never,
+      turboRun as never,
       transformGeneration as never,
     );
     const params = { prompt: 'A launch visual' };
@@ -160,7 +160,7 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
     await handler.generate({ ...params, type: 'image' }, context);
     await handler.transformMedia(params, context);
     await handler.generateAsIdentity(params, context);
-    await handler.generateContentBatch(params, context);
+    await handler.generateTurboContent(params, context);
 
     expect(textGeneration.aiAction).toHaveBeenCalledWith(params, context);
     expect(textGeneration.generateContent).toHaveBeenCalledWith(
@@ -176,14 +176,14 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
       params,
       context,
     );
-    expect(batchGeneration.generateContentBatch).toHaveBeenCalledWith(
+    expect(turboRun.generateTurboContent).toHaveBeenCalledWith(
       params,
       context,
     );
     for (const owner of [
       textGeneration,
       assetGeneration,
-      batchGeneration,
+      turboRun,
       transformGeneration,
     ]) {
       for (const method of Object.values(owner)) {
@@ -1470,14 +1470,14 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
   );
 });
 
-describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
-  function createBatchHandler() {
+describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
+  function createTurboRunHandler() {
     const logger = { error: vi.fn(), warn: vi.fn() };
-    const batchGenerationService = {
-      cancelBatch: vi
+    const turboRunService = {
+      cancelTurboRun: vi
         .fn()
         .mockResolvedValue({ id: 'batch-1', status: 'CANCELLED' }),
-      createBatch: vi.fn().mockResolvedValue({
+      createTurboRun: vi.fn().mockResolvedValue({
         id: 'batch-1',
         status: 'PENDING',
         totalCount: 3,
@@ -1488,35 +1488,35 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       releaseReservation: vi.fn().mockResolvedValue(undefined),
       reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
     };
-    const batchCreditsService = {
+    const turboRunCreditsService = {
       recordUpfrontCharge: vi.fn().mockResolvedValue(true),
-      settleBatchCredits: vi.fn().mockResolvedValue({ settledCredits: 12 }),
+      settleTurboRunCredits: vi.fn().mockResolvedValue({ settledCredits: 12 }),
     };
-    const batchGenerationQueueService = {
-      queueBatch: vi.fn().mockResolvedValue('job-1'),
+    const turboRunQueueService = {
+      queueTurboRun: vi.fn().mockResolvedValue('job-1'),
     };
 
-    const batchOwner = new AgentMediaBatchGenerationService(
+    const turboRunOwner = new AgentMediaTurboRunService(
       logger as never,
       {} as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
-      batchGenerationQueueService as never,
-      batchGenerationService as never,
+      turboRunQueueService as never,
+      turboRunService as never,
       undefined,
       creditsUtilsService as never,
-      batchCreditsService as never,
+      turboRunCreditsService as never,
     );
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,
       {} as never,
-      batchOwner,
+      turboRunOwner,
       {} as never,
     );
 
     return {
-      batchCreditsService,
-      batchGenerationQueueService,
-      batchGenerationService,
+      turboRunCreditsService,
+      turboRunQueueService,
+      turboRunService,
       creditsUtilsService,
       handler,
       logger,
@@ -1526,7 +1526,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
   it('returns early when batch generation is not wired', async () => {
     const { handler } = createHandler();
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       { count: 3, platforms: ['instagram'] },
       context,
     );
@@ -1539,48 +1539,48 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
   });
 
   it('denies a batch above the remaining agent cap before creating or reserving', async () => {
-    const { handler, batchGenerationService, creditsUtilsService } =
-      createBatchHandler();
-    const result = await handler.generateContentBatch(
+    const { handler, turboRunService, creditsUtilsService } =
+      createTurboRunHandler();
+    const result = await handler.generateTurboContent(
       { count: 3, platforms: ['instagram'] },
       { ...context, creditBudget: 0 },
     );
     expect(result).toMatchObject({ success: false, creditsUsed: 0 });
-    expect(batchGenerationService.createBatch).not.toHaveBeenCalled();
+    expect(turboRunService.createTurboRun).not.toHaveBeenCalled();
     expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
   });
 
-  it('does not reserve credits when createBatch rejects invalid platforms', async () => {
-    const { batchGenerationService, creditsUtilsService, handler } =
-      createBatchHandler();
-    batchGenerationService.createBatch.mockRejectedValue(
+  it('does not reserve credits when createTurboRun rejects invalid platforms', async () => {
+    const { turboRunService, creditsUtilsService, handler } =
+      createTurboRunHandler();
+    turboRunService.createTurboRun.mockRejectedValue(
       new Error('Invalid batch platform(s): myspace'),
     );
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       { count: 3, platforms: ['myspace'] },
       context,
     );
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Invalid batch platform/);
+    expect(result.error).toMatch(/Invalid turboRun platform/);
     expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
-    expect(batchGenerationService.cancelBatch).not.toHaveBeenCalled();
+    expect(turboRunService.cancelTurboRun).not.toHaveBeenCalled();
   });
 
   it('cancels the batch when the credit reserve fails after create', async () => {
     const {
-      batchCreditsService,
-      batchGenerationQueueService,
-      batchGenerationService,
+      turboRunCreditsService,
+      turboRunQueueService,
+      turboRunService,
       creditsUtilsService,
       handler,
-    } = createBatchHandler();
+    } = createTurboRunHandler();
     creditsUtilsService.reserveCredits.mockRejectedValue(
       new Error('Insufficient credits'),
     );
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       {
         brandId: 'brand-1',
         count: 3,
@@ -1592,36 +1592,36 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Insufficient credits/);
     expect(result.creditsUsed).toBe(0);
-    expect(batchGenerationService.createBatch).toHaveBeenCalled();
+    expect(turboRunService.createTurboRun).toHaveBeenCalled();
     expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
       expect.objectContaining({
         actorUserId: 'user-1',
         amount: expect.any(Number),
-        idempotencyKey: 'batch-generation:batch-1',
+        idempotencyKey: 'turbo-run:batch-1',
         organizationId: 'organization-1',
         workloadId: 'batch-1',
-        workloadType: 'batch-generation',
+        workloadType: 'turbo-run',
       }),
     );
-    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+    expect(turboRunService.cancelTurboRun).toHaveBeenCalledWith(
       'batch-1',
       'organization-1',
     );
-    expect(batchCreditsService.recordUpfrontCharge).not.toHaveBeenCalled();
-    expect(batchGenerationQueueService.queueBatch).not.toHaveBeenCalled();
+    expect(turboRunCreditsService.recordUpfrontCharge).not.toHaveBeenCalled();
+    expect(turboRunQueueService.queueTurboRun).not.toHaveBeenCalled();
   });
 
   it('still returns the credit error when cancel after reserve failure also fails', async () => {
-    const { batchGenerationService, creditsUtilsService, handler, logger } =
-      createBatchHandler();
+    const { turboRunService, creditsUtilsService, handler, logger } =
+      createTurboRunHandler();
     creditsUtilsService.reserveCredits.mockRejectedValue(
       new Error('Insufficient credits'),
     );
-    batchGenerationService.cancelBatch.mockRejectedValue(
+    turboRunService.cancelTurboRun.mockRejectedValue(
       new Error('cancel failed'),
     );
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       { brandId: 'brand-1', count: 2, platforms: ['twitter'] },
       context,
     );
@@ -1632,20 +1632,20 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       expect.stringContaining(
         'failed to cancel batch after credit reserve failure',
       ),
-      expect.objectContaining({ batchId: 'batch-1' }),
+      expect.objectContaining({ turboRunId: 'batch-1' }),
     );
   });
 
   it('reserves credits, pins the ledger, and queues the batch on the async path', async () => {
     const {
-      batchCreditsService,
-      batchGenerationQueueService,
-      batchGenerationService,
+      turboRunCreditsService,
+      turboRunQueueService,
+      turboRunService,
       creditsUtilsService,
       handler,
-    } = createBatchHandler();
+    } = createTurboRunHandler();
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       {
         brandId: 'brand-1',
         count: 3,
@@ -1657,11 +1657,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     expect(result.success).toBe(true);
     expect(result.isBillingDelegated).toBe(true);
     expect(result.data).toMatchObject({
-      batchId: 'batch-1',
+      turboRunId: 'batch-1',
       totalCount: 3,
     });
     expect(result.creditsUsed).toBeGreaterThan(0);
-    expect(batchGenerationService.createBatch).toHaveBeenCalledWith(
+    expect(turboRunService.createTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         count: 3,
@@ -1674,40 +1674,40 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
-    expect(batchCreditsService.recordUpfrontCharge).toHaveBeenCalledWith(
+    expect(turboRunCreditsService.recordUpfrontCharge).toHaveBeenCalledWith(
       expect.objectContaining({
-        batchId: 'batch-1',
+        turboRunId: 'batch-1',
         organizationId: 'organization-1',
         reservationId: 'reservation-1',
       }),
     );
-    expect(batchGenerationQueueService.queueBatch).toHaveBeenCalledWith(
+    expect(turboRunQueueService.queueTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
-        batchId: 'batch-1',
+        turboRunId: 'batch-1',
         organizationId: 'organization-1',
         userId: 'user-1',
       }),
       SystemWorkflowDispatchClass.INTERACTIVE,
     );
     // Settlement is deferred to the worker on the async path.
-    expect(batchCreditsService.settleBatchCredits).not.toHaveBeenCalled();
+    expect(turboRunCreditsService.settleTurboRunCredits).not.toHaveBeenCalled();
   });
 
   it('cancels and releases when durable queue ownership cannot be recorded', async () => {
     const {
-      batchCreditsService,
-      batchGenerationQueueService,
-      batchGenerationService,
+      turboRunCreditsService,
+      turboRunQueueService,
+      turboRunService,
       handler,
-    } = createBatchHandler();
-    batchGenerationQueueService.queueBatch.mockRejectedValue(
+    } = createTurboRunHandler();
+    turboRunQueueService.queueTurboRun.mockRejectedValue(
       new Error('database unavailable'),
     );
-    batchCreditsService.settleBatchCredits.mockResolvedValue({
+    turboRunCreditsService.settleTurboRunCredits.mockResolvedValue({
       settledCredits: 0,
     });
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       { brandId: 'brand-1', count: 3, platforms: ['instagram'] },
       context,
     );
@@ -1717,12 +1717,12 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       error: 'database unavailable',
       success: false,
     });
-    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+    expect(turboRunService.cancelTurboRun).toHaveBeenCalledWith(
       'batch-1',
       'organization-1',
     );
-    expect(batchCreditsService.settleBatchCredits).toHaveBeenCalledWith({
-      batchId: 'batch-1',
+    expect(turboRunCreditsService.settleTurboRunCredits).toHaveBeenCalledWith({
+      turboRunId: 'batch-1',
       organizationId: 'organization-1',
       userId: 'user-1',
     });
@@ -1730,15 +1730,15 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
 
   it('releases the hold and cancels when the reservation ledger cannot be pinned', async () => {
     const {
-      batchCreditsService,
-      batchGenerationQueueService,
-      batchGenerationService,
+      turboRunCreditsService,
+      turboRunQueueService,
+      turboRunService,
       creditsUtilsService,
       handler,
-    } = createBatchHandler();
-    batchCreditsService.recordUpfrontCharge.mockResolvedValue(false);
+    } = createTurboRunHandler();
+    turboRunCreditsService.recordUpfrontCharge.mockResolvedValue(false);
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       { brandId: 'brand-1', count: 3, platforms: ['instagram'] },
       context,
     );
@@ -1752,26 +1752,26 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       organizationId: 'organization-1',
       reservationId: 'reservation-1',
     });
-    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+    expect(turboRunService.cancelTurboRun).toHaveBeenCalledWith(
       'batch-1',
       'organization-1',
     );
-    expect(batchGenerationQueueService.queueBatch).not.toHaveBeenCalled();
+    expect(turboRunQueueService.queueTurboRun).not.toHaveBeenCalled();
   });
 
   it('releases the hold and cancels when the reservation ledger service is unavailable', async () => {
     const {
-      batchGenerationQueueService,
-      batchGenerationService,
+      turboRunQueueService,
+      turboRunService,
       creditsUtilsService,
       logger,
-    } = createBatchHandler();
-    const batchOwner = new AgentMediaBatchGenerationService(
+    } = createTurboRunHandler();
+    const turboRunOwner = new AgentMediaTurboRunService(
       logger as never,
       {} as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
-      batchGenerationQueueService as never,
-      batchGenerationService as never,
+      turboRunQueueService as never,
+      turboRunService as never,
       undefined,
       creditsUtilsService as never,
       undefined,
@@ -1779,11 +1779,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,
       {} as never,
-      batchOwner,
+      turboRunOwner,
       {} as never,
     );
 
-    const result = await handler.generateContentBatch(
+    const result = await handler.generateTurboContent(
       { brandId: 'brand-1', count: 3, platforms: ['instagram'] },
       context,
     );
@@ -1797,32 +1797,32 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       organizationId: 'organization-1',
       reservationId: 'reservation-1',
     });
-    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+    expect(turboRunService.cancelTurboRun).toHaveBeenCalledWith(
       'batch-1',
       'organization-1',
     );
-    expect(batchGenerationQueueService.queueBatch).not.toHaveBeenCalled();
+    expect(turboRunQueueService.queueTurboRun).not.toHaveBeenCalled();
   });
 
   it('resolves a credential handle within the caller organization before creating the batch', async () => {
     const credentialsService = {
       findByHandle: vi.fn().mockResolvedValue({ brandId: 'brand-from-handle' }),
     };
-    const batchGenerationService = {
-      cancelBatch: vi.fn(),
-      createBatch: vi.fn().mockResolvedValue({
+    const turboRunService = {
+      cancelTurboRun: vi.fn(),
+      createTurboRun: vi.fn().mockResolvedValue({
         id: 'batch-handle-1',
         status: 'PENDING',
         totalCount: 1,
       }),
     };
-    const queue = { queueBatch: vi.fn().mockResolvedValue('job-handle-1') };
-    const batchOwner = new AgentMediaBatchGenerationService(
+    const queue = { queueTurboRun: vi.fn().mockResolvedValue('job-handle-1') };
+    const turboRunOwner = new AgentMediaTurboRunService(
       { error: vi.fn(), warn: vi.fn() } as never,
       {} as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       queue as never,
-      batchGenerationService as never,
+      turboRunService as never,
       credentialsService as never,
       { deductCreditsFromOrganization: vi.fn() } as never,
       { recordUpfrontCharge: vi.fn() } as never,
@@ -1830,11 +1830,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,
       {} as never,
-      batchOwner,
+      turboRunOwner,
       {} as never,
     );
 
-    await handler.generateContentBatch(
+    await handler.generateTurboContent(
       { count: 1, handle: '@creator', platforms: ['instagram'] },
       { ...context, brandId: undefined },
     );
@@ -1843,7 +1843,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       '@creator',
       'organization-1',
     );
-    expect(batchGenerationService.createBatch).toHaveBeenCalledWith(
+    expect(turboRunService.createTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({ brandId: 'brand-from-handle' }),
       'user-1',
       'organization-1',
@@ -1851,30 +1851,30 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
   });
 
   it('falls back to the member current brand when a credential has no brand', async () => {
-    const createBatch = vi.fn().mockResolvedValue({
+    const createTurboRun = vi.fn().mockResolvedValue({
       id: 'batch-selected-1',
       status: 'PENDING',
       totalCount: 1,
     });
-    const batchOwner = new AgentMediaBatchGenerationService(
+    const turboRunOwner = new AgentMediaTurboRunService(
       { error: vi.fn(), warn: vi.fn() } as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }) } as never,
       {
         findOne: vi.fn().mockResolvedValue({ currentBrandId: 'member-brand' }),
       } as never,
-      { queueBatch: vi.fn().mockResolvedValue('job-selected-1') } as never,
-      { cancelBatch: vi.fn(), createBatch } as never,
+      { queueTurboRun: vi.fn().mockResolvedValue('job-selected-1') } as never,
+      { cancelTurboRun: vi.fn(), createTurboRun } as never,
       { findByHandle: vi.fn().mockResolvedValue({ brandId: null }) } as never,
       { deductCreditsFromOrganization: vi.fn() } as never,
       { recordUpfrontCharge: vi.fn() } as never,
     );
 
-    await batchOwner.generateContentBatch(
+    await turboRunOwner.generateTurboContent(
       { count: 1, handle: '@creator', platforms: ['instagram'] },
       { ...context, brandId: undefined },
     );
 
-    expect(createBatch).toHaveBeenCalledWith(
+    expect(createTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({ brandId: 'brand-selected' }),
       'user-1',
       'organization-1',

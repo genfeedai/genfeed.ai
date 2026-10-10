@@ -42,7 +42,7 @@ vi.mock('./ReviewDetailPanel', () => ({
 import ReviewWorkspaceSurfaceAdapter from './ReviewWorkspaceSurfaceAdapter';
 
 const baseItem = {
-  batchId: 'batch-1',
+  turboRunId: 'batch-1',
   caption: 'Ship the review rail',
   createdAt: '2026-03-10T10:00:00.000Z',
   format: 'image',

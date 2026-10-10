@@ -120,7 +120,7 @@ export class PrismaGoldenSetReader implements GoldenSetReader {
       parentId: null,
       reviewDecision: { not: null },
     });
-    const batchItems = await pages(this.client.batchItem, {
+    const turboRunItems = await pages(this.client.turboRunItem, {
       ...branded,
       reviewDecision: { not: null },
     });
@@ -200,7 +200,7 @@ export class PrismaGoldenSetReader implements GoldenSetReader {
         const id = string(record(record(entry.data).metadata).postId);
         return id === null ? [] : [id];
       }),
-      ...batchItems.flatMap((item) => {
+      ...turboRunItems.flatMap((item) => {
         const id = string(record(item.data).postId);
         return id === null ? [] : [id];
       }),
@@ -208,12 +208,12 @@ export class PrismaGoldenSetReader implements GoldenSetReader {
         .filter((source) => source.startsWith('post:'))
         .map((source) => source.slice(5)),
     ]);
-    const linkedBatchItems = await pages(this.client.batchItem, {
+    const linkedTurboRunItems = await pages(this.client.turboRunItem, {
       ...tenant,
       id: {
         in: unique(
           references
-            .filter((source) => source.startsWith('batch_item:'))
+            .filter((source) => source.startsWith('turbo_run_item:'))
             .map((source) => source.slice(11)),
         ),
       },
@@ -223,7 +223,7 @@ export class PrismaGoldenSetReader implements GoldenSetReader {
       id: {
         in: unique([
           ...postIds,
-          ...linkedBatchItems.flatMap((item) => {
+          ...linkedTurboRunItems.flatMap((item) => {
             const id = string(record(item.data).postId);
             return id === null ? [] : [id];
           }),
@@ -270,7 +270,7 @@ export class PrismaGoldenSetReader implements GoldenSetReader {
       credentials,
       members,
       posts,
-      batchItems,
+      turboRunItems,
       evaluations,
       newsletters,
       profiles,
@@ -279,7 +279,7 @@ export class PrismaGoldenSetReader implements GoldenSetReader {
       linkedPosts,
       linkedArticles,
       linkedNewsletters,
-      linkedBatchItems,
+      linkedTurboRunItems,
       threadChildren,
     };
   }

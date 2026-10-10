@@ -21,8 +21,8 @@ import {
   type SystemWorkflowProvenance,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import type { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
 import { ContentFormat, ContentRunStatus } from '@genfeedai/contracts';
 import {
   BRAND_REMIX_RUN_CONTRACT,
@@ -71,7 +71,7 @@ type ReviewClaimedState = ReviewPreparedState & {
 
 type ReviewHandoffState = ReviewClaimedState & {
   completed: {
-    batchId: string;
+    turboRunId: string;
     postIds: string[];
     workflowExecutionId: string;
     workflowId: string;
@@ -84,7 +84,7 @@ export class BrandRemixRunReviewService implements OnModuleInit {
     private readonly planning: BrandRemixRunPlanningService,
     private readonly persistence: BrandRemixRunPersistenceService,
     private readonly state: BrandRemixRunStateService,
-    private readonly batchGenerationService: BatchGenerationService,
+    private readonly turboRunService: TurboRunService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     @Inject(BRAND_REMIX_RUNTIME)
@@ -325,12 +325,12 @@ export class BrandRemixRunReviewService implements OnModuleInit {
     provenance: SystemWorkflowProvenance;
     userId: string;
   }): Promise<{
-    batchId: string;
+    turboRunId: string;
     postIds: string[];
     workflowExecutionId: string;
     workflowId: string;
   }> {
-    const format: ReviewBatchItemFormat =
+    const format: ReviewTurboRunItemFormat =
       params.config.draft.output.kind === 'copy'
         ? 'post'
         : params.config.draft.output.kind === 'image'
@@ -365,14 +365,14 @@ export class BrandRemixRunReviewService implements OnModuleInit {
         workflowExecutionId: params.provenance.executionId,
       }));
     });
-    const batch = await this.batchGenerationService.createManualReviewBatch(
+    const turboRun = await this.turboRunService.createManualReviewTurboRun(
       { brandId: params.brandId, items },
       params.userId,
       params.organizationId,
       `brand-remix:${params.run.id}:review:${params.config.revision}:${selectedKey}`,
     );
     const itemCount = items.length;
-    const postIds = batch.items.flatMap((item) =>
+    const postIds = turboRun.items.flatMap((item) =>
       item.postId ? [item.postId] : [],
     );
     if (postIds.length !== itemCount) {
@@ -383,7 +383,7 @@ export class BrandRemixRunReviewService implements OnModuleInit {
       });
     }
     return {
-      batchId: batch.id,
+      turboRunId: turboRun.id,
       postIds,
       workflowExecutionId: params.provenance.executionId,
       workflowId: params.provenance.workflowId,
@@ -430,7 +430,7 @@ export class BrandRemixRunReviewService implements OnModuleInit {
       phase: 'in_review',
       review: {
         approvedPostIds: [],
-        batchId: params.completed.batchId,
+        turboRunId: params.completed.turboRunId,
         postIds: params.completed.postIds,
         workflowExecutionId: params.completed.workflowExecutionId,
         workflowId: params.completed.workflowId,
