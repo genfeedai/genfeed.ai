@@ -8,7 +8,7 @@ import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/stud
  * Builds the full widened `StudioLookPayload`. `GenerationSetupValues` is a
  * strict superset of every field the Preset entity persists, so this reads
  * straight off the shared generation-setup store's values — no round-trip
- * through `StudioGenerateSettings`.
+ * through `StudioPlaygroundSettings`.
  */
 export function buildStudioLookPayload(
   label: string,

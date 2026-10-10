@@ -1,0 +1,168 @@
+'use client';
+
+import { ViewType } from '@genfeedai/contracts';
+import type { StudioPlaygroundResultsProps } from '@genfeedai/props/studio/studio-playground.props';
+import StudioPlaygroundCard from '@pages/studio/playground/components/StudioPlaygroundCard';
+import type { StudioPlaygroundJob } from '@pages/studio/playground/types';
+import { groupStudioPlaygroundJobsByRun } from '@pages/studio/playground/utils/studio-playground-recipe';
+import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
+import { useTranslations } from 'next-intl';
+import { type ReactElement, type ReactNode, useMemo } from 'react';
+
+const RESULTS_SKELETON_SLOTS = [
+  'a',
+  'b',
+  'c',
+  'd',
+  'e',
+  'f',
+  'g',
+  'h',
+] as const;
+
+function ResultsSkeleton(): ReactElement {
+  return (
+    <div data-testid="studio-results-skeleton">
+      <OrderedMasonry>
+        {RESULTS_SKELETON_SLOTS.map((slot) => (
+          <Skeleton
+            className="aspect-[4/5] w-full rounded-card"
+            key={slot}
+            variant="rounded"
+          />
+        ))}
+      </OrderedMasonry>
+    </div>
+  );
+}
+
+function ResultsSheet({
+  children,
+  view,
+}: {
+  children: ReactNode;
+  view: StudioPlaygroundResultsProps['view'];
+}): ReactElement {
+  if (view === ViewType.LIST) {
+    return (
+      <div className="flex flex-col gap-2" data-testid="studio-list">
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div data-testid="studio-grid">
+      <OrderedMasonry className="[&>[data-masonry-item]]:transition-opacity [&>[data-masonry-item]]:duration-300 [&>[data-masonry-item]]:ease-out motion-reduce:[&>[data-masonry-item]]:transition-none [@media(hover:hover)]:[&:has(>[data-masonry-item]:hover)>[data-masonry-item]:not(:hover):not(:focus-within)]:opacity-95 [&:has(>[data-masonry-item]_:focus-visible)>[data-masonry-item]:not(:focus-within):not(:hover)]:opacity-95">
+        {children}
+      </OrderedMasonry>
+    </div>
+  );
+}
+
+/**
+ * Everything this brand has generated, newest first — live jobs from the
+ * current session merged over the stored library rows so a fresh render never
+ * loses the run the operator just kicked off. N outputs from one submit share
+ * a run id and render as one group.
+ */
+export default function StudioPlaygroundResults({
+  assetActions,
+  isLoading,
+  jobs,
+  isUseAsReferenceEnabled,
+  onReprompt,
+  onSelect,
+  onUseAsReference,
+  selectedJobId,
+  view,
+}: StudioPlaygroundResultsProps): ReactElement {
+  const translate = useTranslations('pages.studioPlayground');
+  const runs = groupStudioPlaygroundJobsByRun(jobs);
+  const jobsByIngredientId = useMemo(
+    () =>
+      new Map(
+        jobs.flatMap((job: StudioPlaygroundJob) =>
+          job.ingredientId ? [[job.ingredientId, job] as const] : [],
+        ),
+      ),
+    [jobs],
+  );
+
+  function renderCard(job: StudioPlaygroundJob): ReactElement {
+    return (
+      <StudioPlaygroundCard
+        assetActions={assetActions}
+        isSelected={selectedJobId === job.id}
+        job={job}
+        key={job.id}
+        isUseAsReferenceEnabled={isUseAsReferenceEnabled?.(job)}
+        onReprompt={onReprompt}
+        onSelect={onSelect}
+        onUseAsReference={onUseAsReference}
+        parentJob={
+          job.parentId ? jobsByIngredientId.get(job.parentId) : undefined
+        }
+        view={view}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex flex-col gap-3"
+      data-results-view={view}
+      data-testid="studio-playground-results"
+    >
+      {jobs.length === 0 ? (
+        isLoading ? (
+          <ResultsSkeleton />
+        ) : (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
+            <p className="text-sm text-foreground">{translate('emptyTitle')}</p>
+            <p className="text-xs text-muted-foreground">
+              {translate('emptyDescription')}
+            </p>
+          </div>
+        )
+      ) : view === ViewType.GRID ? (
+        <>
+          {runs
+            .filter((run) => run.jobs.length > 1)
+            .map((run) => (
+              <span
+                className="sr-only"
+                data-run-count={run.jobs.length}
+                data-testid={`studio-run-${run.id}`}
+                key={run.id}
+              >
+                {translate('runOutputs', { count: run.jobs.length })}
+              </span>
+            ))}
+          <ResultsSheet view={view}>{jobs.map(renderCard)}</ResultsSheet>
+        </>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {runs.map((run) => (
+            <section
+              className="flex flex-col gap-2"
+              data-run-count={run.jobs.length}
+              data-testid={`studio-run-${run.id}`}
+              key={run.id}
+            >
+              {run.jobs.length > 1 ? (
+                <h2 className="text-xs font-medium text-muted-foreground">
+                  {translate('runOutputs', { count: run.jobs.length })}
+                </h2>
+              ) : null}
+              <ResultsSheet view={view}>
+                {run.jobs.map(renderCard)}
+              </ResultsSheet>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

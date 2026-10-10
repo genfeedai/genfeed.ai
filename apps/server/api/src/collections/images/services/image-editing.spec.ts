@@ -1,7 +1,11 @@
 import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { buildIdeogramImageEditInput } from '@api/services/prompt-builder/builders/replicate/ideogram-image-edit.builder';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  RouterPriority,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
@@ -58,6 +62,92 @@ beforeEach(() => {
 });
 
 describe('Image editing admission and provider contract', () => {
+  it('admits both editing contracts for Auto but excludes FLUX for masks, seeds, batches and incompatible source metadata', async () => {
+    const flux = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+    const both = await service.admitCompatibleImageEdits(
+      primary,
+      dto({ model: undefined, size: 'source' }),
+      organizationId,
+      brandId,
+    );
+    expect([...both.keys()]).toEqual([model, flux]);
+    expect(both.get(flux)?.recipe).toMatchObject({
+      model: flux,
+      resolution: '1k',
+      aspectRatio: 'auto',
+    });
+    for (const patch of [
+      { maskId: mask },
+      { seed: 0 },
+      { outputs: 2 },
+      { size: '1536x640' as const },
+    ]) {
+      const compatible = await service.admitCompatibleImageEdits(
+        primary,
+        dto(patch),
+        organizationId,
+        brandId,
+      );
+      expect([...compatible.keys()]).toEqual([model]);
+      expect(compatible.get(model)?.recipe).toMatchObject(patch);
+    }
+    findOne.mockImplementation(async (query: { id: string }) =>
+      ready(query.id, 128, 128),
+    );
+    expect([
+      ...(
+        await service.admitCompatibleImageEdits(
+          primary,
+          dto(),
+          organizationId,
+          brandId,
+        )
+      ).keys(),
+    ]).toEqual([model]);
+  });
+  it('fails Auto admission on foreign sources and incompatible settings without broadening eligibility', async () => {
+    findOne.mockResolvedValue(null);
+    await expect(
+      service.admitCompatibleImageEdits(
+        primary,
+        dto(),
+        organizationId,
+        brandId,
+      ),
+    ).rejects.toThrow();
+    findOne.mockImplementation(async (query: { id: string }) =>
+      ready(query.id),
+    );
+    await expect(
+      service.admitCompatibleImageEdits(
+        primary,
+        dto({ maskId: mask, resolution: '1k' }),
+        organizationId,
+        brandId,
+      ),
+    ).rejects.toThrow();
+  });
+  it('validates the Auto editing flag and priority', async () => {
+    expect(
+      await validate(
+        plainToInstance(EditImageDto, {
+          prompt: 'Edit',
+          autoSelectModel: true,
+          prioritize: RouterPriority.QUALITY,
+        }),
+      ),
+    ).toEqual([]);
+    const errors = await validate(
+      plainToInstance(EditImageDto, {
+        prompt: 'Edit',
+        autoSelectModel: 'yes',
+        prioritize: 'random',
+      }),
+    );
+    expect(errors.map((error) => error.property)).toEqual(
+      expect.arrayContaining(['autoSelectModel', 'prioritize']),
+    );
+  });
   it('preserves source order and sends only the verified editing fields with one native batch', async () => {
     const editing = await service.admitImageEdit(
       primary,

@@ -1,13 +1,29 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
+import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 @Injectable()
 export class BrandedGenerationReceiptAccessService {
+  constructor(private readonly brandAccessService: BrandAccessService) {}
   async assertBrand(
     actor: BrandedGenerationActorV1,
     tx: Prisma.TransactionClient,
   ): Promise<{ isOwnerOrAdmin: boolean }> {
+    if (isCloudDeployment()) {
+      const principal = { ...actor, userId: actor.actorId };
+      try {
+        await this.brandAccessService.assert(principal, actor.brandId, tx);
+        const { role } = await this.brandAccessService.resolve(principal, tx);
+        return {
+          isOwnerOrAdmin:
+            role === MemberRole.OWNER || role === MemberRole.ADMIN,
+        };
+      } catch {
+        throw new ForbiddenException('receipt_access_denied');
+      }
+    }
     const [organization, brand, member] = await Promise.all([
       tx.organization.findFirst({
         where: { id: actor.organizationId, isDeleted: false },

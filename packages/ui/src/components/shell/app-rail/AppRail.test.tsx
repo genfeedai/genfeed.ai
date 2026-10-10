@@ -524,7 +524,7 @@ describe('AppRail', () => {
     openMoreMenu();
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'href',
-      '/acme/my-brand/studio/generate',
+      '/acme/my-brand/studio/playground',
     );
   });
 
@@ -715,7 +715,7 @@ describe('AppRail', () => {
 
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/studio/generate',
+      '/acme/moonrise/studio/playground',
     );
   });
 
@@ -1139,7 +1139,7 @@ describe('AppRail', () => {
       openMoreMenu();
       expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/studio/generate',
+        '/acme/my-brand/studio/playground',
       );
     });
 

@@ -7,14 +7,16 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
+import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-
+import ClipsInputForm from '../components/ClipsInputForm';
 import { ClipsApiService } from '../services/clips-api.service';
+import { useStudioClipsPage } from '../useStudioClipsPage';
 
 let pendingCreation: { key: string; promise: Promise<string> } | null = null;
 
@@ -40,7 +42,7 @@ function createClipProjectOnce(
   return promise;
 }
 
-function NewClipProjectPageContent() {
+function IngredientClipProjectPageContent() {
   const t = useTranslations('pages.studioClips');
   const { replace } = useRouter();
   const { href } = useOrgUrl();
@@ -63,7 +65,7 @@ function NewClipProjectPageContent() {
   const createFailedMessage = t('projectCreateFailed');
 
   useEffect(() => {
-    if (!isBrandReady) {
+    if (!isBrandReady || !videoId) {
       return;
     }
 
@@ -144,6 +146,52 @@ function NewClipProjectPageContent() {
     >
       <Spinner className="size-12 text-primary" />
     </div>
+  );
+}
+
+function ClipSourceImport() {
+  const t = useTranslations('pages.studioClips');
+  const clips = useStudioClipsPage();
+  return (
+    <Container label={t('newProject')} titleVisibility="sr-only">
+      <div className="mx-auto w-full max-w-2xl space-y-4">
+        <h1 className="text-xl font-semibold">{t('importSourceTitle')}</h1>
+        <p className="text-sm text-muted-foreground">
+          {t('importSourceDescription')}
+        </p>
+        <ClipsInputForm
+          sourceOnly
+          draftSaveState={clips.draftSaveState}
+          error={clips.error}
+          generationMode={clips.generationMode}
+          isSubmitting={clips.isSubmitting}
+          maxClips={clips.maxClips}
+          minViralityScore={clips.minViralityScore}
+          onAnalyze={clips.handleAnalyze}
+          onModeChange={clips.setGenerationMode}
+          onStartQuick={clips.handleStartFromYoutube}
+          onSetMaxClips={clips.setMaxClips}
+          onSetMinViralityScore={clips.setMinViralityScore}
+          onSetSourceFile={clips.setSourceFile}
+          onSetSourceKind={clips.setSourceKind}
+          onSetYoutubeUrl={clips.setYoutubeUrl}
+          quickStartHint=""
+          sourceFile={clips.sourceFile}
+          sourceKind={clips.sourceKind}
+          uploadProgress={clips.uploadProgress}
+          youtubeUrl={clips.youtubeUrl}
+        />
+      </div>
+    </Container>
+  );
+}
+
+function NewClipProjectPageContent() {
+  const searchParams = useSearchParams();
+  return searchParams.get('video') ? (
+    <IngredientClipProjectPageContent />
+  ) : (
+    <ClipSourceImport />
   );
 }
 

@@ -3,9 +3,9 @@ import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type {
   IStudioGenerateDraft,
   StudioGenerateDraftReference,
-  StudioGenerateSettings,
-  StudioGenerateType,
-} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+  StudioPlaygroundSettings,
+  StudioPlaygroundType,
+} from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 
 export class StudioGenerateDraft
   extends BaseEntity
@@ -19,9 +19,9 @@ export class StudioGenerateDraft
   declare public prompt: string;
   declare public references: StudioGenerateDraftReference[];
   declare public settingsByType: Partial<
-    Record<StudioGenerateType, Partial<StudioGenerateSettings>>
+    Record<StudioPlaygroundType, Partial<StudioPlaygroundSettings>>
   >;
-  declare public type: StudioGenerateType;
+  declare public type: StudioPlaygroundType;
   declare public userId: string;
 
   constructor(data: Partial<IStudioGenerateDraft> = {}) {

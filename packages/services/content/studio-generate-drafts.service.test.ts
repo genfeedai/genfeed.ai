@@ -1,4 +1,4 @@
-import type { StudioGenerateDraftPayload } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioGenerateDraftPayload } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import { StudioGenerateDraftsService } from '@services/content/studio-generate-drafts.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

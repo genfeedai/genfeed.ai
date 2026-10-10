@@ -1,3 +1,4 @@
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
@@ -120,8 +121,13 @@ function setup() {
     harness as never,
     skills as never,
     openRouter as never,
+    brandAccessFixture(),
   );
   const request: BrandedTextGenerationRequestV1 = {
+    initiatingActor: {
+      userId: input.actorId,
+      organizationId: input.organizationId,
+    },
     input,
     privateLearning,
     resolveApiKey: vi.fn().mockResolvedValue('byok-key'),

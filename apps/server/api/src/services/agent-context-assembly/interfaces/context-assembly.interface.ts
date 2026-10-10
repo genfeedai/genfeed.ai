@@ -4,6 +4,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export interface AssembleContextParams {
+  isApiKey?: boolean;
+  scopes?: string[];
   organizationId: string;
   /**
    * The thread's own validated brand scope — pass this only when the caller

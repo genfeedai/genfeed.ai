@@ -160,6 +160,8 @@ export class AgentOrchestratorContextService {
       requestedBrandId: request.brandId,
       threadId: request.threadId,
       userId: context.userId,
+      isApiKey: context.apiKeyContext?.isApiKey,
+      scopes: context.apiKeyContext?.scopes,
     });
     const policy: ResolvedAgentExecutionPolicy = {
       ...basePolicy,
@@ -286,6 +288,8 @@ export class AgentOrchestratorContextService {
       platform: policy.platform,
       query: request.content,
       userId: context.userId,
+      isApiKey: context.apiKeyContext?.isApiKey,
+      scopes: context.apiKeyContext?.scopes,
     });
   }
 

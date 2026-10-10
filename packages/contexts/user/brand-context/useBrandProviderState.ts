@@ -275,6 +275,9 @@ export function useBrandProviderState({
       return undefined;
     }
 
+    if (routeOrgSlug && routeBrandSlug && hasResolvedBrandList && !routeBrand)
+      return undefined;
+
     if (selectedBrand) {
       return selectedBrand;
     }
@@ -303,9 +306,13 @@ export function useBrandProviderState({
       return getBrandEntityId(effectiveSelectedBrand);
     }
 
-    return getBrandEntityId(effectiveSelectedBrand) || brandId;
+    return (
+      getBrandEntityId(effectiveSelectedBrand) ||
+      (hasResolvedBrandList ? '' : brandId)
+    );
   }, [
     brandId,
+    hasResolvedBrandList,
     effectiveSelectedBrand,
     isOrgRoute,
     routeBrand,

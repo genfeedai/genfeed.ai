@@ -1,3 +1,4 @@
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -19,6 +20,7 @@ import {
   ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.service';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
 import type { IAnalytics, IBrand } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -142,7 +144,17 @@ export class AuthBootstrapService {
     organizationId: string,
     userId: string,
     isSuperAdmin: boolean,
+    actor?: BrandAccessActor,
   ) {
+    if (isCloudDeployment()) {
+      const access = await this.brandsService.brandAccessService.resolve(
+        actor ?? { userId, organizationId },
+      );
+      return this.brandsService.findForOrganization(organizationId, {
+        brandIds: access.brandIds,
+        includeCredentials: true,
+      });
+    }
     if (!isSuperAdmin) {
       await this.membersService.findOne({
         organizationId: organizationId,
@@ -202,6 +214,23 @@ export class AuthBootstrapService {
       requestContext?.subscriptionTier ??
       (user ? getSubscriptionTier(user, request) : '');
 
+    const cloudActor = {
+      userId,
+      organizationId,
+      isApiKey: user?.isApiKey,
+      scopes: user?.scopes,
+    };
+    const liveCloudAccess =
+      isCloudDeployment() && userId && organizationId
+        ? await this.brandsService.brandAccessService.resolve(cloudActor)
+        : null;
+    const liveCloudBrands = liveCloudAccess
+      ? await this.brandsService.findForOrganization(organizationId, {
+          brandIds: liveCloudAccess.brandIds,
+          includeCredentials: true,
+        })
+      : null;
+
     if (userId && organizationId) {
       const cached = await this.accessBootstrapCacheService.get(
         userId,
@@ -211,8 +240,21 @@ export class AuthBootstrapService {
         // The cache is keyed by user, but super-admin depends on the client IP.
         const cachedForRequest: AccessBootstrapCachePayload = {
           ...cached,
+          ...(liveCloudBrands
+            ? { brands: toPlainJson(liveCloudBrands) as unknown as IBrand[] }
+            : {}),
           access: {
             ...cached.access,
+            ...(liveCloudBrands
+              ? {
+                  brandId: liveCloudBrands.some(
+                    (brand) => getBrandId(brand) === brandId,
+                  )
+                    ? brandId
+                    : getBrandId(liveCloudBrands[0]),
+                  memberRole: liveCloudAccess?.role ?? null,
+                }
+              : {}),
             isSuperAdmin: user ? getIsSuperAdmin(user, request) : false,
           },
         };
@@ -251,10 +293,18 @@ export class AuthBootstrapService {
             )
           : 0,
         hasValidUserId && hasValidOrganizationId
-          ? this.getAccessibleBrands(organizationId, userId, isSuperAdmin)
+          ? (liveCloudBrands ??
+            this.getAccessibleBrands(
+              organizationId,
+              userId,
+              isSuperAdmin,
+              cloudActor,
+            ))
           : [],
         hasValidUserId && hasValidOrganizationId
-          ? this.resolveMemberRole(organizationId, userId)
+          ? liveCloudAccess
+            ? liveCloudAccess.role
+            : this.resolveMemberRole(organizationId, userId)
           : null,
       ]);
 
@@ -262,7 +312,9 @@ export class AuthBootstrapService {
       (candidate) => getBrandId(candidate) === brandId,
     );
     const resolvedBrandId = brandId
-      ? getBrandId(matchedBrand) || getBrandId(brands[0]) || brandId
+      ? getBrandId(matchedBrand) ||
+        getBrandId(brands[0]) ||
+        (isCloudDeployment() ? '' : brandId)
       : '';
 
     return {
@@ -347,7 +399,7 @@ export class AuthBootstrapService {
     request: AuthBootstrapRequest,
   ): Promise<OverviewBootstrapPayload> {
     const requestCacheKey = this.getOverviewBootstrapRequestCacheKey(request);
-    if (requestCacheKey) {
+    if (requestCacheKey && !isCloudDeployment()) {
       const cached = this.getCachedOverviewBootstrap(requestCacheKey);
       if (cached) {
         return cached;
@@ -358,7 +410,11 @@ export class AuthBootstrapService {
     const organizationId = bootstrap.access.organizationId;
     const brandId = bootstrap.access.brandId || undefined;
 
-    if (!organizationId || typeof organizationId !== 'string') {
+    if (
+      !organizationId ||
+      typeof organizationId !== 'string' ||
+      (isCloudDeployment() && !brandId)
+    ) {
       return {
         analytics: {},
         reviewInbox: {
@@ -376,7 +432,7 @@ export class AuthBootstrapService {
     const cacheKey =
       requestCacheKey ?? this.getOverviewBootstrapCacheKey(bootstrap.access);
     const cached = this.getCachedOverviewBootstrap(cacheKey);
-    if (cached) {
+    if (cached && !isCloudDeployment()) {
       return cached;
     }
 

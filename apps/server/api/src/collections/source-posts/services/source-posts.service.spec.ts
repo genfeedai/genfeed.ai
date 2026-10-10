@@ -222,6 +222,33 @@ describe('SourcePostsService', () => {
     expect(sourcePost.upsert).toHaveBeenCalledTimes(3);
   });
 
+  it('excludes timeline sources from URL import deduplication within the same live tenant and brand', async () => {
+    sourcePost.findFirst.mockResolvedValue(null);
+    await service.findByExternalIdScoped(
+      { organizationId: 'org-1', brandId: 'brand-1' },
+      SocialSourcePlatform.TWITTER,
+      '123',
+      [SocialSourceType.TIMELINE],
+    );
+    expect(sourcePost.findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        isDeleted: false,
+        externalId: '123',
+        platform: SocialSourcePlatform.TWITTER,
+        source: {
+          is: {
+            organizationId: 'org-1',
+            brandId: 'brand-1',
+            isDeleted: false,
+            sourceType: { notIn: [SocialSourceType.TIMELINE] },
+          },
+        },
+      },
+    });
+  });
+
   it('propagates outlier refresh failures after storing the account batch', async () => {
     outliers.refresh.mockRejectedValueOnce(new Error('snapshot failed'));
     await expect(

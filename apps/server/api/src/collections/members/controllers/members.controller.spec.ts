@@ -1,3 +1,5 @@
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+
 // Stub only the serializer hop — `returnNotFound` stays real so the 404
 // convention this suite asserts is the production one, not a test double.
 vi.mock(
@@ -64,6 +66,7 @@ function buildController() {
     mockMembersService,
     mockInvitationService,
     mockLoggerService,
+    brandAccessFixture(),
   );
 }
 
@@ -180,7 +183,7 @@ describe('MembersController.findAll — organization roster', () => {
         include: {
           brands: {
             select: { id: true, label: true, slug: true },
-            where: { isDeleted: false },
+            where: { isDeleted: false, organizationId: callerOrgId },
           },
           role: true,
           user: {

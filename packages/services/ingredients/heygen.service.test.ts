@@ -109,6 +109,28 @@ describe('HeygenService', () => {
     },
   );
 
+  it('loads a single ownership-bound page with continuation and cancellation', async () => {
+    const page = { avatars: [], ownership: 'private', nextCursor: 'next' };
+    const abort = new AbortController();
+    mockGet.mockResolvedValueOnce({ data: { data: { attributes: page } } });
+    await expect(
+      service.fetchAvatarPage({
+        ownership: 'private',
+        cursor: 'current',
+        signal: abort.signal,
+      }),
+    ).resolves.toBe(page);
+    expect(mockGet).toHaveBeenCalledWith(
+      'https://api.test.com/v1/heygen/avatars/page',
+      {
+        handledErrorStatuses: [500, 502, 503, 504],
+        signal: abort.signal,
+        params: { ownership: 'private', cursor: 'current' },
+      },
+    );
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+
   it('generates avatar videos through the videos avatar endpoint', async () => {
     const response: IHeyGen = {
       createdAt: '2026-06-08T00:00:00.000Z',

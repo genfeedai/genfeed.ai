@@ -443,15 +443,17 @@ export class SocialSourcesService {
       context,
       reference.platform,
       externalId,
+      [SocialSourceType.TIMELINE],
     );
 
-    // Reuse the existing item's source; fall back to an import container when
-    // the original source was since removed.
+    // Timeline snapshots can remove their posts. URL imports must use a
+    // durable non-timeline source, or create an inactive POST container.
     const existingSource = existing
       ? await this.prisma.socialSource.findFirst({
           where: scopedWhere(context.organizationId, {
             brandId: context.brandId,
             id: existing.sourceId,
+            sourceType: { not: SocialSourceType.TIMELINE },
           }),
         })
       : null;

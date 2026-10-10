@@ -6,7 +6,7 @@ import {
   AgentGenerationQuoteUnavailableReason,
   type AgentToolResult,
 } from '@genfeedai/contracts/interfaces';
-import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import {
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,

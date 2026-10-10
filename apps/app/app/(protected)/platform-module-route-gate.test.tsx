@@ -5,7 +5,7 @@ import PlatformModuleRouteGate from './platform-module-route-gate';
 const state = vi.hoisted(() => ({
   flags: {} as Record<string, boolean>,
   isSuperAdmin: false,
-  pathname: '/acme/brand/studio/generate',
+  pathname: '/acme/brand/studio/playground',
 }));
 
 vi.mock('next/navigation', () => ({
@@ -35,7 +35,7 @@ describe('PlatformModuleRouteGate (#5468)', () => {
   beforeEach(() => {
     state.flags = { studio: true };
     state.isSuperAdmin = false;
-    state.pathname = '/acme/brand/studio/generate';
+    state.pathname = '/acme/brand/studio/playground';
   });
 
   it('renders a module route while its flag is on', () => {

@@ -9,6 +9,7 @@ import {
 } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -140,6 +141,10 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
         INSERT INTO users(id) VALUES ('legacyBase62User'), ('otherUser');
         INSERT INTO brands(id, "organizationId") VALUES ('brand-a', 'org-a'), ('brand-b', 'org-a'), ('brand-c', 'org-b');
+        CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
+        CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "userId" text NOT NULL REFERENCES users(id), "roleId" text NOT NULL REFERENCES roles(id), "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false);
+        INSERT INTO roles(id,key) VALUES ('admin','admin'),('ordinary','user');
+        INSERT INTO members(id,"organizationId","userId","roleId") VALUES ('canonical-admin','org-a','legacyBase62User','admin'),('canonical-member','org-a','otherUser','ordinary');
         CREATE TABLE context_bases (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "createdById" text, "sourceBrandId" text, data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
         CREATE TABLE context_entries (id text PRIMARY KEY, "contextBaseId" text NOT NULL REFERENCES context_bases(id), "organizationId" text NOT NULL REFERENCES organizations(id), data jsonb NOT NULL DEFAULT '{}', "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
       `);
@@ -161,7 +166,10 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         { schema },
       ),
     });
-    records = new KnowledgeRecordsService(prisma as unknown as PrismaService);
+    records = new KnowledgeRecordsService(
+      prisma as unknown as PrismaService,
+      brandAccessFixture(prisma as unknown as PrismaService as never),
+    );
   });
 
   afterEach(async () => {
@@ -193,7 +201,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       ).rejects.toMatchObject({ status: 404 });
       await expect(
         records.purgeVersion(denied, source.id, version.id),
-      ).rejects.toMatchObject({ status: 404 });
+      ).rejects.toMatchObject({ status: denied === otherTenant ? 403 : 404 });
       expect((await records.listSources(denied)).docs).toHaveLength(0);
     }
     const personal = await createSource(KnowledgeMemoryScope.PERSONAL);
@@ -748,7 +756,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         },
         otherTenant.brandId,
       ),
-    ).rejects.toMatchObject({ status: 404 });
+    ).rejects.toMatchObject({ status: 403 });
     const inboxResponse = await spaces.inbox(
       request,
       actor,
@@ -782,6 +790,12 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       organizationId: 'org-a',
       sourceId: capturedId,
       versionId: captured.versionId,
+      initiatingActor: {
+        userId: actor.userId,
+        organizationId: actor.organizationId,
+        isApiKey: false,
+        scopes: [],
+      },
     });
     const current = await records.getCurrentVersion(actor, capturedId);
     expect(current).toMatchObject({

@@ -287,6 +287,8 @@ export class AgentThreadsController {
         organizationId,
         threadId,
         userId,
+        isApiKey: user.isApiKey,
+        scopes: user.scopes,
       });
 
       return serializeSingle(req, AgentThreadSerializer, updated);

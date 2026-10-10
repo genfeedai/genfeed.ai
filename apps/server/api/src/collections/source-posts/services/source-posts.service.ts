@@ -187,12 +187,25 @@ export class SourcePostsService {
     context: { organizationId: string; brandId: string },
     platform: string,
     externalId: string,
+    excludedSourceTypes: readonly SocialSourceType[] = [],
   ): Promise<SourcePostDocument | null> {
     return this.db.sourcePost.findFirst({
       where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         externalId,
         platform,
+        ...(excludedSourceTypes.length > 0
+          ? {
+              source: {
+                is: {
+                  organizationId: context.organizationId,
+                  brandId: context.brandId,
+                  isDeleted: false,
+                  sourceType: { notIn: [...excludedSourceTypes] },
+                },
+              },
+            }
+          : {}),
       }),
     });
   }

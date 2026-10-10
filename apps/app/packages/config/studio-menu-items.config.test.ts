@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { STUDIO_MENU_ITEMS } from './studio-menu-items.config';
 
 describe('STUDIO_MENU_ITEMS', () => {
-  it('lists Studio surfaces in a single flat group, Generate first', () => {
+  it('lists Studio surfaces in a single flat group, Playground first', () => {
     expect(STUDIO_MENU_ITEMS.map((item) => item.label)).toEqual([
-      'Generate',
+      'Playground',
       'Motion',
       'Storyboard',
       'Clips',
@@ -13,7 +13,7 @@ describe('STUDIO_MENU_ITEMS', () => {
     ]);
     expect(STUDIO_MENU_ITEMS.every((item) => item.group === '')).toBe(true);
     expect(STUDIO_MENU_ITEMS.map((item) => item.href)).toEqual([
-      '/studio/generate',
+      '/studio/playground',
       '/studio/motion',
       '/studio/storyboard',
       '/studio/clips',
@@ -40,7 +40,7 @@ describe('STUDIO_MENU_ITEMS', () => {
     // workspace-shell breadcrumb existed, but nothing linked to it.
     const hrefs = STUDIO_MENU_ITEMS.map((item) => item.href);
 
-    expect(hrefs).toContain('/studio/generate');
+    expect(hrefs).toContain('/studio/playground');
     expect(hrefs).toContain('/studio/clips');
     expect(hrefs).toContain('/studio/editor');
     expect(hrefs).not.toContain('/studio/edit');

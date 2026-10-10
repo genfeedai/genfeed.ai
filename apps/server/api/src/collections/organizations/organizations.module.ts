@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 /**
  * Organizations Module
  * Multi-tenant organization management: org profiles, settings, billing,
@@ -48,6 +49,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [OrganizationsCoreModule],
   imports: [
+    BrandAccessModule,
     PlatformSettingsModule,
     OrganizationsCoreModule,
     BillingAccountsModule,

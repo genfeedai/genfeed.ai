@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
@@ -7,6 +8,7 @@ import { OrganizationsMembersController } from '@api/collections/organizations/c
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -53,6 +55,7 @@ describe('Organization member mutations (real HTTP role guard)', () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [OrganizationsMembersController],
       providers: [
+        { provide: BrandAccessService, useValue: brandAccessFixture() },
         RolesGuard,
         Reflector,
         { provide: MembersService, useValue: members },

@@ -23,6 +23,7 @@ import {
   ModelCategory,
   ModelProvider,
   PromptStatus,
+  RouterPriority,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { mapReplicateBillingTiers } from '@genfeedai/pricing';
@@ -1541,6 +1542,71 @@ describe('Crun unsupported caller context admission', () => {
 describe('instruction-based image editing lifecycle', () => {
   const editingModel = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
   const sourceId = testId('editsource');
+  it('ranks only admitted Auto editors using the requested priority and persists the selected recipe', async () => {
+    const {
+      service,
+      imagesService,
+      routerService,
+      sharedService,
+      replicateService,
+    } = createService();
+    routerService.selectModel.mockResolvedValue({
+      selectedModel: editingModel,
+    });
+    imagesService.findOne.mockResolvedValue({
+      id: sourceId,
+      status: IngredientStatus.GENERATED,
+      s3Key: 'source.png',
+      metadata: { width: 1024, height: 768, extension: 'png' },
+    });
+    await service.editImage(
+      buildUser(),
+      sourceId,
+      {
+        prompt: 'Change the sign',
+        brandId: RESOLVED_BRAND,
+        autoSelectModel: true,
+        prioritize: RouterPriority.COST,
+        outputs: 2,
+        seed: 0,
+      },
+      buildRequest({ creditsConfig: { deferred: true, amount: 0 } }),
+    );
+    expect(routerService.selectModel).toHaveBeenCalledWith({
+      category: ModelCategory.IMAGE_EDIT,
+      prompt: 'Change the sign',
+      prioritize: RouterPriority.COST,
+      outputs: 2,
+      organizationId: ORG,
+      eligibleModelKeys: [editingModel],
+    });
+    // Normal generation may resolve the chosen key; the edit default is never consulted.
+    expect(routerService.resolveModelKey).not.toHaveBeenCalledWith({
+      category: ModelCategory.IMAGE_EDIT,
+      organizationId: ORG,
+    });
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1),
+    );
+    expect(sharedService.createMediaDocuments.mock.calls[0][1]).toMatchObject({
+      providerData: { imageEdit: { model: editingModel, outputs: 2, seed: 0 } },
+    });
+  });
+  it('rejects a foreign Auto source before routing, creating outputs or funding', async () => {
+    const { service, imagesService, routerService, sharedService } =
+      createService();
+    imagesService.findOne.mockResolvedValue(null);
+    await expect(
+      service.editImage(
+        buildUser(),
+        sourceId,
+        { prompt: 'Edit', autoSelectModel: true },
+        buildRequest(),
+      ),
+    ).rejects.toThrow();
+    expect(routerService.selectModel).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+  });
   it('resolves the editing default, preserves raw instructions and funds one native batch of outputs', async () => {
     const {
       service,

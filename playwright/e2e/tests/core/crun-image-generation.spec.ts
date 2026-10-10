@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import type { CrunImageQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { Page } from '@playwright/test';
@@ -181,6 +182,13 @@ async function installFixture(
       await route.fulfill({
         json: {
           ...bootstrap,
+          currentUser: {
+            ...bootstrap.currentUser,
+            settings: {
+              ...(bootstrap.currentUser.settings as ISetting),
+              isAdvancedMode: true,
+            },
+          },
           settings: {
             ...bootstrap.settings,
             enabledModelIds: [nanoKey, seedreamKey],
@@ -308,10 +316,10 @@ async function installFixture(
     },
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
-  const composer = page.getByTestId('studio-generate-composer-shell');
+  await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND));
+  const composer = page.getByTestId('studio-playground-composer-shell');
   const editor = page
-    .getByTestId('studio-generate-prompt')
+    .getByTestId('studio-playground-prompt')
     .getByRole('textbox');
   await expect(editor).toBeVisible();
   await editor.fill('A ceramic bird on a desk');
@@ -320,7 +328,7 @@ async function installFixture(
 
 async function openGenerationSetup(page: Page, summary: string) {
   const setup = page.getByRole('button', { name: /^Generation setup:/ });
-  await expect(setup).toContainText(summary);
+  await expect(setup).toHaveAccessibleName(`Generation setup: ${summary}`);
   await setup.click();
 }
 async function openConfiguration(page: Page, section: string) {
@@ -338,7 +346,7 @@ async function selectValue(page: Page, label: string, value: string) {
   await page.getByRole('option', { name: value, exact: true }).click();
 }
 async function expectSubmitTooltip(page: Page, statusName: string) {
-  const shell = page.getByTestId('studio-generate-composer-shell');
+  const shell = page.getByTestId('studio-playground-composer-shell');
   const generate = shell.getByRole('button', {
     name: 'Generate',
     exact: true,
@@ -452,7 +460,7 @@ for (const key of [nanoKey, seedreamKey]) {
     await expect(card).toBeVisible();
     await card.click();
     const image = page
-      .getByTestId('studio-generate-inspector')
+      .getByTestId('studio-playground-inspector')
       .getByRole('img');
     await expect(image).toHaveAttribute('src', fixture.ownedUrl);
     await expect
@@ -518,10 +526,16 @@ test('expired server quote preserves the prompt and never resubmits automaticall
   await expect(errorToast).toBeVisible();
   await expect(page.getByTestId(/^studio-asset-failed-/)).toBeVisible();
   await expect.poll(() => fixture.consumes.length).toBe(1);
+  const errorDialog = page.getByRole('dialog', {
+    name: 'Request failed',
+    exact: true,
+  });
+  await expect(errorDialog).toBeVisible();
+  await errorDialog.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(fixture.editor).toHaveText('A ceramic bird on a desk');
   await expect(
     page
-      .getByTestId('studio-generate-results')
+      .getByTestId('studio-playground-results')
       .getByTestId('studio-asset-crun-owned-seedream'),
   ).toHaveCount(0);
   expect(fixture.consumes).toHaveLength(1);

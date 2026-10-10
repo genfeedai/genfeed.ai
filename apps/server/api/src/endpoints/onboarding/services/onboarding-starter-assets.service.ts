@@ -201,6 +201,7 @@ export class OnboardingStarterAssetsService {
     userId: string;
   }): Promise<string | null> {
     const brief = await this.harnessGenerationService.resolveBrief({
+      userId: input.userId,
       brandId: input.brandId,
       contentType: 'post',
       includeContentMemory: false,

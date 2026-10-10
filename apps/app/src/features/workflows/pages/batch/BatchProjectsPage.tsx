@@ -6,6 +6,10 @@ import type { IBatchProject } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import {
+  getJsonApiErrorMember,
+  getJsonApiErrorMessage,
+} from '@services/core/json-api-error-message';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
@@ -24,7 +28,7 @@ export default function BatchProjectsPage() {
   const t = useTranslations('pages.batchProjects');
   const locale = useLocale();
   const { brandId } = useBrand();
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const service = useAuthedService(createBatchProjectsApi);
   const [projects, setProjects] = useState<IBatchProject[]>([]);
   const [page, setPage] = useState(1);
@@ -33,6 +37,7 @@ export default function BatchProjectsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const { view, setView } = useCollectionViewPreference({
     surface: 'studio.batch',
     defaultView: ViewType.LIST,
@@ -42,6 +47,8 @@ export default function BatchProjectsPage() {
     setProjects([]);
     setPage(1);
     setLoadedPage(0);
+    setError(null);
+    setIsSubscriptionRequired(false);
   }, [brandId]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: refresh explicitly retries the current page after a failed load.
   useEffect(() => {
@@ -65,10 +72,16 @@ export default function BatchProjectsPage() {
         setLoadedPage(page);
         setHasMore(items.length === 50);
         setError(null);
+        setIsSubscriptionRequired(false);
       })
       .catch((reason: unknown) => {
-        if (!controller.signal.aborted)
-          setError(reason instanceof Error ? reason.message : t('loadFailed'));
+        if (controller.signal.aborted) return;
+        const member = getJsonApiErrorMember(reason);
+        setIsSubscriptionRequired(
+          member?.status === 403 &&
+            member.title === 'Active subscription required',
+        );
+        setError(getJsonApiErrorMessage(reason, t('loadFailed')));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -80,7 +93,7 @@ export default function BatchProjectsPage() {
       await (await service()).remove(id);
       setProjects((items) => items.filter((item) => item.id !== id));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('saveFailed'));
+      setError(getJsonApiErrorMessage(reason, t('saveFailed')));
     }
   }
   function actions(project: IBatchProject) {
@@ -138,13 +151,22 @@ export default function BatchProjectsPage() {
     <Container
       label={t('title')}
       right={
-        <Button asChild>
-          <Link href={href(APP_ROUTES.STUDIO.BATCH_NEW)}>{t('new')}</Link>
-        </Button>
+        !isSubscriptionRequired && (
+          <Button asChild>
+            <Link href={href(APP_ROUTES.STUDIO.BATCH_NEW)}>{t('new')}</Link>
+          </Button>
+        )
       }
     >
       <div className="flex flex-col gap-8">
         {error && <p role="alert">{error}</p>}
+        {isSubscriptionRequired && (
+          <Button asChild>
+            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+              {t('manageSubscription')}
+            </Link>
+          </Button>
+        )}
         {!loading && !projects.length && !error && <p>{t('empty')}</p>}
         <CollectionSection title={t('recent')} itemCount={recent.length}>
           <CollectionList>
@@ -175,7 +197,7 @@ export default function BatchProjectsPage() {
             )}
           />
         </CollectionSection>
-        {(hasMore || error) && (
+        {!isSubscriptionRequired && (hasMore || error) && (
           <Button
             isDisabled={loading}
             onClick={() => {

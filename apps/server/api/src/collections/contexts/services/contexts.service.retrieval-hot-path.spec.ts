@@ -1,3 +1,5 @@
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -73,6 +75,7 @@ describe('ContextsService retrieval hot path', () => {
     const retrieval = new KnowledgeContentRetrievalService(
       prismaService,
       service,
+      brandAccessFixture(),
     );
 
     return {
@@ -232,6 +235,7 @@ describe('ContextsService retrieval hot path', () => {
     ]);
 
     const hits = await retrieval.retrieveBrandContentMemory({
+      userId: 'user-1',
       brandId: 'brand-1',
       knowledgePurposes: ['BRAND_TRUTH'] as never,
       knowledgeSourceIds: ['source-1'],

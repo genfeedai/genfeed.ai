@@ -880,7 +880,18 @@
     "save": "Save",
     "updateFailed": "Could not update the project. Try again.",
     "deleteFailed": "Could not delete the project. Try again.",
-    "clipsCount": "{count, plural, one {# clip} other {# clips}}"
+    "clipsCount": "{count, plural, one {# clip} other {# clips}}",
+    "importAndTranscribe": "Import & transcribe",
+    "importingSource": "Importing source…",
+    "importCreditsNotice": "Uses credits to transcribe and find highlights. No avatar videos are generated.",
+    "importSourceTitle": "Import a clip source",
+    "importSourceDescription": "Add a YouTube URL or upload audio or video. We will save the project, transcribe it, and find highlights.",
+    "sourceVideoPreview": "Source video preview",
+    "playSourceVideo": "Play source video",
+    "transcript": "Transcript",
+    "transcriptPending": "The transcript will appear here after transcription.",
+    "avatarDefaultsHint": "Avatar video generation needs a saved HeyGen avatar and voice. You can analyze the source without them.",
+    "configureAvatarDefaults": "Set avatar and voice defaults"
   },
   "studioBatch": {
     "emptyExecutions": "No recent batch executions yet.",
@@ -1265,6 +1276,17 @@
       "saving": "Saving…"
     },
     "workspace": {
+      "references": "Session references",
+      "searchReferences": "Find a reference…",
+      "removeReference": "Remove {title}",
+      "noReferences": "Add a starting image or style references from your Library.",
+      "noMatchingReferences": "No references match your search.",
+      "emptyTitle": "Tell your story",
+      "emptyDescription": "Describe your video, choose its format and add references. Your saved storyboard will contain editable shots, timing and a preview.",
+      "shots": "Shots",
+      "styles": "Style references",
+      "characters": "Characters",
+      "seconds": "{seconds} s",
       "addImages": "Add images",
       "addImagesTitle": "Add images to storyboard",
       "addVideos": "Add videos",
@@ -1316,7 +1338,7 @@
     "readOnlyBadge": "(read-only)",
     "title": "This project is read-only"
   },
-  "studioGenerate": {
+  "studioPlayground": {
     "editImage": {
       "fluxResolution": "FLUX resolution",
       "fluxAspectRatio": "FLUX aspect ratio",
@@ -1522,7 +1544,7 @@
     "undo": "Undo",
     "undoPromptEnhancement": "Undo prompt enhancement",
     "videoReference": "Video Reference",
-    "title": "Generate",
+    "title": "Playground",
     "viewGrid": "Grid",
     "viewList": "List",
     "makeClips": "Make clips",
@@ -3033,7 +3055,9 @@
     "newBrand": "New Brand",
     "platformCount": "{count, plural, one {# platform} other {# platforms}}",
     "redirecting": "Opening your workspace",
-    "title": "Projects"
+    "title": "Projects",
+    "noBrandAccess": "No brands assigned. Ask an organization admin for access.",
+    "brandUnavailable": "Brand unavailable."
   },
   "organizationRouting": {
     "failure": {
@@ -3874,8 +3898,8 @@
       "title": "Trash",
       "body": "Deleted assets stay here until they are purged. Restore anything you still need."
     },
-    "studioGenerate": {
-      "title": "Generate",
+    "studioPlayground": {
+      "title": "Playground",
       "body": "Create images, video, audio, and copy from a prompt. Results land in the Library and can go straight to a post."
     },
     "studioStoryboard": {
@@ -4928,6 +4952,7 @@
     "create": "Create batch",
     "loading": "Loading batch…",
     "loadFailed": "Could not load batches.",
+    "manageSubscription": "Manage subscription",
     "saveFailed": "Could not save the batch. Try again.",
     "saving": "Saving…",
     "saved": "Saved",
@@ -5216,5 +5241,24 @@
     "brandDescription": "Avatar and speaking voice (TTS) defaults. Empty values inherit organization defaults. Writing tone lives under Brand voice.",
     "publicPreset": "Public preset",
     "personalConnection": "Personal HeyGen"
+  },
+  "botAccountLinks": {
+    "title": "Bot account links",
+    "manage": "Manage bot account links",
+    "description": "Link a private bot conversation to your Genfeed account. This does not grant organization or brand access.",
+    "confirmTitle": "Confirm your bot account",
+    "confirmDescription": "Confirm only if you started this request in your own private bot conversation.",
+    "sender": "{platform} account: {remoteUserId}",
+    "confirm": "Confirm account link",
+    "confirmed": "Account linked. Return to your private bot conversation.",
+    "challengeUnavailable": "This confirmation is unavailable or expired. Start a new link request in your private bot conversation.",
+    "loadError": "Unable to load your linked accounts.",
+    "retry": "Retry",
+    "loading": "Loading bot account links…",
+    "empty": "No bot accounts linked. Send /link in your private bot conversation to start.",
+    "unlink": "Unlink account",
+    "unlinked": "Account unlinked.",
+    "mutationError": "The account link could not be updated. Please try again.",
+    "revoked": "Unlinked"
   }
 }

@@ -7,5 +7,5 @@ export const generateMetadata = createPageMetadata('Remix');
 
 export default async function PostsRemixPage({ params }: PostsRemixPageProps) {
   const { brandSlug, orgSlug } = await params;
-  redirect(`/${orgSlug}/${brandSlug}${APP_ROUTES.STUDIO.GENERATE}`);
+  redirect(`/${orgSlug}/${brandSlug}${APP_ROUTES.STUDIO.PLAYGROUND}`);
 }

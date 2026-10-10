@@ -1,4 +1,5 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA plus a working
 // `Prisma.sql` tag via the light @genfeedai/prisma/testing subpath — no heavy
@@ -118,6 +119,7 @@ describe('BrandLifecycleService', () => {
       cacheInvalidationService as unknown as CacheInvalidationService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       userAccessCacheService as unknown as UserAccessCacheService,
+      brandAccessFixture(prisma as never),
     );
   });
 
@@ -143,6 +145,7 @@ describe('BrandLifecycleService', () => {
         currentBrandId,
         userId,
         organizationId,
+        { userId: userId, organizationId: organizationId },
       );
 
       expect(delegate.findFirst).toHaveBeenCalledWith({
@@ -171,7 +174,10 @@ describe('BrandLifecycleService', () => {
       });
       memberDelegate.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.selectBrandForUser(currentBrandId, userId, organizationId);
+      await service.selectBrandForUser(currentBrandId, userId, organizationId, {
+        userId: userId,
+        organizationId: organizationId,
+      });
 
       // A concurrent remove() targeting the same brand row blocks behind
       // this FOR UPDATE lock (or vice versa) rather than racing the
@@ -187,6 +193,7 @@ describe('BrandLifecycleService', () => {
           'brand_missing',
           'user_current',
           'org_current',
+          { userId: 'user_current', organizationId: 'org_current' },
         ),
       ).rejects.toThrow(NotFoundException);
       expect(memberDelegate.updateMany).not.toHaveBeenCalled();
@@ -205,7 +212,10 @@ describe('BrandLifecycleService', () => {
       memberDelegate.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        service.selectBrandForUser(currentBrandId, userId, organizationId),
+        service.selectBrandForUser(currentBrandId, userId, organizationId, {
+          userId: userId,
+          organizationId: organizationId,
+        }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -225,8 +235,18 @@ describe('BrandLifecycleService', () => {
       );
       memberDelegate.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.selectBrandForUser(brandA, memberOneUserId, organizationId);
-      await service.selectBrandForUser(brandB, memberTwoUserId, organizationId);
+      await service.selectBrandForUser(
+        brandA,
+        memberOneUserId,
+        organizationId,
+        { userId: memberOneUserId, organizationId: organizationId },
+      );
+      await service.selectBrandForUser(
+        brandB,
+        memberTwoUserId,
+        organizationId,
+        { userId: memberTwoUserId, organizationId: organizationId },
+      );
 
       expect(memberDelegate.updateMany).toHaveBeenNthCalledWith(1, {
         data: { currentBrandId: brandA },

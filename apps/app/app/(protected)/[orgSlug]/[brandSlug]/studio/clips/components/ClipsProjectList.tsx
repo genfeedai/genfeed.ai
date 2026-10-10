@@ -10,8 +10,8 @@ import type {
   ClipsProjectListProps,
 } from '@props/studio/clips.props';
 import { NotificationsService } from '@services/core/notifications.service';
+import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
@@ -29,9 +29,11 @@ import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Pencil, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useMemo, useState } from 'react';
+import { youtubeThumbnailUrl } from '../utils/youtube-thumbnail';
 
 import ClipsProjectCard from './ClipsProjectCard';
 
@@ -58,7 +60,7 @@ export default function ClipsProjectList({
   const [isSaving, setIsSaving] = useState(false);
   const recent = useMemo(
     () =>
-      [...projects].sort((a, b) => updatedTime(b) - updatedTime(a)).slice(0, 5),
+      [...projects].sort((a, b) => updatedTime(b) - updatedTime(a)).slice(0, 3),
     [projects],
   );
   const projectHref = (project: ClipProjectSummary) =>
@@ -132,9 +134,22 @@ export default function ClipsProjectList({
 
   function row(project: ClipProjectSummary) {
     const date = project.updatedAt ?? project.createdAt;
+    const thumbnail = youtubeThumbnailUrl(project.sourceVideoUrl);
     return (
       <ListRow
         data-testid={`clips-project-row-${project.id}`}
+        leading={
+          thumbnail ? (
+            <Image
+              src={thumbnail}
+              alt=""
+              width={64}
+              height={36}
+              unoptimized
+              className="shrink-0 rounded object-cover"
+            />
+          ) : undefined
+        }
         density="compact"
         title={project.name}
         meta={
@@ -158,17 +173,24 @@ export default function ClipsProjectList({
   return (
     <div className="flex flex-col gap-8" data-testid="clips-project-list">
       {!isLoading && (
-        <CollectionSection
+        <CollectionCarouselSection
           data-testid="clips-projects-recent"
           title={t('recent')}
           itemCount={recent.length}
         >
-          <CollectionList>
-            {recent.map((project) => (
-              <div key={project.id}>{row(project)}</div>
-            ))}
-          </CollectionList>
-        </CollectionSection>
+          {recent.map((project) => (
+            <div
+              key={project.id}
+              className="min-w-64 shrink-0 basis-[calc((100%_-_2rem)/3)]"
+            >
+              <ClipsProjectCard
+                project={project}
+                href={projectHref(project)}
+                actions={actions(project)}
+              />
+            </div>
+          ))}
+        </CollectionCarouselSection>
       )}
       <CollectionSection
         data-testid="clips-projects-all"

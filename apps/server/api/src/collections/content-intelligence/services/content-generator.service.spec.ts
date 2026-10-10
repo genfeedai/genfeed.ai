@@ -14,6 +14,7 @@ import type { AssembledBrandContext } from '@api/services/agent-context-assembly
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { getActionDefinition } from '@genfeedai/actions';
 import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
 import {
@@ -86,6 +87,7 @@ function realOnboardingHarness() {
         composeContentHarnessBrief(registry, input),
     } as never,
     { log: vi.fn(), warn: vi.fn() } as never,
+    brandAccessFixture(),
     { findOne } as never,
     { resolveContributionForBrand: vi.fn().mockResolvedValue(null) } as never,
     { retrieveBrandContentMemory: vi.fn().mockResolvedValue([]) } as never,

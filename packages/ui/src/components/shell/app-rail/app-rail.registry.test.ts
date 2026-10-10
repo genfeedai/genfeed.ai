@@ -42,7 +42,7 @@ describe('app rail registry', () => {
     ).toEqual([
       '/acme/selected/agent',
       '/acme/~/workspace/overview',
-      '/acme/selected/studio/generate',
+      '/acme/selected/studio/playground',
     ]);
     expect(
       getAppRailHref(app('agent'), { ...scope, brandSlug: 'routed' }),

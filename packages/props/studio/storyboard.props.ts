@@ -22,8 +22,24 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IStoryboardMergeSettings } from '@genfeedai/contracts/interfaces/components/storyboard.interface';
 import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import type { MergeProgressStep } from './merge.props';
+
+export interface StoryboardWorkspaceReference {
+  readonly id: string;
+  readonly title: string;
+  readonly group: string;
+  readonly kind: 'image' | 'video';
+  readonly url?: string;
+  readonly onRemove?: () => void;
+  readonly onSelect?: () => void;
+  readonly isSelected?: boolean;
+}
+
+export interface StoryboardReferencesPanelProps {
+  readonly references: readonly StoryboardWorkspaceReference[];
+  readonly actions?: ReactNode;
+}
 
 export interface EaseCurveSelectorProps {
   value?: VideoEaseCurve;

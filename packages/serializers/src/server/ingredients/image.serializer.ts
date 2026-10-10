@@ -41,6 +41,8 @@ export const { ImageEditSerializer } = buildSerializer(
 export const { ImageEditingRequestSerializer } = buildSerializer('server', {
   type: 'image-editing-request',
   attributes: [
+    'autoSelectModel',
+    'prioritize',
     'prompt',
     'brand',
     'model',

@@ -7,6 +7,8 @@ import type {
   BrandPromptReferenceV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 export interface BrandedGenerationActorV1 {
+  isApiKey?: boolean;
+  scopes?: string[];
   organizationId: string;
   brandId: string;
   actorId: string;

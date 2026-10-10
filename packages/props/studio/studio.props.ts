@@ -207,7 +207,7 @@ export interface StudioLayoutRef {
   isFormValid: () => boolean;
 }
 
-export interface StudioGenerateContentProps {
+export interface StudioPlaygroundContentProps {
   categoryType?: IngredientCategory;
   defaultCategoryType?: IngredientCategory;
   onIngredientCategoryChange?: (category: IngredientCategory) => void;

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -40,7 +41,9 @@ const FIXTURE_SQL = `
   CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
   CREATE TABLE users (id text PRIMARY KEY);
   CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
-  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
+  CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
+  INSERT INTO roles(id,key) VALUES ('owner','owner');
+  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner' REFERENCES roles(id), "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE folders (id text PRIMARY KEY, "userId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text, "parentId" text, label text NOT NULL, description text, "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TYPE "BookmarkCategory" AS ENUM ('INSTAGRAM', 'TIKTOK', 'TWEET', 'URL', 'YOUTUBE');
   CREATE TYPE "BookmarkPlatform" AS ENUM ('INSTAGRAM', 'TIKTOK', 'TWITTER', 'WEB', 'YOUTUBE');
@@ -111,12 +114,16 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
         { schema },
       ),
     });
-    records = new KnowledgeRecordsService(prisma as unknown as PrismaService);
+    records = new KnowledgeRecordsService(
+      prisma as unknown as PrismaService,
+      brandAccessFixture(prisma as unknown as PrismaService as never),
+    );
     service = new KnowledgeLegacyBackfillService(
       prisma as unknown as PrismaService,
       records,
       { enqueueIngest } as never,
       { log: vi.fn(), warn: vi.fn() } as never,
+      brandAccessFixture(prisma as unknown as PrismaService as never),
     );
   });
 
@@ -129,7 +136,10 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
   });
 
   it('migrates every convertible legacy row exactly once and quarantines the rest', async () => {
-    const report = await service.run('org-a');
+    const report = await service.run({
+      organizationId: 'org-a',
+      userId: 'member-a',
+    });
 
     expect(report).toMatchObject({
       bookmarks: { migrated: 3, quarantined: 1, skipped: 0 },
@@ -165,7 +175,7 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
       kind: KnowledgeSourceKind.URL,
       purpose: KnowledgeSourcePurpose.INSPIRATION,
       scope: KnowledgeMemoryScope.BRAND,
-      userId: 'owner-a',
+      userId: 'member-a',
     });
     const pricingVersion = pricing.versions[0];
     expect(pricingVersion).toMatchObject({
@@ -240,11 +250,23 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
     expect(enqueueIngest).toHaveBeenCalledTimes(4);
     expect(enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
+      initiatingActor: {
+        organizationId: 'org-a',
+        userId: 'member-a',
+        isApiKey: false,
+        scopes: [],
+      },
       sourceId: video.id,
       versionId: video.versions[0]?.id,
     });
     expect(enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
+      initiatingActor: {
+        organizationId: 'org-a',
+        userId: 'member-a',
+        isApiKey: false,
+        scopes: [],
+      },
       sourceId: thread.id,
       versionId: thread.versions[0]?.id,
     });
@@ -265,7 +287,10 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
   });
 
   it('is idempotent across repeated and partial runs', async () => {
-    const first = await service.run('org-a');
+    const first = await service.run({
+      organizationId: 'org-a',
+      userId: 'member-a',
+    });
     const countAfterFirst = await prisma.knowledgeSource.count({
       where: { organizationId: 'org-a' },
     });
@@ -275,7 +300,10 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
     await prisma.knowledgeSpaceMembership.deleteMany({
       where: { organizationId: 'org-a', space: { title: 'Swipe file' } },
     });
-    const second = await service.run('org-a');
+    const second = await service.run({
+      organizationId: 'org-a',
+      userId: 'member-a',
+    });
 
     expect(second.bookmarks).toEqual({
       migrated: 0,

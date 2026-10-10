@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { mergeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -280,6 +281,9 @@ export class AgentToolExecutorService implements OnModuleInit {
   @Inject(AgentOnboardingBrandSetupToolHandler)
   private readonly onboardingBrandSetupHandler!: AgentOnboardingBrandSetupToolHandler;
 
+  @Inject(BrandAccessService)
+  private readonly brandAccessService!: BrandAccessService;
+
   constructor(
     private readonly loggerService: LoggerService,
     private readonly routeRewriteService: AgentRouteRewriteService,
@@ -511,9 +515,9 @@ export class AgentToolExecutorService implements OnModuleInit {
           context.validatedScope,
           'tool',
         );
-        this.assertToolBrandScope(toolName, parameters, context);
       }
 
+      await this.assertToolBrandScope(toolName, parameters, context);
       await this.workObjects.assertReady(context, toolName);
       const policyResult = await this.mutationAuthorizationService.authorize(
         toolName,
@@ -607,23 +611,28 @@ export class AgentToolExecutorService implements OnModuleInit {
     return toPlainJson(executionResult);
   }
 
-  private assertToolBrandScope(
+  private async assertToolBrandScope(
     toolName: CuratedActionName,
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
-  ): void {
-    const scope = context.validatedScope;
-    if (!scope) {
-      throw new Error('Validated agent scope is required for tool execution.');
-    }
-
+  ): Promise<void> {
+    const actor = {
+      userId: context.userId,
+      organizationId: context.organizationId,
+      ...context.apiKeyContext,
+    };
     const parameterBrandId = readOptionalString(parameters.brandId);
-    if (
-      parameterBrandId &&
-      parameterBrandId !== scope.brandId &&
-      toolName !== 'create_brand_from_url' &&
-      toolName !== 'get_brand_scan_status'
-    ) {
+    for (const brandId of new Set(
+      [context.brandId, parameterBrandId].filter((id): id is string =>
+        Boolean(id),
+      ),
+    )) {
+      await this.brandAccessService.assert(actor, brandId);
+    }
+    const scope = context.validatedScope;
+    if (!scope) return;
+
+    if (parameterBrandId && parameterBrandId !== scope.brandId) {
       throw new Error(
         'Tool brand parameters must match the validated thread brand scope.',
       );

@@ -354,7 +354,7 @@ export function useFailedIngredientRecovery({
         if (snapshotScope === currentScopeRef.current)
           router.push(
             href(
-              `${APP_ROUTES.STUDIO.GENERATE}?handoff=${encodeURIComponent(id)}`,
+              `${APP_ROUTES.STUDIO.PLAYGROUND}?handoff=${encodeURIComponent(id)}`,
             ),
           );
       } catch (error) {

@@ -92,6 +92,7 @@ export interface ClipProjectReadResponse {
     minViralityScore?: number;
     mode?: string;
   };
+  transcriptText?: string;
   sourceVideoUrl?: string;
   sourceVideoS3Key?: string;
   status?: string;

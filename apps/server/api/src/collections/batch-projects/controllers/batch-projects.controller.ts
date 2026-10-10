@@ -55,7 +55,7 @@ const BATCH_PROJECT_WRITE_SCOPES = [
 @AutoSwagger()
 @ApiTags('BatchProjects')
 @Controller('batch-projects')
-@UseGuards(RolesGuard, SubscriptionGuard)
+@UseGuards(RolesGuard)
 export class BatchProjectsController {
   constructor(
     private readonly batchProjectsService: BatchProjectsService,
@@ -87,6 +87,7 @@ export class BatchProjectsController {
   }
 
   @Post()
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
@@ -117,6 +118,7 @@ export class BatchProjectsController {
   }
 
   @Patch(':id')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
@@ -134,6 +136,7 @@ export class BatchProjectsController {
   }
 
   @Delete(':id')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(@CurrentUser() user: User, @Param('id') id: string) {
@@ -142,6 +145,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/items')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async addItems(
@@ -159,6 +163,7 @@ export class BatchProjectsController {
   }
 
   @Patch(':id/items/:itemId')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateItem(
@@ -178,6 +183,7 @@ export class BatchProjectsController {
   }
 
   @Delete(':id/items/:itemId')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async removeItem(
@@ -195,6 +201,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/ideas')
+  @UseGuards(SubscriptionGuard)
   @FeatureFlag('batch_ideas')
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   async generateIdeas(
@@ -212,6 +219,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/quote')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -231,6 +239,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/start')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -249,6 +258,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/items/:itemId/retry')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -269,6 +279,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/review')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(ApiKeyScope.POSTS_APPROVE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async review(
@@ -287,6 +298,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/schedule')
+  @UseGuards(SubscriptionGuard)
   @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE, ApiKeyScope.POSTS_PUBLISH)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async schedule(

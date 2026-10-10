@@ -22,7 +22,9 @@ export interface IdempotentKnowledgeCaptureHelpers {
   ) => Promise<KnowledgeSource>;
   ownership: (
     actor: KnowledgeActor,
-  ) => Prisma.KnowledgeSourceWhereInput & Prisma.KnowledgeSpaceWhereInput;
+  ) => Promise<
+    Prisma.KnowledgeSourceWhereInput & Prisma.KnowledgeSpaceWhereInput
+  >;
   prepareScope: (
     tx: Prisma.TransactionClient,
     actor: KnowledgeActor,
@@ -64,7 +66,7 @@ export async function captureIdempotentKnowledgeSource(
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
   const existing = await tx.knowledgeSource.findFirst({
     where: {
-      ...helpers.ownership(actor),
+      ...(await helpers.ownership(actor)),
       organizationId: actor.organizationId,
       userId: actor.userId,
       isDeleted: false,
@@ -132,7 +134,7 @@ async function reuseLedgerCapture(
   }
   const existingSource = await tx.knowledgeSource.findFirst({
     where: {
-      ...input.helpers.ownership(input.actor),
+      ...(await input.helpers.ownership(input.actor)),
       id: input.ledger.sourceId,
       isDeleted: false,
       organizationId: input.actor.organizationId,
@@ -172,7 +174,7 @@ async function completeExistingCapture(
       isDeleted: false,
       sourceId: input.sourceId,
       version: 1,
-      source: { is: input.helpers.ownership(input.actor) },
+      source: { is: await input.helpers.ownership(input.actor) },
     },
   });
   const provenance = version?.provenance;
@@ -253,6 +255,12 @@ async function createFreshCapture(
       contentHash: input.versionDto.contentHash,
       provenance: {
         ...input.versionDto.provenance,
+        initiatingActor: {
+          userId: input.actor.userId,
+          organizationId: input.actor.organizationId,
+          isApiKey: input.actor.isApiKey === true,
+          scopes: input.actor.scopes ?? [],
+        },
         captureRequestHash: input.requestHash,
       },
       payload: input.versionDto.payload,
@@ -293,7 +301,7 @@ async function matchMediaCapture(
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`knowledge-media:${input.actor.organizationId}:${input.mediaKey}`}, 0))::text`;
   const mediaMatch = await tx.knowledgeSource.findFirst({
     where: {
-      ...input.helpers.ownership(input.actor),
+      ...(await input.helpers.ownership(input.actor)),
       isDeleted: false,
       mediaReferenceKey: input.mediaKey,
       organizationId: input.actor.organizationId,

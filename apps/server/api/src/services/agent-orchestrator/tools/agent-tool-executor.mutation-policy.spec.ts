@@ -1,3 +1,5 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import {
@@ -11,6 +13,12 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const deployment = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => deployment.cloud,
+}));
 
 function createWorkflowRunner() {
   const executors = new Map<string, SystemWorkflowActionExecutor>();
@@ -99,6 +107,7 @@ describe('AgentToolExecutorService mutation policy', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    deployment.cloud = false;
     mcpApprovals = {
       attachResult: vi.fn(),
       claimExecution: vi.fn().mockResolvedValue(true),
@@ -166,10 +175,102 @@ describe('AgentToolExecutorService mutation policy', () => {
       workflowRunner as never,
     );
     Object.assign(service, {
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     service.onModuleInit();
+  });
+
+  it('reauthorizes a staged approval after assignment revocation before claiming or dispatching it', async () => {
+    deployment.cloud = true;
+    const member = { role: { key: 'user' }, brands: [{ id: testId('brand') }] };
+    const findMember = vi.fn(async () => member);
+    const policy = new BrandAccessService({
+      member: { findFirst: findMember },
+      brand: {
+        findFirst: vi.fn(async () =>
+          member.brands.length ? { id: testId('brand') } : null,
+        ),
+      },
+    } as never);
+    Object.assign(service, { brandAccessService: policy });
+    const authorize = vi
+      .spyOn(mutationAuthorizationService, 'authorize')
+      .mockResolvedValue({ kind: 'execute' });
+    publishHandler.createPost.mockResolvedValue({
+      success: true,
+      creditsUsed: 0,
+    });
+    const caller = context({ brandId: testId('brand') });
+    expect(
+      (await service.executeTool('create_post', { content: 'Draft' }, caller))
+        .success,
+    ).toBe(true);
+    member.brands = [];
+    authorize.mockClear();
+    publishHandler.createPost.mockClear();
+    const denied = await service.executeTool(
+      'create_post',
+      { content: 'Draft' },
+      { ...caller, approvedApprovalId: 'cached-approval' },
+    );
+    expect(denied.success).toBe(false);
+    expect(denied.error).toContain('Brand access denied');
+    expect(authorize).not.toHaveBeenCalled();
+    expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+    expect(findMember).toHaveBeenCalledTimes(2);
+    authorize.mockRestore();
+  });
+
+  it('applies the real effective key-role cap to owner-issued tool requests', async () => {
+    deployment.cloud = true;
+    const findMember = vi
+      .fn()
+      .mockResolvedValue({ role: { key: 'owner' }, brands: [] });
+    const brandLookup = vi.fn(
+      async (input: { where: { AND: Array<{ id?: { in: string[] } }> } }) =>
+        input.where.AND.some(
+          (where) =>
+            where.id &&
+            typeof where.id === 'object' &&
+            where.id.in.length === 0,
+        )
+          ? null
+          : { id: testId('brand') },
+    );
+    Object.assign(service, {
+      brandAccessService: new BrandAccessService({
+        member: { findFirst: findMember },
+        brand: { findFirst: brandLookup },
+      } as never),
+    });
+    const denied = await service.executeTool(
+      'create_post',
+      { content: 'Draft' },
+      context({
+        brandId: testId('brand'),
+        apiKeyContext: {
+          isApiKey: true,
+          scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
+        },
+      }),
+    );
+    expect(denied.success).toBe(false);
+    expect(denied.error).toContain('Brand access denied');
+    expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+    expect(brandLookup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            { organizationId: testId('org'), isDeleted: false, id: { in: [] } },
+            { id: testId('brand') },
+          ],
+        },
+      }),
+    );
   });
 
   const context = (

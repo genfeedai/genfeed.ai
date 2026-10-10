@@ -1,4 +1,5 @@
 import type {
+  HeyGenAvatarRef,
   IBrand,
   IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
@@ -120,7 +121,12 @@ describe('review route transition', () => {
         }) => void)
       | undefined;
 
-    mockGetProject.mockResolvedValue({ status: 'analyzed' });
+    mockGetProject.mockResolvedValue({
+      status: 'analyzed',
+      name: 'Persisted source title',
+      sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      transcriptText: 'Persisted source transcript.',
+    });
     mockGetHookApproval.mockResolvedValue(null);
     mockGetHighlights.mockReturnValue(
       new Promise((resolve) => {
@@ -166,6 +172,11 @@ describe('review route transition', () => {
         expect.objectContaining({ id: 'highlight-1', title: 'The Hook' }),
       ]);
       expect(result.current.selectedIds).toEqual(new Set(['highlight-1']));
+    });
+    expect(result.current.project).toMatchObject({
+      name: 'Persisted source title',
+      sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      transcriptText: 'Persisted source transcript.',
     });
   });
 });
@@ -380,6 +391,60 @@ describe('resolveClipsStepFromStatus', () => {
 });
 
 describe('resolveStudioClipIdentityDefaults', () => {
+  const nativeAvatar: HeyGenAvatarRef = {
+    version: 1,
+    source: 'heygen-look',
+    provider: 'heygen',
+    lookId: 'native-look',
+    groupId: null,
+    ownership: 'public',
+    label: 'Native look',
+    preview: null,
+    avatarType: 'studio_avatar',
+    supportedEngines: ['avatar_iv'],
+    readiness: {
+      lookStatus: 'completed',
+      groupStatus: null,
+      consentStatus: null,
+      usable: true,
+      reason: null,
+    },
+    connection: {
+      provider: 'heygen',
+      kind: 'platform',
+      organizationId: 'org-a',
+    },
+  };
+  it('recognizes canonical brand and organization avatar defaults without legacy IDs', () => {
+    const settings = {
+      defaultAvatarRef: nativeAvatar,
+      defaultVoiceRef: {
+        source: 'catalog',
+        provider: 'HEYGEN',
+        externalVoiceId: 'voice-a',
+      },
+    } as Pick<IOrganizationSetting, 'defaultAvatarRef' | 'defaultVoiceRef'>;
+    expect(resolveStudioClipIdentityDefaults({ settings })).toMatchObject({
+      avatarId: 'native-look',
+      voiceId: 'voice-a',
+      isComplete: true,
+      source: 'organization',
+    });
+    const brand = {
+      agentConfig: {
+        defaultAvatarRef: { ...nativeAvatar, lookId: 'brand-look' },
+      },
+    } as Pick<IBrand, 'agentConfig'>;
+    expect(
+      resolveStudioClipIdentityDefaults({ settings, selectedBrand: brand }),
+    ).toMatchObject({
+      avatarId: 'brand-look',
+      voiceId: 'voice-a',
+      isComplete: true,
+      source: 'brand',
+    });
+  });
+
   it('prefills saved brand HeyGen avatar and voice defaults', () => {
     const selectedBrand = {
       agentConfig: {
