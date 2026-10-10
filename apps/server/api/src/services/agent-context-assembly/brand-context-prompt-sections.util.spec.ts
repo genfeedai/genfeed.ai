@@ -120,13 +120,15 @@ describe('brand prompt section contributions', () => {
           platforms: ['linkedin'],
           topics: ['topic'],
           frequency: 'weekly',
+          offers: ['Memberships'],
+          competitors: ['Rival A', 'Rival B'],
         },
       }),
     ).toEqual({
       header: '## Content Strategy',
       untrusted: true,
       content:
-        '- Goals: goal1, goal2\n- Content types: video\n- Platforms: linkedin\n- Topics: topic\n- Frequency: weekly',
+        '- Goals: goal1, goal2\n- Content types: video\n- Platforms: linkedin\n- Topics: topic\n- Frequency: weekly\n- Offers to drive: Memberships\n- Competitors to position against: Rival A, Rival B',
     });
   });
 

@@ -50,6 +50,8 @@ interface BrandForCompleteness {
       platforms?: string[];
       goals?: string[];
       frequency?: string;
+      offers?: string[];
+      competitors?: string[];
     };
     persona?: string;
   };
@@ -132,6 +134,18 @@ function buildFieldDefs(): Record<string, FieldDef[]> {
         href: href('strategy'),
         key: 'frequency',
         label: 'Posting frequency',
+      },
+      {
+        check: (b) => hasValue(b.agentConfig?.strategy?.offers),
+        href: href('strategy'),
+        key: 'offers',
+        label: 'Offer',
+      },
+      {
+        check: (b) => hasValue(b.agentConfig?.strategy?.competitors),
+        href: href('strategy'),
+        key: 'competitors',
+        label: 'Competitors',
       },
     ],
     visual: [
