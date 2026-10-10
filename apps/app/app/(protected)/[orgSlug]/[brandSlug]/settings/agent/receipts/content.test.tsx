@@ -368,6 +368,11 @@ describe('mounted saved receipt customer read flow', () => {
     );
     const view = render(<GenerationReceiptsContent />);
     await screen.findByText('No generation receipts yet.');
+    // The empty state names which generations write receipts, so an org
+    // whose Library only holds Studio media does not read it as data loss.
+    screen.getByText(
+      "Receipts are saved for text drafts written in approved-brand mode. Studio image and video generations don't create receipts yet.",
+    );
     http.get.mockRejectedValueOnce({
       isAxiosError: true,
       response: { status: 500 },

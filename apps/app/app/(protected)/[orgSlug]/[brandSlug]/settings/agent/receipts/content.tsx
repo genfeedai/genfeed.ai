@@ -313,7 +313,10 @@ export default function GenerationReceiptsContent() {
           <p role="alert">{t('unavailable')}</p>
         ) : null}
         {!state.loading && brandId && !state.items.length && !state.error ? (
-          <p className="text-sm text-muted-foreground">{t('empty')}</p>
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p>{t('empty')}</p>
+            <p>{t('emptyCoverage')}</p>
+          </div>
         ) : null}
         <ul className="space-y-3 text-sm">
           {state.items.map((item) => (
