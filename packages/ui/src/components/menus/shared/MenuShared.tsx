@@ -237,7 +237,11 @@ export default function MenuShared({
                   'slideInFromRight 300ms cubic-bezier(0.32, 0.72, 0, 1)',
               }}
             >
-              <style>{`
+              {/* Hoisted to <head>: an in-place <style> breaks hydration (#6601). */}
+              <style
+                href="genfeed-menu-slide-in"
+                precedence="genfeed-component"
+              >{`
             @keyframes slideInFromRight {
               from { opacity: 0; transform: translateX(8px); }
               to { opacity: 1; transform: translateX(0); }
