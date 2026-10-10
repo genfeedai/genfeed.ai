@@ -1,6 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
+import { MusicsModule } from '@api/collections/musics/musics.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -34,6 +35,7 @@ import { Module } from '@nestjs/common';
     PersonasModule,
     IngredientsModule,
     MetadataModule,
+    MusicsModule,
     FilesClientModule,
     SharedModule,
     WorkflowsCoreModule,

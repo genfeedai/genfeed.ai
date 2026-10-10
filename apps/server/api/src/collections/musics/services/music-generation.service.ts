@@ -9,6 +9,10 @@ import type { ModelDocument } from '@api/collections/models/schemas/model.schema
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { isModelMetadataString } from '@api/collections/models/utils/model-key.util';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
+import type {
+  MusicModelResolutionRequest,
+  ResolvedMusicModel,
+} from '@api/collections/musics/services/music-generation.types';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
 import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -120,18 +124,9 @@ export class MusicGenerationService {
       brandId,
       createMusicDto,
     );
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      organizationId: user.organizationId,
-    });
-    const organizationSettings = await this.organizationSettingsService.findOne(
-      {
-        organizationId: user.organizationId,
-      },
-    );
 
     let model: string;
-    let routerReason: string | undefined;
+    let modelDocument: ModelDocument;
 
     if (createMusicDto.autoSelectModel) {
       const recommendation = await this.routerService.selectModel({
@@ -142,34 +137,24 @@ export class MusicGenerationService {
         prompt: effectiveText,
       });
       model = recommendation.selectedModel as string;
-      routerReason = recommendation.reason;
 
       this.loggerService.log('Auto model routing selected', {
         promptPreview: effectiveText.substring(0, 100),
-        reason: routerReason,
+        reason: recommendation.reason,
         selectedModel: model,
         service: this.orchestrationSource,
       });
-    } else if (createMusicDto.model) {
-      // An explicit request stays strict: a retired or inactive key is
-      // rejected below instead of being silently swapped.
-      model = createMusicDto.model as string;
-    } else {
-      model = await this.resolveDefaultMusicModel(
+      modelDocument = await this.resolveExecutableMusicModel(
+        model,
         user.organizationId,
-        brand?.defaultMusicModel,
-        organizationSettings?.defaultMusicModel,
       );
+    } else {
+      ({ model, modelDocument } = await this.resolveMusicModel({
+        brandId,
+        explicitModel: createMusicDto.model,
+        organizationId: user.organizationId,
+      }));
     }
-
-    // Reject before any job/document is created when the resolved model has
-    // no eligible, executable music provider — an unseeded, inactive, or
-    // wrong-category registry row must never fall through to Replicate's
-    // pinned MusicGen default (#4679).
-    const modelDocument = await this.resolveExecutableMusicModel(
-      model,
-      user.organizationId,
-    );
 
     const normalizedDto = this.normalizeForProvider(
       model,
@@ -274,6 +259,35 @@ export class MusicGenerationService {
   }
 
   /**
+   * The one music-model resolution policy, shared by the music API and the
+   * v2 content pipeline's text-to-music step:
+   *
+   * 1. An explicit model stays strict: a retired, inactive, or wrong-category
+   *    key is rejected, never silently swapped.
+   * 2. Otherwise the brand, then organization, saved default is used while
+   *    the registry carries it as an active music row.
+   * 3. Otherwise the registry's active music default.
+   *
+   * Every path returns an executable registry row, so no caller falls through
+   * to a hardcoded provider model (#4679).
+   */
+  async resolveMusicModel(
+    request: MusicModelResolutionRequest,
+  ): Promise<ResolvedMusicModel> {
+    const model = request.explicitModel
+      ? request.explicitModel
+      : await this.resolveDefaultMusicModel(
+          request.organizationId,
+          request.brandId,
+        );
+    const modelDocument = await this.resolveExecutableMusicModel(
+      model,
+      request.organizationId,
+    );
+    return { model, modelDocument };
+  }
+
+  /**
    * Brand, then organization, then the registry's music default — through the
    * router's shared resolution, so a configured default the registry no longer
    * carries as an active music row (e.g. a MusicGen pin after its retirement)
@@ -283,9 +297,17 @@ export class MusicGenerationService {
    */
   private async resolveDefaultMusicModel(
     organizationId: string,
-    brandDefault: string | null | undefined,
-    organizationDefault: string | null | undefined,
+    brandId: string | undefined,
   ): Promise<string> {
+    const brand = brandId
+      ? await this.brandsService.findOne({ id: brandId, organizationId })
+      : null;
+    const organizationSettings = await this.organizationSettingsService.findOne(
+      { organizationId },
+    );
+    const brandDefault = brand?.defaultMusicModel;
+    const organizationDefault = organizationSettings?.defaultMusicModel;
+
     const resolution = await this.routerService.resolveModelKey({
       candidates: [brandDefault, organizationDefault],
       category: ModelCategory.MUSIC,

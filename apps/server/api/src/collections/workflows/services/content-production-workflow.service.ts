@@ -9,7 +9,6 @@ import type { PipelineStep } from '@api/services/content-orchestration/pipeline.
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ImageTaskModel,
-  MusicTaskModel,
   PersonaContentFormat,
   PersonaStatus,
   VideoTaskModel,
@@ -449,12 +448,9 @@ export class ContentProductionWorkflowService {
 
     if (formats.includes(PersonaContentFormat.AUDIO)) {
       return [
-        {
-          duration: 8,
-          model: MusicTaskModel.REPLICATE,
-          prompt,
-          type: 'text-to-music',
-        },
+        // No model: the step resolves the brand/organization saved music
+        // default, then the registry's active music default.
+        { duration: 8, prompt, type: 'text-to-music' },
       ];
     }
 
