@@ -1,4 +1,8 @@
-import type { OrganizationModulePreferences } from '@genfeedai/contracts/constants';
+import type {
+  OrganizationModuleAccess,
+  OrganizationModuleId,
+  OrganizationModulePreferences,
+} from '@genfeedai/contracts/constants';
 import type {
   AppRailItemConfig,
   AppRailNavigationEvent,
@@ -22,8 +26,21 @@ export interface AppRailBadge {
 }
 
 export interface AppRailProps {
-  /** Verified organization preferences. Null waits for settings; undefined is a neutral reusable surface. */
+  /** Verified organization preferences for the daily loop. Null waits for settings; undefined is a neutral reusable surface. */
   modulePreferences?: OrganizationModulePreferences | null;
+  /**
+   * Organization access per module for launcher apps (#5502). Null waits for
+   * settings, so launcher apps stay hidden; undefined is a neutral surface.
+   */
+  moduleAccess?: Readonly<
+    Partial<Record<OrganizationModuleId, OrganizationModuleAccess>>
+  > | null;
+  /** The member's installed apps here. Undefined is a neutral surface. */
+  installedAppIds?: readonly string[];
+  /** Existing operator authorization; opens founder-only apps. */
+  isFounderOperator?: boolean;
+  /** Where the launcher sends members to find and install more apps. */
+  storeHref?: string;
   surface?: AppRailSurface;
   onNavigationEvent?: (event: AppRailNavigationEvent) => void;
   /** Count pills keyed by app id; a missing or zero count renders nothing. */
@@ -52,11 +69,31 @@ export interface AppRailProps {
   /** Include platform-admin navigation for users with platform access. */
   showAdmin?: boolean;
   /**
-   * More-menu apps the signed-in user pinned onto the rail, in pin order.
-   * Unknown ids are ignored.
+   * Launcher apps the signed-in user pinned onto the rail, in pin order.
+   * Unknown, uninstalled and unavailable ids are ignored.
    */
   pinnedAppIds?: readonly string[];
-  /** Pins or unpins a More app. Absent in surfaces that cannot save a user. */
+  /** Pins or unpins a launcher app. Absent in surfaces that cannot save a user. */
+  onTogglePin?: (appId: string) => void;
+}
+
+export interface AppRailLauncherProps {
+  activeAppId?: string;
+  badges?: AppRailProps['badges'];
+  items: readonly AppRailNavigationItem[];
+  /** Called with the opened app, or without one for the Store link. */
+  onNavigateStart: (item?: AppRailNavigationItem) => void;
+  onTogglePin?: (appId: string) => void;
+  pinnedAppIds: readonly string[];
+  storeHref?: string;
+}
+
+export interface AppRailLauncherRowProps {
+  badge?: AppRailBadge;
+  isActive: boolean;
+  isPinned: boolean;
+  item: AppRailNavigationItem;
+  onNavigateStart: () => void;
   onTogglePin?: (appId: string) => void;
 }
 

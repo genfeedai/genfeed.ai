@@ -258,6 +258,23 @@ describe('ContentOrchestrationService', () => {
       ]);
     });
 
+    it('runs a model-less text-to-music step with the brand that resolves its saved default', async () => {
+      const result = await service.generateAndPublish({
+        ...baseConfig,
+        brandId: 'brand-1',
+        steps: [{ duration: 8, prompt: 'lo-fi', type: 'text-to-music' }],
+      });
+
+      expect(result.status).toBe('completed');
+      expect(mockStepExecutorService.execute).toHaveBeenCalledWith(
+        { duration: 8, prompt: 'lo-fi', type: 'text-to-music' },
+        expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: baseConfig.organizationId,
+        }),
+      );
+    });
+
     it('should create ingredient for each step result', async () => {
       await service.generateAndPublish(baseConfig);
 

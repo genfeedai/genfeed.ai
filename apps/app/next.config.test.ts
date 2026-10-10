@@ -479,17 +479,12 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects /studio to the generate playground', async () => {
+  it('serves no Studio root redirect now that each tool is an app (#5502)', async () => {
     const redirects = await config.redirects?.();
-    const studioRedirect = redirects?.find(
-      (redirect) => redirect.source === APP_ROUTES.STUDIO.ROOT,
-    );
 
-    expect(studioRedirect).toEqual({
-      destination: APP_ROUTES.STUDIO.PLAYGROUND,
-      permanent: false,
-      source: APP_ROUTES.STUDIO.ROOT,
-    });
+    expect(
+      redirects?.filter((redirect) => /\/studio\/?$/.test(redirect.source)),
+    ).toEqual([]);
   });
 
   it('keeps no legacy redirect surface for the retired studio tabs', async () => {

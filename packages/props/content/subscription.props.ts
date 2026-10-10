@@ -1,13 +1,4 @@
 import type { ISubscription } from '@genfeedai/contracts/interfaces';
-import type { ReactNode } from 'react';
-
-export interface SubscriptionGuardProps {
-  children: ReactNode;
-  requireSubscription?: boolean;
-  requiredPlan?: 'monthly' | 'payg';
-  fallback?: ReactNode;
-  redirectTo?: string;
-}
 
 /**
  * Output quotas for pricing tiers (user-facing, not credits)

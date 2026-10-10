@@ -4,6 +4,7 @@ import {
   buildScheduledPostFailureWorkflowDefinition,
   buildScheduledPostWorkflowDefinition,
   SCHEDULED_POST_ACTION_IDS,
+  SCHEDULED_POST_WORKFLOW_ID,
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import {
@@ -62,6 +63,18 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     );
     this.runner.registerWorkflow(buildScheduledPostWorkflowDefinition());
     this.runner.registerWorkflow(buildScheduledPostFailureWorkflowDefinition());
+    this.runner.terminalFailures.register(
+      SCHEDULED_POST_WORKFLOW_ID,
+      async ({ inputValues, organizationId, workflowError }) => {
+        const request = this.readRequest(inputValues);
+        if (request.organizationId !== organizationId) {
+          throw new Error(
+            `Scheduled publish ${request.postId} does not belong to its tenant`,
+          );
+        }
+        await this.failRequest(request, workflowError);
+      },
+    );
   }
 
   private async claim(
@@ -306,7 +319,22 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
   private async fail(
     action: SystemWorkflowActionRequest,
   ): Promise<PublishResult | { reason: 'not_eligible'; skipped: true }> {
-    const request = this.readRequest(action.input);
+    return this.failRequest(
+      this.readRequest(action.input),
+      typeof action.input.workflowError === 'string'
+        ? action.input.workflowError
+        : 'Scheduled publish workflow failed before finalization.',
+    );
+  }
+
+  /**
+   * Fails the post this run owns. Also the last resort when the publish and
+   * failure graphs both failed (#6655), so it relies only on the request.
+   */
+  private async failRequest(
+    request: ScheduledPostWorkflowInput,
+    workflowError: string,
+  ): Promise<PublishResult | { reason: 'not_eligible'; skipped: true }> {
     const post = await this.discoveryService.findEligiblePost(request);
     if (!post) {
       return { reason: 'not_eligible', skipped: true };
@@ -325,10 +353,6 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       });
       return { reason: 'not_eligible', skipped: true };
     }
-    const workflowError =
-      typeof action.input.workflowError === 'string'
-        ? action.input.workflowError
-        : 'Scheduled publish workflow failed before finalization.';
     return this.deliveryService.failTerminalValidation(
       post,
       new Error(workflowError),

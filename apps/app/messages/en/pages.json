@@ -947,7 +947,8 @@
     "newProject": "New project",
     "noProjectsDescription": "Start from a YouTube link, an uploaded file, or a video in Library.",
     "noProjectsYet": "No clip projects yet",
-    "pipelineFailed": "Pipeline failed. Check logs for details.",
+    "pipelineFailed": "Clip generation stopped before it finished. Retry what failed below, or start a new project.",
+    "pipelineFailedNoRetry": "Clip generation stopped and this run can’t be retried. Start a new project to try again.",
     "processingAvatarClips": "Processing source media and generating avatar clips...",
     "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips…",
     "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts…",
@@ -972,6 +973,8 @@
     "someClipsFailed": "Some clips failed",
     "source": "Source",
     "sourceLimits": "Supports long-form audio and video up to 10 GB and 6 hours.",
+    "sourceFailedDescription": "No clips were made. Retry source processing, or start a new project with another source.",
+    "sourceFailedHeading": "This source couldn’t be processed",
     "sourceProcessingFailed": "Source processing failed",
     "startClipFactory": "Start Clip Factory",
     "starting": "Starting…",
@@ -1588,6 +1591,7 @@
       "replaceMessage": "This action prepares a draft from the selected asset. Your current prompt and references will be replaced.",
       "replaceDraft": "Replace draft",
       "cancel": "Cancel",
+      "draftLoading": "Your saved draft is still loading. Try again in a moment.",
       "originalUnavailable": "Original prompt unavailable. Write a new instruction; the effective recipe remains available in the inspector.",
       "originalPrompt": "Original prompt",
       "effectiveRecipe": "Effective recipe",
@@ -5306,10 +5310,34 @@
     "open": "Generation receipts",
     "description": "Inspect the saved context and checks used for a generation.",
     "empty": "No generation receipts yet.",
-    "emptyCoverage": "Receipts are saved for text drafts written in approved-brand mode. Studio image and video generations don't create receipts yet.",
+    "emptyCoverage": "Receipts are saved for Studio image and video generations and for text drafts written in approved-brand mode.",
     "loading": "Loading generation receipts…",
     "refresh": "Reload saved details",
     "loadMore": "Load more",
+    "list": {
+      "kind": {
+        "image": "Image",
+        "video": "Video",
+        "text": "Text draft"
+      },
+      "status": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "needsReview": "Needs review",
+        "blocked": "Blocked",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "model": "Model: {model}",
+      "noModel": "not recorded",
+      "credits": "{count, plural, one {# credit} other {# credits}}",
+      "cost": {
+        "pending": "Cost pending",
+        "unavailable": "Cost unavailable",
+        "none": "No cost recorded"
+      },
+      "openOutput": "Open generated output"
+    },
     "select": "Select a generation to inspect.",
     "loadFailed": "Could not load saved generation details. Try again.",
     "unavailable": "This generation is unavailable or you no longer have access.",

@@ -1,8 +1,23 @@
+import { SocialConversationType } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   getMessagesSyncFeedback,
+  parseMessagesSurface,
   settleMessagesSyncJobs,
 } from './messages-page.helpers';
+
+describe('parseMessagesSurface (#5502)', () => {
+  it('accepts the Inbox type filters and falls back to All', () => {
+    expect(parseMessagesSurface('dm')).toBe(SocialConversationType.DM);
+    expect(parseMessagesSurface('reply')).toBe(SocialConversationType.REPLY);
+    expect(parseMessagesSurface('comment')).toBe(
+      SocialConversationType.COMMENT,
+    );
+    expect(parseMessagesSurface('mention')).toBe('all');
+    expect(parseMessagesSurface('nonsense')).toBe('all');
+    expect(parseMessagesSurface(null)).toBe('all');
+  });
+});
 
 describe('settleMessagesSyncJobs', () => {
   it('attempts every platform when one enqueue rejects', async () => {

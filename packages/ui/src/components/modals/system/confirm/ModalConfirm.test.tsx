@@ -82,6 +82,54 @@ describe('ModalConfirm', () => {
     expect(onConfirm).toHaveBeenCalled();
   });
 
+  it('settles the confirmation once when Escape dismisses it', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onConfirm = vi.fn();
+    render(
+      <ModalConfirm
+        {...defaultProps}
+        onConfirm={onConfirm}
+        onClose={onClose}
+      />,
+    );
+
+    await user.keyboard('{Escape}');
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('does not settle Cancel a second time when the dialog then closes', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn(() => closeModal(ModalEnum.CONFIRM));
+    render(<ModalConfirm {...defaultProps} onClose={onClose} />);
+
+    await user.click(screen.getByText('Cancel'));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not settle a confirmed dialog as dismissed when it closes', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onConfirm = vi.fn(() => {
+      closeModal(ModalEnum.CONFIRM);
+    });
+    render(
+      <ModalConfirm
+        {...defaultProps}
+        onConfirm={onConfirm}
+        onClose={onClose}
+      />,
+    );
+
+    await user.click(screen.getByText('Yes'));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('renders error state when isError is true', () => {
     render(<ModalConfirm {...defaultProps} isError={true} />);
     expect(screen.getByRole('dialog', { name: 'Confirm' })).toBeInTheDocument();

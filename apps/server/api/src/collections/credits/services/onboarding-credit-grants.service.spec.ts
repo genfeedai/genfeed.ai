@@ -309,6 +309,60 @@ describe('OnboardingCreditGrantsService', () => {
     await service.grantSignupGift('org', 'user');
     expect(balance).toBe(25);
   });
+  it('pays +5 once per brand per answered card across retries and concurrent saves', async () => {
+    const [first, concurrent] = await Promise.all([
+      service.grantOnboardingAnswerCredits(
+        'org',
+        'brand-1',
+        ['goals', 'audience', 'goals'],
+        'user',
+      ),
+      service.grantOnboardingAnswerCredits('org', 'brand-1', ['goals']),
+    ]);
+    const retry = await service.grantOnboardingAnswerCredits('org', 'brand-1', [
+      'goals',
+      'audience',
+    ]);
+    const otherBrand = await service.grantOnboardingAnswerCredits(
+      'org',
+      'brand-2',
+      ['goals'],
+    );
+    expect([...first, ...concurrent].sort()).toEqual(['audience', 'goals']);
+    expect(retry).toEqual([]);
+    expect(otherBrand).toEqual(['goals']);
+    expect(balance).toBe(15);
+    expect(ledger).toEqual([
+      'onboarding:answer:brand-1:goals',
+      'onboarding:answer:brand-1:audience',
+      'onboarding:answer:brand-2:goals',
+    ]);
+    expect(grants).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creditsToAdd: 5,
+        source: 'onboarding-answer',
+        options: expect.objectContaining({
+          actorUserId: 'user',
+          referenceId: 'brand-1',
+          metadata: expect.objectContaining({ fieldId: 'audience' }),
+        }),
+      }),
+      expect.anything(),
+    );
+  });
+  it('never pays answer credits when credits are not metered', async () => {
+    vi.mocked(deployment.usesMeteredCredits).mockReturnValue(false);
+    expect(
+      await service.grantOnboardingAnswerCredits('org', 'brand-1', ['goals']),
+    ).toEqual([]);
+    vi.mocked(deployment.usesMeteredCredits).mockReturnValue(true);
+    vi.mocked(deployment.isSelfHostedDeployment).mockReturnValue(true);
+    expect(
+      await service.grantOnboardingAnswerCredits('org', 'brand-1', ['goals']),
+    ).toEqual([]);
+    expect(grants).not.toHaveBeenCalled();
+    expect(transaction).not.toHaveBeenCalled();
+  });
   it('persists self-hosted completion without calling the metered implementation', async () => {
     vi.mocked(deployment.isSelfHostedDeployment).mockReturnValue(true);
     vi.mocked(deployment.usesMeteredCredits).mockReturnValue(false);

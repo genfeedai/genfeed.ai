@@ -1,10 +1,14 @@
+import { GENFEED_AGENT_IDENTITY } from '@api/services/agent-orchestrator/constants/genfeed-agent-identity.constant';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 /**
  * System prompt for the task decomposition LLM.
  * Uses a cheap/free model to classify and break down workspace tasks.
  */
-export const TASK_DECOMPOSITION_SYSTEM_PROMPT = `You are a content production router for Genfeed.ai.
+export const TASK_DECOMPOSITION_SYSTEM_PROMPT = `${GENFEED_AGENT_IDENTITY}
+
+## Your role
+In this step you are the content production router.
 Your job is to analyze a user's content request and decompose it into one or more subtasks,
 each assigned to the right specialist agent.
 

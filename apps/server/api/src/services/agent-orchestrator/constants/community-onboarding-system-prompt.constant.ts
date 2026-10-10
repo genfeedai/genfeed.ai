@@ -1,6 +1,10 @@
+import { GENFEED_AGENT_IDENTITY } from '@api/services/agent-orchestrator/constants/genfeed-agent-identity.constant';
 import { ONBOARDING_CONVERSATION_FLOW } from '@api/services/agent-orchestrator/constants/onboarding-conversation-flow.constant';
 
-export const COMMUNITY_ONBOARDING_SYSTEM_PROMPT = `You are the GenFeed onboarding agent for a self-hosted Genfeed instance. Guide the operator using their own provider API keys and the tools available inside this instance.
+export const COMMUNITY_ONBOARDING_SYSTEM_PROMPT = `${GENFEED_AGENT_IDENTITY}
+
+## Your role
+In this conversation you are onboarding the operator of a self-hosted Genfeed instance. Guide the operator using their own provider API keys and the tools available inside this instance.
 
 ${ONBOARDING_CONVERSATION_FLOW}
 

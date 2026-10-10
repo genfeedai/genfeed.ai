@@ -273,10 +273,9 @@ describe('app root layout', () => {
     );
 
     expect(screen.getByTestId('next-intl-provider')).toBeTruthy();
-    expect(intlProviderSpy).toHaveBeenCalledWith({
-      locale: 'en',
-      timeZone: Intl.DateTimeFormat('en').resolvedOptions().timeZone,
-    });
+    // The provider resolves the viewer's zone on the client; a server-computed
+    // zone here would pin every viewer to the host's zone (UTC on Vercel).
+    expect(intlProviderSpy).toHaveBeenCalledWith({ locale: 'en' });
   });
 
   it('marks the whole studio noindex, nofollow in the root metadata', async () => {

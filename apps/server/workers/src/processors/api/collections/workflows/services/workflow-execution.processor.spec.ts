@@ -70,6 +70,7 @@ function createMockSchedulerService() {
 function createMockSystemWorkflowRunner() {
   return {
     getRegisteredFailureWorkflow: vi.fn().mockReturnValue(undefined),
+    terminalFailures: { settle: vi.fn().mockResolvedValue(false) },
     runWithStoredWorkflowModule: vi.fn(
       async (_input: unknown, work: () => Promise<unknown>) => work(),
     ),
@@ -596,6 +597,86 @@ describe('WorkflowExecutionProcessor', () => {
         organizationId: 'org-1',
         source: 'workflow-failure:clip.continuity',
         userId: 'user-1',
+      });
+    });
+
+    describe('when compensation also fails (#6655)', () => {
+      const input = {
+        actionType: 'clip.analysis',
+        canonicalId: 'clip.analysis',
+        inputValues: { job: { orgId: 'org-1', projectId: 'project-1' } },
+        organizationId: 'org-1',
+        source: 'clip-analysis',
+        userId: 'user-1',
+      };
+      const job = () =>
+        createMockJob({
+          systemRun: {
+            failureWorkflow: {
+              canonicalId: 'clip.analysis.failure',
+              inputValues: input.inputValues,
+            },
+            input,
+          },
+          type: 'system-run',
+        });
+
+      beforeEach(() => {
+        mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
+          new Error('Action contract input validation failed [action=x]'),
+        );
+        mockSystemWorkflowRunner.runWorkflow.mockRejectedValueOnce(
+          new Error('Action contract input validation failed [action=y]'),
+        );
+      });
+
+      it('settles the owned record through the last resort and reports it once', async () => {
+        mockSystemWorkflowRunner.terminalFailures.settle.mockResolvedValueOnce(
+          true,
+        );
+
+        await expect(processor.process(job() as never)).rejects.toThrow(
+          'System workflow clip.analysis and registered failure workflow clip.analysis.failure both failed',
+        );
+
+        expect(
+          mockSystemWorkflowRunner.terminalFailures.settle,
+        ).toHaveBeenCalledWith(
+          input,
+          'Action contract input validation failed [action=x]',
+        );
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          'WorkflowExecutionProcessor workflow and failure workflow both failed',
+          expect.any(AggregateError),
+          {
+            canonicalId: 'clip.analysis',
+            failureCanonicalId: 'clip.analysis.failure',
+            isSettled: true,
+            jobId: 'job-1',
+            organizationId: 'org-1',
+          },
+        );
+      });
+
+      it('still fails the job terminally when the last resort throws', async () => {
+        mockSystemWorkflowRunner.terminalFailures.settle.mockRejectedValueOnce(
+          new Error('database unavailable'),
+        );
+
+        await expect(processor.process(job() as never)).rejects.toThrow(
+          'both failed',
+        );
+
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          'WorkflowExecutionProcessor terminal failure settlement failed',
+          expect.any(Error),
+          { canonicalId: 'clip.analysis', jobId: 'job-1' },
+        );
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          'WorkflowExecutionProcessor workflow and failure workflow both failed',
+          expect.any(AggregateError),
+          expect.objectContaining({ isSettled: false }),
+        );
       });
     });
 

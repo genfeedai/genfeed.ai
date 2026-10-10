@@ -309,6 +309,15 @@ export class AgentWorkObjectService {
       throw new BadRequestException(
         'Use one to five uniquely identified choices.',
       );
+    const skipIndex = options.findIndex((option) => option.id === 'skip');
+    if (
+      thread.source === 'onboarding' &&
+      skipIndex !== -1 &&
+      skipIndex !== options.length - 1
+    )
+      throw new BadRequestException(
+        'Onboarding cards must list Skip as the last choice.',
+      );
     const recommendedOptionId =
       typeof params.recommendedOptionId === 'string'
         ? params.recommendedOptionId

@@ -55,7 +55,7 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
     library: 'Library',
     messages: 'Messages',
     publishing: 'Publishing',
-    studio: 'Studio',
+    playground: 'Playground',
     workspace: 'Workspace',
   },
   APP_ROUTE_PREFIXES: {
@@ -311,7 +311,7 @@ describe('AppProtectedTopbar', () => {
       <AppProtectedTopbar
         orgSlug="acme"
         brandSlug="brand"
-        currentApp="studio"
+        currentApp="playground"
       />,
     );
 
@@ -326,7 +326,7 @@ describe('AppProtectedTopbar', () => {
 
     expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3', 'md:px-3');
     expect(topbarInner).not.toHaveClass('justify-center');
-    expect(breadcrumbs).toHaveTextContent('Studio');
+    expect(breadcrumbs).toHaveTextContent('Playground');
     expect(
       brand.compareDocumentPosition(breadcrumbs) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -347,7 +347,7 @@ describe('AppProtectedTopbar', () => {
   });
 
   it('leaves app navigation to the rail', () => {
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="playground" />);
 
     expect(
       screen.queryByRole('button', { name: 'Switch app' }),

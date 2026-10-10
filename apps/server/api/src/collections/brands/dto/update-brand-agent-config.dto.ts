@@ -224,6 +224,26 @@ export class UpdateBrandAgentStrategyDto {
     type: [String],
   })
   topics?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Offers the content should drive',
+    required: false,
+    type: [String],
+  })
+  offers?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Competitors the content positions against',
+    required: false,
+    type: [String],
+  })
+  competitors?: string[];
 }
 
 export class UpdateBrandPromptSeedDto {

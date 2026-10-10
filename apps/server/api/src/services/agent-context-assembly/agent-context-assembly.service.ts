@@ -441,9 +441,11 @@ export class AgentContextAssemblyService {
 
     if (Object.keys(resolvedStrategy).length > 0) {
       context.strategy = {
+        competitors: resolvedStrategy.competitors,
         contentTypes: resolvedStrategy.contentTypes,
         frequency: resolvedStrategy.frequency,
         goals: resolvedStrategy.goals,
+        offers: resolvedStrategy.offers,
         platforms: resolvedStrategy.platforms,
         topics: resolvedStrategy.topics,
       };

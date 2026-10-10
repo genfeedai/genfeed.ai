@@ -130,7 +130,10 @@ export function resolvePlatformFlags(
   ) as Record<PlatformFlagKey, boolean>;
 }
 
-/** App-rail entries and the module flag that shows them. */
+/**
+ * Platform module flags behind app-rail entries. Every Studio app (Playground,
+ * Storyboard, Turbo, Motion, Clips, Editor) sits under the `studio` module.
+ */
 export const APP_RAIL_FEATURE_FLAGS = {
   agent: 'agent',
   messages: 'messages',
@@ -160,23 +163,6 @@ export const LOW_CREDITS_BANNER_FEATURE_FLAG =
 
 /** Batch idea projects (brand data → content ideas) in Studio batches (#5463). */
 export const BATCH_IDEAS_FEATURE_FLAG = 'batch_ideas' satisfies PlatformFlagKey;
-
-/**
- * Apps that start in the rail's More menu. A user can pin these onto the
- * rail; the daily loop is always visible and is not pinnable.
- */
-export const PINNABLE_APP_IDS = [
-  'studio',
-  'automation',
-  'messages',
-  'discovery',
-] as const;
-
-export type PinnableAppId = (typeof PINNABLE_APP_IDS)[number];
-
-export function isPinnableAppId(value: string): value is PinnableAppId {
-  return (PINNABLE_APP_IDS as readonly string[]).includes(value);
-}
 
 export type AppRailFeatureFlagApp = keyof typeof APP_RAIL_FEATURE_FLAGS;
 

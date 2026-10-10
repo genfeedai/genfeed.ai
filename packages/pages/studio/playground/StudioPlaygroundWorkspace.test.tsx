@@ -609,6 +609,14 @@ function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
   };
 }
 
+/** The saved draft has been read, so a continuation is no longer deferred. */
+async function renderLoaded(options?: Parameters<typeof render>[1]) {
+  const view = render(<StudioPlaygroundWorkspace />, options);
+  await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+  await act(async () => {});
+  return view;
+}
+
 describe('StudioPlaygroundWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1185,8 +1193,8 @@ describe('StudioPlaygroundWorkspace', () => {
     },
   );
 
-  it('turns a gallery remix into a composer reference', () => {
-    render(<StudioPlaygroundWorkspace />);
+  it('turns a gallery remix into a composer reference', async () => {
+    await renderLoaded();
 
     const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
       onAttachReference: (
@@ -1224,8 +1232,8 @@ describe('StudioPlaygroundWorkspace', () => {
 
   it.each(['image', 'video'] as const)(
     'prepares %s from the chosen source only after confirming draft replacement',
-    (targetType) => {
-      render(<StudioPlaygroundWorkspace />);
+    async (targetType) => {
+      await renderLoaded();
       act(() =>
         mocks.composer.mock.calls
           .at(-1)?.[0]
@@ -1310,8 +1318,8 @@ describe('StudioPlaygroundWorkspace', () => {
 
   it.each(['draft', 'session'] as const)(
     'does not apply a continuation after the %s changes during confirmation',
-    (change) => {
-      const { rerender } = render(<StudioPlaygroundWorkspace />);
+    async (change) => {
+      const { rerender } = await renderLoaded();
       act(() =>
         mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Original draft'),
       );
@@ -1395,7 +1403,7 @@ describe('StudioPlaygroundWorkspace', () => {
     );
   });
 
-  it('prefills the composer from a card recipe on vary', () => {
+  it('prefills the composer from a card recipe on vary', async () => {
     const recipeJob = {
       createdAt: 1,
       id: 'job-1',
@@ -1423,7 +1431,7 @@ describe('StudioPlaygroundWorkspace', () => {
       storedJobs: [recipeJob],
     });
 
-    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    await renderLoaded({ wrapper: ContextSidebarHost });
 
     const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
       onReprompt: (job: typeof recipeJob) => void;
@@ -1551,7 +1559,7 @@ describe('StudioPlaygroundWorkspace', () => {
     },
   );
 
-  it('remixes a selected image as an image reference', () => {
+  it('remixes a selected image as an image reference', async () => {
     const job = {
       createdAt: 1,
       id: 'image-9',
@@ -1573,7 +1581,7 @@ describe('StudioPlaygroundWorkspace', () => {
       storedJobs: [job],
     });
 
-    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    await renderLoaded({ wrapper: ContextSidebarHost });
     const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
       onSelect: (selected: typeof job) => void;
     };
@@ -1591,7 +1599,40 @@ describe('StudioPlaygroundWorkspace', () => {
     );
   });
 
-  it('keeps a draft untouched until Replace draft and ignores a confirmation from another brand', () => {
+  it('defers a continuation until the saved draft has loaded', async () => {
+    const pendingDraft = Promise.withResolvers<null>();
+    mocks.getDraft.mockReturnValue(pendingDraft.promise);
+    render(<StudioPlaygroundWorkspace />);
+    await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+    const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onAttachReference: (
+        ingredient: IIngredient,
+        type: 'image' | 'video',
+      ) => void;
+    };
+
+    act(() =>
+      hookParams.onAttachReference(
+        {
+          brandId: 'brand-1',
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
+          id: 'generated-1',
+          thumbnailUrl: 'https://cdn.example/generated.png',
+        } as IIngredient,
+        'video',
+      ),
+    );
+
+    expect(mocks.notify).toHaveBeenCalledWith('continuation.draftLoading');
+    expect(mocks.openConfirm).not.toHaveBeenCalled();
+    expect(
+      mocks.settings.mock.results.at(-1)?.value.setType,
+    ).not.toHaveBeenCalledWith('video');
+    await act(async () => pendingDraft.resolve(null));
+  });
+
+  it('keeps a draft untouched until Replace draft and ignores a confirmation from another brand', async () => {
     const job: StudioPlaygroundJob = {
       id: 'legacy',
       createdAt: 1,
@@ -1599,7 +1640,7 @@ describe('StudioPlaygroundWorkspace', () => {
       status: IngredientStatus.GENERATED,
       prompt: 'Effective brand instructions',
     };
-    const { rerender } = render(<StudioPlaygroundWorkspace />);
+    const { rerender } = await renderLoaded();
     act(() =>
       mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep my draft'),
     );
@@ -1623,7 +1664,7 @@ describe('StudioPlaygroundWorkspace', () => {
     );
   });
 
-  it('leaves a legacy continuation prompt blank instead of replaying provider instructions', () => {
+  it('leaves a legacy continuation prompt blank instead of replaying provider instructions', async () => {
     const job: StudioPlaygroundJob = {
       id: 'legacy',
       createdAt: 1,
@@ -1636,7 +1677,7 @@ describe('StudioPlaygroundWorkspace', () => {
       refresh: vi.fn(),
       storedJobs: [job],
     });
-    render(<StudioPlaygroundWorkspace />);
+    await renderLoaded();
     act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
     expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
     expect(mocks.submit).not.toHaveBeenCalled();
@@ -2907,7 +2948,7 @@ describe('StudioPlaygroundWorkspace', () => {
       const stored = readStudioPlaygroundSessionJobs('brand-1')[0];
       if (!stored) throw new Error('Expected stored recipe');
       mocks.findByIds.mockResolvedValue([frame(endId), frame(startId)]);
-      render(<StudioPlaygroundWorkspace />);
+      await renderLoaded();
       vary(stored);
       expect(composer().isCrunRestoreBlocked).toBe(true);
       expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
@@ -2957,7 +2998,7 @@ describe('StudioPlaygroundWorkspace', () => {
           ...(bad ? [bad] : []),
           frame(endId),
         ]);
-        render(<StudioPlaygroundWorkspace />);
+        await renderLoaded();
         act(() => composer().onPromptChange('Keep prior composer'));
         vary();
         await waitFor(() =>
@@ -2975,11 +3016,11 @@ describe('StudioPlaygroundWorkspace', () => {
         expect(composer().isCrunRestoreBlocked).toBe(false);
       },
     );
-    it('rejects a stale contract version without looking up frames', () => {
+    it('rejects a stale contract version without looking up frames', async () => {
       const job = recipeJob();
       if (!job.recipe?.crunControls) throw new Error('Expected controls');
       job.recipe.crunControls.contractVersion = 'old';
-      render(<StudioPlaygroundWorkspace />);
+      await renderLoaded();
       vary(job);
       expect(mocks.notify).toHaveBeenCalledWith('crun.videoQuoteStale');
       expect(mocks.findByIds).not.toHaveBeenCalled();
@@ -2999,7 +3040,7 @@ describe('StudioPlaygroundWorkspace', () => {
       async (change) => {
         const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
         mocks.findByIds.mockReturnValueOnce(pending.promise);
-        const view = render(<StudioPlaygroundWorkspace />);
+        const view = await renderLoaded();
         vary();
         await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
         if (change === 'prompt')
@@ -3061,7 +3102,7 @@ describe('StudioPlaygroundWorkspace', () => {
           outputs: 1,
         },
       };
-      render(<StudioPlaygroundWorkspace />);
+      await renderLoaded();
       vary(editingJob);
       await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
       vary();
@@ -3080,16 +3121,18 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     it('keeps a newer Crun recipe when an earlier Library source lookup completes', async () => {
       const editId = '33333333-3333-4333-8333-333333333333';
-      const pending = Promise.withResolvers<ReturnType<typeof frame>>();
+      const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
       mocks.searchParams.value = `editImage=${editId}`;
-      mocks.findOne.mockReturnValueOnce(pending.promise);
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
       mocks.findByIds.mockResolvedValueOnce([frame(startId), frame(endId)]);
-      render(<StudioPlaygroundWorkspace />);
-      await waitFor(() => expect(mocks.findOne).toHaveBeenCalledOnce());
+      await renderLoaded();
+      await waitFor(() =>
+        expect(mocks.findByIds).toHaveBeenCalledWith([editId]),
+      );
       vary();
       await waitFor(() => expect(composer().prompt).toBe('Submitted motion'));
       mocks.applyTypeSettings.mockClear();
-      await act(async () => pending.resolve(frame(editId)));
+      await act(async () => pending.resolve([frame(editId)]));
       expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
       expect(composer()).toMatchObject({
         prompt: 'Submitted motion',
@@ -3103,10 +3146,10 @@ describe('StudioPlaygroundWorkspace', () => {
       const editId = '33333333-3333-4333-8333-333333333333';
       const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
       mocks.findByIds.mockReturnValueOnce(pending.promise);
-      const view = render(<StudioPlaygroundWorkspace />);
+      const view = await renderLoaded();
       vary();
       await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
-      mocks.findOne.mockResolvedValueOnce(frame(editId));
+      mocks.findByIds.mockResolvedValueOnce([frame(editId)]);
       mocks.searchParams.value = `editImage=${editId}`;
       view.rerender(<StudioPlaygroundWorkspace />);
       await waitFor(() =>
@@ -3125,7 +3168,7 @@ describe('StudioPlaygroundWorkspace', () => {
       );
       expect(mocks.submit).not.toHaveBeenCalled();
     });
-    it('loads a legacy recipe with cleared residuals and obtains a fresh current quote', () => {
+    it('loads a legacy recipe with cleared residuals and obtains a fresh current quote', async () => {
       const job = recipeJob();
       if (!job.recipe) throw new Error('Expected recipe');
       job.recipe = {
@@ -3134,7 +3177,7 @@ describe('StudioPlaygroundWorkspace', () => {
         references: [],
         endFrameId: undefined,
       };
-      render(<StudioPlaygroundWorkspace />);
+      await renderLoaded();
       vary(job);
       expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
         'video',
@@ -3189,14 +3232,16 @@ describe('StudioPlaygroundWorkspace', () => {
   describe('Library image editing entry', () => {
     it('opens a source-only draft and reacts to changing the source query on the same route', async () => {
       mocks.searchParams.value = 'editImage=source-1';
-      mocks.findOne.mockImplementation(async (id: string) => ({
-        id,
-        brandId: 'brand-1',
-        category: 'IMAGE',
-        status: 'GENERATED',
-        cdnUrl: 'https://example.com/source.png',
-        promptText: 'Old generation prompt',
-      }));
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/source.png',
+          promptText: 'Old generation prompt',
+        })),
+      );
       const { rerender } = render(<StudioPlaygroundWorkspace />);
       await waitFor(() =>
         expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
@@ -3212,7 +3257,13 @@ describe('StudioPlaygroundWorkspace', () => {
         expect.objectContaining({ id: 'source-1', role: 'editSource' }),
       );
       mocks.searchParams.value = 'editImage=source-2';
+      mocks.openConfirm.mockClear();
       rerender(<StudioPlaygroundWorkspace />);
+      // The first source now owns the draft, so the second asks first.
+      await waitFor(() => expect(mocks.openConfirm).toHaveBeenCalledOnce());
+      act(() => {
+        mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
+      });
       await waitFor(() =>
         expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
           'image-edit',
@@ -3223,19 +3274,72 @@ describe('StudioPlaygroundWorkspace', () => {
         mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
       ).not.toContainEqual(expect.objectContaining({ id: 'source-1' }));
     });
+    it('restores the saved draft and keeps it until Replace draft is confirmed', async () => {
+      mocks.searchParams.value = 'editImage=source-1';
+      window.history.replaceState(null, '', '/?editImage=source-1');
+      mocks.getDraft.mockResolvedValueOnce({
+        attachments: [],
+        brandId: 'brand-1',
+        droppedReferenceIds: [],
+        id: 'draft-1',
+        knowledgeSelection: { sourceIds: [] },
+        organizationId: 'org-1',
+        prompt: 'Keep my saved draft',
+        references: [],
+        settingsByType: {},
+        type: 'image',
+        userId: 'user-1',
+      });
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/source.png',
+        })),
+      );
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() => expect(mocks.openConfirm).toHaveBeenCalledOnce());
+      expect(mocks.findByIds).toHaveBeenCalledWith(['source-1']);
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        'Keep my saved draft',
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+      expect(window.location.search).toBe('');
+
+      act(() => {
+        mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
+      });
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({ editPrimaryId: 'source-1' }),
+        ),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).toContainEqual(
+        expect.objectContaining({ id: 'source-1', role: 'editSource' }),
+      );
+    });
     it('carries 16:9 into the editor and does not keep a generation model', async () => {
       mocks.searchParams.value = 'editImage=source-wide';
-      mocks.findOne.mockImplementation(async (id: string) => ({
-        id,
-        brandId: 'brand-1',
-        category: 'IMAGE',
-        status: 'GENERATED',
-        cdnUrl: 'https://example.com/wide.png',
-        promptText: 'Wide shot',
-        metadataModel: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
-        width: 1920,
-        height: 1080,
-      }));
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/wide.png',
+          promptText: 'Wide shot',
+          metadataModel: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+          width: 1920,
+          height: 1080,
+        })),
+      );
       render(<StudioPlaygroundWorkspace />);
       await waitFor(() =>
         expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
@@ -3253,16 +3357,19 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     it('keeps an editor model and matches the source when the ratio is unsupported', async () => {
       mocks.searchParams.value = 'editImage=source-cinema';
-      mocks.findOne.mockImplementation(async (id: string) => ({
-        id,
-        brandId: 'brand-1',
-        category: 'IMAGE',
-        status: 'GENERATED',
-        cdnUrl: 'https://example.com/cinema.png',
-        promptText: 'Cinematic',
-        metadataModel: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
-        imageEdit: { aspectRatio: '2.39:1' },
-      }));
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/cinema.png',
+          promptText: 'Cinematic',
+          metadataModel:
+            MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+          imageEdit: { aspectRatio: '2.39:1' },
+        })),
+      );
       render(<StudioPlaygroundWorkspace />);
       await waitFor(() =>
         expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
@@ -3279,16 +3386,18 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     it('matches the source pixels when they are not a selectable ratio', async () => {
       mocks.searchParams.value = 'editImage=source-anamorphic';
-      mocks.findOne.mockImplementation(async (id: string) => ({
-        id,
-        brandId: 'brand-1',
-        category: 'IMAGE',
-        status: 'GENERATED',
-        cdnUrl: 'https://example.com/anamorphic.png',
-        promptText: 'Anamorphic',
-        width: 1920,
-        height: 800,
-      }));
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/anamorphic.png',
+          promptText: 'Anamorphic',
+          width: 1920,
+          height: 800,
+        })),
+      );
       render(<StudioPlaygroundWorkspace />);
       await waitFor(() =>
         expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
@@ -3309,18 +3418,20 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     it('keeps a recorded 16:9 and the ledger model without using portrait placeholders', async () => {
       mocks.searchParams.value = 'editImage=source-recorded';
-      mocks.findOne.mockImplementation(async (id: string) => ({
-        id,
-        brandId: 'brand-1',
-        category: 'IMAGE',
-        status: 'GENERATED',
-        cdnUrl: 'https://example.com/recorded.png',
-        promptText: 'Wide shot',
-        aspectRatio: '16:9',
-        metadataWidth: 1080,
-        metadataHeight: 1920,
-        modelUsed: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
-      }));
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/recorded.png',
+          promptText: 'Wide shot',
+          aspectRatio: '16:9',
+          metadataWidth: 1080,
+          metadataHeight: 1920,
+          modelUsed: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+        })),
+      );
       render(<StudioPlaygroundWorkspace />);
       await waitFor(() =>
         expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
@@ -3343,18 +3454,20 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     it('keeps an edit model stored only on the image-edit recipe', async () => {
       mocks.searchParams.value = 'editImage=source-edited';
-      mocks.findOne.mockImplementation(async (id: string) => ({
-        id,
-        brandId: 'brand-1',
-        category: 'IMAGE',
-        status: 'GENERATED',
-        cdnUrl: 'https://example.com/edited.png',
-        promptText: 'Edited',
-        imageEdit: {
-          aspectRatio: '16:9',
-          model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
-        },
-      }));
+      mocks.findByIds.mockImplementation(async (ids: string[]) =>
+        ids.map((id) => ({
+          id,
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          status: 'GENERATED',
+          cdnUrl: 'https://example.com/edited.png',
+          promptText: 'Edited',
+          imageEdit: {
+            aspectRatio: '16:9',
+            model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+          },
+        })),
+      );
       render(<StudioPlaygroundWorkspace />);
       await waitFor(() =>
         expect(mocks.applyTypeSettings).toHaveBeenCalledWith(

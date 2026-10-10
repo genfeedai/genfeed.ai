@@ -24,6 +24,21 @@ describe('useMessagesInboxFilters', () => {
     });
   });
 
+  it('seeds the type filter from a deep link (#5502)', () => {
+    const { result } = renderHook(() =>
+      useMessagesInboxFilters({
+        brandSlug: 'demo',
+        initialConversationType: SocialConversationType.REPLY,
+        routeBrandId: 'brand-1',
+      }),
+    );
+
+    expect(result.current.conversationType).toBe(SocialConversationType.REPLY);
+    expect(result.current.query).toMatchObject({
+      conversationType: SocialConversationType.REPLY,
+    });
+  });
+
   it('switches cohesive inbox view filters in one update', () => {
     const { result } = renderHook(() =>
       useMessagesInboxFilters({

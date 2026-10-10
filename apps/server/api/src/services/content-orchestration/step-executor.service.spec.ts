@@ -1,3 +1,5 @@
+import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
+import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import type { StepExecutionContext } from '@api/services/content-orchestration/step-executor.service';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
@@ -8,11 +10,14 @@ import { ManagedInferenceRuntimeService } from '@api/services/integrations/manag
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import {
   ImageTaskModel,
+  ModelCategory,
+  ModelProvider,
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 
 describe('StepExecutorService', () => {
   let service: StepExecutorService;
@@ -26,6 +31,8 @@ describe('StepExecutorService', () => {
   >;
   let mockLoggerService: Record<string, ReturnType<typeof vi.fn>>;
   let mockReplicateService: Record<string, ReturnType<typeof vi.fn>>;
+  let mockMusicGenerationService: Record<string, ReturnType<typeof vi.fn>>;
+  let mockMusicProviderRegistry: Record<string, ReturnType<typeof vi.fn>>;
 
   const baseContext: StepExecutionContext = {
     globalPrompt: 'a beautiful sunset',
@@ -55,6 +62,13 @@ describe('StepExecutorService', () => {
       getPrediction: vi.fn(),
       runModel: vi.fn(),
     };
+    mockMusicGenerationService = {
+      resolveMusicModel: vi.fn(),
+    };
+    mockMusicProviderRegistry = {
+      generate: vi.fn(),
+      providerFor: vi.fn(),
+    };
     mockLoggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     service = new StepExecutorService(
@@ -64,6 +78,8 @@ describe('StepExecutorService', () => {
       mockHiggsFieldService as unknown as HiggsFieldService,
       mockElevenLabsService as unknown as ElevenLabsService,
       mockManagedInferenceRuntimeService as unknown as ManagedInferenceRuntimeService,
+      mockMusicGenerationService as unknown as MusicGenerationService,
+      mockMusicProviderRegistry as unknown as MusicGenerationProviderRegistryService,
       mockReplicateService as unknown as ReplicateService,
     );
   });
@@ -244,25 +260,124 @@ describe('StepExecutorService', () => {
   });
 
   describe('text-to-music', () => {
-    it('should route REPLICATE to ReplicateService and return the generated audio url', async () => {
+    const lyriaModel = {
+      category: ModelCategory.MUSIC,
+      endpoint: 'fal-ai/lyria3/pro',
+      isActive: true,
+      key: MODEL_KEYS.FAL_LYRIA3_PRO,
+      provider: ModelProvider.FAL,
+    };
+    const replicateMusicModel = {
+      category: ModelCategory.MUSIC,
+      endpoint: 'acme/replicate-music:abc123',
+      isActive: true,
+      key: 'acme/replicate-music',
+      provider: ModelProvider.REPLICATE,
+    };
+
+    const resolveTo = (modelDocument: Record<string, unknown>) => {
+      mockMusicGenerationService.resolveMusicModel.mockResolvedValue({
+        model: modelDocument.key,
+        modelDocument,
+      });
+      mockMusicProviderRegistry.providerFor.mockReturnValue(
+        modelDocument.provider === ModelProvider.FAL ? 'fal' : 'replicate',
+      );
+    };
+
+    it('resolves the saved or registry default when the step names no model', async () => {
+      resolveTo(lyriaModel);
+      mockByokService.resolveApiKey.mockResolvedValue(null);
+      mockMusicProviderRegistry.generate.mockResolvedValue({
+        externalId: 'fal-run-1',
+        outputUrl: 'https://fal.media/lyria.mp3',
+      });
+
+      const result = await service.execute(
+        { duration: 12, prompt: 'lo-fi synthwave', type: 'text-to-music' },
+        { ...baseContext, brandId: 'brand-1' },
+      );
+
+      expect(result).toEqual({
+        contentType: 'audio/mpeg',
+        url: 'https://fal.media/lyria.mp3',
+      });
+      expect(mockMusicGenerationService.resolveMusicModel).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          explicitModel: undefined,
+          organizationId: 'org-123',
+        },
+      );
+      expect(mockByokService.resolveApiKey).toHaveBeenCalledWith(
+        'org-123',
+        'fal',
+      );
+      expect(mockMusicProviderRegistry.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKeyOverride: undefined,
+          duration: 12,
+          model: MODEL_KEYS.FAL_LYRIA3_PRO,
+          modelCategory: ModelCategory.MUSIC,
+          modelEndpoint: 'fal-ai/lyria3/pro',
+          modelProvider: ModelProvider.FAL,
+          outputs: 1,
+          prompt: 'lo-fi synthwave',
+        }),
+      );
+      expect(mockReplicateService.runModel).not.toHaveBeenCalled();
+      expect(
+        JSON.stringify(mockMusicProviderRegistry.generate.mock.calls),
+      ).not.toContain('musicgen');
+    });
+
+    it('keeps an explicit step model strict and dispatches nothing when it is rejected', async () => {
+      mockMusicGenerationService.resolveMusicModel.mockRejectedValue(
+        new BadRequestException({
+          detail: `No active music model is available for "${MODEL_KEYS.REPLICATE_META_MUSICGEN}"`,
+          title: 'Music model unavailable',
+        }),
+      );
+
+      await expect(
+        service.execute(
+          {
+            model: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+            prompt: 'lo-fi synthwave',
+            type: 'text-to-music',
+          },
+          { ...baseContext, brandId: 'brand-1' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockMusicGenerationService.resolveMusicModel).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          explicitModel: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+          organizationId: 'org-123',
+        },
+      );
+      expect(mockMusicProviderRegistry.generate).not.toHaveBeenCalled();
+      expect(mockReplicateService.runModel).not.toHaveBeenCalled();
+    });
+
+    it('polls a Replicate-hosted resolved model with the organization key', async () => {
+      resolveTo(replicateMusicModel);
       mockByokService.resolveApiKey.mockResolvedValue({
         apiKey: 'replicate-key',
       });
-      mockReplicateService.runModel.mockResolvedValue('prediction-1');
+      mockMusicProviderRegistry.generate.mockResolvedValue({
+        externalId: 'prediction-1',
+      });
       mockReplicateService.getPrediction.mockResolvedValue({
         output: ['https://replicate.delivery/music.mp3'],
         status: 'succeeded',
       });
 
       const result = await service.execute(
-        {
-          duration: 12,
-          model: MusicTaskModel.REPLICATE,
-          prompt: 'lo-fi synthwave',
-          type: 'text-to-music',
-        },
+        { model: 'acme/replicate-music', type: 'text-to-music' },
         baseContext,
       );
+
       expect(result).toEqual({
         contentType: 'audio/mpeg',
         url: 'https://replicate.delivery/music.mp3',
@@ -271,13 +386,14 @@ describe('StepExecutorService', () => {
         'org-123',
         'replicate',
       );
-      expect(mockReplicateService.runModel).toHaveBeenCalledWith(
-        'meta/musicgen:latest',
-        {
-          duration: 12,
-          prompt: 'lo-fi synthwave',
-        },
-        'replicate-key',
+      expect(mockMusicProviderRegistry.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKeyOverride: 'replicate-key',
+          duration: 10,
+          model: 'acme/replicate-music',
+          modelEndpoint: 'acme/replicate-music:abc123',
+          prompt: 'a beautiful sunset',
+        }),
       );
       expect(mockReplicateService.getPrediction).toHaveBeenCalledWith(
         'prediction-1',
@@ -285,48 +401,29 @@ describe('StepExecutorService', () => {
       );
     });
 
-    it('should use the global prompt when a text-to-music step omits its own prompt', async () => {
+    it('fails when a synchronous provider returns no output URL', async () => {
+      resolveTo(lyriaModel);
       mockByokService.resolveApiKey.mockResolvedValue(null);
-      mockReplicateService.runModel.mockResolvedValue('prediction-2');
-      mockReplicateService.getPrediction.mockResolvedValue({
-        output: { url: 'https://replicate.delivery/global.mp3' },
-        status: 'succeeded',
+      mockMusicProviderRegistry.generate.mockResolvedValue({
+        externalId: 'fal-run-2',
       });
 
-      const promise = service.execute(
-        { model: MusicTaskModel.REPLICATE, type: 'text-to-music' },
-        baseContext,
-      );
-
-      const result = await promise;
-
-      expect(result.url).toBe('https://replicate.delivery/global.mp3');
-      expect(mockReplicateService.runModel).toHaveBeenCalledWith(
-        'meta/musicgen:latest',
-        {
-          duration: 10,
-          prompt: 'a beautiful sunset',
-        },
-        undefined,
-      );
+      await expect(
+        service.execute({ type: 'text-to-music' }, baseContext),
+      ).rejects.toThrow('returned no output URL');
+      expect(mockReplicateService.getPrediction).not.toHaveBeenCalled();
     });
 
     it('should throw when a text-to-music step has no prompt available', async () => {
       await expect(
         service.execute(
-          { model: MusicTaskModel.REPLICATE, type: 'text-to-music' },
+          { type: 'text-to-music' },
           { organizationId: 'org-123' },
         ),
       ).rejects.toThrow('requires prompt');
-    });
-
-    it('should throw for unsupported music models', async () => {
-      await expect(
-        service.execute(
-          { model: MusicTaskModel.ELEVENLABS, type: 'text-to-music' },
-          baseContext,
-        ),
-      ).rejects.toThrow('not yet supported');
+      expect(
+        mockMusicGenerationService.resolveMusicModel,
+      ).not.toHaveBeenCalled();
     });
   });
 

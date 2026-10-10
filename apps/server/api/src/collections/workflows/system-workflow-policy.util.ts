@@ -1,4 +1,7 @@
-import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import type {
+  RunSystemWorkflowInput,
+  SystemWorkflowGraphDefinition,
+} from '@api/collections/workflows/system-workflow-definition';
 import {
   PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
   PROACTIVE_AGENT_TURN_SOURCE,
@@ -29,6 +32,66 @@ export type SystemWorkflowActionRequest = {
   provenance: SystemWorkflowProvenance;
   runtimeContext?: unknown;
 };
+
+/** What a last-resort terminal failure handler receives (#6655). */
+export type SystemWorkflowTerminalFailureRequest = {
+  inputValues: Record<string, unknown>;
+  organizationId: string;
+  workflowError: string;
+};
+
+/**
+ * Marks the record a system workflow owns as terminally failed after both the
+ * workflow and its failure workflow failed. Runs without a graph or action
+ * contracts, so it must read only the minimal identifiers it needs.
+ */
+export type SystemWorkflowTerminalFailureHandler = (
+  request: SystemWorkflowTerminalFailureRequest,
+) => Promise<void>;
+
+/**
+ * Last-resort handlers per workflow that owns a record: when the workflow and
+ * its failure workflow both fail, the record is still marked terminal instead
+ * of staying in flight forever (#6655).
+ */
+export class SystemWorkflowTerminalFailures {
+  private readonly handlers = new Map<
+    string,
+    SystemWorkflowTerminalFailureHandler
+  >();
+
+  register(
+    canonicalId: string,
+    handler: SystemWorkflowTerminalFailureHandler,
+  ): void {
+    if (this.handlers.has(canonicalId)) {
+      throw new Error(
+        `Duplicate system workflow terminal failure handler: ${canonicalId}`,
+      );
+    }
+    this.handlers.set(canonicalId, handler);
+  }
+
+  /** Returns whether a registered last resort settled the owned record. */
+  async settle(
+    input: Pick<
+      RunSystemWorkflowInput,
+      'canonicalId' | 'inputValues' | 'organizationId'
+    >,
+    workflowError: string,
+  ): Promise<boolean> {
+    const handler = this.handlers.get(input.canonicalId);
+    if (!handler) {
+      return false;
+    }
+    await handler({
+      inputValues: input.inputValues ?? {},
+      organizationId: input.organizationId,
+      workflowError,
+    });
+    return true;
+  }
+}
 
 // Action handlers are either pure state transforms or async I/O. `registerAction`
 // wraps every executor in an async node executor, so both shapes are awaited.

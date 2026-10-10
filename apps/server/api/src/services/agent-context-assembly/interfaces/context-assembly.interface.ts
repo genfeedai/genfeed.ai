@@ -111,6 +111,8 @@ export interface AssembledBrandContext {
     goals?: string[];
     frequency?: string;
     topics?: string[];
+    offers?: string[];
+    competitors?: string[];
   };
   memoryInsights?: Array<{
     insight: string;

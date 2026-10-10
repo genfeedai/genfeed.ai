@@ -1,6 +1,7 @@
 import { BatchProjectCreditsService } from '@api/collections/batch-projects/services/batch-project-credits.service';
 import { BatchProjectIdeaDispatchService } from '@api/collections/batch-projects/services/batch-project-idea-dispatch.service';
 import type { AvatarGenerationPrice } from '@api/collections/videos/services/avatar-video-generation.service';
+import type { SystemWorkflowTerminalFailureHandler } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   BatchProjectItemStatus,
   CreditReservationStatus,
@@ -81,8 +82,18 @@ describe('BatchProjectIdeaDispatchService', () => {
   const videoGeneration = { generateVideo: vi.fn() };
   const avatarGeneration = { generateAvatarVideo: vi.fn() };
   const workflowQueue = { queueSystemWorkflow: vi.fn() };
+  const terminalFailures = new Map<
+    string,
+    SystemWorkflowTerminalFailureHandler
+  >();
   const workflowRunner = {
     registerAction: vi.fn(),
+    terminalFailures: {
+      register: vi.fn(
+        (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) =>
+          terminalFailures.set(canonicalId, handler),
+      ),
+    },
     registerWorkflow: vi.fn(),
     runWithRegisteredWorkflowModule: vi.fn(
       async <T>(
@@ -454,6 +465,33 @@ describe('BatchProjectIdeaDispatchService', () => {
         organizationId: 'org-1',
       }),
     });
+  });
+
+  it('fails the item from the last resort when its failure graph also failed', async () => {
+    service.onModuleInit();
+    useItem(makeItem('image'));
+
+    await terminalFailures.get('batch-project.idea.dispatch')?.({
+      inputValues: { job },
+      organizationId: 'org-1',
+      workflowError: 'Action contract input validation failed',
+    });
+
+    expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          error: 'Generation could not start',
+          status: BatchProjectItemStatus.FAILED,
+        }),
+      }),
+    );
+    await expect(
+      terminalFailures.get('batch-project.idea.dispatch')?.({
+        inputValues: { job },
+        organizationId: 'org-2',
+        workflowError: 'failed',
+      }),
+    ).rejects.toThrow('Invalid batch project idea dispatch job.');
   });
 
   it('queues one durable job per attempt with a failure workflow', async () => {

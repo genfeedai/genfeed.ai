@@ -1,3 +1,4 @@
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import type { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import type { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 
@@ -9,6 +10,11 @@ import type { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 export type MusicGenerationProvider = 'replicate' | 'fal' | 'mureka';
 
 export interface MusicGenerationProviderRequest {
+  /**
+   * The organization's own key for the resolved provider (BYOK). Omitted, the
+   * adapter runs on the platform's credentials.
+   */
+  apiKeyOverride?: string;
   /** Full DTO so adapters can read provider-specific optional params. */
   createMusicDto: CreateMusicDto;
   duration?: number;
@@ -52,4 +58,22 @@ export interface MusicGenerationProviderAdapter {
     request: MusicGenerationProviderRequest,
   ): Promise<MusicGenerationProviderResult>;
   supports(model: string, provider?: ModelProvider | string): boolean;
+}
+
+/** Input to `MusicGenerationService.resolveMusicModel`. */
+export interface MusicModelResolutionRequest {
+  /** Brand whose saved `defaultMusicModel` is tried first. */
+  brandId?: string;
+  /**
+   * A model the caller named explicitly. It stays strict: an inactive,
+   * retired, or wrong-category key is rejected, never swapped.
+   */
+  explicitModel?: string;
+  organizationId: string;
+}
+
+/** An executable music registry row and the key that resolved to it. */
+export interface ResolvedMusicModel {
+  model: string;
+  modelDocument: ModelDocument;
 }

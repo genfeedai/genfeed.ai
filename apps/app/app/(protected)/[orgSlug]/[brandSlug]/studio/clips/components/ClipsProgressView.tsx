@@ -69,6 +69,9 @@ export default function ClipsProgressView({
     }
   };
 
+  // The source never became usable, so no clip was attempted.
+  const isSourceFailed =
+    project.status === 'failed' && project.source?.status === 'failed';
   const isAwaitingHookApproval = approval?.state === 'awaiting_confirmation';
   const isGeneratingHook = approval?.state === 'generating_hook';
   const pendingDescription =
@@ -93,9 +96,11 @@ export default function ClipsProgressView({
             ? t('clipsReady')
             : project.status === 'partially-completed'
               ? t('someClipsAreReady')
-              : project.status === 'failed'
-                ? t('clipGenerationFailed')
-                : t('generatingClips');
+              : isSourceFailed
+                ? t('sourceFailedHeading')
+                : project.status === 'failed'
+                  ? t('clipGenerationFailed')
+                  : t('generatingClips');
   const canRetryFailedClips =
     project.status === 'partially-completed' ||
     (project.status === 'failed' &&
@@ -127,10 +132,23 @@ export default function ClipsProgressView({
                   : project.status === 'completed' ||
                       project.status === 'partially-completed'
                     ? t('doneClipCount', { count: project.clips.length })
-                    : project.status === 'failed'
-                      ? t('pipelineFailed')
-                      : pendingDescription}
+                    : isSourceFailed
+                      ? t('sourceFailedDescription')
+                      : project.status === 'failed'
+                        ? canRetryFailedClips
+                          ? t('pipelineFailed')
+                          : t('pipelineFailedNoRetry')
+                        : pendingDescription}
         </p>
+
+        {project.status === 'failed' && !isSourceFailed && project.error ? (
+          <p
+            role="status"
+            className="mt-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            {project.error}
+          </p>
+        ) : null}
 
         {project.status !== 'completed' &&
           project.status !== 'partially-completed' &&

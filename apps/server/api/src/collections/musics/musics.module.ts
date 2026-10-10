@@ -44,7 +44,11 @@ import { Module } from '@nestjs/common';
     MusicsOperationsController,
     MusicsUploadController,
   ],
-  exports: [MusicGenerationService, MusicsService],
+  exports: [
+    MusicGenerationProviderRegistryService,
+    MusicGenerationService,
+    MusicsService,
+  ],
   imports: [
     PlatformSettingsModule,
     ActivitiesModule,
