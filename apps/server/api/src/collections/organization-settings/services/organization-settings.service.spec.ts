@@ -440,7 +440,7 @@ describe('editing bootstrap default', () => {
 
 describe('OrganizationSettingsService module preference validation', () => {
   it('passes valid preferences to canonical persistence without changing unrelated settings', async () => {
-    const preferences = { automation: true, batch: false };
+    const preferences = { automation: true, turbo: false };
     const patch = vi.spyOn(BaseService.prototype, 'patch').mockResolvedValue({
       id: 'settings-1',
       moduleOverrides: preferences,

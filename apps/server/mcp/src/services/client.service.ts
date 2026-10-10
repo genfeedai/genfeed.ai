@@ -19,8 +19,8 @@ import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
 import type {
   AdsGatewayInsightsParams,
-  CreateBatchParams,
-  ListBatchesParams,
+  CreateTurboRunParams,
+  ListTurboRunsParams,
   PersonaResponse,
 } from '@mcp/services/client/client.types';
 import {
@@ -510,14 +510,14 @@ export class ClientService {
     return this.workspace.listPersonas(params);
   }
 
-  createBatch(params: CreateBatchParams): Promise<Record<string, unknown>> {
-    return this.workspace.createBatch(params);
+  createTurboRun(params: CreateTurboRunParams): Promise<Record<string, unknown>> {
+    return this.workspace.createTurboRun(params);
   }
 
-  listBatches(
-    params: ListBatchesParams = {},
+  listTurboRuns(
+    params: ListTurboRunsParams = {},
   ): Promise<Array<Record<string, unknown>>> {
-    return this.workspace.listBatches(params);
+    return this.workspace.listTurboRuns(params);
   }
 
   getJobStatus(jobId: string): Promise<Record<string, unknown>> {

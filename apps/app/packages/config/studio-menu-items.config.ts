@@ -56,14 +56,13 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       solid: Clapperboard,
     },
   ],
-  // Turbo runs on the Batch surface until #5936 renames its routes.
   turbo: [
     {
       group: '',
-      href: APP_ROUTES.STUDIO.BATCH,
+      href: APP_ROUTES.STUDIO.TURBO,
       label: APP_DISPLAY_LABELS.turbo,
-      organizationModule: 'batch',
-      matchPaths: [APP_ROUTES.STUDIO.BATCH, APP_ROUTES.STUDIO.BATCH_NEW],
+      organizationModule: 'turbo',
+      matchPaths: [APP_ROUTES.STUDIO.TURBO, APP_ROUTES.STUDIO.TURBO_NEW],
       outline: Layers,
       solid: Layers,
     },
@@ -110,7 +109,7 @@ const STUDIO_APP_ROOTS: Readonly<Record<StudioAppId, string>> = {
   motion: APP_ROUTES.STUDIO.MOTION,
   playground: APP_ROUTES.STUDIO.PLAYGROUND,
   storyboard: APP_ROUTES.STUDIO.STORYBOARD,
-  turbo: APP_ROUTES.STUDIO.BATCH,
+  turbo: APP_ROUTES.STUDIO.TURBO,
 };
 
 /** The Studio app that owns a product path such as `/studio/clips/new`. */

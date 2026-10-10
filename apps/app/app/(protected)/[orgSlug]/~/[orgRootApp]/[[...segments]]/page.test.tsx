@@ -410,7 +410,7 @@ describe('OrgRootAppPage', () => {
   it.each([
     ['playground', '/acme/moonrise/studio/playground'],
     ['storyboard', '/acme/moonrise/studio/storyboard'],
-    ['batch', '/acme/moonrise/studio/batch'],
+    ['turbo', '/acme/moonrise/studio/turbo'],
     ['motion', '/acme/moonrise/studio/motion'],
     ['clips', '/acme/moonrise/studio/clips'],
   ])(

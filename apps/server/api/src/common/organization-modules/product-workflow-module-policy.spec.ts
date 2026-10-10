@@ -60,7 +60,7 @@ describe('code-owned product workflow module inventory', () => {
 
   it('allows only settlement to finish a Batch whose module was disabled after generation', () => {
     const graph = buildTurboRunWorkflowDefinition();
-    expect(graph.organizationModule).toBe('turboRun');
+    expect(graph.organizationModule).toBe('turbo');
     expect(graph.moduleCompletionNodeIds).toEqual(['settle-credits']);
     expect(
       graph.definition.nodes.find((node) => node.id === 'settle-credits')?.data

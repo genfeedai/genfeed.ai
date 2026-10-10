@@ -218,7 +218,7 @@ export interface IProactivePreparationStatus {
     id: string;
     label?: string | null;
   };
-  batch?: {
+  turboRun?: {
     id: string;
     platforms: string[];
     completedPosts: number;

@@ -8,7 +8,7 @@ describe('approval queue cross-links', () => {
   it('carries the selected batch and item from Posts into the approval queue', () => {
     expect(
       buildApprovalQueueHref('batch=batch-1&item=item-9&status=draft&page=2'),
-    ).toBe('/publishing/review?batch=batch-1&item=item-9');
+    ).toBe('/publishing/review?run=batch-1&item=item-9');
   });
 
   it('returns to Posts with the same batch and item, dropping queue-only filters', () => {
@@ -16,7 +16,7 @@ describe('approval queue cross-links', () => {
       buildPostsHrefFromApprovalQueue(
         new URLSearchParams('batch=batch-1&filter=ready&item=item-9'),
       ),
-    ).toBe('/publishing/posts?batch=batch-1&item=item-9');
+    ).toBe('/publishing/posts?run=batch-1&item=item-9');
   });
 
   it('links plainly when nothing is selected', () => {

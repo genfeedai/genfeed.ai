@@ -342,8 +342,8 @@ export const APP_ROUTES = {
   },
   STUDIO: {
     MOTION: '/studio/motion',
-    BATCH: '/studio/batch',
-    BATCH_NEW: '/studio/batch/new',
+    TURBO: '/studio/turbo',
+    TURBO_NEW: '/studio/turbo/new',
     CLIPS: '/studio/clips',
     CLIPS_NEW: '/studio/clips/new',
     EDITOR: '/studio/editor',

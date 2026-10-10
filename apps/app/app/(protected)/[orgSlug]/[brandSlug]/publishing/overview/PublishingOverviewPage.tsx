@@ -16,7 +16,7 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AsyncState } from '@props/shared';
-import { TurboRunsService } from '@services/batch/batches.service';
+import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { useQuery } from '@tanstack/react-query';

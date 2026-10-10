@@ -10,7 +10,7 @@ const STUDIO_SURFACE_FLAGS: ReadonlyArray<
   [APP_ROUTES.STUDIO.MOTION, 'studio_motion'],
   [APP_ROUTES.STUDIO.STORYBOARD, 'studio_storyboard'],
   [APP_ROUTES.STUDIO.CLIPS, 'studio_clips'],
-  [APP_ROUTES.STUDIO.TURBO_RUN, 'studio_turbo'],
+  [APP_ROUTES.STUDIO.TURBO, 'studio_turbo'],
   [APP_ROUTES.STUDIO.EDITOR, 'studio_editor'],
 ];
 

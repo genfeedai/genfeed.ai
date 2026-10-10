@@ -20,7 +20,7 @@ describe('agent-chat.store finalizeStream', () => {
     const pendingAction: AgentUiAction = {
       id: 'review-queue-1',
       primaryCta: {
-        href: '/publishing/review?batch=000000000000000000000001&filter=ready',
+        href: '/publishing/review?run=000000000000000000000001&filter=ready',
         label: 'Open review queue',
       },
       status: 'completed',

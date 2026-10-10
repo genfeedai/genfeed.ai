@@ -86,7 +86,7 @@ export class WorkspaceClient {
         const response = await http.post('/turbo-runs', {
           data: {
             attributes: params,
-            type: 'turboRuns',
+            type: 'turbo-runs',
           },
         });
 

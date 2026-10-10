@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import {
-  type LearningTurboRunInput,
+  type LearningBatchGenerationInput,
   LearningDecisionService,
   type LearningResolution,
 } from '@api/collections/content-learning/services/learning-decision.service';
@@ -17,7 +17,7 @@ import { Injectable } from '@nestjs/common';
 type GenerationIdentity = Pick<AuthenticatedUser, 'brandId' | 'organizationId'>;
 export interface PostAccountLearningSession {
   organizationId: string;
-  input: LearningTurboRunInput | null;
+  input: LearningBatchGenerationInput | null;
   receipts: LearningGenerationReceipt[];
   decisionIds: Array<string | undefined>;
 }
@@ -54,7 +54,7 @@ export class PostAccountLearningService {
       : '';
     if (!requestKey || requestKey.length > 256)
       return unavailable('invalid_request_identity');
-    const input: LearningTurboRunInput = {
+    const input: LearningBatchGenerationInput = {
       organizationId: identity.organizationId,
       brandId: identity.brandId,
       format: 'text',
@@ -111,11 +111,11 @@ export class PostAccountLearningService {
     session: PostAccountLearningSession,
     replayOnly: boolean,
   ): Promise<void> {
-    const input = session.input as LearningTurboRunInput;
+    const input = session.input as LearningBatchGenerationInput;
     let resolutions: LearningResolution[] | null = null;
     try {
       resolutions =
-        await this.learningDecisionService.resolveTurboRunForGeneration(
+        await this.learningDecisionService.resolveBatchForGeneration(
           replayOnly ? { ...input, replayOnly } : input,
         );
     } catch (error) {

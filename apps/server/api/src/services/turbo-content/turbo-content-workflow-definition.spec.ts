@@ -7,7 +7,7 @@ import {
 describe('batch content workflow definitions', () => {
   it('fans out through the generic workflow action', () => {
     const definition = buildTurboContentWorkflowDefinition('content-writing');
-    expect(definition.organizationModule).toBe('turboRun');
+    expect(definition.organizationModule).toBe('turbo');
     const fanOut = definition.definition.nodes.find(
       (node) => node.id === 'generate-items',
     );
@@ -23,7 +23,7 @@ describe('batch content workflow definitions', () => {
   it('runs each skill execution as one action-backed child workflow', () => {
     const definition =
       buildTurboContentItemWorkflowDefinition('content-writing');
-    expect(definition.organizationModule).toBe('turboRun');
+    expect(definition.organizationModule).toBe('turbo');
 
     expect(definition.definition.nodes).toHaveLength(2);
     expect(definition.definition.nodes[0]?.data.config.actionId).toBe(

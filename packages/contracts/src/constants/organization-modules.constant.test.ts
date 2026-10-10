@@ -31,7 +31,7 @@ describe('organization module preference display', () => {
       analytics: true,
       motion: false,
       clips: false,
-      batch: false,
+      turbo: false,
       editor: false,
       automation: false,
       messages: false,
@@ -177,16 +177,16 @@ describe('organization module access', () => {
     expect(
       resolveOrganizationModuleAccess({
         ...cloud,
-        moduleId: 'batch',
+        moduleId: 'turbo',
         hasOrganizationBilling: false,
-        moduleOverrides: { batch: false },
+        moduleOverrides: { turbo: false },
       }).reason,
     ).toBe('disabled');
     expect(
       resolveOrganizationModuleAccess({
         ...cloud,
-        moduleId: 'batch',
-        moduleOverrides: { batch: true },
+        moduleId: 'turbo',
+        moduleOverrides: { turbo: true },
       }).isAllowed,
     ).toBe(true);
   });
@@ -207,9 +207,9 @@ describe('organization module access', () => {
     expect(
       organizationModuleOverridesSchema.parse({
         automation: true,
-        batch: false,
+        turbo: false,
       }),
-    ).toEqual({ automation: true, batch: false });
+    ).toEqual({ automation: true, turbo: false });
   });
 });
 

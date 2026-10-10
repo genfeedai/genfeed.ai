@@ -4758,7 +4758,7 @@ export async function mockReviewQueue(
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiCollection('turboRuns', [
+          buildJsonApiCollection('turbo-run', [
             {
               attributes: turboRunListItem,
               id: turboRunId,
@@ -4777,7 +4777,7 @@ export async function mockReviewQueue(
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiDocument('turboRuns', turboRunId, turboRunDetail),
+          buildJsonApiDocument('turbo-run', turboRunId, turboRunDetail),
         ),
         contentType: 'application/json',
         status: 200,
@@ -4797,7 +4797,7 @@ export async function mockReviewQueue(
         );
         await route.fulfill({
           body: JSON.stringify(
-            buildJsonApiDocument('turboRuns', turboRunId, turboRunDetail),
+            buildJsonApiDocument('turbo-run', turboRunId, turboRunDetail),
           ),
           contentType: 'application/json',
           status: 200,

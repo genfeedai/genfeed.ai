@@ -74,7 +74,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   }),
 }));
 
-vi.mock('@services/batch/batches.service', () => ({
+vi.mock('@services/turbo/turbo-runs.service', () => ({
   TurboRunsService: { getInstance: vi.fn() },
 }));
 

@@ -28,14 +28,14 @@ describe('Studio app menus (#5502)', () => {
       'Clips',
       'Editor',
     ]);
-    expect(STUDIO_APP_MENU_ITEMS.turbo[0].href).toBe('/studio/batch');
+    expect(STUDIO_APP_MENU_ITEMS.turbo[0].href).toBe('/studio/turbo');
     expect(STUDIO_APP_MENU_ITEMS.turbo[0].organizationModule).toBe('batch');
   });
 
   it('resolves nested Studio routes to their app and nothing else', () => {
     expect(getStudioAppForPath('/studio/clips/project-1')).toBe('clips');
     expect(getStudioAppForPath('/studio/editor/new')).toBe('editor');
-    expect(getStudioAppForPath('/studio/batch/new')).toBe('turbo');
+    expect(getStudioAppForPath('/studio/turbo/new')).toBe('turbo');
     expect(getStudioAppForPath('/studio/storyboard/run-1')).toBe('storyboard');
     expect(getStudioAppForPath('/studio')).toBeUndefined();
     expect(getStudioAppForPath('/studio/playgrounds')).toBeUndefined();

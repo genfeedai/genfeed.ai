@@ -84,7 +84,7 @@ beforeEach(() => {
   state.disposed.mockClear();
 });
 describe('credit-based module creation gate', () => {
-  it.each(['batch', 'clips', 'editor', 'motion'] as const)(
+  it.each(['clips', 'editor', 'motion', 'turbo'] as const)(
     'does not mount %s creation under cloud defaults',
     (moduleId) => {
       render(view(moduleId));
@@ -98,7 +98,7 @@ describe('credit-based module creation gate', () => {
   it('mounts enabled credit-based work without subscription or balance signals', () => {
     state.settings = {
       hasOrganizationBilling: true,
-      moduleOverrides: { batch: true },
+      moduleOverrides: { turbo: true },
     };
     render(view());
     expect(state.created).toHaveBeenCalledTimes(1);
@@ -128,7 +128,7 @@ describe('credit-based module creation gate', () => {
   it('waits for settings loading and organization scope before mounting', () => {
     state.settings = {
       hasOrganizationBilling: true,
-      moduleOverrides: { batch: true },
+      moduleOverrides: { turbo: true },
     };
     state.settingsLoading = true;
     const { rerender } = render(view());
@@ -147,12 +147,12 @@ describe('credit-based module creation gate', () => {
   it('removes the creation view when the enabled preference is revoked', () => {
     state.settings = {
       hasOrganizationBilling: true,
-      moduleOverrides: { batch: true },
+      moduleOverrides: { turbo: true },
     };
     const { rerender } = render(view());
     state.settings = {
       hasOrganizationBilling: true,
-      moduleOverrides: { batch: false },
+      moduleOverrides: { turbo: false },
     };
     rerender(view());
     expect(state.disposed).toHaveBeenCalledTimes(1);

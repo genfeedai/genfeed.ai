@@ -224,8 +224,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/studio/storyboard': 'Runs',
   '/:orgSlug/:brandSlug/studio/motion': 'Compositions',
   '/:orgSlug/:brandSlug/studio/clips': 'Projects',
-  '/:orgSlug/:brandSlug/studio/batch': 'Projects',
-  '/:orgSlug/:brandSlug/studio/batch/new': 'New project',
+  '/:orgSlug/:brandSlug/studio/turbo': 'Projects',
+  '/:orgSlug/:brandSlug/studio/turbo/new': 'New project',
   '/:orgSlug/:brandSlug/studio/clips/new': 'New project',
   '/:orgSlug/:brandSlug/studio/storyboard/new': 'New storyboard',
   '/:orgSlug/:brandSlug/studio/storyboard/:runId': 'Run',
@@ -348,14 +348,14 @@ function humanizeBreadcrumbLabel(value: string): string {
     .join(' ');
 }
 
-/** Studio tools are apps; Batch is the Turbo app until #5936 renames it. */
+/** Studio tools are apps. */
 const STUDIO_APP_SEGMENTS = Object.freeze({
-  batch: 'turbo',
   clips: 'clips',
   editor: 'editor',
   motion: 'motion',
   playground: 'playground',
   storyboard: 'storyboard',
+  turbo: 'turbo',
 } as const satisfies Readonly<Record<string, string>>);
 
 function getCanonicalAppSegment(canonicalUrl: string): string {
@@ -898,9 +898,9 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/studio/batch',
-      '/:orgSlug/:brandSlug/studio/batch/new',
-      '/:orgSlug/:brandSlug/studio/batch/:projectId',
+      '/:orgSlug/:brandSlug/studio/turbo',
+      '/:orgSlug/:brandSlug/studio/turbo/new',
+      '/:orgSlug/:brandSlug/studio/turbo/:projectId',
       '/:orgSlug/:brandSlug/studio/clips',
       '/:orgSlug/:brandSlug/studio/clips/new',
       '/:orgSlug/:brandSlug/studio/clips/:projectId',

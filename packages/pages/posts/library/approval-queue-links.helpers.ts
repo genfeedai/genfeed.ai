@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 
 /** Query keys that identify the operator's place in the approval queue. */
-const APPROVAL_QUEUE_STATE_KEYS = ['batch', 'item'] as const;
+const APPROVAL_QUEUE_STATE_KEYS = ['run', 'item'] as const;
 
 function pickApprovalQueueState(
   searchParams: URLSearchParams | string,
@@ -21,7 +21,7 @@ function withQuery(pathname: string, query: URLSearchParams): string {
 }
 
 /**
- * Posts → Approval queue. Carries the selected batch and item along so a
+ * Posts → Approval queue. Carries the selected run and item along so a
  * round trip lands the operator back on the same decision.
  */
 export function buildApprovalQueueHref(
@@ -34,7 +34,7 @@ export function buildApprovalQueueHref(
 }
 
 /**
- * Approval queue → Posts. Keeps batch and item in the URL so the "Approval
+ * Approval queue → Posts. Keeps run and item in the URL so the "Approval
  * queue" link on Posts returns to the same selection.
  */
 export function buildPostsHrefFromApprovalQueue(

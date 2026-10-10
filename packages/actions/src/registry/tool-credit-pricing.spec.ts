@@ -102,7 +102,7 @@ describe('tool credit pricing', () => {
     );
     expect(turboRun?.creditPricing?.mode).toBe('variable');
     if (turboRun?.creditPricing?.mode === 'variable') {
-      expect(turboRun.creditPricing.unit).toBe('turboRun');
+      expect(turboRun.creditPricing.unit).toBe('turbo run');
       expect(turboRun.creditPricing.minimum).toBeGreaterThan(0);
       expect(turboRun.creditPricing.maximum).toBeGreaterThan(
         turboRun.creditPricing.minimum,

@@ -40,7 +40,7 @@ describe('api/turbo-runs', () => {
             status: TurboRunStatus.PENDING,
           },
           id: 'batch-1',
-          type: 'turboRun',
+          type: 'turbo-run',
         },
       });
 
@@ -94,7 +94,7 @@ describe('api/turbo-runs', () => {
         data: {
           attributes: { count: 1, platforms: ['twitter'], status: TurboRunStatus.COMPLETED },
           id: 'batch-9',
-          type: 'turboRun',
+          type: 'turbo-run',
         },
       });
 

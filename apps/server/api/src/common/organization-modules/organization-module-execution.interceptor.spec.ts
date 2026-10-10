@@ -6,7 +6,7 @@ import { Reflector } from '@nestjs/core';
 import { defer, firstValueFrom, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
-@OrganizationModule('batch')
+@OrganizationModule('turbo')
 class FeatureController {
   execute() {}
   @OrganizationModule('storyboard')
@@ -37,7 +37,7 @@ describe('OrganizationModuleExecutionInterceptor', () => {
     new Reflector(),
   );
   it.each([
-    ['execute', 'batch'],
+    ['execute', 'turbo'],
     ['storyboard', 'storyboard'],
   ])(
     'propagates trusted %s ownership through the lazy async handler, ignoring caller selectors',

@@ -800,7 +800,7 @@ export class AgentStrategyAutopilotExecutionService {
     topic: string;
     userId: string;
   }): Promise<void> {
-    const href = `/publishing/review?batch=${input.turboRunId}${
+    const href = `/publishing/review?run=${input.turboRunId}${
       input.reviewItemId ? `&item=${input.reviewItemId}` : ''
     }`;
     const label = `Autopilot ${input.format} ready for review`;

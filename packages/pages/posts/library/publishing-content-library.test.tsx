@@ -234,7 +234,7 @@ describe('PublishingContentLibrary', () => {
 
     expect(screen.getByRole('link', { name: 'approvalQueue' })).toHaveAttribute(
       'href',
-      '/acme/main/publishing/review?batch=batch-1&item=item-9',
+      '/acme/main/publishing/review?run=batch-1&item=item-9',
     );
   });
 

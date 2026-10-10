@@ -37,7 +37,7 @@ describe('server-owned organization module execution context', () => {
   });
 
   it('snapshots the admitted scope and restores it after failure', async () => {
-    const scope = { organizationId: 'org-1', moduleId: 'batch' as const };
+    const scope = { organizationId: 'org-1', moduleId: 'turbo' as const };
     await expect(
       runWithOrganizationModule(scope, async () => {
         scope.organizationId = 'forged';
@@ -57,7 +57,7 @@ describe('server-owned organization module execution context', () => {
   it('rejects missing organization scope', () => {
     expect(() =>
       runWithOrganizationModule(
-        { organizationId: ' ', moduleId: 'batch' },
+        { organizationId: ' ', moduleId: 'turbo' },
         () => undefined,
       ),
     ).toThrow('Authenticated module execution context is required');
@@ -66,10 +66,10 @@ describe('server-owned organization module execution context', () => {
 
 describe('queued module envelope', () => {
   it('copies only a valid matching server scope', () => {
-    const input = { organizationId: 'org-1', moduleId: 'batch' };
+    const input = { organizationId: 'org-1', moduleId: 'turbo' };
     const context = parseOrganizationModuleExecutionContext(input, 'org-1');
     input.moduleId = 'playground';
-    expect(context).toEqual({ organizationId: 'org-1', moduleId: 'batch' });
+    expect(context).toEqual({ organizationId: 'org-1', moduleId: 'turbo' });
     expect(Object.isFrozen(context)).toBe(true);
     expect(
       parseOrganizationModuleExecutionContext(undefined, 'org-1'),
@@ -84,10 +84,10 @@ describe('queued module envelope', () => {
     {},
     { organizationId: 'org-1' },
     { organizationId: 'org-1', moduleId: 'unknown' },
-    { organizationId: 'other-org', moduleId: 'batch' },
-    { organizationId: ' ', moduleId: 'batch' },
-    { organizationId: 'org-1', moduleId: 'batch', operation: 'read' },
-    { organizationId: 'org-1', moduleId: 'batch', bypass: true },
+    { organizationId: 'other-org', moduleId: 'turbo' },
+    { organizationId: ' ', moduleId: 'turbo' },
+    { organizationId: 'org-1', moduleId: 'turbo', operation: 'read' },
+    { organizationId: 'org-1', moduleId: 'turbo', bypass: true },
   ])('rejects malformed or grant-expanding persisted data: %j', (input) => {
     expect(() =>
       parseOrganizationModuleExecutionContext(input, 'org-1'),
@@ -97,7 +97,7 @@ describe('queued module envelope', () => {
   it('requires a job-owned tenant identity', () => {
     expect(() =>
       parseOrganizationModuleExecutionContext(
-        { organizationId: 'org-1', moduleId: 'batch' },
+        { organizationId: 'org-1', moduleId: 'turbo' },
         undefined,
       ),
     ).toThrow('Invalid queued organization module execution context');

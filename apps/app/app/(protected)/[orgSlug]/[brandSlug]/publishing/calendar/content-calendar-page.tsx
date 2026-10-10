@@ -968,7 +968,7 @@ export default function ContentCalendarPage({
             push(
               href(
                 draft.reviewTurboRunId
-                  ? `/publishing/review?batch=${draft.reviewTurboRunId}&filter=ready`
+                  ? `/publishing/review?run=${draft.reviewTurboRunId}&filter=ready`
                   : '/publishing/review',
               ),
             );

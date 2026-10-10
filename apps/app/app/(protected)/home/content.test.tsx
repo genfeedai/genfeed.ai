@@ -126,7 +126,7 @@ vi.mock('@services/content/release-groups.service', () => ({
   },
 }));
 
-vi.mock('@services/batch/batches.service', () => ({
+vi.mock('@services/turbo/turbo-runs.service', () => ({
   TurboRunsService: {
     getInstance: () => ({ itemAction: mocks.turboRunItemAction }),
   },
@@ -784,7 +784,7 @@ describe('OperationalHomeContent', () => {
       queue.getByRole('link', { name: 'Open Review item_1' }),
     ).toHaveAttribute(
       'href',
-      '/acme/moonrise/publishing/review?batch=turbo_run_1&item=item_1',
+      '/acme/moonrise/publishing/review?run=turbo_run_1&item=item_1',
     );
     expect(queue.getByRole('button', { name: 'Approve' })).toHaveClass(
       'size-8',

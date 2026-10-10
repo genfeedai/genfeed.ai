@@ -162,7 +162,7 @@ describe('OrganizationStorePage (#5502)', () => {
     mocks.brand.settings = {
       hasOrganizationBilling: true,
       hasPaidModuleSubscription: false,
-      moduleOverrides: { batch: false },
+      moduleOverrides: { turbo: false },
     };
     render(<OrganizationStorePage />);
 

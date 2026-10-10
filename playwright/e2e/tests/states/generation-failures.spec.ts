@@ -27,7 +27,7 @@ const ORG_BRAND = '/test-org/brand-1';
 // Studio's standalone one-off tabs are retired; the storyboard surface
 // carries the inline composer that these failure paths exercise.
 const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard/new`;
-const BATCH_ROUTE = `${ORG_BRAND}/studio/batch`;
+const BATCH_ROUTE = `${ORG_BRAND}/studio/turbo`;
 
 type Page = Parameters<typeof mockImageGenerationFailure>[0];
 

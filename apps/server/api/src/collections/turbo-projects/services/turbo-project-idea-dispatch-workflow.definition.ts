@@ -57,7 +57,7 @@ export function buildTurboProjectIdeaDispatchWorkflowDefinition(): SystemWorkflo
       label: 'Batch Idea Generation',
       nodeId: 'dispatch-idea',
     }),
-    organizationModule: 'turboRun',
+    organizationModule: 'turbo',
   };
 }
 

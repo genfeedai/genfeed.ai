@@ -160,7 +160,7 @@ export default function TurboNewProjectPage() {
         admission.current.brandId === intent.brandId &&
         admission.current.organizationId === intent.organizationId
       )
-        router.push(href(`${APP_ROUTES.STUDIO.TURBO_RUN}/${project.id}`));
+        router.push(href(`${APP_ROUTES.STUDIO.TURBO}/${project.id}`));
     } catch (reason) {
       if (
         !mounted.current ||

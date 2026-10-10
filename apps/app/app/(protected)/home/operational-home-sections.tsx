@@ -45,7 +45,7 @@ import type {
   ReviewInboxItem,
 } from '@props/home/operational-home-sections.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
-import { TurboRunsService } from '@services/batch/batches.service';
+import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

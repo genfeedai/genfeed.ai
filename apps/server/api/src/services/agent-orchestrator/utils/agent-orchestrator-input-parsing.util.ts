@@ -458,7 +458,7 @@ function scanTopicBoundary(
   };
 }
 
-export function extractBatchTopic(
+export function extractTurboRunTopic(
   originalContent: string,
   normalizedContent: string,
 ): string | undefined {

@@ -160,7 +160,7 @@ export class AgentReviewToolHandler {
           id: `review-queue-${String(turboRun.id)}`,
           outcomeBullets,
           primaryCta: {
-            href: `/publishing/review?batch=${String(turboRun.id)}&filter=ready`,
+            href: `/publishing/review?run=${String(turboRun.id)}&filter=ready`,
             label: 'Open reviews',
           },
           status: 'completed',
@@ -288,7 +288,7 @@ export class AgentReviewToolHandler {
           {
             id: `review-queue-approval-${turboRunId}`,
             primaryCta: {
-              href: `/publishing/review?batch=${turboRunId}&filter=ready`,
+              href: `/publishing/review?run=${turboRunId}&filter=ready`,
               label: 'Review exact versions',
             },
             status: 'pending',

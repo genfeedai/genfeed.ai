@@ -219,7 +219,7 @@ describe('direct product route module admission inventory', () => {
               moduleOverrides: {
                 motion: false,
                 clips: false,
-                batch: false,
+                turbo: false,
                 editor: false,
               },
             }),

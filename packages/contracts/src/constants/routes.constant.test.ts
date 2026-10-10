@@ -86,8 +86,8 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
     expect(APP_ROUTES.PUBLISHING.POSTS).toBe('/publishing/posts');
     expect(APP_ROUTES.STUDIO.EDITOR).toBe('/studio/editor');
-    expect(APP_ROUTES.STUDIO.BATCH).toBe('/studio/batch');
-    expect(APP_ROUTES.STUDIO.BATCH_NEW).toBe('/studio/batch/new');
+    expect(APP_ROUTES.STUDIO.TURBO).toBe('/studio/turbo');
+    expect(APP_ROUTES.STUDIO.TURBO_NEW).toBe('/studio/turbo/new');
   });
 
   it('reclaims Publish Campaigns without moving Automate Programs', () => {

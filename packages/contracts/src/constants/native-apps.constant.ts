@@ -61,10 +61,9 @@ export const NATIVE_SECONDARY_APPS = {
     releaseEligibility: 'released',
     contextualEntries: [],
   },
-  // The Batch module backs Turbo until #5936 renames it.
   turbo: {
     label: 'Turbo',
-    organizationModuleId: 'batch',
+    organizationModuleId: 'turbo',
     purpose: 'Produce a planned quantity of content from presets or winners.',
     releaseEligibility: 'released',
     contextualEntries: [],

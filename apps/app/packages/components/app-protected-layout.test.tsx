@@ -1423,7 +1423,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/brand-123/studio/storyboard', 'storyboard', 'Storyboard'],
-    ['/org-123/brand-123/studio/batch/new', 'turbo', 'Turbo'],
+    ['/org-123/brand-123/studio/turbo/new', 'turbo', 'Turbo'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
     ['/org-123/brand-123/automation/workflows', 'automation', 'Automation'],
@@ -1694,7 +1694,7 @@ describe('AppProtectedLayout', () => {
     for (const otherHref of [
       '/studio/playground',
       '/studio/clips',
-      '/studio/batch',
+      '/studio/turbo',
       '/studio/motion',
       '/studio/editor',
       '/studio/image',

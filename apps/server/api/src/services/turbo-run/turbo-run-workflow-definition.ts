@@ -58,7 +58,7 @@ export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition
 
   return {
     canonicalId: TURBO_RUN_WORKFLOW_ID,
-    organizationModule: 'turboRun',
+    organizationModule: 'turbo',
     moduleCompletionNodeIds: ['settle-credits'],
     definition: {
       edges,

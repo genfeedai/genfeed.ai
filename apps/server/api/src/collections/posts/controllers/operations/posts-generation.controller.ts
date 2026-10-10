@@ -61,7 +61,7 @@ import {
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
+import { TURBO_RUN_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -108,7 +108,7 @@ export class PostsGenerationController {
    */
   @Post('source-variations')
   @Credits({
-    amount: BATCH_CAPTION_BASE_CREDITS,
+    amount: TURBO_RUN_CAPTION_BASE_CREDITS,
     description: 'Source post variation',
     source: ActivitySource.POST_ENHANCEMENT,
   })
@@ -176,7 +176,7 @@ export class PostsGenerationController {
     });
 
     if (dto.mode === PostRepurposeMode.AGENT) {
-      finalizeDeferredTextCredits(request, BATCH_CAPTION_BASE_CREDITS);
+      finalizeDeferredTextCredits(request, TURBO_RUN_CAPTION_BASE_CREDITS);
     }
 
     return serializeSingle(request, this.serializer, {

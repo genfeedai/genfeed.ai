@@ -186,7 +186,7 @@ export default function PostDetail({
             router.push(
               href(
                 draft.reviewTurboRunId
-                  ? `/publishing/review?batch=${draft.reviewTurboRunId}&filter=ready`
+                  ? `/publishing/review?run=${draft.reviewTurboRunId}&filter=ready`
                   : '/publishing/review',
               ),
             );

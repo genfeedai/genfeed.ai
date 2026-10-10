@@ -40,7 +40,7 @@ export default function TurboProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const { view, setView } = useCollectionViewPreference({
-    surface: 'studio.batch',
+    surface: 'studio.turbo',
     defaultView: ViewType.LIST,
   });
   // biome-ignore lint/correctness/useExhaustiveDependencies: changing brand resets pagination and loaded rows.
@@ -102,7 +102,7 @@ export default function TurboProjectsPage() {
       <CollectionItemActions
         primary={
           <Button asChild variant={ButtonVariant.SECONDARY}>
-            <Link href={href(`${APP_ROUTES.STUDIO.TURBO_RUN}/${project.id}`)}>
+            <Link href={href(`${APP_ROUTES.STUDIO.TURBO}/${project.id}`)}>
               {t('open')}
             </Link>
           </Button>
@@ -164,7 +164,7 @@ export default function TurboProjectsPage() {
       label={t('title')}
       right={
         <Button asChild>
-          <Link href={href(APP_ROUTES.STUDIO.TURBO_RUN_NEW)}>{t('new')}</Link>
+          <Link href={href(APP_ROUTES.STUDIO.TURBO_NEW)}>{t('new')}</Link>
         </Button>
       }
     >

@@ -4,7 +4,7 @@ import TurboNewProjectPage from '@/features/workflows/pages/turbo/TurboNewProjec
 export const generateMetadata = createPageMetadata('New Batch');
 export default function StudioTurboNewPage() {
   return (
-    <OrganizationModulePreferenceGate moduleId="turboRun">
+    <OrganizationModulePreferenceGate moduleId="turbo">
       <TurboNewProjectPage />
     </OrganizationModulePreferenceGate>
   );

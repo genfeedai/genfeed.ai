@@ -8,7 +8,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Batch Content')
 @Controller('brands/:brandId/content/turbo')
-@OrganizationModule('turboRun')
+@OrganizationModule('turbo')
 export class TurboContentController {
   constructor(private readonly turboContentService: TurboContentService) {}
 

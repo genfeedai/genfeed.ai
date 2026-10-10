@@ -154,7 +154,7 @@ describe('TurboProjectsController publishing scopes', () => {
       ).not.toContain(SubscriptionGuard);
       expect(
         Reflect.getMetadata(ORGANIZATION_MODULE_KEY, TurboProjectsController),
-      ).toMatchObject({ moduleId: 'turboRun' });
+      ).toMatchObject({ moduleId: 'turbo' });
     },
   );
 

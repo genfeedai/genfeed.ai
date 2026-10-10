@@ -33,9 +33,9 @@ function parseTurboRunStatusFilter(value: string | undefined): TurboRunStatus | 
   return match;
 }
 
-export const turboRunCommand = new Command('turboRun').description('Batch content generation');
+export const turboCommand = new Command('turbo').description('Turbo content generation');
 
-turboRunCommand
+turboCommand
   .command('create')
   .description('Create a batch content generation job')
   .requiredOption('-n, --count <n>', 'Number of content pieces (1-100)', parsePositiveInteger)
@@ -90,7 +90,7 @@ turboRunCommand
     }
   });
 
-turboRunCommand
+turboCommand
   .command('list')
   .description('List batch jobs')
   .option('--status <status>', `Filter by status (${TURBO_RUN_STATUS_VALUES.join(', ')})`)
@@ -138,7 +138,7 @@ turboRunCommand
     }
   });
 
-turboRunCommand
+turboCommand
   .command('show')
   .description('Show batch details')
   .argument('<id>', 'Batch ID')
@@ -199,7 +199,7 @@ turboRunCommand
     }
   });
 
-turboRunCommand
+turboCommand
   .command('approve')
   .description('Approve batch items')
   .argument('<id>', 'Batch ID')
@@ -230,7 +230,7 @@ turboRunCommand
     }
   });
 
-turboRunCommand
+turboCommand
   .command('reject')
   .description('Reject batch items')
   .argument('<id>', 'Batch ID')
@@ -257,7 +257,7 @@ turboRunCommand
     }
   });
 
-turboRunCommand
+turboCommand
   .command('cancel')
   .description('Cancel a running batch')
   .argument('<id>', 'Batch ID')

@@ -21,7 +21,7 @@ describe('TurboRunResultCard', () => {
           creditsUsed: 5,
           ctas: [
             {
-              href: '/publishing/review?batch=batch-123&filter=ready',
+              href: '/publishing/review?run=batch-123&filter=ready',
               label: 'Open review queue',
             },
             { href: '/calendar/posts', label: 'Open calendar' },
@@ -51,7 +51,7 @@ describe('TurboRunResultCard', () => {
       screen.getByRole('link', { name: 'Open review queue' }),
     ).toHaveAttribute(
       'href',
-      '/publishing/review?batch=batch-123&filter=ready',
+      '/publishing/review?run=batch-123&filter=ready',
     );
     expect(screen.queryByText('batch-123')).not.toBeInTheDocument();
     expect(
@@ -67,7 +67,7 @@ describe('TurboRunResultCard', () => {
           completedCount: 3,
           ctas: [
             {
-              href: '/publishing/review?batch=b1&filter=ready',
+              href: '/publishing/review?run=b1&filter=ready',
               label: 'View all',
             },
           ],
@@ -105,7 +105,7 @@ describe('TurboRunResultCard', () => {
           completedCount: 8,
           ctas: [
             {
-              href: '/publishing/review?batch=batch-xyz&filter=ready',
+              href: '/publishing/review?run=batch-xyz&filter=ready',
               label: 'View all 8 posts',
             },
           ],
@@ -153,7 +153,7 @@ describe('TurboRunResultCard', () => {
       screen.getByRole('link', { name: '+5 more posts in review' }),
     ).toHaveAttribute(
       'href',
-      '/publishing/review?batch=batch-xyz&filter=ready',
+      '/publishing/review?run=batch-xyz&filter=ready',
     );
   });
 

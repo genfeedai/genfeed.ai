@@ -2,7 +2,7 @@ import { TurboRunStatus } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
-import { TurboRunsService } from '@services/batch/batches.service';
+import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,9 +32,9 @@ function buildReviewQuery(input: {
   const params = new URLSearchParams(input.baseParams.toString());
 
   if (input.turboRunId) {
-    params.set('turboRun', input.turboRunId);
+    params.set('run', input.turboRunId);
   } else {
-    params.delete('turboRun');
+    params.delete('run');
   }
 
   params.set('filter', serializeReviewFilters(input.filters));
@@ -59,7 +59,7 @@ export function useReviewQueueContent() {
   const { replace } = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const requestedTurboRunId = searchParams.get('turboRun');
+  const requestedTurboRunId = searchParams.get('run');
   const filterParam = searchParams.get('filter');
   const requestedFilters = parseReviewFilters(filterParam);
   const requestedItemId = searchParams.get('item');

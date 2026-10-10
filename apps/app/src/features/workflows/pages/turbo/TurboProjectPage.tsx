@@ -139,7 +139,7 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
       label={t('title')}
       right={
         <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={href(APP_ROUTES.STUDIO.TURBO_RUN)}>{t('all')}</Link>
+          <Link href={href(APP_ROUTES.STUDIO.TURBO)}>{t('all')}</Link>
         </Button>
       }
     >

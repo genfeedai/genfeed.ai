@@ -1,5 +1,5 @@
 import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
-import { TURBO_RUN_WORKFLOW_EXECUTION_ID } from '@api/collections/workflows/services/batch-workflow-execution.definition';
+import { BATCH_WORKFLOW_EXECUTION_ID } from '@api/collections/workflows/services/batch-workflow-execution.definition';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { Prisma } from '@genfeedai/prisma';
@@ -53,7 +53,7 @@ export function buildCustomerExecutionWhere(
       isDeleted: false,
       metadata: {
         path: ['systemWorkflow', 'canonicalId'],
-        equals: TURBO_RUN_WORKFLOW_EXECUTION_ID,
+        equals: BATCH_WORKFLOW_EXECUTION_ID,
       },
     },
   };

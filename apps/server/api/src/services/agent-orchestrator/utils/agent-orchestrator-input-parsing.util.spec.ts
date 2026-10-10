@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  extractBatchTopic,
+  extractTurboRunTopic,
   extractRecurringContentCount,
   extractStyleNotes,
 } from './agent-orchestrator-input-parsing.util';
@@ -42,13 +42,13 @@ describe('agent orchestrator input parsing', () => {
 
   it('extracts a topic before platform, date, or punctuation delimiters', () => {
     expect(
-      extractBatchTopic(
+      extractTurboRunTopic(
         'Create 5 posts about AI Safety for LinkedIn',
         'create 5 posts about ai safety for linkedin',
       ),
     ).toBe('AI Safety');
     expect(
-      extractBatchTopic(
+      extractTurboRunTopic(
         'Create 5 posts about creator tools.',
         'create 5 posts about creator tools.',
       ),
@@ -57,19 +57,19 @@ describe('agent orchestrator input parsing', () => {
 
   it('preserves the previous single-line topic capture semantics', () => {
     expect(
-      extractBatchTopic(
+      extractTurboRunTopic(
         'Create posts about AI\nSafety today',
         'create posts about ai\nsafety today',
       ),
     ).toBeUndefined();
     expect(
-      extractBatchTopic(
+      extractTurboRunTopic(
         'Create posts about AI Safety\nfor LinkedIn',
         'create posts about ai safety\nfor linkedin',
       ),
     ).toBe('AI Safety');
     expect(
-      extractBatchTopic('Create posts about AI\n', 'create posts about ai\n'),
+      extractTurboRunTopic('Create posts about AI\n', 'create posts about ai\n'),
     ).toBeUndefined();
   });
 
@@ -80,7 +80,7 @@ describe('agent orchestrator input parsing', () => {
       extractStyleNotes(`create images in a ${repeated}style weekly`),
     ).toBe(repeated.trim());
     expect(
-      extractBatchTopic(
+      extractTurboRunTopic(
         `create posts about ${repeated}for linkedin`,
         `create posts about ${repeated}for linkedin`,
       ),
@@ -95,7 +95,7 @@ describe('agent orchestrator input parsing', () => {
       50_000,
     )}\ny`;
     expect(
-      extractBatchTopic(repeatedTopicCandidates, repeatedTopicCandidates),
+      extractTurboRunTopic(repeatedTopicCandidates, repeatedTopicCandidates),
     ).toBeUndefined();
   });
   it('does not treat a glued count and asset as a match', () => {
@@ -124,7 +124,7 @@ describe('agent orchestrator input parsing', () => {
 
   it('ignores about with no following whitespace', () => {
     expect(
-      extractBatchTopic('Create posts about.', 'create posts about.'),
+      extractTurboRunTopic('Create posts about.', 'create posts about.'),
     ).toBeUndefined();
   });
 
@@ -132,7 +132,7 @@ describe('agent orchestrator input parsing', () => {
     'stops a topic before terminator "%s"',
     (terminator) => {
       expect(
-        extractBatchTopic(
+        extractTurboRunTopic(
           `Create posts about AI Safety ${terminator} Monday`,
           `create posts about ai safety ${terminator} monday`,
         ),
@@ -142,7 +142,7 @@ describe('agent orchestrator input parsing', () => {
 
   it.each(['!', '?'])('stops a topic at sentence punctuation %s', (mark) => {
     expect(
-      extractBatchTopic(
+      extractTurboRunTopic(
         `Create posts about AI Safety${mark} extra`,
         `create posts about ai safety${mark} extra`,
       ),

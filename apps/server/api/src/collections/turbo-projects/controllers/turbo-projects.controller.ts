@@ -56,7 +56,7 @@ const TURBO_PROJECT_WRITE_SCOPES = [
 @ApiTags('TurboProjects')
 @Controller('turbo-projects')
 @UseGuards(RolesGuard)
-@OrganizationModule('turboRun')
+@OrganizationModule('turbo')
 export class TurboProjectsController {
   constructor(
     private readonly turboProjectsService: TurboProjectsService,

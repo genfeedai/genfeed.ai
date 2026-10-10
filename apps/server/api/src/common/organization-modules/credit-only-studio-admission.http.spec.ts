@@ -59,7 +59,7 @@ describe('credit-only Studio HTTP admission', () => {
           findUnique: vi.fn().mockResolvedValue({
             moduleOverrides: {
               motion: false,
-              batch: false,
+              turbo: false,
               automation: false,
             },
           }),

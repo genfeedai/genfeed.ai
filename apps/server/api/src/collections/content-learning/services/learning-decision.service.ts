@@ -9,10 +9,10 @@ import {
 } from '@api/collections/content-learning/services/learning-baseline-lineage.helper';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import {
-  type LearningTurboRunInput,
+  type LearningBatchGenerationInput,
   type LearningCandidateInput,
   type LearningGenerationInput,
-  learningTurboRunCandidateInputs,
+  learningBatchCandidateInputs,
   learningCandidateIdentity,
 } from '@api/collections/content-learning/services/learning-decision-batch.helper';
 import {
@@ -62,7 +62,7 @@ import {
 } from '@nestjs/common';
 
 export type {
-  LearningTurboRunInput,
+  LearningBatchGenerationInput,
   LearningGenerationInput,
 } from '@api/collections/content-learning/services/learning-decision-batch.helper';
 export interface LearningResolution {
@@ -672,11 +672,11 @@ export class LearningDecisionService {
    * request, freezing one baseline for all of them. `replayOnly` revalidates
    * existing decisions at dispatch and never creates or resamples.
    */
-  async resolveTurboRunForGeneration(
-    input: LearningTurboRunInput,
+  async resolveBatchForGeneration(
+    input: LearningBatchGenerationInput,
   ): Promise<LearningResolution[]> {
     const { inputs, credentialId, replayOnly } =
-      learningTurboRunCandidateInputs(input);
+      learningBatchCandidateInputs(input);
     return this.prisma.$transaction(
       async (tx) => {
         await learningOrgFence(tx, input.organizationId, 'shared');
@@ -820,7 +820,7 @@ export class LearningDecisionService {
   }
   private async createBaselineDecisions(
     tx: Prisma.TransactionClient,
-    turboRun: {
+    batch: {
       base: LearningCandidateInput;
       inputs: LearningCandidateInput[];
       identities: Array<ReturnType<typeof learningCandidateIdentity>>;
@@ -832,8 +832,8 @@ export class LearningDecisionService {
     },
   ): Promise<LearningResolution[]> {
     const { base, inputs, identities, create, results, account, platform } =
-      turboRun;
-    const credential = { id: turboRun.credentialId };
+      batch;
+    const credential = { id: batch.credentialId };
     const fill = (resolution: () => LearningResolution) => {
       for (const index of create) results[index] ??= resolution();
       return results as LearningResolution[];

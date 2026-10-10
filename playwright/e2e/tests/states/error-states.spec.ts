@@ -160,7 +160,7 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockNetworkError(authenticatedPage, '**/images**');
-    const route = `${ORG_BRAND}/studio/batch`;
+    const route = `${ORG_BRAND}/studio/turbo`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

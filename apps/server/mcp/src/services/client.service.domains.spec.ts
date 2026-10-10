@@ -608,7 +608,7 @@ describe('ClientService (MCP) domain clients', () => {
             platforms: ['instagram'],
             topics: ['Daily post ideas'],
           },
-          type: 'turboRuns',
+          type: 'turbo-runs',
         },
       });
       expect(result).toEqual({ turboRunId: 'batch-1', status: 'PENDING' });

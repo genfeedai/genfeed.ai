@@ -44,11 +44,11 @@ import {
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-@ApiTags('TurboRuns')
+@ApiTags('Turbo runs')
 @AutoSwagger()
 @FeatureFlag('studio')
-@OrganizationModule('turboRun')
-@Controller('turboRuns')
+@OrganizationModule('turbo')
+@Controller('turbo-runs')
 @UseGuards(RolesGuard)
 export class TurboRunController {
   constructor(
@@ -251,7 +251,7 @@ export class TurboRunController {
   }
 
   @Post(':id/rewrite-jobs/:jobId/cancel')
-  @OrganizationModule('turboRun', 'read')
+  @OrganizationModule('turbo', 'read')
   @HttpCode(200)
   @ApiOperation({ summary: 'Stop a batch rewrite before its next item' })
   async cancelRewriteJob(

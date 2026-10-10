@@ -1,4 +1,4 @@
-import { TurboRunsService } from '@services/batch/batches.service';
+import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGet = vi.fn();

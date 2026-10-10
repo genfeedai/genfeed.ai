@@ -12,7 +12,7 @@ import type {
 } from '@genfeedai/props/publishing/review-rewrite-progress.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { TurboRunsService } from '@services/batch/batches.service';
+import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useTranslations } from 'next-intl';

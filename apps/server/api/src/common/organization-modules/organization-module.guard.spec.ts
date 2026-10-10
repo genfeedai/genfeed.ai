@@ -3,13 +3,13 @@ import { OrganizationModuleGuard } from '@api/common/organization-modules/organi
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
-@OrganizationModule('batch')
+@OrganizationModule('turbo')
 class BatchController {
   write() {}
   list() {}
-  @OrganizationModule('batch', 'export')
+  @OrganizationModule('turbo', 'export')
   export() {}
-  @OrganizationModule('batch', 'write')
+  @OrganizationModule('turbo', 'write')
   mutatingGet() {}
 }
 class OpenController {

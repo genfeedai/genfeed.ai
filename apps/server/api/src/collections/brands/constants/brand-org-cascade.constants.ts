@@ -719,7 +719,7 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   },
   {
     delegate: 'turboRun',
-    table: 'turboRuns',
+    table: 'turbo_runs',
     brandField: 'brandId',
     orgField: 'organizationId',
   },

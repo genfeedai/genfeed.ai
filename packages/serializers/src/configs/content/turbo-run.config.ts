@@ -3,6 +3,6 @@ import { STANDARD_ENTITY_RELS } from '@serializers/relationships';
 
 export const turboRunSerializerConfig = {
   attributes: turboRunAttributes,
-  type: 'turboRun',
+  type: 'turbo-run',
   ...STANDARD_ENTITY_RELS,
 };

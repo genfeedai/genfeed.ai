@@ -4915,7 +4915,7 @@ describe('AgentToolExecutorService', () => {
           'LinkedIn · image · approved',
         ],
         primaryCta: {
-          href: `/publishing/review?batch=${testId('batchreview')}&filter=ready`,
+          href: `/publishing/review?run=${testId('batchreview')}&filter=ready`,
           label: 'Open reviews',
         },
         status: 'completed',
@@ -5040,7 +5040,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.error).toContain('cannot grant publish approval');
     expect(turboRunService.approveItems).not.toHaveBeenCalled();
     expect(result.nextActions?.[0]?.primaryCta).toEqual({
-      href: `/publishing/review?batch=${testId('batchmodel')}&filter=ready`,
+      href: `/publishing/review?run=${testId('batchmodel')}&filter=ready`,
       label: 'Review exact versions',
     });
   });

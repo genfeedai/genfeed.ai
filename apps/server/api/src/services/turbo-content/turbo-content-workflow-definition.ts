@@ -34,7 +34,7 @@ export function buildTurboContentWorkflowDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId: getTurboContentWorkflowId(skillSlug),
-    organizationModule: 'turboRun',
+    organizationModule: 'turbo',
     definition: {
       edges: [
         {
@@ -102,7 +102,7 @@ export function buildTurboContentItemWorkflowDefinition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId: getTurboContentItemWorkflowId(skillSlug),
-    organizationModule: 'turboRun',
+    organizationModule: 'turbo',
     definition: {
       edges: [
         {

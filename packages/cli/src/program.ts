@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { authCommand } from '@/commands/auth';
 import { balanceCommand } from '@/commands/balance';
-import { batchCommand } from '@/commands/turbo';
+import { turboCommand } from '@/commands/turbo';
 import { brandsCommand } from '@/commands/brands';
 import { chatCommand } from '@/commands/chat';
 import { configCommand } from '@/commands/config';
@@ -69,7 +69,7 @@ export function createProgram(): Command {
     .addCommand(publishCommand)
     .addCommand(libraryCommand)
     .addCommand(profileCommand)
-    .addCommand(batchCommand)
+    .addCommand(turboCommand)
     .addCommand(templateCommand)
     .addCommand(insightsCommand)
     .addCommand(scheduleCommand)

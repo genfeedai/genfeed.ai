@@ -93,7 +93,7 @@ describe('ClipWorkflowRunCard', () => {
 
     await waitFor(() => {
       expect(locationMock.href).toBe(
-        '/publishing/review?batch=batch-123&item=item-456',
+        '/publishing/review?run=batch-123&item=item-456',
       );
     });
   });

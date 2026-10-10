@@ -9,17 +9,17 @@ function ReviewQueueContentContent() {
   const {
     activeFilters,
     activeItem,
-    activeBatch,
-    activeBatchError,
-    activeBatchId,
-    batchList,
-    batchesError,
-    canDiscardBatch,
+    activeTurboRun,
+    activeTurboRunError,
+    activeTurboRunId,
+    turboRunList,
+    turboRunsError,
+    canDiscardTurboRun,
     filterCounts,
-    hasInvalidBatchPayload,
+    hasInvalidTurboRunPayload,
     isActioning,
-    isBatchesLoading,
-    isBatchLoading,
+    isTurboRunsLoading,
+    isTurboRunLoading,
     isRefreshing,
     refreshQueue,
     selectedIds,
@@ -27,13 +27,13 @@ function ReviewQueueContentContent() {
     visibleItems,
     handleApproveItem,
     handleAssignItem,
-    handleBatchChange,
+    handleTurboRunChange,
     handleBulkAction,
     handleBulkRewrite,
     isRewriteStarting,
     rewriteProgress,
     rewritingIds,
-    handleDiscardBatch,
+    handleDiscardTurboRun,
     handleFilterChange,
     handleRequestChanges,
     handleRejectItem,
@@ -43,7 +43,7 @@ function ReviewQueueContentContent() {
     setSelectedPostId,
   } = useReviewQueueContent();
 
-  if (isBatchesLoading) {
+  if (isTurboRunsLoading) {
     return <Loading />;
   }
 
@@ -51,30 +51,30 @@ function ReviewQueueContentContent() {
     <ReviewQueueView
       activeFilters={activeFilters}
       activeItem={activeItem}
-      activeBatch={activeBatch}
-      activeBatchError={activeBatchError as Error | null}
-      activeBatchId={activeBatchId}
-      batchList={batchList}
-      batchesError={batchesError as Error | null}
-      canDiscardBatch={canDiscardBatch}
+      activeTurboRun={activeTurboRun}
+      activeTurboRunError={activeTurboRunError as Error | null}
+      activeTurboRunId={activeTurboRunId}
+      turboRunList={turboRunList}
+      turboRunsError={turboRunsError as Error | null}
+      canDiscardTurboRun={canDiscardTurboRun}
       filterCounts={filterCounts}
-      hasInvalidBatchPayload={hasInvalidBatchPayload}
+      hasInvalidTurboRunPayload={hasInvalidTurboRunPayload}
       isActioning={isActioning}
-      isBatchLoading={isBatchLoading}
+      isTurboRunLoading={isTurboRunLoading}
       isRefreshing={isRefreshing}
       selectedIds={selectedIds}
       selectedPostId={selectedPostId}
       visibleItems={visibleItems}
       onApprove={handleApproveItem}
       onAssign={handleAssignItem}
-      onBatchChange={handleBatchChange}
+      onTurboRunChange={handleTurboRunChange}
       onBulkApprove={() => handleBulkAction('approve')}
       onBulkReject={() => handleBulkAction('reject')}
       onBulkRewrite={handleBulkRewrite}
       isRewriteStarting={isRewriteStarting}
       rewriteProgress={rewriteProgress}
       rewritingIds={rewritingIds}
-      onDiscardBatch={handleDiscardBatch}
+      onDiscardTurboRun={handleDiscardTurboRun}
       onClosePostDetail={() => setSelectedPostId(null)}
       onFilterChange={handleFilterChange}
       onRefresh={refreshQueue}

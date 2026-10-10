@@ -345,7 +345,7 @@ vi.mock('next/navigation', () => ({
 describe('ReviewQueueContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    searchParamsState.delete('turboRun');
+    searchParamsState.delete('run');
     searchParamsState.delete('filter');
     searchParamsState.delete('item');
   });
@@ -560,7 +560,7 @@ describe('ReviewQueueContent', () => {
         'post-123',
       );
       expect(mocks.replace).toHaveBeenCalledWith(
-        '/publishing/review?batch=batch-1&filter=ready',
+        '/publishing/review?run=batch-1&filter=ready',
         { scroll: false },
       );
     });
@@ -629,7 +629,7 @@ describe('ReviewQueueContent', () => {
   });
 
   it('frames itself as the approval queue and links back to Posts with the selection', () => {
-    searchParamsState.set('turboRun', 'batch-1');
+    searchParamsState.set('run', 'batch-1');
     searchParamsState.set('item', 'item-1');
     mockReviewQueries();
 
@@ -642,7 +642,7 @@ describe('ReviewQueueContent', () => {
       within(framing).getByRole('link', { name: 'openPosts' }),
     ).toHaveAttribute(
       'href',
-      '/acme/main/publishing/posts?batch=batch-1&item=item-1',
+      '/acme/main/publishing/posts?run=batch-1&item=item-1',
     );
   });
 
@@ -662,14 +662,14 @@ describe('ReviewQueueContent', () => {
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith(
-        '/publishing/review?batch=batch-1&filter=ready&item=item-1',
+        '/publishing/review?run=batch-1&filter=ready&item=item-1',
         { scroll: false },
       );
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Select item-2' }));
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/publishing/review?batch=batch-1&filter=ready&item=item-2',
+      '/publishing/review?run=batch-1&filter=ready&item=item-2',
       { scroll: false },
     );
 
@@ -678,7 +678,7 @@ describe('ReviewQueueContent', () => {
     // keeps the current active item when it remains visible, and item-2 is
     // visible under "all", so the active item does not move.
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/publishing/review?batch=batch-1&filter=all&item=item-2',
+      '/publishing/review?run=batch-1&filter=all&item=item-2',
       { scroll: false },
     );
   });
