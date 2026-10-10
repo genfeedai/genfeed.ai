@@ -67,6 +67,14 @@ export async function completeAgentOnboarding(
   // isOnboardingCompleted is persisted on the User row above (epic #735,
   // Phase C — no legacy auth provider identity write-back).
 
+  // Finishing onboarding starts the free trial: the trial credits stack on
+  // the signup gift and the per-answer rewards. Idempotent per user, so a
+  // repeated completion call never pays twice.
+  await onboardingCreditGrantsService.grantTrialCreditsBestEffort(
+    ctx.organizationId,
+    dbUserId ?? ctx.userId,
+  );
+
   return {
     creditsUsed: 0,
     data: {

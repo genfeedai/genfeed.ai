@@ -123,6 +123,20 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform OAuth token lifecycle maintenance. Not user automation: tenants cannot meaningfully inspect, duplicate, or disable it - disabling breaks their own connected integrations. Re-justified in #1092.',
   },
   {
+    file: 'apps/server/workers/src/crons/credits/cron.credits.service.ts',
+    id: 'free-trial-expiry',
+    methodName: 'expireFreeTrials',
+    reason:
+      'Platform credit-ledger maintenance: expires the leftover free credits of never-paid organizations past the 3-day trial. Admission already refuses them; this only removes the balance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/credits/cron.credits.service.ts',
+    id: 'referral-reward-settlement',
+    methodName: 'settleReferralRewards',
+    reason:
+      'Platform credit-ledger maintenance: settles due referral rewards (moved from a direct ReferralsService handler to keep the schedule processor at its dependency ratchet).',
+  },
+  {
     file: 'apps/server/workers/src/crons/model-deprecation/cron.model-deprecation.service.ts',
     id: 'model-deprecation',
     methodName: 'deprecateSupersededModels',

@@ -96,7 +96,8 @@ function LowCreditsContent({
 }: LowCreditsContentProps) {
   const translate = useTranslations('ui.lowCreditsBanner');
   const { orgHref } = useOrgUrl();
-  const { isTrialUsedUp } = useAccessState();
+  const { accessState, isTrialUsedUp } = useAccessState();
+  const isTrialEnded = isTrialUsedUp && accessState?.isTrialExpired === true;
   const isBillingEnabled = hasOrganizationBillingHint();
   const ctaHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
   const plansHref = orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION);
@@ -151,26 +152,32 @@ function LowCreditsContent({
   }
 
   const isCritical = severity === 'critical';
-  const title = isTrialUsedUp
-    ? translate('generationUnaffordableTitle')
-    : isCritical
-      ? "You've run out of credits"
-      : "You're running low on credits";
-  const balanceLabel =
-    isCritical && balance !== null && balance > 0
+  const title = isTrialEnded
+    ? translate('trialEndedTitle')
+    : isTrialUsedUp
+      ? translate('generationUnaffordableTitle')
+      : isCritical
+        ? "You've run out of credits"
+        : "You're running low on credits";
+  // Expired trial credits cannot be spent, so the badge must not count them.
+  const balanceLabel = isTrialEnded
+    ? translate('trialEndedBadge')
+    : isCritical && balance !== null && balance > 0
       ? `${formatCreditBalanceExact(balance)} left`
       : isCritical
         ? '0 credits left'
         : `${formatCreditBalanceExact(balance)} remaining`;
-  const description = isTrialUsedUp
-    ? translate('generationUnaffordableBody')
-    : isBillingEnabled
-      ? isCritical
-        ? 'Top up your balance to keep generating content, running workflows, and using your organization tools without interruption.'
-        : 'Your current balance is getting tight. Top up now so active generations and automations do not get blocked later.'
-      : isCritical
-        ? 'Your local install is missing usable provider capacity. Add or update API keys so generations and workflows can keep running.'
-        : 'Your provider capacity is getting tight. Review API keys now so active generations and automations do not get blocked later.';
+  const description = isTrialEnded
+    ? translate('trialEndedBody')
+    : isTrialUsedUp
+      ? translate('generationUnaffordableBody')
+      : isBillingEnabled
+        ? isCritical
+          ? 'Top up your balance to keep generating content, running workflows, and using your organization tools without interruption.'
+          : 'Your current balance is getting tight. Top up now so active generations and automations do not get blocked later.'
+        : isCritical
+          ? 'Your local install is missing usable provider capacity. Add or update API keys so generations and workflows can keep running.'
+          : 'Your provider capacity is getting tight. Review API keys now so active generations and automations do not get blocked later.';
   const ctaLabel = isBillingEnabled ? 'Top up credits' : 'Buy credits';
   const isInline = variant === 'inline';
 
