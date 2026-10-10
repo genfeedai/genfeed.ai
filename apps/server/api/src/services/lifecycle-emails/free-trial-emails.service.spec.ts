@@ -10,10 +10,11 @@ const HOUR_MS = 3_600_000;
 const at = (hours: number) => new Date(CREATED_AT.getTime() + hours * HOUR_MS);
 
 function trialSubject(overrides: { subscriptions?: unknown[] } = {}) {
+  const creditTransactions: { id: string }[] = [];
   return {
     billingAccount: null,
     createdAt: CREATED_AT,
-    creditTransactions: [],
+    creditTransactions,
     isProactiveOnboarding: false,
     subscriptions: overrides.subscriptions ?? [],
     user: { userSubscription: null },
