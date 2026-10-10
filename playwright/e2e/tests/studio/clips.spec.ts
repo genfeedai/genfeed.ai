@@ -441,7 +441,9 @@ test.describe('Clip Factory', () => {
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByText(/transcribing and analyzing video/i),
+      authenticatedPage
+        .getByRole('status')
+        .filter({ hasText: /transcribing and analyzing this source/i }),
     ).toBeVisible();
   });
 

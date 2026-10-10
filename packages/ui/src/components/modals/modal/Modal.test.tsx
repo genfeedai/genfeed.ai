@@ -1,5 +1,14 @@
-import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import { act, render, screen } from '@testing-library/react';
+import {
+  closeModal,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import Modal from '@ui/modals/modal/Modal';
 import { describe, expect, it } from 'vitest';
 
@@ -10,6 +19,52 @@ function triggerOpen(id: string) {
 }
 
 describe('Modal', () => {
+  it('returns focus to a programmatic launcher after cancellation', async () => {
+    render(
+      <>
+        <button type="button" onClick={() => openModal('modal-focus-return')}>
+          Edit image
+        </button>
+        <Modal id="modal-focus-return" title="Replace draft">
+          <button
+            type="button"
+            onClick={() => closeModal('modal-focus-return')}
+          >
+            Cancel
+          </button>
+        </Modal>
+      </>,
+    );
+    const launcher = screen.getByRole('button', { name: 'Edit image' });
+    launcher.focus();
+    fireEvent.click(launcher);
+    expect(
+      screen.getByRole('dialog', { name: 'Replace draft' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(launcher).toHaveFocus());
+  });
+
+  it('returns focus after Escape without requiring a Radix trigger', async () => {
+    render(
+      <>
+        <button type="button" onClick={() => openModal('modal-focus-escape')}>
+          Open preview
+        </button>
+        <Modal id="modal-focus-escape" title="Preview">
+          <button type="button">Preview action</button>
+        </Modal>
+      </>,
+    );
+    const launcher = screen.getByRole('button', { name: 'Open preview' });
+    launcher.focus();
+    fireEvent.click(launcher);
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Preview' }), {
+      key: 'Escape',
+    });
+    await waitFor(() => expect(launcher).toHaveFocus());
+  });
+
   it('names a custom-heading dialog without adding visible header chrome', () => {
     render(
       <Modal id="modal-custom-heading" accessibleTitle="New post">

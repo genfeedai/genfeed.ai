@@ -15,6 +15,7 @@ import type {
   IPost,
   MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { downloadIngredient } from '@genfeedai/helpers/media/download/download.helper';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -289,6 +290,7 @@ export class IngredientsService<
       loaded: number,
       total: number,
     ) => void,
+    options?: IHttpRequestOptions,
   ): Promise<T> {
     return await this.instance
       .post<JsonApiResponseDocument>(`upload`, formData, {
@@ -307,6 +309,7 @@ export class IngredientsService<
         },
         // Increase timeout for uploads (5 minutes)
         timeout: 300_000,
+        ...options,
       })
       .then((res) => this.mapOne(res.data));
   }

@@ -9,6 +9,7 @@ import Image from 'next/image';
 import type { DragEvent, RefObject } from 'react';
 
 type MasonryVideoMediaAreaProps = {
+  accessibleLabel?: string;
   video: IVideo;
   metadata: IMetadata | null;
   isUnavailable: boolean;
@@ -41,6 +42,7 @@ function getAspectRatioStyle(metadata: IMetadata | null): React.CSSProperties {
 }
 
 export default function MasonryVideoMediaArea({
+  accessibleLabel,
   video,
   metadata,
   isUnavailable,
@@ -63,6 +65,7 @@ export default function MasonryVideoMediaArea({
   onReprompt,
 }: MasonryVideoMediaAreaProps) {
   const sharedWrapperProps = {
+    'aria-label': accessibleLabel,
     'data-testid': `masonry-ingredient-${video.id}`,
     role: 'button' as const,
     tabIndex: 0,
@@ -120,7 +123,7 @@ export default function MasonryVideoMediaArea({
 
           <Image
             src={placeholderImageUrl}
-            alt={metadataLabel ?? 'Video'}
+            alt={accessibleLabel || metadataLabel || 'Video'}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className={cn(

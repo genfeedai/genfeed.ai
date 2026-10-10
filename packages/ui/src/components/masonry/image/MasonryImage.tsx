@@ -64,6 +64,7 @@ function MasonryImageWithActions(props: MasonryImageProps): React.ReactElement {
 
 function MasonryImageTile({
   actions,
+  accessibleLabel,
   image,
   isSelected = false,
   isScrollFocused = false,
@@ -234,6 +235,7 @@ function MasonryImageTile({
       onMouseLeave={handleMouseLeave}
     >
       <MasonryImageMediaArea
+        accessibleLabel={accessibleLabel}
         image={image}
         metadata={metadata}
         isLoading={isLoading}

@@ -250,6 +250,28 @@ describe('IngredientsService', () => {
       expect(result.id).toBe('ing_up');
     });
 
+    it('retains upload rejection and forwards only caller-owned presentation options', async () => {
+      const failure = {
+        errors: [{ status: '413', detail: 'Upload rejected permanently' }],
+      };
+      http.post.mockRejectedValue(failure);
+      const formData = new FormData();
+      await expect(
+        service.postUpload(formData, undefined, {
+          handledErrorStatuses: [413, 415, 422],
+        }),
+      ).rejects.toBe(failure);
+      expect(http.post).toHaveBeenCalledWith(
+        'upload',
+        formData,
+        expect.objectContaining({
+          timeout: 300_000,
+          handledErrorStatuses: [413, 415, 422],
+          onUploadProgress: expect.any(Function),
+        }),
+      );
+    });
+
     it('getPresignedUploadUrl POSTs file metadata and extracts the resource', async () => {
       http.post.mockResolvedValue(
         axiosResponse(

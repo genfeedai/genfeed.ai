@@ -963,6 +963,7 @@
     "retryFailedClipsHint": "Completed clips stay ready. Retry dispatches only failed work.",
     "retryLibraryLink": "Retry Library link",
     "retrySourceProcessing": "Retry source processing",
+    "sourceRetryLimitReached": "Source retry limit reached. No further retries are available.",
     "reviewHighlightsFirst": "Review highlights first",
     "reviewHookClip": "Review the hook clip",
     "reviewRequired": "Review required",

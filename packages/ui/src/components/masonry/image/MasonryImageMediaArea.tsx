@@ -15,6 +15,7 @@ const BLUR_PLACEHOLDER =
 const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 
 type MasonryImageMediaAreaProps = {
+  accessibleLabel?: string;
   image: IImage;
   metadata: IMetadata | undefined;
   isLoading: boolean;
@@ -34,6 +35,7 @@ type MasonryImageMediaAreaProps = {
 };
 
 export default function MasonryImageMediaArea({
+  accessibleLabel,
   image,
   metadata,
   isLoading,
@@ -62,7 +64,7 @@ export default function MasonryImageMediaArea({
   return (
     <>
       <Button
-        aria-label={imageError ? 'Asset preview unavailable' : undefined}
+        aria-label={imageError ? 'Asset preview unavailable' : accessibleLabel}
         data-asset-media-state={mediaState}
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
@@ -105,7 +107,7 @@ export default function MasonryImageMediaArea({
           loading={imageError ? 'eager' : 'lazy'}
           placeholder="blur"
           blurDataURL={BLUR_PLACEHOLDER}
-          alt={image.promptText || 'Image'}
+          alt={accessibleLabel || image.promptText || 'Image'}
           // Next/Image rejects non-positive dimensions; clamp so a broken
           // metadata payload cannot throw into the ErrorBoundary on click.
           width={Math.max(1, metadata?.width || 1080)}

@@ -116,7 +116,7 @@ test.describe('Persisted Batch projects', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${base}/new`);
     await page
-      .getByRole('button', { name: 'From ideas', exact: true })
+      .getByRole('button', { name: 'Generate ideas', exact: true })
       .first()
       .click();
     await page
@@ -201,8 +201,9 @@ test.describe('Persisted Batch projects', () => {
           .filter({ hasText: 'Upload rejected permanently' }),
       ).toBeVisible();
       await expect(input).toBeEnabled();
-      // Development mode opens the shared error-debug dialog for HTTP 413.
-      await page.keyboard.press('Escape');
+      await expect(
+        page.getByRole('dialog', { name: 'Request failed', exact: true }),
+      ).toHaveCount(0);
       await page
         .getByRole('textbox', { name: 'Batch name' })
         .fill(`Saved after ${name}`);
@@ -231,6 +232,9 @@ test.describe('Persisted Batch projects', () => {
       route.fulfill({ json: { data: [] } }),
     );
     await page.goto(`${base}/new`);
+    await page
+      .getByRole('button', { name: 'Saved workflow', exact: true })
+      .click();
     await expect(
       page.getByText('No saved workflows yet.', { exact: false }),
     ).toBeVisible();
@@ -238,7 +242,7 @@ test.describe('Persisted Batch projects', () => {
       page.getByRole('link', { name: 'Create a workflow' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'From ideas', exact: true }).first(),
+      page.getByRole('button', { name: 'Generate ideas', exact: true }).first(),
     ).toBeEnabled();
   });
 });
