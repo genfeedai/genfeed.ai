@@ -7,20 +7,23 @@ const state = vi.hoisted(() => ({
   isAgentFirst: true,
   accountType: 'CREATOR',
   steps: [] as string[],
+  hasBilling: false,
+  needsOnboarding: true,
+  isOnboardingCompleted: false,
 }));
 vi.mock('@genfeedai/config/deployment', () => ({
   hasAgentFirstOnboarding: () => state.isAgentFirst,
   isCloudDeployment: () => false,
 }));
 vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBillingHint: () => false,
+  hasOrganizationBillingHint: () => state.hasBilling,
 }));
 vi.mock(
   '@genfeedai/contexts/providers/access-state/access-state.provider',
   () => ({
     useAccessState: () => ({
       accessState: {},
-      needsOnboarding: true,
+      needsOnboarding: state.needsOnboarding,
       isLoading: false,
       isSubscribed: false,
       isSuperAdmin: false,
@@ -32,7 +35,7 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
     currentUser: {
       id: 'user-1',
-      isOnboardingCompleted: false,
+      isOnboardingCompleted: state.isOnboardingCompleted,
       onboardingStepsCompleted: state.steps,
     },
     isLoading: false,
@@ -60,6 +63,9 @@ describe('agent-first route access', () => {
     state.isAgentFirst = true;
     state.accountType = 'CREATOR';
     state.steps = [];
+    state.hasBilling = false;
+    state.needsOnboarding = true;
+    state.isOnboardingCompleted = false;
   });
   it('allows the conversation before the brand step is complete', () => {
     const { result } = renderHook(() =>
@@ -87,5 +93,25 @@ describe('agent-first route access', () => {
       useOnboardingRouteAccess('/acme/brand/workspace'),
     );
     expect(result.current.redirectTarget).toBe('/onboarding/brand');
+  });
+  describe('unsubscribed org with billing on and onboarding completed', () => {
+    beforeEach(() => {
+      state.hasBilling = true;
+      state.needsOnboarding = false;
+      state.isOnboardingCompleted = true;
+    });
+    it('does not bounce agent-first users to the classic summary step', () => {
+      const { result } = renderHook(() =>
+        useOnboardingRouteAccess('/acme/brand/settings/brand-kit'),
+      );
+      expect(result.current).toEqual({ canRender: true, redirectTarget: null });
+    });
+    it('keeps the summary paywall on agent-off surfaces', () => {
+      state.isAgentFirst = false;
+      const { result } = renderHook(() =>
+        useOnboardingRouteAccess('/acme/brand/settings/brand-kit'),
+      );
+      expect(result.current.redirectTarget).toBe('/onboarding/summary');
+    });
   });
 });

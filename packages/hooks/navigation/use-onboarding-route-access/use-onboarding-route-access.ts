@@ -113,7 +113,17 @@ export function useOnboardingRouteAccess(pathname: string) {
       return `/onboarding/${resumeStep}`;
     }
 
-    if (isBillingEnabled && !isSuperAdmin && !isSubscribed && !hasPaygCredits) {
+    // The classic summary step is the paywall only on agent-off surfaces. In
+    // agent-first mode the proxy refuses that path and sends completed users
+    // back to brand settings, so redirecting there would bounce forever and
+    // leave the guard spinner up.
+    if (
+      isBillingEnabled &&
+      !isSuperAdmin &&
+      !isSubscribed &&
+      !hasPaygCredits &&
+      !hasAgentFirstOnboarding(isAgentModuleEnabled)
+    ) {
       return '/onboarding/summary';
     }
 
