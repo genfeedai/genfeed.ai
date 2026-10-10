@@ -132,6 +132,7 @@ export default function StudioPlaygroundCard({
   onSelect,
   onUseAsReference,
   parentJob,
+  previewRevision = 0,
   view,
 }: StudioPlaygroundCardProps): ReactElement {
   const translate = useTranslations('pages.studioPlayground');
@@ -139,7 +140,10 @@ export default function StudioPlaygroundCard({
   const { href } = useOrgUrl();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
   const accessibleLabel = studioAssetAccessibleLabel(job);
-  const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
+  // A failure belongs to the URL and retry revision it happened under, so a
+  // successful Inspector retry (a new revision) brings the tile back.
+  const [failedMediaKey, setFailedMediaKey] = useState<string | null>(null);
+  const mediaKey = job.url ? `${previewRevision}\u0001${job.url}` : null;
   const [isCancelling, setIsCancelling] = useState(false);
   const cancelGeneration = async () => {
     setIsCancelling(true);
@@ -159,7 +163,7 @@ export default function StudioPlaygroundCard({
     job.status === IngredientStatus.PROCESSING ||
     job.status === IngredientStatus.DRAFT;
   const isPreviewUnavailable =
-    !isPending && !isFailed && (!job.url || failedMediaUrl === job.url);
+    !isPending && !isFailed && (!mediaKey || failedMediaKey === mediaKey);
   const mediaState = isPending
     ? 'processing'
     : isFailed
@@ -173,10 +177,10 @@ export default function StudioPlaygroundCard({
   const isListView = view === ViewType.LIST;
 
   const handleMediaError = useCallback(() => {
-    if (job.url) {
-      setFailedMediaUrl(job.url);
+    if (mediaKey) {
+      setFailedMediaKey(mediaKey);
     }
-  }, [job.url]);
+  }, [mediaKey]);
 
   const handleCardActivate = useCallback(
     (event: MouseEvent<HTMLElement>) => {
@@ -460,6 +464,7 @@ export default function StudioPlaygroundCard({
       onReprompt: () => onReprompt(job),
       onSeeDetails: assetActions.onSeeDetails,
       onToggleFavorite: assetActions.onToggleFavorite,
+      previewRetryRevision: previewRevision,
     };
 
     return (

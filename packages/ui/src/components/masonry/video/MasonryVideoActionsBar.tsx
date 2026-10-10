@@ -8,7 +8,7 @@ import type {
   IVideo,
 } from '@genfeedai/contracts/interfaces';
 import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getMasonryActionsBarClassName } from '@ui/masonry/shared/masonry-actions-visibility';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { ThumbsUp } from 'lucide-react';
@@ -108,13 +108,7 @@ export default function MasonryVideoActionsBar({
   }
 
   return (
-    <div
-      className={cn(
-        'absolute top-2 right-2 z-50 overflow-visible transition-opacity duration-200 focus-within:opacity-100 focus-within:pointer-events-auto',
-        isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none',
-        'group-hover:opacity-100',
-      )}
-    >
+    <div className={getMasonryActionsBarClassName(isHovered)}>
       <div className="flex items-start justify-end gap-2">
         <div className="flex-shrink-0 flex items-center gap-2">
           {onVoteIngredient ? (

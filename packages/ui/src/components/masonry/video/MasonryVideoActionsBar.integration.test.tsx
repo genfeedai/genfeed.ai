@@ -1,9 +1,9 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import type { IImage } from '@genfeedai/contracts/interfaces';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import MasonryImageActionsBar from '@ui/masonry/image/MasonryImageActionsBar';
+import MasonryVideoActionsBar from '@ui/masonry/video/MasonryVideoActionsBar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ push: vi.fn() }));
@@ -29,32 +29,42 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-function renderFirstCard({ showActions = true } = {}) {
+type VideoActionsBarProps = Parameters<typeof MasonryVideoActionsBar>[0];
+
+function renderFirstVideoCard({ isHovered = true } = {}) {
   const onSelect = vi.fn();
-  const image = {
-    id: 'first-image',
-    category: IngredientCategory.IMAGE,
+  const handlePublish = vi.fn();
+  const video = {
+    id: 'first-video',
+    category: IngredientCategory.VIDEO,
     status: IngredientStatus.GENERATED,
-  } as IImage;
+  } as IVideo;
   const { container } = render(
     <div className="group" role="presentation" onClick={onSelect}>
-      <MasonryImageActionsBar
-        image={image}
+      <MasonryVideoActionsBar
+        video={video}
         actionStates={{} as MasonryActionStates}
         handlers={
-          {} as Parameters<typeof MasonryImageActionsBar>[0]['handlers']
+          { handlePublish } as Partial<
+            VideoActionsBarProps['handlers']
+          > as VideoActionsBarProps['handlers']
         }
         handleDownload={vi.fn()}
         handleQuickActionsMouseEnter={vi.fn()}
         handleQuickActionsMouseLeave={vi.fn()}
         isActionsEnabled
+        isGeneratingCaptions={false}
+        isHovered={isHovered}
+        isMirroring={false}
+        isPortraiting={false}
+        isReversing={false}
         isSelected={false}
-        showActions={showActions}
+        isUnavailable={false}
       />
     </div>,
   );
   const bar = container.firstElementChild?.firstElementChild as HTMLElement;
-  return { bar, onSelect };
+  return { bar, handlePublish, onSelect, video };
 }
 
 // jsdom applies stylesheet declarations to getComputedStyle (which
@@ -75,17 +85,17 @@ function emulateCssHoverReveal(): () => void {
   return () => style.remove();
 }
 
-// Keep the actual action builder, IngredientQuickActions, Radix menu and its
-// portal in this fixture: mocking the overflow control misses its event and
-// focus boundary with the first gallery card.
-describe('first masonry card overflow integration', () => {
+// Mirrors the image fixture: keep the real IngredientQuickActions, Radix menu
+// and portal so the overflow control's event and focus boundary with its card
+// is exercised, not a mocked stand-in.
+describe('first masonry video card overflow integration', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it.each(['click', 'Enter', 'Space'])(
     'opens More with %s and Escape returns focus without selecting the card',
     async (activation) => {
       const user = userEvent.setup();
-      const { onSelect } = renderFirstCard();
+      const { onSelect } = renderFirstVideoCard();
       const trigger = screen.getByRole('button', { name: 'More' });
       if (activation === 'click') await user.click(trigger);
       else {
@@ -103,15 +113,11 @@ describe('first masonry card overflow integration', () => {
 
   it('activates an action once through the portal without selecting its card', async () => {
     const user = userEvent.setup();
-    const { onSelect } = renderFirstCard();
+    const { handlePublish, onSelect, video } = renderFirstVideoCard();
     await user.click(screen.getByRole('button', { name: 'More' }));
-    await user.click(
-      await screen.findByRole('menuitem', { name: /edit image/i }),
-    );
-    expect(mocks.push).toHaveBeenCalledTimes(1);
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/org/brand/studio/playground?editImage=first-image',
-    );
+    await user.click(await screen.findByRole('menuitem', { name: 'Publish' }));
+    expect(handlePublish).toHaveBeenCalledTimes(1);
+    expect(handlePublish.mock.calls[0]?.[0]).toBe(video);
     expect(onSelect).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
   });
@@ -120,7 +126,7 @@ describe('first masonry card overflow integration', () => {
     const removeCss = emulateCssHoverReveal();
     try {
       const user = userEvent.setup();
-      const { bar, onSelect } = renderFirstCard({ showActions: false });
+      const { bar, onSelect } = renderFirstVideoCard({ isHovered: false });
       const trigger = screen.getByRole('button', { name: 'More' });
       expect(getComputedStyle(bar).opacity).toBe('1');
       expect(getComputedStyle(bar).pointerEvents).toBe('auto');
