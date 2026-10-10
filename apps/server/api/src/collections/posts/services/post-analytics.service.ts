@@ -122,7 +122,8 @@ export class PostAnalyticsService extends BaseService<
     authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void> {
     const observation = context.exposureObservation;
-    if (!observation) return;
+    // Breakout evidence needs a native actor; ordinary actor-less collection records none.
+    if (!observation || !authorization) return;
     const { source } = observation;
     assertExposureCollectionScope(
       context,

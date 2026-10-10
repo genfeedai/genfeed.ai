@@ -240,6 +240,20 @@ describe('PostAnalyticsService prospective capture wiring', () => {
     expect(h.capture).not.toHaveBeenCalled();
     expect(h.detect).not.toHaveBeenCalled();
   });
+  it('keeps ordinary actor-less collection working and records no breakout evidence', async () => {
+    const h = harness();
+    await h.service.processTwitterAnalytics(
+      h.source.postId,
+      new TwitterResponseMapper().mapAnalytics({
+        data: [{ organic_metrics: { impression_count: 1000 } }],
+      }),
+      h.context,
+    );
+    expect(h.upsert).toHaveBeenCalledOnce();
+    expect(h.transaction).not.toHaveBeenCalled();
+    expect(h.capture).not.toHaveBeenCalled();
+    expect(h.detect).not.toHaveBeenCalled();
+  });
   it('propagates detection failure so capture and detection cannot commit separately', async () => {
     const h = harness();
     h.detect.mockResolvedValue({ status: 'receipt_conflict' });
