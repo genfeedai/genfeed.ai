@@ -2665,6 +2665,10 @@
         "origin": "Origin",
         "searchCharacters": "Search characters",
         "searchTags": "Search tags",
+        "showAll": "All assets",
+        "showAria": "Show",
+        "showRecent": "Recent",
+        "showStarred": "Starred",
         "sortAria": "Sort",
         "statusAll": "All",
         "statusAria": "Status",
@@ -2879,6 +2883,10 @@
       "makeClips": "Make clips",
       "moreVersions": "+{count} more",
       "viewMoreVersions": "View more versions"
+    },
+    "references": {
+      "description": "Reusable characters that generations reference by name.",
+      "title": "References"
     },
     "recovery": {
       "actions": {

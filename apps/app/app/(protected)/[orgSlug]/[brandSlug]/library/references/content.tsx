@@ -19,6 +19,7 @@ import { useCharactersPage } from './use-characters-page';
 export default function LibraryCharactersPage(): ReactElement {
   const translate = useTranslations('common.settings.characters');
   const helpTranslate = useTranslations('pages.help');
+  const translateReferences = useTranslations('pages.library.references');
   const { brandId } = useBrand();
   const {
     approve,
@@ -56,8 +57,8 @@ export default function LibraryCharactersPage(): ReactElement {
   return (
     <>
       <Container
-        description={translate('subtitle')}
-        label={translate('title')}
+        description={translateReferences('description')}
+        label={translateReferences('title')}
         right={
           !isLoading && characters.length > 0 ? (
             <Button

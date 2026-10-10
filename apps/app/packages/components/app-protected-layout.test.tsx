@@ -1075,7 +1075,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     ['/workspace', 'Workspace'],
     ['/studio/storyboard', 'Storyboard'],
-    ['/library/images', 'All assets'],
+    ['/library/images', 'Assets'],
     ['/discovery/overview', 'Overview'],
     ['/analytics', 'Overview'],
     ['/automation/runs', 'Runs'],

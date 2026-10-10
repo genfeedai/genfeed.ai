@@ -162,7 +162,6 @@ export const APP_ROUTES = {
      * (`?folder=`); this route is all three unset.
      */
     ASSETS: '/library/assets',
-    CHARACTERS: '/library/elements/characters',
     /**
      * Type-seeded entry points into the same browser. They are shareable deep
      * links (see `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`), not navigation — type
@@ -175,6 +174,11 @@ export const APP_ROUTES = {
     MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
     /** Assets touched most recently, newest first. */
     RECENT: '/library/assets?place=recent',
+    /**
+     * #5502 reusable identities (characters today; locations, styles and
+     * products via #6012) that generations reference by name.
+     */
+    REFERENCES: '/library/references',
     ROOT: '/library',
     /**
      * Generation-state axis. Append a `LibraryShelf` value:
@@ -628,7 +632,7 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   '/settings/agent/context',
   '/settings/brand-kit/content-rules',
   '/settings/brand-kit',
-  '/library/elements/characters',
+  '/library/references',
 ] as const;
 
 function workspaceSurfacePath(pathname: string): string {
