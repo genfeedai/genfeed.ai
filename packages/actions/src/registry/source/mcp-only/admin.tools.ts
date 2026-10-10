@@ -11,7 +11,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Approve or decline a pending MCP write action that was queued for human review, executing it on approval. Pass the approvalId returned by the original (pending) tool call. Superadmin-only.',
+      'Approve or decline a pending MCP write action that was queued for human review, executing it on approval. Organization owners and admins only. Pass the approvalId returned by the original (pending) tool call.',
     name: 'resolve_approval',
     parameters: {
       properties: {
@@ -29,6 +29,6 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['approvalId', 'decision'],
       type: 'object',
     },
-    requiredRole: 'superadmin',
+    requiredRole: 'admin',
   },
 ];

@@ -1,5 +1,12 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
+const ARTICLE_SELECTOR_PROPERTIES = {
+  articleId: { type: 'string' },
+  query: { type: 'string' },
+  category: { type: 'string' },
+  limit: { type: 'number' },
+} as const;
+
 export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
@@ -85,13 +92,31 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
       'Get one article by articleId, or search published articles by query (optionally filtered by category). Pass exactly one of articleId or query.',
     name: 'get_articles',
     parameters: {
+      oneOf: [
+        {
+          additionalProperties: false,
+          properties: ARTICLE_SELECTOR_PROPERTIES,
+          required: ['articleId'],
+          type: 'object',
+        },
+        {
+          additionalProperties: false,
+          properties: ARTICLE_SELECTOR_PROPERTIES,
+          required: ['query'],
+          type: 'object',
+        },
+      ],
       properties: {
         articleId: {
           description: 'The article to retrieve.',
+          minLength: 1,
+          pattern: '\\S',
           type: 'string',
         },
         query: {
           description: 'Search query over published articles.',
+          minLength: 1,
+          pattern: '\\S',
           type: 'string',
         },
         category: {

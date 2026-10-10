@@ -146,6 +146,334 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:32.779Z',
   },
   {
+    endpoint: 'bytedance/seedance-1-lite',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.018,
+        when: {
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.036,
+        when: {
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.072,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedance-1-lite',
+    verifiedAt: '2026-10-09T21:08:32.750Z',
+  },
+  {
+    endpoint: 'bytedance/seedance-1-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.03,
+        when: {
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: {
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.15,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedance-1-pro',
+    verifiedAt: '2026-10-09T21:08:34.148Z',
+  },
+  {
+    endpoint: 'bytedance/seedance-1-pro-fast',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.015,
+        when: {
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.025,
+        when: {
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedance-1-pro-fast',
+    verifiedAt: '2026-10-09T21:08:35.208Z',
+  },
+  {
+    endpoint: 'bytedance/seedance-2.0',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: {
+          model_variant: 'video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.22,
+        when: {
+          model_variant: 'video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.18,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.55,
+        when: {
+          model_variant: 'video_in',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.45,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 1.25,
+        when: {
+          model_variant: 'video_in',
+          resolution: '4k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 1,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '4k',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'presence',
+          field: 'reference_videos',
+          whenPresent: 'video_in',
+          whenAbsent: 'non_video_in',
+          fieldType: 'array',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedance-2.0',
+    verifiedAt: '2026-10-09T21:09:52.095Z',
+  },
+  {
+    endpoint: 'bytedance/seedance-2.0-fast',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          model_variant: 'video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.07,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.17,
+        when: {
+          model_variant: 'video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.15,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'presence',
+          field: 'reference_videos',
+          whenPresent: 'video_in',
+          whenAbsent: 'non_video_in',
+          fieldType: 'array',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedance-2.0-fast',
+    verifiedAt: '2026-10-09T21:09:53.197Z',
+  },
+  {
+    endpoint: 'bytedance/seedance-2.0-mini',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: {
+          model_variant: 'video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.11,
+        when: {
+          model_variant: 'video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.09,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'presence',
+          field: 'reference_videos',
+          whenPresent: 'video_in',
+          whenAbsent: 'non_video_in',
+          fieldType: 'array',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedance-2.0-mini',
+    verifiedAt: '2026-10-09T21:09:54.184Z',
+  },
+  {
     endpoint: 'bytedance/seedance-2.5',
     provider: 'replicate',
     rates: [
@@ -204,7 +532,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/bytedance/seedance-2.5',
-    verifiedAt: '2026-10-06T09:45:32.803Z',
+    verifiedAt: '2026-10-09T21:09:55.051Z',
   },
   {
     endpoint: 'bytedance/seedream-4',

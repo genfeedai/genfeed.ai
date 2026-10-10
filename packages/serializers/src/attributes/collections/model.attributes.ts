@@ -8,6 +8,7 @@ export const modelAttributes = createEntityAttributes([
   'endpoint',
   'provider',
   'cost',
+  'hasReviewedPricing',
   'isActive',
   'isDefault',
   'lifecycle',

@@ -5,6 +5,7 @@ import {
   getToolByName,
 } from '@genfeedai/actions';
 import type {
+  AgentGenerationQuote,
   AgentMutationApprovalData,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
@@ -38,21 +39,34 @@ export function buildMutationApprovalCard(
   toolName: string,
   parameters: Record<string, unknown>,
   context: ToolExecutionContext,
+  generationQuote?: AgentGenerationQuote | null,
 ): AgentUiAction {
   const sourceActionId = `mutation-approval:${approvalId}`;
   const summary = humanize(toolName);
   const definition = getToolByName(toolName);
-  const estimatedCredits = definition?.creditPricing
-    ? estimateToolCreditCost(toolName, parameters, definition.creditPricing)
-    : null;
+  const estimatedCredits =
+    toolName === 'generate'
+      ? generationQuote?.isAvailable === true &&
+        typeof generationQuote.modelKey === 'string' &&
+        generationQuote.modelKey.trim().length > 0 &&
+        typeof generationQuote.credits === 'number' &&
+        Number.isFinite(generationQuote.credits) &&
+        generationQuote.credits >= 0
+        ? generationQuote.credits
+        : null
+      : definition?.creditPricing
+        ? estimateToolCreditCost(toolName, parameters, definition.creditPricing)
+        : null;
   const baseDescription =
     definition?.description ?? 'Review this action before it runs.';
   const estimateSentence =
     typeof estimatedCredits === 'number'
       ? `Estimated cost: ${estimatedCredits} credits.`
-      : definition?.creditPricing && definition.creditPricing.mode !== 'fixed'
-        ? describeCreditPricing(definition.creditPricing)
-        : undefined;
+      : toolName === 'generate'
+        ? 'A model-specific credit quote is unavailable. Select a supported model and complete its generation settings before approving.'
+        : definition?.creditPricing && definition.creditPricing.mode !== 'fixed'
+          ? describeCreditPricing(definition.creditPricing)
+          : undefined;
   const description =
     estimateSentence && !baseDescription.includes(estimateSentence)
       ? `${baseDescription} ${estimateSentence}`

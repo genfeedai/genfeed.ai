@@ -334,7 +334,11 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'livestream-bot-session:LivestreamBotSession': [],
   'metadata:Metadata': ['modelLabel'],
   // ModelsService derives approved Crun contract controls through its reviewed projection.
-  'model:Model': ['inputControls'],
+  'model:Model': [
+    // Computed: whether the model has reviewed, approved provider pricing.
+    'hasReviewedPricing',
+    'inputControls',
+  ],
   'monitored-account:MonitoredAccount': ['lastPostId'],
   'optimization:Optimization': [
     'changes',

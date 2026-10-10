@@ -97,6 +97,68 @@ function fakeFetch(...bodies: unknown[]) {
 }
 
 describe('provider import selection and parameters', () => {
+  it('includes every active Seedance endpoint, including already reviewed models', () => {
+    const targets = providerModelImportTargets();
+    for (const name of [
+      '1-lite',
+      '1-pro',
+      '1-pro-fast',
+      '1.5-pro',
+      '2.0',
+      '2.0-fast',
+      '2.0-mini',
+      '2.5',
+    ]) {
+      expect(targets).toContainEqual({
+        category: ModelCategory.VIDEO,
+        endpoint: `bytedance/seedance-${name}`,
+        provider: ModelProvider.REPLICATE,
+      });
+    }
+    for (const family of [
+      'bytedance/seedance-2.0',
+      'bytedance/seedance-2.0/fast',
+      'bytedance/seedance-2.0/mini',
+      'bytedance/seedance-2.0/us',
+      'bytedance/seedance-2.5',
+      'bytedance/seedance-2.5/us',
+    ]) {
+      for (const task of [
+        'text-to-video',
+        'image-to-video',
+        'reference-to-video',
+      ]) {
+        expect(targets).toContainEqual({
+          category: ModelCategory.VIDEO,
+          endpoint: `${family}/${task}`,
+          provider: ModelProvider.FAL,
+        });
+      }
+    }
+    expect(targets).toContainEqual({
+      category: ModelCategory.VIDEO_EDIT,
+      endpoint: 'bytedance/seedance-2.5/draft/complete',
+      provider: ModelProvider.FAL,
+    });
+    for (const family of [
+      'fal-ai/bytedance/seedance/v1/pro',
+      'fal-ai/bytedance/seedance/v1/pro/fast',
+      'fal-ai/bytedance/seedance/v1.5/pro',
+    ]) {
+      for (const task of ['text-to-video', 'image-to-video']) {
+        expect(targets).toContainEqual({
+          category: ModelCategory.VIDEO,
+          endpoint: `${family}/${task}`,
+          provider: ModelProvider.FAL,
+        });
+      }
+    }
+    expect(
+      targets.some((target) =>
+        target.endpoint.startsWith('fal-ai/bytedance/seedance/v1/lite/'),
+      ),
+    ).toBe(false);
+  });
   it('includes the verified task variants and keeps provider identities separate', () => {
     const targets = providerModelImportTargets();
     expect(targets).toContainEqual(replicate);

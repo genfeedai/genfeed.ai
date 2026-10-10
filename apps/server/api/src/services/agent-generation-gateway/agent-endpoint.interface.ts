@@ -3,6 +3,7 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import type { OrganizationModuleEndpointPolicy } from '@api/common/organization-modules/organization-module.decorator';
 import type { ModelValidationOptions } from '@api/helpers/guards/models/models.guard';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
+import type { ApprovedGenerationQuoteConstraint } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import type { ActivitySource, MemberRole } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
@@ -18,6 +19,7 @@ export interface AgentEndpointRequest extends RequestWithContext {
     amount: number;
     deferred?: boolean;
     modelKey?: string;
+    approvedGenerationQuote?: ApprovedGenerationQuoteConstraint;
   };
   creditsOutputCount?: number;
   selectedModel?: RequestWithSelectedModel['selectedModel'];
@@ -45,6 +47,8 @@ export interface AgentEndpointCreditsAttribution {
 
 /** One in-process call: the principal plus the body an HTTP client would POST. */
 export interface AgentEndpointInvocation {
+  /** Trusted in-process consent constraint; HTTP generation bodies cannot set it. */
+  approvedGenerationQuote?: ApprovedGenerationQuoteConstraint;
   body: Record<string, unknown>;
   creditsAttribution?: AgentEndpointCreditsAttribution;
   principal: AgentEndpointPrincipal;

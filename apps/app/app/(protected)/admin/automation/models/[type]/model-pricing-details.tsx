@@ -263,7 +263,12 @@ function pricingColumns(
       key: 'configuredProviderCostUsd',
       render: (row) => (
         <div className="text-xs tabular-nums">
-          <p>{usd(row.configuredProviderCostUsd, t)}</p>
+          <p>
+            {row.configuredProviderCostUsd === null &&
+            row.reviewed?.rates?.length
+              ? t('reviewedBands')
+              : usd(row.configuredProviderCostUsd, t)}
+          </p>
           <p>{row.pricingType ?? t('flatFallback')}</p>
           {row.category === 'text' ? (
             <p>

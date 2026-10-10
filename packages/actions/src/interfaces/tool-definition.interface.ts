@@ -35,6 +35,7 @@ export interface ToolParameterSchema {
   type: 'object';
   properties: Record<string, unknown>;
   required?: string[];
+  oneOf?: Array<Record<string, unknown>>;
 }
 
 export interface ToolSurfaceConfig {

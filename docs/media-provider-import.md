@@ -68,3 +68,55 @@ approval path after reviewing schema compatibility and pricing evidence.
 Official sources: [fal metadata](https://fal.ai/docs/platform-apis/v1/models),
 [fal pricing](https://fal.ai/docs/platform-apis/v1/models/pricing), and
 [Replicate models API](https://replicate.com/docs/reference/http#models.get).
+
+## Seedance family
+
+The manifest includes all eight official Replicate Seedance endpoints observed
+on 2026-10-09: `1-lite`, `1-pro`, `1-pro-fast`, `1.5-pro`, `2.0`, `2.0-fast`,
+`2.0-mini`, and `2.5`, under `bytedance/seedance-`. An explicit import includes
+2.5 even when it already has reviewed prices. Existing approvals remain intact.
+
+The fal manifest includes the 25 active task endpoints observed on that date:
+text/image/reference variants for 2.0, Fast, Mini, US, 2.5 and 2.5 US; the 2.5
+draft completion endpoint; and text/image variants for 1 Pro, 1 Pro Fast and
+1.5 Pro. Deprecated fal 1 Lite endpoints are excluded. Each endpoint keeps its
+own schema, pricing and review decision; provider prices are not interchangeable.
+
+Seven Replicate models have captured per-second prices, including resolution
+and video-reference conditions. Seedance 1.5 Pro remains quarantined: its public
+billing tiers vary by resolution, but the observed input schema has no resolution
+field. Do not assign an arbitrary resolution tariff. The captured authenticated
+fal observations support 24 task tariffs; draft completion remains quarantined.
+Public model metadata alone does not provide an approvable billing contract.
+
+The fal Seedance mapper verifies the authenticated endpoint, currency, token
+unit and base price against conditional terms captured on 2026-10-10. It prices
+native video tokens as `width × height × seconds × 24 / 1024`, without rounding
+fractional token quantities to language-model tokens. Resolution and 1.5 Pro's
+audio toggle select separate tariffs. Reference video bills both input and output
+duration; Mini discounts only the input component, while the other reference
+tiers discount both components. A changed base observation quarantines the new
+candidate instead of silently refreshing stale conditional terms.
+
+Prepared dispatch supplies the pricing dimensions. Automatic shapes/durations,
+unpublished US 2.0 high-resolution tariffs and unverified output sizes fail
+closed. Draft completion remains quarantined while the authenticated base and
+the published completion-page tariff disagree. These limitations must be resolved
+before activating the corresponding operations; a catalog import is not runtime
+acceptance. Completion must provide actual output dimensions/duration and billed
+reference duration, using the admitted rate version and credit ceiling.
+
+Agent and Studio estimates prepare Seedance inputs with the approved fal schema
+and adapter before projecting prices, including provider defaults and fixed
+fields. They use the provider's output size rather than the requested canvas;
+an automatic size remains unavailable instead of acquiring an estimate from
+the canvas. Verification timestamps retain the source observation's UTC time.
+
+Conditional contracts have no single scalar price. Registry approval accepts a
+missing scalar only with validated structured pricing for the exact pending
+contract; the scalar stays `null`, and losing reviewed pricing cannot create a
+free fallback.
+
+Source inventories: [Replicate ByteDance models](https://replicate.com/bytedance)
+and [fal ByteDance models](https://fal.ai/explore/bytedance). Recheck identities,
+schemas and tariffs before importing; these are dated provider observations.

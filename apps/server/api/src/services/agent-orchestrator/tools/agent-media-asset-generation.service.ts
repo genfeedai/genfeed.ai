@@ -188,6 +188,7 @@ export class AgentMediaAssetGenerationService {
     try {
       response = toMediaResponseRecord(
         await this.generationGateway.generateImage({
+          approvedGenerationQuote: ctx.approvedGenerationQuote,
           body,
           ...(prompt !== rawPrompt ? { originalPrompt: rawPrompt } : {}),
           principal: this.toPrincipal(ctx),
@@ -572,6 +573,7 @@ export class AgentMediaAssetGenerationService {
     try {
       response = toMediaResponseRecord(
         await this.generationGateway.generateVideo({
+          approvedGenerationQuote: ctx.approvedGenerationQuote,
           body,
           ...(prompt !== rawPrompt ? { originalPrompt: rawPrompt } : {}),
           principal: this.toPrincipal(ctx),

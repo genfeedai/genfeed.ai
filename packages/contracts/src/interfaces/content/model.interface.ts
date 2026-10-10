@@ -16,6 +16,8 @@ export interface IModel extends IBaseEntity {
   category: ModelCategory;
   provider: ModelProvider;
   cost: number;
+  /** Server-validated positive, complete and fresh conditional tariff terms. */
+  hasReviewedPricing?: boolean;
   isActive: boolean;
   isDefault: boolean;
   lifecycle: ModelLifecycle;
@@ -33,7 +35,7 @@ export interface IModel extends IBaseEntity {
   supportsFeatures?: string[];
   minDimensions?: { width: number; height: number };
   maxDimensions?: { width: number; height: number };
-  pricingType?: PricingType;
+  pricingType?: PricingType | 'conditional';
   costPerUnit?: number;
   minCost?: number;
   providerCostUsd?: number;

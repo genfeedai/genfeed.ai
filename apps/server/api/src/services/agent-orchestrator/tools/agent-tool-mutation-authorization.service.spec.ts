@@ -1,4 +1,6 @@
 import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
+import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
+import { approvalGenerationConstraint } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import { AGENT_RUNTIME_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import {
   buildHiddenSystemWorkflowMetadata,
@@ -9,6 +11,7 @@ import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { ActionOrigin, AgentAutonomyMode } from '@genfeedai/contracts';
 import { type Prisma, WorkflowExecutionStatus } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -684,4 +687,176 @@ describe('persisted supervised proactive text-draft authorization', () => {
       expect(f.approvals.createPending).toHaveBeenCalledOnce();
     },
   );
+});
+
+describe('MCP draft-only policy selection', () => {
+  const context: ToolExecutionContext = {
+    organizationId: 'org',
+    userId: 'user',
+    hostSupportsApproval: true,
+  };
+  function fixture(mode?: 'auto' | 'manual' | 'plan') {
+    const createPending = vi
+      .fn()
+      .mockResolvedValue({ id: 'pending', status: 'PENDING' });
+    const findOwned = vi.fn().mockResolvedValue(null);
+    const service = new AgentToolMutationAuthorizationService(
+      {} as never,
+      {
+        createPending,
+        findOwned,
+        findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
+      } as never,
+      mode
+        ? ({ findOne: vi.fn().mockResolvedValue({ mode }) } as never)
+        : undefined,
+    );
+    return { service, createPending, findOwned };
+  }
+  it.each([undefined, 'auto'] as const)(
+    'executes a free concrete MCP draft for mode %s',
+    async (mode) => {
+      const { service, createPending } = fixture(mode);
+      const result = await runWithActionOrigin(
+        { origin: ActionOrigin.MCP },
+        () =>
+          service.authorize(
+            'create_post',
+            { content: 'Draft' },
+            { ...context, ...(mode ? { threadId: 'thread' } : {}) },
+            {} as never,
+          ),
+      );
+      expect(result).toEqual({ kind: 'execute' });
+      expect(createPending).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['manual', 'plan'] as const)(
+    'retains trusted %s thread policy',
+    async (mode) => {
+      const { service } = fixture(mode);
+      const result = await runWithActionOrigin(
+        { origin: ActionOrigin.MCP },
+        () =>
+          service.authorize(
+            'create_post',
+            { content: 'Draft' },
+            { ...context, threadId: 'thread' },
+            {} as never,
+          ),
+      );
+      expect(result.kind).toBe('return');
+    },
+  );
+  it.each([ActionOrigin.AGENT, ActionOrigin.API, ActionOrigin.CLI])(
+    'does not apply the MCP exception to %s',
+    async (origin) => {
+      const { service, createPending } = fixture();
+      const result = await runWithActionOrigin({ origin }, () =>
+        service.authorize(
+          'create_post',
+          { content: 'Draft' },
+          context,
+          {} as never,
+        ),
+      );
+      expect(result.kind).toBe('return');
+      expect(createPending).toHaveBeenCalled();
+    },
+  );
+  it.each([
+    { content: 'Draft', scheduledAt: '2030-01-01' },
+    { content: 'Draft', unknown: true },
+    { content: 'Draft', confirmed: true },
+  ])('retains consent for %j', async (args) => {
+    const { service, createPending } = fixture();
+    await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      service.authorize('create_post', args, context, {} as never),
+    );
+    expect(createPending).toHaveBeenCalled();
+  });
+  it('never skips approved-id verification for a text draft', async () => {
+    const { service, findOwned } = fixture();
+    await expect(
+      runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+        service.authorize(
+          'create_post',
+          { content: 'Draft' },
+          { ...context, approvedApprovalId: 'foreign' },
+          {} as never,
+        ),
+      ),
+    ).rejects.toThrow('Approval does not authorize');
+    expect(findOwned).toHaveBeenCalledWith('foreign', 'org');
+  });
+});
+
+describe('matched visual approval pricing carry', () => {
+  const context: ToolExecutionContext = {
+    organizationId: 'org',
+    userId: 'user',
+    approvedApprovalId: 'matched',
+  };
+  const args = { type: 'image', model: 'selected-model', prompt: 'A scene' };
+  function fixture(
+    change: 'same' | 'arguments' | 'actor' | 'claim' | 'legacy',
+  ) {
+    const pricingQuote = testMcpApprovalPricing();
+    const approval = {
+      id: 'matched',
+      status: 'APPROVED',
+      toolName: 'generate',
+      userId: change === 'actor' ? 'other' : 'user',
+      arguments: change === 'arguments' ? { ...args, model: 'other' } : args,
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: args,
+        organizationId: 'org',
+        userId: 'user',
+        toolName: 'generate',
+      }),
+      pricingQuote: change === 'legacy' ? null : pricingQuote,
+      isDeleted: false,
+    };
+    const claimExecution = vi.fn().mockResolvedValue(change !== 'claim');
+    const service = new AgentToolMutationAuthorizationService(
+      {} as never,
+      {
+        findOwned: vi.fn().mockResolvedValue(approval),
+        claimExecution,
+      } as never,
+    );
+    return { service, claimExecution, pricingQuote };
+  }
+  it('returns the persisted quote only after a matched successful execution claim', async () => {
+    const { service, claimExecution, pricingQuote } = fixture('same');
+    await expect(
+      service.authorize('generate', args, context, {} as never),
+    ).resolves.toEqual({
+      kind: 'execute',
+      approvalId: 'matched',
+      approvedGenerationQuote: approvalGenerationConstraint(pricingQuote),
+    });
+    expect(claimExecution).toHaveBeenCalledExactlyOnceWith('matched', 'org');
+  });
+  it.each(['arguments', 'actor', 'claim'] as const)(
+    'rejects an unmatched %s without carrying quote authority',
+    async (change) => {
+      const { service, claimExecution } = fixture(change);
+      await expect(
+        service.authorize('generate', args, context, {} as never),
+      ).rejects.toThrow();
+      if (change !== 'claim') expect(claimExecution).not.toHaveBeenCalled();
+    },
+  );
+  it('marks invalid legacy pricing as unavailable after claim so executor records the failure', async () => {
+    const { service, claimExecution } = fixture('legacy');
+    await expect(
+      service.authorize('generate', args, context, {} as never),
+    ).resolves.toEqual({
+      kind: 'execute',
+      approvalId: 'matched',
+      approvedGenerationQuote: null,
+    });
+    expect(claimExecution).toHaveBeenCalled();
+  });
 });
