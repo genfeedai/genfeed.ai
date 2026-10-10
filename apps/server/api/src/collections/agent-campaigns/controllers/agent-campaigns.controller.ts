@@ -103,6 +103,10 @@ export class AgentCampaignsController extends BaseCRUDController<
    * BaseCRUDController patch behavior.
    */
   @Patch(':id')
+  @OrganizationModule('automation', 'write', {
+    field: 'status',
+    values: ['paused'],
+  })
   async patch(
     @Req() request: Request,
     @CurrentUser() user: User,

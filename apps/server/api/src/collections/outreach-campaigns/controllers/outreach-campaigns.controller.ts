@@ -164,6 +164,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
    * `{ status: "active" | "paused" | "completed" }` (mirrors agent-campaigns).
    */
   @Patch(':id')
+  @OrganizationModule('messages', 'write', {
+    field: 'status',
+    values: [CampaignStatus.PAUSED, CampaignStatus.COMPLETED],
+  })
   @ApiOperation({
     summary: 'Update a campaign (status transitions via status field)',
   })

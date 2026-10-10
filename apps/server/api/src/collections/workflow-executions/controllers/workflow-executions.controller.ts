@@ -339,6 +339,7 @@ export class WorkflowExecutionsController {
   }
 
   @Patch(':id')
+  @OrganizationModule('automation', 'cancel')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Update an execution (cancel a running execution)' })
   @ApiParam({ description: 'Execution ID', name: 'id' })

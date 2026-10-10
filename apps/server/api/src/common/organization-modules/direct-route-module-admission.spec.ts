@@ -1,4 +1,5 @@
 import { AdWatchedAdvertisersController } from '@api/collections/ad-watched-advertisers/controllers/ad-watched-advertisers.controller';
+import { AgentCampaignsController } from '@api/collections/agent-campaigns/controllers/agent-campaigns.controller';
 import { ArticlesTransformationsController } from '@api/collections/articles/controllers/transformations/articles-transformations.controller';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
 import { CampaignsController } from '@api/collections/campaigns/controllers/campaigns.controller';
@@ -14,8 +15,10 @@ import { ListeningTopicsController } from '@api/collections/listening-topics/con
 import { MonitoredAccountsController } from '@api/collections/monitored-accounts/controllers/monitored-accounts.controller';
 import { NewslettersController } from '@api/collections/newsletters/controllers/newsletters.controller';
 import { OptimizersController } from '@api/collections/optimizers/controllers/optimizers.controller';
+import { OutreachCampaignsController } from '@api/collections/outreach-campaigns/controllers/outreach-campaigns.controller';
 import { ProfilesController } from '@api/collections/profiles/controllers/profiles.controller';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
+import { SocialReplyCampaignController } from '@api/collections/social-inbox/controllers/social-reply-campaign.controller';
 import { SocialTimelineController } from '@api/collections/social-sources/controllers/social-timeline.controller';
 import { SocialWarmupEnrollmentsController } from '@api/collections/social-warmup-enrollments/controllers/social-warmup-enrollments.controller';
 import { SourcePostsController } from '@api/collections/source-posts/controllers/source-posts.controller';
@@ -31,6 +34,7 @@ import { VideosLipSyncController } from '@api/collections/videos/controllers/tra
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
 import { VideosResizeController } from '@api/collections/videos/controllers/transformations/resize/videos-resize.controller';
 import { VideosUpscaleController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale.controller';
+import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
 import {
   ORGANIZATION_MODULE_KEY,
   type OrganizationModuleEndpointPolicy,
@@ -95,6 +99,10 @@ function context(
   handler: object,
   method: string,
   flags: { isApiKey?: boolean; isSuperAdmin?: boolean } = {},
+  body: unknown = {
+    moduleId: 'playground',
+    moduleOverrides: { discovery: true },
+  },
 ): ExecutionContext {
   return {
     getClass: () => controller,
@@ -104,7 +112,7 @@ function context(
         method,
         user: { id: 'user-1', organizationId: 'org-1', ...flags },
         context: { organizationId: 'org-1' },
-        body: { moduleId: 'playground', moduleOverrides: { discovery: true } },
+        body,
       }),
     }),
   } as unknown as ExecutionContext;
@@ -378,5 +386,178 @@ describe('direct product route module admission inventory', () => {
       'publishing',
       'cancel',
     );
+  });
+
+  it.each(['disabled', 'unpaid', 'unavailable'])(
+    'preserves workflow and campaign recovery when module access is %s',
+    async (state) => {
+      const findSettings = vi.fn();
+      if (state === 'unavailable')
+        findSettings.mockRejectedValue(new Error('database offline'));
+      else
+        findSettings.mockResolvedValue({
+          moduleOverrides: {
+            automation: state !== 'disabled',
+            messages: state !== 'disabled',
+          },
+        });
+      const paidGrant = vi.fn().mockResolvedValue(state === 'unpaid');
+      const guard = new OrganizationModuleGuard(
+        reflector,
+        new OrganizationModuleAccessService(
+          {
+            organization: {
+              findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }),
+            },
+            organizationSetting: { findUnique: findSettings },
+          } as never,
+          { isSubscriptionGatedFresh: paidGrant } as never,
+        ),
+      );
+      const recovery = [
+        [
+          WorkflowExecutionsController,
+          WorkflowExecutionsController.prototype.update,
+          'PATCH',
+          { status: 'cancelled' },
+        ],
+        [
+          SocialReplyCampaignController,
+          SocialReplyCampaignController.prototype.remove,
+          'DELETE',
+          {},
+        ],
+        [
+          SocialReplyCampaignController,
+          SocialReplyCampaignController.prototype.transition,
+          'PATCH',
+          { transition: 'pause' },
+        ],
+        [
+          SocialReplyCampaignController,
+          SocialReplyCampaignController.prototype.transition,
+          'PATCH',
+          { transition: 'cancel' },
+        ],
+        [
+          AgentCampaignsController,
+          AgentCampaignsController.prototype.patch,
+          'PATCH',
+          { status: 'paused' },
+        ],
+        [
+          OutreachCampaignsController,
+          OutreachCampaignsController.prototype.patchCampaign,
+          'PATCH',
+          { status: 'paused' },
+        ],
+        [
+          OutreachCampaignsController,
+          OutreachCampaignsController.prototype.patchCampaign,
+          'PATCH',
+          { status: 'completed' },
+        ],
+      ] as const;
+      for (const [controller, handler, method, body] of recovery) {
+        await expect(
+          guard.canActivate(context(controller, handler, method, {}, body)),
+        ).resolves.toBe(true);
+        if (method === 'PATCH') {
+          await expect(
+            guard.canActivate(
+              context(
+                controller,
+                handler,
+                method,
+                {},
+                {
+                  data: {
+                    type: 'campaigns',
+                    id: 'existing-1',
+                    attributes: body,
+                  },
+                },
+              ),
+            ),
+          ).resolves.toBe(true);
+        }
+      }
+      expect(findSettings).not.toHaveBeenCalled();
+      expect(paidGrant).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps starts, resumes and mixed campaign updates gated before effects', async () => {
+    const guard = new OrganizationModuleGuard(
+      reflector,
+      new OrganizationModuleAccessService(
+        {
+          organization: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }),
+          },
+          organizationSetting: {
+            findUnique: vi
+              .fn()
+              .mockRejectedValue(new Error('database offline')),
+          },
+        } as never,
+        { isSubscriptionGatedFresh: vi.fn() } as never,
+      ),
+    );
+    const writes = [
+      [
+        SocialReplyCampaignController,
+        SocialReplyCampaignController.prototype.transition,
+        { transition: 'start' },
+      ],
+      [
+        SocialReplyCampaignController,
+        SocialReplyCampaignController.prototype.transition,
+        { transition: 'resume' },
+      ],
+      [
+        SocialReplyCampaignController,
+        SocialReplyCampaignController.prototype.transition,
+        { transition: 'pause', label: 'changed' },
+      ],
+      [
+        AgentCampaignsController,
+        AgentCampaignsController.prototype.patch,
+        { status: 'active' },
+      ],
+      [
+        AgentCampaignsController,
+        AgentCampaignsController.prototype.patch,
+        { status: 'paused', label: 'changed' },
+      ],
+      [
+        OutreachCampaignsController,
+        OutreachCampaignsController.prototype.patchCampaign,
+        { status: 'active' },
+      ],
+      [
+        OutreachCampaignsController,
+        OutreachCampaignsController.prototype.patchCampaign,
+        { status: 'completed', label: 'changed' },
+      ],
+    ] as const;
+    for (const [controller, handler, body] of writes) {
+      await expect(
+        guard.canActivate(context(controller, handler, 'PATCH', {}, body)),
+      ).rejects.toMatchObject({ status: 503 });
+      await expect(
+        guard.canActivate(
+          context(
+            controller,
+            handler,
+            'PATCH',
+            {},
+            {
+              data: { type: 'campaigns', id: 'existing-1', attributes: body },
+            },
+          ),
+        ),
+      ).rejects.toMatchObject({ status: 503 });
+    }
   });
 });

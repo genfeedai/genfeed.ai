@@ -2,8 +2,11 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import {
   ORGANIZATION_MODULE_KEY,
   type OrganizationModuleEndpointPolicy,
+  type OrganizationModuleRecoveryPolicy,
 } from '@api/common/organization-modules/organization-module.decorator';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { getDeserializer, type JsonApiDocument } from '@genfeedai/helpers';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
   type CanActivate,
   type ExecutionContext,
@@ -33,7 +36,44 @@ export class OrganizationModuleGuard implements CanActivate {
     const operation =
       policy.operation ??
       (['GET', 'HEAD', 'OPTIONS'].includes(request.method) ? 'read' : 'write');
-    await this.access.assertAccess(organizationId, policy.moduleId, operation);
+    const admittedOperation =
+      operation === 'write' &&
+      request.method === 'PATCH' &&
+      this.isRecoveryBody(request.body, policy.recovery)
+        ? 'cancel'
+        : operation;
+    await this.access.assertAccess(
+      organizationId,
+      policy.moduleId,
+      admittedOperation,
+    );
     return true;
+  }
+
+  /** Only an explicitly declared, status-only recovery may bypass new-work admission. */
+  private isRecoveryBody(
+    body: unknown,
+    recovery: OrganizationModuleRecoveryPolicy | undefined,
+  ): boolean {
+    if (!recovery || !isRecord(body)) return false;
+    const isJsonApi = isRecord(body.data) && isRecord(body.data.attributes);
+    let normalized: unknown = body;
+    if (isJsonApi) {
+      try {
+        // Match the global validation pipe after checking the JSON:API object shape.
+        normalized = getDeserializer(body as JsonApiDocument);
+      } catch {
+        return false;
+      }
+    }
+    if (!isRecord(normalized)) return false;
+    const value = normalized[recovery.field];
+    return (
+      typeof value === 'string' &&
+      recovery.values.includes(value) &&
+      Object.keys(normalized).every(
+        (key) => key === recovery.field || (isJsonApi && key === 'id'),
+      )
+    );
   }
 }

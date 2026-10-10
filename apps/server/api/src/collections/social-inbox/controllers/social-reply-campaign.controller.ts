@@ -141,6 +141,10 @@ export class SocialReplyCampaignController {
   }
 
   @Patch(':campaignId/status')
+  @OrganizationModule('messages', 'write', {
+    field: 'transition',
+    values: ['pause', 'cancel'],
+  })
   @RequiredScopes(ApiKeyScope.POSTS_PUBLISH)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Start, pause, resume, or cancel a campaign' })
@@ -160,6 +164,7 @@ export class SocialReplyCampaignController {
   }
 
   @Delete(':campaignId')
+  @OrganizationModule('messages', 'cancel')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Cancel and soft-delete a reply campaign' })
   async remove(
