@@ -169,7 +169,9 @@ describe('OrganizationStorePage (#5502)', () => {
     expect(appState('turbo')).toBe('organization-disabled');
     expect(within(card('turbo')).queryByRole('button')).toBeNull();
     expect(
-      within(card('turbo')).getByRole('link', { name: 'Organization settings' }),
+      within(card('turbo')).getByRole('link', {
+        name: 'Organization settings',
+      }),
     ).toHaveAttribute('href', '/acme/~/settings/organization');
     expect(appState('discovery')).toBe('subscription-required');
     expect(
@@ -221,7 +223,9 @@ describe('OrganizationStorePage (#5502)', () => {
     render(<OrganizationStorePage />);
 
     expect(
-      screen.getByText("Couldn't load your apps. Reload the page to try again."),
+      screen.getByText(
+        "Couldn't load your apps. Reload the page to try again.",
+      ),
     ).toBeInTheDocument();
     expect(appState('playground')).toBe('not-installed');
   });

@@ -182,7 +182,10 @@ export default function OrganizationStorePage() {
 
       {isWorkflowLibraryShown ? (
         <CollectionSection itemCount={1} title={translate('workflowsTitle')}>
-          <Card bodyClassName="flex flex-col gap-3" data-testid="store-workflows">
+          <Card
+            bodyClassName="flex flex-col gap-3"
+            data-testid="store-workflows"
+          >
             <div className="flex items-center gap-3">
               <Workflow
                 aria-hidden="true"
@@ -260,7 +263,9 @@ function StoreAppCard({
           {failedAction ? (
             <p className="mt-1 text-xs text-destructive" role="alert">
               {translate(
-                failedAction === 'install' ? 'installFailed' : 'uninstallFailed',
+                failedAction === 'install'
+                  ? 'installFailed'
+                  : 'uninstallFailed',
                 { app: app.label },
               )}
             </p>
