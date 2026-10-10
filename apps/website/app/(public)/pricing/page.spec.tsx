@@ -1,3 +1,4 @@
+import { BOOKING_HREF } from '@data/booking.data';
 import * as PageModule from '@public/pricing/page';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import type { ResolvingMetadata } from 'next';
@@ -51,7 +52,7 @@ describe('pricing metadata', () => {
       '@type': 'Service',
       name: 'Done for you',
       offers: {
-        url: 'https://genfeed.ai/done-for-you#book',
+        url: BOOKING_HREF,
         priceSpecification: {
           minPrice: 2500,
           billingDuration: 'P1M',

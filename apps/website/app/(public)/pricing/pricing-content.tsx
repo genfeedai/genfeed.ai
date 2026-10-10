@@ -210,11 +210,6 @@ export default function PricingContent() {
                       ) : null}
 
                       <div className="mb-2 flex min-h-14 items-baseline gap-1.5 whitespace-nowrap">
-                        {plan.launchPrice != null ? (
-                          <span className="text-sm font-medium text-surface/40 line-through">
-                            {formatPrice(plan.price)}
-                          </span>
-                        ) : null}
                         <span className="text-4xl font-semibold tracking-[-0.03em] xl:text-5xl">
                           {isPayg
                             ? `$${CREDIT_VALUE_DOLLARS.toFixed(2)}`
@@ -235,11 +230,9 @@ export default function PricingContent() {
                       </div>
 
                       {plan.launchNote ? (
-                        <div className="mb-8">
-                          <span className="inline-flex items-center rounded-full border border-edge/15 px-2.5 py-1 text-xs font-medium text-surface/55">
-                            {plan.launchNote}
-                          </span>
-                        </div>
+                        <p className="mb-8 text-xs leading-5 text-surface/55">
+                          {plan.launchNote.replace('EARLYGENFEED · ', 'First ')}
+                        </p>
                       ) : null}
 
                       <p className="mb-8 text-sm leading-6 text-surface/65">
@@ -295,10 +288,7 @@ export default function PricingContent() {
                   padding="sm"
                   className="p-0 sm:p-0 bg-card hover:bg-card"
                 >
-                  <div className="overflow-hidden [&_figure]:rounded-none">
-                    <MarketingArtwork page="/done-for-you" isCompact />
-                  </div>
-                  <div className="flex flex-1 flex-col p-6 sm:p-8">
+                  <div className="p-6 sm:p-8">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                       <h3 className="text-2xl font-semibold tracking-[-0.02em]">
                         {serviceOffering.name}
@@ -307,18 +297,23 @@ export default function PricingContent() {
                         With our team
                       </span>
                     </div>
-                    <p className="mb-6 text-sm leading-6 text-surface/65">
-                      {serviceOffering.description}
-                    </p>
-                    <p className="mb-2 flex flex-wrap items-baseline gap-1.5">
-                      <span className="text-base text-surface/60">From</span>
-                      <span className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
+                    <p className="mb-3 flex items-baseline gap-1.5 whitespace-nowrap">
+                      <span className="text-base text-surface/70">From</span>
+                      <span className="text-5xl font-semibold tracking-[-0.03em] sm:text-6xl">
                         {formatPrice(serviceOffering.startingMonthlyPrice)}
                       </span>
                       <span className="text-sm text-surface/55">/month</span>
                     </p>
-                    <p className="mb-8 text-xs text-surface/55">
+                    <p className="text-xs leading-5 text-surface/60">
                       {serviceOffering.priceNote}
+                    </p>
+                  </div>
+                  <div className="overflow-hidden [&_figure]:rounded-none">
+                    <MarketingArtwork page="/done-for-you" isCompact />
+                  </div>
+                  <div className="flex flex-1 flex-col p-6 sm:p-8">
+                    <p className="mb-6 text-sm leading-6 text-surface/65">
+                      {serviceOffering.description}
                     </p>
                     <ul className="mb-auto space-y-4">
                       {serviceOffering.includes.map((feature) => (
@@ -380,9 +375,7 @@ export default function PricingContent() {
                 size={ButtonSize.PUBLIC}
                 variant={ButtonVariant.SECONDARY}
               >
-                <a href={enterprisePlan.ctaHref || BOOKING_HREF}>
-                  {enterprisePlan.cta}
-                </a>
+                <a href={BOOKING_HREF}>{enterprisePlan.cta}</a>
               </Button>
             </NeuralGridItem>
           </NeuralGrid>

@@ -39,7 +39,7 @@ export interface ServiceLandingPageProps {
 const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
 
 // Product acquisition pages lead with the connected agent. Service offers keep
-// self-serve and booking, with calls booked on the done-for-you page.
+// self-serve and direct booking links.
 function LandingActions({
   slug,
 }: ServiceLandingActionsProps): React.ReactElement {

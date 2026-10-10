@@ -53,7 +53,7 @@ vi.mock('@ui/topbars/logo/TopbarLogo', () => ({
 }));
 
 vi.mock('@web-components/landing/BookingSection', () => ({
-  default: () => <section id="book">Booking calendar</section>,
+  default: () => <section id="book">Booking link</section>,
 }));
 
 describe('ServiceLandingPage', () => {
@@ -78,15 +78,15 @@ describe('ServiceLandingPage', () => {
       for (const link of startFree) {
         expect(link).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
       }
-      // Calls are booked on /done-for-you, never straight on Calendly.
+      // Service calls open the configured booking page directly.
       for (const link of bookCall) {
-        expect(link).toHaveAttribute('href', '/done-for-you#book');
+        expect(link).toHaveAttribute('href', 'https://calendly.com/genfeed');
       }
-      expect(screen.queryByText('Booking calendar')).not.toBeInTheDocument();
+      expect(screen.queryByText('Booking link')).not.toBeInTheDocument();
     },
   );
 
-  it('puts the call first on /done-for-you and closes on the calendar', () => {
+  it('puts the call first on /done-for-you and closes with a booking link', () => {
     render(<ServiceLandingPage slug="done-for-you" />);
 
     const heroLinks = within(screen.getByRole('main'))
@@ -96,9 +96,9 @@ describe('ServiceLandingPage', () => {
 
     expect(heroLinks.slice(0, 2)).toEqual(['Book a call', 'Start free']);
     for (const link of screen.getAllByRole('link', { name: 'Book a call' })) {
-      expect(link).toHaveAttribute('href', '/done-for-you#book');
+      expect(link).toHaveAttribute('href', 'https://calendly.com/genfeed');
     }
-    expect(screen.getByText('Booking calendar')).toBeInTheDocument();
+    expect(screen.getByText('Booking link')).toBeInTheDocument();
   });
 
   it('shows the monthly retainer in the service hero and leads the header with a call', () => {
@@ -107,7 +107,7 @@ describe('ServiceLandingPage', () => {
     const header = within(screen.getByRole('banner'));
     expect(header.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
       'href',
-      '/done-for-you#book',
+      'https://calendly.com/genfeed',
     );
     expect(
       screen.getByRole('heading', { name: 'What does pricing look like?' })

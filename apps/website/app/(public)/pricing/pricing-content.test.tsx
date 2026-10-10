@@ -44,6 +44,7 @@ vi.mock('@hooks/ui/use-marketing-entrance', () => ({
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: { app: 'https://app.genfeed.test' },
+    calendly: 'https://calendly.com/vincent-genfeed/30min',
   },
 }));
 
@@ -58,7 +59,7 @@ describe('PricingContent launch pricing', () => {
     expect(screen.getByText('$499')).toBeInTheDocument();
   });
 
-  it('puts the monthly content service beside self-serve with the existing booking route', () => {
+  it('puts the monthly content service beside self-serve with a direct booking link', () => {
     render(<PricingContent />);
     const managed = within(
       screen.getByRole('region', { name: 'Done for you · we run it' }),
@@ -70,7 +71,7 @@ describe('PricingContent launch pricing', () => {
     ).toBeInTheDocument();
     expect(managed.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
       'href',
-      '/done-for-you#book',
+      'https://calendly.com/vincent-genfeed/30min',
     );
     expect(managed.getByText('Performance reporting')).toBeInTheDocument();
     expect(
@@ -78,20 +79,12 @@ describe('PricingContent launch pricing', () => {
     ).toHaveAttribute('href', '/done-for-you');
   });
 
-  it('renders the struck-through original price next to the launch price on the Hosted card', () => {
+  it('shows a clear Pro price with introductory terms below it', () => {
     render(<PricingContent />);
-
-    const originalPrice = screen.getByText('$49');
-    expect(originalPrice).toHaveClass('line-through');
     expect(screen.getByText('$39')).toBeInTheDocument();
-    expect(screen.getByText('$39')).not.toHaveClass('line-through');
-  });
-
-  it('renders the launch note under the Hosted card price', () => {
-    render(<PricingContent />);
-
+    expect(screen.queryByText('$49', { exact: true })).not.toBeInTheDocument();
     expect(
-      screen.getByText(/earlygenfeed · 12 months, then \$49\/mo/i),
+      screen.getByText('First 12 months, then $49/mo'),
     ).toBeInTheDocument();
   });
 

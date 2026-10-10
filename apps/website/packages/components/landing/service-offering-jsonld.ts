@@ -1,3 +1,4 @@
+import { BOOKING_HREF } from '@data/booking.data';
 import { serviceOffering } from '@web-components/landing/service-offering.data';
 
 export function buildDoneForYouJsonLd() {
@@ -16,7 +17,7 @@ export function buildDoneForYouJsonLd() {
         priceCurrency: 'USD',
         unitText: 'month',
       },
-      url: 'https://genfeed.ai/done-for-you#book',
+      url: BOOKING_HREF,
     },
     provider: { '@type': 'Organization', name: 'Genfeed' },
     url: 'https://genfeed.ai/done-for-you',
