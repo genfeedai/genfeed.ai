@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 /**
  * Members Module
  * Organization membership: member invitations, role assignments,
@@ -21,7 +22,7 @@ import { Module } from '@nestjs/common';
     TeamMentionsController,
   ],
   exports: [InvitationService, MembersService],
-  imports: [CommonModule, NotificationsModule, RolesModule],
+  imports: [BrandAccessModule, CommonModule, NotificationsModule, RolesModule],
   providers: [InvitationService, MembersService],
 })
 export class MembersModule {}

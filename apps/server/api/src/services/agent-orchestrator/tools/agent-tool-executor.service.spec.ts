@@ -4,6 +4,7 @@ import {
   agentPostPreviewPopulate,
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   type CuratedActionName,
   getActionDefinition,
@@ -1235,6 +1236,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(service, {
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
@@ -6016,6 +6018,61 @@ describe('AgentToolExecutorService', () => {
     },
   );
 
+  it('denies polling an inaccessible new brand before dispatch', async () => {
+    const { service } = createService('auto');
+    Object.assign(service, {
+      brandAccessService: brandAccessFixture({
+        member: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ role: { key: 'admin' }, brands: [] }),
+        },
+        brand: { findFirst: vi.fn().mockResolvedValue(null) },
+      } as never),
+    });
+    expect(
+      await service.executeTool(
+        'get_brand_scan_status',
+        { brandId: 'foreign-brand' },
+        scopedContext('brand-A'),
+      ),
+    ).toMatchObject({ success: false, error: 'Brand access denied' });
+  });
+
+  it.each(['context', 'parameter'] as const)(
+    'rejects an inaccessible %s brand before creating a tool workflow execution',
+    async (source) => {
+      const { service, systemWorkflowRunner } = createService();
+      Object.assign(service, {
+        brandAccessService: brandAccessFixture({
+          member: {
+            findFirst: vi
+              .fn()
+              .mockResolvedValue({ role: { key: 'admin' }, brands: [] }),
+          },
+          brand: { findFirst: vi.fn().mockResolvedValue(null) },
+        } as never),
+      });
+
+      const result = await service.executeTool(
+        'get_brand_context',
+        source === 'parameter' ? { brandId: 'foreign-brand' } : {},
+        {
+          organizationId: testId('org'),
+          userId: testId('user'),
+          ...(source === 'context' ? { brandId: 'foreign-brand' } : {}),
+        },
+      );
+
+      expect(result).toMatchObject({
+        success: false,
+        creditsUsed: 0,
+        error: 'Brand access denied',
+      });
+      expect(systemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
   it('preserves brand parameter isolation for other tools', async () => {
     const { service } = createService();
     expect(
@@ -6081,7 +6138,10 @@ describe('AgentToolExecutorService', () => {
         data: { settings: {} },
         success: true,
       });
-      Object.assign(service, { generationOptionsHandler: { execute } });
+      Object.assign(service, {
+        brandAccessService: brandAccessFixture(),
+        generationOptionsHandler: { execute },
+      });
 
       const result = await service.executeTool(
         'get_generation_options',
@@ -6351,6 +6411,7 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
     );
     Object.assign(serviceWithoutScorer, {
+      brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });

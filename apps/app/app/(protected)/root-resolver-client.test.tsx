@@ -56,6 +56,11 @@ vi.mock('@providers/access-state/access-state.provider', () => ({
   }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({

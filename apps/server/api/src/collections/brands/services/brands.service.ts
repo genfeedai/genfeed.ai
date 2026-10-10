@@ -1,3 +1,7 @@
+import {
+  type BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
 import type { GenerateBatchIdeasDto } from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import type { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
@@ -122,6 +126,7 @@ export class BrandsService extends BaseService<
     private readonly skillsService: SkillsService,
     private readonly brandLifecycleService: BrandLifecycleService,
     private readonly heygenIdentityService: HeyGenIdentityService,
+    public readonly brandAccessService: BrandAccessService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -255,7 +260,7 @@ export class BrandsService extends BaseService<
   ): Promise<BrandDocument[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
-    if (options.brandIds && options.brandIds.length > 0) {
+    if (options.brandIds !== undefined) {
       where.id = { in: options.brandIds };
     }
 
@@ -970,11 +975,6 @@ export class BrandsService extends BaseService<
   }
 
   /**
-   * Set the acting member's current brand (#5219). currentBrandId is a
-   * required per-member invariant — this is the single write path for it, and
-   * there is no "clear" counterpart (a member always has a current brand).
-   */
-  /**
    * Sets the acting member's current brand, atomically (#5295). Delegates to
    * `BrandLifecycleService`, which locks the target brand row before
    * validating and writing it, so this can never race a concurrent
@@ -985,11 +985,13 @@ export class BrandsService extends BaseService<
     brandId: string,
     userId: string,
     organizationId: string,
+    actor?: BrandAccessActor,
   ): Promise<BrandDocument> {
     return this.brandLifecycleService.selectBrandForUser(
       brandId,
       userId,
       organizationId,
+      actor ?? { userId, organizationId },
     );
   }
 }

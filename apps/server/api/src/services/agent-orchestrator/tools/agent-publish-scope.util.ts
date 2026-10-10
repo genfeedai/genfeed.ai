@@ -39,10 +39,11 @@ export async function authorizeExternalPublicationBrand(
       'Agent scope validation is required before recording external publications.',
     );
   }
-  await agentScopeContextService.assertBrandAuthorized(
-    brandId,
-    ctx.organizationId,
-  );
+  await agentScopeContextService.assertBrandAuthorized(brandId, {
+    userId: ctx.userId,
+    organizationId: ctx.organizationId,
+    ...ctx.apiKeyContext,
+  });
   if (ctx.validatedScope) {
     agentScopeContextService.assertResourceBrand(
       ctx.validatedScope,

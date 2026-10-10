@@ -1,3 +1,6 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
@@ -134,6 +137,7 @@ describe('OrganizationsMembersController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrganizationsMembersController],
       providers: [
+        { provide: BrandAccessService, useValue: brandAccessFixture() },
         {
           provide: LoggerService,
           useValue: mockLoggerService,

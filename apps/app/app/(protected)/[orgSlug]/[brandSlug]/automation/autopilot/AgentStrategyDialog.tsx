@@ -22,9 +22,11 @@ import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { AGENT_TYPE_OPTIONS } from '../agents/agent-type-display';
 import AgentStrategyBudgetFields from './AgentStrategyBudgetFields';
+import AgentStrategyCadenceFields from './AgentStrategyCadenceFields';
 import AgentStrategyPublishToggles from './AgentStrategyPublishToggles';
 import AgentStrategyScoreFields from './AgentStrategyScoreFields';
 import AgentStrategySourceToggles from './AgentStrategySourceToggles';
+import { isCadenceFormValid } from './build-agent-strategy-payload';
 import {
   AUTONOMY_MODE_OPTIONS,
   GOAL_PROFILE_OPTIONS,
@@ -249,6 +251,11 @@ export default function AgentStrategyDialog({
           </div>
 
           <AgentStrategyBudgetFields form={form} setForm={setForm} />
+          <AgentStrategyCadenceFields
+            form={form}
+            setForm={setForm}
+            initialStrategy={initialStrategy}
+          />
           <AgentStrategyScoreFields form={form} setForm={setForm} />
           <AgentStrategyPublishToggles
             form={form}
@@ -268,7 +275,9 @@ export default function AgentStrategyDialog({
               label="Save schedule"
               type="submit"
               variant={ButtonVariant.DEFAULT}
-              isDisabled={isSubmitting}
+              isDisabled={
+                isSubmitting || !isCadenceFormValid(form, initialStrategy)
+              }
             />
           </DialogFooter>
         </Form>

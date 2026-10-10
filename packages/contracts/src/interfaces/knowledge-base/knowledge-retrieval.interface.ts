@@ -3,6 +3,10 @@ import type { KnowledgeRetrievalCitation } from './knowledge-record.interface';
 
 /** Brand-scoped retrieval request over pgvector context entries. */
 export interface BrandContentMemoryRetrievalParams {
+  userId: string;
+  isApiKey?: boolean;
+  apiKeyId?: string;
+  scopes?: string[];
   brandId: string;
   organizationId: string;
   query: string;

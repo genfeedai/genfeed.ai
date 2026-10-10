@@ -299,7 +299,7 @@
       "topics": {
         "description": "Click on a trend to see detailed analytics and cross-platform data.",
         "empty": "No trending topics available.",
-        "emptyDescription": "Connect your social accounts to see personalized trends."
+        "emptyDescription": "Try another publication window or check collection health for this market."
       },
       "detail": {
         "loadingTitle": "Loading trend…",
@@ -988,6 +988,7 @@
       "removeAsset": "Remove {title}",
       "retrySaving": "Retry saving storyboard",
       "runtimeBudget": "Runtime budget (seconds)",
+      "secondsUnit": "s",
       "runtimeBudgetHelp": "Choose up to 60 seconds.",
       "save": "Save storyboard",
       "saving": "Saving…",
@@ -1093,6 +1094,7 @@
       "resetPlan": "Reset plan",
       "retryVoices": "Retry loading voices",
       "runtimeBudget": "Runtime budget (seconds)",
+      "secondsUnit": "s",
       "savedVoice": "Saved voice",
       "section": "Section",
       "shortenBeforeIncrease": "Shorten another shot before increasing this duration.",
@@ -3075,7 +3077,12 @@
     "redirecting": "Opening your workspace",
     "title": "Projects",
     "noBrandAccess": "No brands assigned. Ask an organization admin for access.",
-    "brandUnavailable": "Brand unavailable."
+    "brandUnavailable": "Brand unavailable.",
+    "workspaceSetupTitle": "Workspace setup needs attention",
+    "workspaceSetupDescription": "Genfeed could not resolve an active organization yet. Retry the workspace bootstrap.",
+    "workspaceSetupWithBrand": "Genfeed could not resolve an active organization yet. Retry the workspace bootstrap or continue brand setup.",
+    "retryWorkspace": "Retry workspace",
+    "continueSetup": "Continue setup"
   },
   "organizationRouting": {
     "failure": {

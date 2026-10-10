@@ -9,6 +9,7 @@ import type {
 } from '@props/automation/agent-strategies-page.props';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { useCallback, useEffect, useState } from 'react';
+import { isCadenceFormValid } from './build-agent-strategy-payload';
 
 export const PLATFORM_OPTIONS = [
   { label: 'Twitter / X', value: 'twitter' },
@@ -51,6 +52,9 @@ const DEFAULT_FORM_STATE: AgentStrategyFormState = {
   minImageScore: '75',
   minPostScore: '70',
   monthlyCreditBudget: '500',
+  postsPerWeek: '7',
+  publishingCeilingPerWeek: '7',
+  readyDraftReserve: '0',
   platforms: ['twitter'],
   skillSlugs: [],
   reserveTrendBudget: '125',
@@ -91,6 +95,16 @@ function buildFormState(
       strategy.budgetPolicy?.monthlyCreditBudget ?? 500,
     ),
     platforms: strategy.platforms ?? [],
+    postsPerWeek:
+      strategy.postsPerWeek === undefined ? '' : String(strategy.postsPerWeek),
+    publishingCeilingPerWeek:
+      strategy.publishingCeilingPerWeek === undefined
+        ? ''
+        : String(strategy.publishingCeilingPerWeek),
+    readyDraftReserve:
+      strategy.readyDraftReserve === undefined
+        ? ''
+        : String(strategy.readyDraftReserve),
     skillSlugs: strategy.skillSlugs ?? [],
     reserveTrendBudget: String(
       strategy.budgetPolicy?.reserveTrendBudget ?? 125,
@@ -133,9 +147,10 @@ export function useAgentStrategyDialog({
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!isCadenceFormValid(form, initialStrategy)) return;
       await onSubmit(form);
     },
-    [form, onSubmit],
+    [form, initialStrategy, onSubmit],
   );
 
   return { form, setForm, handlePlatformToggle, handleSubmit };

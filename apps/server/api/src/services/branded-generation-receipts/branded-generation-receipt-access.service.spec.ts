@@ -1,4 +1,5 @@
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -19,10 +20,9 @@ describe('current branded receipt access', () => {
     async (role) => {
       const { tx, mock } = database(role, [{ id: 'other' }]);
       expect(
-        await new BrandedGenerationReceiptAccessService().assertBrand(
-          actor,
-          tx,
-        ),
+        await new BrandedGenerationReceiptAccessService(
+          brandAccessFixture(),
+        ).assertBrand(actor, tx),
       ).toEqual({ isOwnerOrAdmin: true });
       expect(mock.member.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -37,7 +37,9 @@ describe('current branded receipt access', () => {
     },
   );
   it('permits an unassigned member but enforces explicit brand assignments', async () => {
-    const access = new BrandedGenerationReceiptAccessService();
+    const access = new BrandedGenerationReceiptAccessService(
+      brandAccessFixture(),
+    );
     expect(await access.assertBrand(actor, database().tx)).toEqual({
       isOwnerOrAdmin: false,
     });
@@ -54,7 +56,9 @@ describe('current branded receipt access', () => {
       const { mock, tx } = database();
       mock[field].findFirst.mockResolvedValue(null);
       await expect(
-        new BrandedGenerationReceiptAccessService().assertBrand(actor, tx),
+        new BrandedGenerationReceiptAccessService(
+          brandAccessFixture(),
+        ).assertBrand(actor, tx),
       ).rejects.toThrow('receipt_access_denied');
     },
   );

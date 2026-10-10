@@ -8,18 +8,6 @@ import {
   Repeat,
 } from 'lucide-react';
 
-/**
- * Discovery sidebar: Overview, Following, Trends, Trend Turnover, Ads.
- *
- * Following is not its own route — it's the same Overview surface filtered
- * to followed sources via `?source=following`. Overview itself is only
- * "active" when that query param is absent, so the two items never both
- * highlight for the same page.
- *
- * Per-platform feeds (`/discovery/instagram`, etc.) and the deprecated
- * `/discovery/discovery` and `/discovery/socials` redirects are retired —
- * do not re-add platform peers or a Socials item here.
- */
 export const DISCOVERY_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
@@ -32,10 +20,9 @@ export const DISCOVERY_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: `${APP_ROUTES.DISCOVERY.OVERVIEW}?source=following`,
+    href: APP_ROUTES.DISCOVERY.FOLLOWING,
     label: 'Following',
-    matchPaths: [APP_ROUTES.DISCOVERY.OVERVIEW],
-    matchSearchParams: { source: 'following' },
+    matchPaths: [APP_ROUTES.DISCOVERY.FOLLOWING],
     outline: AtSign,
     solid: AtSign,
   },

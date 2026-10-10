@@ -62,7 +62,10 @@ export class TrendsDiscoveryController {
     @CurrentUser() user: User,
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
+    @Query('relevance') relevance?: 'market' | 'brand',
   ) {
+    if (relevance && relevance !== 'market' && relevance !== 'brand')
+      throw new BadRequestException('Invalid relevance filter.');
     const readScope = resolveTenantReadScope(user);
     const organizationId = readScope.organizationId;
     const brandId = readScope.brandId;
@@ -77,6 +80,7 @@ export class TrendsDiscoveryController {
       organizationId,
       brandId,
       platform,
+      relevance,
     );
 
     return {

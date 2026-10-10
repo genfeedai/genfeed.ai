@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -23,6 +24,7 @@ import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   categoryToPlural,
   IngredientCategory,
@@ -106,6 +108,9 @@ function readTagIds(value: unknown): string[] | string | undefined {
 
 @Injectable()
 export class AgentWorkspaceToolHandler {
+  @Inject(BrandAccessService)
+  private readonly brandAccessService!: BrandAccessService;
+
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
     @Inject('AGENT_BRANDS_SERVICE')
@@ -235,12 +240,16 @@ export class AgentWorkspaceToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const brandWhere = isCloudDeployment()
+      ? await this.brandAccessService.predicate({
+          userId: ctx.userId,
+          organizationId: ctx.organizationId,
+          ...ctx.apiKeyContext,
+        })
+      : { isDeleted: false, organizationId: ctx.organizationId };
     const brands = await this.brandsService.findAll(
       {
-        where: {
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-        },
+        where: brandWhere,
       },
       {},
     );
@@ -369,7 +378,7 @@ export class AgentWorkspaceToolHandler {
   ): Promise<{ brandId?: string } | { error: AgentToolResult }> {
     const explicitBrandId = readRequiredString(params.brandId);
     const brand = await resolveGenerationBrand({
-      brandsService: this.brandsService,
+      brandsService: await this.authorizedBrandReader(ctx),
       contextBrandId: ctx.brandId ?? ctx.validatedScope?.brandId,
       explicitBrandId,
       membersService: this.membersService,
@@ -437,19 +446,33 @@ export class AgentWorkspaceToolHandler {
     };
   }
 
-  private findCurrentBrand(
+  private async findCurrentBrand(
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown> | null> {
     const scopedBrandId = ctx.brandId || ctx.validatedScope?.brandId;
     // #5219: thread/route scope first, then the acting member's
     // currentBrandId. No implicit "any brand in the org" fallback.
     return resolveGenerationBrand({
-      brandsService: this.brandsService,
+      brandsService: await this.authorizedBrandReader(ctx),
       contextBrandId: scopedBrandId,
       membersService: this.membersService,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
+  }
+
+  private async authorizedBrandReader(
+    ctx: ToolExecutionContext,
+  ): Promise<Pick<AgentBrandsServiceLike, 'findOne'>> {
+    if (!isCloudDeployment()) return this.brandsService;
+    const where = await this.brandAccessService.predicate({
+      userId: ctx.userId,
+      organizationId: ctx.organizationId,
+      ...ctx.apiKeyContext,
+    });
+    return {
+      findOne: (query) => this.brandsService.findOne({ AND: [query, where] }),
+    };
   }
 
   async listPosts(
@@ -462,6 +485,14 @@ export class AgentWorkspaceToolHandler {
       organizationId: ctx.organizationId,
     };
 
+    if (isCloudDeployment())
+      matchStage.brand = {
+        is: await this.brandAccessService.predicate({
+          userId: ctx.userId,
+          organizationId: ctx.organizationId,
+          ...ctx.apiKeyContext,
+        }),
+      };
     const executionState = params.executionState;
     if (
       typeof executionState === 'string' &&

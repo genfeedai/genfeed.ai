@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { ViewType } from '@genfeedai/contracts';
+import { MemberRole, ViewType } from '@genfeedai/contracts';
 import { getCollectionViewStorageKey } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import {
   fireEvent,
@@ -14,6 +14,7 @@ import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  accessState: { memberRole: 'admin' as MemberRole },
   brandState: {
     brands: [] as Array<{
       createdAt?: string;
@@ -24,6 +25,7 @@ const mocks = vi.hoisted(() => ({
       totalCredentials: number;
     }>,
     isReady: true,
+    isBrandScopeResolved: true,
   },
   currentUserState: {
     currentUser: {
@@ -34,6 +36,10 @@ const mocks = vi.hoisted(() => ({
     isLoading: false,
   },
   replace: vi.fn(),
+}));
+
+vi.mock('@providers/access-state/access-state.provider', () => ({
+  useAccessState: () => ({ accessState: mocks.accessState, isLoading: false }),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -97,6 +103,8 @@ describe('OrgLandingContent', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     mocks.brandState.isReady = true;
+    mocks.brandState.isBrandScopeResolved = true;
+    mocks.accessState.memberRole = MemberRole.ADMIN;
     mocks.brandState.brands = [];
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -107,6 +115,33 @@ describe('OrgLandingContent', () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
+
+  it('shows the neutral Cloud zero state for an ordinary member without routing into onboarding', () => {
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.accessState.memberRole = MemberRole.USER;
+    render(<OrgLandingContent />);
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'No brands assigned. Ask an organization admin for access.',
+    );
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it.each([MemberRole.ADMIN, MemberRole.OWNER])(
+    'retains empty Cloud organization onboarding for %s',
+    async (role) => {
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+      mocks.accessState.memberRole = role;
+      render(<OrgLandingContent />);
+      await waitFor(() => {
+        expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+      });
+      expect(
+        screen.queryByText(
+          'No brands assigned. Ask an organization admin for access.',
+        ),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('redirects to the shared brand step when the organization has no projects', async () => {
     render(<OrgLandingContent />);

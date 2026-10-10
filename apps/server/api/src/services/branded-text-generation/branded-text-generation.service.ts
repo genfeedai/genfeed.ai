@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
@@ -71,20 +72,30 @@ export class BrandedTextGenerationService {
     private readonly harness: HarnessGenerationService,
     private readonly skills: SkillRuntimeService,
     private readonly openRouter: OpenRouterService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   async generate(
     request: BrandedTextGenerationRequestV1,
   ): Promise<BrandedTextGenerationOutcomeV1> {
     const input = this.parseInput(request.input);
+    if (
+      request.initiatingActor.userId !== input.actorId ||
+      request.initiatingActor.organizationId !== input.organizationId
+    )
+      throw new ForbiddenException('Brand access denied');
+    await this.brandAccess.assert(request.initiatingActor, input.brandId);
     const parameters = this.assertPreconditions(input);
     const apiKey = await request.resolveApiKey(input.model);
     const actor: BrandedGenerationActorV1 = {
       organizationId: input.organizationId,
       brandId: input.brandId,
       actorId: input.actorId,
+      isApiKey: request.initiatingActor.isApiKey,
+      apiKeyId: request.initiatingActor.apiKeyId,
+      scopes: request.initiatingActor.scopes,
     };
-    const { receipt } = await this.receipts.create(input);
+    const { receipt } = await this.receipts.create(input, actor);
     switch (receipt.state) {
       case 'created':
         return this.runFresh(
@@ -165,6 +176,10 @@ export class BrandedTextGenerationService {
       );
     const resolved = resolution.receipt;
     const dispatchClaimedAt = new Date().toISOString();
+    await this.brandAccess.assert(
+      { ...actor, userId: actor.actorId },
+      input.brandId,
+    );
     const accepted = await this.dispatchToProvider(
       input,
       parameters,
@@ -338,6 +353,7 @@ export class BrandedTextGenerationService {
         () => '',
         learning,
         {},
+        { ...actor, userId: actor.actorId },
       );
     }
     const preflight = this.validator.preflightBrandCapabilities({
@@ -378,6 +394,7 @@ export class BrandedTextGenerationService {
       this.skills.buildSkillPromptSections.bind(this.skills),
       learning,
       {},
+      { ...actor, userId: actor.actorId },
     );
   }
 

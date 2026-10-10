@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -8,7 +9,7 @@ import { UserAccessCacheService } from '@api/common/services/user-access-cache.s
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
-import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   adminUser,
   emptyPage,
@@ -16,22 +17,36 @@ import {
   memberUser,
   sessionBrandId,
   sessionOrganizationId,
-  targetBrandId,
   targetOrganizationId,
   tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
+import { MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => true,
+}));
+
 describe('UsersRelationshipsController tenant reads (#6176)', () => {
   async function setup() {
     const mock = vi.fn().mockResolvedValue(emptyPage());
+    const findMembership = vi
+      .fn()
+      .mockResolvedValue({ role: { key: MemberRole.ADMIN }, brands: [] });
+    const brandAccessService = new BrandAccessService({
+      member: { findFirst: findMembership },
+    } as unknown as PrismaService);
     const module = await Test.createTestingModule({
       controllers: [UsersRelationshipsController],
       providers: [
-        { provide: BrandsService, useValue: { findAll: mock } },
+        {
+          provide: BrandsService,
+          useValue: { findAll: mock, brandAccessService },
+        },
         { provide: UsersService, useValue: {} },
         { provide: OrganizationsService, useValue: {} },
         { provide: SettingsService, useValue: {} },
@@ -55,7 +70,7 @@ describe('UsersRelationshipsController tenant reads (#6176)', () => {
     const controller = module.get<UsersRelationshipsController>(
       UsersRelationshipsController,
     );
-    return { controller, mock };
+    return { controller, mock, findMembership };
   }
 
   it('uses the target organization for a verified superadmin override', async () => {
@@ -105,79 +120,39 @@ describe('UsersRelationshipsController tenant reads (#6176)', () => {
     );
   });
 
-  it('separates cached reads by the effective organization', () => {
-    const config = Reflect.getMetadata(
-      'cache',
-      UsersRelationshipsController.prototype.findMeBrands,
-    );
-    const first = config.keyGenerator(tenantReadRequest(adminUser));
-    const second = config.keyGenerator(
-      tenantReadRequest(adminUser, { organizationId: targetOrganizationId }),
-    );
-    const switched = config.keyGenerator(
-      tenantReadRequest({ ...adminUser, organizationId: targetOrganizationId }),
-    );
-    expect(second).toContain(targetOrganizationId);
-    expect(switched).toContain(targetOrganizationId);
-    expect(second).not.toBe(first);
-    expect(switched).not.toBe(first);
-  });
-});
-
-describe('users-relationships.controller.findMeBrands cache authorization scope', () => {
-  const config: CacheOptions = Reflect.getMetadata(
-    'cache',
-    UsersRelationshipsController.prototype.findMeBrands,
-  );
-
-  it('separates members with different session brands and the same query', () => {
-    const query = { brandId: sessionBrandId };
-    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
-    const second = config.keyGenerator?.(
-      tenantReadRequest(
-        {
-          ...memberUser,
-          id: 'another-member',
-          userId: 'another-member',
-          brandId: targetBrandId,
-        },
-        query,
-      ),
-    );
-    const switched = config.keyGenerator?.(
-      tenantReadRequest({ ...memberUser, brandId: targetBrandId }, query),
-    );
-    expect(first).toContain(sessionBrandId);
-    expect(second).not.toBe(first);
-    expect(switched).not.toBe(first);
+  it('reads live membership after brand assignments change', async () => {
+    const { controller, mock, findMembership } = await setup();
+    findMembership.mockResolvedValue({
+      role: { key: MemberRole.USER },
+      brands: [{ id: sessionBrandId }],
+    });
+    const request = tenantReadRequest(memberUser);
+    const query = tenantReadQuery(BaseQueryDto, {});
+    await controller.findMeBrands(memberUser, request, query);
+    expect(mock.mock.calls[0][0].where.AND[0]).toEqual({
+      organizationId: sessionOrganizationId,
+      isDeleted: false,
+      id: { in: [sessionBrandId] },
+    });
+    findMembership.mockResolvedValue({
+      role: { key: MemberRole.USER },
+      brands: [],
+    });
+    await controller.findMeBrands(memberUser, request, query);
+    expect(mock.mock.calls[1][0].where.AND[0]).toEqual({
+      organizationId: sessionOrganizationId,
+      isDeleted: false,
+      id: { in: [] },
+    });
+    expect(findMembership).toHaveBeenCalledTimes(2);
   });
 
-  it('separates session organizations under the same effective organization', () => {
-    const query = {
-      organizationId: targetOrganizationId,
-      brandId: targetBrandId,
-    };
-    const first = config.keyGenerator?.(tenantReadRequest(adminUser, query));
-    const second = config.keyGenerator?.(
-      tenantReadRequest(
-        { ...adminUser, organizationId: targetOrganizationId },
-        query,
+  it('does not cache authorization-dependent brand lists', () => {
+    expect(
+      Reflect.getMetadata(
+        'cache',
+        UsersRelationshipsController.prototype.findMeBrands,
       ),
-    );
-    expect(first).toContain(targetOrganizationId);
-    expect(second).not.toBe(first);
-  });
-
-  it('separates callers within the same session scope', () => {
-    const query = { brandId: sessionBrandId };
-    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
-    const second = config.keyGenerator?.(
-      tenantReadRequest(
-        { ...memberUser, id: 'another-member', userId: 'another-member' },
-        query,
-      ),
-    );
-    expect(first).toContain(memberUser.id);
-    expect(second).not.toBe(first);
+    ).toBeUndefined();
   });
 });

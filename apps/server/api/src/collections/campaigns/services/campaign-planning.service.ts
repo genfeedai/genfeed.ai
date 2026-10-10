@@ -106,6 +106,7 @@ export class CampaignPlanningService {
     const context = await this.contextAssembly.assembleContext({
       organizationId,
       brandId: dto.brandId,
+      userId,
       query: name,
     });
     if (!context || context.brandId !== dto.brandId)

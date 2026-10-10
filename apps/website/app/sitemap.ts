@@ -244,6 +244,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       changeFrequency: 'weekly',
+      priority: 0.9,
+      url: 'https://genfeed.ai/tools/ai-model-selector',
+    },
+    {
+      changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.9,
       url: 'https://genfeed.ai/tools/youtube-clips',

@@ -7,6 +7,7 @@ import {
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import {
   type BrandOsRevision,
@@ -88,7 +89,9 @@ function setup() {
         async (run: (client: typeof tx) => Promise<unknown>) => run(tx),
       ),
   };
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   const authorize = vi.spyOn(access, 'assertBrand');
   const receipts = {
     get: vi.fn(),

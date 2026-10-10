@@ -34,6 +34,7 @@ import AppLayout from '@ui/layouts/app/AppLayout';
 import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
@@ -137,7 +138,14 @@ function AppLayoutWithDynamicMenu({
   children,
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
-  const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  const translate = useTranslations('pages.organizationLanding');
+  const {
+    brandId,
+    brands,
+    organizationId,
+    selectedBrand,
+    isBrandScopeResolved,
+  } = useBrand();
   const sidebarPathname = usePathname();
 
   const {
@@ -544,9 +552,19 @@ function AppLayoutWithDynamicMenu({
           {isUniversalWorkspaceShell ? (
             agentApiService ? (
               <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
-                {children}
+                {brandSlug &&
+                isBrandScopeResolved &&
+                !brands.some((brand) => brand.slug === brandSlug) ? (
+                  <div className="p-6">{translate('brandUnavailable')}</div>
+                ) : (
+                  children
+                )}
               </LazyUniversalWorkspaceShell>
             ) : null
+          ) : brandSlug &&
+            isBrandScopeResolved &&
+            !brands.some((brand) => brand.slug === brandSlug) ? (
+            <div className="p-6">{translate('brandUnavailable')}</div>
           ) : (
             children
           )}

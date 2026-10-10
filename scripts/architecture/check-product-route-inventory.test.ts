@@ -197,14 +197,14 @@ describe('compareProductRouteInventories', () => {
 
 describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
-    // Brand Voice, Brand social, and Library Knowledge redirect pages are gone.
+    // Canonical Following pages exist for both brand and organization scopes.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 232,
-      protectedRouteCount: 248,
-      publicRouteCount: 109,
-      websitePublicRouteCount: 84,
+      protectedPageCount: 234,
+      protectedRouteCount: 250,
+      publicRouteCount: 110,
+      websitePublicRouteCount: 85,
     });
   });
 });

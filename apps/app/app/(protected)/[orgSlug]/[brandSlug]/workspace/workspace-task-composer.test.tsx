@@ -52,7 +52,7 @@ const mocks = vi.hoisted(() => ({
         onUpdate?: (props: { editor: { getJSON: () => unknown } }) => void;
       }
     | undefined,
-  fetchAvatars: vi.fn(),
+  fetchAvatarPage: vi.fn(),
   fetchVoices: vi.fn(),
   getClonedVoices: vi.fn(),
   getToken: vi.fn(),
@@ -105,7 +105,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getCatalogService,
 }));
 const getCatalogService = async () => ({
-  fetchAvatars: mocks.fetchAvatars,
+  fetchAvatarPage: mocks.fetchAvatarPage,
   fetchVoices: mocks.fetchVoices,
 });
 
@@ -412,14 +412,21 @@ describe('WorkspaceTaskComposer', () => {
         provider: 'elevenlabs',
       },
     ]);
-    mocks.fetchAvatars.mockResolvedValue([
-      {
-        avatarId: avatarRef.lookId,
-        name: avatarRef.label,
-        preview: null,
-        avatarRef,
-      },
-    ]);
+    mocks.fetchAvatarPage.mockImplementation(async ({ ownership }) => ({
+      avatars:
+        ownership === 'public'
+          ? [
+              {
+                avatarId: avatarRef.lookId,
+                name: avatarRef.label,
+                preview: null,
+                avatarRef,
+              },
+            ]
+          : [],
+      ownership,
+      nextCursor: null,
+    }));
     mocks.fetchVoices.mockResolvedValue([
       {
         voiceId: 'voice-default',
@@ -529,7 +536,14 @@ describe('WorkspaceTaskComposer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
 
     await waitFor(() => {
-      expect(mocks.fetchAvatars).toHaveBeenCalledWith(expect.any(AbortSignal));
+      expect(mocks.fetchAvatarPage).toHaveBeenCalledWith({
+        ownership: 'public',
+        signal: expect.any(AbortSignal),
+      });
+      expect(mocks.fetchAvatarPage).toHaveBeenCalledWith({
+        ownership: 'private',
+        signal: expect.any(AbortSignal),
+      });
       expect(mocks.getClonedVoices).toHaveBeenCalled();
     });
 
@@ -556,7 +570,14 @@ describe('WorkspaceTaskComposer', () => {
     renderComposer();
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
     await waitFor(() => {
-      expect(mocks.fetchAvatars).toHaveBeenCalledWith(expect.any(AbortSignal));
+      expect(mocks.fetchAvatarPage).toHaveBeenCalledWith({
+        ownership: 'public',
+        signal: expect.any(AbortSignal),
+      });
+      expect(mocks.fetchAvatarPage).toHaveBeenCalledWith({
+        ownership: 'private',
+        signal: expect.any(AbortSignal),
+      });
       expect(mocks.fetchVoices).toHaveBeenCalledWith(expect.any(AbortSignal));
     });
     fillRequest('Record a bound intro');
@@ -672,7 +693,7 @@ describe('WorkspaceTaskComposer', () => {
 
   it('surfaces auth, facecam load, enhancement, and create failures', async () => {
     mocks.resolveAuthToken.mockResolvedValueOnce(null);
-    mocks.fetchAvatars.mockRejectedValueOnce(new Error('catalog failed'));
+    mocks.fetchAvatarPage.mockRejectedValueOnce(new Error('catalog failed'));
     renderComposer();
     fillRequest('Create a product image');
 
@@ -684,7 +705,7 @@ describe('WorkspaceTaskComposer', () => {
     mocks.resolveAuthToken.mockResolvedValue('api-token');
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
     expect(
-      await screen.findByText(/HeyGen identities could not be loaded/i),
+      await screen.findByText(/HeyGen public avatars could not be loaded/i),
     ).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /enhance/i }));
@@ -752,12 +773,16 @@ describe('WorkspaceTaskComposer', () => {
       ...mocks.brandContext,
       selectedBrand: { id: 'brand-1', label: 'Moonrise Studio', name: null },
     };
-    mocks.fetchAvatars.mockResolvedValue([]);
+    mocks.fetchAvatarPage.mockImplementation(async ({ ownership }) => ({
+      avatars: [],
+      ownership,
+      nextCursor: null,
+    }));
     mocks.fetchVoices.mockResolvedValue([]);
     renderComposer();
     fillRequest('Record a facecam intro');
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
-    await waitFor(() => expect(mocks.fetchAvatars).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.fetchAvatarPage).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
     await waitFor(() =>
       expect(mocks.createTask).toHaveBeenCalledWith(

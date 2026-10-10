@@ -713,6 +713,7 @@ contentLearningOperations ContentLearningOperation[]
   monitoredAccounts         MonitoredAccount[]
   socialSources             SocialSource[]
   sourcePosts               SourcePost[]
+  nativeSourceActions SourcePostNativeAction[]
   listeningTopics           ListeningTopic[]
   listeningThemeReviews     ListeningTheme[]          @relation("listening_theme_reviewed_by")
   socialWarmupEnrollments   SocialWarmupEnrollment[]
@@ -1962,6 +1963,7 @@ contentLearningPolicyVersions ContentLearningPolicyVersion[]
   adWatchedAdvertisers    AdWatchedAdvertiser[]
   monitoredAccounts       MonitoredAccount[]
   socialSources           SocialSource[]
+  nativeSourceActions SourcePostNativeAction[]
   socialConversations     SocialConversation[]
   socialMessages          SocialMessage[]
   personas                Persona[]                @relation("persona_credentials")
@@ -5631,6 +5633,7 @@ model SourcePost {
   updatedAt            DateTime     @updatedAt
 
   listeningEvidence ListeningEvidence[]
+  nativeActions SourcePostNativeAction[]
 
   @@unique([id, organizationId, brandId], map: "source_posts_id_scope_key")
   @@unique([sourceId, externalId], map: "source_posts_source_external_key")
@@ -9209,4 +9212,31 @@ model MediaDeliveryVariant {
   @@unique([organizationId, ingredientId, sourceIdentity, policyVersion, purpose], map: "media_delivery_variant_identity")
   @@index([organizationId, ingredientId, isDeleted])
   @@map("media_delivery_variants")
+}
+
+/// Durable reservation for an explicitly requested action on imported content.
+/// Uncertain delivery is never retried automatically.
+model SourcePostNativeAction {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  postId String
+  post SourcePost @relation(fields: [postId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "source_post_native_actions_post_scope_fkey")
+  credentialId String
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "source_post_native_actions_credential_fkey")
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "source_post_native_actions_user_fkey")
+  action String
+  requestHash String
+  idempotencyKey String
+  status String @default("pending")
+  externalId String?
+  message String?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, brandId, idempotencyKey], map: "source_post_native_actions_scope_key")
+  @@index([organizationId, brandId, postId, isDeleted], map: "source_post_native_actions_scope_post_idx")
+  @@map("source_post_native_actions")
 }

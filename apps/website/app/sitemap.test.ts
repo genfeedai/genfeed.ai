@@ -29,6 +29,7 @@ describe('website sitemap', () => {
       expect(urls.has(`https://genfeed.ai/articles/${slug}`)).toBe(true);
     }
     expect(urls.has('https://genfeed.ai/contact')).toBe(true);
+    expect(urls.has('https://genfeed.ai/tools/ai-model-selector')).toBe(true);
   });
 
   it('lists every agent client and client-channel page', async () => {

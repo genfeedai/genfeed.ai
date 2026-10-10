@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 /**
  * Contexts Module
  * Brand knowledge storage and semantic retrieval for direct context injection.
@@ -48,6 +49,7 @@ import { Module } from '@nestjs/common';
     KnowledgeTranscriptIngestService,
   ],
   imports: [
+    BrandAccessModule,
     ByokModule,
     ConfigModule,
     CreditsModule,

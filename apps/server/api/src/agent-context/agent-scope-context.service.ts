@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import type {
+  BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
@@ -55,7 +59,7 @@ interface AgentThreadScopeRow {
   userId: string;
 }
 
-export interface PrepareAgentScopeParams {
+export interface PrepareAgentScopeParams extends BrandAccessActor {
   expectedContextVersion?: number;
   organizationId: string;
   policyBrandId?: string;
@@ -70,7 +74,7 @@ export interface PreparedAgentScope {
   initialScopeFields: Record<string, unknown>;
 }
 
-export interface MutateAgentScopeParams {
+export interface MutateAgentScopeParams extends BrandAccessActor {
   brandId?: string | null;
   expectedContextVersion: number;
   organizationId: string;
@@ -84,7 +88,8 @@ export class AgentScopeContextService {
       ServerPrisma,
       'agentMessage' | 'agentThread' | 'brand'
     >,
-    private readonly logger?: ServerLogger,
+    private readonly logger: ServerLogger | undefined,
+    private readonly brandAccessService: BrandAccessService,
   ) {}
 
   async prepareForTurn(
@@ -117,7 +122,7 @@ export class AgentScopeContextService {
       }
 
       if (initialBrandId) {
-        await this.assertBrandAuthorized(initialBrandId, params.organizationId);
+        await this.assertBrandAuthorized(initialBrandId, params);
       }
 
       return {
@@ -129,6 +134,8 @@ export class AgentScopeContextService {
       };
     }
 
+    if (thread.brandId)
+      await this.assertBrandAuthorized(thread.brandId, params);
     this.assertExpectedVersion(thread, params.expectedContextVersion);
     this.assertRequestedScopeMatches(thread, params.requestedBrandId);
 
@@ -143,7 +150,7 @@ export class AgentScopeContextService {
     }
 
     if (thread.brandId) {
-      await this.assertBrandAuthorized(thread.brandId, params.organizationId);
+      await this.assertBrandAuthorized(thread.brandId, params);
       this.recordCompatibilityRead(
         'current',
         'explicit_thread_scope',
@@ -155,6 +162,8 @@ export class AgentScopeContextService {
           thread.brandId,
           'explicit',
           params.expectedContextVersion !== undefined,
+          false,
+          params,
         ),
         initialScopeFields: {},
       };
@@ -172,6 +181,8 @@ export class AgentScopeContextService {
           undefined,
           'explicit',
           params.expectedContextVersion !== undefined,
+          false,
+          params,
         ),
         initialScopeFields: {},
       };
@@ -184,6 +195,7 @@ export class AgentScopeContextService {
     const fallback = await this.resolveLegacyFallbackBrand(
       thread,
       params.policyBrandId,
+      params,
     );
     await this.recordLegacyFallback(thread, fallback.brandId, fallback.source);
 
@@ -194,6 +206,7 @@ export class AgentScopeContextService {
         fallback.source,
         params.expectedContextVersion !== undefined,
         true,
+        params,
       ),
       initialScopeFields: {},
     };
@@ -204,6 +217,9 @@ export class AgentScopeContextService {
     organizationId: string;
     threadId: string;
     userId: string;
+    isApiKey?: boolean;
+    apiKeyId?: string;
+    scopes?: string[];
   }): Promise<ValidatedAgentScope> {
     const thread = await this.findThread(
       params.threadId,
@@ -215,6 +231,8 @@ export class AgentScopeContextService {
       throw agentThreadNotFound(params.threadId);
     }
 
+    if (thread.brandId)
+      await this.assertBrandAuthorized(thread.brandId, params);
     if (thread.brandId !== (params.brandId ?? null)) {
       throw this.contextConflict(thread);
     }
@@ -224,6 +242,8 @@ export class AgentScopeContextService {
       params.brandId,
       'thread_created',
       true,
+      false,
+      params,
     );
   }
 
@@ -240,11 +260,13 @@ export class AgentScopeContextService {
       throw agentThreadNotFound(params.threadId);
     }
 
+    if (thread.brandId)
+      await this.assertBrandAuthorized(thread.brandId, params);
     this.assertExpectedVersion(thread, params.expectedContextVersion);
 
     const nextBrandId = this.normalizeBrandId(params.brandId) ?? null;
     if (nextBrandId) {
-      await this.assertBrandAuthorized(nextBrandId, params.organizationId);
+      await this.assertBrandAuthorized(nextBrandId, params);
     }
 
     if (
@@ -354,6 +376,8 @@ export class AgentScopeContextService {
         throw new ForbiddenException('Agent scope is no longer authorized.');
       }
 
+      if (current.brandId)
+        await this.assertBrandAuthorized(current.brandId, scope);
       if (
         current.contextVersion !== scope.contextVersion ||
         current.brandId !==
@@ -366,7 +390,7 @@ export class AgentScopeContextService {
       }
 
       if (scope.brandId) {
-        await this.assertBrandAuthorized(scope.brandId, scope.organizationId);
+        await this.assertBrandAuthorized(scope.brandId, scope);
       }
 
       this.recordConsequentialAttempt(
@@ -408,18 +432,9 @@ export class AgentScopeContextService {
 
   async assertBrandAuthorized(
     brandId: string,
-    organizationId: string,
+    actor: BrandAccessActor,
   ): Promise<void> {
-    const brand = await this.prisma.brand.findFirst({
-      select: { id: true },
-      where: scopedWhere(organizationId, { id: brandId }),
-    });
-
-    if (!brand) {
-      throw new ForbiddenException(
-        'Requested brand is not available in the authenticated organization.',
-      );
-    }
+    await this.brandAccessService.assert(actor, brandId);
   }
 
   private async findThread(
@@ -447,13 +462,14 @@ export class AgentScopeContextService {
 
   private async resolveLegacyFallbackBrand(
     thread: AgentThreadScopeRow,
-    policyBrandId?: string,
+    policyBrandId: string | undefined,
+    actor: BrandAccessActor,
   ): Promise<{
     brandId?: string;
     source: Extract<AgentScopeSource, `legacy_${string}`>;
   }> {
     if (policyBrandId) {
-      await this.assertBrandAuthorized(policyBrandId, thread.organizationId);
+      await this.assertBrandAuthorized(policyBrandId, actor);
       return {
         brandId: policyBrandId,
         source: 'legacy_execution_policy',
@@ -471,7 +487,7 @@ export class AgentScopeContextService {
     const messageBrandId = latestBrandedMessage?.brandId ?? undefined;
 
     if (messageBrandId) {
-      await this.assertBrandAuthorized(messageBrandId, thread.organizationId);
+      await this.assertBrandAuthorized(messageBrandId, actor);
       return {
         brandId: messageBrandId,
         source: 'legacy_message_history',
@@ -549,9 +565,13 @@ export class AgentScopeContextService {
     source: AgentScopeSource,
     isVersionExplicit: boolean,
     isLegacyFallback = false,
+    actor?: BrandAccessActor,
   ): ValidatedAgentScope {
     return {
       brandId,
+      isApiKey: actor?.isApiKey,
+      apiKeyId: actor?.apiKeyId,
+      scopes: actor?.scopes,
       contextVersion: thread.contextVersion,
       isLegacyFallback,
       isVersionExplicit,

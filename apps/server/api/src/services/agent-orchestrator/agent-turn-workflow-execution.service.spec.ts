@@ -124,6 +124,24 @@ const request = {
 };
 
 describe('trusted proactive turn limits and memory routing', () => {
+  it('executes configured cadence through the active workflow before paid chat inference', async () => {
+    const { service, batch, context } = setup('proactive');
+    const final = {
+      artifactReferences: [],
+      artifactVersionPinIds: [],
+      content: 'Reserve replenished',
+      summary: 'Reserve replenished',
+      creditsUsed: 2,
+      model: null,
+      threadId: 'thread',
+    };
+    Object.assign(batch, {
+      tryExecuteCadence: vi.fn().mockResolvedValue(final),
+    });
+    const prepared = await service.prepare(request, workflowContext);
+    await expect(service.execute(prepared.state)).resolves.toEqual(final);
+    expect(context.resolveSystemPromptAndModel).not.toHaveBeenCalled();
+  });
   it.each([NaN, Infinity, -1, '5', null])(
     'rejects malformed credit caps before execution: %s',
     async (creditBudget) => {

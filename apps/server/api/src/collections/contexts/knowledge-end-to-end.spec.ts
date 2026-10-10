@@ -16,6 +16,7 @@ import {
   collectKnowledgeReceipts,
 } from '@api/services/harness/harness-context-sources.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -68,7 +69,9 @@ const FIXTURE_SQL = `
   CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
   CREATE TABLE users (id text PRIMARY KEY);
   CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean DEFAULT false, UNIQUE(id, "organizationId"));
-  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
+  CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
+  INSERT INTO roles(id,key) VALUES ('owner','owner');
+  CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL, "userId" text NOT NULL, "roleId" text NOT NULL DEFAULT 'owner' REFERENCES roles(id), "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE context_bases (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, "organizationId" text NOT NULL REFERENCES organizations(id), "createdById" text, "sourceBrandId" text, data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE context_entries (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, "contextBaseId" text NOT NULL REFERENCES context_bases(id), "organizationId" text NOT NULL REFERENCES organizations(id), data jsonb NOT NULL DEFAULT '{}', embedding vector(${CONTEXT_EMBEDDING_DIMENSION}), "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE data_backfills (id text PRIMARY KEY, "completedAt" timestamptz NOT NULL DEFAULT now(), report jsonb NOT NULL);
@@ -158,7 +161,7 @@ async function runIngest(request: KnowledgeSourceIngestWorkflowInput) {
   const marked = await ingest.markSource(loaded);
   try {
     const extracted = await ingest.extractSource(marked);
-    const chunked = ingest.chunkSource(extracted);
+    const chunked = await ingest.chunkSource(extracted);
     const replaced = await ingest.replaceChunks(chunked);
     return ingest.finalizeSource(replaced);
   } catch (error) {
@@ -184,6 +187,7 @@ async function retrieve(
 ) {
   return knowledgeContentRetrieval.retrieveBrandContentMemory({
     brandId: actor.brandId ?? '',
+    userId: actor.userId,
     limit: 8,
     minRelevance: 0.05,
     organizationId: actor.organizationId,
@@ -244,7 +248,10 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
-    records = new KnowledgeRecordsService(prismaService);
+    records = new KnowledgeRecordsService(
+      prismaService,
+      brandAccessFixture(prismaService as never),
+    );
     contexts = new ContextsService(
       prismaService,
       logger as never,
@@ -263,25 +270,36 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     knowledgeContentRetrieval = new KnowledgeContentRetrievalService(
       prismaService,
       contexts,
+      brandAccessFixture(prismaService as never),
     );
-    ingest = new KnowledgeSourceIngestService(prismaService, contexts);
+    ingest = new KnowledgeSourceIngestService(
+      prismaService,
+      contexts,
+      brandAccessFixture(prismaService),
+      records,
+    );
     capture = new KnowledgeCaptureService(
       records,
       workflowStub as never,
       { refresh: vi.fn() } as never,
     );
-    selection = new KnowledgeSelectionService(prismaService);
+    selection = new KnowledgeSelectionService(
+      prismaService,
+      brandAccessFixture(prismaService as never),
+    );
     legacyBackfill = new KnowledgeLegacyBackfillService(
       prismaService,
       records,
       workflowStub as never,
       logger as never,
+      brandAccessFixture(prismaService as never),
     );
     const noopCache = {
       generateKey: (...parts: string[]) => parts.join(':'),
       getOrSet: (_key: string, factory: () => Promise<unknown>) => factory(),
     };
     const fakeBrandsService = {
+      brandAccessService: brandAccessFixture(prismaService),
       findOne: vi.fn(
         async (filter: { id?: string; organizationId: string }) => {
           if (filter.id) return fakeBrand(filter.id, filter.organizationId);
@@ -410,9 +428,14 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       new Set([truth.source.id, inspiration.source.id]),
     );
 
-    const filters = await selection.resolve('org-a', 'brand-a', {
-      sourceIds: [truth.source.id],
-    });
+    const filters = await selection.resolve(
+      'org-a',
+      'brand-a',
+      {
+        sourceIds: [truth.source.id],
+      },
+      actorA,
+    );
     const selected = await retrieve(actorA, query, filters);
     expect(selected.map((hit) => hit.citation?.sourceId)).toEqual([
       truth.source.id,
@@ -424,9 +447,14 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       inspiration.source.id,
     ]);
     const inbox = await records.ensureInbox(actorA, KnowledgeMemoryScope.BRAND);
-    const bySpace = await selection.resolve('org-a', 'brand-a', {
-      spaceIds: [inbox.id],
-    });
+    const bySpace = await selection.resolve(
+      'org-a',
+      'brand-a',
+      {
+        spaceIds: [inbox.id],
+      },
+      actorA,
+    );
     expect(new Set(bySpace?.knowledgeSourceIds)).toEqual(
       new Set([truth.source.id, inspiration.source.id]),
     );
@@ -718,7 +746,10 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       },
     });
 
-    const report = await legacyBackfill.run('org-a');
+    const report = await legacyBackfill.run({
+      organizationId: 'org-a',
+      userId: 'user-a',
+    });
     expect(report.contextSources).toMatchObject({
       migrated: 1,
       relinkedChunks: 1,

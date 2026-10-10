@@ -98,3 +98,8 @@ export interface DeskMediaPreviewProps {
   isActive: boolean;
   className?: string;
 }
+
+export interface DiscoveryOverviewPageProps {
+  params: Promise<{ orgSlug: string; brandSlug?: string }>;
+  searchParams: Promise<{ source?: string }>;
+}

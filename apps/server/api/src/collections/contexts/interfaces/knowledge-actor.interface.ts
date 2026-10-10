@@ -1,6 +1,9 @@
 import type { MemberRole } from '@genfeedai/contracts';
 
 export interface KnowledgeActor {
+  apiKeyId?: string;
+  isApiKey?: boolean;
+  scopes?: string[];
   organizationId: string;
   userId: string;
   brandId?: string;

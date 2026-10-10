@@ -8,6 +8,7 @@ import {
   extractKnowledgeRefreshSourceText,
   KnowledgeSourceUnavailableException,
 } from '@api/collections/contexts/utils/knowledge-refresh-source-error.util';
+import { toKnowledgeWorkflowActor } from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { scopedWhere } from '@api/index';
@@ -323,6 +324,7 @@ export class KnowledgeRefreshService {
     });
     const jobId = await this.ingestWorkflow.enqueueIngest({
       organizationId: actor.organizationId,
+      initiatingActor: toKnowledgeWorkflowActor(actor),
       sourceId,
       versionId: candidate.id,
     });

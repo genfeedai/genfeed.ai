@@ -1,4 +1,7 @@
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { MemberRole } from '@genfeedai/contracts';
 import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
@@ -7,6 +10,15 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { AgentScopeContextService } from './agent-scope-context.service';
+
+const scopeRuntime = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => scopeRuntime.cloud,
+}));
+beforeEach(() => {
+  scopeRuntime.cloud = false;
+});
 
 type ThreadRow = {
   brandId: string | null;
@@ -77,7 +89,11 @@ describe('AgentScopeContextService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new AgentScopeContextService(prisma, logger);
+    service = new AgentScopeContextService(
+      prisma,
+      logger,
+      brandAccessFixture(prisma as never),
+    );
     threadFindFirst.mockResolvedValue(null);
     threadUpdateMany.mockResolvedValue({ count: 1 });
     messageFindFirst.mockResolvedValue(null);
@@ -86,11 +102,21 @@ describe('AgentScopeContextService', () => {
 
   describe('assertBrandAuthorized', () => {
     it('scopes the brand lookup to the organization and soft-delete flag', async () => {
-      await service.assertBrandAuthorized('brand-1', 'org-1');
+      await service.assertBrandAuthorized('brand-1', {
+        userId: 'user-1',
+        organizationId: 'org-1',
+      });
 
       expect(brandFindFirst).toHaveBeenCalledWith({
         select: { id: true },
-        where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+          AND: [
+            { isDeleted: false, organizationId: 'org-1' },
+            { id: 'brand-1' },
+          ],
+        },
       });
     });
 
@@ -98,7 +124,10 @@ describe('AgentScopeContextService', () => {
       brandFindFirst.mockResolvedValueOnce(null);
 
       await expect(
-        service.assertBrandAuthorized('brand-x', 'org-1'),
+        service.assertBrandAuthorized('brand-x', {
+          userId: 'user-1',
+          organizationId: 'org-1',
+        }),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
@@ -654,7 +683,17 @@ describe('AgentScopeContextService', () => {
       });
 
       expect(threadUpdateMany.mock.calls[0][0].data.brandId).toBeNull();
-      expect(brandFindFirst).not.toHaveBeenCalled();
+      expect(brandFindFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+          AND: [
+            { isDeleted: false, organizationId: 'org-1' },
+            { id: 'brand-old' },
+          ],
+        },
+      });
     });
 
     it('caps the provenance trail at 50 entries', async () => {
@@ -938,7 +977,11 @@ describe('AgentScopeContextService', () => {
   });
 
   it('operates without a logger', async () => {
-    const bare = new AgentScopeContextService(prisma);
+    const bare = new AgentScopeContextService(
+      prisma,
+      undefined,
+      brandAccessFixture(prisma as never),
+    );
     threadFindFirst.mockResolvedValue(makeThread({ contextVersion: 9 }));
 
     await expect(
@@ -949,5 +992,159 @@ describe('AgentScopeContextService', () => {
         userId: 'user-1',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('Cloud actor authorization across persisted thread reuse', () => {
+  function fixture() {
+    scopeRuntime.cloud = true;
+    const membership = {
+      role: { key: MemberRole.USER },
+      roleKey: MemberRole.OWNER,
+      brands: [{ id: 'brand-1' }],
+    };
+    const findMember = vi.fn().mockImplementation(async () => membership);
+    const findKey = vi
+      .fn()
+      .mockResolvedValue({ scopes: ['read', 'write', 'admin'] });
+    const findBrand = vi.fn().mockImplementation(async ({ where }) => {
+      const predicate = where.AND[0];
+      return !predicate.id || predicate.id.in.includes('brand-1')
+        ? { id: 'brand-1' }
+        : null;
+    });
+    const findThread = vi
+      .fn()
+      .mockResolvedValue(makeThread({ brandId: 'brand-1' }));
+    const updateThread = vi.fn();
+    const prisma = {
+      apiKey: { findFirst: findKey },
+      member: { findFirst: findMember },
+      brand: { findFirst: findBrand },
+      agentThread: { findFirst: findThread, updateMany: updateThread },
+      agentMessage: { findFirst: vi.fn() },
+    };
+    const service = new AgentScopeContextService(
+      prisma as never,
+      undefined,
+      brandAccessFixture(prisma as unknown as PrismaService),
+    );
+    return {
+      service,
+      membership,
+      findMember,
+      findKey,
+      findBrand,
+      updateThread,
+    };
+  }
+  const request = {
+    organizationId: 'org-1',
+    userId: 'user-1',
+    threadId: 'thread-1',
+    expectedContextVersion: 3,
+  };
+
+  it('rechecks assignments when reusing a persisted thread and at the consequential boundary', async () => {
+    const f = fixture();
+    await f.service.prepareForTurn(request);
+    await f.service.assertConsequentialBoundary(makeScope(), 'publish');
+    f.membership.brands = [];
+    await expect(f.service.prepareForTurn(request)).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(
+      f.service.assertConsequentialBoundary(makeScope(), 'publish'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.findMember).toHaveBeenCalledTimes(6);
+    for (const [query] of f.findMember.mock.calls) {
+      expect(query).toMatchObject({
+        where: {
+          userId: request.userId,
+          organizationId: request.organizationId,
+          isActive: true,
+          isDeleted: false,
+          organization: { is: { isDeleted: false } },
+          role: { is: { isDeleted: false } },
+        },
+      });
+    }
+    expect(f.updateThread).not.toHaveBeenCalled();
+  });
+
+  it('rechecks canonical role revocation with the same persisted thread context', async () => {
+    const f = fixture();
+    f.membership.role.key = MemberRole.OWNER;
+    f.membership.brands = [];
+    await f.service.assertConsequentialBoundary(makeScope(), 'workflow');
+    f.membership.role.key = MemberRole.USER;
+    await expect(
+      f.service.assertConsequentialBoundary(makeScope(), 'workflow'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.membership.roleKey).toBe(MemberRole.OWNER);
+  });
+
+  it('carries an API-key cap into both thread reuse and dispatch admission', async () => {
+    const f = fixture();
+    f.membership.role.key = MemberRole.OWNER;
+    f.membership.brands = [];
+    await expect(
+      f.service.prepareForTurn({
+        ...request,
+        isApiKey: true,
+        apiKeyId: 'key-1',
+        scopes: [],
+      }),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(
+      f.service.assertConsequentialBoundary(
+        makeScope({ isApiKey: true, apiKeyId: 'key-1', scopes: [] }),
+        'workflow',
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.findBrand).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+          AND: [
+            { organizationId: 'org-1', isDeleted: false, id: { in: [] } },
+            { id: 'brand-1' },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('preserves authenticated key identity and rejects revoked persisted-thread reuse', async () => {
+    const f = fixture();
+    const prepared = await f.service.prepareForTurn({
+      ...request,
+      isApiKey: true,
+      apiKeyId: 'key-1',
+      scopes: ['read'],
+    });
+    expect(prepared.existingScope).toMatchObject({
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      scopes: ['read'],
+    });
+    const scope = prepared.existingScope;
+    if (!scope)
+      throw new Error('Expected authenticated persisted thread scope');
+    f.findKey.mockResolvedValue(null);
+    await expect(
+      f.service.assertConsequentialBoundary(scope, 'workflow'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(f.findKey).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'key-1',
+          userId: request.userId,
+          organizationId: request.organizationId,
+        }),
+      }),
+    );
+    expect(f.updateThread).not.toHaveBeenCalled();
   });
 });

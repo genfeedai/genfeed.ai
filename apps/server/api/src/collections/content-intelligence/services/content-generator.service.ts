@@ -451,6 +451,7 @@ export class ContentGeneratorService implements OnModuleInit {
       : [];
     const harness = await this.buildHarnessSystemPrompt(
       organizationId,
+      userId,
       dto,
       requireBrandHarness,
     );
@@ -586,6 +587,7 @@ export class ContentGeneratorService implements OnModuleInit {
 
   private async buildHarnessSystemPrompt(
     organizationId: string,
+    userId: string,
     dto: GenerateContentDto,
     requireBrandHarness = false,
   ): Promise<{ knowledgeReceipts: KnowledgeReceipt[]; prompt?: string }> {
@@ -616,6 +618,7 @@ export class ContentGeneratorService implements OnModuleInit {
       // own gate (`includeContentMemory ?? Boolean(topic?.trim())`) decides —
       // passing `topic` through is what drives that gate here.
       const brief = await this.harnessGenerationService.resolveBrief({
+        userId,
         additionalSources:
           dto.additionalContext?.map((content, index) => ({
             content,

@@ -79,6 +79,7 @@ export const API_ENDPOINTS = {
   SCENES: '/elements/scenes',
   SCHEDULES: '/schedules',
   SERVICES: '/services',
+  SOCIAL_TIMELINES: '/social-timelines',
   SOCIAL_SOURCES: '/social-sources',
   SOCIAL_WARMUP_ENROLLMENTS: '/social-warmup-enrollments',
   SOURCE_POSTS: '/source-posts',

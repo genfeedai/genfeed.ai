@@ -1,3 +1,4 @@
+import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
 import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
@@ -298,6 +299,7 @@ describe('AgentStrategyAutopilotService', () => {
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledWith(
       {
+        agentStrategyId: strategyId,
         brandId,
         items: [expect.objectContaining({ postId: draftId })],
       },
@@ -627,6 +629,7 @@ describe('AgentStrategyAutopilotService', () => {
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledWith(
       {
+        agentStrategyId: strategyId,
         brandId,
         items: [
           expect.objectContaining({
@@ -720,6 +723,7 @@ describe('AgentStrategyAutopilotService', () => {
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledWith(
       {
+        agentStrategyId: strategyId,
         brandId,
         items: [
           expect.objectContaining({
@@ -809,6 +813,7 @@ describe('AgentStrategyAutopilotService', () => {
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledWith(
       {
+        agentStrategyId: strategyId,
         brandId,
         items: [
           expect.objectContaining({
@@ -1219,6 +1224,221 @@ describe('AgentStrategyAutopilotService', () => {
         runHistory: [{ completedAt: new Date() }],
       } as never),
     ).toEqual({ today: 0, week: 0 });
+  });
+
+  it('counts future schedules in the configured local week and counts fan-out once', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-08T12:00:00Z'));
+      const deps = createService();
+      deps.postsService.findAll
+        .mockResolvedValueOnce({
+          docs: [
+            {
+              id: 'first',
+              groupId: 'group',
+              scheduledDate: new Date('2026-10-10T12:00:00Z'),
+            },
+            {
+              id: 'sibling',
+              groupId: 'group',
+              scheduledDate: new Date('2026-10-10T12:00:00Z'),
+            },
+          ],
+          hasNextPage: false,
+        })
+        .mockResolvedValueOnce({ docs: [], hasNextPage: false });
+      const status = await deps.performanceService.getCadenceStatus({
+        ...baseStrategy,
+        publishingCeilingPerWeek: 14,
+        readyDraftReserve: 3,
+        timezone: 'Europe/Malta',
+      } as unknown as AgentStrategyDocument);
+      expect(status).toMatchObject({
+        week: 1,
+        readyDrafts: 0,
+        publicationSlots: 13,
+        postingShortfall: 2,
+        reserveShortfall: 3,
+      });
+      expect(deps.postsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId,
+            isDeleted: false,
+            brandId,
+            parentId: null,
+          }),
+        }),
+        expect.any(Object),
+        false,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps reserve generation in review when automatic publication is permitted', async () => {
+    const deps = createService();
+    deps.agentStrategiesService.findOneById.mockResolvedValue({
+      ...baseStrategy,
+      postsPerWeek: 1,
+      publishingCeilingPerWeek: 7,
+      readyDraftReserve: 2,
+    });
+    deps.postsService.findAll.mockImplementation(
+      async (input: { where?: { targetExecutionState?: unknown } }) => ({
+        docs:
+          typeof input.where?.targetExecutionState === 'object'
+            ? [{ id: 'scheduled', scheduledDate: new Date() }]
+            : [],
+        totalDocs: 1,
+        hasNextPage: false,
+      }),
+    );
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'Useful topic',
+      },
+    ]);
+    deps.optimizersService.analyzeContent.mockResolvedValue({
+      overallScore: 90,
+      metadata: { hasCallToAction: true },
+    });
+    const draftGenerator = vi.fn().mockResolvedValue({
+      draft: {
+        id: draftId,
+        description: 'Reply with your experience',
+        targetSettings: { generation: { metadata: {} } },
+      },
+      creditsUsed: 2,
+    });
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+      creditBudget: 10,
+      draftGenerator,
+    });
+    expect(result).toMatchObject({ contentGenerated: 1, creditsUsed: 2 });
+    expect(
+      deps.contentGatewayService.processManualRequest,
+    ).not.toHaveBeenCalled();
+    expect(deps.postAccountFanoutService.resolveTargets).not.toHaveBeenCalled();
+    expect(
+      deps.batchGenerationService.createManualReviewBatch,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ agentStrategyId: strategyId }),
+      userId,
+      organizationId,
+    );
+  });
+
+  it('stops generation when scheduled and pending supply cover both minimums', async () => {
+    const deps = createService();
+    deps.agentStrategiesService.findOneById.mockResolvedValue({
+      ...baseStrategy,
+      postsPerWeek: 1,
+      publishingCeilingPerWeek: 7,
+      readyDraftReserve: 1,
+    });
+    deps.opportunitiesService.listByStrategy.mockImplementation(
+      async (_id: string, _org: string, input: { statuses: string[] }) =>
+        input.statuses.includes('generating')
+          ? [{ id: 'pending', status: 'generating' }]
+          : [],
+    );
+    deps.postsService.findAll.mockImplementation(
+      async (input: { where?: { targetExecutionState?: unknown } }) => ({
+        docs:
+          typeof input.where?.targetExecutionState === 'object'
+            ? [{ id: 'scheduled', scheduledDate: new Date() }]
+            : [],
+        totalDocs: 1,
+        hasNextPage: false,
+      }),
+    );
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+    const draftGenerator = vi.fn();
+    await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+      creditBudget: 10,
+      draftGenerator,
+    });
+    expect(draftGenerator).not.toHaveBeenCalled();
+    expect(deps.opportunitiesService.createIfMissing).not.toHaveBeenCalled();
+  });
+
+  it('reuses unchanged account quality and bills adapted captions through the bounded evaluator', async () => {
+    const deps = createService();
+    deps.agentStrategiesService.findOneById.mockResolvedValue({
+      ...baseStrategy,
+      publishingCeilingPerWeek: 7,
+      readyDraftReserve: 0,
+    });
+    deps.postAccountFanoutService.resolveTargets.mockResolvedValue([
+      {
+        caption: 'Strong post draft',
+        credentialId,
+        platform: Platform.TWITTER,
+      },
+      {
+        caption: 'Adapted post draft',
+        credentialId: 'second-account',
+        platform: Platform.TWITTER,
+      },
+    ]);
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'AI hooks',
+      },
+    ]);
+    const evaluateQuality = vi.fn().mockResolvedValue({
+      analysis: { overallScore: 90, metadata: { hasCallToAction: true } },
+      creditsUsed: 1,
+    });
+    const draftGenerator = vi.fn().mockResolvedValue({
+      draft: {
+        id: draftId,
+        description: 'Strong post draft',
+        targetSettings: { generation: { metadata: {} } },
+      },
+      creditsUsed: 2,
+      evaluateQuality,
+    });
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      strategyId,
+      userId,
+      runId: 'run',
+      creditBudget: 10,
+      draftGenerator,
+    });
+    expect(result.creditsUsed).toBe(4);
+    expect(evaluateQuality).toHaveBeenCalledTimes(2);
+    expect(evaluateQuality).toHaveBeenLastCalledWith(
+      'Adapted post draft',
+      Platform.TWITTER,
+    );
+    expect(deps.optimizersService.analyzeContent).not.toHaveBeenCalled();
   });
 
   it('uses the requested reporting period and deduplicates cumulative post snapshots', async () => {

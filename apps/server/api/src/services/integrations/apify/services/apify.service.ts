@@ -347,6 +347,8 @@ export class ApifyService {
           hashtag: t.topic.replace(/^#/, ''),
           platform: t.platform,
           postCount: t.mentions,
+          postCountScope: t.platform === 'instagram' ? 'observed' : 'platform',
+          growthMeasured: false,
           relatedHashtags: (t.metadata.hashtags as string[]) || [],
           viewCount: (t.metadata.viewCount as number) || 0,
           viralityScore: t.viralityScore,

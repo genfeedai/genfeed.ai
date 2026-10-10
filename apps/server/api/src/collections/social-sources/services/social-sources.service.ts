@@ -69,6 +69,10 @@ export class SocialSourcesService {
     dto: CreateSocialSourceDto,
     context: { organizationId: string; brandId: string; userId: string },
   ): Promise<SocialSourceDocument> {
+    if (dto.sourceType === SocialSourceType.TIMELINE)
+      throw new BadRequestException(
+        'Connected timelines are managed through Following.',
+      );
     await this.ensureBrandAccess(context.organizationId, context.brandId);
 
     const platform = normalizePlatform(dto.platform);
@@ -185,6 +189,13 @@ export class SocialSourcesService {
     context: { organizationId: string; brandId: string },
   ): Promise<SocialSourceDocument> {
     const existing = await this.findOneScoped(id, context);
+    if (
+      existing.sourceType === SocialSourceType.TIMELINE ||
+      dto.sourceType === SocialSourceType.TIMELINE
+    )
+      throw new BadRequestException(
+        'Connected timelines are managed through Following.',
+      );
     const platform = dto.platform
       ? normalizePlatform(dto.platform)
       : normalizePlatform(existing.platform);
@@ -237,7 +248,11 @@ export class SocialSourcesService {
     id: string,
     context: { organizationId: string; brandId: string },
   ): Promise<SocialSourceDocument> {
-    await this.findOneScoped(id, context);
+    const source = await this.findOneScoped(id, context);
+    if (source.sourceType === SocialSourceType.TIMELINE)
+      throw new BadRequestException(
+        'Disconnect the account to remove its connected timeline.',
+      );
     return this.prisma.socialSource.update({
       data: { isActive: false, isDeleted: true },
       where: scopedWhere(context.organizationId, {
@@ -308,6 +323,10 @@ export class SocialSourcesService {
     options: { limit?: number } = {},
   ): Promise<SocialSourceSyncDocumentResult> {
     const source = await this.findOneScoped(id, context);
+    if (source.sourceType === SocialSourceType.TIMELINE)
+      throw new BadRequestException(
+        'Use the connected timeline refresh endpoint for this source.',
+      );
     if (source.sourceType === SocialSourceType.POST) {
       throw new BadRequestException(
         'Imported posts have no timeline sync — re-import the post URL to refresh its metrics',
@@ -528,6 +547,7 @@ export class SocialSourcesService {
       where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         isActive: true,
+        sourceType: { not: SocialSourceType.TIMELINE },
       }),
     });
 

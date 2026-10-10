@@ -930,6 +930,9 @@ describe('PostsService batchSchedule', () => {
     expect(post.findMany).toHaveBeenCalledTimes(1);
     expect(post.findMany).toHaveBeenCalledWith({
       select: {
+        agentStrategyId: true,
+        brandId: true,
+        groupId: true,
         category: true,
         id: true,
         parentId: true,

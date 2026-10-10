@@ -557,6 +557,14 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     brandField: 'brandId',
     orgField: 'organizationId',
   },
+  // The composite post FK follows its parent atomically; keep the defensive
+  // rewrite and orphan audit after sourcePost when a brand changes tenant.
+  {
+    delegate: 'sourcePostNativeAction',
+    table: 'source_post_native_actions',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
   // Preserve parent-before-child order for the defensive rewrite path because
   // their composite foreign keys include organizationId.
   {

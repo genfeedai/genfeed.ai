@@ -93,6 +93,7 @@ export class MediaPromptEnhancementService {
     let stage: 'brief' | 'provider' | 'response' | 'receipt' = 'brief';
     try {
       const brief = await this.harness.resolveBrief({
+        userId: input.actorUserId,
         organizationId: input.organizationId,
         brandId: input.brandId,
         contentType: input.contentType,

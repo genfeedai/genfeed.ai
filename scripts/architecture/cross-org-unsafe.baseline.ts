@@ -134,7 +134,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: platform admin trend corpus health.
     {
       file: 'apps/server/api/src/collections/trends/services/modules/trend-corpus-freshness.service.ts',
-      line: 227,
+      line: 222,
     },
     // #6120: superadmin purge of synthetic trend rows.
     {
@@ -178,37 +178,37 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin may edit any live brand's handle.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brand-access.helpers.ts',
-      line: 89,
+      line: 93,
     },
     // #6120: brand relocation source lookup may live in another organization;
     // assertCanRelocate authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brand-access.helpers.ts',
-      line: 119,
+      line: 123,
     },
     // #6120: brand relocation spans the source and destination tenants;
     // assertCanRelocate authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 267,
+      line: 271,
     },
     // #6120: brand relocation preview across tenants; assertCanRelocate
     // authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 313,
+      line: 317,
     },
     // #6120: superadmin brand list filtered by another organization or by
     // brand only.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 394,
+      line: 392,
     },
     // #6120: list relation reads for rows already authorized, each pinned to
     // the brand's own organization.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 408,
+      line: 418,
     },
     // #6120: brand slugs are globally unique across organizations, including
     // soft-deleted rows.
@@ -371,7 +371,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only when grantedAvatarOwners.has(id).
     {
       file: 'apps/server/api/src/collections/images/services/image-generation-admission.service.ts',
-      line: 101,
+      line: 102,
     },
     // #6120: superadmin-only routes read every organization's subscriptions
     // and wallets.

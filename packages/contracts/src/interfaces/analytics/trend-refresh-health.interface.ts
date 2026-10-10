@@ -11,6 +11,10 @@ export type TrendRefreshReason =
   | 'native_empty'
   | 'native_failed'
   | 'native_unavailable'
+  | 'authentication_required'
+  | 'access_required'
+  | 'budget_exhausted'
+  | 'rate_limited'
   | 'provider_failed'
   | 'persistence_failed';
 

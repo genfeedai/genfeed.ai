@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 /**
  * Brands Module
  * Brand management: Brand identity, styling, credentials integration, and content configuration.
@@ -62,6 +63,7 @@ import { Module } from '@nestjs/common';
     MasterPromptGeneratorService,
   ],
   imports: [
+    BrandAccessModule,
     PlatformSettingsModule,
     BrandsCoreModule,
     CommonModule,

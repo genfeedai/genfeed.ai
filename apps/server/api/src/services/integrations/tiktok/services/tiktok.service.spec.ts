@@ -12,7 +12,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import type { Mock } from 'vitest';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -682,69 +682,14 @@ describe('TiktokService', () => {
       expect(httpService.get).not.toHaveBeenCalled();
     });
 
-    it('maps connected account videos without static fallback trends', async () => {
+    it('does not mislabel connected account uploads as public trend hashtags', async () => {
       (credentialsMock.findOne as Mock).mockResolvedValue({
         accessToken: 'access',
-        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
-        id: 'credential-id',
         isConnected: true,
-        oauthTokenHash: '',
       });
-      (httpService.get as Mock).mockReturnValue(
-        of({
-          data: {
-            data: {
-              videos: [
-                {
-                  create_time: 1720000000,
-                  id: 'video-1',
-                  statistics: { view_count: 25 },
-                  title: 'launch tips',
-                },
-              ],
-            },
-          },
-        }),
-      );
-
-      const result = await service.getTrends('o', 'a');
-
-      expect(result).toEqual([
-        {
-          growthRate: 0,
-          mentions: 25,
-          metadata: { createdAt: 1720000000, videoId: 'video-1' },
-          topic: '#launch tips',
-        },
-      ]);
-    });
-  });
-
-  describe('getTrends failure logging', () => {
-    it('logs the underlying circular HTTP error instead of crashing', async () => {
-      (credentialsMock.findOne as Mock).mockResolvedValue({
-        accessToken: 'access',
-        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
-        id: 'credential-id',
-        isConnected: true,
-        oauthTokenHash: '',
-      });
-      const socket: Record<string, unknown> = {};
-      socket.self = socket;
-      const httpError = Object.assign(new Error('socket hang up'), {
-        code: 'ECONNRESET',
-        isAxiosError: true,
-        request: { socket },
-      });
-      (httpService.get as Mock).mockReturnValue(throwError(() => httpError));
-      (loggerMock.warn as Mock).mockClear();
-
-      await expect(service.getTrends('o', 'a')).resolves.toEqual([]);
-
-      expect(loggerMock.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Could not fetch personalized trends'),
-        { error: httpError },
-      );
+      expect(await service.getTrends('o', 'a')).toEqual([]);
+      expect(httpService.get).not.toHaveBeenCalled();
+      expect(httpService.post).not.toHaveBeenCalled();
     });
   });
 

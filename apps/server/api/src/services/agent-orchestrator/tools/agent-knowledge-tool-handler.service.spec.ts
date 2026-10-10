@@ -126,6 +126,9 @@ describe('AgentKnowledgeToolHandler', () => {
       minRelevance: 0,
       organizationId: 'org-1',
       query: 'pricing',
+      userId: 'user-1',
+      isApiKey: undefined,
+      scopes: undefined,
     });
     expect(result.success).toBe(true);
     expect(result.data?.passages).toEqual([
@@ -181,6 +184,9 @@ describe('AgentKnowledgeToolHandler', () => {
         brandId: 'brand-explicit',
         organizationId: 'org-1',
         query: 'pricing',
+        userId: 'user-1',
+        isApiKey: undefined,
+        scopes: undefined,
       }),
     );
   });

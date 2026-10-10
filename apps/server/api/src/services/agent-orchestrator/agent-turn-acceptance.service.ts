@@ -134,6 +134,9 @@ export class AgentTurnAcceptanceService {
       requestedBrandId: request.brandId,
       threadId: request.threadId,
       userId: context.userId,
+      isApiKey: context.apiKeyContext?.isApiKey,
+      apiKeyId: context.apiKeyContext?.apiKeyId,
+      scopes: context.apiKeyContext?.scopes,
     });
     const threadId =
       preparedScope.existingScope?.threadId ??
@@ -155,6 +158,9 @@ export class AgentTurnAcceptanceService {
         organizationId: context.organizationId,
         threadId,
         userId: context.userId,
+        isApiKey: context.apiKeyContext?.isApiKey,
+        apiKeyId: context.apiKeyContext?.apiKeyId,
+        scopes: context.apiKeyContext?.scopes,
       }));
     if (existingScope)
       await this.resolveActiveInput(threadId, request.content, {
@@ -249,12 +255,7 @@ export class AgentTurnAcceptanceService {
       executionId,
     );
 
-    this.logger.log('Agent turn workflow accepted', {
-      clientRequestId: request.clientRequestId,
-      executionId,
-      organizationId: context.organizationId,
-      threadId,
-    });
+    this.logAcceptedTurn(request, context, executionId, threadId);
 
     return {
       brandId: thread.brandId ?? undefined,
@@ -266,6 +267,20 @@ export class AgentTurnAcceptanceService {
       status: 'queued',
       threadId,
     };
+  }
+
+  private logAcceptedTurn(
+    request: AgentChatRequest & { clientRequestId: string },
+    context: AgentChatContext,
+    executionId: string,
+    threadId: string,
+  ): void {
+    this.logger.log('Agent turn workflow accepted', {
+      clientRequestId: request.clientRequestId,
+      executionId,
+      organizationId: context.organizationId,
+      threadId,
+    });
   }
 
   private async persistUserMessage(

@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { BrandAssetAutofillListener } from '@api/collections/brands/listeners/brand-asset-autofill.listener';
 import { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
@@ -41,6 +42,7 @@ import { Module } from '@nestjs/common';
     BrandFontAssetsService,
   ],
   imports: [
+    BrandAccessModule,
     HeyGenModule,
     CommonModule,
     BrandScraperModule,

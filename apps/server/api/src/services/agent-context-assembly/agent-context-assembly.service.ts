@@ -29,7 +29,7 @@ import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import { computeBrandKitReadiness } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
   BRAND_KNOWLEDGE_HEADER,
@@ -148,6 +148,15 @@ export class AgentContextAssemblyService {
       return null;
     }
 
+    try {
+      await this.brandsService.brandAccessService.assert(
+        { ...params, userId: params.userId ?? '' },
+        effectiveBrandId,
+      );
+    } catch (error) {
+      if (!params.brandId && error instanceof ForbiddenException) return null;
+      throw error;
+    }
     const brand = await this.cacheService.getOrSet(
       // Keyed by the resolved brand id (not a shared 'selected' token):
       // currentBrandId is per-member, so two members of the same org can
@@ -268,6 +277,7 @@ export class AgentContextAssemblyService {
           params.brandId,
           params.query,
           context,
+          params,
         ),
       );
     }
@@ -280,6 +290,7 @@ export class AgentContextAssemblyService {
           brandId,
           params.query,
           context,
+          params,
         ),
       );
     }
@@ -642,10 +653,15 @@ export class AgentContextAssemblyService {
     threadBrandId: string | undefined,
     query: string,
     context: AssembledBrandContext,
+    actor: AssembleContextParams,
   ): Promise<void> {
     const hits = threadBrandId
       ? await this.knowledgeContentRetrievalService.retrieveBrandContentMemory({
           brandId: threadBrandId,
+          userId: userId ?? '',
+          isApiKey: actor.isApiKey,
+          apiKeyId: actor.apiKeyId,
+          scopes: actor.scopes,
           isKnowledgeOnly: true,
           organizationId,
           query,
@@ -683,10 +699,15 @@ export class AgentContextAssemblyService {
     brandId: string,
     query: string,
     context: AssembledBrandContext,
+    actor: AssembleContextParams,
   ): Promise<void> {
     const hits =
       await this.knowledgeContentRetrievalService.retrieveBrandKnowledge({
         brandId,
+        userId: actor.userId ?? '',
+        isApiKey: actor.isApiKey,
+        apiKeyId: actor.apiKeyId,
+        scopes: actor.scopes,
         limit: BRAND_KNOWLEDGE_LIMIT,
         organizationId,
         query,

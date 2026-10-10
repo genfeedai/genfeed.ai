@@ -72,6 +72,7 @@ jobs:
       api: ${{ steps.plan.outputs.api }}
       app_tests: ${{ steps.plan.outputs.app_tests }}
       api_tests: ${{ steps.plan.outputs.api_tests }}
+      mcp_auth_runtime: ${{ steps.plan.outputs.mcp_auth_runtime }}
       app_matrix: ${{ steps.plan.outputs.app_matrix }}
       api_matrix: ${{ steps.plan.outputs.api_matrix }}
       force_full: ${{ steps.plan.outputs.force_full }}
@@ -988,6 +989,37 @@ jobs:
   # Full Suite called from a push, and the master failure tracker below keys off
   # it. The Full Suite paths (workflow_dispatch, release) are gated by the Master
   # SHA Verdict job in full-suite.yml.
+  mcp-auth-runtime:
+    name: MCP Auth Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: plan
+    if: needs.plan.outputs.mcp_auth_runtime == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Build real API and MCP packages
+        run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/mcp --concurrency=2
+      - name: Select owned report path
+        shell: bash
+        run: echo "MCP_AUTH_STATE=$RUNNER_TEMP/mcp-auth-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+      - name: Execute isolated real auth and brand policy journey
+        shell: bash
+        run: |
+          tested_sha="$(git rev-parse HEAD)"
+          node scripts/ci/mcp-auth-runtime.mjs --case-family brand-access --candidate-sha "$tested_sha" --tested-sha "$tested_sha" --state "$MCP_AUTH_STATE"
+      - name: Upload sanitized runtime receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mcp-auth-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.MCP_AUTH_STATE }}/report.json
+          if-no-files-found: error
+          retention-days: 7
+
   tests-gate:
     name: Tests Gate
     runs-on: ubuntu-latest
@@ -1000,6 +1032,7 @@ jobs:
       - test-app
       - test-api
       - cloud-tenant-guard
+      - mcp-auth-runtime
       - build
     if: >-
       ${{ always()
@@ -1050,6 +1083,8 @@ jobs:
           TEST_APP_RESULT: ${{ needs.test-app.result }}
           TEST_API_RESULT: ${{ needs.test-api.result }}
           CLOUD_TENANT_GUARD_RESULT: ${{ needs.cloud-tenant-guard.result }}
+          PLAN_MCP_AUTH_RUNTIME: ${{ needs.plan.outputs.mcp_auth_runtime }}
+          MCP_AUTH_RUNTIME_RESULT: ${{ needs.mcp-auth-runtime.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"

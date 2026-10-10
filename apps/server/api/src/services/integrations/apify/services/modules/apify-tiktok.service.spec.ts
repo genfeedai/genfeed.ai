@@ -125,7 +125,7 @@ describe('ApifyTikTokService', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
-        growthRate: 20,
+        growthRate: 0,
         mentions: 50000,
         platform: 'tiktok',
         topic: '#trending',
@@ -140,7 +140,11 @@ describe('ApifyTikTokService', () => {
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
         'clockworks/tiktok-trends-scraper',
-        expect.objectContaining({ maxItems: 20, region: 'US' }),
+        expect.objectContaining({
+          resultsPerPage: 20,
+          adsCountryCode: 'US',
+          adsScrapeHashtags: true,
+        }),
       );
     });
 
@@ -151,7 +155,11 @@ describe('ApifyTikTokService', () => {
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
         'clockworks/tiktok-trends-scraper',
-        expect.objectContaining({ maxItems: 5, region: 'GB' }),
+        expect.objectContaining({
+          resultsPerPage: 5,
+          adsCountryCode: 'GB',
+          adsScrapeHashtags: true,
+        }),
       );
     });
 
@@ -193,13 +201,67 @@ describe('ApifyTikTokService', () => {
       expect(result[0].topic).toBe('Dance Trend');
     });
 
-    it('should fall back to Unknown when hashtag and title are both missing', async () => {
+    it('rejects rows without an observed topic', async () => {
       const trend = makeTikTokTrend({ hashtag: undefined, title: undefined });
       mockBaseService.runActor.mockResolvedValue([trend]);
 
       const result = await service.getTikTokTrends();
 
-      expect(result[0].topic).toBe('Unknown');
+      expect(result).toEqual([]);
+    });
+  });
+
+  it('retains actual music playback, cover, author and example videos while counting unique observations', async () => {
+    const video = makeTikTokVideo({
+      musicMeta: {
+        musicId: 'sound1',
+        musicName: 'Sound',
+        playUrl: 'https://cdn.example.com/sound.mp3',
+        coverMediumUrl: 'https://cdn.example.com/cover.jpg',
+        musicAuthor: 'Artist',
+        duration: 12,
+      },
+      videoMeta: { coverUrl: 'https://cdn.example.com/video.jpg' },
+    });
+    mockBaseService.runActor.mockResolvedValue([video, video]);
+    const sounds = await service.getTikTokSounds(2);
+    expect(sounds[0]).toMatchObject({
+      soundId: 'sound1',
+      playUrl: 'https://cdn.example.com/sound.mp3',
+      coverUrl: 'https://cdn.example.com/cover.jpg',
+      authorName: 'Artist',
+      duration: 12,
+      usageCount: 1,
+      usageCountScope: 'observed',
+      growthRate: 0,
+    });
+    expect(sounds[0].examples).toHaveLength(1);
+    expect(sounds[0].examples?.[0]).toMatchObject({
+      externalId: 'video123',
+      videoUrl: video.webVideoUrl,
+      thumbnailUrl: 'https://cdn.example.com/video.jpg',
+    });
+  });
+
+  it('normalizes the documented Creative Center output instead of inventing Unknown topics', async () => {
+    mockBaseService.runActor.mockResolvedValue([
+      {
+        name: '#realtrend',
+        type: 'hashtag',
+        rank: 2,
+        videoCount: 300,
+        viewCount: 1000,
+        url: 'https://www.tiktok.com/tag/realtrend',
+      },
+    ]);
+    expect((await service.getTikTokTrends())[0]).toMatchObject({
+      topic: '#realtrend',
+      mentions: 300,
+      growthRate: 0,
+      metadata: {
+        urls: ['https://www.tiktok.com/tag/realtrend'],
+        growthMeasured: false,
+      },
     });
   });
 
@@ -230,7 +292,7 @@ describe('ApifyTikTokService', () => {
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
         'clockworks/tiktok-scraper',
-        expect.objectContaining({ maxItems: 50 }),
+        expect.objectContaining({ resultsPerPage: 17 }),
       );
     });
 
@@ -241,7 +303,7 @@ describe('ApifyTikTokService', () => {
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
         'clockworks/tiktok-scraper',
-        expect.objectContaining({ maxItems: 10 }),
+        expect.objectContaining({ resultsPerPage: 4 }),
       );
     });
 
@@ -273,9 +335,18 @@ describe('ApifyTikTokService', () => {
   describe('getTikTokSounds()', () => {
     it('should extract unique sounds from videos', async () => {
       const videos = [
-        makeTikTokVideo({ musicMeta: { musicId: 's1', musicName: 'Sound 1' } }),
-        makeTikTokVideo({ musicMeta: { musicId: 's2', musicName: 'Sound 2' } }),
-        makeTikTokVideo({ musicMeta: { musicId: 's1', musicName: 'Sound 1' } }),
+        makeTikTokVideo({
+          id: 'observed-1',
+          musicMeta: { musicId: 's1', musicName: 'Sound 1' },
+        }),
+        makeTikTokVideo({
+          id: 'observed-2',
+          musicMeta: { musicId: 's2', musicName: 'Sound 2' },
+        }),
+        makeTikTokVideo({
+          id: 'observed-3',
+          musicMeta: { musicId: 's1', musicName: 'Sound 1' },
+        }),
       ];
       mockBaseService.runActor.mockResolvedValue(videos);
 
@@ -289,10 +360,22 @@ describe('ApifyTikTokService', () => {
 
     it('should sort sounds by usage count descending', async () => {
       const videos = [
-        makeTikTokVideo({ musicMeta: { musicId: 's1', musicName: 'Sound 1' } }),
-        makeTikTokVideo({ musicMeta: { musicId: 's2', musicName: 'Sound 2' } }),
-        makeTikTokVideo({ musicMeta: { musicId: 's2', musicName: 'Sound 2' } }),
-        makeTikTokVideo({ musicMeta: { musicId: 's2', musicName: 'Sound 2' } }),
+        makeTikTokVideo({
+          id: 'observed-4',
+          musicMeta: { musicId: 's1', musicName: 'Sound 1' },
+        }),
+        makeTikTokVideo({
+          id: 'observed-5',
+          musicMeta: { musicId: 's2', musicName: 'Sound 2' },
+        }),
+        makeTikTokVideo({
+          id: 'observed-6',
+          musicMeta: { musicId: 's2', musicName: 'Sound 2' },
+        }),
+        makeTikTokVideo({
+          id: 'observed-7',
+          musicMeta: { musicId: 's2', musicName: 'Sound 2' },
+        }),
       ];
       mockBaseService.runActor.mockResolvedValue(videos);
 
@@ -312,6 +395,7 @@ describe('ApifyTikTokService', () => {
     it('should limit results to requested count', async () => {
       const videos = Array.from({ length: 20 }, (_, i) =>
         makeTikTokVideo({
+          id: `observed-${i}`,
           musicMeta: { musicId: `s${i}`, musicName: `Sound ${i}` },
         }),
       );

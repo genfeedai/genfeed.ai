@@ -114,6 +114,13 @@ function CatalogSignal({ models }: ModelsContentProps) {
         See how they compare on the benchmark
         <ArrowRight className="size-4" />
       </Link>
+      <Link
+        className="mt-3 flex min-h-11 items-center gap-2 text-sm font-medium text-surface underline-offset-4 hover:underline"
+        href="/tools/ai-model-selector"
+      >
+        Find a model with the free AI model selector
+        <ArrowRight className="size-4" />
+      </Link>
     </div>
   );
 }

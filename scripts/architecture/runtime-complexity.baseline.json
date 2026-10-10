@@ -90,7 +90,7 @@
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
   },
   {
-    "actual": 1181,
+    "actual": 1174,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
@@ -184,12 +184,6 @@
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "method-lines",
     "symbol": "StripeService.createPaymentSession"
-  },
-  {
-    "actual": 1056,
-    "file": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.ts"
   },
   {
     "actual": 152,

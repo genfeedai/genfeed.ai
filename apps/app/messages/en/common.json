@@ -1179,6 +1179,18 @@
     }
   },
   "automation": {
+    "cadence": {
+      "weeklyTarget": "Weekly posting target",
+      "publishingCeiling": "Weekly publishing ceiling",
+      "draftReserve": "Ready-draft reserve",
+      "help": "Targets guide generation within your credit and quality limits. The ceiling limits content groups per calendar week in the agent’s timezone. Reserve drafts stay in review. Existing agents keep their legacy limits until a ceiling or reserve is configured.",
+      "invalid": "Use a target of 1–100, a ceiling at least as high as the target (up to 1000), and a reserve of 0–100. Replace configured values instead of leaving them blank; use a reserve of 0 to stop maintaining spare drafts.",
+      "title": "Posting and draft supply",
+      "scheduled": "Scheduled or published this week",
+      "ready": "Quality-approved drafts",
+      "pending": "Pending generation",
+      "unavailable": "Cadence status could not be loaded. Posting limits remain enforced."
+    },
     "agentCreation": {
       "activate": "Activate",
       "activating": "Activating",

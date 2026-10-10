@@ -23,6 +23,7 @@ import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-conte
 import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -204,9 +205,18 @@ describe('automation selected data and immutable actor', () => {
     const count = vi.fn(async (_query: Record<string, unknown>) => 1);
     const prisma = {
       knowledgeSource: { findMany, count },
+      brand: { findFirst: vi.fn().mockResolvedValue({ id: selectedBrand }) },
+      member: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ role: { key: 'admin' }, brands: [] }),
+      },
       $transaction: (queries: Promise<unknown>[]) => Promise.all(queries),
     } as unknown as PrismaService;
-    const records = new KnowledgeRecordsService(prisma);
+    const records = new KnowledgeRecordsService(
+      prisma,
+      brandAccessFixture(prisma as never),
+    );
     const controller = instance(KnowledgeSourcesController, { records });
     expect(
       await selected(() =>

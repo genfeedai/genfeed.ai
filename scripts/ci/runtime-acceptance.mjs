@@ -76,10 +76,15 @@ export const BRAND_SOURCE_CONTRACT = {
       sha256:
         '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
     },
+    {
+      path: 'apps/server/api/src/shared/testing/brand-access.fixture.ts',
+      sha256:
+        '0715b4c64712ad5708cac482e000cd65f3f016a34435e879d327a3729e6e6e00',
+    },
   ],
   brand: {
     path: 'apps/server/api/test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
-    sha256: 'b79d6ffb8e84be00a6c6c7f610300641254c5f2b801901bca4911714964e239a',
+    sha256: '86ddc267fa96f5df2fef82b03e46a806929d75ea35265125d7b7e43ff78d22e4',
     passedTitles: [
       'branded receipt full-migration service and relocation acceptance serializes same-input create, rejects changed payloads, and isolates other scopes',
       'branded receipt full-migration service and relocation acceptance commits one competing revision and replays immutable event projections',
@@ -104,14 +109,14 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/src/services/branded-generation-receipts/branded-generation-prompt-store.service.spec.ts',
       sha256:
-        'dcf662980663ee426d77896f09d21b4a986ad6a8ed00a2e494ea0b2903fb60bc',
+        '0a5637723a9fb4390cb972d81c5bcb2e7bb70374a79674a4f19a6504f5da61a9',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
     {
       path: 'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
       sha256:
-        'e121d769cabadc1b1601f103745013b275c20786971401c3db7feb8801456d30',
+        '48e47d70f80eca75fb6acc16cfa11e325f54666780d117dbc175a1e2721f7d0c',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },

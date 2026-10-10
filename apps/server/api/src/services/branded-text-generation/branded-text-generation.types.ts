@@ -1,3 +1,4 @@
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import type {
   BrandedGenerationInputV1,
@@ -6,6 +7,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
 export interface BrandedTextGenerationRequestV1 {
+  initiatingActor: BrandAccessActor;
   /** Approved-brand text input; the caller owns the deterministic request key. */
   input: BrandedGenerationInputV1;
   /** Private learning receipt the caller already resolved for this request. */

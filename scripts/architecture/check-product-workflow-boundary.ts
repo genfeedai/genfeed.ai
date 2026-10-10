@@ -107,6 +107,15 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
   [
     {
       classification: 'workflow-adapter',
+      file: 'apps/server/api/src/services/social-timeline/social-timeline-provider.service.ts',
+      id: 'social-timeline-native-action-adapter',
+      issue: 6508,
+      reason:
+        'Low-level native clients are invoked by the registered Following action graph, whose action reserves the durable scoped receipt before sending and prevents republishing on workflow retries.',
+      systemWorkflowIds: ['social.timeline.native-action'],
+    },
+    {
+      classification: 'workflow-adapter',
       file: 'apps/server/api/src/endpoints/admin/announcements/announcements.service.ts',
       id: 'admin-announcement-broadcast-actions',
       reason:

@@ -90,7 +90,7 @@ describe('Trends split controllers', () => {
 
     const result = await analyticsController.getViralVideos(
       { limit: 12, timeframe: Timeframe.H24, brandId: 'brand-active' },
-      { organizationId: 'org-1', brandId: 'brand-default' } as never,
+      { organizationId: 'org-1', brandId: 'brand-active' } as never,
     );
 
     expect(trendsService.getBrandViralVideos).toHaveBeenCalledWith(
@@ -107,6 +107,16 @@ describe('Trends split controllers', () => {
       platforms: ['tiktok', 'youtube'],
       totalVideos: 2,
     });
+  });
+
+  it('rejects a sibling-brand selection before reading its private relevance corpus', async () => {
+    await expect(
+      analyticsController.getViralVideos(
+        { brandId: 'brand-sibling', relevance: 'brand' },
+        { organizationId: 'org-1', brandId: 'brand-active' } as never,
+      ),
+    ).rejects.toThrow('Select an authorized brand');
+    expect(trendsService.getBrandViralVideos).not.toHaveBeenCalled();
   });
 
   it('preserves turnover aggregation and supported-day parsing', async () => {

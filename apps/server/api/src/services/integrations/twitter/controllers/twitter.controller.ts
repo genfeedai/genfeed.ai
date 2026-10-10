@@ -116,6 +116,7 @@ export class TwitterController {
           scope: [
             'tweet.read',
             'tweet.write',
+            'like.write',
             'users.read',
             'media.write',
             'offline.access',

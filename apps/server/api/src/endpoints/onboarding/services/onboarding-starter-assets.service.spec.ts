@@ -9,6 +9,7 @@ import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-asse
 import type { IAgentGenerationGateway } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { RouterPriority } from '@genfeedai/contracts';
 import { LOWEST_COST_IMAGE_MODEL_KEY } from '@genfeedai/contracts/constants';
 import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
@@ -80,6 +81,7 @@ function realOnboardingHarness() {
         composeContentHarnessBrief(registry, input),
     } as never,
     { log: vi.fn(), warn: vi.fn() } as never,
+    brandAccessFixture(),
     { findOne } as never,
     { resolveContributionForBrand: vi.fn().mockResolvedValue(null) } as never,
     { retrieveBrandContentMemory: vi.fn().mockResolvedValue([]) } as never,

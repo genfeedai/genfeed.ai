@@ -480,8 +480,33 @@ export class CreateAgentStrategyDto {
   @IsOptional()
   @Min(1)
   @Max(100)
-  @ApiProperty({ description: 'Posts per week target', required: false })
+  @ApiProperty({
+    description:
+      'Weekly posting target; separate from the configured publishing ceiling',
+    required: false,
+  })
   postsPerWeek?: number;
+
+  @IsInt()
+  @IsOptional()
+  @Min(1)
+  @Max(1000)
+  @ApiProperty({
+    description:
+      'Maximum content groups scheduled or published per local ISO week',
+    required: false,
+  })
+  publishingCeilingPerWeek?: number;
+
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  @ApiProperty({
+    description: 'Desired reserve of unscheduled quality-approved drafts',
+    required: false,
+  })
+  readyDraftReserve?: number;
 
   @IsBoolean()
   @IsOptional()

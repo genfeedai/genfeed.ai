@@ -137,6 +137,7 @@ export class UsersController {
       selectedBrandId,
       user.userId ?? user.id,
       user.organizationId,
+      user,
     );
 
     await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);

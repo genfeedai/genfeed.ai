@@ -16,15 +16,23 @@ import {
   strategyOrganizationId as getStrategyOrganizationId,
   normalizeOpportunitySourceType,
   resolveOpportunityPlatform,
+  scoreTextPublishGate,
   shouldAutoPublish,
   strategySkillSlugs,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.helpers';
 import type {
+  CadenceDraftGenerator,
   FinalizeOpportunityInput,
   ImageEvaluationResult,
   OptimizerAnalysisResult,
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
+import {
+  bindCadenceQualityEvaluator,
+  buildEvaluatedDraftReceipt,
+  CadenceGenerationUnavailableError,
+  recordReadyDraftReceipt,
+} from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
@@ -74,6 +82,8 @@ export class AgentStrategyAutopilotExecutionService {
     opportunity: AgentStrategyOpportunityDocument,
     userId: string,
     defaultModel?: string,
+    draftGenerator?: CadenceDraftGenerator,
+    creditBudget = 0,
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
     const claimed = await this.opportunitiesService.claimForGeneration(
@@ -88,6 +98,8 @@ export class AgentStrategyAutopilotExecutionService {
         opportunity,
         userId,
         defaultModel,
+        draftGenerator,
+        creditBudget,
       );
     } catch (error) {
       await this.opportunitiesService.updateStatus(
@@ -96,7 +108,9 @@ export class AgentStrategyAutopilotExecutionService {
         'held',
         {
           decisionReason:
-            'Execution failed; inspect the linked draft and account posts before retrying to avoid duplicate sends.',
+            error instanceof CadenceGenerationUnavailableError
+              ? error.message
+              : 'Execution failed; inspect the linked draft and account posts before retrying to avoid duplicate sends.',
         },
       );
       this.logger.warn('Autopilot execution held after failure', {
@@ -112,6 +126,8 @@ export class AgentStrategyAutopilotExecutionService {
     opportunity: AgentStrategyOpportunityDocument,
     userId: string,
     defaultModel?: string,
+    draftGenerator?: CadenceDraftGenerator,
+    creditBudget = 0,
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
     const targetPlatform = resolveOpportunityPlatform(strategy, opportunity);
@@ -121,15 +137,27 @@ export class AgentStrategyAutopilotExecutionService {
       return this.handleVideoHold(opportunity, strategyOrganizationId);
     }
 
-    const draft = await this.generateAutopilotDraft({
-      defaultModel,
-      format,
-      opportunity,
-      organizationId: strategyOrganizationId,
-      platform: targetPlatform,
-      strategy,
-      userId,
-    });
+    const generated = draftGenerator
+      ? await draftGenerator({
+          strategy,
+          opportunity,
+          format,
+          platform: targetPlatform,
+          userId,
+          creditBudget,
+        })
+      : null;
+    const draft = draftGenerator
+      ? generated?.draft
+      : await this.generateAutopilotDraft({
+          defaultModel,
+          format,
+          opportunity,
+          organizationId: strategyOrganizationId,
+          platform: targetPlatform,
+          strategy,
+          userId,
+        });
     if (!draft) {
       await this.opportunitiesService.updateStatus(
         getOpportunityId(opportunity),
@@ -137,8 +165,13 @@ export class AgentStrategyAutopilotExecutionService {
         'held',
         { decisionReason: 'No content draft was produced.' },
       );
-      return { contentGenerated: 0, creditsUsed: 0 };
+      return { contentGenerated: 0, creditsUsed: generated?.creditsUsed ?? 0 };
     }
+    if (generated)
+      opportunity = {
+        ...opportunity,
+        estimatedCreditCost: generated.creditsUsed,
+      };
 
     await this.opportunitiesService.updateStatus(
       getOpportunityId(opportunity),
@@ -154,6 +187,13 @@ export class AgentStrategyAutopilotExecutionService {
     });
     let draftContent = getDraftContent(draft);
 
+    const evaluateQuality = bindCadenceQualityEvaluator(
+      this.opportunitiesService,
+      opportunity,
+      strategyOrganizationId,
+      generated?.evaluateQuality,
+    );
+    const evaluation = await evaluateQuality?.();
     let gate = await this.evaluateDraft(
       strategy,
       strategyOrganizationId,
@@ -161,9 +201,10 @@ export class AgentStrategyAutopilotExecutionService {
       draftContent,
       getDraftMediaUrls(draft)[0],
       targetPlatform,
+      evaluation?.analysis,
     );
 
-    if (gate.decision === 'revise' && format === 'text') {
+    if (gate.decision === 'revise' && format === 'text' && !draftGenerator) {
       const revision = await this.reviseAndReEvaluate({
         autopilotMetadata,
         draft,
@@ -192,6 +233,13 @@ export class AgentStrategyAutopilotExecutionService {
     }
 
     return this.finalizeApprovalAndHandoff({
+      evaluateQuality,
+      evaluatedReceipt: draftGenerator
+        ? buildEvaluatedDraftReceipt(
+            draft as unknown as Record<string, unknown>,
+            autopilotMetadata,
+          )
+        : undefined,
       draft,
       draftContent,
       format,
@@ -395,7 +443,12 @@ export class AgentStrategyAutopilotExecutionService {
   private async finalizeApprovalAndHandoff(
     input: FinalizeOpportunityInput,
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
-    if (input.format === 'text' && shouldAutoPublish(input.strategy)) {
+    await recordReadyDraftReceipt(this.postsService, input);
+    if (
+      input.format === 'text' &&
+      input.opportunity.metadata?.cadencePurpose !== 'reserve' &&
+      shouldAutoPublish(input.strategy)
+    ) {
       return this.finalizeAutoPublish(input);
     }
 
@@ -423,6 +476,7 @@ export class AgentStrategyAutopilotExecutionService {
       draftContent,
       opportunity.platformCandidates,
       userId,
+      input,
     );
 
     if (publishResult.scheduled) {
@@ -547,6 +601,7 @@ export class AgentStrategyAutopilotExecutionService {
     content: string,
     mediaUrl: string | undefined,
     platform: string,
+    measuredAnalysis?: OptimizerAnalysisResult,
   ): Promise<PublishGateResult> {
     if (format === 'image') {
       if (!mediaUrl) {
@@ -609,62 +664,19 @@ export class AgentStrategyAutopilotExecutionService {
       };
     }
 
-    const analysis = (await this.optimizersService.analyzeContent(
-      {
-        content,
-        contentType: 'caption',
-        goals: ['engagement', 'reach'],
-        platform,
-      },
-      organizationId,
-    )) as OptimizerAnalysisResult;
+    const analysis =
+      measuredAnalysis ??
+      ((await this.optimizersService.analyzeContent(
+        {
+          content,
+          contentType: 'caption',
+          goals: ['engagement', 'reach'],
+          platform,
+        },
+        organizationId,
+      )) as OptimizerAnalysisResult);
 
-    const hasCTA =
-      analysis.metadata?.hasCallToAction ??
-      /comment|click|learn more|reply|share|visit/i.test(content);
-    const overallScore = Number(analysis.overallScore ?? 0);
-    const ctaRequired = strategy.goalProfile === 'reach_traffic';
-    const minPostScore = strategy.publishPolicy?.minPostScore ?? 70;
-    const reasons: string[] = [];
-
-    if (overallScore < minPostScore) {
-      reasons.push('Post quality score fell below the publish threshold.');
-    }
-    if (ctaRequired && !hasCTA) {
-      reasons.push('Reach/traffic mode requires a visible call-to-action.');
-    }
-
-    return {
-      decision:
-        reasons.length === 0
-          ? 'approved'
-          : overallScore >= Math.max(50, minPostScore - 10)
-            ? 'revise'
-            : 'discard',
-      overallScore,
-      reasons:
-        reasons.length === 0
-          ? [
-              'Post cleared the autopilot quality gate.',
-              ...(ctaRequired && hasCTA
-                ? [
-                    'Draft includes a visible call-to-action for traffic intent.',
-                  ]
-                : []),
-            ]
-          : reasons,
-      revisionInstructions: [
-        'Strengthen the opening hook.',
-        'Improve clarity and readability.',
-        'Add a clear call-to-action aligned to traffic intent.',
-      ],
-      scoreBreakdown: {
-        clarity: Number(analysis.breakdown?.clarity ?? 0),
-        hook: Number(analysis.breakdown?.engagement ?? 0),
-        platformFit: Number(analysis.breakdown?.platformOptimization ?? 0),
-        readability: Number(analysis.breakdown?.readability ?? 0),
-      },
-    };
+    return scoreTextPublishGate(strategy, content, analysis);
   }
 
   private async createPublishingInboxHandoff(input: {
@@ -689,6 +701,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     const batch = await this.batchGenerationService.createManualReviewBatch(
       {
+        agentStrategyId: getStrategyId(input.strategy),
         brandId: getStrategyBrandId(input.strategy) ?? '',
         items: [
           {
@@ -838,6 +851,10 @@ export class AgentStrategyAutopilotExecutionService {
     content: string,
     platforms: string[],
     userId: string,
+    qualityContext?: Pick<
+      FinalizeOpportunityInput,
+      'evaluateQuality' | 'platform'
+    >,
   ): Promise<{ policyReason?: string; postIds: string[]; scheduled: boolean }> {
     const createdPostIds: string[] = [];
     const draftId = getDraftId(draft);
@@ -891,6 +908,16 @@ export class AgentStrategyAutopilotExecutionService {
       }
     }
     for (const target of targets) {
+      if (
+        qualityContext?.evaluateQuality &&
+        target.platform === qualityContext.platform &&
+        target.caption === content
+      )
+        continue;
+      const measured = await qualityContext?.evaluateQuality?.(
+        target.caption,
+        target.platform,
+      );
       const gate = await this.evaluateDraft(
         strategy,
         organizationId,
@@ -898,6 +925,7 @@ export class AgentStrategyAutopilotExecutionService {
         target.caption,
         undefined,
         target.platform,
+        measured?.analysis,
       );
       if (gate.decision !== 'approved') {
         throw new Error(

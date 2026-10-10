@@ -1,6 +1,7 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import type { AgentStrategyCadenceStatus } from '@genfeedai/contracts/interfaces';
 
 export interface BudgetPacingState {
   expectedSpendToDate: number;
@@ -21,6 +22,7 @@ export interface PublishGateResult {
 }
 
 export interface AgentStrategyPerformanceSnapshot {
+  cadence?: AgentStrategyCadenceStatus;
   bestPlatformFormatPairs: Array<{
     format: string;
     platform: string;
@@ -53,6 +55,25 @@ export interface ExecuteRunResult {
   summary: string;
 }
 
+export type CadenceDraftGenerator = (input: {
+  creditBudget: number;
+  format: string;
+  opportunity: AgentStrategyOpportunityDocument;
+  platform: string;
+  strategy: AgentStrategyDocument;
+  userId: string;
+}) => Promise<{
+  draft?: PostDocument;
+  creditsUsed: number;
+  evaluateQuality?: (
+    content?: string,
+    platform?: string,
+  ) => Promise<{
+    analysis: OptimizerAnalysisResult;
+    creditsUsed: number;
+  }>;
+}>;
+
 export interface OptimizerAnalysisResult {
   breakdown?: {
     clarity?: number;
@@ -76,6 +97,10 @@ export interface ImageEvaluationResult {
 }
 
 export interface FinalizeOpportunityInput {
+  evaluateQuality?: Awaited<
+    ReturnType<CadenceDraftGenerator>
+  >['evaluateQuality'];
+  evaluatedReceipt?: string;
   draft: PostDocument;
   draftContent: string;
   format: string;

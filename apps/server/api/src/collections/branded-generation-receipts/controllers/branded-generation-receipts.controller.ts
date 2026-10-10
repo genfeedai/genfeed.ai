@@ -63,6 +63,9 @@ export class BrandedGenerationReceiptsController {
     return {
       organizationId: this.id(user.organizationId),
       actorId: this.id(user.userId ?? user.id),
+      isApiKey: user.isApiKey,
+      apiKeyId: user.apiKeyId,
+      scopes: user.scopes,
       brandId: this.id(brandId),
     };
   }

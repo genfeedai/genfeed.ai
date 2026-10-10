@@ -8,6 +8,7 @@ import { BrandedGenerationPromptStoreService } from '@api/services/branded-gener
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
 import { encodeBrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { brandedGenerationInputV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandedGenerationInputV1,
@@ -20,7 +21,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const actor = { organizationId: 'org', brandId: 'brand', actorId: 'user' };
 function fixture() {
-  const access = new BrandedGenerationReceiptAccessService();
+  const access = new BrandedGenerationReceiptAccessService(
+    brandAccessFixture(),
+  );
   vi.spyOn(access, 'assertBrand').mockResolvedValue({ isOwnerOrAdmin: false });
   const store = new BrandedGenerationPromptStoreService(access);
   const mock = {

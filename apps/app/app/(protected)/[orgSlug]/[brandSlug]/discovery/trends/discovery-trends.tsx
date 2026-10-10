@@ -1,17 +1,16 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
-import {
-  TrendingHashtags,
-  TrendingSounds,
-  ViralVideoLeaderboard,
-} from '@ui/analytics/trends';
+import { TrendingHashtags, TrendingSounds } from '@ui/analytics/trends';
+import TrendVideoGallery from '@ui/analytics/trends/trend-video-gallery';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import { Button } from '@ui/primitives/button';
 import { Flame, Hash, Music } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -22,13 +21,19 @@ import { useDiscoveryTrends } from './useDiscoveryTrends';
 export default function DiscoveryTrends() {
   const { href } = useOrgUrl();
   const translate = useTranslations('pages.analytics.trends.page');
+  const discovery = useTranslations('ui.discovery');
   const {
     PLATFORM_CONFIG_LOOKUP,
     TRENDS_PLATFORMS,
     corpusHealth,
+    relevance,
+    setRelevance,
+    selectedHashtag,
+    setSelectedHashtag,
+    error,
+    reload,
     formattedLastSyncedAt,
     handleRemixClose,
-    handleSoundClick,
     handleVideoClick,
     hashtagPlatform,
     isCorpusHealthUnavailable,
@@ -60,7 +65,46 @@ export default function DiscoveryTrends() {
       />
 
       <Container bodyClassName="space-y-8" moduleChrome={false}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <fieldset className="flex gap-1" aria-label={discovery('relevance')}>
+            {(
+              [
+                { value: 'market', label: discovery('market') },
+                { value: 'brand', label: discovery('brand') },
+              ] as const
+            ).map((option) => (
+              <Button
+                key={option.value}
+                size={ButtonSize.SM}
+                aria-pressed={relevance === option.value}
+                variant={
+                  relevance === option.value
+                    ? ButtonVariant.SECONDARY
+                    : ButtonVariant.GHOST
+                }
+                onClick={() => setRelevance(option.value)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </fieldset>
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            onClick={() => {
+              void reload();
+            }}
+          >
+            {discovery('reload')}
+          </Button>
+        </div>
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {discovery('loadError')}
+          </p>
+        ) : null}
         <TrendsPageHeader
+          corpusScope={relevance === 'market' ? 'global' : 'all'}
           corpusHealth={corpusHealth}
           formattedLastSyncedAt={formattedLastSyncedAt}
           isCorpusHealthUnavailable={isCorpusHealthUnavailable}
@@ -91,7 +135,9 @@ export default function DiscoveryTrends() {
 
         <section>
           <Card className="backdrop-blur" bodyClassName="space-y-6">
-            <ViralVideoLeaderboard
+            <TrendVideoGallery
+              selectedHashtag={selectedHashtag}
+              onClearHashtag={() => setSelectedHashtag('')}
               videos={viralVideos}
               isLoading={isLoadingVideos}
               timeframe={videoTimeframe}
@@ -109,6 +155,9 @@ export default function DiscoveryTrends() {
             icon={Hash}
           >
             <TrendingHashtags
+              onHashtagClick={(hashtag) =>
+                setSelectedHashtag(hashtag.hashtag.replace(/^#/, ''))
+              }
               hashtags={trendingHashtags}
               isLoading={isLoadingHashtags}
               selectedPlatform={hashtagPlatform}
@@ -127,7 +176,6 @@ export default function DiscoveryTrends() {
             <TrendingSounds
               sounds={trendingSounds}
               isLoading={isLoadingSounds}
-              onSoundClick={handleSoundClick}
             />
           </Card>
         </section>

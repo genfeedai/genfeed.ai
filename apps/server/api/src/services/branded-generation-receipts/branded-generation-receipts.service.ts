@@ -159,14 +159,17 @@ export class BrandedGenerationReceiptsService {
   }
   async create(
     value: BrandedGenerationInputV1,
+    initiatingActor: BrandedGenerationActorV1,
   ): Promise<BrandedGenerationMutationResultV1> {
     const input = brandedGenerationInputV1Schema.parse(value);
     this.counter(input.candidateIndex);
-    const actor = {
-      organizationId: input.organizationId,
-      brandId: input.brandId,
-      actorId: input.actorId,
-    };
+    if (
+      initiatingActor.actorId !== input.actorId ||
+      initiatingActor.organizationId !== input.organizationId ||
+      initiatingActor.brandId !== input.brandId
+    )
+      throw new ForbiddenException('receipt_access_denied');
+    const actor = initiatingActor;
     const requestHash = hashBrandedGenerationRequestV1(input);
     return this.transaction(async (tx) => {
       await this.lockBrand(tx, actor);
@@ -212,7 +215,9 @@ export class BrandedGenerationReceiptsService {
       const receipt = brandedGenerationReceiptV1Schema.parse({
         schemaVersion: 1,
         id: randomUUID(),
-        ...actor,
+        actorId: actor.actorId,
+        brandId: actor.brandId,
+        organizationId: actor.organizationId,
         requestKey: input.requestKey,
         candidateIndex: input.candidateIndex,
         requestHash,
@@ -255,7 +260,9 @@ export class BrandedGenerationReceiptsService {
       await tx.brandedGenerationReceipt.create({
         data: {
           id: receipt.id,
-          ...actor,
+          actorId: actor.actorId,
+          brandId: actor.brandId,
+          organizationId: actor.organizationId,
           requestKey: receipt.requestKey,
           candidateIndex: receipt.candidateIndex,
           requestHash,

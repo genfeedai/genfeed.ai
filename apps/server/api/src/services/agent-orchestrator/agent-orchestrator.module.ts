@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
@@ -26,6 +27,7 @@ import { MembersModule } from '@api/collections/members/members.module';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
+import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
@@ -60,6 +62,7 @@ import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gat
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentBrandContextController } from '@api/services/agent-orchestrator/agent-brand-context.controller';
 import { AgentBrandContextSnapshotService } from '@api/services/agent-orchestrator/agent-brand-context-snapshot.service';
+import { AgentCadenceExecutionService } from '@api/services/agent-orchestrator/agent-cadence-execution.service';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
@@ -169,6 +172,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    BrandAccessModule,
     CommonModule,
     SignupPrefillModule,
     VisualProjectsCoreModule,
@@ -208,6 +212,7 @@ import { Module } from '@nestjs/common';
     ContentQualityModule,
     CredentialsCoreModule,
     CreditsModule,
+    OptimizersModule,
     DashboardLayoutsModule,
     ImagesCoreModule,
     IngredientsModule,
@@ -318,6 +323,7 @@ import { Module } from '@nestjs/common';
     },
     AgentTurnRoundRunnerService,
     AgentTurnWorkflowExecutionService,
+    AgentCadenceExecutionService,
     AgentUntrustedContentGateService,
     {
       provide: 'AGENT_BRANDS_SERVICE',

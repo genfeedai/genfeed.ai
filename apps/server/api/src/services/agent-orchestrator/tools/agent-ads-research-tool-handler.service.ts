@@ -291,10 +291,10 @@ export class AgentAdsResearchToolHandler {
       };
     }
 
-    const adPack = await adsResearchService.generateAdPack(
-      ctx.organizationId,
-      baseInput,
-    );
+    const adPack = await adsResearchService.generateAdPack(ctx.organizationId, {
+      ...baseInput,
+      userId: ctx.userId,
+    });
 
     return {
       creditsUsed: 0,

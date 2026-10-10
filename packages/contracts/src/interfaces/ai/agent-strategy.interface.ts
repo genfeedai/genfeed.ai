@@ -16,6 +16,9 @@ export interface IAgentStrategy {
   platforms: string[];
   runFrequency: string;
   timezone: string;
+  postsPerWeek?: number;
+  publishingCeilingPerWeek?: number;
+  readyDraftReserve?: number;
   dailyCreditBudget: number;
   minCreditThreshold?: number;
   weeklyCreditBudget: number;
@@ -34,6 +37,9 @@ export interface IAgentStrategy {
 }
 
 export interface ICreateAgentStrategyDto {
+  postsPerWeek?: number;
+  publishingCeilingPerWeek?: number;
+  readyDraftReserve?: number;
   label: string;
   agentType?: AgentType;
   autonomyMode?: AgentAutonomyMode;
@@ -50,6 +56,7 @@ export interface ICreateAgentStrategyDto {
 }
 
 export interface IAgentStrategyPerformanceSnapshot {
+  cadence?: AgentStrategyCadenceStatus;
   bestPlatformFormatPairs: Array<{
     format: string;
     platform: string;
@@ -74,6 +81,22 @@ export interface IAgentStrategyPerformanceSnapshot {
   topHooks: string[];
   topTopics: string[];
   visits: number | null;
+}
+
+export interface AgentStrategyCadenceStatus {
+  weeklyTarget: number;
+  publishingCeiling: number;
+  draftReserve: number;
+  week: number;
+  readyDrafts: number;
+  pendingDrafts: number;
+  postingShortfall: number;
+  reserveShortfall: number;
+  publicationSlots: number;
+  weekStart: string;
+  weekEnd: string;
+  truncated: boolean;
+  reasons: string[];
 }
 
 export interface IAgentStrategyRunHistoryItem {

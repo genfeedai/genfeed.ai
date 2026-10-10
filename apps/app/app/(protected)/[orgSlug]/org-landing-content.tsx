@@ -3,8 +3,11 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationAccountType } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
-import { ButtonVariant, ViewType } from '@genfeedai/contracts';
+import {
+  hasAgentFirstOnboarding,
+  isCloudDeployment,
+} from '@genfeedai/config/deployment';
+import { ButtonVariant, MemberRole, ViewType } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -23,6 +26,7 @@ import type {
   OrgLandingBrandItemProps,
   OrgLandingBrandLogoProps,
 } from '@props/pages/org-landing.props';
+import { useAccessState } from '@providers/access-state/access-state.provider';
 import Card from '@ui/card/Card';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
@@ -161,7 +165,15 @@ export default function OrgLandingContent() {
   // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
   const isAgentModuleEnabled = useFeatureFlag('agent');
   const translate = useTranslations('pages.organizationLanding');
-  const { brands, isReady } = useBrand();
+  const { brands, isReady, isBrandScopeResolved } = useBrand();
+  const { accessState } = useAccessState();
+  const hasNoBrandAccess =
+    isCloudDeployment() &&
+    isBrandScopeResolved &&
+    brands.length === 0 &&
+    Boolean(accessState?.memberRole) &&
+    accessState?.memberRole !== MemberRole.OWNER &&
+    accessState?.memberRole !== MemberRole.ADMIN;
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { orgSlug, orgHref } = useOrgUrl();
   const { replace } = useRouter();
@@ -176,7 +188,7 @@ export default function OrgLandingContent() {
   });
 
   useEffect(() => {
-    if (!isReady || isCurrentUserLoading || !currentUser) {
+    if (!isReady || isCurrentUserLoading || !currentUser || hasNoBrandAccess) {
       return;
     }
 
@@ -203,6 +215,7 @@ export default function OrgLandingContent() {
     }
   }, [
     accountType,
+    hasNoBrandAccess,
     brands.length,
     currentUser,
     isCurrentUserLoading,
@@ -221,6 +234,13 @@ export default function OrgLandingContent() {
   // Zero or one brand, or unfinished onboarding, always ends in a redirect, so
   // the picker never paints for those viewers — not even as a skeleton.
   const isRedirecting = isReady && (brands.length <= 1 || isOnboardingPending);
+
+  if (hasNoBrandAccess)
+    return (
+      <p className="px-6 py-12 text-muted-foreground" role="status">
+        {translate('noBrandAccess')}
+      </p>
+    );
 
   if (isRedirecting) {
     return (

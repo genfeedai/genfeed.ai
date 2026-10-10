@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { HttpStatus } from '@nestjs/common';
 
 import {
@@ -25,6 +26,7 @@ describe('verifyBrandAccess', () => {
 
   function createBrandsService() {
     return {
+      brandAccessService: brandAccessFixture(),
       findOne: vi.fn<BrandsService['findOne']>(),
     };
   }
@@ -131,6 +133,7 @@ describe('explicit selected brand data scope', () => {
       organizationId: 'selected-org',
     } as BrandDocument;
     const service = {
+      brandAccessService: brandAccessFixture(),
       findOne: vi.fn<BrandsService['findOne']>().mockResolvedValue(selected),
       findOneBySlug: vi
         .fn<BrandsService['findOneBySlug']>()
@@ -156,6 +159,7 @@ describe('explicit selected brand data scope', () => {
   });
   it('keeps default write/unmarked callers constrained to the original org and404 misses', async () => {
     const service = {
+      brandAccessService: brandAccessFixture(),
       findOne: vi.fn<BrandsService['findOne']>().mockResolvedValue(null),
     };
     await expect(

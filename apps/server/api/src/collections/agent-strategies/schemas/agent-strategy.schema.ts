@@ -94,6 +94,8 @@ export type AgentStrategyDocument = Omit<
   platforms?: string[];
   policies?: Record<string, unknown>;
   postsPerWeek?: number;
+  publishingCeilingPerWeek?: number;
+  readyDraftReserve?: number;
   preferredPostingTimes?: string[];
   preferredWorkflowId?: string | null;
   preferredWorkflowTemplateId?: string | null;

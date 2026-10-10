@@ -13,6 +13,8 @@ const API_SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEBIT_CALL = /(?:deductCreditsFromOrganization|settleReservation)\(/;
 
 const ALLOWED_FILES = new Set([
+  // Internal workflow quality settlement; its adapter spec verifies billing attribution.
+  'agent-cadence-execution.service.ts',
   'agent-llm-round-reservation.util.ts',
   'agent-turn-round-runner.service.ts',
   'batch-project-credits.service.ts',
