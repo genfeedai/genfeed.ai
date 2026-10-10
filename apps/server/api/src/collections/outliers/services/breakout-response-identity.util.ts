@@ -1,5 +1,6 @@
 import { buildArtifactContentDigest } from '@api/agent-artifacts/agent-artifact-material.util';
 import { readBreakoutBaselineReceipt } from '@api/collections/outliers/services/breakout-baseline-receipt.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Platform } from '@genfeedai/contracts';
 import type {
   BreakoutBaselineReadInput,
@@ -184,11 +185,11 @@ export async function reserveBreakoutOutputPlan(
     if (inserted.count !== slots.length)
       throw new Error('Breakout output slot conflict; roll back transaction');
     const committed = await tx.breakoutResponse.updateMany({
-      where: {
+      where: scopedWhere(input.organizationId, {
         ...where,
         state: 'detected',
         outputPlanFingerprint: null,
-      },
+      }),
       data: { state: 'planned', outputPlanFingerprint: planFingerprint },
     });
     if (committed.count !== 1)

@@ -17,6 +17,7 @@ import {
   describeBrandedPostMaterialLayout,
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
 import {
   GENERATION_POOL_WORKLOAD_TYPE,
@@ -55,18 +56,21 @@ export class BreakoutOutputQualityService {
     const claim = await this.prisma.$transaction(async (tx) => {
       await admitBreakoutGenerationContinuation(tx, admission);
       const output = await tx.breakoutResponseOutput.findFirst({
-        where: this.outputWhere(admission),
+        where: scopedWhere(
+          admission.scope.organizationId,
+          this.outputWhere(admission),
+        ),
         select: { generationKey: true },
       });
       await admission.reauthorize(tx);
       if (!output)
         throw new ConflictException('breakout_quality_output_unavailable');
       const changed = await tx.breakoutResponseOutput.updateMany({
-        where: {
+        where: scopedWhere(admission.scope.organizationId, {
           ...this.outputWhere(admission),
           state: { in: ['reserved', 'generating'] },
           heldReason: null,
-        },
+        }),
         data: { heldReason: 'quality_evaluation_pending' },
       });
       await admission.reauthorize(tx);
@@ -364,7 +368,7 @@ export class BreakoutOutputQualityService {
       )
         throw new ConflictException('breakout_quality_material_changed');
       const changed = await tx.breakoutResponseOutput.updateMany({
-        where: {
+        where: scopedWhere(admission.scope.organizationId, {
           ...this.outputWhere(admission),
           state: { in: ['reserved', 'generating', 'awaiting_review'] },
           OR: [
@@ -375,7 +379,7 @@ export class BreakoutOutputQualityService {
               },
             },
           ],
-        },
+        }),
         data: {
           state:
             gate.decision === 'approved' ? 'generating' : 'awaiting_review',

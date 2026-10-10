@@ -9,6 +9,7 @@ import type {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isPlatform } from '@genfeedai/contracts';
 import type { BreakoutResponseView } from '@genfeedai/contracts/interfaces';
 import type { BreakoutResponse, Prisma } from '@genfeedai/prisma';
@@ -56,12 +57,10 @@ export class BreakoutResponseReadsService {
     return this.prisma.$transaction(
       async (tx) => {
         await this.access.assertBrand(actor, tx);
-        const where = {
-          organizationId: actor.organizationId,
+        const where = scopedWhere(actor.organizationId, {
           brandId: actor.brandId,
-          isDeleted: false,
           ...(query.credentialId ? { credentialId: query.credentialId } : {}),
-        };
+        });
         const rows = await tx.breakoutResponse.findMany({
           where,
           orderBy: [{ detectedAt: 'desc' }, { id: 'desc' }],

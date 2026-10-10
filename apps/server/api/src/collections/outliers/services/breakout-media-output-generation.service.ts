@@ -12,6 +12,7 @@ import {
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/prisma';
 import {
   BadRequestException,
@@ -161,7 +162,10 @@ export class BreakoutMediaOutputGenerationService {
       await admitBreakoutGenerationContinuation(tx, first);
       await admission.reauthorize(tx);
       const changed = await tx.breakoutResponseOutput.updateMany({
-        where: { ...where, state: 'reserved' },
+        where: scopedWhere(scope.organizationId, {
+          ...where,
+          state: 'reserved',
+        }),
         data: { state: 'generating', heldReason: null },
       });
       if (!changed.count) {

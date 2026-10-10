@@ -9,6 +9,7 @@ import { BrandIdentitySnapshotService } from '@api/services/branded-generation-r
 import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/openrouter-model.util';
 import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ModelCategory, Platform } from '@genfeedai/contracts';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import type {
@@ -97,7 +98,10 @@ export class BreakoutGenerationPlanService {
   private async readSource(request: BreakoutGenerationPlanRequest) {
     await request.reauthorize(this.prisma);
     const response = await this.prisma.breakoutResponse.findFirst({
-      where: { ...request.scope, id: request.responseId, isDeleted: false },
+      where: scopedWhere(request.scope.organizationId, {
+        ...request.scope,
+        id: request.responseId,
+      }),
     });
     await request.reauthorize(this.prisma);
     if (!response || !['detected', 'planned'].includes(response.state))

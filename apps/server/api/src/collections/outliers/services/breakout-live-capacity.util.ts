@@ -13,7 +13,10 @@ import {
   getNextWeeklyReset,
 } from '@api/collections/workflows/services/agent-autopilot-time.util';
 import { resolveBillingAccountAccess } from '@api/tenancy/billing-account-scope';
-import { billingAccountScopedWhere } from '@api/tenancy/scoped-where';
+import {
+  billingAccountScopedWhere,
+  scopedWhere,
+} from '@api/tenancy/scoped-where';
 import {
   Platform,
   TargetExecutionState,
@@ -174,8 +177,7 @@ export async function readBreakoutLiveCapacity(
   const policy = resolveCadencePolicy(c);
   const { start, end } = getCadenceWeek(c.timezone, now);
   const posts = await tx.post.findMany({
-    where: {
-      organizationId,
+    where: scopedWhere(organizationId, {
       brandId,
       agentStrategyId: strategyId,
       ...(currentPublication
@@ -196,7 +198,6 @@ export async function readBreakoutLiveCapacity(
           }
         : {}),
       parentId: null,
-      isDeleted: false,
       targetExecutionState: {
         in: [
           TargetExecutionState.SCHEDULED,
@@ -209,7 +210,7 @@ export async function readBreakoutLiveCapacity(
         { scheduledDate: { gte: start, lt: end } },
         { targetExecutionState: TargetExecutionState.PUBLISHING },
       ],
-    },
+    }),
     select: {
       id: true,
       groupId: true,

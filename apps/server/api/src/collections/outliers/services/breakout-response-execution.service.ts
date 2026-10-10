@@ -5,6 +5,7 @@ import {
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { BreakoutOutputRecoveryResult } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
@@ -160,12 +161,11 @@ export class BreakoutResponseExecutionService {
           AND "state" = 'planned' AND "isDeleted" = false FOR UPDATE
       `);
         const response = await tx.breakoutResponse.findFirst({
-          where: {
+          where: scopedWhere(request.scope.organizationId, {
             ...request.scope,
             id: request.responseId,
             state: 'planned',
-            isDeleted: false,
-          },
+          }),
           select: { outputPlanFingerprint: true },
         });
         await request.reauthorize(tx);
@@ -213,12 +213,12 @@ export class BreakoutResponseExecutionService {
             throw new ConflictException('breakout_execution_binding_conflict');
           await request.reauthorize(tx);
           const changed = await tx.breakoutResponseOutput.updateMany({
-            where: {
+            where: scopedWhere(request.scope.organizationId, {
               ...where,
               workflowExecutionId: null,
               state: 'reserved',
               generationKey: output.generationKey,
-            },
+            }),
             data: { workflowExecutionId: execution.id },
           });
           if (changed.count !== 1)
