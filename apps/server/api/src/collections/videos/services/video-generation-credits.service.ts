@@ -5,6 +5,7 @@ import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dt
 import type { SeedanceReferenceQuoteEvidence } from '@api/collections/videos/services/seedance-reference-evidence.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { assertApprovedGenerationQuote } from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
   commitDeferredCredits,
   type DeferredCreditsRequest,
@@ -129,6 +130,11 @@ export class VideoGenerationCreditsService {
       organization,
       model,
       resolvedModelDoc?.provider,
+    );
+    assertApprovedGenerationQuote(
+      reqWithCredits.creditsConfig?.approvedGenerationQuote,
+      modelQuote,
+      Boolean(byok),
     );
     if (
       !byok &&
