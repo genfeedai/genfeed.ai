@@ -19,6 +19,7 @@ import {
   BatchGenerationService,
   ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.service';
+import { DefaultGenerationAffordabilityService } from '@api/services/router/default-generation-affordability.service';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
@@ -74,6 +75,7 @@ export class AuthBootstrapService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly streaksService: StreaksService,
     private readonly usersService: UsersService,
+    private readonly defaultGenerationAffordability: DefaultGenerationAffordabilityService,
   ) {}
 
   private getOverviewBootstrapCacheKey(
@@ -376,8 +378,24 @@ export class AuthBootstrapService {
       };
     }
 
+    // Only the shell bootstrap carries the paywall signal; the overview
+    // bootstrap shares `resolveBootstrapBase` and never prices a model.
+    const access = organizationId
+      ? {
+          ...base.access,
+          canAffordDefaultGeneration:
+            await this.defaultGenerationAffordability.canAffordDefaultGeneration(
+              {
+                balance: base.access.creditsBalance,
+                organizationDefaultImageModel: base.settings?.defaultImageModel,
+                organizationId,
+              },
+            ),
+        }
+      : base.access;
+
     const payload: AccessBootstrapCachePayload = {
-      access: base.access,
+      access,
       brands: base.brands,
       currentUser: base.currentUser,
       fleetCapabilities: null,

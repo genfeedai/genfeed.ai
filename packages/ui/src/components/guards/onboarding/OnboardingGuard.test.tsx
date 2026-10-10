@@ -320,7 +320,7 @@ describe('OnboardingGuard', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it('still gates unpaid agent-first cloud orgs on billing by sending them to credits', async () => {
+  it('keeps the app reachable for an unpaid org whose credits cannot pay for a generation', async () => {
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'license_test';
     useCurrentUserMock.mockReturnValue({
       currentUser: {
@@ -345,6 +345,7 @@ describe('OnboardingGuard', () => {
       isLoading: false,
       isSubscribed: false,
       isSuperAdmin: false,
+      isTrialUsedUp: true,
       needsOnboarding: false,
     });
 
@@ -354,9 +355,10 @@ describe('OnboardingGuard', () => {
       </OnboardingGuard>,
     );
 
-    await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/acme/~/settings/credits');
-    });
+    // Library, Brand Kit and settings stay readable at the paywall state;
+    // only credit-spending actions answer with the credits prompt.
+    expect(await screen.findByText('Child')).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 
   it('should redirect unsigned users to login', async () => {

@@ -2,7 +2,8 @@
 'use client';
 
 import { isSaaS } from '@genfeedai/config/deployment';
-import { MemberRole } from '@genfeedai/contracts';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import { MemberRole, SubscriptionStatus } from '@genfeedai/contracts';
 import type { AccessBootstrapState } from '@genfeedai/services/auth/auth.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import {
@@ -37,6 +38,10 @@ vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
 
 vi.mock('@genfeedai/config/deployment', () => ({
   isSaaS: vi.fn(() => true),
+}));
+
+vi.mock('@genfeedai/config/license', () => ({
+  hasOrganizationBillingHint: vi.fn(() => true),
 }));
 
 vi.mock('@genfeedai/services/organization/users.service', () => ({
@@ -98,6 +103,7 @@ describe('AccessStateProvider', () => {
       organizationId: 'org_123',
     });
     vi.mocked(isSaaS).mockReturnValue(true);
+    vi.mocked(hasOrganizationBillingHint).mockReturnValue(true);
   });
 
   it('derives access flags from bootstrap state', () => {
@@ -329,6 +335,72 @@ describe('AccessStateProvider', () => {
       expect(screen.getByTestId('asset-gate-locked')).toHaveTextContent(
         'false',
       );
+    });
+  });
+
+  describe('isTrialUsedUp', () => {
+    // Billing on, no subscription, not a super admin, onboarding done, and a
+    // balance that cannot pay for one default image.
+    const usedUpAccessState: AccessBootstrapState = {
+      ...initialAccessState,
+      canAffordDefaultGeneration: false,
+      creditsBalance: 5,
+      isOnboardingCompleted: true,
+    };
+
+    function TrialConsumer() {
+      const { isTrialUsedUp } = useAccessState();
+
+      return <span data-testid="trial-used-up">{String(isTrialUsedUp)}</span>;
+    }
+
+    function renderTrial(accessState: AccessBootstrapState | null) {
+      const Wrapper = createWrapper();
+
+      render(
+        <Wrapper>
+          <AccessStateProvider
+            hasInitialBootstrap
+            initialAccessState={accessState}
+          >
+            <TrialConsumer />
+          </AccessStateProvider>
+        </Wrapper>,
+      );
+    }
+
+    it('is true once the balance cannot pay for one default image', () => {
+      renderTrial(usedUpAccessState);
+
+      expect(screen.getByTestId('trial-used-up')).toHaveTextContent('true');
+    });
+
+    it('is false while the balance still pays for one default image', () => {
+      renderTrial({ ...usedUpAccessState, canAffordDefaultGeneration: true });
+
+      expect(screen.getByTestId('trial-used-up')).toHaveTextContent('false');
+    });
+
+    it.each([
+      [
+        'an active subscription',
+        { subscriptionStatus: SubscriptionStatus.ACTIVE },
+      ],
+      ['a super admin', { isSuperAdmin: true }],
+      ['a user still onboarding', { isOnboardingCompleted: false }],
+      ['an unknown affordability', { canAffordDefaultGeneration: undefined }],
+    ])('is false for %s', (_label, overrides) => {
+      renderTrial({ ...usedUpAccessState, ...overrides });
+
+      expect(screen.getByTestId('trial-used-up')).toHaveTextContent('false');
+    });
+
+    it('is false on deployments without organization billing', () => {
+      vi.mocked(hasOrganizationBillingHint).mockReturnValue(false);
+
+      renderTrial(usedUpAccessState);
+
+      expect(screen.getByTestId('trial-used-up')).toHaveTextContent('false');
     });
   });
 
