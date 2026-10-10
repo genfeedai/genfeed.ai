@@ -109,6 +109,7 @@ export interface VideoStitchOutputRow {
   brandId: string | null;
   generationError: string | null;
   generationSource: string | null;
+  generationStage: string | null;
   id: string;
   mergeSettings: unknown;
   metadataId: string | null;

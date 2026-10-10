@@ -80,7 +80,7 @@ export class VideoMergeOrchestrationService {
         `manual:${randomUUID()}`,
       ),
     );
-    this.videoStitchService.trackInBackground(handle);
+    void this.videoStitchService.trackInBackground(handle);
 
     const output = await this.ingredientsService.findOne({
       id: handle.outputId,
