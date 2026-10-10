@@ -1485,6 +1485,10 @@ model Member {
   // MembersService), and BrandRelocationService reassigns affected members'
   // currentBrandId to a same-org brand before a brand's org changes.
   currentBrand             Brand        @relation("member_current_brand", fields: [currentBrandId], references: [id])
+  // #5502 native secondary apps this member installed into their own setup in
+  // this organization, in install order. A presentation preference only:
+  // organization, subscription and release access are checked separately.
+  installedAppIds          String[]     @default([])
   isActive                 Boolean      @default(true)
   isDeleted                Boolean      @default(false)
   createdAt                DateTime     @default(now())

@@ -6,6 +6,7 @@ and team collaboration features.
  */
 
 import { InvitationsController } from '@api/collections/members/controllers/invitations.controller';
+import { MemberAppsController } from '@api/collections/members/controllers/member-apps.controller';
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import { TeamMentionsController } from '@api/collections/members/controllers/team-mentions.controller';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
@@ -18,6 +19,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     InvitationsController,
+    MemberAppsController,
     MembersController,
     TeamMentionsController,
   ],

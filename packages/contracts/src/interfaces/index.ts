@@ -365,6 +365,7 @@ export * from './ui/icon.interface';
 export * from './ui/media-config.interface';
 export * from './ui/menu-config.interface';
 export * from './ui/module-card.interface';
+export * from './ui/native-app.interface';
 export * from './ui/navigation.interface';
 export * from './ui/overview-card.interface';
 export * from './ui/platform-badge-config.interface';

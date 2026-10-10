@@ -13,6 +13,7 @@ export * from './icon.interface';
 export * from './media-config.interface';
 export * from './menu-config.interface';
 export * from './module-card.interface';
+export * from './native-app.interface';
 export * from './navigation.interface';
 export * from './overview-card.interface';
 export * from './platform-badge-config.interface';
