@@ -154,8 +154,8 @@ describe('AdminFlagsPage (#5468)', () => {
       'Motion',
       'Storyboard',
       'Clips',
-      'TurboRun',
-      'Batch ideas',
+      'Turbo',
+      'Turbo ideas',
       'Editor',
     ]) {
       expect(screen.getByRole('switch', { name }).closest(CARD)).toBe(
@@ -191,7 +191,7 @@ describe('AdminFlagsPage (#5468)', () => {
       'Motion',
       'Storyboard',
       'Clips',
-      'TurboRun',
+      'Turbo',
       'Editor',
     ]) {
       expect(await screen.findByRole('switch', { name })).toBeInTheDocument();

@@ -433,7 +433,7 @@ describe('AppRail', () => {
       'href',
       '/acme/~/store',
     );
-    for (const retired of ['Studio', 'TurboRun', 'More', 'Admin']) {
+    for (const retired of ['Studio', 'Batch', 'More', 'Admin']) {
       expect(
         screen.queryByRole('link', { name: retired }),
       ).not.toBeInTheDocument();

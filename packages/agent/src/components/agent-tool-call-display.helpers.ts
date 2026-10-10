@@ -25,7 +25,7 @@ export const TOOL_LABELS: Record<string, string> = {
   execute_workflow: 'Execute Workflow',
   generate: 'Generate Media',
   generate_content: 'Generate Content',
-  generate_turbo_content: 'Batch Generate',
+  generate_turbo_content: 'Turbo',
   generate_monthly_content: 'Monthly Content',
   generate_onboarding_content: 'Generate Sample Content',
   get_account: 'Account',

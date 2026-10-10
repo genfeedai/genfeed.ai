@@ -120,7 +120,7 @@ export class TurboRunProcessingService {
         where: scopedWhere(orgId, { id: turboRunId }),
       });
       if (!existing) {
-        throw new NotFoundException('TurboRun', turboRunId);
+        throw new NotFoundException('Turbo run', turboRunId);
       }
       // Already generating or completed — return early without re-processing.
       throw new TurboRunAlreadyOwnedException(
@@ -135,7 +135,7 @@ export class TurboRunProcessingService {
         include: turboRunItemRowsInclude(orgId),
         where: scopedWhere(orgId, { id: turboRunId }),
       },
-      'TurboRun',
+      'Turbo run',
       turboRunId,
     )) as unknown as TurboRunWithConfig;
 
@@ -622,7 +622,7 @@ export class TurboRunProcessingService {
         include: turboRunItemRowsInclude(orgId),
         where: scopedWhere(orgId, { id: turboRunId }),
       },
-      'TurboRun',
+      'Turbo run',
       turboRunId,
     )) as unknown as TurboRunWithConfig;
   }

@@ -183,7 +183,7 @@ export class TurboRunReviewService {
           include: turboRunItemRowsInclude(orgId),
           where: scopedWhere(orgId, { id: turboRunId }),
         },
-        'TurboRun',
+        'Turbo run',
         turboRunId,
       ),
     );
@@ -379,7 +379,7 @@ export class TurboRunReviewService {
       where: scopedWhere(orgId, { id: turboRunId }),
     });
     if (!updated) {
-      throw new NotFoundException('TurboRun', turboRunId);
+      throw new NotFoundException('Turbo run', turboRunId);
     }
     return toTurboRunWithConfig(updated);
   }
@@ -762,7 +762,7 @@ export class TurboRunReviewService {
         include: turboRunItemRowsInclude(orgId),
         where: scopedWhere(orgId, { id: turboRunId }),
       },
-      'TurboRun',
+      'Turbo run',
       turboRunId,
     );
 
@@ -784,7 +784,7 @@ export class TurboRunReviewService {
       organizationId: orgId,
     });
     if (batchUpdate.count !== 1) {
-      throw new NotFoundException('TurboRun', turboRunId);
+      throw new NotFoundException('Turbo run', turboRunId);
     }
     const updatedTurboRun = toTurboRunWithConfig(
       await findOrThrow(
@@ -793,7 +793,7 @@ export class TurboRunReviewService {
           include: turboRunItemRowsInclude(orgId),
           where: scopedWhere(orgId, { id: turboRunId }),
         },
-        'TurboRun',
+        'Turbo run',
         turboRunId,
       ),
     );
@@ -823,7 +823,7 @@ export class TurboRunReviewService {
         include: turboRunItemRowsInclude(orgId),
         where: scopedWhere(orgId, { id: turboRunId }),
       },
-      'TurboRun',
+      'Turbo run',
       turboRunId,
     );
 
@@ -834,7 +834,7 @@ export class TurboRunReviewService {
       where: scopedWhere(orgId, { id: turboRunRecord.id }),
     });
     if (batchUpdate.count !== 1) {
-      throw new NotFoundException('TurboRun', turboRunId);
+      throw new NotFoundException('Turbo run', turboRunId);
     }
     const updatedTurboRun = toTurboRunWithConfig(
       await findOrThrow(
@@ -843,7 +843,7 @@ export class TurboRunReviewService {
           include: turboRunItemRowsInclude(orgId),
           where: scopedWhere(orgId, { id: turboRunId }),
         },
-        'TurboRun',
+        'Turbo run',
         turboRunId,
       ),
     );
@@ -890,7 +890,7 @@ export class TurboRunReviewService {
         include: turboRunItemRowsInclude(orgId),
         where: scopedWhere(orgId, { id: turboRunId }),
       },
-      'TurboRun',
+      'Turbo run',
       turboRunId,
     );
 
@@ -909,7 +909,7 @@ export class TurboRunReviewService {
       organizationId: orgId,
     });
     if (batchUpdate.count !== 1) {
-      throw new NotFoundException('TurboRun', turboRunId);
+      throw new NotFoundException('Turbo run', turboRunId);
     }
 
     const updatedTurboRun = toTurboRunWithConfig(
@@ -919,7 +919,7 @@ export class TurboRunReviewService {
           include: turboRunItemRowsInclude(orgId),
           where: scopedWhere(orgId, { id: turboRunId }),
         },
-        'TurboRun',
+        'Turbo run',
         turboRunId,
       ),
     );

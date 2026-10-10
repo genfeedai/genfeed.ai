@@ -29,7 +29,7 @@ export function runLockedReviewTransaction<T>(
         include: turboRunItemRowsInclude(orgId),
         where: scopedWhere(orgId, { id: turboRunId }),
       });
-      if (!turboRun) throw new NotFoundException('TurboRun', turboRunId);
+      if (!turboRun) throw new NotFoundException('Turbo run', turboRunId);
       const postIds = [
         ...new Set(
           resolveTurboRunItems(turboRun).flatMap((item) =>

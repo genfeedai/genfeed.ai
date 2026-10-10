@@ -335,7 +335,7 @@ describe('TurboProjectReconcileService', () => {
       id: 'output-1',
     });
     turboRunService.appendManualReviewItems.mockRejectedValue(
-      new NotFoundException('TurboRun', 'review-run-gone'),
+      new NotFoundException('Turbo run', 'review-run-gone'),
     );
 
     await service.reconcileProject('project-1', 'org-1');

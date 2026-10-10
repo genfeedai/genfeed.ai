@@ -88,9 +88,9 @@ export const AGENT_SLASH_COMMANDS: PromptCommand[] = [
   {
     description: 'Generate multiple posts',
     kind: 'prompt',
-    label: 'Batch Generate',
-    name: 'batch',
-    promptPrefix: 'Generate a batch of posts: ',
+    label: 'Turbo',
+    name: 'turbo',
+    promptPrefix: 'Generate a Turbo run of posts: ',
   },
   // Full prompt rather than a prefix: `/tweets-today` + Enter sends it as-is.
   {

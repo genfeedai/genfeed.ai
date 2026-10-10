@@ -305,7 +305,7 @@ export class TurboRunCreationService {
           where: scopedWhere(orgId, { brandId: dto.brandId, id: turboRunId }),
         });
         if (!current) {
-          throw new NotFoundException('TurboRun', turboRunId);
+          throw new NotFoundException('Turbo run', turboRunId);
         }
         const existing = toTurboRunWithConfig(current);
         const existingConfig: TurboRunConfig = existing.config;
@@ -351,7 +351,7 @@ export class TurboRunCreationService {
           organizationId: orgId,
         });
         if (result.count !== 1) {
-          throw new NotFoundException('TurboRun', turboRunId);
+          throw new NotFoundException('Turbo run', turboRunId);
         }
         await this.linkManualReviewPosts(
           turboRunId,
@@ -365,7 +365,7 @@ export class TurboRunCreationService {
           where: scopedWhere(orgId, { id: turboRunId }),
         });
         if (!updated) {
-          throw new NotFoundException('TurboRun', turboRunId);
+          throw new NotFoundException('Turbo run', turboRunId);
         }
         return toTurboRunWithConfig(updated);
       });

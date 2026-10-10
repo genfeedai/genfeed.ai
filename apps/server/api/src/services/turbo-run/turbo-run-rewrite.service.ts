@@ -199,7 +199,7 @@ export class TurboRunRewriteService {
       include: turboRunItemRowsInclude(organizationId),
       where: { id: turboRunId, organizationId, isDeleted: false },
     });
-    if (!turboRun) throw new NotFoundException('TurboRun', turboRunId);
+    if (!turboRun) throw new NotFoundException('Turbo run', turboRunId);
     // Posts always belong to a brand, and the rewrite uses its voice: a
     // brandless run has nothing it could rewrite.
     const brandId = turboRun.brandId;
