@@ -484,7 +484,13 @@ describe('AgentToolExecutorService mutation policy', () => {
     const result = await service.executeTool(
       'create_post',
       { content: 'hello' },
-      context({ hostSupportsApproval: true, threadId: testId('thread') }),
+      context({
+        attachmentUrls: ['https://cdn.example.com/reference.png'],
+        generationModelOverride: 'selected-model',
+        generationSettings: { aspectRatio: '16:9', model: 'selected-model' },
+        hostSupportsApproval: true,
+        threadId: testId('thread'),
+      }),
     );
 
     expect(result.success).toBe(true);
@@ -497,6 +503,13 @@ describe('AgentToolExecutorService mutation policy', () => {
       'create_post',
       { content: 'hello' },
       {
+        // Generation inputs are bound to the approval so pricing is quoted
+        // against the exact model and settings the operator chose.
+        generationContext: {
+          attachmentUrls: ['https://cdn.example.com/reference.png'],
+          generationModelOverride: 'selected-model',
+          generationSettings: { aspectRatio: '16:9', model: 'selected-model' },
+        },
         threadId: expect.any(String),
         scope: expect.objectContaining({
           brandId: 'brand-1',
