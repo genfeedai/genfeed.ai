@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PostStatus } from '..';
 
 import {
+  createPublishingApprovalsRoute,
   createPublishingPostsFilterRoute,
   PUBLISHING_POSTS_QUERY_KEYS,
   parsePublishingPostsViewMode,
@@ -9,6 +10,32 @@ import {
 import { APP_ROUTES } from './routes.constant';
 
 describe('publishing-posts-routes.constant', () => {
+  it('opens the approvals Posts view (#5502)', () => {
+    expect(createPublishingApprovalsRoute()).toBe(APP_ROUTES.PUBLISHING.REVIEW);
+    expect(APP_ROUTES.PUBLISHING.REVIEW).toBe(
+      '/publishing/posts?view=approvals',
+    );
+  });
+
+  it('carries the Turbo run, filter and item, skipping empty values', () => {
+    expect(
+      createPublishingApprovalsRoute({
+        filter: 'ready',
+        item: 'item-2',
+        run: 'run-1',
+      }),
+    ).toBe(
+      '/publishing/posts?view=approvals&run=run-1&filter=ready&item=item-2',
+    );
+    expect(
+      createPublishingApprovalsRoute({
+        filter: undefined,
+        item: '',
+        run: null,
+      }),
+    ).toBe('/publishing/posts?view=approvals');
+  });
+
   it('returns the canonical library when no filters are provided', () => {
     expect(createPublishingPostsFilterRoute()).toBe(
       APP_ROUTES.PUBLISHING.POSTS,

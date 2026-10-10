@@ -149,7 +149,7 @@ export const APP_CHROME_COLOR_SURFACES: Array<{
     root: 'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal',
   },
   {
-    root: 'apps/app/src/features/workflows/pages/batch',
+    root: 'apps/app/src/features/workflows/pages/turbo',
   },
   {
     root: 'apps/app/src/features/workflows/pages/library',

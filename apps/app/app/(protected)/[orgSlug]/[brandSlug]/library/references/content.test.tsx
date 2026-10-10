@@ -191,13 +191,14 @@ describe('LibraryCharactersPage', () => {
 
     render(<LibraryCharactersPage />);
 
+    // #5502: the page is Library References; characters are its first type.
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Characters' }),
+      screen.getByRole('heading', { level: 1, name: 'References' }),
     ).toBeInTheDocument();
 
     resolveListCharacters([]);
     await waitFor(() => {
-      expect(screen.getByText('Characters')).toBeInTheDocument();
+      expect(screen.getByText('References')).toBeInTheDocument();
     });
   });
 

@@ -308,7 +308,7 @@ describe('routes.constant', () => {
       ),
     ).toBe('/acme/~/settings/brands');
     expect(
-      createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.CHARACTERS),
+      createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.REFERENCES),
     ).toBe('/acme/~/settings/brands');
   });
 

@@ -4,6 +4,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -135,6 +136,17 @@ describe.skipIf(!connectionString)(
         patch: (id: string, data: { hasEverHadCredits: boolean }) =>
           db.organizationSetting.update({ where: { id }, data }),
       } as unknown as OrganizationSettingsService;
+      // The real trial service, so the trial-subject query shape runs
+      // against Postgres too.
+      const freeTrial = new FreeTrialService(
+        prismaService,
+        transaction,
+        balance,
+        ledger,
+        socket as unknown as NotificationsPublisherService,
+        cache as unknown as AccessBootstrapCacheService,
+        logger,
+      );
       reservations = new CreditReservationService(
         prismaService,
         logger,
@@ -153,11 +165,14 @@ describe.skipIf(!connectionString)(
         socket as unknown as NotificationsPublisherService,
         cache as unknown as AccessBootstrapCacheService,
         transaction,
+        freeTrial,
       );
       service = new OnboardingCreditGrantsService(
         transaction,
         settings,
         credits,
+        freeTrial,
+        logger,
       );
       vi.clearAllMocks();
     });

@@ -1,3 +1,10 @@
+const billingConfig = vi.hoisted(() => ({
+  hasOrganizationBilling: vi.fn(() => false),
+}));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  hasOrganizationBilling: billingConfig.hasOrganizationBilling,
+}));
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
@@ -19,6 +26,7 @@ vi.mock(
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -39,6 +47,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('OrganizationsSettingsController', () => {
@@ -65,6 +74,7 @@ describe('OrganizationsSettingsController', () => {
     userId: testId('user'),
   } satisfies ISubscriptionOssReadModel;
 
+  const mockEventEmitter = { emitAsync: vi.fn() };
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -211,6 +221,7 @@ describe('OrganizationsSettingsController', () => {
           useValue: mockWebhookDispatchService,
         },
         AccessBootstrapCacheService,
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         {
           provide: RedisService,
           useValue: { getPublisher: () => redis },
@@ -307,6 +318,50 @@ describe('OrganizationsSettingsController', () => {
       isWhitelabelEnabled: true,
     };
 
+    it('starts the free trial (grants trial credits) when onboarding is skipped', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+      mockOrganizationSettingsService.patch.mockResolvedValue({
+        ...mockOrganizationSettings,
+        isFirstLogin: false,
+      });
+
+      await controller.updateSettings(
+        {
+          context: { organizationId },
+          user: { id: 'user-1', organizationId, userId: 'user-1' },
+        } as unknown as Request,
+        organizationId,
+        { isFirstLogin: false },
+      );
+
+      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+        ORGANIZATION_ONBOARDING_FINISHED_EVENT,
+        { organizationId, outcome: 'skipped', userId: 'user-1' },
+      );
+    });
+
+    it('does not announce an onboarding finish for any other settings write', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+      mockOrganizationSettingsService.patch.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+
+      await controller.updateSettings(
+        {
+          context: { organizationId },
+          user: { id: 'user-1', organizationId, userId: 'user-1' },
+        } as unknown as Request,
+        organizationId,
+        { isFirstLogin: true, isWhitelabelEnabled: true },
+      );
+
+      expect(mockEventEmitter.emitAsync).not.toHaveBeenCalled();
+    });
+
     it('patches the setting returned by the canonical get-or-create policy', async () => {
       mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
@@ -382,6 +437,96 @@ describe('OrganizationsSettingsController', () => {
           );
         },
       );
+    });
+
+    describe('founder release preview (#5502)', () => {
+      beforeEach(() => {
+        billingConfig.hasOrganizationBilling.mockReturnValue(true);
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          {
+            ...mockOrganizationSettings,
+            isReleasePreviewEnabled: false,
+            moduleOverrides: { messages: true },
+          },
+        );
+        mockOrganizationSettingsService.patch.mockResolvedValue(
+          mockOrganizationSettings,
+        );
+      });
+      afterEach(() => {
+        billingConfig.hasOrganizationBilling.mockReturnValue(false);
+      });
+
+      it('refuses an owner changing release preview', async () => {
+        await expect(
+          controller.updateSettings(
+            memberRequest(organizationA),
+            organizationA,
+            { isReleasePreviewEnabled: true },
+          ),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it('lets a superadmin turn release preview on', async () => {
+        await controller.updateSettings(
+          superAdminRequest(organizationA),
+          organizationA,
+          { isReleasePreviewEnabled: true },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          mockOrganizationSettings.id,
+          { isReleasePreviewEnabled: true },
+        );
+      });
+
+      it('refuses an owner switching on an unreleased module', async () => {
+        await expect(
+          controller.updateSettings(
+            memberRequest(organizationA),
+            organizationA,
+            { moduleOverrides: { automation: true, messages: true } },
+          ),
+        ).rejects.toMatchObject({
+          status: 403,
+          message: 'Automation not released yet',
+        });
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it('keeps saving other modules when an unreleased module was already on', async () => {
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          { moduleOverrides: { messages: true, turbo: true } },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          mockOrganizationSettings.id,
+          { moduleOverrides: { messages: true, turbo: true } },
+        );
+      });
+
+      it('lets an owner enable founder-only modules on release preview', async () => {
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          { ...mockOrganizationSettings, isReleasePreviewEnabled: true },
+        );
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          { moduleOverrides: { automation: true } },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalled();
+      });
+
+      it('applies no release gate to self-hosted deployments', async () => {
+        billingConfig.hasOrganizationBilling.mockReturnValue(false);
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          { moduleOverrides: { automation: true } },
+        );
+        expect(organizationSettingsService.patch).toHaveBeenCalled();
+      });
     });
 
     describe('target organization', () => {

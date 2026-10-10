@@ -27,6 +27,13 @@ export interface AccessBootstrapState {
    * unknown, which never reads as "cannot afford".
    */
   canAffordDefaultGeneration?: boolean;
+  /**
+   * When the organization's 3-day free trial ends (ISO 8601); null when the
+   * trial does not apply (it paid, or billing is off).
+   */
+  trialEndsAt?: string | null;
+  /** The free trial is over and the organization never paid. */
+  isTrialExpired?: boolean;
   // First-asset unlock gate flags (see AccessBootstrapStatePayload on the API).
   hasGeneratedFirstAsset: boolean;
   hasDismissedAssetGate: boolean;

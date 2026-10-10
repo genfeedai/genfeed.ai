@@ -24,6 +24,7 @@ import {
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
+import LibraryOverview from '@pages/library/overview/library-overview';
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
@@ -43,7 +44,7 @@ import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/pa
 import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
-import PostsReviewPage from '../../../[brandSlug]/publishing/review/page';
+import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
 import EditorDetailPage from '../../../[brandSlug]/studio/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/editor/new/page';
@@ -72,7 +73,6 @@ const ORG_LIBRARY_CANONICAL_SEGMENT: Readonly<Record<string, string>> = {
   image: 'images',
   musics: 'music',
   moodboard: 'assets',
-  overview: 'assets',
   video: 'videos',
   voice: 'voices',
 };
@@ -281,8 +281,18 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'library') {
-    if (!segments?.[0] || segments[0] === 'ingredients') {
+    if (!segments?.[0]) {
+      redirect(
+        createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.OVERVIEW),
+      );
+    }
+
+    if (segments[0] === 'ingredients') {
       redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.ASSETS));
+    }
+
+    if (segments[0] === 'overview' && segments.length === 1) {
+      return <LibraryOverview scope={PageScope.ORGANIZATION} />;
     }
 
     const canonicalSegment = ORG_LIBRARY_CANONICAL_SEGMENT[segments[0]];
@@ -384,6 +394,7 @@ export default async function OrgRootAppPage({
 
     if (publishingSegments.length === 1 && section === 'posts') {
       const postsListPage = await renderPostsListPage({
+        approvals: <ReviewQueueContent />,
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,
       });
@@ -398,14 +409,6 @@ export default async function OrgRootAppPage({
         searchParams: searchParams ?? Promise.resolve({}),
       });
       return null;
-    }
-
-    if (publishingSegments.length === 1 && section === 'review') {
-      return (
-        <PublishingLayoutContent>
-          <PostsReviewPage />
-        </PublishingLayoutContent>
-      );
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {

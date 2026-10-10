@@ -220,7 +220,9 @@ export class AgentCompletionCardBuilderService {
     const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
 
     if (path === '/review') {
-      return `${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
+      return suffix.startsWith('?')
+        ? `${APP_ROUTES.PUBLISHING.REVIEW}&${suffix.slice(1)}`
+        : `${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
     }
 
     if (path === '/calendar' || path === '/calendar/posts') {

@@ -60,6 +60,7 @@ export default function LibraryBrowser({
     handleClearOrigins,
     handleClearTags,
     handleOriginsChange,
+    handlePlaceChange,
     handleRefresh,
     handleSearchChange,
     handleSortChange,
@@ -200,6 +201,7 @@ export default function LibraryBrowser({
                 onClearOrigins={handleClearOrigins}
                 onClearTags={handleClearTags}
                 onOriginsChange={handleOriginsChange}
+                onPlaceChange={handlePlaceChange}
                 onStatusChange={handleStatusChange}
                 origins={origins}
                 place={place}

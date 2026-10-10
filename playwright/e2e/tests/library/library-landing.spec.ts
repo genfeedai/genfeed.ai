@@ -31,17 +31,19 @@ test.describe('Library', () => {
     await mockContentLibrary(authenticatedPage, 'videos', 3);
   });
 
-  test('opens the asset browser at the Library root', async ({
+  test('opens the Library Overview at the Library root (#5502)', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      brandRoute(APP_ROUTES.LIBRARY.ASSETS),
+      brandRoute(APP_ROUTES.LIBRARY.OVERVIEW),
     );
 
-    await expect(authenticatedPage).not.toHaveURL(/library\/overview/);
     await expect(
-      authenticatedPage.getByRole('link', { name: 'All assets' }),
+      authenticatedPage.getByRole('link', { name: 'Review assets' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Assets', exact: true }),
     ).toBeVisible();
   });
 
@@ -55,8 +57,14 @@ test.describe('Library', () => {
 
     const rail = authenticatedPage.getByTestId('desktop-sidebar-rail');
 
-    for (const label of ['All assets', 'Recent', 'Starred', 'Characters']) {
-      await expect(rail.getByRole('link', { name: label })).toBeVisible();
+    // #5502: Recent and Starred are a toolbar filter, not navigation.
+    for (const label of ['Overview', 'Assets', 'References']) {
+      await expect(
+        rail.getByRole('link', { name: label, exact: true }),
+      ).toBeVisible();
+    }
+    for (const label of ['Recent', 'Starred', 'Characters']) {
+      await expect(rail.getByRole('link', { name: label })).toHaveCount(0);
     }
 
     await expect(rail.getByText('Shelves')).toHaveCount(0);
@@ -64,6 +72,9 @@ test.describe('Library', () => {
     await expect(rail.getByRole('link', { name: 'Unsorted' })).toHaveCount(0);
     await expect(
       authenticatedPage.getByRole('combobox', { name: 'Status' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('combobox', { name: 'Show' }),
     ).toBeVisible();
   });
 
@@ -128,7 +139,7 @@ test.describe('Library', () => {
       new URL(authenticatedPage.url()).searchParams.getAll('categories'),
     ).toEqual(['VIDEO', 'VIDEO_EDIT']);
     await expect(
-      authenticatedPage.getByRole('link', { name: 'All assets' }),
+      authenticatedPage.getByRole('link', { name: 'Assets', exact: true }),
     ).toBeVisible();
   });
 });

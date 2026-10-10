@@ -10,7 +10,7 @@ describe('organization module preference DTO validation', () => {
     });
     expect(await validate(dto)).toEqual([]);
   });
-  it.each([{ unknown: true }, { batch: 'true' }, { playground: false }, [], 1])(
+  it.each([{ unknown: true }, { turbo: 'true' }, { playground: false }, [], 1])(
     'rejects malformed override %j',
     async (moduleOverrides) => {
       const dto = Object.assign(new UpdateOrganizationSettingDto(), {

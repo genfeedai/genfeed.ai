@@ -10,7 +10,10 @@ import {
   normalizeInstalledAppIds,
   resolveNativeAppAvailability,
 } from './native-apps.constant';
-import { ORGANIZATION_MODULE_IDS } from './organization-modules.constant';
+import {
+  ORGANIZATION_MODULE_IDS,
+  ORGANIZATION_MODULES,
+} from './organization-modules.constant';
 
 const ALLOWED = { isAllowed: true, reason: null } as const;
 
@@ -62,6 +65,15 @@ describe('native apps catalog (#5502)', () => {
       );
     }
     expect(NATIVE_SECONDARY_APPS.turbo.organizationModuleId).toBe('batch');
+  });
+
+  it('marks an app founder-only exactly when its module is founder-only', () => {
+    for (const appId of NATIVE_SECONDARY_APP_IDS) {
+      const app = NATIVE_SECONDARY_APPS[appId];
+      expect(app.releaseEligibility === 'founder-only').toBe(
+        ORGANIZATION_MODULES[app.organizationModuleId].isFounderOnly,
+      );
+    }
   });
 
   it('opens Edit and Clip in their specialist apps', () => {
@@ -135,6 +147,17 @@ describe('resolveNativeAppAvailability', () => {
         organizationAccess: { isAllowed: false, reason: 'unavailable' },
       }),
     ).toBe('unavailable');
+  });
+
+  it('reports an unreleased module as founder-only', () => {
+    expect(
+      availability({
+        appId: 'motion',
+        installedAppIds: ['motion'],
+        isFounderOperator: true,
+        organizationAccess: { isAllowed: false, reason: 'unreleased' },
+      }),
+    ).toBe('founder-only');
   });
 
   it('treats unresolved organization access as unavailable', () => {

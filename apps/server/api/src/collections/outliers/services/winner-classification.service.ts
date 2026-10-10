@@ -1,6 +1,7 @@
 import { mapPostCategoryToContentType } from '@api/collections/content-performance/utils/content-performance-category.util';
 import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import { normalizeOutlierContentType } from '@api/collections/outliers/services/outlier-inputs.service';
+import { latestWinnerAnalyticsIds } from '@api/collections/outliers/services/winner-latest-analytics.query';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -16,7 +17,7 @@ import type {
 import { classifyWinners } from '@genfeedai/helpers';
 import { Injectable } from '@nestjs/common';
 
-/** Latest analytics rows read per brand; older history adds nothing to a window ≤ 50. */
+/** Posts read per request, newest analytics first; each keeps only its latest row. */
 const MAX_ANALYTICS_ROWS = 5_000;
 const DEFAULT_LIMIT = 50;
 
@@ -135,6 +136,17 @@ export class WinnerClassificationService {
     const platform = query.platform
       ? toPrismaCredentialPlatform(query.platform)
       : undefined;
+    // An unknown platform names nothing; it must not widen to every platform.
+    if (query.platform && !platform) return [];
+    const latest = await this.prisma.$queryRaw<Array<{ id: string }>>(
+      latestWinnerAnalyticsIds({
+        brandId,
+        limit: MAX_ANALYTICS_ROWS,
+        organizationId,
+        platform,
+      }),
+    );
+    if (!latest.length) return [];
     const rows = await this.prisma.postAnalytics.findMany({
       orderBy: [{ date: 'desc' }, { id: 'desc' }],
       select: {
@@ -162,9 +174,9 @@ export class WinnerClassificationService {
         totalLikes: true,
         totalViews: true,
       },
-      take: MAX_ANALYTICS_ROWS,
       where: scopedWhere(organizationId, {
         ...(brandId ? { brandId } : {}),
+        id: { in: latest.map((row) => row.id) },
         isDeleted: false,
         organizationId,
         ...(platform ? { platform } : {}),

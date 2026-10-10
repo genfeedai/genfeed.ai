@@ -187,6 +187,8 @@ export function resolveNativeAppAvailability({
         return 'organization-disabled';
       case 'subscription-required':
         return 'subscription-required';
+      case 'unreleased':
+        return 'founder-only';
       default:
         return 'unavailable';
     }

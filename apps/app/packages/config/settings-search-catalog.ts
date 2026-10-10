@@ -78,13 +78,13 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     keywords: ['generation', 'receipts', 'audit'],
   },
   {
-    id: 'brand:characters',
+    id: 'brand:references',
     scope: SettingsSurface.BRAND,
     group: 'Library',
-    label: 'Characters',
+    label: 'References',
     description: 'Reusable characters, training and availability',
-    href: APP_ROUTES.LIBRARY.CHARACTERS,
-    keywords: ['characters', 'training', 'elements', 'availability'],
+    href: APP_ROUTES.LIBRARY.REFERENCES,
+    keywords: ['references', 'characters', 'training', 'availability'],
   },
 ];
 

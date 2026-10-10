@@ -17,6 +17,7 @@ import { normalizePostingTimes } from '@genfeedai/contracts/api-types/contracts/
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
+  createPublishingApprovalsRoute,
 } from '@genfeedai/contracts/constants';
 import type {
   IArticle,
@@ -967,9 +968,10 @@ export default function ContentCalendarPage({
             );
             push(
               href(
-                draft.reviewTurboRunId
-                  ? `/publishing/review?run=${draft.reviewTurboRunId}&filter=ready`
-                  : '/publishing/review',
+                createPublishingApprovalsRoute({
+                  run: draft.reviewTurboRunId,
+                  filter: draft.reviewTurboRunId ? 'ready' : undefined,
+                }),
               ),
             );
             return;

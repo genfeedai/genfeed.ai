@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   brandId: 'brand-1',
   settings: {
     hasOrganizationBilling: true,
+    isReleasePreviewEnabled: true,
     hasPaidModuleSubscription: true,
     moduleOverrides: { automation: true },
   } as Record<string, unknown>,
@@ -70,6 +71,7 @@ describe('TurboNewProjectPage', () => {
     mocks.isIdeasEnabled = true;
     mocks.settings = {
       hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
       hasPaidModuleSubscription: true,
       moduleOverrides: { automation: true },
     };
@@ -137,8 +139,12 @@ describe('TurboNewProjectPage', () => {
     expect(mocks.list).not.toHaveBeenCalled();
   });
   it('keeps credit-based ideas available while Automation is off', async () => {
-    mocks.settings = { hasOrganizationBilling: true, moduleOverrides: {} };
-    render(<TurboNewProjectPage />);
+    mocks.settings = {
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+      moduleOverrides: {},
+    };
+    render(<BatchNewProjectPage />);
     expect(
       screen.getByRole('button', { name: 'Saved workflow' }),
     ).toBeDisabled();
@@ -160,6 +166,7 @@ describe('TurboNewProjectPage', () => {
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
     mocks.settings = {
       hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
       moduleOverrides: { automation: false },
     };
     rerender(<TurboNewProjectPage />);
@@ -302,6 +309,7 @@ describe('Turbo workflow paid admission', () => {
     mocks.isIdeasEnabled = true;
     mocks.settings = {
       hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
       moduleOverrides: { automation: true },
       hasPaidModuleSubscription: true,
     };

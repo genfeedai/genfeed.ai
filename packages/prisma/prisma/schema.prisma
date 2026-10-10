@@ -1789,6 +1789,9 @@ model OrganizationSetting {
   defaultMusicModel              String?
   agentPolicy                    Json              @default("{}")
   moduleOverrides                Json              @default("{}")
+  // #5502 founder release preview. Only platform admins set it; on cloud,
+  // founder-only modules admit new work only in organizations with it on.
+  isReleasePreviewEnabled        Boolean           @default(false)
   fleetEvaluationPolicy          Json              @default("{}")
   byokKeys                       Json              @default("{}")
   createdAt                      DateTime          @default(now())

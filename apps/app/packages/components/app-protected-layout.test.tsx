@@ -1087,7 +1087,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     ['/workspace', 'Workspace'],
     ['/studio/storyboard', 'Storyboard'],
-    ['/library/images', 'All assets'],
+    ['/library/images', 'Assets'],
     ['/discovery/overview', 'Overview'],
     ['/analytics', 'Overview'],
     ['/automation/runs', 'Runs'],
@@ -1617,6 +1617,46 @@ describe('AppProtectedLayout', () => {
     );
   });
 
+  it.each([
+    [false, false],
+    [true, true],
+  ])(
+    'lists Campaigns only on release preview %s (#5502)',
+    (isReleasePreviewEnabled, isListed) => {
+      mockPathname.value = '/publishing/posts';
+      mockBrandState.settings.hasOrganizationBilling = true;
+      mockBrandState.settings.isReleasePreviewEnabled = isReleasePreviewEnabled;
+
+      render(
+        <AppProtectedLayout>
+          <div>Founder-only nav</div>
+        </AppProtectedLayout>,
+      );
+
+      const items: MenuItemConfig[] = appSidebarSpy.mock.lastCall?.[0].items;
+      expect(items.some((item) => item.label === 'Campaigns')).toBe(isListed);
+    },
+  );
+
+  it('shows customers only Overview, Posts and Accounts in Analytics (#5502)', () => {
+    mockPathname.value = '/analytics/overview';
+    mockBrandState.settings.hasOrganizationBilling = true;
+    mockBrandState.settings.isReleasePreviewEnabled = false;
+
+    render(
+      <AppProtectedLayout>
+        <div>Customer analytics</div>
+      </AppProtectedLayout>,
+    );
+
+    const items: MenuItemConfig[] = appSidebarSpy.mock.lastCall?.[0].items;
+    expect(items.map((item) => item.label)).toEqual([
+      'Overview',
+      'Posts',
+      'Accounts',
+    ]);
+  });
+
   it('lists only the current Studio app in its nav (#5502)', () => {
     mockPathname.value = '/studio/storyboard';
     mockBrandState.settings.hasOrganizationBilling = true;
@@ -1636,6 +1676,8 @@ describe('AppProtectedLayout', () => {
   it('updates an app nav without discarding existing project content', () => {
     mockPathname.value = '/studio/clips/project-123';
     mockBrandState.settings.hasOrganizationBilling = true;
+    // Release preview isolates the module switch from the #5502 release gate.
+    mockBrandState.settings.isReleasePreviewEnabled = true;
     mockBrandState.settings.moduleOverrides = { clips: true };
     const { rerender } = render(
       <AppProtectedLayout>

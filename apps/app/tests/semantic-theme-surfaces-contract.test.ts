@@ -147,12 +147,12 @@ describe('semantic theme surface contracts', () => {
     expect(source).toContain('hsl(var(--background) / 0.8)');
   });
 
-  // Batch projects list through `ListRow`s inside a `CollectionList`: each row
+  // Turbo projects list through `ListRow`s inside a `CollectionList`: each row
   // draws its own theme-token divider and drops it on the last child, so a row
   // must be a direct list child (a wrapper would make every row "last").
-  it('uses the theme border token for batch job dividers', () => {
+  it('uses the theme border token for Turbo project dividers', () => {
     const page = readSource(
-      'src/features/workflows/pages/batch/TurboProjectsPage.tsx',
+      'src/features/workflows/pages/turbo/TurboProjectsPage.tsx',
     );
     const listRow = readSource(
       '../../packages/ui/src/components/lists/list-row/ListRow.tsx',

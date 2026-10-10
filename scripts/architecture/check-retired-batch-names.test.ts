@@ -37,6 +37,7 @@ describe('retired Batch product name guard (#5936)', () => {
           "const execution = 'workflow.batch.execute';",
           'await prisma.post.updateMany({ where: { id: { in: ids } } }); // in batches',
           'type LearningBatchGenerationInput = { count: number };',
+          "import { X } from '@api/collections/workflows/services/batch-workflow-execution.service';",
         ].join('\n'),
       ),
     ).toEqual([]);
@@ -51,6 +52,7 @@ describe('retired Batch product name guard (#5936)', () => {
         "const tool = 'generate_content_batch';",
         'const id = post.reviewBatchId;',
         'await prisma.batch.findMany();',
+        "readSource('src/features/workflows/pages/batch/Page.tsx');",
       ].join('\n'),
     ).map((violation) => violation.name);
 
@@ -60,6 +62,7 @@ describe('retired Batch product name guard (#5936)', () => {
       'generate_content_batch',
       'reviewBatchId',
       'prisma.batch',
+      'pages/batch',
     ]);
   });
 

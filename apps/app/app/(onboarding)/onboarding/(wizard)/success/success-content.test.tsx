@@ -13,7 +13,7 @@ describe('app/(onboarding)/onboarding/(wizard)/success/success-content.tsx', () 
     );
     expect(source).toContain('export ');
     expect(source).toContain('Starter Credits Ready');
-    expect(source).toContain('ONBOARDING_SIGNUP_GIFT_CREDITS');
+    expect(source).toContain('ONBOARDING_STARTER_CREDITS');
     expect(source).toContain('useCompleteOnboarding');
     expect(source).toContain('completeOnboarding()');
 

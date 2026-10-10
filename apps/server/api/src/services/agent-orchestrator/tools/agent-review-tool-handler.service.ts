@@ -7,6 +7,7 @@ import {
   ReviewDecision,
   TurboRunItemStatus,
 } from '@genfeedai/contracts';
+import { createPublishingApprovalsRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -160,7 +161,10 @@ export class AgentReviewToolHandler {
           id: `review-queue-${String(turboRun.id)}`,
           outcomeBullets,
           primaryCta: {
-            href: `/publishing/review?run=${String(turboRun.id)}&filter=ready`,
+            href: createPublishingApprovalsRoute({
+              run: String(turboRun.id),
+              filter: 'ready',
+            }),
             label: 'Open reviews',
           },
           status: 'completed',
@@ -242,7 +246,7 @@ export class AgentReviewToolHandler {
                 ? ['Queue is empty']
                 : [`${readyCount} ready for review`],
           primaryCta: {
-            href: '/publishing/review?filter=ready',
+            href: createPublishingApprovalsRoute({ filter: 'ready' }),
             label: 'Open reviews',
           },
           status: 'completed',
@@ -288,7 +292,10 @@ export class AgentReviewToolHandler {
           {
             id: `review-queue-approval-${turboRunId}`,
             primaryCta: {
-              href: `/publishing/review?run=${turboRunId}&filter=ready`,
+              href: createPublishingApprovalsRoute({
+                run: turboRunId,
+                filter: 'ready',
+              }),
               label: 'Review exact versions',
             },
             status: 'pending',

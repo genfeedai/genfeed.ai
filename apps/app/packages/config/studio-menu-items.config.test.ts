@@ -29,7 +29,7 @@ describe('Studio app menus (#5502)', () => {
       'Editor',
     ]);
     expect(STUDIO_APP_MENU_ITEMS.turbo[0].href).toBe('/studio/turbo');
-    expect(STUDIO_APP_MENU_ITEMS.turbo[0].organizationModule).toBe('batch');
+    expect(STUDIO_APP_MENU_ITEMS.turbo[0].organizationModule).toBe('turbo');
   });
 
   it('resolves nested Studio routes to their app and nothing else', () => {

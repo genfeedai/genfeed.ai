@@ -18,7 +18,6 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'automationContentRuns', prefix: APP_ROUTES.AUTOMATION.CONTENT_RUNS },
   { key: 'publishingOverview', prefix: APP_ROUTES.PUBLISHING.OVERVIEW },
   { key: 'publishingPosts', prefix: APP_ROUTES.PUBLISHING.POSTS },
-  { key: 'publishingApprovalQueue', prefix: APP_ROUTES.PUBLISHING.REVIEW },
   { key: 'publishingCampaigns', prefix: APP_ROUTES.PUBLISHING.CAMPAIGNS },
   { key: 'publishingRemix', prefix: APP_ROUTES.PUBLISHING.REMIX },
   { key: 'analyticsOverview', prefix: APP_ROUTES.ANALYTICS.OVERVIEW },
@@ -77,6 +76,11 @@ export function resolvePageHelpKey(
     new URLSearchParams(search).get('view') === 'calendar'
   )
     return 'publishingCalendar';
+  if (
+    path === APP_ROUTES.PUBLISHING.POSTS &&
+    new URLSearchParams(search).get('view') === 'approvals'
+  )
+    return 'publishingApprovalQueue';
   if (
     path === APP_ROUTES.AUTOMATION.WORKFLOWS &&
     new URLSearchParams(search).get('view') === 'templates'

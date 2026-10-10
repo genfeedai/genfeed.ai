@@ -54,14 +54,18 @@ function history(count = 8) {
   return Array.from({ length: count }, (_, i) => row(`history-${i}`, i + 10));
 }
 
-function createService(rows: unknown[]) {
+function createService(rows: unknown[], latestIds = [{ id: 'latest-1' }]) {
   const findMany = vi.fn().mockResolvedValue(rows);
+  const queryRaw = vi.fn().mockResolvedValue(latestIds);
   const resolve = vi.fn().mockResolvedValue(CONFIG);
   const service = new WinnerClassificationService(
-    { postAnalytics: { findMany } } as unknown as PrismaService,
+    {
+      $queryRaw: queryRaw,
+      postAnalytics: { findMany },
+    } as unknown as PrismaService,
     { resolve } as unknown as OutlierConfigurationService,
   );
-  return { findMany, resolve, service };
+  return { findMany, queryRaw, resolve, service };
 }
 
 describe('WinnerClassificationService (#5502)', () => {
@@ -78,12 +82,56 @@ describe('WinnerClassificationService (#5502)', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           brandId: 'brand-a',
+          id: { in: ['latest-1'] },
           isDeleted: false,
           organizationId: 'org-a',
           platform: 'INSTAGRAM',
         }),
       }),
     );
+  });
+
+  it('selects the latest row per post in SQL before applying the cap', async () => {
+    const { queryRaw, service } = createService([]);
+
+    await service.findWinners(
+      { brandId: 'brand-a', organizationId: 'org-a', platform: 'instagram' },
+      NOW,
+    );
+
+    const [sql] = queryRaw.mock.calls[0];
+    expect(sql.sql).toContain('DISTINCT ON (pa."postId", pa.platform)');
+    expect(sql.sql).toMatch(/\) latest\s+ORDER BY latest\.date DESC/);
+    expect(sql.values).toEqual([
+      'org-a',
+      'org-a',
+      'brand-a',
+      'brand-a',
+      'INSTAGRAM',
+      5000,
+    ]);
+  });
+
+  it('returns nothing for an unknown platform instead of every platform', async () => {
+    const { findMany, queryRaw, service } = createService([]);
+
+    await expect(
+      service.findWinners(
+        { organizationId: 'org-a', platform: 'not-a-platform' },
+        NOW,
+      ),
+    ).resolves.toEqual([]);
+    expect(queryRaw).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('skips the row read when no post has analytics', async () => {
+    const { findMany, service } = createService([], []);
+
+    await expect(
+      service.findWinners({ organizationId: 'org-a' }, NOW),
+    ).resolves.toEqual([]);
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it('reads every brand in the organization when no brand is named', async () => {

@@ -8,7 +8,7 @@ import {
   TurboRunStatus,
 } from '../../src/enums/turbo.enum';
 
-describe('batch.enum', () => {
+describe('turbo.enum', () => {
   describe('batch rewrite job wire values', () => {
     it('keeps the API values the Review page reads', () => {
       expect(Object.values(TurboRewriteJobStatus)).toEqual([

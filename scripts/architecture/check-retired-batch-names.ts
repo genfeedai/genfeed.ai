@@ -48,6 +48,10 @@ export const RETIRED_BATCH_NAMES: ReadonlyArray<{
   { pattern: /\bstudio_batch\b/gu, replacement: 'studio_turbo' },
   { pattern: /\b(?:studioBatch|StudioBatch)\w*/gu, replacement: 'studioTurbo' },
   { pattern: /\/studio\/batch\b/gu, replacement: '/studio/turbo' },
+  {
+    pattern: /\b(?:pages|services|interfaces)\/batch(?![-\w])/gu,
+    replacement: 'pages/turbo, services/turbo or interfaces/turbo',
+  },
   { pattern: /\breviewBatchId\b/gu, replacement: 'reviewTurboRunId' },
   { pattern: /\bbatchId\b/gu, replacement: 'turboRunId' },
   {
