@@ -11,6 +11,7 @@ import type {
   ClipHighlight,
   ClipHookReviewContext,
 } from '@api/collections/clip-projects/services/clip-generation.service';
+import { toClipSourceFailureMessage } from '@api/collections/clip-projects/services/clip-source-contract.util';
 import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import {
@@ -195,7 +196,10 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
       action.input.workflowError,
       'workflowError',
     );
-    const source = this.failedSource(data.source, workflowError);
+    const source = this.failedSource(
+      data.source,
+      toClipSourceFailureMessage(workflowError),
+    );
     await this.clipProjects.patch(
       data.projectId,
       {

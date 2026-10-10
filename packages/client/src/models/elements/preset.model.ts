@@ -33,11 +33,6 @@ export class Preset extends BaseEntity implements IPreset {
   declare public mood?: string;
   declare public scene?: string;
   declare public style?: string;
-  declare public defaultCamera?: string;
-  declare public defaultMoods?: string[];
-  declare public defaultScene?: string;
-  declare public defaultStyle?: string;
-  declare public defaultBlacklists?: string[];
   declare public isActive: boolean;
   declare public isFavorite?: boolean;
 

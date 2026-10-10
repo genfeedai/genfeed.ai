@@ -24,6 +24,7 @@ import {
   CLIP_ANALYSIS_ACTION_IDS,
 } from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
 import { ClipHighlightDetector } from '@api/collections/clip-projects/services/clip-highlight-detector.service';
+import { toClipSourceFailureMessage } from '@api/collections/clip-projects/services/clip-source-contract.util';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
@@ -60,6 +61,14 @@ function readFileJobStatus(value: unknown): Record<string, unknown> {
     typeof response.status === 'string'
     ? response
     : readRecord(response.data);
+}
+
+/** The files service reports why a job failed; keep it in the error. */
+function fileJobFailureReason(payload: Record<string, unknown>): string {
+  const reason = payload.failedReason;
+  return typeof reason === 'string' && reason.trim()
+    ? `: ${reason.trim()}`
+    : '';
 }
 
 function deriveReferenceTimestamps(highlights: IHighlight[]): number[] {
@@ -395,7 +404,11 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       { error: errorMessage, status: 'failed' },
       data.orgId,
     );
-    await this.updateSource(data, 'failed', errorMessage);
+    await this.updateSource(
+      data,
+      'failed',
+      toClipSourceFailureMessage(errorMessage),
+    );
     return { status: 'failed' };
   }
 
@@ -600,7 +613,9 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       }
 
       if (status === 'failed' || status === 'FAILED') {
-        throw new Error(`Audio extraction job ${jobId} failed`);
+        throw new Error(
+          `Audio extraction job ${jobId} failed${fileJobFailureReason(payload)}`,
+        );
       }
 
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
@@ -633,7 +648,9 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       }
 
       if (status === 'failed' || status === 'FAILED') {
-        throw new Error(`Reference extraction job ${jobId} failed`);
+        throw new Error(
+          `Reference extraction job ${jobId} failed${fileJobFailureReason(payload)}`,
+        );
       }
 
       await new Promise((resolve) => setTimeout(resolve, pollInterval));

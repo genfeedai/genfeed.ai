@@ -279,6 +279,9 @@ function ClipsProjectControls({
     const isAnalyzing =
       project.status !== 'analyzed' && project.status !== 'failed';
     const isManagedProvider = avatarProvider === 'genfeedai';
+    const isSourceRetryExhausted = Boolean(
+      project.source && project.source.retryCount >= project.source.maxRetries,
+    );
     const hasSelectedReference = Boolean(
       project.referenceFrames?.selectedCandidateId,
     );
@@ -313,8 +316,29 @@ function ClipsProjectControls({
             </p>
           </div>
         ) : project.status === 'failed' ? (
-          <div className="rounded-lg border border-transparent bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {project.source?.failure?.message ?? t('sourceProcessingFailed')}
+          <div className="space-y-3">
+            <div className="rounded-lg border border-transparent bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {project.source?.failure?.message ?? t('sourceProcessingFailed')}
+            </div>
+            {project.source?.status === 'failed' &&
+            project.source.failure?.retryable ? (
+              <>
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  withWrapper={false}
+                  isDisabled={isSubmitting || isSourceRetryExhausted}
+                  onClick={handleRetrySource}
+                >
+                  {t('retrySourceProcessing')}
+                </Button>
+                {isSourceRetryExhausted ? (
+                  <p role="status" className="text-xs text-muted-foreground">
+                    {t('sourceRetryLimitReached')}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
           </div>
         ) : (
           <>
@@ -488,7 +512,7 @@ function ClipsProjectControls({
               variant={ButtonVariant.LINK}
               className="text-sm text-muted-foreground hover:text-foreground"
               onClick={resetToInput}
-              label="Try again"
+              label={t('backToProjects')}
             />
           </div>
         ) : null}

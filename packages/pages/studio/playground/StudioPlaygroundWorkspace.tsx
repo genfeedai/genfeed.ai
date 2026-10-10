@@ -475,8 +475,16 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   ]);
   const continuationDraftRef = useRef(continuationDraft);
   continuationDraftRef.current = continuationDraft;
+  // Until the saved draft is known an empty composer proves nothing: applying
+  // then would skip Replace draft and the restore, and autosave would
+  // overwrite the saved draft.
+  const isDraftLoadedRef = useRef(false);
   const prepareContinuation = useCallback(
     (apply: () => void) => {
+      if (!isDraftLoadedRef.current) {
+        notificationsService.info(translate('continuation.draftLoading'));
+        return;
+      }
       if (
         !prompt.trim() &&
         !contentReferences.length &&
@@ -507,6 +515,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     [
       attachments.length,
       contentReferences.length,
+      notificationsService,
       openConfirm,
       prompt,
       restoredAttachments.length,
@@ -1893,16 +1902,18 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     [brandId, getIngredientsService, restoreSettings],
   );
 
-  const { saveStatus: draftSaveStatus } = useStudioPlaygroundDraft({
-    brandId,
-    canRestore: isHydrated && !isHandoffLoading,
-    isAutosaveEnabled: true,
-    isRestoreBlocked:
-      Boolean(handoffPayload) ||
-      (typeof window !== 'undefined' && Boolean(editSourceQueryId)),
-    onRestore: restoreDraft,
-    payload: draftPayload,
-  });
+  // A Library edit entry waits for the saved draft instead of blocking its
+  // restore, so replacing that draft goes through Replace draft / Cancel.
+  const { isLoaded: isDraftLoaded, saveStatus: draftSaveStatus } =
+    useStudioPlaygroundDraft({
+      brandId,
+      canRestore: isHydrated && !isHandoffLoading,
+      isAutosaveEnabled: true,
+      isRestoreBlocked: Boolean(handoffPayload),
+      onRestore: restoreDraft,
+      payload: draftPayload,
+    });
+  isDraftLoadedRef.current = isDraftLoaded;
 
   const handleEditJob = useCallback(
     (job: StudioPlaygroundJob) => {
@@ -1959,13 +1970,14 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     ],
   );
 
+  const prepareContinuationRef = useRef(prepareContinuation);
+  prepareContinuationRef.current = prepareContinuation;
   const editEntryRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!isHydrated || !brandId) return;
+    if (!isHydrated || !brandId || !isDraftLoaded) return;
     const sourceId = editSourceQueryId;
     if (!sourceId || editEntryRef.current === `${brandId}:${sourceId}`) return;
     editEntryRef.current = `${brandId}:${sourceId}`;
-    clearCrunRestore();
     const epoch = crunRestoreEpochRef.current;
     const scope = crunRestoreScopeRef.current;
     let cancelled = false;
@@ -1977,10 +1989,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     void getIngredientsService()
       .then(async (service) => {
         if (!isCurrent()) return;
-        const ingredient = await service.findOne(sourceId, { brandId });
+        const [ingredient] = await service.findByIds([sourceId]);
         if (!isCurrent()) return;
         if (
           !ingredient ||
+          ingredient.id !== sourceId ||
           ingredient.brandId !== brandId ||
           ingredient.isDeleted ||
           ingredient.category !== IngredientCategory.IMAGE
@@ -1988,24 +2001,34 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           throw new Error('Editing source not found in this brand.');
         const reference = toContentReference(ingredient, 'editSource');
         if (!reference) throw new Error('Editing source has no preview.');
-        clearAttachments();
-        setRestoredAttachments(EMPTY_ATTACHMENTS);
-        restoredRolesRef.current.clear();
-        setContentReferences([reference]);
-        setType('image-edit');
-        setPrompt('');
-        const entry = imageEditEntryForAsset(ingredient);
-        applyTypeSettings('image-edit', entry.patch);
-        warnForImageEditEntry(
-          entry,
-          {
-            model: (model) =>
-              translateRef.current('editImage.modelFallback', { model }),
-            ratio: (ratio) =>
-              translateRef.current('editImage.aspectRatioFallback', { ratio }),
-          },
-          (message) => notificationsService.warning(message),
-        );
+        // The entry is consumed once offered: a reload restores whichever
+        // draft the creator kept instead of asking again.
+        const url = new URL(window.location.href);
+        url.searchParams.delete('editImage');
+        window.history.replaceState(null, '', url);
+        prepareContinuationRef.current(() => {
+          clearCrunRestore();
+          clearAttachments();
+          setRestoredAttachments(EMPTY_ATTACHMENTS);
+          restoredRolesRef.current.clear();
+          setContentReferences([reference]);
+          setType('image-edit');
+          setPrompt('');
+          const entry = imageEditEntryForAsset(ingredient);
+          applyTypeSettings('image-edit', entry.patch);
+          warnForImageEditEntry(
+            entry,
+            {
+              model: (model) =>
+                translateRef.current('editImage.modelFallback', { model }),
+              ratio: (ratio) =>
+                translateRef.current('editImage.aspectRatioFallback', {
+                  ratio,
+                }),
+            },
+            (message) => notificationsService.warning(message),
+          );
+        });
       })
       .catch((error: unknown) => {
         if (isCurrent())
@@ -2021,6 +2044,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     };
   }, [
     isHydrated,
+    isDraftLoaded,
     brandId,
     editSourceQueryId,
     getIngredientsService,

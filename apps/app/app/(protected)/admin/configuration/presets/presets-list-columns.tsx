@@ -34,32 +34,26 @@ export function PresetCategoryCell({ preset }: { preset: Preset }) {
   );
 }
 
+/** The settings an operator scans for; the edit modal shows the full recipe. */
 export function PresetDefaultsCell({ preset }: { preset: Preset }) {
-  const defaults = [];
-  if (preset.defaultCamera) {
-    defaults.push(`Camera: ${preset.defaultCamera}`);
-  }
-  if (preset.defaultScene) {
-    defaults.push(`Scene: ${preset.defaultScene}`);
-  }
-  if (preset.defaultStyle) {
-    defaults.push(`Style: ${preset.defaultStyle}`);
-  }
-  if (preset.defaultMoods?.length) {
-    defaults.push(`Moods: ${preset.defaultMoods.join(', ')}`);
-  }
-  if (preset.defaultBlacklists?.length) {
-    defaults.push(`Blacklists: ${preset.defaultBlacklists.join(', ')}`);
-  }
+  const defaults = [
+    preset.aspectRatio ? `Aspect: ${preset.aspectRatio}` : null,
+    typeof preset.duration === 'number'
+      ? `Duration: ${preset.duration}s`
+      : null,
+    preset.style ? `Style: ${preset.style}` : null,
+  ].filter((value): value is string => value !== null);
 
   return defaults.length > 0 ? (
-    <div className="flex flex-col gap-2 text-xs">
+    <div className="flex max-w-56 flex-col items-start gap-2 text-xs">
       {defaults.map((def) => (
         <Badge
           key={def}
-          className="text-2xs border border-border bg-transparent font-mono"
+          className="max-w-full overflow-hidden text-2xs border border-border bg-transparent font-mono"
         >
-          {def}
+          <span className="truncate" title={def}>
+            {def}
+          </span>
         </Badge>
       ))}
     </div>

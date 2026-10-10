@@ -39,7 +39,11 @@ export default function ModalConfirm({
     };
   }, []);
 
+  // Set once Cancel or Confirm owns the close, so a dismissal is settled once.
+  const isSettledRef = useRef(false);
+
   const closeConfirmModal = useCallback(() => {
+    isSettledRef.current = true;
     // If onClose is provided, let the parent handle closing
     // Otherwise, close the modal directly
     if (onCloseRef.current) {
@@ -49,8 +53,18 @@ export default function ModalConfirm({
     }
   }, []);
 
+  // Escape, the close button and an outside click close the dialog without
+  // Cancel. Settle it like Cancel so a queued owner releases this
+  // confirmation and the next one can open.
+  const handleDismiss = useCallback(() => {
+    if (!isSettledRef.current) {
+      closeConfirmModal();
+    }
+  }, [closeConfirmModal]);
+
   const handleConfirm = useCallback(async () => {
     setIsConfirming(true);
+    isSettledRef.current = true;
 
     try {
       // Call onConfirm first, then close
@@ -60,6 +74,9 @@ export default function ModalConfirm({
       if (!onCloseRef.current) {
         closeModal(ModalEnum.CONFIRM);
       }
+    } catch (error) {
+      isSettledRef.current = false;
+      throw error;
     } finally {
       if (isMountedRef.current) {
         setIsConfirming(false);
@@ -68,7 +85,12 @@ export default function ModalConfirm({
   }, []);
 
   return (
-    <Modal id={ModalEnum.CONFIRM} accessibleTitle={label} isError={isError}>
+    <Modal
+      id={ModalEnum.CONFIRM}
+      accessibleTitle={label}
+      isError={isError}
+      onClose={handleDismiss}
+    >
       <div className="text-center">
         {isError && (
           <div className="mx-auto flex items-center justify-center size-12 mb-4 bg-error/10 rounded-full">
