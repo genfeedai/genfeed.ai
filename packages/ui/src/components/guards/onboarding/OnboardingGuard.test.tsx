@@ -320,7 +320,7 @@ describe('OnboardingGuard', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it('still gates unpaid cloud orgs on billing after onboarding completes', async () => {
+  it('still gates unpaid agent-first cloud orgs on billing by sending them to credits', async () => {
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'license_test';
     useCurrentUserMock.mockReturnValue({
       currentUser: {
@@ -355,7 +355,7 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/onboarding/summary');
+      expect(replaceMock).toHaveBeenCalledWith('/acme/~/settings/credits');
     });
   });
 
