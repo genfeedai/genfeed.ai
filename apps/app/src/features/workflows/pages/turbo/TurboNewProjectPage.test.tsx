@@ -110,7 +110,9 @@ describe('TurboNewProjectPage', () => {
     const { rerender } = render(<TurboNewProjectPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
     expect(mocks.getService).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Create project' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Create project' }),
+    ).toBeDisabled();
     mocks.brandId = 'brand-1';
     rerender(<TurboNewProjectPage />);
     await waitFor(() =>
@@ -161,7 +163,9 @@ describe('TurboNewProjectPage', () => {
       moduleOverrides: { automation: false },
     };
     rerender(<TurboNewProjectPage />);
-    expect(screen.getByRole('button', { name: 'Create project' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Create project' }),
+    ).toBeDisabled();
     expect(
       screen.queryByText(
         'No saved workflows yet. Create a workflow or start from ideas.',
@@ -208,7 +212,9 @@ describe('TurboNewProjectPage', () => {
       reject?.(new Error('Workflow unavailable'));
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create project' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Create project' }),
+    ).toBeEnabled();
   });
 
   it('shows the real workflow-loading reason', async () => {

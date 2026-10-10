@@ -44,7 +44,10 @@ export interface CreateManualReviewTurboRunRequest {
 
 export class TurboRunsService extends HTTPBaseService {
   constructor(token: string) {
-    super(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.TURBO_RUNS}`, token);
+    super(
+      `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.TURBO_RUNS}`,
+      token,
+    );
   }
 
   public static getInstance(token: string): TurboRunsService {
@@ -60,9 +63,9 @@ export class TurboRunsService extends HTTPBaseService {
     } catch (error) {
       const status = getJsonApiErrorMember(error)?.status;
       if (status === 403) {
-        logger.warn('GET /batches denied', { status });
+        logger.warn('GET /turbo-runs denied', { status });
       } else {
-        logger.error('GET /batches failed', error);
+        logger.error('GET /turbo-runs failed', error);
       }
       throw error;
     }
@@ -138,7 +141,10 @@ export class TurboRunsService extends HTTPBaseService {
       }>(`/${turboRunId}/rewrite-jobs/active`, { signal });
       return response.data.job;
     } catch (error) {
-      logger.error(`GET /turbo-runs/${turboRunId}/rewrite-jobs/active failed`, error);
+      logger.error(
+        `GET /turbo-runs/${turboRunId}/rewrite-jobs/active failed`,
+        error,
+      );
       throw error;
     }
   }
@@ -201,7 +207,10 @@ export class TurboRunsService extends HTTPBaseService {
     }
   }
 
-  async unassignItem(turboRunId: string, itemId: string): Promise<ITurboRunSummary> {
+  async unassignItem(
+    turboRunId: string,
+    itemId: string,
+  ): Promise<ITurboRunSummary> {
     try {
       const response = await this.instance.post<JsonApiResponseDocument>(
         `/${turboRunId}/items/${itemId}/unassign`,

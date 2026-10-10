@@ -77,7 +77,9 @@ export class WorkspaceClient {
     );
   }
 
-  createTurboRun(params: CreateTurboRunParams): Promise<Record<string, unknown>> {
+  createTurboRun(
+    params: CreateTurboRunParams,
+  ): Promise<Record<string, unknown>> {
     this.base.logger.debug('Creating content batch', { params });
 
     return this.base.request(

@@ -157,7 +157,7 @@ export function buildSyntheticSnapshot(): GoldenSetScopeSnapshot {
       },
     ],
     posts: [],
-    batchItems: [],
+    turboRunItems: [],
     evaluations: [],
     newsletters: [],
     profiles: [],
@@ -166,7 +166,7 @@ export function buildSyntheticSnapshot(): GoldenSetScopeSnapshot {
     linkedPosts: [],
     linkedArticles: [],
     linkedNewsletters: [],
-    linkedBatchItems: [],
+    linkedTurboRunItems: [],
     threadChildren: [],
   };
   for (const brand of SYNTHETIC_BRANDS) {
@@ -266,7 +266,7 @@ export function buildSyntheticSnapshot(): GoldenSetScopeSnapshot {
             },
           },
         });
-        snapshot.batchItems.push({
+        snapshot.turboRunItems.push({
           ...scoped,
           id: `synthetic-script-${suffix}`,
           brandId: brand.id,
@@ -277,7 +277,7 @@ export function buildSyntheticSnapshot(): GoldenSetScopeSnapshot {
             platform: 'instagram',
           },
         });
-        snapshot.batchItems.push({
+        snapshot.turboRunItems.push({
           ...scoped,
           id: `synthetic-image-caption-${suffix}`,
           brandId: brand.id,

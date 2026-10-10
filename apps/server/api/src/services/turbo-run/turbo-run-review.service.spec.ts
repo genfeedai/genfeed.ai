@@ -2,11 +2,11 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import { toPrismaTurboRunStatus } from '@api/services/turbo-run/turbo-run-status-prisma.mapper';
 import {
-  TurboRunItemStatus,
-  TurboRunStatus,
   ContentFormat,
   ReviewDecision,
   TargetExecutionState,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -386,7 +386,11 @@ describe('TurboRunReviewService harness review feedback', () => {
   it('skips items with no caption or prompt content', async () => {
     turboRun.findFirst.mockResolvedValue(
       createTurboRunRecord([
-        { id: 'item-3', postId: 'post-3', status: TurboRunItemStatus.COMPLETED },
+        {
+          id: 'item-3',
+          postId: 'post-3',
+          status: TurboRunItemStatus.COMPLETED,
+        },
       ]),
     );
 

@@ -1,16 +1,16 @@
 import {
-  TurboProjectReconcileService,
   IDEA_REQUEUE_AFTER_MS,
+  TurboProjectReconcileService,
   UNRECORDED_RUN_TIMEOUT_MS,
 } from '@api/collections/turbo-projects/services/turbo-project-reconcile.service';
 import { batchChildExecutionKey } from '@api/collections/turbo-projects/services/turbo-project-workflow-output.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
+  IngredientCategory,
+  IngredientStatus,
   TurboProjectItemStatus,
   TurboProjectKind,
   TurboProjectStatus,
-  IngredientCategory,
-  IngredientStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { ConflictException } from '@nestjs/common';
@@ -240,9 +240,7 @@ describe('TurboProjectReconcileService', () => {
       'user-1',
       'org-1',
     );
-    expect(
-      turboRunService.createManualReviewTurboRun,
-    ).not.toHaveBeenCalled();
+    expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
   });
 
   it('adopts the review run a crash left unrecorded instead of creating another', async () => {
@@ -301,9 +299,7 @@ describe('TurboProjectReconcileService', () => {
       'user-1',
       'org-1',
     );
-    expect(
-      turboRunService.createManualReviewTurboRun,
-    ).not.toHaveBeenCalled();
+    expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
     expect(prisma.turboProject.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { reviewTurboRunId: 'review-run-orphan' },
@@ -411,9 +407,7 @@ describe('TurboProjectReconcileService', () => {
       status: TurboProjectItemStatus.FAILED,
     });
     expect(updatedItem('item-2')).toEqual([]);
-    expect(
-      turboRunService.createManualReviewTurboRun,
-    ).not.toHaveBeenCalled();
+    expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
   });
 
   it('fails items the finished project never ran', async () => {
@@ -617,8 +611,7 @@ describe('TurboProjectReconcileService', () => {
         }),
       );
       expect(ideaCredits.settle.mock.invocationCallOrder[0]).toBeLessThan(
-        turboRunService.createManualReviewTurboRun.mock
-          .invocationCallOrder[0],
+        turboRunService.createManualReviewTurboRun.mock.invocationCallOrder[0],
       );
       expect(updatedItem('item-1')).toContainEqual({
         dispatch: expect.objectContaining({ state: 'settled' }),
@@ -651,9 +644,7 @@ describe('TurboProjectReconcileService', () => {
 
       await service.reconcileProject('project-1', 'org-1');
 
-      expect(
-        turboRunService.createManualReviewTurboRun,
-      ).not.toHaveBeenCalled();
+      expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
       expect(updatedItem('item-1')).toEqual([]);
     });
   });

@@ -1,13 +1,17 @@
 import type {
-  TurboRunItemStatus,
-  TurboRunStatus,
   ContentFormat,
   ReferenceImageCategory,
   ReviewDecision,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '../..';
 import type { IPublishApproval } from '../publisher/publish-approval.interface';
 
-export type TurboRunItemFormat = ContentFormat | 'article' | 'newsletter' | 'post';
+export type TurboRunItemFormat =
+  | ContentFormat
+  | 'article'
+  | 'newsletter'
+  | 'post';
 
 /**
  * Reference image attached to a brand for consistent generation

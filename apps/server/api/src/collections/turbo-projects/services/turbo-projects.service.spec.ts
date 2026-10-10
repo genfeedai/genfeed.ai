@@ -1,12 +1,12 @@
 import { TurboProjectsService } from '@api/collections/turbo-projects/services/turbo-projects.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
+  IngredientCategory,
+  TargetExecutionState,
   TurboProjectItemStatus,
   TurboProjectKind,
   TurboProjectStatus,
   TurboProjectStep,
-  IngredientCategory,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 

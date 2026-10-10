@@ -22,26 +22,36 @@ describe('run-status-prisma.mapper', () => {
 
   it('round-trips every Prisma label', () => {
     for (const prismaStatus of Object.values(PrismaTurboRunStatus)) {
-      expect(toPrismaTurboRunStatus(fromPrismaTurboRunStatus(prismaStatus))).toBe(
-        prismaStatus,
-      );
+      expect(
+        toPrismaTurboRunStatus(fromPrismaTurboRunStatus(prismaStatus)),
+      ).toBe(prismaStatus);
     }
   });
 
   it('accepts legacy lowercase domain spellings on write and read', () => {
-    expect(toPrismaTurboRunStatus('pending')).toBe(PrismaTurboRunStatus.PENDING);
+    expect(toPrismaTurboRunStatus('pending')).toBe(
+      PrismaTurboRunStatus.PENDING,
+    );
     expect(toPrismaTurboRunStatus('generating')).toBe(
       PrismaTurboRunStatus.PROCESSING,
     );
     expect(toPrismaTurboRunStatus('processing')).toBe(
       PrismaTurboRunStatus.PROCESSING,
     );
-    expect(toPrismaTurboRunStatus('cancelled')).toBe(PrismaTurboRunStatus.CANCELLED);
+    expect(toPrismaTurboRunStatus('cancelled')).toBe(
+      PrismaTurboRunStatus.CANCELLED,
+    );
 
     expect(fromPrismaTurboRunStatus('pending')).toBe(TurboRunStatus.PENDING);
-    expect(fromPrismaTurboRunStatus('generating')).toBe(TurboRunStatus.PROCESSING);
-    expect(fromPrismaTurboRunStatus('processing')).toBe(TurboRunStatus.PROCESSING);
-    expect(fromPrismaTurboRunStatus('cancelled')).toBe(TurboRunStatus.CANCELLED);
+    expect(fromPrismaTurboRunStatus('generating')).toBe(
+      TurboRunStatus.PROCESSING,
+    );
+    expect(fromPrismaTurboRunStatus('processing')).toBe(
+      TurboRunStatus.PROCESSING,
+    );
+    expect(fromPrismaTurboRunStatus('cancelled')).toBe(
+      TurboRunStatus.CANCELLED,
+    );
   });
 
   it('always writes PENDING not pending (regression for stale enums dist)', () => {

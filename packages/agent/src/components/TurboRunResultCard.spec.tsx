@@ -49,10 +49,7 @@ describe('TurboRunResultCard', () => {
     expect(screen.queryByText('Posts')).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open review queue' }),
-    ).toHaveAttribute(
-      'href',
-      '/publishing/review?run=run-123&filter=ready',
-    );
+    ).toHaveAttribute('href', '/publishing/review?run=run-123&filter=ready');
     expect(screen.queryByText('run-123')).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Collapse run result' }),
@@ -146,15 +143,10 @@ describe('TurboRunResultCard', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Second draft with a hook')).toBeInTheDocument();
     expect(screen.getByText('Third draft for the feed')).toBeInTheDocument();
-    expect(
-      screen.getAllByTestId('turbo-run-result-preview'),
-    ).toHaveLength(3);
+    expect(screen.getAllByTestId('turbo-run-result-preview')).toHaveLength(3);
     expect(
       screen.getByRole('link', { name: '+5 more posts in review' }),
-    ).toHaveAttribute(
-      'href',
-      '/publishing/review?run=run-xyz&filter=ready',
-    );
+    ).toHaveAttribute('href', '/publishing/review?run=run-xyz&filter=ready');
   });
 
   it('emphasizes all-failed runs without Ready metrics', () => {

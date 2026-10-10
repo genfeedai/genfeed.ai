@@ -4,8 +4,8 @@ import { readTurboProjectIdea } from '@api/collections/turbo-projects/services/t
 import { TurboProjectIdeaDispatchService } from '@api/collections/turbo-projects/services/turbo-project-idea-dispatch.service';
 import { findReviewTurboRunIdBySourceKeys } from '@api/collections/turbo-projects/services/turbo-project-review-turbo-run.util';
 import {
-  type TurboProjectItemStatusValue,
   deriveTurboProjectStatus,
+  type TurboProjectItemStatusValue,
 } from '@api/collections/turbo-projects/services/turbo-project-status.util';
 import {
   batchChildExecutionKey,
@@ -14,20 +14,20 @@ import {
 } from '@api/collections/turbo-projects/services/turbo-project-workflow-output.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
-import type { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
 import { CacheService } from '@api/services/cache/cache.service';
+import type { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
-  TurboProjectItemStatus,
-  TurboProjectKind,
-  TurboProjectStatus,
   ContentFormat,
   IngredientCategory,
   IngredientStatus,
   parseReviewDecision,
   ReviewDecision,
+  TurboProjectItemStatus,
+  TurboProjectKind,
+  TurboProjectStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type {
@@ -337,7 +337,7 @@ export class TurboProjectReconcileService {
         state = await this.credits.settle({
           actorUserId: project.userId,
           brandId: project.brandId,
-          description: `Batch idea ${outcome.category.toLowerCase()} generation`,
+          description: `Turbo idea ${outcome.category.toLowerCase()} generation`,
           dispatch,
           organizationId: project.organizationId,
           source:

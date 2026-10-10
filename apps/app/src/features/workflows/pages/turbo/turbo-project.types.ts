@@ -1,9 +1,9 @@
 import type {
+  ICredential,
   ITurboProject,
   ITurboProjectIdeaSettings,
   ITurboProjectItem,
   ITurboProjectScheduleTarget,
-  ICredential,
 } from '@genfeedai/contracts/interfaces';
 export interface TurboProjectPageProps {
   projectId: string;

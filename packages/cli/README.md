@@ -388,13 +388,13 @@ Answer a pending input request on an existing thread:
 genfeed threads respond <thread-id> "Use the more technical angle" --json
 ```
 
-### Batch Generation
+### Turbo
 
 ```bash
-genfeed batch create -n 5 -p twitter,linkedin --topics ai,product --style professional
-genfeed batch list
-genfeed batch show <batch-id>
-genfeed batch approve <batch-id>
+genfeed turbo create -n 5 -p twitter,linkedin --topics ai,product --style professional
+genfeed turbo list
+genfeed turbo show <run-id>
+genfeed turbo approve <run-id>
 ```
 
 ### Templates

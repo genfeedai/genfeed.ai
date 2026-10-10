@@ -10,8 +10,8 @@ import {
 } from '@services/core/operation-error';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  type TurboProjectsApi,
   createTurboProjectsApi,
+  type TurboProjectsApi,
 } from './turbo-projects-api';
 
 const PERMANENT_WRITE_STATUSES = new Set([400, 403, 404, 409, 410, 413, 422]);
@@ -69,7 +69,9 @@ export function useTurboProject(id: string, brandId: string) {
       } catch (reason) {
         if (scope.alive && !controller.signal.aborted)
           setError(
-            reason instanceof Error ? reason.message : 'Could not load project.',
+            reason instanceof Error
+              ? reason.message
+              : 'Could not load project.',
           );
       } finally {
         polling = false;

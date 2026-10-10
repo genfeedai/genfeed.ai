@@ -2,8 +2,14 @@ import { TurboRunItemStatus, TurboRunStatus } from '@genfeedai/contracts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { turboRunItemAction, cancelTurboRun, createTurboRun, getTurboRun, listTurboRuns } from '@/api/turbo-runs';
 import { requireAuth } from '@/api/client';
+import {
+  cancelTurboRun,
+  createTurboRun,
+  getTurboRun,
+  listTurboRuns,
+  turboRunItemAction,
+} from '@/api/turbo-runs';
 import { getActiveBrand } from '@/config/store';
 import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError, NoBrandError } from '@/utils/errors';
@@ -25,7 +31,7 @@ function parseTurboRunStatusFilter(value: string | undefined): TurboRunStatus | 
 
   if (!match) {
     throw new GenfeedError(
-      `Unknown batch status: ${value}`,
+      `Unknown run status: ${value}`,
       `Expected one of: ${TURBO_RUN_STATUS_VALUES.join(', ')}`
     );
   }
@@ -83,7 +89,7 @@ turboCommand
         print(formatLabel('Count', String(turboRun.count)));
         print(formatLabel('Platforms', turboRun.platforms.join(', ')));
         print();
-        print(chalk.dim(`Check status with: gf batch show ${turboRun.id}`));
+        print(chalk.dim(`Check status with: gf turbo show ${turboRun.id}`));
       }
     } catch (error) {
       handleError(error);
@@ -219,11 +225,11 @@ turboCommand
       if (options.json) {
         printJson({
           action: 'approve',
-          turboRunId: id,
           itemIds: itemIds.length > 0 ? itemIds : 'all',
+          turboRunId: id,
         });
       } else {
-        print(formatSuccess(`Approved items in batch ${id}`));
+        print(formatSuccess(`Approved items in run ${id}`));
       }
     } catch (error) {
       handleError(error);
@@ -248,9 +254,13 @@ turboCommand
       spinner.succeed('Items rejected');
 
       if (options.json) {
-        printJson({ action: 'reject', turboRunId: id, itemIds: itemIds.length > 0 ? itemIds : 'all' });
+        printJson({
+          action: 'reject',
+          itemIds: itemIds.length > 0 ? itemIds : 'all',
+          turboRunId: id,
+        });
       } else {
-        print(formatSuccess(`Rejected items in batch ${id}`));
+        print(formatSuccess(`Rejected items in run ${id}`));
       }
     } catch (error) {
       handleError(error);
@@ -271,9 +281,9 @@ turboCommand
       spinner.succeed('Turbo run cancelled');
 
       if (options.json) {
-        printJson({ turboRunId: id, status: TurboRunStatus.CANCELLED });
+        printJson({ status: TurboRunStatus.CANCELLED, turboRunId: id });
       } else {
-        print(formatSuccess(`Batch ${id} cancelled`));
+        print(formatSuccess(`Turbo run ${id} cancelled`));
       }
     } catch (error) {
       handleError(error);

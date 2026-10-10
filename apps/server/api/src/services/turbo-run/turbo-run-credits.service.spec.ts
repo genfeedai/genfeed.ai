@@ -1,7 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { TurboRunItemStatus, ContentFormat } from '@genfeedai/contracts';
+import { ContentFormat, TurboRunItemStatus } from '@genfeedai/contracts';
 import { chargeTurboRunCredits } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -131,7 +131,9 @@ describe('TurboRunCreditsService', () => {
   });
 
   it('bills the drafts that landed when nothing was charged up front', async () => {
-    turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 0 }));
+    turboRunDelegate.findFirst.mockResolvedValue(
+      turboRunWith({ chargedCredits: 0 }),
+    );
 
     const settlement = await settle();
 
@@ -339,7 +341,9 @@ describe('TurboRunCreditsService', () => {
   });
 
   it('claims the ledger against the row it read', async () => {
-    turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 0 }));
+    turboRunDelegate.findFirst.mockResolvedValue(
+      turboRunWith({ chargedCredits: 0 }),
+    );
 
     await settle();
 
@@ -353,7 +357,9 @@ describe('TurboRunCreditsService', () => {
   });
 
   it('moves no credits when a concurrent settlement wins the swap', async () => {
-    turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 0 }));
+    turboRunDelegate.findFirst.mockResolvedValue(
+      turboRunWith({ chargedCredits: 0 }),
+    );
     turboRunDelegate.updateMany.mockResolvedValue({ count: 0 });
 
     const settlement = await settle();
@@ -369,7 +375,9 @@ describe('TurboRunCreditsService', () => {
   });
 
   it('persists and alerts on a settlement deduction shortfall', async () => {
-    turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 0 }));
+    turboRunDelegate.findFirst.mockResolvedValue(
+      turboRunWith({ chargedCredits: 0 }),
+    );
     const deductionError = new Error('insufficient organization credits');
     creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
       deductionError,
@@ -593,7 +601,9 @@ describe('TurboRunCreditsService', () => {
   });
 
   it('never overwrites an earlier uncollected shortfall marker', async () => {
-    turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 0 }));
+    turboRunDelegate.findFirst.mockResolvedValue(
+      turboRunWith({ chargedCredits: 0 }),
+    );
     creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
       new Error('insufficient organization credits'),
     );
@@ -626,7 +636,9 @@ describe('TurboRunCreditsService', () => {
   });
 
   it('accumulates an up-front charge on the ledger and pins the pricing', async () => {
-    turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 4 }));
+    turboRunDelegate.findFirst.mockResolvedValue(
+      turboRunWith({ chargedCredits: 4 }),
+    );
 
     await service.recordUpfrontCharge({
       turboRunId: 'run-1',
@@ -653,7 +665,9 @@ describe('TurboRunCreditsService', () => {
   });
 
   it('keeps the pinned pricing when recording a charge without options', async () => {
-    turboRunDelegate.findFirst.mockResolvedValue(turboRunWith({ chargedCredits: 2 }));
+    turboRunDelegate.findFirst.mockResolvedValue(
+      turboRunWith({ chargedCredits: 2 }),
+    );
 
     await service.recordUpfrontCharge({
       turboRunId: 'run-1',

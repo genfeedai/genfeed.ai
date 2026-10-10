@@ -1,10 +1,10 @@
 import { TurboProjectIdeaDispatchService } from '@api/collections/turbo-projects/services/turbo-project-idea-dispatch.service';
 import {
+  buildTurboProjectIdeaDispatchFailureWorkflowDefinition,
+  buildTurboProjectIdeaDispatchWorkflowDefinition,
   TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS,
   TURBO_PROJECT_IDEA_DISPATCH_FAILURE_WORKFLOW_ID,
   TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
-  buildTurboProjectIdeaDispatchFailureWorkflowDefinition,
-  buildTurboProjectIdeaDispatchWorkflowDefinition,
 } from '@api/collections/turbo-projects/services/turbo-project-idea-dispatch-workflow.definition';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { getActionDefinition } from '@genfeedai/actions';

@@ -828,9 +828,7 @@ describe('AuthBootstrapService', () => {
     const result2 = await service.getOverviewBootstrap(request);
 
     expect(result1).toEqual(result2);
-    expect(turboRunService.getReviewInboxSummary).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(turboRunService.getReviewInboxSummary).toHaveBeenCalledTimes(1);
     expect(accessBootstrapCacheService.get).toHaveBeenCalledTimes(1);
   });
 });

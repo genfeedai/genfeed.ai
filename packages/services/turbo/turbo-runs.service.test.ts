@@ -128,9 +128,10 @@ describe('TurboRunsService', () => {
       data: { id: 'job-1', isCancelRequested: true },
     });
 
-    await expect(service.cancelRewriteJob('run-1', 'job-1')).resolves.toEqual(
-      { id: 'job-1', isCancelRequested: true },
-    );
+    await expect(service.cancelRewriteJob('run-1', 'job-1')).resolves.toEqual({
+      id: 'job-1',
+      isCancelRequested: true,
+    });
     expect(mockPost).toHaveBeenCalledWith('/run-1/rewrite-jobs/job-1/cancel');
   });
 

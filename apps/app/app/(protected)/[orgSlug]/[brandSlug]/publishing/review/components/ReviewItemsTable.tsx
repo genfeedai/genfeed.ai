@@ -1,4 +1,4 @@
-import { TurboRunItemStatus, ComponentSize } from '@genfeedai/contracts';
+import { ComponentSize, TurboRunItemStatus } from '@genfeedai/contracts';
 import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';

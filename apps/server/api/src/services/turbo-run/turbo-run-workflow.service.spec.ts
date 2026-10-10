@@ -45,7 +45,9 @@ describe('TurboRunWorkflowService', () => {
     vi.clearAllMocks();
     actions.clear();
     registeredWorkflowIds = [];
-    turboRuns = { processTurboRun: vi.fn().mockResolvedValue({ completed: 2 }) };
+    turboRuns = {
+      processTurboRun: vi.fn().mockResolvedValue({ completed: 2 }),
+    };
     credits = { settleTurboRunCredits: vi.fn().mockResolvedValue(undefined) };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never;
     prisma = {
@@ -96,7 +98,10 @@ describe('TurboRunWorkflowService', () => {
   });
 
   it('queues the run under a deterministic job id so a retry replaces it', async () => {
-    await service.queueTurboRun(REQUEST, SystemWorkflowDispatchClass.INTERACTIVE);
+    await service.queueTurboRun(
+      REQUEST,
+      SystemWorkflowDispatchClass.INTERACTIVE,
+    );
 
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -121,7 +126,10 @@ describe('TurboRunWorkflowService', () => {
   });
 
   it('threads a background dispatchClass from a caller like the reconcile cron', async () => {
-    await service.queueTurboRun(REQUEST, SystemWorkflowDispatchClass.BACKGROUND);
+    await service.queueTurboRun(
+      REQUEST,
+      SystemWorkflowDispatchClass.BACKGROUND,
+    );
 
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.anything(),
@@ -153,9 +161,9 @@ describe('TurboRunWorkflowService', () => {
   it('leaves a run outside the organization untouched', async () => {
     prisma.turboRun.findFirst.mockResolvedValue(null);
 
-    await expect(run(TURBO_RUN_ACTION_IDS.MARK_QUEUED)).resolves.toEqual(
-      { queued: false },
-    );
+    await expect(run(TURBO_RUN_ACTION_IDS.MARK_QUEUED)).resolves.toEqual({
+      queued: false,
+    });
     expect(prisma.turboRun.updateMany).not.toHaveBeenCalled();
   });
 
@@ -203,7 +211,9 @@ describe('TurboRunWorkflowService', () => {
   });
 
   it('propagates a real processing failure so the execution records it', async () => {
-    turboRuns.processTurboRun.mockRejectedValue(new Error('generation exploded'));
+    turboRuns.processTurboRun.mockRejectedValue(
+      new Error('generation exploded'),
+    );
 
     await expect(run(TURBO_RUN_ACTION_IDS.PROCESS)).rejects.toThrow(
       'generation exploded',
@@ -223,7 +233,9 @@ describe('TurboRunWorkflowService', () => {
   });
 
   it('reports an unsettled run instead of throwing away a finished run', async () => {
-    credits.settleTurboRunCredits.mockRejectedValue(new Error('ledger offline'));
+    credits.settleTurboRunCredits.mockRejectedValue(
+      new Error('ledger offline'),
+    );
 
     await expect(run(TURBO_RUN_ACTION_IDS.SETTLE)).resolves.toEqual({
       settled: false,

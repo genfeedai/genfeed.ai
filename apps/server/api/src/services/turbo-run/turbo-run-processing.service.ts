@@ -4,26 +4,26 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { TurboRunAlreadyOwnedException } from '@api/services/turbo-run/turbo-run-already-owned.exception';
 import { TURBO_RUN_LEASE_STALE_MS } from '@api/services/turbo-run/turbo-run.constants';
 import {
+  resolveTurboRunItems,
   type TurboRunConfig,
   type TurboRunItemFull,
   type TurboRunProcessOptions,
   type TurboRunWithConfig,
-  resolveTurboRunItems,
 } from '@api/services/turbo-run/turbo-run.types';
-import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
-import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
+import { TurboRunAlreadyOwnedException } from '@api/services/turbo-run/turbo-run-already-owned.exception';
 import {
   turboRunItemRowsInclude,
   type WriteTurboRunJsonAndItemRowsInput,
   writeTurboRunJsonAndItemRows,
 } from '@api/services/turbo-run/turbo-run-item-rows';
+import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import {
   fromPrismaTurboRunStatus,
   toPrismaTurboRunStatus,
 } from '@api/services/turbo-run/turbo-run-status-prisma.mapper';
+import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import {
   buildTurboRunDiversityContext,
   expandTurboRunTopics,
@@ -32,13 +32,13 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   AgentPublishDecision,
-  TurboRunItemStatus,
-  TurboRunStatus,
   ContentIntelligencePlatform,
   fromPrismaCredentialPlatform,
   PostVisibility,
   ReviewDecision,
   TargetExecutionState,
+  TurboRunItemStatus,
+  TurboRunStatus,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
@@ -123,7 +123,10 @@ export class TurboRunProcessingService {
         throw new NotFoundException('TurboRun', turboRunId);
       }
       // Already generating or completed — return early without re-processing.
-      throw new TurboRunAlreadyOwnedException(turboRunId, String(existing.status));
+      throw new TurboRunAlreadyOwnedException(
+        turboRunId,
+        String(existing.status),
+      );
     }
 
     const turboRunRecord = (await findOrThrow(
@@ -139,7 +142,9 @@ export class TurboRunProcessingService {
     // Copied, not aliased: the resume path below bumps `resumeCount` in place,
     // and writing that through to the fetched record would leave the caller
     // holding a row that disagrees with what was persisted.
-    const turboRunConfig = { ...((turboRunRecord.config ?? {}) as TurboRunConfig) };
+    const turboRunConfig = {
+      ...((turboRunRecord.config ?? {}) as TurboRunConfig),
+    };
     const turboRunItems = resolveTurboRunItems(turboRunRecord);
 
     if (claim === 'resumed') {
@@ -155,7 +160,7 @@ export class TurboRunProcessingService {
       }
       turboRunConfig.resumeCount = (turboRunConfig.resumeCount ?? 0) + 1;
 
-      this.logger.warn(`Resuming stranded batch: ${turboRunId}`, {
+      this.logger.warn(`Resuming stranded run: ${turboRunId}`, {
         turboRunId,
         resumeCount: turboRunConfig.resumeCount,
       });
@@ -181,7 +186,10 @@ export class TurboRunProcessingService {
     );
 
     if (cancelled) {
-      const cancelledTurboRun = await this.findScopedTurboRun(turboRunId, orgId);
+      const cancelledTurboRun = await this.findScopedTurboRun(
+        turboRunId,
+        orgId,
+      );
       return this.summaryService.toTurboRunSummary(cancelledTurboRun);
     }
 
@@ -225,7 +233,7 @@ export class TurboRunProcessingService {
         return this.summaryService.toTurboRunSummary(currentTurboRun);
       }
       throw new BadRequestException(
-        `Batch ${turboRunId} changed state while processing`,
+        `Turbo run ${turboRunId} changed state while processing`,
       );
     }
 
@@ -257,7 +265,7 @@ export class TurboRunProcessingService {
     options?: TurboRunProcessOptions;
     totalCount: number;
   }): Promise<void> {
-    this.logger.log(`Batch processing complete: ${input.turboRunId}`, {
+    this.logger.log(`Turbo run processing complete: ${input.turboRunId}`, {
       turboRunId: input.turboRunId,
       completedCount: input.completedCount,
       failedCount: input.failedCount,
@@ -428,7 +436,7 @@ export class TurboRunProcessingService {
         item.error = toTurboRunItemFailureMessage(error);
         failedCount++;
 
-        this.logger.error(`Batch item ${item.id} failed: ${item.error}`, {
+        this.logger.error(`Turbo run item ${item.id} failed: ${item.error}`, {
           turboRunId,
           itemId: item.id,
           rawError: error instanceof Error ? error.message : error,
@@ -498,7 +506,7 @@ export class TurboRunProcessingService {
       : undefined;
     if (platformRaw && !platformForCredential) {
       throw new BadRequestException(
-        `Invalid batch item platform "${platformRaw}"`,
+        `Invalid run item platform "${platformRaw}"`,
       );
     }
 
@@ -590,7 +598,7 @@ export class TurboRunProcessingService {
       ...(credentialId ? { credentialId } : {}),
       description: caption,
       ingredients: [],
-      label: `Batch: ${topic}`.slice(0, 200),
+      label: `Turbo run: ${topic}`.slice(0, 200),
       organizationId: orgId,
       platform: platformForPost,
       scheduledDate: item.scheduledDate
@@ -750,7 +758,7 @@ export class TurboRunProcessingService {
     try {
       await callback();
     } catch (error: unknown) {
-      this.logger.error(`Batch lifecycle callback ${callbackName} failed`, {
+      this.logger.error(`Turbo run lifecycle callback ${callbackName} failed`, {
         ...context,
         error,
       });

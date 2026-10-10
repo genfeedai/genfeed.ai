@@ -1,13 +1,13 @@
-### Genfeed API - Batch Generation Endpoints
-### Manage batch generation jobs: create, list, process, approve/reject, cancel
+### Genfeed API - Turbo Run Endpoints
+### Manage Turbo run jobs: create, list, process, approve/reject, cancel
 ### Protected by RolesGuard + SubscriptionGuard
 
 ########################################
-# Create & List Batches
+# Create & List Turbo runs
 ########################################
 
-### Create Batch Generation Job
-POST {{apiBaseUrl}}/batches
+### Create Turbo Run Job
+POST {{apiBaseUrl}}/turbo-runs
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -33,60 +33,60 @@ Content-Type: application/json
 }
 
 
-### List All Batches
-GET {{apiBaseUrl}}/batches
+### List All Turbo runs
+GET {{apiBaseUrl}}/turbo-runs
 Authorization: Bearer {{bearerToken}}
 
 
-### List Batches with Filters
-GET {{apiBaseUrl}}/batches?status=pending&limit=20&offset=0
+### List Turbo runs with Filters
+GET {{apiBaseUrl}}/turbo-runs?status=pending&limit=20&offset=0
 Authorization: Bearer {{bearerToken}}
 
 
-### List Completed Batches
-GET {{apiBaseUrl}}/batches?status=completed
+### List Completed Turbo runs
+GET {{apiBaseUrl}}/turbo-runs?status=completed
 Authorization: Bearer {{bearerToken}}
 
 
 ########################################
-# Single Batch Operations
+# Single Turbo run Operations
 ########################################
 
-### Get Batch by ID
-GET {{apiBaseUrl}}/batches/{{testBatchId}}
+### Get Turbo run by ID
+GET {{apiBaseUrl}}/turbo-runs/{{testTurboRunId}}
 Authorization: Bearer {{bearerToken}}
 
 
-### Process Batch
-# Triggers processing of all pending items in the batch
-POST {{apiBaseUrl}}/batches/{{testBatchId}}/process
+### Process Turbo run
+# Triggers processing of all pending items in the Turbo run
+POST {{apiBaseUrl}}/turbo-runs/{{testTurboRunId}}/process
 Authorization: Bearer {{bearerToken}}
 
 
-### Approve/Reject Batch Items
-POST {{apiBaseUrl}}/batches/{{testBatchId}}/items/action
+### Approve/Reject Turbo run Items
+POST {{apiBaseUrl}}/turbo-runs/{{testTurboRunId}}/items/action
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
   "action": "approve",
-  "itemIds": ["{{testBatchItemId1}}", "{{testBatchItemId2}}"]
+  "itemIds": ["{{testTurboRunItemId1}}", "{{testTurboRunItemId2}}"]
 }
 
 
-### Reject Batch Items
-POST {{apiBaseUrl}}/batches/{{testBatchId}}/items/action
+### Reject Turbo run Items
+POST {{apiBaseUrl}}/turbo-runs/{{testTurboRunId}}/items/action
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
   "action": "reject",
-  "itemIds": ["{{testBatchItemId1}}"]
+  "itemIds": ["{{testTurboRunItemId1}}"]
 }
 
 
-### Cancel Batch
-POST {{apiBaseUrl}}/batches/{{testBatchId}}/cancel
+### Cancel Turbo run
+POST {{apiBaseUrl}}/turbo-runs/{{testTurboRunId}}/cancel
 Authorization: Bearer {{bearerToken}}
 
 
@@ -94,13 +94,13 @@ Authorization: Bearer {{bearerToken}}
 # Test Cases
 ########################################
 
-### Test: Batch Not Found
-GET {{apiBaseUrl}}/batches/507f1f77bcf86cd799439011
+### Test: Turbo run Not Found
+GET {{apiBaseUrl}}/turbo-runs/507f1f77bcf86cd799439011
 Authorization: Bearer {{bearerToken}}
 
 
-### Test: Create Batch Without Items
-POST {{apiBaseUrl}}/batches
+### Test: Create Turbo run Without Items
+POST {{apiBaseUrl}}/turbo-runs
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -110,10 +110,10 @@ Content-Type: application/json
 }
 
 
-### Test: Process Non-Existent Batch
-POST {{apiBaseUrl}}/batches/507f1f77bcf86cd799439011/process
+### Test: Process Non-Existent Turbo run
+POST {{apiBaseUrl}}/turbo-runs/507f1f77bcf86cd799439011/process
 Authorization: Bearer {{bearerToken}}
 
 
 ### Test: Unauthorized Access
-GET {{apiBaseUrl}}/batches
+GET {{apiBaseUrl}}/turbo-runs

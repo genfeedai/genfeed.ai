@@ -28,7 +28,9 @@ export const REVIEW_STATUS_FILTER_VALUES: ReviewStatusFilter[] = [
   'skipped',
 ];
 
-export function getReviewFilterCounts(items: ITurboRunItem[]): ReviewFilterCounts {
+export function getReviewFilterCounts(
+  items: ITurboRunItem[],
+): ReviewFilterCounts {
   return items.reduce<ReviewFilterCounts>(
     (counts, item) => {
       counts.all += 1;

@@ -1,13 +1,13 @@
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { TurboRunRewriteService } from '@api/services/turbo-run/turbo-run-rewrite.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { TurboRunRewriteService } from '@api/services/turbo-run/turbo-run-rewrite.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
-  TurboRunItemStatus,
-  TurboRewriteJobStatus,
   ReviewDecision,
+  TurboRewriteJobStatus,
+  TurboRunItemStatus,
 } from '@genfeedai/contracts';
 import type {
   TurboRewriteJobData,
@@ -366,12 +366,12 @@ describe('TurboRunRewriteService', () => {
     queue.getDeduplicationJobId.mockResolvedValue('job-1');
     queue.getJob.mockResolvedValue(storedJob({}, 'waiting'));
 
-    await expect(
-      service.getActiveJob('run-1', 'org-1'),
-    ).resolves.toMatchObject({
-      id: 'job-1',
-      status: TurboRewriteJobStatus.QUEUED,
-    });
+    await expect(service.getActiveJob('run-1', 'org-1')).resolves.toMatchObject(
+      {
+        id: 'job-1',
+        status: TurboRewriteJobStatus.QUEUED,
+      },
+    );
     await expect(
       service.getActiveJob('run-1', 'other-org'),
     ).resolves.toBeNull();

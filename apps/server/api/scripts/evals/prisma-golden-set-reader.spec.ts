@@ -117,7 +117,7 @@ class FakeGoldenSetPrismaClient implements GoldenSetPrismaClient {
     reviewDecision: ReviewDecision.APPROVED,
     reviewEvents: [],
   });
-  readonly batchItem = this.delegate('batchItem', {
+  readonly turboRunItem = this.delegate('turboRunItem', {
     ...base,
     brandId: 'invented-brand',
     reviewDecision: ReviewDecision.APPROVED,
@@ -163,7 +163,7 @@ class FakeGoldenSetPrismaClient implements GoldenSetPrismaClient {
           addedAt: '2026-01-01',
         },
         {
-          source: 'batch_item:avoid-batch',
+          source: 'turbo_run_item:avoid-batch',
           content: 'Invented avoid',
           addedAt: '2026-01-15',
         },
@@ -278,7 +278,7 @@ describe('tenant-scoped reader', () => {
           lt: window.to,
         });
       if (
-        ['post', 'batchItem', 'newsletter'].includes(call.table) &&
+        ['post', 'turboRunItem', 'newsletter'].includes(call.table) &&
         call.args.where.createdAt
       )
         expect(call.args.where.brandId).toEqual({ in: scope.brandIds });
@@ -307,7 +307,7 @@ describe('tenant-scoped reader', () => {
       examples: { avoid: ['Invented curated'] },
       avoidFeedback: [
         { source: 'post:avoid-post' },
-        { source: 'batch_item:avoid-batch' },
+        { source: 'turbo_run_item:avoid-batch' },
         { source: 'newsletter:avoid-newsletter' },
       ],
     });
@@ -322,7 +322,7 @@ describe('tenant-scoped reader', () => {
     ).toEqual({ in: ['linked-article'] });
     expect(
       firstPages.find(
-        (call) => call.table === 'batchItem' && call.args.where.id,
+        (call) => call.table === 'turboRunItem' && call.args.where.id,
       )?.args.where.id,
     ).toEqual({ in: ['avoid-batch'] });
     expect(
@@ -338,7 +338,7 @@ describe('tenant-scoped reader', () => {
       window,
     );
     for (const call of client.calls.filter((call) =>
-      ['post', 'batchItem', 'newsletter'].includes(call.table),
+      ['post', 'turboRunItem', 'newsletter'].includes(call.table),
     ))
       expect(call.args.where.brandId).toBeUndefined();
   });

@@ -1040,9 +1040,7 @@ describe('proactive publishing review boundary', () => {
     const target = h.postGroupsService.create.mock.calls[0]?.[2].targets[0];
     expect(target?.scheduledAt).toBeUndefined();
     expect(h.postGroupsService.publishNow).not.toHaveBeenCalled();
-    expect(
-      h.turboRunService.createManualReviewTurboRun,
-    ).toHaveBeenCalledWith(
+    expect(h.turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
         agentStrategyId: 'strategy-1',
         items: [
@@ -1150,9 +1148,7 @@ describe('authorized proactive text draft constraint', () => {
     expect(release.status).toBe(ReleaseStatus.DRAFT);
     expect(release).not.toHaveProperty('scheduledDate');
     expect(release.targets[0].scheduledDate).toBeUndefined();
-    expect(
-      f.turboRunService.createManualReviewTurboRun,
-    ).toHaveBeenCalledWith(
+    expect(f.turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         agentStrategyId: 'strategy-1',
@@ -1241,9 +1237,7 @@ describe('authorized proactive text draft constraint', () => {
       ).success,
     ).toBe(true);
     expect(f.postGroupsService.publishNow).toHaveBeenCalledOnce();
-    expect(
-      f.turboRunService.createManualReviewTurboRun,
-    ).not.toHaveBeenCalled();
+    expect(f.turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
   });
 
   const invalidInputs: Array<[string, Record<string, unknown>]> = [
@@ -1302,9 +1296,7 @@ describe('authorized proactive text draft constraint', () => {
       ).success,
     ).toBe(false);
     expect(f.postGroupsService.create).not.toHaveBeenCalled();
-    expect(
-      f.turboRunService.createManualReviewTurboRun,
-    ).not.toHaveBeenCalled();
+    expect(f.turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
     expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
   });
   it('requires a connected credential within the current tenant and brand', async () => {
@@ -1326,9 +1318,7 @@ describe('authorized proactive text draft constraint', () => {
       platform: { in: ['linkedin'] },
     });
     expect(f.postGroupsService.create).not.toHaveBeenCalled();
-    expect(
-      f.turboRunService.createManualReviewTurboRun,
-    ).not.toHaveBeenCalled();
+    expect(f.turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
     expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
   });
 });

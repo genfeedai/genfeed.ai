@@ -12,6 +12,8 @@ import { BadRequestException } from '@nestjs/common';
  */
 export class TurboRunAlreadyOwnedException extends BadRequestException {
   constructor(turboRunId: string, status: string) {
-    super(`Batch ${turboRunId} is already being processed (status: ${status})`);
+    super(
+      `Turbo run ${turboRunId} is already being processed (status: ${status})`,
+    );
   }
 }

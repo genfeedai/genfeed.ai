@@ -1,6 +1,6 @@
 'use client';
 
-import { TurboProjectItemStatus, formatEnumLabel } from '@genfeedai/contracts';
+import { formatEnumLabel, TurboProjectItemStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { IngredientsService } from '@services/content/ingredients.service';

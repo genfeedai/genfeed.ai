@@ -1,10 +1,10 @@
 import { logger } from '@services/core/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  type TurboRunActionRequest,
-  TurboRunsService,
-  type TurboRunListQuery,
   type CreateManualReviewTurboRunRequest,
+  type TurboRunActionRequest,
+  type TurboRunListQuery,
+  TurboRunsService,
 } from './turbo-runs.service';
 
 vi.mock('@services/core/interceptor.service', () => {
@@ -87,7 +87,9 @@ describe('TurboRunsService', () => {
 
   it('getTurboRuns fetches from the API with query params', async () => {
     const query: TurboRunListQuery = { limit: 5 };
-    mockInstance.get.mockResolvedValue({ data: { data: [makeMockTurboRun()] } });
+    mockInstance.get.mockResolvedValue({
+      data: { data: [makeMockTurboRun()] },
+    });
 
     const result = await service.getTurboRuns(query);
 
@@ -115,7 +117,7 @@ describe('TurboRunsService', () => {
     };
     mockInstance.get.mockRejectedValue(error);
     await expect(service.getTurboRuns()).rejects.toBe(error);
-    expect(logger.warn).toHaveBeenCalledWith('GET /batches denied', {
+    expect(logger.warn).toHaveBeenCalledWith('GET /turbo-runs denied', {
       status: 403,
     });
     expect(logger.error).not.toHaveBeenCalled();
@@ -127,7 +129,7 @@ describe('TurboRunsService', () => {
     };
     mockInstance.get.mockRejectedValue(error);
     await expect(service.getTurboRuns()).rejects.toBe(error);
-    expect(logger.error).toHaveBeenCalledWith('GET /batches failed', error);
+    expect(logger.error).toHaveBeenCalledWith('GET /turbo-runs failed', error);
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
@@ -172,10 +174,7 @@ describe('TurboRunsService', () => {
 
     await service.itemAction('run-1', req);
 
-    expect(mockInstance.post).toHaveBeenCalledWith(
-      '/run-1/items/action',
-      req,
-    );
+    expect(mockInstance.post).toHaveBeenCalledWith('/run-1/items/action', req);
   });
 
   it('assignItem POSTs to /:turboRunId/items/:itemId/assign', async () => {
@@ -200,7 +199,9 @@ describe('TurboRunsService', () => {
   });
 
   it('cancelTurboRun PATCHes /:id with status cancelled', async () => {
-    mockInstance.patch.mockResolvedValue({ data: { data: makeMockTurboRun() } });
+    mockInstance.patch.mockResolvedValue({
+      data: { data: makeMockTurboRun() },
+    });
 
     await service.cancelTurboRun('run-99');
 

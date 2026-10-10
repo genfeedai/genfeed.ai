@@ -52,7 +52,7 @@ export class TurboRunStreamService {
       try {
         await publisher.publishWorkEvent(data);
       } catch (error: unknown) {
-        this.logger.warn(`Batch ${turboRunId} progress event dropped`, {
+        this.logger.warn(`Turbo run ${turboRunId} progress event dropped`, {
           turboRunId,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -73,7 +73,7 @@ export class TurboRunStreamService {
           startedAt: new Date().toISOString(),
           status: 'running',
           threadId,
-          toolCallId: `batch:${turboRunId}`,
+          toolCallId: `run:${turboRunId}`,
           toolName: 'generate_turbo_content',
           userId,
         }),
@@ -103,7 +103,7 @@ export class TurboRunStreamService {
           runId,
           status: 'completed',
           threadId,
-          toolCallId: `batch:${turboRunId}:item:${String(item.id)}`,
+          toolCallId: `run:${turboRunId}:item:${String(item.id)}`,
           toolName: 'generate_turbo_content',
           userId,
         }),
@@ -127,7 +127,7 @@ export class TurboRunStreamService {
           runId,
           status: 'failed',
           threadId,
-          toolCallId: `batch:${turboRunId}:item:${String(item.id)}`,
+          toolCallId: `run:${turboRunId}:item:${String(item.id)}`,
           toolName: 'generate_turbo_content',
           userId,
         }),
@@ -143,12 +143,16 @@ export class TurboRunStreamService {
           detail: `Generating draft ${index + 1}/${totalCount}.`,
           event: 'tool_started',
           label: `Generating post ${index + 1}`,
-          parameters: { turboRunId, format: item.format, platform: item.platform },
+          parameters: {
+            turboRunId,
+            format: item.format,
+            platform: item.platform,
+          },
           progress: percent(completedCount + failedCount, totalCount),
           runId,
           status: 'running',
           threadId,
-          toolCallId: `batch:${turboRunId}:item:${String(item.id)}`,
+          toolCallId: `run:${turboRunId}:item:${String(item.id)}`,
           toolName: 'generate_turbo_content',
           userId,
         }),

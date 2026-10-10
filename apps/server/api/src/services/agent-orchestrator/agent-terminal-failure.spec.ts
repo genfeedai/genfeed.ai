@@ -6,8 +6,8 @@ vi.mock(
   }),
 );
 
-import { AgentOrchestratorTurboRunService } from './agent-orchestrator-turbo-run.service';
 import { AgentOrchestratorStreamLoopService } from './agent-orchestrator-stream-loop.service';
+import { AgentOrchestratorTurboRunService } from './agent-orchestrator-turbo-run.service';
 
 describe('background agent terminal failures', () => {
   it('throws at the round budget instead of allowing an old assistant message to complete the run', async () => {

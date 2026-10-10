@@ -42,13 +42,13 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
-import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { SeoModule } from '@api/services/seo/seo.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { Module } from '@nestjs/common';
 
 @Module({

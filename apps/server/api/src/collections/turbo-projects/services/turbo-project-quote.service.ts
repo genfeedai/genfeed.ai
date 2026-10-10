@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import {
   ideaDispatchKey,
   ideaPromptText,
   resolveIdeaGenerationParams,
 } from '@api/collections/turbo-projects/services/turbo-project-dispatch.util';
 import { readTurboProjectIdea } from '@api/collections/turbo-projects/services/turbo-project-idea.util';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
@@ -13,10 +13,10 @@ import { AgentGenerationEstimateService } from '@api/services/router/agent-gener
 import { ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
-  TurboIdeaFormat,
-  TurboProjectBillingMode,
   ITurboProjectQuote,
   ITurboProjectQuoteLine,
+  TurboIdeaFormat,
+  TurboProjectBillingMode,
 } from '@genfeedai/contracts/interfaces';
 import type { TurboProjectItem } from '@genfeedai/prisma';
 import { ConflictException, Injectable } from '@nestjs/common';

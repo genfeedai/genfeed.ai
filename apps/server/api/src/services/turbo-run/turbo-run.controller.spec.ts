@@ -1,10 +1,10 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TurboRewriteCreditsGuard } from '@api/services/turbo-run/turbo-rewrite-credits.guard';
 import { TurboRunController } from '@api/services/turbo-run/turbo-run.controller';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { TurboRunRewriteService } from '@api/services/turbo-run/turbo-run-rewrite.service';
 import { TurboRunWorkflowService } from '@api/services/turbo-run/turbo-run-workflow.service';
-import { TurboRewriteCreditsGuard } from '@api/services/turbo-run/turbo-rewrite-credits.guard';
 import { ActivitySource } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -81,9 +81,7 @@ describe('TurboRunController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
-    controller = module.get<TurboRunController>(
-      TurboRunController,
-    );
+    controller = module.get<TurboRunController>(TurboRunController);
     service = module.get(TurboRunService);
     workflowService = module.get(TurboRunWorkflowService);
   });

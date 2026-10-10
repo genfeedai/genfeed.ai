@@ -1,6 +1,6 @@
-import TurboNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/studio/turbo/new/page';
 import ClipsNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/studio/clips/new/page';
 import EditorNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/studio/editor/new/page';
+import TurboNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/studio/turbo/new/page';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** `gf batch` is now `gf turbo` and calls the renamed `/turbo-runs` API (#5936). The old
+  command and the `/batches` paths are removed with no alias.
 - The canonical concise namespaces are `gf gen`, `gf brand`, and `gf asset`; `generate`, `brands`,
   and `library` remain aliases for compatibility.
 - `gf workflow run` resolves a unique exact ID, key, or label before creating the execution.

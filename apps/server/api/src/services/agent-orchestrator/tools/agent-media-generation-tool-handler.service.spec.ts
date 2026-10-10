@@ -1,10 +1,10 @@
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
-import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tools/agent-media-turbo-run.service';
 import { resolveGenerationReferences } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
+import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tools/agent-media-turbo-run.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { describe, expect, it, vi } from 'vitest';
@@ -176,10 +176,7 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
       params,
       context,
     );
-    expect(turboRun.generateTurboContent).toHaveBeenCalledWith(
-      params,
-      context,
-    );
+    expect(turboRun.generateTurboContent).toHaveBeenCalledWith(params, context);
     for (const owner of [
       textGeneration,
       assetGeneration,

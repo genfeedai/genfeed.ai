@@ -23,9 +23,9 @@ import {
 } from '@api/endpoints/onboarding/services/proactive-onboarding-value.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { generateLabel } from '@api/shared/utils/label/label.util';

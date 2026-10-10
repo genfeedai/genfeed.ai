@@ -1,16 +1,16 @@
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import type { TurboRunItemFull } from '@api/services/turbo-run/turbo-run.types';
 import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
-import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentPublishDecision,
-  TurboRunItemStatus,
-  TurboRunStatus,
   ContentFormat,
   PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { ConflictException } from '@nestjs/common';
@@ -141,15 +141,11 @@ function fixture() {
   };
   const activityRecorder = { recordInTransaction: vi.fn() };
   const service = new TurboRunReviewService(
-    prisma as unknown as ConstructorParameters<
-      typeof TurboRunReviewService
-    >[0],
+    prisma as unknown as ConstructorParameters<typeof TurboRunReviewService>[0],
     { log: vi.fn() } as unknown as ConstructorParameters<
       typeof TurboRunReviewService
     >[1],
-    {} as unknown as ConstructorParameters<
-      typeof TurboRunReviewService
-    >[2],
+    {} as unknown as ConstructorParameters<typeof TurboRunReviewService>[2],
     lifecycle as unknown as ConstructorParameters<
       typeof TurboRunReviewService
     >[3],
@@ -158,12 +154,8 @@ function fixture() {
     >[4],
     {
       toTurboRunSummary: async (row: unknown) => row,
-    } as unknown as ConstructorParameters<
-      typeof TurboRunReviewService
-    >[5],
-    policy as unknown as ConstructorParameters<
-      typeof TurboRunReviewService
-    >[6],
+    } as unknown as ConstructorParameters<typeof TurboRunReviewService>[5],
+    policy as unknown as ConstructorParameters<typeof TurboRunReviewService>[6],
     activityRecorder as unknown as ConstructorParameters<
       typeof TurboRunReviewService
     >[7],
@@ -540,13 +532,7 @@ describe('Autonomous review transaction boundary', () => {
       reviewTimeoutHours: 24,
       result: { decision: AgentPublishDecision.PERMITTED },
     });
-    await f.service.approveItems(
-      'run-1',
-      ['item-1'],
-      'org-1',
-      'user-1',
-      true,
-    );
+    await f.service.approveItems('run-1', ['item-1'], 'org-1', 'user-1', true);
     expect(f.approvals.createForCurrentPost).toHaveBeenCalledTimes(1);
     expect(f.policy.recordReviewDecision).not.toHaveBeenCalled();
   });

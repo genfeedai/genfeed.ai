@@ -20,7 +20,7 @@ export type RecordReviewDecisionParams = {
   content: string;
   /** Reviewer-supplied rejection feedback, when present. */
   reason?: string;
-  /** Domain of the thing that was reviewed, e.g. `batch_item`. */
+  /** Domain of the thing that was reviewed, e.g. `turbo_run_item`. */
   sourceType: string;
   /** ID of the thing that was reviewed, e.g. the batch item id. */
   sourceId: string;

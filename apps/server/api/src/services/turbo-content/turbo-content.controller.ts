@@ -1,8 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { TurboContentService } from '@api/services/turbo-content/turbo-content.service';
 import { CreateTurboContentDto } from '@api/services/turbo-content/dto/create-turbo-content.dto';
+import { TurboContentService } from '@api/services/turbo-content/turbo-content.service';
 import { Body, Controller, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 

@@ -3,8 +3,8 @@ import { PostGroupPersistenceService } from '@api/collections/post-groups/servic
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
@@ -322,9 +322,7 @@ describe('PostRepurposeService', () => {
         postId,
         userId,
       });
-      expect(
-        turboRunService.createManualReviewTurboRun,
-      ).toHaveBeenCalledWith(
+      expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
         expect.objectContaining({
           items: [
             expect.objectContaining({
@@ -356,9 +354,7 @@ describe('PostRepurposeService', () => {
           variationsCount: 1,
         }),
       );
-      expect(
-        turboRunService.createManualReviewTurboRun,
-      ).toHaveBeenCalledWith(
+      expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId,
           items: [

@@ -122,7 +122,7 @@ export class AgentMediaTurboRunService {
     ) {
       return {
         creditsUsed: 0,
-        error: `Agent credit budget cannot cover this batch (${prepared.estimatedCredits} credits required).`,
+        error: `Agent credit budget cannot cover this run (${prepared.estimatedCredits} credits required).`,
         success: false,
       };
     }
@@ -302,7 +302,7 @@ export class AgentMediaTurboRunService {
           })) === true;
       } catch (recordError) {
         this.loggerService.warn(
-          `${this.logContext} failed to record a batch reservation`,
+          `${this.logContext} failed to record a run reservation`,
           { turboRunId, organizationId: ctx.organizationId, recordError },
         );
         recorded = false;
@@ -347,7 +347,7 @@ export class AgentMediaTurboRunService {
       );
     } catch (cancelError) {
       this.loggerService.warn(
-        `${this.logContext} failed to cancel a batch that was never queued`,
+        `${this.logContext} failed to cancel a run that was never queued`,
         {
           turboRunId: execution.turboRunId,
           cancelError,
@@ -366,7 +366,7 @@ export class AgentMediaTurboRunService {
       });
     } catch (settleError) {
       this.loggerService.warn(
-        `${this.logContext} failed to settle a batch that was never queued`,
+        `${this.logContext} failed to settle a run that was never queued`,
         {
           turboRunId: execution.turboRunId,
           organizationId: ctx.organizationId,
@@ -398,7 +398,7 @@ export class AgentMediaTurboRunService {
         });
       } catch (releaseError) {
         this.loggerService.warn(
-          `${this.logContext} failed to release an unrecorded batch reservation`,
+          `${this.logContext} failed to release an unrecorded run reservation`,
           { ...params, releaseError },
         );
       }
@@ -411,7 +411,7 @@ export class AgentMediaTurboRunService {
       );
     } catch (cancelError) {
       this.loggerService.warn(
-        `${this.logContext} failed to cancel a batch with an unrecorded reservation`,
+        `${this.logContext} failed to cancel a run with an unrecorded reservation`,
         { ...params, cancelError },
       );
     }
@@ -446,7 +446,7 @@ export class AgentMediaTurboRunService {
         );
       } catch (cancelError) {
         this.loggerService.warn(
-          `${this.logContext} failed to cancel batch after credit reserve failure`,
+          `${this.logContext} failed to cancel run after credit reserve failure`,
           {
             turboRunId: params.turboRunId,
             cancelError,
@@ -460,7 +460,7 @@ export class AgentMediaTurboRunService {
           error:
             error instanceof Error
               ? error.message
-              : `Insufficient credits. This batch needs about ${params.amount} credits.`,
+              : `Insufficient credits. This run needs about ${params.amount} credits.`,
           success: false,
         },
       };
@@ -492,7 +492,7 @@ export class AgentMediaTurboRunService {
       data: {
         turboRunId: execution.turboRunId,
         estimatedCredits: execution.estimatedCredits,
-        message: `Batch created with ${execution.turboRun.totalCount} items. Processing started.`,
+        message: `Turbo run created with ${execution.turboRun.totalCount} items. Processing started.`,
         status: execution.turboRun.status,
         totalCount: execution.turboRun.totalCount,
       },

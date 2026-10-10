@@ -1,8 +1,6 @@
 export * from '@serializers/configs/content/agent-publish-audit.config';
 export * from '@serializers/configs/content/article.config';
-export * from '@serializers/configs/content/turbo-run.config';
 export * from '@serializers/configs/content/batch-interpolation.config';
-export * from '@serializers/configs/content/turbo-project.config';
 export * from '@serializers/configs/content/bookmark.config';
 export * from '@serializers/configs/content/brand-remix-run-summary.config';
 export * from '@serializers/configs/content/branded-generation-prompt-inspection.config';
@@ -70,6 +68,8 @@ export * from '@serializers/configs/content/storyboard-run-summary.config';
 export * from '@serializers/configs/content/studio-generate-draft.config';
 export * from '@serializers/configs/content/studio-look.config';
 export * from '@serializers/configs/content/template.config';
+export * from '@serializers/configs/content/turbo-project.config';
+export * from '@serializers/configs/content/turbo-run.config';
 export * from '@serializers/configs/content/video.config';
 export * from './branded-generation-receipt.config';
 export * from './remotion-composition.config';

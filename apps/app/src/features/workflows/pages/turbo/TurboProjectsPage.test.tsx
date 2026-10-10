@@ -112,7 +112,9 @@ describe('TurboProjectsPage load recovery', () => {
         ).toBeEnabled(),
       );
       fireEvent.click(screen.getByRole('button', { name: 'Retry loading' }));
-      await screen.findByText('Create a saved project from ideas or a workflow.');
+      await screen.findByText(
+        'Create a saved project from ideas or a workflow.',
+      );
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       expect(mocks.list).toHaveBeenCalledTimes(2);
       expect(mocks.list).toHaveBeenLastCalledWith(

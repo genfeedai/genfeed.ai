@@ -1,5 +1,5 @@
 /**
- * Expand batch topics so each item gets a distinct generation angle.
+ * Expand run topics so each item gets a distinct generation angle.
  *
  * Empty topics caused 20 near-identical posts: every item fell back to
  * `${format} content` with the same brand voice / top-performer hooks.
@@ -42,7 +42,9 @@ export type ExpandTurboRunTopicsInput = {
  * Return exactly `count` topic strings. Preserves provided topics first,
  * then fills remaining slots with rotated creative angles.
  */
-export function expandTurboRunTopics(input: ExpandTurboRunTopicsInput): string[] {
+export function expandTurboRunTopics(
+  input: ExpandTurboRunTopicsInput,
+): string[] {
   const count = Math.max(0, Math.floor(input.count));
   if (count === 0) {
     return [];
@@ -106,7 +108,7 @@ export function buildTurboRunDiversityContext(options: {
   }
 
   lines.push(
-    `Batch item ${options.index + 1} of ${options.totalCount}. Write ONE distinct post for this topic angle only. Do not reuse openers, hooks, metaphors, or sentence structures from other posts in this batch.`,
+    `Turbo run item ${options.index + 1} of ${options.totalCount}. Write ONE distinct post for this topic angle only. Do not reuse openers, hooks, metaphors, or sentence structures from other posts in this run.`,
   );
 
   const prior = options.priorCaptions

@@ -1,23 +1,23 @@
 import { randomUUID } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { resolveTurboRunItems } from '@api/services/turbo-run/turbo-run.types';
-import { turboRunItemRowsInclude } from '@api/services/turbo-run/turbo-run-item-rows';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
-  TURBO_REWRITE_TASK_LABEL,
-  type TurboRewriteJob,
-  turboRewriteDeduplicationId,
   isTerminalRewriteStatus,
   NON_REWRITABLE_POST_STATES,
+  TURBO_REWRITE_TASK_LABEL,
+  type TurboRewriteJob,
   toTurboRewriteJob,
+  turboRewriteDeduplicationId,
 } from '@api/services/turbo-run/turbo-rewrite-job.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { resolveTurboRunItems } from '@api/services/turbo-run/turbo-run.types';
+import { turboRunItemRowsInclude } from '@api/services/turbo-run/turbo-run-item-rows';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
-  TurboRunItemStatus,
   TurboRewriteJobStatus,
+  TurboRunItemStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRewriteJob } from '@genfeedai/contracts/interfaces';
 import {
@@ -66,9 +66,7 @@ export class TurboRunRewriteService {
       organizationId,
     );
     if (await this.findActiveJob(turboRunId, organizationId)) {
-      throw new ConflictException(
-        'A rewrite is already running for this run',
-      );
+      throw new ConflictException('A rewrite is already running for this run');
     }
 
     const activity = await this.activityRecorder.record({
@@ -102,9 +100,7 @@ export class TurboRunRewriteService {
         key: ActivityKey.POST_FAILED,
         source: ActivitySource.POST_ENHANCEMENT,
       });
-      throw new ConflictException(
-        'A rewrite is already running for this run',
-      );
+      throw new ConflictException('A rewrite is already running for this run');
     }
 
     await this.websocketService.publishBackgroundTaskUpdate({

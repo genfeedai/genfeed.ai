@@ -1,6 +1,6 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { TurboProjectKind, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, TurboProjectKind } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   resolveOrganizationModulePresentationAccess,

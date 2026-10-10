@@ -3,11 +3,11 @@ import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-o
 import { agentPostPreviewInclude } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
-import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
+import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { parsePlatform, TargetExecutionState } from '@genfeedai/contracts';
@@ -50,10 +50,9 @@ export class AgentProactiveToolHandler {
       };
     }
 
-    const result = await this.turboRunService.getTurboRuns(
-      ctx.organizationId,
-      { limit: 50 },
-    );
+    const result = await this.turboRunService.getTurboRuns(ctx.organizationId, {
+      limit: 50,
+    });
 
     let totalPending = 0;
     let contentPending = 0;
@@ -72,7 +71,8 @@ export class AgentProactiveToolHandler {
       }
 
       if (turboRun.createdAt) {
-        const age = Date.now() - new Date(turboRun.createdAt as string).getTime();
+        const age =
+          Date.now() - new Date(turboRun.createdAt as string).getTime();
         if (age > oldestPendingAge && (turboRun.pendingCount ?? 0) > 0) {
           oldestPendingAge = age;
         }

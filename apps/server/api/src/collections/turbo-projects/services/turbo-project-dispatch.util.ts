@@ -1,11 +1,11 @@
 import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import type {
-  TurboIdea,
-  TurboIdeaFormat,
-  TurboProjectBillingMode,
   ITurboProjectItemDispatch,
   ITurboProjectQuote,
   ITurboProjectQuoteLine,
+  TurboIdea,
+  TurboIdeaFormat,
+  TurboProjectBillingMode,
 } from '@genfeedai/contracts/interfaces';
 import {
   readNonEmptyString,

@@ -47,9 +47,7 @@ vi.mock('./TurboRunCard', () => ({
 }));
 vi.mock('./TurboRunResultCard', () => ({
   TurboRunResultCard: () => (
-    <div data-testid="turbo-run-result-card">
-      TurboRun generation result
-    </div>
+    <div data-testid="turbo-run-result-card">TurboRun generation result</div>
   ),
 }));
 vi.mock('./BrandCreateCard', () => ({
@@ -498,9 +496,7 @@ describe('AgentChatMessage', () => {
       />,
     );
 
-    expect(
-      screen.getByTestId('turbo-run-result-card'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('turbo-run-result-card')).toBeInTheDocument();
   });
 
   it('renders generated images from content preview cards', () => {

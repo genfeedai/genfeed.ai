@@ -4,12 +4,12 @@ import {
   TURBO_IDEA_MIN_COUNT,
 } from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import type {
-  TurboIdeaFormat,
   ITurboProjectIdeaSettings,
   ITurboProjectScheduledTarget,
   ITurboProjectScheduleSettings,
   ITurboProjectScheduleTarget,
   ITurboProjectSettings,
+  TurboIdeaFormat,
 } from '@genfeedai/contracts/interfaces';
 import {
   readRecordOrNull,

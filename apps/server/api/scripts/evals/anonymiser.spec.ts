@@ -217,7 +217,7 @@ describe('buildAnonymisationContext', () => {
       },
     ],
     posts: [],
-    batchItems: [],
+    turboRunItems: [],
     evaluations: [],
     newsletters: [],
     profiles: [
@@ -234,7 +234,7 @@ describe('buildAnonymisationContext', () => {
     linkedPosts: [],
     linkedArticles: [],
     linkedNewsletters: [],
-    linkedBatchItems: [],
+    linkedTurboRunItems: [],
     threadChildren: [],
   };
   const context = buildAnonymisationContext(

@@ -91,7 +91,7 @@ export function buildTurboContentWorkflowDefinition(
       ],
     },
     description: `Plans, generates, and ranks a bounded set of ${skillSlug} drafts through action-backed child workflows.`,
-    label: `Generate ${skillSlug} batch`,
+    label: `Generate ${skillSlug} run`,
     resultNodeId: 'rank-drafts',
     version: 1,
   };
@@ -146,7 +146,7 @@ export function buildTurboContentItemWorkflowDefinition(
       ],
     },
     description: `Generates one ${skillSlug} draft through its canonical skill workflow.`,
-    label: `Generate ${skillSlug} batch item`,
+    label: `Generate ${skillSlug} run item`,
     resultNodeId: 'run-skill',
     version: 1,
   };

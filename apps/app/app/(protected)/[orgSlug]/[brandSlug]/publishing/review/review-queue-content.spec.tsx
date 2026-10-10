@@ -865,7 +865,9 @@ describe('ReviewQueueContent', () => {
       totalCount: 3,
     };
     const itemAction = vi.fn().mockResolvedValue(rejectedTurboRun);
-    const cancelTurboRun = vi.fn().mockRejectedValue(new Error('cancel failed'));
+    const cancelTurboRun = vi
+      .fn()
+      .mockRejectedValue(new Error('cancel failed'));
     const { refetch } = mockReviewQueries();
     mocks.getTurboRunsService.mockResolvedValue({ cancelTurboRun, itemAction });
 

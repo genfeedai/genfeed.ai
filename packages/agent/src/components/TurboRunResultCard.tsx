@@ -239,10 +239,7 @@ export function TurboRunResultCard({
                 }
 
                 return (
-                  <div
-                    key={item.id}
-                    data-testid="turbo-run-result-preview"
-                  >
+                  <div key={item.id} data-testid="turbo-run-result-preview">
                     <PlatformPreview
                       className="max-h-[22rem] overflow-y-auto"
                       emptyMessage={translate('noDraftPreview')}

@@ -310,7 +310,10 @@ export function chargeTurboRunCredits(
   if (items.length === 0) {
     return 0;
   }
-  return items.reduce((sum, item) => sum + turboRunItemCredits(item, options), 0);
+  return items.reduce(
+    (sum, item) => sum + turboRunItemCredits(item, options),
+    0,
+  );
 }
 
 export type TurboRunChargeReconciliation = {

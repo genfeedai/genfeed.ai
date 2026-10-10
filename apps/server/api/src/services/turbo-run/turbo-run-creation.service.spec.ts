@@ -266,7 +266,10 @@ describe('TurboRunCreationService strategy attribution', () => {
       turboRun: {
         create: vi
           .fn()
-          .mockImplementation(async ({ data }) => ({ ...data, id: 'turboRun' })),
+          .mockImplementation(async ({ data }) => ({
+            ...data,
+            id: 'turboRun',
+          })),
       },
       turboRunItem: { upsert: vi.fn().mockResolvedValue({}) },
     };

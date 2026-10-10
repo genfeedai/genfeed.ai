@@ -12,9 +12,9 @@ import type {
 } from '@genfeedai/props/publishing/review-rewrite-progress.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -189,7 +189,8 @@ export function useTurboRewriteJob({
 
   const startRewrite = useCallback(
     async (itemIds: string[]): Promise<boolean> => {
-      if (!turboRunId || job || isStarting || itemIds.length === 0) return false;
+      if (!turboRunId || job || isStarting || itemIds.length === 0)
+        return false;
       setIsStarting(true);
       try {
         const service = await getTurboRunsService();
@@ -205,7 +206,14 @@ export function useTurboRewriteJob({
         setIsStarting(false);
       }
     },
-    [turboRunId, getTurboRunsService, isStarting, job, notifications, translate],
+    [
+      turboRunId,
+      getTurboRunsService,
+      isStarting,
+      job,
+      notifications,
+      translate,
+    ],
   );
 
   const cancelRewrite = useCallback(async () => {

@@ -1,16 +1,16 @@
 import { BATCH_ITEM_UPSERT_CHUNK_SIZE } from '@api/services/turbo-run/turbo-run.constants';
 import {
   persistTurboRunItemRows,
-  toTurboRunItemCreatedAt,
   toPrismaTurboRunItemStatus,
+  toTurboRunItemCreatedAt,
   writeTurboRunJsonAndItemRows,
 } from '@api/services/turbo-run/turbo-run-item-rows';
 import {
-  TurboRunItemStatus,
-  TurboRunStatus,
   ContentFormat,
   PersistedReviewDecision,
   ReviewDecision,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -19,7 +19,9 @@ describe('run item row projection', () => {
     expect(toPrismaTurboRunItemStatus(TurboRunItemStatus.COMPLETED)).toBe(
       TurboRunItemStatus.COMPLETED,
     );
-    expect(toPrismaTurboRunItemStatus('skipped')).toBe(TurboRunItemStatus.SKIPPED);
+    expect(toPrismaTurboRunItemStatus('skipped')).toBe(
+      TurboRunItemStatus.SKIPPED,
+    );
     expect(toPrismaTurboRunItemStatus('not-a-status')).toBe(
       TurboRunItemStatus.PENDING,
     );
@@ -28,7 +30,10 @@ describe('run item row projection', () => {
   it('parses createdAt and falls back when the value is unusable', () => {
     const fallback = new Date('2026-08-12T00:00:00.000Z');
     expect(
-      toTurboRunItemCreatedAt('2026-08-11T10:00:00.000Z', fallback).toISOString(),
+      toTurboRunItemCreatedAt(
+        '2026-08-11T10:00:00.000Z',
+        fallback,
+      ).toISOString(),
     ).toBe('2026-08-11T10:00:00.000Z');
     expect(toTurboRunItemCreatedAt('not-a-date', fallback)).toBe(fallback);
     expect(toTurboRunItemCreatedAt(undefined, fallback)).toBe(fallback);

@@ -201,9 +201,7 @@ describe('BrandRemixRunReviewService', () => {
     await expect(
       review.submit('org-1', 'run-1', 'user-1', {}),
     ).rejects.toBeInstanceOf(ConflictException);
-    expect(
-      turboRunService.createManualReviewTurboRun,
-    ).not.toHaveBeenCalled();
+    expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
     expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({

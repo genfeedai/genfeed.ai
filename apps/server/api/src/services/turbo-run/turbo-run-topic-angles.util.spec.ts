@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  TURBO_RUN_TOPIC_ANGLE_TEMPLATES,
   buildTurboRunDiversityContext,
   expandTurboRunTopics,
+  TURBO_RUN_TOPIC_ANGLE_TEMPLATES,
 } from './turbo-run-topic-angles.util';
 
 describe('expandTurboRunTopics', () => {

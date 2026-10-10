@@ -474,7 +474,7 @@ The app rail is discovery for nine primary modules, not the inventory.
 | `/:orgSlug/:brandSlug/{workspace,overview}/**`                         | Brand                   | Canvas; task detail may also register an overlay   | Dashboard, Inbox views, Activity, Tasks/detail, and the separate Overview Activities route.                                                                                          |
 | `/:orgSlug/:brandSlug/messages`                                        | Brand                   | Canvas                                             | Full social messaging surface.                                                                                                                                                       |
 | `/:orgSlug/:brandSlug/research/**`                                     | Brand                   | Canvas                                             | Discovery, Socials, Ads, Google, Meta, Following, and platform routes.                                                                                                               |
-| `/:orgSlug/:brandSlug/studio/**`                                       | Brand                   | Canvas or focused editor                           | Type/detail plus Batch, Clips, and Fastlane.                                                                                                                                         |
+| `/:orgSlug/:brandSlug/studio/**`                                       | Brand                   | Canvas or focused editor                           | Type/detail plus Turbo, Clips, and Fastlane.                                                                                                                                         |
 | `/:orgSlug/:brandSlug/{compose,editor}/**`                             | Brand                   | Canvas or focused editor                           | Article, Post, Newsletter, editor index/new/detail.                                                                                                                                  |
 | `/:orgSlug/:brandSlug/library/**`                                      | Brand                   | Canvas; entity detail may also register an overlay | Overview, Videos, Images, GIFs, Avatars, Voices, Music, Captions, and Moodboard; Ingredients is a compatibility redirect.                                                            |
 | `/:orgSlug/:brandSlug/publish/**`                                        | Brand                   | Canvas; post detail may also register an overlay   | Detail, Composer, Analytics, Calendar, Newsletters, Published, Remix, Review, Scheduled.                                                                                             |
@@ -486,7 +486,7 @@ The app rail is discovery for nine primary modules, not the inventory.
 
 Special inventory rules:
 
-- Calendar, Workflows, Moodboard, Automate Skills, Studio Batch/Clips/Fastlane,
+- Calendar, Workflows, Moodboard, Automate Skills, Studio Turbo/Clips/Fastlane,
   both overview dashboards, settings, and admin routes are mandatory despite not
   being primary switcher entries.
 - Notifications are a shell service/accessible live-region and may use a trusted

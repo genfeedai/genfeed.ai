@@ -1,16 +1,16 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { scopedWhere } from '@api/index';
 import {
+  resolveTurboRunItems,
   type TurboRunConfig,
   type TurboRunCreditsLedger,
-  resolveTurboRunItems,
 } from '@api/services/turbo-run/turbo-run.types';
 import { turboRunItemRowsReadArgs } from '@api/services/turbo-run/turbo-run-item-rows';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, TurboRunItemStatus } from '@genfeedai/contracts';
 import {
-  type TurboRunPricingOptions,
   reconcileTurboRunCredits,
+  type TurboRunPricingOptions,
 } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -108,7 +108,7 @@ export class TurboRunCreditsService {
 
     if (recorded.count !== 1) {
       this.logger.warn(
-        `Batch ${params.turboRunId} up-front charge not recorded: row changed`,
+        `Turbo run ${params.turboRunId} up-front charge not recorded: row changed`,
         { turboRunId: params.turboRunId, credits: params.credits },
       );
       return false;
@@ -251,7 +251,7 @@ export class TurboRunCreditsService {
     }
 
     this.logger.warn(
-      `Batch ${params.turboRunId} settlement skipped after concurrent updates`,
+      `Turbo run ${params.turboRunId} settlement skipped after concurrent updates`,
       { turboRunId: params.turboRunId },
     );
     return noop;
@@ -300,7 +300,7 @@ export class TurboRunCreditsService {
         actualAmount: reservationSettlement,
         actorUserId: userId,
         brandId,
-        description: `Batch generation ${turboRunId} settlement`,
+        description: `Turbo run ${turboRunId} settlement`,
         organizationId: organizationId,
         reservationId: credits.reservationId,
         source: ActivitySource.SCRIPT,
@@ -414,7 +414,7 @@ export class TurboRunCreditsService {
       // stays exhausted is expected and must not spam Sentry every tick.
       await this.restoreShortfallMarker(params);
       this.logger.error(
-        `Batch ${params.turboRunId} settlement shortfall retry failed`,
+        `Turbo run ${params.turboRunId} settlement shortfall retry failed`,
         error,
         {
           turboRunId: params.turboRunId,
@@ -473,7 +473,7 @@ export class TurboRunCreditsService {
         },
       });
       this.logger.error(
-        `Batch ${params.turboRunId} settlement shortfall marker restore failed`,
+        `Turbo run ${params.turboRunId} settlement shortfall marker restore failed`,
         restoreError,
         {
           turboRunId: params.turboRunId,
@@ -528,7 +528,7 @@ export class TurboRunCreditsService {
           params.organizationId,
           params.refundCredits,
           'turbo-run-refund',
-          `Batch generation ${params.turboRunId} settlement`,
+          `Turbo run ${params.turboRunId} settlement`,
           new Date(Date.now() + REFUND_EXPIRY_MS),
           {
             brandId: params.brandId,
@@ -540,7 +540,7 @@ export class TurboRunCreditsService {
       }
     } catch (error: unknown) {
       this.logger.error(
-        `Batch ${params.turboRunId} credit settlement move failed`,
+        `Turbo run ${params.turboRunId} credit settlement move failed`,
         error,
         {
           additionalCredits: params.additionalCredits,
@@ -569,7 +569,7 @@ export class TurboRunCreditsService {
       params.organizationId,
       params.userId,
       params.settlementShortfall,
-      `Batch generation ${params.turboRunId} settlement`,
+      `Turbo run ${params.turboRunId} settlement`,
       ActivitySource.SCRIPT,
       {
         brandId: params.brandId,
@@ -608,7 +608,7 @@ export class TurboRunCreditsService {
       if (marked.count !== 1) {
         Sentry.captureException(
           new Error(
-            `Batch ${params.turboRunId} settlement shortfall is NOT durably tracked: marker occupied or batch missing`,
+            `Turbo run ${params.turboRunId} settlement shortfall is NOT durably tracked: marker occupied or run missing`,
           ),
           {
             extra: {
@@ -623,7 +623,7 @@ export class TurboRunCreditsService {
           },
         );
         this.logger.error(
-          `Batch ${params.turboRunId} settlement shortfall marker was not persisted`,
+          `Turbo run ${params.turboRunId} settlement shortfall marker was not persisted`,
           undefined,
           {
             turboRunId: params.turboRunId,
@@ -635,7 +635,7 @@ export class TurboRunCreditsService {
       }
     } catch (markerError: unknown) {
       this.logger.error(
-        `Batch ${params.turboRunId} settlement shortfall marker failed to persist`,
+        `Turbo run ${params.turboRunId} settlement shortfall marker failed to persist`,
         markerError,
         {
           turboRunId: params.turboRunId,
@@ -659,7 +659,7 @@ export class TurboRunCreditsService {
     // The settled ledger remains the never-double-charge gate. The shortfall
     // marker is now the only retry amount; no sweep recomputes it from drafts.
     this.logger.error(
-      `Batch ${params.turboRunId} credit settlement deduction failed`,
+      `Turbo run ${params.turboRunId} credit settlement deduction failed`,
       error,
       {
         turboRunId: params.turboRunId,

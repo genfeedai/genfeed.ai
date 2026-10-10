@@ -6,14 +6,14 @@ import {
   sanitizeActionOriginContext,
   scopedWhere,
 } from '@api/index';
-import { TurboRunAlreadyOwnedException } from '@api/services/turbo-run/turbo-run-already-owned.exception';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import type { TurboRunConfig } from '@api/services/turbo-run/turbo-run.types';
+import { TurboRunAlreadyOwnedException } from '@api/services/turbo-run/turbo-run-already-owned.exception';
 import { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
 import { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.service';
 import {
-  TURBO_RUN_ACTION_IDS,
   buildTurboRunWorkflowDefinition,
+  TURBO_RUN_ACTION_IDS,
 } from '@api/services/turbo-run/turbo-run-workflow-definition';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin } from '@genfeedai/contracts';
@@ -42,19 +42,14 @@ export class TurboRunWorkflowService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.runner.registerAction(
-      TURBO_RUN_ACTION_IDS.MARK_QUEUED,
-      ({ input }) =>
-        this.markQueued(input.request as TurboRunWorkflowInput),
+    this.runner.registerAction(TURBO_RUN_ACTION_IDS.MARK_QUEUED, ({ input }) =>
+      this.markQueued(input.request as TurboRunWorkflowInput),
     );
-    this.runner.registerAction(
-      TURBO_RUN_ACTION_IDS.PROCESS,
-      ({ input }) =>
-        this.process(input.request as TurboRunWorkflowInput),
+    this.runner.registerAction(TURBO_RUN_ACTION_IDS.PROCESS, ({ input }) =>
+      this.process(input.request as TurboRunWorkflowInput),
     );
-    this.runner.registerAction(
-      TURBO_RUN_ACTION_IDS.SETTLE,
-      ({ input }) => this.settle(input.request as TurboRunWorkflowInput),
+    this.runner.registerAction(TURBO_RUN_ACTION_IDS.SETTLE, ({ input }) =>
+      this.settle(input.request as TurboRunWorkflowInput),
     );
     this.runner.registerWorkflow(buildTurboRunWorkflowDefinition());
   }
@@ -138,7 +133,7 @@ export class TurboRunWorkflowService implements OnModuleInit {
       return { ...summary, ownedElsewhere: false };
     } catch (error: unknown) {
       if (error instanceof TurboRunAlreadyOwnedException) {
-        this.logger.warn(`${this.logContext} batch already owned`, {
+        this.logger.warn(`${this.logContext} run already owned`, {
           turboRunId: request.turboRunId,
         });
         return { ownedElsewhere: true };

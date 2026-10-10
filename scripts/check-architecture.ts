@@ -210,6 +210,14 @@ const checks = [
     name: 'Retired core/server names (#4348)',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-retired-batch-names.ts',
+    ],
+    name: 'Retired Batch product names (#5936)',
+  },
+  {
     command: ['bun', 'run', 'scripts/architecture/check-single-claude-md.ts'],
     name: 'Single root CLAUDE.md',
   },

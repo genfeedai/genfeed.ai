@@ -2,9 +2,9 @@ import { TurboRunStatus } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
-import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -192,7 +192,8 @@ export function useReviewQueueContent() {
   );
 
   const canDiscardTurboRun =
-    activeTurboRun !== null && activeTurboRun.status !== TurboRunStatus.CANCELLED;
+    activeTurboRun !== null &&
+    activeTurboRun.status !== TurboRunStatus.CANCELLED;
 
   const activeItem = useMemo(
     () => visibleItems.find((item) => item.id === activeItemId) ?? null,
@@ -490,7 +491,8 @@ export function useReviewQueueContent() {
       label: 'Discard review batch',
       message:
         'Ready drafts will be rejected and unfinished items will be cancelled. Prior review decisions stay unchanged. This action cannot be undone.',
-      onConfirm: () => executeDiscardTurboRun(activeTurboRun.id, reviewableItemIds),
+      onConfirm: () =>
+        executeDiscardTurboRun(activeTurboRun.id, reviewableItemIds),
     });
   }, [
     activeTurboRun,
@@ -552,7 +554,13 @@ export function useReviewQueueContent() {
         setIsActioning(false);
       }
     },
-    [activeTurboRun, activeTurboRunId, getTurboRunsService, refreshTurboRun, visibleItems],
+    [
+      activeTurboRun,
+      activeTurboRunId,
+      getTurboRunsService,
+      refreshTurboRun,
+      visibleItems,
+    ],
   );
 
   const handleRequestChanges = useCallback(

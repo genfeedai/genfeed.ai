@@ -36,9 +36,9 @@
       "description": "List and configure AI personas (avatars) for content creation."
     },
     {
-      "id": "batch-generation",
-      "name": "Batch Generate Content",
-      "description": "Generate and review multiple pieces of AI content in parallel."
+      "id": "turbo",
+      "name": "Turbo",
+      "description": "Generate and review multiple pieces of on-brand content in parallel."
     },
     {
       "id": "agent-chat",

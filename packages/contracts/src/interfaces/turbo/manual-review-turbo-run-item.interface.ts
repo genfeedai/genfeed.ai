@@ -1,4 +1,4 @@
-import type { TurboRunItemStatus, ContentFormat, ReviewDecision } from '../..';
+import type { ContentFormat, ReviewDecision, TurboRunItemStatus } from '../..';
 
 export type ReviewTurboRunItemFormat =
   | ContentFormat

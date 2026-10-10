@@ -4,8 +4,8 @@ import {
 } from '@api/collections/turbo-projects/services/turbo-project-dispatch.util';
 import { readTurboProjectIdea } from '@api/collections/turbo-projects/services/turbo-project-idea.util';
 import {
-  parseTurboProjectSettings,
   parseScheduledTargets,
+  parseTurboProjectSettings,
 } from '@api/collections/turbo-projects/services/turbo-project-settings.util';
 import { countTurboProjectItems } from '@api/collections/turbo-projects/services/turbo-project-status.util';
 import type {

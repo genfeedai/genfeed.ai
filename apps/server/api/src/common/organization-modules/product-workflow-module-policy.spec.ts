@@ -18,7 +18,6 @@ import {
   AI_INFLUENCER_WORKFLOW_DEFINITIONS,
   AI_INFLUENCER_WORKFLOW_IDS,
 } from '@api/services/ai-influencer/ai-influencer-workflow-definition';
-import { buildTurboRunWorkflowDefinition } from '@api/services/turbo-run/turbo-run-workflow-definition';
 import {
   AB_TEST_WORKFLOW_DEFINITIONS,
   AB_TEST_WORKFLOW_IDS,
@@ -28,6 +27,7 @@ import {
   CONTENT_OPTIMIZATION_WORKFLOW_IDS,
 } from '@api/services/content-optimization/content-optimization-workflow-definition';
 import { buildSocialTimelineActionWorkflow } from '@api/services/social-timeline/social-timeline-workflow-definition';
+import { buildTurboRunWorkflowDefinition } from '@api/services/turbo-run/turbo-run-workflow-definition';
 import { describe, expect, it } from 'vitest';
 
 describe('code-owned product workflow module inventory', () => {

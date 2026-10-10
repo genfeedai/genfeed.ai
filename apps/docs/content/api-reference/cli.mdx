@@ -229,17 +229,17 @@ gf status <id> --type video
 gf status <id> --type article
 ```
 
-### Batch and templates
+### Turbo and templates
 
 Generate many pieces in one job, then review before anything ships:
 
 ```bash
-gf batch create -n 5 -p twitter,linkedin --topics ai,product --style professional
-gf batch list
-gf batch show <id>
-gf batch approve <id> [itemIds...]
-gf batch reject <id> [itemIds...]
-gf batch cancel <id>
+gf turbo create -n 5 -p twitter,linkedin --topics ai,product --style professional
+gf turbo list
+gf turbo show <id>
+gf turbo approve <id> [itemIds...]
+gf turbo reject <id> [itemIds...]
+gf turbo cancel <id>
 ```
 
 Reusable prompt and workflow templates:

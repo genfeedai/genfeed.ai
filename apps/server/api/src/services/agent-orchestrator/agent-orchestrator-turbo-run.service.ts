@@ -94,7 +94,7 @@ export class AgentOrchestratorTurboRunService {
     }
 
     const toolName = TURBO_RUN_TOOL_NAME;
-    const toolCallId = `${params.context.executionId ?? params.threadId}:batch`;
+    const toolCallId = `${params.context.executionId ?? params.threadId}:run`;
     const toolParams = this.buildTurboRunToolParameters(draft);
     const startedAtIso = new Date().toISOString();
     const startTime = Date.now();
@@ -178,26 +178,30 @@ export class AgentOrchestratorTurboRunService {
     params: TurboRunTurnParams,
     toolParams: Record<string, unknown>,
   ): Promise<TurboRunToolResult> {
-    return this.toolExecutorService.executeTool(TURBO_RUN_TOOL_NAME, toolParams, {
-      apiKeyContext: params.context.apiKeyContext,
-      autonomyMode: params.policy.autonomyMode,
-      brandId: params.policy.brandId,
-      creditGovernance: params.policy.creditGovernance,
-      generationModelOverride: params.policy.generationModelOverride,
-      generationPriority: params.context.generationPriority,
-      organizationId: params.context.organizationId,
-      platform: params.policy.platform,
-      qualityTier: params.policy.qualityTier,
-      reviewModelOverride: params.policy.reviewModelOverride,
-      runId: params.context.executionId,
-      strategyId: params.context.strategyId,
-      streamTurboRunToUser: true,
-      hostSupportsApproval: params.context.hostSupportsApproval ?? true,
-      thinkingModel: params.policy.thinkingModelOverride ?? undefined,
-      threadId: params.threadId,
-      userId: params.context.userId,
-      validatedScope: params.policy.scope,
-    });
+    return this.toolExecutorService.executeTool(
+      TURBO_RUN_TOOL_NAME,
+      toolParams,
+      {
+        apiKeyContext: params.context.apiKeyContext,
+        autonomyMode: params.policy.autonomyMode,
+        brandId: params.policy.brandId,
+        creditGovernance: params.policy.creditGovernance,
+        generationModelOverride: params.policy.generationModelOverride,
+        generationPriority: params.context.generationPriority,
+        organizationId: params.context.organizationId,
+        platform: params.policy.platform,
+        qualityTier: params.policy.qualityTier,
+        reviewModelOverride: params.policy.reviewModelOverride,
+        runId: params.context.executionId,
+        strategyId: params.context.strategyId,
+        streamTurboRunToUser: true,
+        hostSupportsApproval: params.context.hostSupportsApproval ?? true,
+        thinkingModel: params.policy.thinkingModelOverride ?? undefined,
+        threadId: params.threadId,
+        userId: params.context.userId,
+        validatedScope: params.policy.scope,
+      },
+    );
   }
 
   private async persistTurboRunCompletion(

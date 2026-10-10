@@ -1,4 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { TurboProjectCreditsService } from '@api/collections/turbo-projects/services/turbo-project-credits.service';
 import {
   IDEA_OUTPUT_ASPECT_RATIO,
@@ -9,15 +12,12 @@ import {
 } from '@api/collections/turbo-projects/services/turbo-project-dispatch.util';
 import { readTurboProjectIdea } from '@api/collections/turbo-projects/services/turbo-project-idea.util';
 import {
+  buildTurboProjectIdeaDispatchFailureWorkflowDefinition,
+  buildTurboProjectIdeaDispatchWorkflowDefinition,
   TURBO_PROJECT_IDEA_DISPATCH_ACTION_IDS,
   TURBO_PROJECT_IDEA_DISPATCH_FAILURE_WORKFLOW_ID,
   TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID,
-  buildTurboProjectIdeaDispatchFailureWorkflowDefinition,
-  buildTurboProjectIdeaDispatchWorkflowDefinition,
 } from '@api/collections/turbo-projects/services/turbo-project-idea-dispatch-workflow.definition';
-import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
-import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -32,12 +32,12 @@ import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generati
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  TurboProjectItemStatus,
   IngredientCategory,
+  TurboProjectItemStatus,
 } from '@genfeedai/contracts';
 import type {
-  TurboIdea,
   ITurboProjectItemDispatch,
+  TurboIdea,
 } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';

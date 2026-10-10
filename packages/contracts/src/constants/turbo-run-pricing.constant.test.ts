@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { ContentFormat } from '..';
 import {
   allocateByWeights,
-  turboRunItemCredits,
   chargeTurboRunCredits,
   estimateTurboRunCredits,
   reconcileTurboRunCredits,
   resolveTurboRunPricingOptions,
   sourcePostVariationCredits,
+  turboRunItemCredits,
 } from './turbo-run-pricing.constant';
 
 describe('turbo-run-pricing', () => {
@@ -82,7 +82,9 @@ describe('turbo-run-pricing', () => {
   });
 
   it('charges media rates for items that came back with media', () => {
-    const options = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
+    const options = resolveTurboRunPricingOptions({
+      hasMediaGeneration: false,
+    });
     const captionOnly = chargeTurboRunCredits(
       [{ format: ContentFormat.REEL, hasMedia: false }],
       options,
@@ -96,7 +98,9 @@ describe('turbo-run-pricing', () => {
   });
 
   it('resolves the same options for the estimate UI and the server charge', () => {
-    const uiOptions = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
+    const uiOptions = resolveTurboRunPricingOptions({
+      hasMediaGeneration: false,
+    });
     const serverOptions = resolveTurboRunPricingOptions({
       hasMediaGeneration: false,
       qualityTier: undefined,
@@ -111,7 +115,9 @@ describe('turbo-run-pricing', () => {
     const captionOnly = resolveTurboRunPricingOptions({
       hasMediaGeneration: false,
     });
-    const mediaRun = resolveTurboRunPricingOptions({ hasMediaGeneration: true });
+    const mediaRun = resolveTurboRunPricingOptions({
+      hasMediaGeneration: true,
+    });
 
     expect(
       turboRunItemCredits({ format: ContentFormat.VIDEO }, mediaRun),
@@ -121,7 +127,9 @@ describe('turbo-run-pricing', () => {
   });
 
   it('bills the shortfall when an async run produced media', () => {
-    const options = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
+    const options = resolveTurboRunPricingOptions({
+      hasMediaGeneration: false,
+    });
     const items = [
       { format: ContentFormat.IMAGE, hasMedia: true },
       { format: ContentFormat.IMAGE, hasMedia: true },
@@ -131,11 +139,7 @@ describe('turbo-run-pricing', () => {
       options,
     );
 
-    const settlement = reconcileTurboRunCredits(
-      estimate,
-      items,
-      options,
-    );
+    const settlement = reconcileTurboRunCredits(estimate, items, options);
 
     expect(settlement.settledCredits).toBeGreaterThan(estimate);
     expect(settlement.additionalCredits).toBe(
@@ -145,7 +149,9 @@ describe('turbo-run-pricing', () => {
   });
 
   it('refunds the estimate when an async run landed nothing', () => {
-    const options = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
+    const options = resolveTurboRunPricingOptions({
+      hasMediaGeneration: false,
+    });
 
     const settlement = reconcileTurboRunCredits(25, [], options);
 
@@ -155,15 +161,13 @@ describe('turbo-run-pricing', () => {
   });
 
   it('settles to zero when the estimate already matched the outcome', () => {
-    const options = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
+    const options = resolveTurboRunPricingOptions({
+      hasMediaGeneration: false,
+    });
     const items = [{ format: ContentFormat.IMAGE, hasMedia: false }];
     const estimate = chargeTurboRunCredits(items, options);
 
-    const settlement = reconcileTurboRunCredits(
-      estimate,
-      items,
-      options,
-    );
+    const settlement = reconcileTurboRunCredits(estimate, items, options);
 
     expect(settlement.additionalCredits).toBe(0);
     expect(settlement.refundCredits).toBe(0);
@@ -206,7 +210,9 @@ describe('turbo-run-pricing', () => {
   });
 
   it('prices a one-item mixed mix as exactly one item', () => {
-    const options = resolveTurboRunPricingOptions({ hasMediaGeneration: false });
+    const options = resolveTurboRunPricingOptions({
+      hasMediaGeneration: false,
+    });
     const estimate = estimateTurboRunCredits(
       {
         contentMix: {

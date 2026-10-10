@@ -1,10 +1,10 @@
 import type { ContentMixConfig } from '@api/services/turbo-run/schemas/turbo-run.schema';
 import {
-  TurboRunItemStatus,
-  TurboRunStatus,
   ContentFormat,
   normalizeReviewDecision,
   ReviewDecision,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { TurboRunPricingOptions } from '@genfeedai/contracts/constants';
 import type {
@@ -164,7 +164,9 @@ export interface TurboRunProcessOptions {
     turboRunId: string;
     totalCount: number;
   }) => Promise<void> | void;
-  onItemCompleted?: (params: TurboRunProcessItemContext) => Promise<void> | void;
+  onItemCompleted?: (
+    params: TurboRunProcessItemContext,
+  ) => Promise<void> | void;
   onItemFailed?: (params: TurboRunProcessItemContext) => Promise<void> | void;
   onItemStarted?: (params: TurboRunProcessItemContext) => Promise<void> | void;
 }

@@ -105,7 +105,7 @@ export interface GoldenPostRecord extends GoldenScopedRecord {
   reviewEvents: unknown;
 }
 
-export interface GoldenBatchItemRecord extends GoldenScopedRecord {
+export interface GoldenTurboRunItemRecord extends GoldenScopedRecord {
   brandId: string | null;
   reviewDecision: string | null;
   data: unknown;
@@ -152,7 +152,7 @@ export interface GoldenSetScopeSnapshot {
   credentials: GoldenCredentialRecord[];
   members: GoldenMemberRecord[];
   posts: GoldenPostRecord[];
-  batchItems: GoldenBatchItemRecord[];
+  turboRunItems: GoldenTurboRunItemRecord[];
   evaluations: GoldenEvaluationRecord[];
   newsletters: GoldenNewsletterRecord[];
   profiles: GoldenProfileRecord[];
@@ -161,7 +161,7 @@ export interface GoldenSetScopeSnapshot {
   linkedPosts: GoldenPostRecord[];
   linkedArticles: GoldenArticleRecord[];
   linkedNewsletters: GoldenNewsletterRecord[];
-  linkedBatchItems: GoldenBatchItemRecord[];
+  linkedTurboRunItems: GoldenTurboRunItemRecord[];
   threadChildren: GoldenPostRecord[];
 }
 
@@ -349,7 +349,7 @@ export interface GoldenSetPrismaClient {
     GoldenMemberSelect
   >;
   post: GoldenFindManyDelegate<GoldenPostRecord>;
-  batchItem: GoldenFindManyDelegate<GoldenBatchItemRecord>;
+  turboRunItem: GoldenFindManyDelegate<GoldenTurboRunItemRecord>;
   evaluation: GoldenFindManyDelegate<GoldenEvaluationRecord>;
   article: GoldenFindManyDelegate<GoldenArticleRecord>;
   newsletter: GoldenFindManyDelegate<GoldenNewsletterRecord>;

@@ -1,8 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import {
-  TURBO_IDEA_FORMATS,
-  type GenerateTurboIdeasDto,
-} from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import type {
   GenerateBrandVoiceDto,
   GeneratedBrandVoice,
@@ -20,6 +16,10 @@ import {
   buildVoiceEvidencePrompt,
   pickPromptSamples,
 } from '@api/collections/brands/utils/brand-voice-corpus.util';
+import {
+  type GenerateTurboIdeasDto,
+  TURBO_IDEA_FORMATS,
+} from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
@@ -27,11 +27,11 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { LinkCategory } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
-  type TurboIdea,
-  type TurboIdeaFormat,
   BrandVoiceFailureCode,
   type IBrandVoiceCorpus,
   type IBrandVoiceSample,
+  type TurboIdea,
+  type TurboIdeaFormat,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

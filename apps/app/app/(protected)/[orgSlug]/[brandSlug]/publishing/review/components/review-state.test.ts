@@ -17,16 +17,18 @@ describe('review-state', () => {
   });
 
   it('treats skipped items as rejected', () => {
-    expect(isRejected({ status: TurboRunItemStatus.SKIPPED } as never)).toBe(true);
+    expect(isRejected({ status: TurboRunItemStatus.SKIPPED } as never)).toBe(
+      true,
+    );
   });
 
   it('derives review readiness from batch status', () => {
     expect(
       isReadyToReview({ status: TurboRunItemStatus.COMPLETED } as never),
     ).toBe(true);
-    expect(isPendingReview({ status: TurboRunItemStatus.PENDING } as never)).toBe(
-      true,
-    );
+    expect(
+      isPendingReview({ status: TurboRunItemStatus.PENDING } as never),
+    ).toBe(true);
     expect(
       isPendingReview({ status: TurboRunItemStatus.PROCESSING } as never),
     ).toBe(true);

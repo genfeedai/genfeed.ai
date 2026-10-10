@@ -2,7 +2,6 @@ import {
   type BrandAccessActor,
   BrandAccessService,
 } from '@api/authorization/brand-access/brand-access.service';
-import type { GenerateTurboIdeasDto } from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import type { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
@@ -53,6 +52,7 @@ import {
   slugAllocationBase,
 } from '@api/collections/shared/slug-allocation.util';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import type { GenerateTurboIdeasDto } from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
@@ -73,13 +73,13 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import type {
-  TurboIdea,
   IBrandKitApplyResult,
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
   IBrandKitResolvedAssets,
   IBrandOsDraftHandoff,
+  TurboIdea,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

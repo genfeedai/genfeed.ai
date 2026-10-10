@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AgentStrategyRunStatus } from '../../src/enums/agent-strategy.enum';
 import { ArticleStatus } from '../../src/enums/article.enum';
-import { TurboRunStatus } from '../../src/enums/turbo.enum';
 import { BotStatus } from '../../src/enums/bot.enum';
 import { CampaignTargetStatus } from '../../src/enums/campaign.enum';
 import { formatEnumLabel, toEnumSlug } from '../../src/enums/enum-label.util';
@@ -11,6 +10,7 @@ import {
 } from '../../src/enums/ingredient.enum';
 import { PromptCategory, PromptStatus } from '../../src/enums/prompt.enum';
 import { SubscriptionStatus } from '../../src/enums/subscription.enum';
+import { TurboRunStatus } from '../../src/enums/turbo.enum';
 import { WorkflowExecutionStatus } from '../../src/enums/workflow.enum';
 
 /**

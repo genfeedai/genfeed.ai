@@ -1,9 +1,9 @@
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import {
+  resolveTurboRunItems,
   type TurboRunConfig,
   type TurboRunItemFull,
   type TurboRunWithConfig,
-  resolveTurboRunItems,
 } from '@api/services/turbo-run/turbo-run.types';
 import { fromPrismaTurboRunStatus } from '@api/services/turbo-run/turbo-run-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -56,14 +56,21 @@ export class TurboRunSummaryService {
     private readonly publishApprovalsService: PublishApprovalsService,
   ) {}
 
-  async toTurboRunSummary(turboRun: TurboRunWithConfig): Promise<ITurboRunSummary> {
+  async toTurboRunSummary(
+    turboRun: TurboRunWithConfig,
+  ): Promise<ITurboRunSummary> {
     const [summary] = await this.toTurboRunSummaries([turboRun]);
     return summary;
   }
 
-  async toTurboRunSummaries(turboRuns: TurboRunWithConfig[]): Promise<ITurboRunSummary[]> {
+  async toTurboRunSummaries(
+    turboRuns: TurboRunWithConfig[],
+  ): Promise<ITurboRunSummary[]> {
     const turboRunItemsById = new Map(
-      turboRuns.map((turboRun) => [turboRun.id, resolveTurboRunItems(turboRun)]),
+      turboRuns.map((turboRun) => [
+        turboRun.id,
+        resolveTurboRunItems(turboRun),
+      ]),
     );
     const { analyticsMap, linkedPostMap, memberIdentityMap } =
       await this.loadSummaryRelations(turboRuns, turboRunItemsById);

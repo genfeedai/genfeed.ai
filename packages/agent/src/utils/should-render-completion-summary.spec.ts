@@ -41,9 +41,9 @@ function contentPreview(partial: Partial<AgentUiAction> = {}): AgentUiAction {
 
 describe('shouldRenderCompletionSummary', () => {
   it('hides generic Done when sibling batch fully failed', () => {
-    expect(shouldRenderCompletionSummary(completion(), [turboRunResult()])).toBe(
-      false,
-    );
+    expect(
+      shouldRenderCompletionSummary(completion(), [turboRunResult()]),
+    ).toBe(false);
   });
 
   it('hides generic Done when any product result card is present', () => {

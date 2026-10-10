@@ -510,7 +510,9 @@ export class ClientService {
     return this.workspace.listPersonas(params);
   }
 
-  createTurboRun(params: CreateTurboRunParams): Promise<Record<string, unknown>> {
+  createTurboRun(
+    params: CreateTurboRunParams,
+  ): Promise<Record<string, unknown>> {
     return this.workspace.createTurboRun(params);
   }
 

@@ -20,7 +20,10 @@ function createHarness() {
   >();
   const prisma = {
     $executeRaw: vi.fn().mockResolvedValue(1),
-    batchItem: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn() },
+    turboRunItem: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn(),
+    },
     clipProject: {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },

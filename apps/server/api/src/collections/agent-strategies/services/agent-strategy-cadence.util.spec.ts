@@ -153,7 +153,10 @@ describe('strategy cadence', () => {
       ...draft,
       targetSettings: {
         generation: {
-          metadata: { cadenceQualityReceipt: receipt, reviewTurboRunId: 'turboRun' },
+          metadata: {
+            cadenceQualityReceipt: receipt,
+            reviewTurboRunId: 'turboRun',
+          },
         },
       },
     };

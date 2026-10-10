@@ -122,7 +122,7 @@ describe('golden set export CLI', () => {
     expect(snapshot.brands).toHaveLength(3);
     expect(snapshot.posts).toHaveLength(72);
     expect(snapshot.threadChildren).toHaveLength(72);
-    expect(snapshot.batchItems).toHaveLength(72);
+    expect(snapshot.turboRunItems).toHaveLength(72);
     expect(snapshot.linkedArticles).toHaveLength(36);
     expect(snapshot.newsletters).toHaveLength(24);
     expect(snapshot.linkedNewsletters).toHaveLength(12);

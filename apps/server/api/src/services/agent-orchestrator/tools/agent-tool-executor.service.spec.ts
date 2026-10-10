@@ -41,10 +41,10 @@ import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tool
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
-import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tools/agent-media-turbo-run.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
+import { AgentMediaTurboRunService } from '@api/services/agent-orchestrator/tools/agent-media-turbo-run.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
@@ -72,11 +72,11 @@ import {
   ActivitySource,
   AgentGenerationMode,
   ApiKeyScope,
-  TurboRunItemStatus,
-  TurboRunStatus,
   IngredientCategory,
   ReleaseStatus,
   TargetExecutionState,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -989,9 +989,7 @@ describe('AgentToolExecutorService', () => {
       { getUsageMetrics: vi.fn() } as never,
       { listLibraryAssets: vi.fn().mockResolvedValue([]) } as never,
     );
-    const reviewHandler = new AgentReviewToolHandler(
-      turboRunService as never,
-    );
+    const reviewHandler = new AgentReviewToolHandler(turboRunService as never);
     const adsResearchHandler = new AgentAdsResearchToolHandler(
       adsResearchService as never,
       brandsService as never,

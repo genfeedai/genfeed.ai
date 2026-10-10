@@ -121,10 +121,6 @@ import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/ag
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
-import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
-import { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
-import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
-import { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.service';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
@@ -214,6 +210,10 @@ import { TaskDecompositionService } from '@api/services/task-orchestration/task-
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
 import { TaskQueueClientService } from '@api/services/task-queue-client/task-queue-client.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
+import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
+import { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';

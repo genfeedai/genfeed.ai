@@ -247,7 +247,7 @@ export function buildAnonymisationContext(
   }
   for (const records of [
     snapshot.posts,
-    snapshot.batchItems,
+    snapshot.turboRunItems,
     snapshot.evaluations,
     snapshot.newsletters,
     snapshot.profiles,
@@ -256,7 +256,7 @@ export function buildAnonymisationContext(
     snapshot.linkedPosts,
     snapshot.linkedArticles,
     snapshot.linkedNewsletters,
-    snapshot.linkedBatchItems,
+    snapshot.linkedTurboRunItems,
     snapshot.threadChildren,
   ]) {
     for (const record of records) {

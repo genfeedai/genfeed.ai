@@ -5,15 +5,15 @@ import {
 } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { runLockedReviewTransaction } from '@api/services/turbo-run/turbo-run-review-transaction';
-import { TurboRunReviewLockService } from '@api/services/turbo-run/turbo-run-review-lock';
 import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
+import { TurboRunReviewLockService } from '@api/services/turbo-run/turbo-run-review-lock';
+import { runLockedReviewTransaction } from '@api/services/turbo-run/turbo-run-review-transaction';
 import {
-  TurboRunItemStatus,
-  TurboRunStatus,
   PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import type {
   ITurboRunSummary,
@@ -38,12 +38,14 @@ type ApproveTurboRunItemsContext = {
 
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
+import { UpdateTurboRunDto } from '@api/services/turbo-run/dto/update-turbo-run.dto';
 import {
-  type TurboRunItemFull,
-  type TurboRunWithConfig,
   type ReviewInboxItemSummary,
   type ReviewInboxSummary,
   resolveTurboRunItems,
+  type TurboRunItemFull,
+  type TurboRunWithConfig,
   toTurboRunWithConfig,
 } from '@api/services/turbo-run/turbo-run.types';
 import {
@@ -52,24 +54,22 @@ import {
   withdrawDestinationPosts,
 } from '@api/services/turbo-run/turbo-run-destination-posts';
 import {
+  turboRunItemRowsInclude,
+  writeTurboRunJsonAndItemRows,
+} from '@api/services/turbo-run/turbo-run-item-rows';
+import {
   appendApprovedReviewEvent,
   pinApprovedDrafts,
   scheduleApprovedReviewPost,
 } from '@api/services/turbo-run/turbo-run-review-approval';
+import { withMediaAssessmentReasons } from '@api/services/turbo-run/turbo-run-review-media-assessment.util';
 import {
   applyTurboRewrites,
   assertExpectedPostSet,
   assertExpectedPostVersion,
 } from '@api/services/turbo-run/turbo-run-review-rewrite';
-import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
-import {
-  turboRunItemRowsInclude,
-  writeTurboRunJsonAndItemRows,
-} from '@api/services/turbo-run/turbo-run-item-rows';
-import { withMediaAssessmentReasons } from '@api/services/turbo-run/turbo-run-review-media-assessment.util';
 import { toPrismaTurboRunStatus } from '@api/services/turbo-run/turbo-run-status-prisma.mapper';
-import { UpdateTurboRunDto } from '@api/services/turbo-run/dto/update-turbo-run.dto';
-import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
+import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 @Injectable()
@@ -171,7 +171,10 @@ export class TurboRunReviewService {
     };
   }
 
-  async getTurboRun(turboRunId: string, orgId: string): Promise<ITurboRunSummary> {
+  async getTurboRun(
+    turboRunId: string,
+    orgId: string,
+  ): Promise<ITurboRunSummary> {
     const turboRun = toTurboRunWithConfig(
       await findOrThrow(
         this.prisma.turboRun,
@@ -253,7 +256,7 @@ export class TurboRunReviewService {
       },
     );
 
-    this.logger.log(`Approved ${itemIds.length} items in batch ${turboRunId}`, {
+    this.logger.log(`Approved ${itemIds.length} items in run ${turboRunId}`, {
       turboRunId,
       itemCount: itemIds.length,
     });
@@ -366,7 +369,7 @@ export class TurboRunReviewService {
     });
     if (batchUpdate.count !== 1) {
       throw new NotFoundException({
-        message: `Batch ${turboRunId} disappeared before approval completed`,
+        message: `Turbo run ${turboRunId} disappeared before approval completed`,
       });
     }
 
@@ -619,15 +622,19 @@ export class TurboRunReviewService {
     postIds: string[],
     orgId: string,
   ): Promise<void> {
-    await this.withLockedTurboRun(turboRunId, orgId, async (transaction, turboRun) => {
-      await linkReviewDestinationPosts(
-        transaction,
-        turboRun,
-        itemId,
-        postIds,
-        orgId,
-      );
-    });
+    await this.withLockedTurboRun(
+      turboRunId,
+      orgId,
+      async (transaction, turboRun) => {
+        await linkReviewDestinationPosts(
+          transaction,
+          turboRun,
+          itemId,
+          postIds,
+          orgId,
+        );
+      },
+    );
   }
 
   async expireAutonomousReviewTurboRun(
@@ -635,93 +642,105 @@ export class TurboRunReviewService {
     orgId: string,
     now = new Date(),
   ): Promise<string[]> {
-    return this.withLockedTurboRun(turboRunId, orgId, async (transaction, turboRun) => {
-      const items = resolveTurboRunItems(turboRun);
-      const expired: string[] = [];
-      for (const item of items) {
-        if (
-          !item.postId ||
-          item.status !== TurboRunItemStatus.COMPLETED ||
-          (item.reviewDecision && item.reviewDecision !== ReviewDecision.UNSET)
-        )
-          continue;
-        const post = await transaction.post.findFirst({
-          where: scopedWhere(orgId, {
-            id: item.postId,
-            targetExecutionState: TargetExecutionState.DRAFT,
-            reviewDecision: null,
-          }),
-        });
-        if (!post || (!post.agentStrategyId && !post.personaId)) continue;
-        const policy = await this.autonomousPublishPolicy.resolveForPost(
-          { organizationId: orgId, postId: post.id, skipMediaAssessment: true },
-          transaction,
-        );
-        if (
-          now.getTime() - post.createdAt.getTime() <
-          policy.reviewTimeoutHours * 3_600_000
-        )
-          continue;
-        const reason = 'Autonomous draft expired while awaiting human review';
-        await this.publishApprovalsService.invalidatePost(
-          orgId,
-          post.id,
-          reason,
-          undefined,
-          transaction,
-        );
-        await this.postLifecycleService.transition(
-          {
-            organizationId: orgId,
-            postId: post.id,
-            nextState: TargetExecutionState.CANCELLED,
-            mutation: { isDeleted: true, reviewFeedback: reason },
+    return this.withLockedTurboRun(
+      turboRunId,
+      orgId,
+      async (transaction, turboRun) => {
+        const items = resolveTurboRunItems(turboRun);
+        const expired: string[] = [];
+        for (const item of items) {
+          if (
+            !item.postId ||
+            item.status !== TurboRunItemStatus.COMPLETED ||
+            (item.reviewDecision &&
+              item.reviewDecision !== ReviewDecision.UNSET)
+          )
+            continue;
+          const post = await transaction.post.findFirst({
+            where: scopedWhere(orgId, {
+              id: item.postId,
+              targetExecutionState: TargetExecutionState.DRAFT,
+              reviewDecision: null,
+            }),
+          });
+          if (!post || (!post.agentStrategyId && !post.personaId)) continue;
+          const policy = await this.autonomousPublishPolicy.resolveForPost(
+            {
+              organizationId: orgId,
+              postId: post.id,
+              skipMediaAssessment: true,
+            },
+            transaction,
+          );
+          if (
+            now.getTime() - post.createdAt.getTime() <
+            policy.reviewTimeoutHours * 3_600_000
+          )
+            continue;
+          const reason = 'Autonomous draft expired while awaiting human review';
+          await this.publishApprovalsService.invalidatePost(
+            orgId,
+            post.id,
             reason,
-          },
-          transaction,
-        );
-        item.status = TurboRunItemStatus.SKIPPED;
-        item.reviewDecision = ReviewDecision.REJECTED;
-        item.reviewFeedback = reason;
-        item.reviewedAt = now.toISOString();
-        item.reviewEvents = [
-          ...(item.reviewEvents ?? []),
-          {
-            decision: ReviewDecision.REJECTED,
-            feedback: reason,
-            reviewedAt: now.toISOString(),
-          },
-        ];
-        const review =
-          post.agentStrategyId && post.brandId && post.platform
-            ? await buildAgentReviewActivity(transaction, {
-                organizationId: orgId,
-                brandId: post.brandId,
-                strategyId: post.agentStrategyId,
-                platform: post.platform,
-                postId: post.id,
-                userId: turboRun.userId,
-                decisionId: `expired:${post.id}:${post.createdAt.toISOString()}`,
-                autoPublishEnabled: false,
-                approvalStreak: 0,
-                expired: true,
-                occurredAt: now,
-              })
-            : null;
-        // Committed with the run; the delivery sweep sends the email.
-        if (review)
-          await this.activityRecorder.recordInTransaction(transaction, review);
-        expired.push(post.id);
-      }
-      if (expired.length)
-        await writeTurboRunJsonAndItemRows(transaction, {
-          turboRunId,
-          brandId: turboRun.brandId,
-          items,
-          organizationId: orgId,
-        });
-      return expired;
-    });
+            undefined,
+            transaction,
+          );
+          await this.postLifecycleService.transition(
+            {
+              organizationId: orgId,
+              postId: post.id,
+              nextState: TargetExecutionState.CANCELLED,
+              mutation: { isDeleted: true, reviewFeedback: reason },
+              reason,
+            },
+            transaction,
+          );
+          item.status = TurboRunItemStatus.SKIPPED;
+          item.reviewDecision = ReviewDecision.REJECTED;
+          item.reviewFeedback = reason;
+          item.reviewedAt = now.toISOString();
+          item.reviewEvents = [
+            ...(item.reviewEvents ?? []),
+            {
+              decision: ReviewDecision.REJECTED,
+              feedback: reason,
+              reviewedAt: now.toISOString(),
+            },
+          ];
+          const review =
+            post.agentStrategyId && post.brandId && post.platform
+              ? await buildAgentReviewActivity(transaction, {
+                  organizationId: orgId,
+                  brandId: post.brandId,
+                  strategyId: post.agentStrategyId,
+                  platform: post.platform,
+                  postId: post.id,
+                  userId: turboRun.userId,
+                  decisionId: `expired:${post.id}:${post.createdAt.toISOString()}`,
+                  autoPublishEnabled: false,
+                  approvalStreak: 0,
+                  expired: true,
+                  occurredAt: now,
+                })
+              : null;
+          // Committed with the run; the delivery sweep sends the email.
+          if (review)
+            await this.activityRecorder.recordInTransaction(
+              transaction,
+              review,
+            );
+          expired.push(post.id);
+        }
+        if (expired.length)
+          await writeTurboRunJsonAndItemRows(transaction, {
+            turboRunId,
+            brandId: turboRun.brandId,
+            items,
+            organizationId: orgId,
+          });
+        return expired;
+      },
+    );
   }
 
   async applyRewrites(
@@ -788,7 +807,10 @@ export class TurboRunReviewService {
     return this.setItemAssignee(turboRunId, itemId, orgId, null);
   }
 
-  async cancelTurboRun(turboRunId: string, orgId: string): Promise<ITurboRunSummary> {
+  async cancelTurboRun(
+    turboRunId: string,
+    orgId: string,
+  ): Promise<ITurboRunSummary> {
     const turboRunRecord = await findOrThrow(
       this.prisma.turboRun,
       {
@@ -831,7 +853,7 @@ export class TurboRunReviewService {
       ),
     );
 
-    this.logger.log(`Batch cancelled: ${turboRunId}`, { turboRunId });
+    this.logger.log(`Turbo run cancelled: ${turboRunId}`, { turboRunId });
 
     return this.summaryService.toTurboRunSummary(updatedTurboRun);
   }
@@ -959,8 +981,8 @@ export class TurboRunReviewService {
 
     this.logger.log(
       assigneeId
-        ? `Assigned item ${itemId} in batch ${turboRunId}`
-        : `Unassigned item ${itemId} in batch ${turboRunId}`,
+        ? `Assigned item ${itemId} in run ${turboRunId}`
+        : `Unassigned item ${itemId} in run ${turboRunId}`,
       {
         assigneeId,
         turboRunId,

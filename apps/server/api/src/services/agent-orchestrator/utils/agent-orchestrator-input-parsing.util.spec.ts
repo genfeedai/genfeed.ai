@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  extractTurboRunTopic,
   extractRecurringContentCount,
   extractStyleNotes,
+  extractTurboRunTopic,
 } from './agent-orchestrator-input-parsing.util';
 
 describe('agent orchestrator input parsing', () => {
@@ -69,7 +69,10 @@ describe('agent orchestrator input parsing', () => {
       ),
     ).toBe('AI Safety');
     expect(
-      extractTurboRunTopic('Create posts about AI\n', 'create posts about ai\n'),
+      extractTurboRunTopic(
+        'Create posts about AI\n',
+        'create posts about ai\n',
+      ),
     ).toBeUndefined();
   });
 

@@ -1,7 +1,7 @@
-import { TurboProjectsModule } from '@api/collections/turbo-projects/turbo-projects.module';
 import { BrandedGenerationReceiptsHttpModule } from '@api/collections/branded-generation-receipts/branded-generation-receipts-http.module';
 import { ContentLearningModule } from '@api/collections/content-learning/content-learning.module';
 import { OutliersModule } from '@api/collections/outliers/outliers.module';
+import { TurboProjectsModule } from '@api/collections/turbo-projects/turbo-projects.module';
 import { VisualProjectsModule } from '@api/collections/visual-projects/visual-projects.module';
 /** Collection HTTP and persistence modules registered by the API process. */
 

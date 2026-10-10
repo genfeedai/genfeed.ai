@@ -1011,45 +1011,6 @@
     "extractingSourceAudio": "Extracting source audio…",
     "transcribingAndAnalyzingSource": "Transcribing and analyzing this source…"
   },
-  "studioBatch": {
-    "emptyExecutions": "No recent batch executions yet.",
-    "loadingExecution": "Loading batch execution…",
-    "loadingWorkflows": "Loading workflows and recent executions…",
-    "processedProgress": "{completed} / {total} processed",
-    "recentExecutions": "Recent executions",
-    "recentExecutionsDescription": "Reopen a batch, resume progress, or inspect completed results.",
-    "title": "Batch Workflow Runner",
-    "detail": {
-      "backToSetup": "Back to batch setup",
-      "clearSelection": "Clear selection",
-      "completedCount": "Completed: {count}",
-      "download": "Download",
-      "downloadAll": "Download all",
-      "downloadSelected": "Download selected",
-      "failedCount": "Failed: {count}",
-      "itemsProcessed": "{processed} / {total} items processed",
-      "missingOutputMetadata": "Output metadata is unavailable for this completed item.",
-      "noOutputMetadata": "This batch finished without persisted output metadata. Download and publish actions are available when child executions expose output summaries.",
-      "noPreview": "No persisted output preview",
-      "openInLibrary": "Open in library",
-      "outputAlt": "Output {id}",
-      "outputCategory": "{category} output",
-      "outputs": "Outputs",
-      "outputsReady": "{count, plural, one {# output ready} other {# outputs ready}}",
-      "outputsReadySelected": "{count, plural, one {# output ready} other {# outputs ready}}, {selected} selected",
-      "previewUnavailable": "Preview unavailable for this output type",
-      "publish": "Publish",
-      "publishAll": "Publish all",
-      "publishSelected": "Publish selected",
-      "remainingCount": "Remaining: {count}",
-      "select": "Select",
-      "selectAll": "Select all",
-      "selectOutput": "Select output {id}",
-      "started": "Started:",
-      "title": "Batch Results",
-      "unknownCategory": "unknown"
-    }
-  },
   "studioStoryboard": {
     "animatic": {
       "ariaLabel": "Storyboard animatic",
@@ -1285,8 +1246,8 @@
       "review": {
         "open": "Open Review",
         "openPublishingDrafts": "Open Publishing drafts",
-        "summaryMany": "Review batch {batchId} · {count} drafts",
-        "summaryOne": "Review batch {batchId} · {count} draft"
+        "summaryMany": "Review run {turboRunId} · {count} drafts",
+        "summaryOne": "Review run {turboRunId} · {count} draft"
       },
       "sendToReview": "Send {count} to Review",
       "varyRecipe": "Vary recipe",

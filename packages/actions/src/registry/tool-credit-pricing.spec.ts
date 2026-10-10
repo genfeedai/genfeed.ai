@@ -1,12 +1,12 @@
 import {
-  TURBO_RUN_CAPTION_BASE_CREDITS,
-  estimateTurboRunCredits,
-} from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
-import {
   BRAND_INTERVIEW_CREDIT_COST,
   CLIP_CREDIT_PER_CLIP,
   CLIP_HIGHLIGHT_COUNT_MAXIMUM,
 } from '@genfeedai/contracts/constants/tool-credit.constant';
+import {
+  estimateTurboRunCredits,
+  TURBO_RUN_CAPTION_BASE_CREDITS,
+} from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
 import { describe, expect, it } from 'vitest';
 import {
   MCP_CREDIT_PRICING_META_KEY,
@@ -147,9 +147,7 @@ describe('tool credit pricing', () => {
         { count: 4 },
         pricingOf('generate_turbo_content'),
       ),
-    ).toBe(
-      estimateTurboRunCredits({ count: 4 }, { includeMedia: false }),
-    );
+    ).toBe(estimateTurboRunCredits({ count: 4 }, { includeMedia: false }));
     expect(
       estimateToolCreditCost(
         'repurpose_post',

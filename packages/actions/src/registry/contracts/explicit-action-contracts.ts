@@ -6,7 +6,6 @@ import { getAiInfluencerActionContract } from './ai-influencer-action-contracts'
 import { getAnalyticsActionContract } from './analytics-action-contracts';
 import { getAuthorReplyActionContract } from './author-reply-action-contracts';
 import { getAutomationActionContract } from './automation-action-contracts';
-import { getTurboRunActionContract } from './turbo-run-action-contracts';
 import { getBrandRemixActionContract } from './brand-remix-action-contracts';
 import { getCampaignOutreachActionContract } from './campaign-outreach-action-contracts';
 import { getClipActionContract } from './clip-action-contracts';
@@ -35,6 +34,7 @@ import { getSocialReplyCampaignActionContract } from './social-reply-campaign-ac
 import { getSocialSourceActionContract } from './social-source-action-contracts';
 import { getSystemActionContract } from './system-action-contracts';
 import { getTelegramActionContract } from './telegram-action-contracts';
+import { getTurboRunActionContract } from './turbo-run-action-contracts';
 import { getTwitterPipelineActionContract } from './twitter-pipeline-action-contracts';
 import { getVisualCodeActionContract } from './visual-code-action-contracts';
 import { getWorkflowNodeActionContract } from './workflow-node-action-contracts';

@@ -138,7 +138,8 @@ export default function PostDetail({
     ? {
         generationId: (post as { generationId?: string }).generationId,
         promptUsed: (post as { promptUsed?: string }).promptUsed,
-        reviewTurboRunId: (post as { reviewTurboRunId?: string }).reviewTurboRunId,
+        reviewTurboRunId: (post as { reviewTurboRunId?: string })
+          .reviewTurboRunId,
         reviewDecision: normalizeReviewDecision(post.reviewDecision),
         reviewEvents: post.reviewEvents,
         reviewedAt: (post as { reviewedAt?: string }).reviewedAt,

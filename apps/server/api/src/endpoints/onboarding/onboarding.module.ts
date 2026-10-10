@@ -18,7 +18,6 @@ import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/o
 import { OnboardingStarterAssetsService } from '@api/endpoints/onboarding/services/onboarding-starter-assets.service';
 import { OnboardingStarterAssetsQueueService } from '@api/endpoints/onboarding/services/onboarding-starter-assets-queue.service';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
-import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -27,6 +26,7 @@ import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { ONBOARDING_STARTER_ASSETS_QUEUE } from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';

@@ -276,7 +276,9 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       'imageUrl',
       'ingredientId',
     ]);
-    const publishTurboRun = this.readForEachResult(request.input.publishTurboRun);
+    const publishTurboRun = this.readForEachResult(
+      request.input.publishTurboRun,
+    );
     return {
       caption: state.caption as string,
       imageUrl: state.imageUrl as string,

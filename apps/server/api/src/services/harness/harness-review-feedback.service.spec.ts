@@ -55,7 +55,7 @@ describe('HarnessReviewFeedbackService', () => {
       organizationId: 'org-1',
       reason: 'Too salesy',
       sourceId: 'item-1',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.update).toHaveBeenCalledTimes(1);
@@ -69,7 +69,7 @@ describe('HarnessReviewFeedbackService', () => {
       content: 'This post says something off-brand.',
       isAutoAdded: true,
       reason: 'Too salesy',
-      source: 'batch_item:item-1',
+      source: 'turbo_run_item:item-1',
     });
     expect(typeof dto.avoidFeedback[0].addedAt).toBe('string');
   });
@@ -85,7 +85,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REQUEST_CHANGES,
       organizationId: 'org-1',
       sourceId: 'item-2',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.update).toHaveBeenCalledTimes(1);
@@ -98,7 +98,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.APPROVED,
       organizationId: 'org-1',
       sourceId: 'item-3',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.getActiveForBrand).not.toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.UNSET,
       organizationId: 'org-1',
       sourceId: 'item-4',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.getActiveForBrand).not.toHaveBeenCalled();
@@ -124,7 +124,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-5',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.getActiveForBrand).not.toHaveBeenCalled();
@@ -137,7 +137,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-6',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.getActiveForBrand).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-7',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.update).not.toHaveBeenCalled();
@@ -165,7 +165,7 @@ describe('HarnessReviewFeedbackService', () => {
           addedAt: '2026-08-01T00:00:00.000Z',
           content: 'Already recorded content.',
           isAutoAdded: true,
-          source: 'batch_item:item-8',
+          source: 'turbo_run_item:item-8',
         },
       ],
       examples: { avoid: ['Already recorded content.'], good: [] },
@@ -178,7 +178,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-8',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(harnessProfilesService.update).not.toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-9',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     const [, dto] = harnessProfilesService.update.mock.calls[0];
@@ -219,7 +219,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-10',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     const [, dto] = harnessProfilesService.update.mock.calls[0];
@@ -236,7 +236,7 @@ describe('HarnessReviewFeedbackService', () => {
         addedAt: new Date(2026, 0, index + 1).toISOString(),
         content: `Auto entry ${index}`,
         isAutoAdded: true,
-        source: `batch_item:old-${index}`,
+        source: `turbo_run_item:old-${index}`,
       }),
     );
     const profile = createProfile({
@@ -255,7 +255,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-new',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     const [, dto] = harnessProfilesService.update.mock.calls[0];
@@ -263,13 +263,13 @@ describe('HarnessReviewFeedbackService', () => {
     expect(
       dto.avoidFeedback.some(
         (entry: IHarnessAvoidFeedbackEntry) =>
-          entry.source === 'batch_item:old-0',
+          entry.source === 'turbo_run_item:old-0',
       ),
     ).toBe(false);
     expect(
       dto.avoidFeedback.some(
         (entry: IHarnessAvoidFeedbackEntry) =>
-          entry.source === 'batch_item:item-new',
+          entry.source === 'turbo_run_item:item-new',
       ),
     ).toBe(true);
   });
@@ -287,7 +287,7 @@ describe('HarnessReviewFeedbackService', () => {
         addedAt: new Date(2026, 0, index + 1).toISOString(),
         content: `Auto entry ${index}`,
         isAutoAdded: true,
-        source: `batch_item:old-${index}`,
+        source: `turbo_run_item:old-${index}`,
       }),
     );
     const profile = createProfile({
@@ -306,7 +306,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-newest',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     const [, dto] = harnessProfilesService.update.mock.calls[0];
@@ -329,7 +329,7 @@ describe('HarnessReviewFeedbackService', () => {
         decision: ReviewDecision.REJECTED,
         organizationId: 'org-1',
         sourceId: 'item-11',
-        sourceType: 'batch_item',
+        sourceType: 'turbo_run_item',
       }),
     ).resolves.toBeUndefined();
 
@@ -357,7 +357,7 @@ describe('HarnessReviewFeedbackService', () => {
       decision: ReviewDecision.REJECTED,
       organizationId: 'org-1',
       sourceId: 'item-12',
-      sourceType: 'batch_item',
+      sourceType: 'turbo_run_item',
     });
 
     expect(moduleRef.get).toHaveBeenCalled();

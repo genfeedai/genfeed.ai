@@ -1,8 +1,8 @@
 import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
-  TurboIdeaFormat,
   IBrand,
   ICredential,
+  TurboIdeaFormat,
 } from '@genfeedai/contracts/interfaces';
 
 const SHORT_FORM_PLATFORMS: string[] = ['tiktok', 'instagram', 'youtube'];

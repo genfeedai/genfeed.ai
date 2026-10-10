@@ -13,7 +13,7 @@
 | Node family | Idempotency |
 |---|---|
 | Publish / schedule post tools | Durable claim skips re-dispatch; post create should also be safe under existing post/approval uniqueness where present |
-| Credit spend / batch charge | Prefer ledger reference ids (`batch-generation:upfront`, settlement CAS); claims prevent double tool invocation |
+| Credit spend / Turbo run charge | Prefer ledger reference ids (`turbo-run:settlement`, settlement CAS); claims prevent double tool invocation |
 | DM / engagement send | Durable claim is the primary guard; provider-side message ids are secondary if the vendor supports them |
 
 Handlers must not assume “run once” without a claim row or an external idempotency key.

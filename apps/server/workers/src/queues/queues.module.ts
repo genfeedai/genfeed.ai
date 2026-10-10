@@ -12,7 +12,6 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   AGENT_TURN_QUEUE,
-  TURBO_REWRITE_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -23,6 +22,7 @@ import {
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
   SCHEDULED_PUBLISH_QUEUE,
+  TURBO_REWRITE_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,

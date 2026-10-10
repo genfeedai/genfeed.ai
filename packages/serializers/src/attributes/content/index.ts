@@ -1,8 +1,6 @@
 export * from '@serializers/attributes/content/agent-publish-audit.attributes';
 export * from '@serializers/attributes/content/article.attributes';
-export * from '@serializers/attributes/content/turbo-run.attributes';
 export * from '@serializers/attributes/content/batch-interpolation.attributes';
-export * from '@serializers/attributes/content/turbo-project.attributes';
 export * from '@serializers/attributes/content/bookmark.attributes';
 export * from '@serializers/attributes/content/brand-remix-run-summary.attributes';
 export * from '@serializers/attributes/content/branded-generation-prompt-inspection.attributes';
@@ -70,6 +68,8 @@ export * from '@serializers/attributes/content/studio-generate-draft.attributes'
 export * from '@serializers/attributes/content/studio-look.attributes';
 export * from '@serializers/attributes/content/template.attributes';
 export * from '@serializers/attributes/content/template-metadata.attributes';
+export * from '@serializers/attributes/content/turbo-project.attributes';
+export * from '@serializers/attributes/content/turbo-run.attributes';
 export * from './branded-generation-receipt.attributes';
 export * from './remotion-composition.attributes';
 export * from './remotion-render.attributes';

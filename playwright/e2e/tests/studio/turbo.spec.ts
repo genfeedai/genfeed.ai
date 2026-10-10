@@ -9,7 +9,7 @@ test.describe('Persisted Turbo projects', () => {
     authenticatedPage: page,
   }) => {
     const state = await mockTurboProject(page, TurboProjectKind.IDEAS);
-    await page.goto(`${base}/persisted-batch`);
+    await page.goto(`${base}/persisted-project`);
     await page
       .getByRole('textbox', { name: 'Creative angle' })
       .fill('Launch week');
@@ -74,7 +74,7 @@ test.describe('Persisted Turbo projects', () => {
     const state = await mockTurboProject(page, TurboProjectKind.WORKFLOW, {
       deferGeneration: true,
     });
-    await page.goto(`${base}/persisted-batch`);
+    await page.goto(`${base}/persisted-project`);
     await page.getByLabel('Add images or videos').setInputFiles({
       name: 'input.mp4',
       mimeType: 'video/mp4',
@@ -91,7 +91,7 @@ test.describe('Persisted Turbo projects', () => {
     ).toBeVisible();
     await page.goto(base);
     state.completeGeneration();
-    await page.goto(`${base}/persisted-batch`);
+    await page.goto(`${base}/persisted-project`);
     await expect(
       page.getByRole('link', { name: 'Open review inbox' }),
     ).toBeVisible();
@@ -125,7 +125,7 @@ test.describe('Persisted Turbo projects', () => {
     await page
       .getByRole('button', { name: 'Create project', exact: true })
       .click();
-    await expect(page).toHaveURL(new RegExp(`${base}/persisted-batch`));
+    await expect(page).toHaveURL(new RegExp(`${base}/persisted-project`));
     await expect(page.getByRole('textbox', { name: 'Turbo name' })).toHaveValue(
       'Launch collection',
     );
@@ -176,7 +176,7 @@ test.describe('Persisted Turbo projects', () => {
         });
       },
     );
-    await page.goto(`${base}/persisted-batch`);
+    await page.goto(`${base}/persisted-project`);
     const input = page.getByLabel('Add images or videos');
     await input.setInputFiles({
       name: 'invalid.txt',

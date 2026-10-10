@@ -44,12 +44,12 @@ import {
 } from '@api/collections/workflows/workflows.tokens';
 import { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { TurboRunCreationService } from '@api/services/turbo-run/turbo-run-creation.service';
 import { TurboRunProcessingService } from '@api/services/turbo-run/turbo-run-processing.service';
 import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
-import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import { TurboRunReviewLockService } from '@api/services/turbo-run/turbo-run-review-lock';
-import { CacheService } from '@api/services/cache/cache.service';
+import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import {
   assertOwnedPinsUnchanged,
   assertOwnedRetentionUsers,
@@ -308,10 +308,7 @@ export class ProactiveAgentRuntimeFixture {
       approvals,
       this.publishQueue,
     );
-    const summary = new TurboRunSummaryService(
-      this.prisma as never,
-      approvals,
-    );
+    const summary = new TurboRunSummaryService(this.prisma as never, approvals);
     this.reviewLocks = new TurboRunReviewLockService(
       {
         get: (key: string) =>

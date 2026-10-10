@@ -9,15 +9,15 @@ import {
   TURBO_RUN_SETTLEMENT_SHORTFALL_SWEEP_LIMIT,
 } from '@api/services/turbo-run/turbo-run.constants';
 import {
-  type TurboRunConfig,
   resolveTurboRunItems,
+  type TurboRunConfig,
 } from '@api/services/turbo-run/turbo-run.types';
 import { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
-import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import {
   turboRunItemRowsReadArgs,
   writeTurboRunJsonAndItemRows,
 } from '@api/services/turbo-run/turbo-run-item-rows';
+import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import { toPrismaTurboRunStatus } from '@api/services/turbo-run/turbo-run-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TurboRunItemStatus, TurboRunStatus } from '@genfeedai/contracts';
@@ -142,7 +142,7 @@ export class TurboRunReconcileService {
     }
 
     if (stranded.length > 0) {
-      this.logger.warn(`Found ${stranded.length} stranded batches to resume`, {
+      this.logger.warn(`Found ${stranded.length} stranded runs to resume`, {
         turboRunIds: stranded.map((turboRun) => turboRun.turboRunId),
       });
     }
@@ -247,7 +247,7 @@ export class TurboRunReconcileService {
       } catch (error: unknown) {
         // One unavailable tenant or row must not block later shortfalls.
         this.logger.error(
-          `Batch ${candidate.id} settlement shortfall reconciliation failed`,
+          `Turbo run ${candidate.id} settlement shortfall reconciliation failed`,
           error,
           {
             turboRunId: candidate.id,
@@ -259,10 +259,13 @@ export class TurboRunReconcileService {
     }
 
     if (candidates.length > 0) {
-      this.logger.log('Turbo run settlement shortfall reconciliation completed', {
-        candidateCount: candidates.length,
-        collectedCount,
-      });
+      this.logger.log(
+        'Turbo run settlement shortfall reconciliation completed',
+        {
+          candidateCount: candidates.length,
+          collectedCount,
+        },
+      );
     }
 
     // Settle or release output holds whose generation already ended before the
@@ -358,7 +361,7 @@ export class TurboRunReconcileService {
     });
 
     this.logger.error(
-      `Batch ${params.turboRunId} failed out after ${params.resumeCount} resume attempts`,
+      `Turbo run ${params.turboRunId} failed out after ${params.resumeCount} resume attempts`,
       undefined,
       {
         turboRunId: params.turboRunId,

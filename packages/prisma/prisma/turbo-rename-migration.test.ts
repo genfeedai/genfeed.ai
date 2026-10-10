@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest';
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
 const schemaSource = readFileSync(join(prismaDir, 'schema.prisma'), 'utf8');
 const migrationSource = readFileSync(
-  join(prismaDir, 'migrations/20261010200000_rename_batch_to_turbo/migration.sql'),
+  join(
+    prismaDir,
+    'migrations/20261010200000_rename_batch_to_turbo/migration.sql',
+  ),
   'utf8',
 );
 
@@ -46,11 +49,13 @@ describe('Batch to Turbo rename migration (#5936)', () => {
   });
 
   it('leaves no constraint or index named for the old tables', () => {
-    const renamedTargets = [
-      ...migrationSource.matchAll(/ TO "([^"]+)";/g),
-    ].map((match) => match[1]);
+    const renamedTargets = [...migrationSource.matchAll(/ TO "([^"]+)";/g)].map(
+      (match) => match[1],
+    );
     const oldNames = [
-      ...migrationSource.matchAll(/(?:CONSTRAINT|INDEX) "((?:batches|batch_)[^"]+)"/g),
+      ...migrationSource.matchAll(
+        /(?:CONSTRAINT|INDEX) "((?:batches|batch_)[^"]+)"/g,
+      ),
     ].map((match) => match[1]);
 
     expect(oldNames.length).toBeGreaterThanOrEqual(27);
@@ -60,7 +65,9 @@ describe('Batch to Turbo rename migration (#5936)', () => {
   });
 
   it('aborts when any renamed table changes row count', () => {
-    expect(migrationSource).toContain('CREATE TEMP TABLE "_turbo_rename_counts"');
+    expect(migrationSource).toContain(
+      'CREATE TEMP TABLE "_turbo_rename_counts"',
+    );
     expect(migrationSource).toContain(
       "RAISE EXCEPTION 'Turbo rename changed row counts; aborting'",
     );
@@ -77,9 +84,9 @@ describe('Batch to Turbo rename migration (#5936)', () => {
     ]) {
       expect(migrationSource).toContain(target);
     }
-    expect(migrationSource).toContain("'\"batchId\":', '\"turboRunId\":'");
+    expect(migrationSource).toContain('\'"batchId":\', \'"turboRunId":\'');
     expect(migrationSource).toContain(
-      "'\"batch_generation_result_card\"', '\"turbo_run_result_card\"'",
+      '\'"batch_generation_result_card"\', \'"turbo_run_result_card"\'',
     );
     expect(migrationSource).toContain("jsonb_build_object('turbo', ");
     expect(migrationSource).toContain("jsonb_build_object('turbo_ideas', ");

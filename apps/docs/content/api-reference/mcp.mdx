@@ -248,7 +248,7 @@ with the approval id in `message`.
 
 Each call uses the permissions on the authorized token or manual key.
 
-- **Content and media:** articles, images, videos, music, avatars, batches.
+- **Content and media:** articles, images, videos, music, avatars, Turbo runs.
 - **Workflows:** list, create, execute, inspect status.
 - **Publishing:** list and publish social posts.
 - **Analytics and ads:** analytics, campaigns, Google Ads, Meta Ads.
@@ -473,4 +473,4 @@ Connect to `https://mcp.genfeed.ai/mcp/claude` with browser OAuth. This connecto
 
 This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory. Reconnect existing Claude installations using this URL. Existing connections to `/mcp` retain their original capabilities.
 
-The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation. Workflows, batches, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
+The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.

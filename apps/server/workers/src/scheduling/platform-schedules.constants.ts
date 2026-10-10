@@ -23,7 +23,8 @@ export const PLATFORM_SCHEDULED_TASKS = {
   CONTENT_LEARNING_RECONCILE: 'content-learning-reconcile',
   CONTENT_LEARNING_RETENTION: 'content-learning-retention',
   CONTENT_LOOP_AUTOPILOT: 'content-loop-autopilot',
-  TURBO_RUN_CREDIT_SETTLEMENT_RECONCILE: 'turbo-run-credit-settlement-reconcile',
+  TURBO_RUN_CREDIT_SETTLEMENT_RECONCILE:
+    'turbo-run-credit-settlement-reconcile',
   TURBO_RUN_RECONCILE: 'turbo-run-reconcile',
   TURBO_PROJECT_RECONCILE: 'turbo-project-reconcile',
   CREDENTIAL_TOKEN_REFRESH: 'credential-token-refresh',

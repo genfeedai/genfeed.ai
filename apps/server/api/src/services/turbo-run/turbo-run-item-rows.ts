@@ -25,7 +25,9 @@ export type WriteTurboRunJsonAndItemRowsInput = {
   whereExtra?: Record<string, unknown>;
 };
 
-const TURBO_RUN_ITEM_STATUSES = new Set<string>(Object.values(TurboRunItemStatus));
+const TURBO_RUN_ITEM_STATUSES = new Set<string>(
+  Object.values(TurboRunItemStatus),
+);
 
 export function toPrismaTurboRunItemStatus(
   status: string | undefined,
@@ -193,7 +195,9 @@ function persistOneTurboRunItemRow(
   });
 }
 
-function toPersistedTurboRunItemData(item: TurboRunItemFull): Prisma.InputJsonValue {
+function toPersistedTurboRunItemData(
+  item: TurboRunItemFull,
+): Prisma.InputJsonValue {
   const { assignee: _assignee, ...rest } = item as TurboRunItemFull & {
     assignee?: unknown;
   };

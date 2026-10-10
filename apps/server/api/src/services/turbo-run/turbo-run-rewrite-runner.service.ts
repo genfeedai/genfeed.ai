@@ -4,25 +4,25 @@ import { PostGenerationService } from '@api/collections/posts/services/post-gene
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { resolveTurboRunItems } from '@api/services/turbo-run/turbo-run.types';
-import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
-import { turboRunItemRowsInclude } from '@api/services/turbo-run/turbo-run-item-rows';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
-  TURBO_REWRITE_TASK_LABEL,
-  type TurboRewriteJob,
   NON_REWRITABLE_POST_STATES,
   readTurboRewriteProgress,
   resolveFinalRewriteStatus,
+  TURBO_REWRITE_TASK_LABEL,
+  type TurboRewriteJob,
 } from '@api/services/turbo-run/turbo-rewrite-job.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { resolveTurboRunItems } from '@api/services/turbo-run/turbo-run.types';
+import { turboRunItemRowsInclude } from '@api/services/turbo-run/turbo-run-item-rows';
+import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
-  TurboRunItemStatus,
+  CreditReservationStatus,
   TurboRewriteItemFailureReason,
   TurboRewriteJobStatus,
-  CreditReservationStatus,
+  TurboRunItemStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRewriteJobProgress } from '@genfeedai/contracts/interfaces';
 import {
@@ -179,7 +179,9 @@ export class TurboRunRewriteRunnerService {
       where: { id: turboRunId, organizationId, isDeleted: false },
     });
     const item = turboRun
-      ? resolveTurboRunItems(turboRun).find((candidate) => candidate.id === itemId)
+      ? resolveTurboRunItems(turboRun).find(
+          (candidate) => candidate.id === itemId,
+        )
       : undefined;
     if (!item || item.status !== TurboRunItemStatus.COMPLETED) {
       return TurboRewriteItemFailureReason.NOT_REWRITABLE;

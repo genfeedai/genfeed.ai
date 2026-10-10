@@ -8,7 +8,7 @@ export const GOLDEN_CONTENT_KINDS = [
 ] as const;
 
 export const GOLDEN_LABEL_SOURCES = [
-  'batch-item-review',
+  'turbo-run-item-review',
   'evaluation-decision',
   'evaluation-score',
   'harness-avoid',

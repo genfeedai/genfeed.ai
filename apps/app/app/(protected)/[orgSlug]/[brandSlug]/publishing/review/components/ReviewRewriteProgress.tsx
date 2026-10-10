@@ -1,8 +1,8 @@
 import {
-  TurboRewriteJobStatus,
   ButtonSize,
   ButtonVariant,
   CardVariant,
+  TurboRewriteJobStatus,
 } from '@genfeedai/contracts';
 import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrite-progress.props';
 import Card from '@ui/card/Card';

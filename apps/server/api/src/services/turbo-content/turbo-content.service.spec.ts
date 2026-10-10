@@ -2,8 +2,8 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { TurboContentService } from '@api/services/turbo-content/turbo-content.service';
 import type { TurboContentRequest } from '@api/services/turbo-content/interfaces/turbo-content.interfaces';
+import { TurboContentService } from '@api/services/turbo-content/turbo-content.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
 

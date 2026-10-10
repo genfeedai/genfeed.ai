@@ -1,6 +1,8 @@
+import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import type {
-  TurboProjectScheduleTargetDto,
   ScheduleTurboProjectDto,
+  TurboProjectScheduleTargetDto,
 } from '@api/collections/turbo-projects/dto/schedule-turbo-project.dto';
 import type { TurboProjectWithItems } from '@api/collections/turbo-projects/services/turbo-project.mapper';
 import { readTurboProjectIdea } from '@api/collections/turbo-projects/services/turbo-project-idea.util';
@@ -12,16 +14,12 @@ import {
   mergeTurboProjectSettings,
   parseScheduledTargets,
 } from '@api/collections/turbo-projects/services/turbo-project-settings.util';
-import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { TurboRunReviewLockService } from '@api/services/turbo-run/turbo-run-review-lock';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  TurboProjectItemStatus,
-  TurboProjectStep,
   fromPrismaCredentialPlatform,
   IngredientCategory,
   type Platform,
@@ -30,11 +28,13 @@ import {
   parseReviewDecision,
   ReviewDecision,
   TargetExecutionState,
+  TurboProjectItemStatus,
+  TurboProjectStep,
 } from '@genfeedai/contracts';
 import type {
+  IScheduleTurboProjectResult,
   ITurboProjectScheduledTarget,
   ITurboProjectScope,
-  IScheduleTurboProjectResult,
 } from '@genfeedai/contracts/interfaces';
 import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';

@@ -1,3 +1,5 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   type AddTurboProjectItemsDto,
   TURBO_PROJECT_MAX_INPUTS,
@@ -24,8 +26,6 @@ import {
   mergeTurboProjectSettings,
 } from '@api/collections/turbo-projects/services/turbo-project-settings.util';
 import { countTurboProjectItems } from '@api/collections/turbo-projects/services/turbo-project-status.util';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -35,12 +35,12 @@ import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  IngredientCategory,
+  TargetExecutionState,
   TurboProjectItemStatus,
   TurboProjectKind,
   TurboProjectStatus,
   TurboProjectStep,
-  IngredientCategory,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
   ITurboProject,
@@ -867,7 +867,7 @@ export class TurboProjectsService {
     );
     if (existing.length + added.length > TURBO_PROJECT_MAX_INPUTS) {
       throw new BadRequestException(
-        `A workflow batch accepts at most ${TURBO_PROJECT_MAX_INPUTS} inputs`,
+        `A workflow project accepts at most ${TURBO_PROJECT_MAX_INPUTS} inputs`,
       );
     }
     const nextPosition = (existing[0]?.position ?? -1) + 1;

@@ -48,9 +48,9 @@ import {
   verifyPendingToolConfirmation,
 } from '@api/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import {
   ActivitySource,
   AgentAutonomyMode,
@@ -1042,7 +1042,9 @@ export class AgentPublishToolHandler {
           id: String(result.draft.id),
           mode,
           platform,
-          ...(result.reviewTurboRunId && { reviewTurboRunId: result.reviewTurboRunId }),
+          ...(result.reviewTurboRunId && {
+            reviewTurboRunId: result.reviewTurboRunId,
+          }),
           ...(result.reviewItemId && { reviewItemId: result.reviewItemId }),
           status: PostStatus.DRAFT,
         },

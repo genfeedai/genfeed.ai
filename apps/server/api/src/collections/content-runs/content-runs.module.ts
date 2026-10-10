@@ -51,7 +51,6 @@ import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.m
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -62,6 +61,7 @@ import { OpenRouterModule } from '@api/services/integrations/openrouter/openrout
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { RouterModule } from '@api/services/router/router.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';

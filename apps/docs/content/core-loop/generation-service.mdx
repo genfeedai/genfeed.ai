@@ -1,5 +1,5 @@
 ---
-description: 'Trace the OSS generation surface across stable entrypoints, batch generation, provider integrations, model discovery, and generation tools.'
+description: 'Trace the OSS generation surface across stable entrypoints, Turbo runs, provider integrations, model discovery, and generation tools.'
 ---
 
 # Generation Service
@@ -11,16 +11,16 @@ This page documents the OSS v1 generation surface tracked by `#161`.
 The generation story in the current repo spans a small set of stable entrypoints plus provider packages:
 
 - [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/app.module.ts)
-  - imports `BatchGenerationModule`
+  - imports `TurboRunModule`
   - imports the provider-facing integration modules used by generation flows
-- [`apps/server/api/src/services/batch-generation/batch-generation.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.module.ts)
-  - owns the batch-generation controller/service pair
-  - persists batch jobs on the cloud connection
-- [`apps/server/api/src/services/batch-generation/batch-generation.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.controller.ts)
-  - exposes the stable batch entrypoints under `batches`
+- [`apps/server/api/src/services/turbo-run/turbo-run.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/turbo-run/turbo-run.module.ts)
+  - owns the Turbo run controller/service pair
+  - persists Turbo runs on the cloud connection
+- [`apps/server/api/src/services/turbo-run/turbo-run.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/turbo-run/turbo-run.controller.ts)
+  - exposes the stable Turbo entrypoints under `turbo-runs`
   - routes create/process/review operations into the service layer
-- [`apps/server/api/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.service.ts)
-  - builds batch plans
+- [`apps/server/api/src/services/turbo-run/turbo-run.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/turbo-run/turbo-run.service.ts)
+  - builds Turbo run plans
   - delegates actual generation to `ContentGeneratorService`
 - `packages/actions/src/registry/source/index.ts`
   - defines the canonical agent-visible generation tools
@@ -37,8 +37,8 @@ The generation story in the current repo spans a small set of stable entrypoints
 
 For v1, the important point is not every experimental flow. It is the stable path:
 
-1. API/controller accepts a generation or batch request.
-2. `BatchGenerationService` or another generation-facing service delegates into content generation.
+1. API/controller accepts a generation or Turbo request.
+2. `TurboRunService` or another generation-facing service delegates into content generation.
 3. Model/provider selection is resolved from reviewed model records in the shared registry.
 4. Provider adapters normalize generation results into one Genfeed-facing shape.
 
@@ -49,7 +49,7 @@ The v1 stable generation tools are the agent-facing tools that create generation
 | Tool                     | Stable input contract                                                                                   | Execution path                                                                                            | Output contract                                               |
 | ------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `generate`               | `type` (`image`, `video`, `voice`, `music`) and `prompt`; optional `model` (router picks when omitted), plus per-type fields such as `aspectRatio`, `duration`, `imageUrl` + `audioUrl` (avatar video) or `voiceId`; a field for another type is rejected | `AgentMediaGenerationToolHandler.generate` -> `POST /v1/images`, `/v1/videos`, `/v1/voices/generate` or `/v1/musics` -> provider selection | Content preview card with the ingredient id and gallery URL (voice: voice id or audio URL) |
-| `generate_content_batch` | `count`, `platforms`, optional `brandId`, `handle`, `dateRange`, `contentMix`, `style`, `topics`        | `AgentToolExecutorService.generateContentBatch` -> `BatchGenerationService.createBatch`                   | Batch id plus review queue/status actions                     |
+| `generate_turbo_content` | `count`, `platforms`, optional `brandId`, `handle`, `dateRange`, `contentMix`, `style`, `topics`        | `AgentMediaGenerationToolHandler.generateTurboContent` -> `TurboRunService.createTurboRun`                | Turbo run id plus review queue/status actions                 |
 | `generate_as_identity`   | `text` for the identity avatar to speak                                                                 | `AgentToolExecutorService.generateAsIdentity` -> `POST /v1/videos/avatar` with `useIdentity: true`        | Processing preview card for the avatar video generation       |
 
 These are the stable tool names callers should depend on for v1. Lower-level workflow categories such as `generate-image`, `generate-video`, and `generate-music` remain workflow-engine step categories, not public agent tool names.

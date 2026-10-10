@@ -5,10 +5,10 @@ import {
   TurboProjectStep,
 } from '@genfeedai/contracts';
 import type {
+  IScheduleTurboProjectInput,
   ITurboProject,
   ITurboProjectItem,
   ITurboProjectSettings,
-  IScheduleTurboProjectInput,
 } from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';

@@ -34,7 +34,9 @@ function fixture() {
         ]),
     },
     turboRunItem: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'item', turboRunId: 'turboRun' }),
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ id: 'item', turboRunId: 'turboRun' }),
     },
   };
   const http = {

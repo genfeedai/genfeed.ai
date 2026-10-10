@@ -86,6 +86,7 @@
     "check:raw-fetch-org-header": "bun run scripts/architecture/check-raw-fetch-org-header.ts",
     "check:relation-alias-reads": "bun run scripts/architecture/check-relation-alias-reads.ts",
     "check:relation-alias-writes": "bun run scripts/architecture/check-relation-alias-writes.ts",
+    "check:retired-batch-names": "bun run scripts/architecture/check-retired-batch-names.ts",
     "check:retired-core-names": "bun run scripts/architecture/check-retired-core-names.ts",
     "check:workflow-dispatch-class": "bun run scripts/architecture/check-workflow-dispatch-class.ts",
     "check:route-inventory": "bun run scripts/architecture/check-product-route-inventory.ts",

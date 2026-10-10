@@ -7,4 +7,5 @@ export const REVIEW_TURBO_RUN_ITEM_FORMATS = [
   'post',
 ] as const;
 
-export type ReviewTurboRunItemFormat = (typeof REVIEW_TURBO_RUN_ITEM_FORMATS)[number];
+export type ReviewTurboRunItemFormat =
+  (typeof REVIEW_TURBO_RUN_ITEM_FORMATS)[number];

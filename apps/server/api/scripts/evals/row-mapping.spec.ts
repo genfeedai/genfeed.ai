@@ -6,21 +6,21 @@ import {
 } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import type {
-  GoldenBatchItemRecord,
   GoldenEvaluationRecord,
   GoldenPostRecord,
   GoldenSetScopeSnapshot,
+  GoldenTurboRunItemRecord,
 } from './golden-set.types';
 import {
   collectCandidates,
-  extractBatchItemLabels,
   extractEvaluationLabels,
   extractHarnessLabels,
   extractNewsletterLabels,
   extractPostLabels,
+  extractTurboRunItemLabels,
   extractWinnerLabels,
-  resolveBatchItemKind,
   resolvePostKind,
+  resolveTurboRunItemKind,
   scoreToBand,
 } from './row-mapping';
 
@@ -43,9 +43,9 @@ function post(overrides: Partial<GoldenPostRecord> = {}): GoldenPostRecord {
     ...overrides,
   };
 }
-function batch(
-  overrides: Partial<GoldenBatchItemRecord> = {},
-): GoldenBatchItemRecord {
+function turboRun(
+  overrides: Partial<GoldenTurboRunItemRecord> = {},
+): GoldenTurboRunItemRecord {
   return {
     ...scoped,
     id: 'b',
@@ -66,7 +66,7 @@ function snapshot(): GoldenSetScopeSnapshot {
     credentials: [],
     members: [],
     posts: [],
-    batchItems: [],
+    turboRunItems: [],
     evaluations: [],
     newsletters: [],
     profiles: [],
@@ -75,7 +75,7 @@ function snapshot(): GoldenSetScopeSnapshot {
     linkedPosts: [],
     linkedArticles: [],
     linkedNewsletters: [],
-    linkedBatchItems: [],
+    linkedTurboRunItems: [],
     threadChildren: [],
   };
 }
@@ -109,9 +109,11 @@ describe('kind mapping', () => {
     [ContentFormat.STORY, 'script'],
     ['unknown', null],
   ])('maps batch %s', (format, kind) => {
-    expect(resolveBatchItemKind(batch({ data: { format } }))).toBe(kind);
+    expect(resolveTurboRunItemKind(turboRun({ data: { format } }))).toBe(kind);
     expect(
-      resolveBatchItemKind(batch({ data: { format, type: 'engagement' } })),
+      resolveTurboRunItemKind(
+        turboRun({ data: { format, type: 'engagement' } }),
+      ),
     ).toBeNull();
   });
 });
@@ -132,7 +134,7 @@ describe('label extraction', () => {
       ),
     ).toEqual(expected === null ? [] : [expected]);
     expect(
-      extractBatchItemLabels(batch({ reviewDecision: value })).map(
+      extractTurboRunItemLabels(turboRun({ reviewDecision: value })).map(
         (label) => label.decision,
       ),
     ).toEqual(expected === null ? [] : [expected]);
@@ -153,7 +155,7 @@ describe('label extraction', () => {
       { raterKey: 'a', decision: 'reject' },
     ]);
     expect(
-      extractBatchItemLabels(batch({ data: { reviewEvents } })),
+      extractTurboRunItemLabels(turboRun({ data: { reviewEvents } })),
     ).toMatchObject([{ raterKey: 'a', decision: 'reject' }]);
   });
   it('reads decisions, finite clamped scores, and latest other reviewer comments', () => {
@@ -300,7 +302,7 @@ describe('candidate collection', () => {
       post({ id: 'z', parentId: 'p', order: 2, description: 'Last' }),
       post({ id: 'a', parentId: 'p', order: 1, description: 'First' }),
     ];
-    data.batchItems = [batch()];
+    data.turboRunItems = [turboRun()];
     data.linkedArticles = [
       {
         ...scoped,
@@ -343,7 +345,7 @@ describe('candidate collection', () => {
       text: 'Newsletter summary',
       promptBase: 'Newsletter prompt',
     });
-    expect(candidates.get('batch_item:b')).toMatchObject({
+    expect(candidates.get('turbo_run_item:b')).toMatchObject({
       contentKind: 'script',
       text: 'Invented caption',
       promptBase: null,
@@ -355,12 +357,12 @@ describe('candidate collection', () => {
       post({ id: 'reviewed' }),
       post({ id: 'unreviewed', reviewDecision: null }),
     ];
-    data.batchItems = [
-      batch({ data: { postId: 'reviewed', format: ContentFormat.VIDEO } }),
+    data.turboRunItems = [
+      turboRun({ data: { postId: 'reviewed', format: ContentFormat.VIDEO } }),
     ];
-    data.linkedBatchItems = [
-      batch({ id: 'reviewed-batch' }),
-      batch({ id: 'unreviewed-batch', reviewDecision: null }),
+    data.linkedTurboRunItems = [
+      turboRun({ id: 'reviewed-batch' }),
+      turboRun({ id: 'unreviewed-batch', reviewDecision: null }),
     ];
     data.linkedNewsletters = [
       {
@@ -383,8 +385,8 @@ describe('candidate collection', () => {
           avoidFeedback: [
             'post:reviewed',
             'post:unreviewed',
-            'batch_item:reviewed-batch',
-            'batch_item:unreviewed-batch',
+            'turbo_run_item:reviewed-batch',
+            'turbo_run_item:unreviewed-batch',
             'newsletter:n',
             'unknown',
           ].map((source) => ({
@@ -401,7 +403,7 @@ describe('candidate collection', () => {
     expect(result.candidates.get('post:unreviewed')?.labels).toMatchObject([
       { source: 'harness-avoid' },
     ]);
-    expect(result.candidates.get('batch_item:unreviewed-batch')?.text).toBe(
+    expect(result.candidates.get('turbo_run_item:unreviewed-batch')?.text).toBe(
       'Invented caption',
     );
     expect(result.candidates.get('newsletter:n')?.text).toBe('Newsletter');

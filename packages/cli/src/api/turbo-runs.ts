@@ -79,7 +79,10 @@ export async function getTurboRun(id: string): Promise<TurboRunDetail> {
   return flattenSingle<TurboRunDetail>(response);
 }
 
-export async function turboRunItemAction(turboRunId: string, request: TurboRunActionRequest): Promise<void> {
+export async function turboRunItemAction(
+  turboRunId: string,
+  request: TurboRunActionRequest
+): Promise<void> {
   await post<JsonApiSingleResponse>(`/turbo-runs/${turboRunId}/items/action`, request);
 }
 

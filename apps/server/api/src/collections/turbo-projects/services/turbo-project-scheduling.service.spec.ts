@@ -1,12 +1,12 @@
 import { TurboProjectSchedulingService } from '@api/collections/turbo-projects/services/turbo-project-scheduling.service';
 import {
+  IngredientCategory,
+  PostCategory,
+  TargetExecutionState,
   TurboProjectItemStatus,
   TurboProjectKind,
   TurboProjectStatus,
   TurboProjectStep,
-  IngredientCategory,
-  PostCategory,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 
 type Row = Record<string, unknown>;
@@ -449,9 +449,7 @@ describe('TurboProjectSchedulingService', () => {
         scope,
       );
 
-      expect(turboRunService.linkDestinationPosts).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(turboRunService.linkDestinationPosts).toHaveBeenCalledTimes(1);
       expect(turboRunService.linkDestinationPosts).toHaveBeenCalledWith(
         'review-run-1',
         'review-item-1',

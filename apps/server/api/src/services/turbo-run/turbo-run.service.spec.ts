@@ -9,18 +9,18 @@ import {
 } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { TurboRunCreationService } from '@api/services/turbo-run/turbo-run-creation.service';
 import { TurboRunProcessingService } from '@api/services/turbo-run/turbo-run-processing.service';
 import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
-import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import { TurboRunReviewLockService } from '@api/services/turbo-run/turbo-run-review-lock';
-import { CacheService } from '@api/services/cache/cache.service';
+import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ContentFormat,
   TurboRunItemStatus,
   TurboRunStatus,
-  ContentFormat,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -682,7 +682,9 @@ describe('TurboRunService approval version pins', () => {
 });
 
 it('forwards internal strategy attribution after the idempotency key', async () => {
-  const creation = { createTurboRun: vi.fn().mockResolvedValue({ id: 'turboRun' }) };
+  const creation = {
+    createTurboRun: vi.fn().mockResolvedValue({ id: 'turboRun' }),
+  };
   const facade = new TurboRunService(
     creation as never,
     {} as never,

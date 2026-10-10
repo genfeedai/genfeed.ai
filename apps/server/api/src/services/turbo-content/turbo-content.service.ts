@@ -4,18 +4,18 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import {
-  TURBO_CONTENT_ACTION_IDS,
-  buildTurboContentWorkflowDefinitions,
-  getTurboContentWorkflowId,
-} from '@api/services/turbo-content/turbo-content-workflow-definition';
-import type {
-  TurboContentRequest,
-  TurboContentResult,
-  QueuedTurboContentResult,
-} from '@api/services/turbo-content/interfaces/turbo-content.interfaces';
 import type { GeneratedContent } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { isExecutableSkillSlug } from '@api/services/skill-executor/skill-workflow-definition';
+import type {
+  QueuedTurboContentResult,
+  TurboContentRequest,
+  TurboContentResult,
+} from '@api/services/turbo-content/interfaces/turbo-content.interfaces';
+import {
+  buildTurboContentWorkflowDefinitions,
+  getTurboContentWorkflowId,
+  TURBO_CONTENT_ACTION_IDS,
+} from '@api/services/turbo-content/turbo-content-workflow-definition';
 import { TURBO_RUN_COUNT_MAXIMUM } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -186,7 +186,7 @@ export class TurboContentService implements OnModuleInit {
       count > TURBO_RUN_COUNT_MAXIMUM
     ) {
       throw new Error(
-        `Batch content count must be an integer from 1 to ${TURBO_RUN_COUNT_MAXIMUM}`,
+        `Turbo content count must be an integer from 1 to ${TURBO_RUN_COUNT_MAXIMUM}`,
       );
     }
     return {
@@ -262,21 +262,21 @@ export class TurboContentService implements OnModuleInit {
       return {};
     }
     if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error(`Batch content workflow requires ${field}`);
+      throw new Error(`Turbo content workflow requires ${field}`);
     }
     return value as Record<string, unknown>;
   }
 
   private requiredNumber(value: unknown, field: string): number {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-      throw new Error(`Batch content workflow requires numeric ${field}`);
+      throw new Error(`Turbo content workflow requires numeric ${field}`);
     }
     return value;
   }
 
   private requiredString(value: unknown, field: string): string {
     if (typeof value !== 'string' || value.trim().length === 0) {
-      throw new Error(`Batch content workflow requires ${field}`);
+      throw new Error(`Turbo content workflow requires ${field}`);
     }
     return value.trim();
   }

@@ -4,33 +4,33 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { scopedWhere } from '@api/index';
+import { CacheService } from '@api/services/cache/cache.service';
+import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
+import { CreateTurboRunDto } from '@api/services/turbo-run/dto/create-turbo-run.dto';
+import type { ContentMixConfig } from '@api/services/turbo-run/schemas/turbo-run.schema';
 import {
   type TurboRunConfig,
   type TurboRunItemFull,
   type TurboRunWithConfig,
   toTurboRunWithConfig,
 } from '@api/services/turbo-run/turbo-run.types';
-import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import {
-  turboRunItemRowsInclude,
   persistTurboRunItemRows,
+  turboRunItemRowsInclude,
   withTurboRunWriteTransaction,
   writeTurboRunJsonAndItemRows,
 } from '@api/services/turbo-run/turbo-run-item-rows';
 import { toPrismaTurboRunStatus } from '@api/services/turbo-run/turbo-run-status-prisma.mapper';
-import { CreateTurboRunDto } from '@api/services/turbo-run/dto/create-turbo-run.dto';
-import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/create-manual-review-turbo-run.dto';
-import type { ContentMixConfig } from '@api/services/turbo-run/schemas/turbo-run.schema';
-import { CacheService } from '@api/services/cache/cache.service';
+import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  TurboRunItemStatus,
-  TurboRunStatus,
   ContentFormat,
   PostVisibility,
   parsePlatform,
   ReviewDecision,
   TargetExecutionState,
+  TurboRunItemStatus,
+  TurboRunStatus,
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
@@ -127,29 +127,32 @@ export class TurboRunCreationService {
       totalCount: dto.count,
     };
 
-    const turboRun = await withTurboRunWriteTransaction(this.prisma, async (tx) => {
-      const created = (await tx.turboRun.create({
-        data: {
-          agentStrategyId: strategyId ?? null,
+    const turboRun = await withTurboRunWriteTransaction(
+      this.prisma,
+      async (tx) => {
+        const created = (await tx.turboRun.create({
+          data: {
+            agentStrategyId: strategyId ?? null,
+            brandId: dto.brandId,
+            config: config as Prisma.InputJsonValue,
+            isDeleted: false,
+            items: toPrismaJson(items),
+            organizationId: orgId,
+            status: toPrismaTurboRunStatus(TurboRunStatus.PENDING),
+            userId,
+          },
+        })) as TurboRunWithConfig;
+        await persistTurboRunItemRows(tx, {
+          turboRunId: created.id,
           brandId: dto.brandId,
-          config: config as Prisma.InputJsonValue,
-          isDeleted: false,
-          items: toPrismaJson(items),
+          items,
           organizationId: orgId,
-          status: toPrismaTurboRunStatus(TurboRunStatus.PENDING),
-          userId,
-        },
-      })) as TurboRunWithConfig;
-      await persistTurboRunItemRows(tx, {
-        turboRunId: created.id,
-        brandId: dto.brandId,
-        items,
-        organizationId: orgId,
-      });
-      return created;
-    });
+        });
+        return created;
+      },
+    );
 
-    this.logger.log(`Batch created: ${turboRun.id}`, {
+    this.logger.log(`Turbo run created: ${turboRun.id}`, {
       turboRunId: turboRun.id,
       count: dto.count,
       orgId,
@@ -265,7 +268,7 @@ export class TurboRunCreationService {
       throw error;
     }
 
-    this.logger.log(`Manual review batch created: ${turboRun.id}`, {
+    this.logger.log(`Manual review run created: ${turboRun.id}`, {
       turboRunId: turboRun.id,
       itemCount: turboRunItems.length,
       orgId,
@@ -654,7 +657,7 @@ export class TurboRunCreationService {
 
     if (invalid.length > 0 || normalized.length === 0) {
       throw new BadRequestException(
-        `Invalid batch platform(s): ${invalid.join(', ') || '(empty)'}. Use a supported platform id.`,
+        `Invalid run platform(s): ${invalid.join(', ') || '(empty)'}. Use a supported platform id.`,
       );
     }
 

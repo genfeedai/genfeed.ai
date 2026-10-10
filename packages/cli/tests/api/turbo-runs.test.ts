@@ -1,11 +1,11 @@
 import { TurboRunStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  turboRunItemAction,
   cancelTurboRun,
   createTurboRun,
   getTurboRun,
   listTurboRuns,
+  turboRunItemAction,
 } from '../../src/api/turbo-runs';
 
 const mockApiKey = vi.fn<[], string | undefined>();
@@ -31,7 +31,7 @@ describe('api/turbo-runs', () => {
   });
 
   describe('createTurboRun', () => {
-    it('posts brandId to /batches and never sends the legacy brand key', async () => {
+    it('posts brandId to /turbo-runs and never sends the legacy brand key', async () => {
       mockFetch.mockResolvedValue({
         data: {
           attributes: {
@@ -82,9 +82,12 @@ describe('api/turbo-runs', () => {
 
       await listTurboRuns({ limit: 5, status: TurboRunStatus.PENDING });
 
-      expect(mockFetch).toHaveBeenCalledWith(`/turbo-runs?status=${TurboRunStatus.PENDING}&limit=5`, {
-        method: 'GET',
-      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        `/turbo-runs?status=${TurboRunStatus.PENDING}&limit=5`,
+        {
+          method: 'GET',
+        }
+      );
     });
   });
 

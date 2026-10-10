@@ -2830,9 +2830,7 @@ describe('BrandRemixRunsService', () => {
         variantIds: ['variant-1'],
       });
 
-      expect(
-        turboRunService.createManualReviewTurboRun,
-      ).toHaveBeenCalledWith(
+      expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
         {
           brandId: 'brand-1',
           items: [
@@ -2935,9 +2933,7 @@ describe('BrandRemixRunsService', () => {
         },
         status: 409,
       });
-      expect(
-        turboRunService.createManualReviewTurboRun,
-      ).not.toHaveBeenCalled();
+      expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
       expect(
         trendReferenceCorpusService.recordPostRemixLineage,
       ).not.toHaveBeenCalled();
@@ -3022,9 +3018,7 @@ describe('BrandRemixRunsService', () => {
           }),
         }),
       );
-      expect(
-        turboRunService.createManualReviewTurboRun,
-      ).not.toHaveBeenCalled();
+      expect(turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
       expect(
         trendReferenceCorpusService.recordPostRemixLineage,
       ).not.toHaveBeenCalled();
