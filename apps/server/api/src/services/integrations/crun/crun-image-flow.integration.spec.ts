@@ -634,7 +634,6 @@ describe('Crun image quote through durable owned output and accounting', () => {
             prisma.ingredient.findFirst({ where }),
         } as never,
         client,
-        { open: vi.fn(), recordAccepted: vi.fn() } as never,
       );
       await prisma.creditBalance.create({
         data: {

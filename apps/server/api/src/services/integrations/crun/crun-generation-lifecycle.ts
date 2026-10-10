@@ -18,13 +18,11 @@ import type {
 } from '@api/services/integrations/crun/crun-task.schema';
 import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
 import type { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
-import { resolveMediaGenerationReceiptSurface } from '@api/services/media-generation-receipts/media-generation-receipt-input.util';
-import type { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   type ActivitySource,
-  IngredientCategory,
+  type IngredientCategory,
   IngredientOrigin,
   type MetadataExtension,
   type PromptCategory,
@@ -60,11 +58,6 @@ export interface CrunGenerationDeps {
   credits: CreditsUtilsService;
   prisma: PrismaService;
   prompts: PromptsService;
-  /** Generation receipts; writes run detached and never gate dispatch. */
-  receipts: Pick<
-    MediaGenerationReceiptsService,
-    'open' | 'recordAccepted' | 'syncTerminal'
-  >;
   shared: SharedService;
   tasks: Pick<
     CrunTaskService,
@@ -153,7 +146,7 @@ export async function dispatchFrozenCrunGeneration<
     });
   } catch (error: unknown) {
     await compensateCrunDispatchFailure(
-      { tasks: deps.tasks, billing: deps.billing, receipts: deps.receipts },
+      { tasks: deps.tasks, billing: deps.billing },
       {
         organizationId: user.organizationId,
         ingredientIds: createdIngredientIds,
@@ -278,10 +271,6 @@ async function createBoundOutputs<
     });
     ingredients.push(docs);
     createdIngredientIds.push(docs.ingredientData.id);
-    openOutputReceipt(deps, strategy, params, {
-      ingredientId: docs.ingredientData.id,
-      firstIngredientId: ingredients[0].ingredientData.id,
-    });
     if (intent.folderId)
       await deps.prisma.ingredient.updateMany({
         where: {
@@ -334,57 +323,6 @@ async function createBoundOutputs<
   return { ingredients, rows };
 }
 
-/**
- * Opens the generation receipt of one created output. Studio media applies no
- * brand identity, so the receipt is raw: it records the typed prompt, the
- * enhanced prompt when enhancement replaced it, and the prompt Crun receives.
- */
-function openOutputReceipt<
-  TIntent extends CrunDispatchIntent,
-  TFrozen extends CrunFrozenQuoteBase,
->(
-  deps: CrunGenerationDeps,
-  strategy: CrunGenerationStrategy<TIntent, TFrozen>,
-  params: {
-    billingRequest: CrunBillingRequest;
-    frozen: TFrozen;
-    intent: TIntent;
-    user: AuthenticatedUser;
-  },
-  output: { ingredientId: string; firstIngredientId: string },
-): void {
-  const { billingRequest, frozen, intent, user } = params;
-  const typed = billingRequest.generationOriginalPrompt;
-  const isEnhanced = typed !== undefined && typed !== intent.text;
-  const submitted = frozen.request.input.prompt;
-  void deps.receipts.open({
-    organizationId: user.organizationId,
-    brandId: frozen.brandId,
-    actorId: user.userId,
-    isApiKey: user.isApiKey,
-    apiKeyId: user.apiKeyId,
-    scopes: user.scopes,
-    ingredientId: output.ingredientId,
-    parentIngredientId: output.firstIngredientId,
-    mediaKind:
-      strategy.category === IngredientCategory.VIDEO ? 'video' : 'image',
-    surface: resolveMediaGenerationReceiptSurface(),
-    provider: 'crun',
-    model: intent.model,
-    originalPrompt: isEnhanced ? typed : intent.text,
-    ...(isEnhanced ? { enhancedPrompt: intent.text } : {}),
-    compiledPrompt:
-      typeof submitted === 'string' && submitted.trim()
-        ? submitted
-        : intent.text,
-    generationParameters: {
-      outputs: intent.outputs ?? 1,
-      quoteId: frozen.quoteId,
-      ...(intent.style ? { style: intent.style } : {}),
-    },
-  });
-}
-
 async function resolveFundingBinding(
   deps: CrunGenerationDeps,
   user: AuthenticatedUser,
@@ -425,17 +363,7 @@ async function submitPreparedOutputs(
   // Every durable row and binding precedes the first paid request. Never regenerate effective input here.
   for (const task of prepared) {
     const result = await deps.tasks.submit(task, frozen.request);
-    if (result.isSubmitted) {
-      if (result.taskId)
-        void deps.receipts.recordAccepted({
-          organizationId: user.organizationId,
-          ingredientId: task.ingredientId,
-          provider: 'crun',
-          model: task.modelKey,
-          externalId: result.taskId,
-        });
-      continue;
-    }
+    if (result.isSubmitted) continue;
     const persisted = await deps.tasks.findForIngredient(
       user.organizationId,
       task.ingredientId,
@@ -443,17 +371,11 @@ async function submitPreparedOutputs(
     if (
       persisted?.state === 'provider-failed' &&
       persisted.providerTaskId === null
-    ) {
+    )
       await deps.billing.recordSubmissionRejection(
         task.ingredientId,
         user.organizationId,
       );
-      void deps.receipts.syncTerminal(
-        user.organizationId,
-        task.ingredientId,
-        'released',
-      );
-    }
     // Ambiguous acceptance remains funded. No outcome is automatically redispatched.
   }
   await deps.billing.releasePool(billingRequest);

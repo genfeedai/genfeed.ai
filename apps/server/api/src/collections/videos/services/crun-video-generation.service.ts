@@ -20,7 +20,6 @@ import {
 } from '@api/services/integrations/crun/crun-generation-lifecycle';
 import type { CrunFrozenVideoQuote } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
-import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -88,7 +87,6 @@ export class CrunVideoGenerationService {
     private readonly videos: VideosService,
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
-    private readonly receipts: MediaGenerationReceiptsService,
   ) {}
 
   private readonly strategy: CrunGenerationStrategy<
@@ -138,7 +136,6 @@ export class CrunVideoGenerationService {
         credits: this.credits,
         prisma: this.prisma,
         prompts: this.prompts,
-        receipts: this.receipts,
         shared: this.shared,
         tasks: this.tasks,
       },

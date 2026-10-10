@@ -57,7 +57,6 @@ function fixture() {
     } as never,
     prisma as never,
     {} as never,
-    { open: vi.fn(), recordAccepted: vi.fn() } as never,
   );
   return { service, preview, tasks, shared, prisma };
 }
