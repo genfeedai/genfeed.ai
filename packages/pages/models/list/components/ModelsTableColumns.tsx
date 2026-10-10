@@ -66,9 +66,7 @@ function isPaidModelPricingLocked(model: IModel): boolean {
   if (model.isFree === true) return false;
   if (model.pricingType === 'conditional')
     return model.hasReviewedPricing !== true;
-  return (
-    model.isFree !== true && (!Number.isFinite(model.cost) || model.cost <= 0)
-  );
+  return !Number.isFinite(model.cost) || model.cost <= 0;
 }
 
 function isPromotedLifecycle(lifecycle: ModelLifecycle): boolean {
