@@ -209,6 +209,38 @@ describe('ClipsWorkspace with the real page-help provider', () => {
     expect(screen.queryByTestId('clips-input-form')).not.toBeInTheDocument();
   });
 
+  it('renders the actual downloading phase without an unsupported completion estimate', () => {
+    mocks.useStudioClipProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [],
+    });
+    mocks.useStudioClipsPage.mockReturnValue(
+      baseClipsPageState({
+        isHydrating: false,
+        editedHighlights: [],
+        project: {
+          clips: [],
+          highlights: [],
+          projectId: 'source-1',
+          status: 'analyzing',
+          source: { flow: 'review', status: 'downloading' },
+        },
+        step: 'review',
+      }),
+    );
+    render(
+      <PageHelpProvider help={clipsHelp}>
+        <ClipsWorkspace projectId="source-1" />
+      </PageHelpProvider>,
+    );
+    expect(screen.getByText('Downloading source media…')).toBeVisible();
+    expect(screen.queryByText(/1-2 minutes/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Avatar video generation needs/),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the restored setup form for a draft project', () => {
     mocks.useStudioClipProjects.mockReturnValue({
       error: null,

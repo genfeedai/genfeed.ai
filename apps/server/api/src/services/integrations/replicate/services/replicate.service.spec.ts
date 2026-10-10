@@ -897,6 +897,28 @@ describe('ReplicateService', () => {
   });
 
   describe('transcribeAudio', () => {
+    it('reads the pinned Whisper transcription and detected language contract', async () => {
+      const { service } = createHarness();
+      wait.mockResolvedValueOnce({
+        id: 'pred-whisper',
+        output: {
+          detected_language: 'English',
+          transcription: 'Actual source transcript',
+          segments: [{ start: 0, end: 3.5, text: 'Actual source transcript' }],
+        },
+      });
+      await expect(
+        service.transcribeAudio({
+          audio: { type: 'url', url: 'https://cdn.test/source.mp3' },
+        }),
+      ).resolves.toMatchObject({
+        text: 'Actual source transcript',
+        language: 'English',
+        duration: 3.5,
+      });
+      expect(predictionsCreate.mock.calls[0][0]).not.toHaveProperty('model');
+    });
+
     it('sends a url input straight through', async () => {
       const { service } = createHarness();
       wait.mockResolvedValueOnce({
@@ -910,7 +932,8 @@ describe('ReplicateService', () => {
 
       expect(predictionsCreate).toHaveBeenCalledWith({
         input: { audio: 'https://cdn.test/a.mp3' },
-        model: 'openai/whisper',
+        version:
+          '8099696689d249cf8b122d833c36ac3f75505c666a395ca40ef26f68e7d3d16e',
       });
       expect(result).toEqual({
         confidence: undefined,

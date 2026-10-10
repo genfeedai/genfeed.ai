@@ -74,7 +74,8 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
         SHELL_CONTROL_HEIGHT_CLASS,
         'min-w-0 max-w-full flex-nowrap gap-1.5 overflow-hidden px-2.5 font-medium text-foreground',
         isFullyAgentOwned && 'border-primary/30 bg-primary/5 text-primary',
-        isIconOnly && 'size-8 shrink-0 min-h-0 min-w-0 justify-center p-0',
+        isIconOnly &&
+          'size-8 shrink-0 min-h-0 min-w-0 justify-center overflow-visible p-0',
         className,
       )}
       isDisabled={isDisabled}

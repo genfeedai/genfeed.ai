@@ -65,3 +65,93 @@ for (const viewport of [
     });
   }
 }
+
+// Browser zoom at 200% halves the CSS viewport and doubles rendered pixels.
+// Keep this emulation explicit; screenshot dimensions retain the device width.
+test.describe('200% browser zoom layout', () => {
+  test.use({ deviceScaleFactor: 2 });
+  for (const width of [360, 390, 768, 1440]) {
+    test(`generation setup remains reachable at ${width}px physical width`, async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: width / 2, height: 600 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+      await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
+        waitUntil: 'domcontentloaded',
+      });
+      const trigger = page.getByRole('button', { name: /^Generation setup:/ });
+      await trigger.click();
+      const dialog = page.getByRole('dialog').filter({
+        has: page.getByRole('button', {
+          name: 'Configure Type',
+          exact: true,
+        }),
+      });
+      await expect(dialog).toBeVisible();
+      await expect
+        .poll(async () => {
+          const b = await dialog.boundingBox();
+          return b !== null && b.x >= 0 && b.x + b.width <= width / 2;
+        })
+        .toBe(true);
+      await expect(
+        dialog.getByRole('button', { name: 'Configure Type', exact: true }),
+      ).toBeInViewport();
+      await page.keyboard.press('Tab');
+      await expect
+        .poll(() =>
+          dialog.evaluate((element) =>
+            element.contains(document.activeElement),
+          ),
+        )
+        .toBe(true);
+      await page.screenshot({
+        path: testInfo.outputPath('generation-setup-200-percent.png'),
+      });
+      await page.keyboard.press('Escape');
+      await expect(trigger).toBeFocused();
+    });
+  }
+});
+
+test.describe('touch generation setup', () => {
+  test.use({ hasTouch: true });
+  test('retains a real 44px hit target around the 32px icon', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+    await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
+      waitUntil: 'domcontentloaded',
+    });
+    const trigger = page.getByRole('button', { name: /^Generation setup:/ });
+    await expect(trigger).toBeVisible();
+    const target = await trigger.evaluate((element) => {
+      const b = element.getBoundingClientRect();
+      const pseudo = getComputedStyle(element, '::after');
+      return {
+        x: b.x,
+        y: b.y,
+        width: b.width,
+        height: b.height,
+        hitWidth: b.width - parseFloat(pseudo.left) - parseFloat(pseudo.right),
+        hitHeight:
+          b.height - parseFloat(pseudo.top) - parseFloat(pseudo.bottom),
+      };
+    });
+    expect(target.width).toBeGreaterThanOrEqual(32);
+    expect(target.height).toBeGreaterThanOrEqual(32);
+    expect(target.hitWidth).toBeGreaterThanOrEqual(44);
+    expect(target.hitHeight).toBeGreaterThanOrEqual(44);
+    await page.touchscreen.tap(target.x + target.width / 2, target.y - 5);
+    await expect(
+      page.getByRole('dialog').filter({
+        has: page.getByRole('button', {
+          name: 'Configure Type',
+          exact: true,
+        }),
+      }),
+    ).toBeVisible();
+  });
+});

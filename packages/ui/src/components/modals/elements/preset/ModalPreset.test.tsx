@@ -3,7 +3,10 @@ import { ModelCategory } from '@genfeedai/contracts';
 import type { IPreset } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalPreset from '@ui/modals/elements/preset/ModalPreset';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ui from '../../../../../../../apps/app/messages/en/ui.json';
 
 const fixture = vi.hoisted(() => ({
   transform: null as ((data: PresetElementSchema) => unknown) | null,
@@ -58,6 +61,14 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', async () => {
   };
 });
 
+function renderPreset(element: ReactNode) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={{ ui }}>
+      {element}
+    </NextIntlClientProvider>,
+  );
+}
+
 describe('ModalPreset', () => {
   beforeEach(() => {
     fixture.transform = null;
@@ -76,7 +87,7 @@ describe('ModalPreset', () => {
   ])(
     'preserves existing preset ownership in another brand context: %j',
     (scope) => {
-      render(
+      renderPreset(
         <ModalPreset
           item={{ ...input, ...scope, id: 'preset-1' } as IPreset}
           onConfirm={vi.fn()}
@@ -98,14 +109,14 @@ describe('ModalPreset', () => {
     },
   );
   it('scopes newly created presets to the current organization and brand', () => {
-    render(<ModalPreset onConfirm={vi.fn()} />);
+    renderPreset(<ModalPreset onConfirm={vi.fn()} />);
     expect(fixture.transform?.(input)).toMatchObject({
       organizationId: 'current-org',
       brandId: 'current-brand',
     });
   });
   it('edits the generation prompt, duration and activation using the shared controls', () => {
-    render(
+    renderPreset(
       <ModalPreset
         item={
           {

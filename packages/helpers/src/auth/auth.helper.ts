@@ -19,10 +19,12 @@ type PlaywrightAuthWindow = Window &
       user_id?: string;
     };
     __better_auth_is_signed_in?: boolean;
+    __playwright_socket_fixture?: boolean;
   };
 
 export interface PlaywrightAuthState {
   isLoaded: boolean;
+  isSocketFixtureEnabled?: boolean;
   isSignedIn: boolean;
   orgId: string | null;
   publicMetadata: IAuthPublicData | null;
@@ -102,6 +104,9 @@ export function getPlaywrightAuthState(): PlaywrightAuthState | null {
   const publicMetadata = session?.user?.publicMetadata ?? null;
 
   return {
+    ...(playwrightWindow.__playwright_socket_fixture === true
+      ? { isSocketFixtureEnabled: true }
+      : {}),
     isLoaded: true,
     isSignedIn: true,
     orgId: session?.lastActiveOrganizationId ?? null,

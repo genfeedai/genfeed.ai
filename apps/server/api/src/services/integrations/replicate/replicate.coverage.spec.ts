@@ -787,7 +787,8 @@ describe('ReplicateService (coverage)', () => {
           input: expect.objectContaining({
             audio: 'https://cdn.example.com/audio.mp3',
           }),
-          model: 'openai/whisper',
+          version:
+            '8099696689d249cf8b122d833c36ac3f75505c666a395ca40ef26f68e7d3d16e',
         }),
       );
     });

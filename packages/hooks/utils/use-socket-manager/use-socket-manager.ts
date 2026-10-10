@@ -38,7 +38,8 @@ export function useSocketManager(
     'connecting' | 'connected' | 'reconnecting' | 'offline'
   >('connecting');
   const disableSocketsForPlaywright =
-    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true';
+    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true' &&
+    playwrightAuth?.isSocketFixtureEnabled !== true;
 
   const latestOptionsRef = useRef(options);
 

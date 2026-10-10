@@ -1001,7 +1001,11 @@
     "transcript": "Transcript",
     "transcriptPending": "The transcript will appear here after transcription.",
     "avatarDefaultsHint": "Avatar video generation needs a saved HeyGen avatar and voice. You can analyze the source without them.",
-    "configureAvatarDefaults": "Set avatar and voice defaults"
+    "configureAvatarDefaults": "Set avatar and voice defaults",
+    "processingSource": "Processing this source…",
+    "downloadingSource": "Downloading source media…",
+    "extractingSourceAudio": "Extracting source audio…",
+    "transcribingAndAnalyzingSource": "Transcribing and analyzing this source…"
   },
   "studioBatch": {
     "emptyExecutions": "No recent batch executions yet.",

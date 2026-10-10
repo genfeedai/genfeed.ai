@@ -1,10 +1,14 @@
+import type { PlaywrightAuthState } from '@helpers/auth/auth.helper';
 import {
   useSocketManager,
   useSocketSubscriptions,
 } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const getPlaywrightAuthStateMock = vi.hoisted(() =>
+  vi.fn<() => PlaywrightAuthState | null>(() => null),
+);
 const getTokenMock = vi.fn().mockResolvedValue('mock-token');
 const resolveAuthTokenMock = vi.fn().mockResolvedValue('mock-token');
 const useAuthIdentityMock = vi.fn();
@@ -28,7 +32,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 }));
 
 vi.mock('@helpers/auth/auth.helper', () => ({
-  getPlaywrightAuthState: vi.fn(() => null),
+  getPlaywrightAuthState: getPlaywrightAuthStateMock,
   resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
@@ -48,6 +52,7 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 describe('useSocketManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getPlaywrightAuthStateMock.mockReturnValue(null);
     getTokenMock.mockResolvedValue('mock-token');
     resolveAuthTokenMock.mockResolvedValue('mock-token');
     useAuthIdentityMock.mockReturnValue({
@@ -55,6 +60,30 @@ describe('useSocketManager', () => {
       isLoaded: true,
       isSignedIn: true,
     });
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('keeps sockets disabled for ordinary Playwright fixtures', async () => {
+    vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST', 'true');
+    const { result } = renderHook(() => useSocketManager());
+    await waitFor(() => expect(result.current.connectionState).toBe('offline'));
+    expect(socketManagerGetInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('runs real socket subscriptions for an explicit authenticated socket fixture', async () => {
+    vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST', 'true');
+    getPlaywrightAuthStateMock.mockReturnValue({
+      isLoaded: true,
+      isSignedIn: true,
+      isSocketFixtureEnabled: true,
+      orgId: 'org-1',
+      userId: 'user-1',
+      publicMetadata: null,
+    });
+    const { result } = renderHook(() => useSocketManager());
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(socketManagerGetInstanceMock).toHaveBeenCalledTimes(1);
   });
 
   it('returns socket manager interface', () => {
