@@ -45,11 +45,22 @@ import {
   normalizeClipReferenceFrameSet,
   normalizeClipReferenceTimestamps,
 } from '@genfeedai/helpers';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+function readFileJobStatus(value: unknown): Record<string, unknown> {
+  const response = readRecord(value);
+  // Files includes the original request in data; state/result belong to the
+  // outer status envelope. Also accept transport-wrapped status responses.
+  return typeof response.state === 'string' ||
+    typeof response.status === 'string'
+    ? response
+    : readRecord(response.data);
+}
 
 function deriveReferenceTimestamps(highlights: IHighlight[]): number[] {
   return normalizeClipReferenceTimestamps(
@@ -551,14 +562,14 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
 
     while (Date.now() - start < timeoutMs) {
       const response = await firstValueFrom(
-        this.httpService.get(`${filesUrl}/v1/files/job/${jobId}`),
+        this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`),
       );
 
-      const payload = response.data?.data || response.data;
+      const payload = readFileJobStatus(response.data);
       const status = payload?.status || payload?.state;
 
       if (status === 'completed' || status === 'COMPLETED') {
-        const result = payload?.result || payload;
+        const result = payload.result ? readRecord(payload.result) : payload;
         const audioUrl = result.outputUrl || result.url;
         if (typeof audioUrl !== 'string' || audioUrl.length === 0) {
           throw new Error(
@@ -610,13 +621,15 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
 
     while (Date.now() - start < timeoutMs) {
       const response = await firstValueFrom(
-        this.httpService.get(`${filesUrl}/v1/files/job/${jobId}`),
+        this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`),
       );
-      const payload = response.data?.data || response.data;
+      const payload = readFileJobStatus(response.data);
       const status = payload?.status || payload?.state;
 
       if (status === 'completed' || status === 'COMPLETED') {
-        return normalizeClipReferenceFrameSet(payload?.result?.referenceFrames);
+        return normalizeClipReferenceFrameSet(
+          readRecord(payload.result).referenceFrames,
+        );
       }
 
       if (status === 'failed' || status === 'FAILED') {

@@ -349,15 +349,16 @@ async function navigateAfterAuth(page: Page, path: string): Promise<void> {
     waitUntil: 'domcontentloaded',
   });
 
-  // Wait for either the authenticated app shell or a non-login URL
-  await page
-    .waitForFunction(() => !window.location.pathname.startsWith('/login'), {
-      timeout: 20_000,
-    })
-    .catch(() => {
-      // Even if we're still on /login, let the test proceed — it will fail
-      // with a more descriptive assertion error rather than a fixture timeout.
+  // /workspace canonicalizes in the client after hydration. Yielding on the
+  // initial non-login URL lets that redirect abort the test's next navigation.
+  if (path === APP_AUTH_BOOTSTRAP_PATH) {
+    await page.waitForURL(`**${E2E_BRAND_BASE}/workspace/overview`, {
+      timeout: 30_000,
     });
+  }
+  await page
+    .getByTestId('app-content-shell')
+    .waitFor({ state: 'visible', timeout: 30_000 });
 }
 
 // ----------------------------------------------------------------------------

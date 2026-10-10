@@ -292,46 +292,120 @@ describe('ClipAnalysisWorkflowService', () => {
     expect(whisper.transcribeUrl).not.toHaveBeenCalled();
   });
 
-  it('keeps the YouTube URL after materializing a stored source', async () => {
-    http.post.mockReturnValue(of({ data: { jobId: 'audio-1' } }));
-    http.get.mockReturnValue(
-      of({
+  it.each(['direct', 'wrapped'] as const)(
+    'reads %s Files status while preserving the YouTube URL',
+    async (shape) => {
+      http.post.mockReturnValue(of({ data: { jobId: 'audio-1' } }));
+      const status = {
         data: {
-          status: 'completed',
-          result: {
-            outputUrl: 'https://cdn.test/audio.mp3',
-            sourceUrl: 'https://cdn.test/source.mp4',
-            sourceS3Key: 'videos/source.mp4',
-            sourceDurationSeconds: 25,
+          id: 'clip-audio-project-1',
+          params: { youtubeUrl: 'https://www.youtube.com/watch?v=abc123def45' },
+        },
+        state: 'completed',
+        result: {
+          url: 'https://cdn.test/audio.mp3',
+          sourceUrl: 'https://cdn.test/source.mp4',
+          sourceS3Key: 'videos/source.mp4',
+          sourceDurationSeconds: 25,
+        },
+      };
+      http.get.mockReturnValue(
+        of({ data: shape === 'direct' ? status : { data: status } }),
+      );
+      await actions.get('clip.analysis.prepare-source')?.({
+        input: {
+          job: {
+            language: 'en',
+            orgId: 'org-1',
+            projectId: 'project-1',
+            userId: 'user-1',
+            youtubeUrl: 'https://www.youtube.com/watch?v=abc123def45',
+            source: {
+              fingerprint: 'sha256:source',
+              kind: 'youtube',
+              retryCount: 0,
+            },
           },
         },
-      }),
-    );
-    await actions.get('clip.analysis.prepare-source')?.({
-      input: {
-        job: {
-          language: 'en',
-          orgId: 'org-1',
-          projectId: 'project-1',
-          userId: 'user-1',
-          youtubeUrl: 'https://www.youtube.com/watch?v=abc123def45',
-          source: {
-            fingerprint: 'sha256:source',
-            kind: 'youtube',
-            retryCount: 0,
+      } as never);
+      const artifactWrite = clipProjects.patch.mock.calls.find(
+        (call) => call[1]?.sourceVideoS3Key,
+      );
+      expect(artifactWrite?.[1]).toMatchObject({
+        sourceVideoS3Key: 'videos/source.mp4',
+        source: { artifact: { mediaUrl: 'https://cdn.test/source.mp4' } },
+      });
+      expect(artifactWrite?.[1]).not.toHaveProperty('sourceVideoUrl');
+    },
+  );
+
+  it.each(['completed', 'failed'] as const)(
+    'reads reference Files %s state outside request data',
+    async (state) => {
+      http.post.mockReturnValue(of({ data: { jobId: 'frames-1' } }));
+      http.get.mockReturnValue(
+        of({
+          data: {
+            data: {
+              id: 'clip-reference-frames-project-1',
+              params: { timestamps: [15] },
+            },
+            state,
+            result: {
+              referenceFrames: {
+                schemaVersion: 1,
+                status: 'unavailable',
+                candidates: [],
+                diagnostics: [
+                  {
+                    code: 'actual-files-result',
+                    message: 'No frame',
+                    severity: 'warning',
+                  },
+                ],
+                selectedCandidateId: null,
+              },
+            },
+          },
+        }),
+      );
+      const result = await actions.get(
+        'clip.analysis.extract-reference-frames',
+      )?.({
+        input: {
+          highlighted: {
+            data: { orgId: 'org-1', projectId: 'project-1', userId: 'user-1' },
+            sourceUrl: 'https://www.youtube.com/watch?v=abc123def45',
+            highlights: [
+              {
+                id: 'h1',
+                start_time: 10,
+                end_time: 20,
+                title: 'Hook',
+                summary: 'Hook',
+                tags: [],
+                clip_type: 'hook',
+                virality_score: 90,
+              },
+            ],
           },
         },
-      },
-    } as never);
-    const artifactWrite = clipProjects.patch.mock.calls.find(
-      (call) => call[1]?.sourceVideoS3Key,
-    );
-    expect(artifactWrite?.[1]).toMatchObject({
-      sourceVideoS3Key: 'videos/source.mp4',
-      source: { artifact: { mediaUrl: 'https://cdn.test/source.mp4' } },
-    });
-    expect(artifactWrite?.[1]).not.toHaveProperty('sourceVideoUrl');
-  });
+      } as never);
+      expect(result).toMatchObject({
+        referenceFrames: {
+          diagnostics: [
+            expect.objectContaining({
+              code:
+                state === 'completed'
+                  ? 'actual-files-result'
+                  : 'clip_reference_extraction_failed',
+            }),
+          ],
+        },
+      });
+      expect(http.get).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('preserves the materialized source when failure compensation uses the original job payload', async () => {
     const source = {
