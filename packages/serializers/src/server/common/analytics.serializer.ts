@@ -17,6 +17,7 @@ import {
   analyticsTopContentSerializerConfig,
   analyticsTopPostSerializerConfig,
   analyticsTrendSerializerConfig,
+  analyticsWinnerPostSerializerConfig,
   fleetEvaluationPolicySerializerConfig,
 } from '@serializers/configs';
 
@@ -83,6 +84,11 @@ export const { AnalyticsTopContentSerializer } = buildSerializer(
 export const { AnalyticsTopPostSerializer } = buildSerializer(
   'server',
   analyticsTopPostSerializerConfig,
+);
+
+export const { AnalyticsWinnerPostSerializer } = buildSerializer(
+  'server',
+  analyticsWinnerPostSerializerConfig,
 );
 
 export const { AnalyticsTrendSerializer } = buildSerializer(

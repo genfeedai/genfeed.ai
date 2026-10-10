@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   clearBootstrap: vi.fn(),
   getService: vi.fn(),
   isLoading: false,
+  isSuperAdmin: false,
   loggerError: vi.fn(),
   organizationId: 'org-1',
   patchSettings: vi.fn(),
@@ -43,6 +44,10 @@ vi.mock(
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({ useAccessState: () => ({ isSuperAdmin: mocks.isSuperAdmin }) }),
+);
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
@@ -84,9 +89,14 @@ describe('OrganizationModulesCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isLoading = false;
+    mocks.isSuperAdmin = false;
     mocks.organizationId = 'org-1';
     mocks.role = MemberRole.OWNER;
-    mocks.settings = { moduleOverrides: {}, hasOrganizationBilling: true };
+    mocks.settings = {
+      moduleOverrides: {},
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+    };
     mocks.patchSettings.mockResolvedValue({});
     mocks.refresh.mockResolvedValue(undefined);
     mocks.getService.mockResolvedValue({ patchSettings: mocks.patchSettings });
@@ -112,6 +122,43 @@ describe('OrganizationModulesCard', () => {
     }
     expect(screen.getAllByText('Always on')).toHaveLength(2);
     expect(screen.getAllByText('Paid plan')).toHaveLength(3);
+  });
+
+  it('shows founder-only modules as not released on cloud without preview (#5502)', () => {
+    mocks.settings = {
+      moduleOverrides: { automation: true, batch: true },
+      hasOrganizationBilling: true,
+    };
+    render(<OrganizationModulesCard />);
+    for (const name of [
+      'Motion',
+      'Clips',
+      'Editor',
+      'Automation',
+      'Messages',
+    ]) {
+      expect(toggle(name)).toBeDisabled();
+      expect(toggle(name)).not.toBeChecked();
+    }
+    expect(screen.getAllByText('Not released')).toHaveLength(5);
+    expect(toggle('Batch')).toBeChecked();
+    expect(toggle('Batch')).toBeEnabled();
+    expect(
+      screen.queryByRole('switch', { name: 'Release preview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lets a platform admin move the organization onto release preview', async () => {
+    mocks.isSuperAdmin = true;
+    mocks.settings = { moduleOverrides: {}, hasOrganizationBilling: true };
+    render(<OrganizationModulesCard />);
+    fireEvent.click(toggle('Release preview'));
+    await waitFor(() =>
+      expect(mocks.patchSettings).toHaveBeenCalledWith('org-1', {
+        isReleasePreviewEnabled: true,
+      }),
+    );
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it('preserves explicit self-hosted choices while defaulting other modules on', () => {
@@ -140,6 +187,7 @@ describe('OrganizationModulesCard', () => {
       mocks.settings = {
         moduleOverrides: { analytics: false, messages: true },
         hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
       };
       render(<OrganizationModulesCard />);
       fireEvent.click(toggle('Motion'));
@@ -236,7 +284,11 @@ describe('OrganizationModulesCard', () => {
   it.each([undefined, { motion: 'true' }, { arbitrary: true }])(
     'disables unavailable or malformed settings without granting defaults: %j',
     async (moduleOverrides) => {
-      mocks.settings = { moduleOverrides, hasOrganizationBilling: true };
+      mocks.settings = {
+        moduleOverrides,
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
+      };
       render(<OrganizationModulesCard />);
       for (const control of screen.getAllByRole('switch'))
         expect(control).toBeDisabled();
@@ -285,7 +337,11 @@ describe('OrganizationModulesCard', () => {
     const view = render(<OrganizationModulesCard />);
     fireEvent.click(screen.getByRole('button', { name: 'Retry loading' }));
     mocks.organizationId = 'org-2';
-    mocks.settings = { moduleOverrides: {}, hasOrganizationBilling: true };
+    mocks.settings = {
+      moduleOverrides: {},
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+    };
     view.rerender(<OrganizationModulesCard />);
     await act(async () => reload.reject(new Error('Old request failed')));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

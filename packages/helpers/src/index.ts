@@ -1,6 +1,7 @@
 export * from './analytics/breakout-baseline.helper';
 export * from './analytics/breakout-capacity.helper';
 export * from './analytics/outlier-baseline.helper';
+export * from './analytics/winner-classification.helper';
 export * from './aspect-ratio.helper';
 export * from './asset-scope.helper';
 export * from './async/sleep.helper';

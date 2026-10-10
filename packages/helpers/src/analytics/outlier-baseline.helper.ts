@@ -80,10 +80,17 @@ function validateScope(scope: Readonly<OutlierBaselineScope>): void {
   }
 }
 
+/** Validates the measured value a baseline is computed over. */
+type MetricValueValidator = (value: number) => boolean;
+
+const isViewCount: MetricValueValidator = (value) =>
+  Number.isSafeInteger(value) && value >= 0;
+
 function exclusionReasons(
   post: Readonly<OutlierBaselinePostInput>,
   nowMs: number,
   maturityMs: number,
+  isValidValue: MetricValueValidator,
 ): OutlierBaselineExclusionReason[] {
   const reasons: OutlierBaselineExclusionReason[] = [];
   if (post.isDeleted) reasons.push('soft_deleted');
@@ -94,11 +101,7 @@ function exclusionReasons(
   } else if (nowMs - post.publishedAtMs < maturityMs) {
     reasons.push('immature');
   }
-  if (
-    post.views === null ||
-    !Number.isSafeInteger(post.views) ||
-    post.views < 0
-  ) {
+  if (post.views === null || !isValidValue(post.views)) {
     reasons.push('invalid_views');
   }
   return reasons;
@@ -153,6 +156,18 @@ function calculateMedian(
 export function computeOutlierBaseline(
   input: OutlierBaselineInput,
 ): OutlierBaselineResult {
+  return computeMetricBaseline(input, isViewCount);
+}
+
+/**
+ * #5502 the same account baseline over any measured value. Callers put the
+ * metric in `views` (likes, comments, engagement rate) and say which values
+ * are valid; `invalid_views` then means the metric was missing or invalid.
+ */
+export function computeMetricBaseline(
+  input: OutlierBaselineInput,
+  isValidValue: MetricValueValidator,
+): OutlierBaselineResult {
   const { scope, nowMs, posts } = input;
   validateScope(scope);
   if (!isValidTime(nowMs)) {
@@ -177,7 +192,12 @@ export function computeOutlierBaseline(
       );
     }
     seenIds.add(post.id);
-    const reasons = exclusionReasons(post, nowMs, options.maturityMs);
+    const reasons = exclusionReasons(
+      post,
+      nowMs,
+      options.maturityMs,
+      isValidValue,
+    );
     results.push({
       id: post.id,
       isContributor: false,

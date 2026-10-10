@@ -663,6 +663,7 @@ describe('AppRail', () => {
         moduleAccess={moduleAccessFor({
           hasOrganizationBilling: true,
           hasPaidModuleSubscription: true,
+          isReleasePreviewEnabled: true,
           moduleOverrides: {},
         })}
       />,
@@ -721,6 +722,7 @@ describe('AppRail', () => {
         moduleAccess={moduleAccessFor({
           hasOrganizationBilling: true,
           hasPaidModuleSubscription: true,
+          isReleasePreviewEnabled: true,
           moduleOverrides: { automation: true },
         })}
       />,
