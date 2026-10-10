@@ -948,6 +948,7 @@
     "noProjectsDescription": "Start from a YouTube link, an uploaded file, or a video in Library.",
     "noProjectsYet": "No clip projects yet",
     "pipelineFailed": "Clip generation stopped before it finished. Retry what failed below, or start a new project.",
+    "pipelineFailedNoRetry": "Clip generation stopped and this run can’t be retried. Start a new project to try again.",
     "processingAvatarClips": "Processing source media and generating avatar clips...",
     "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips…",
     "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts…",

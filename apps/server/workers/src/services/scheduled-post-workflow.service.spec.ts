@@ -3,6 +3,7 @@ import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import type { SystemWorkflowTerminalFailureHandler } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   PublishApprovalStatus,
   TargetExecutionState,
@@ -64,10 +65,20 @@ function createHarness() {
   const repeatScheduler = {
     scheduleNextRepeat: vi.fn().mockResolvedValue(undefined),
   };
+  const terminalFailures = new Map<
+    string,
+    SystemWorkflowTerminalFailureHandler
+  >();
   const runner = {
     registerAction: vi.fn((actionId: string, action: RegisteredAction) => {
       registeredActions.set(actionId, action);
     }),
+    terminalFailures: {
+      register: vi.fn(
+        (canonicalId: string, handler: SystemWorkflowTerminalFailureHandler) =>
+          terminalFailures.set(canonicalId, handler),
+      ),
+    },
     registerWorkflow: vi.fn(),
   };
   const logger = { warn: vi.fn(), error: vi.fn() };
@@ -94,6 +105,7 @@ function createHarness() {
     registeredActions,
     repeatScheduler,
     service,
+    terminalFailures,
   };
 }
 
@@ -467,6 +479,33 @@ describe('failure compensation', () => {
       post,
       expect.any(Error),
     );
+  });
+
+  it('fails the owned post from the last resort when the failure graph also failed (#6655)', async () => {
+    const h = createHarness();
+    const post = eligiblePost({
+      id: 'approval-1',
+      status: PublishApprovalStatus.EXECUTING,
+    });
+    h.discoveryService.findEligiblePost.mockResolvedValue(post);
+
+    await h.terminalFailures.get('scheduled-post.publish')?.({
+      inputValues: { request },
+      organizationId: 'org-1',
+      workflowError: 'Action contract input validation failed',
+    });
+
+    expect(h.deliveryService.failTerminalValidation).toHaveBeenCalledWith(
+      post,
+      new Error('Action contract input validation failed'),
+    );
+    await expect(
+      h.terminalFailures.get('scheduled-post.publish')?.({
+        inputValues: { request },
+        organizationId: 'org-2',
+        workflowError: 'failed',
+      }),
+    ).rejects.toThrow('does not belong to its tenant');
   });
 
   it('leaves the post alone when Publish Now superseded the failed run', async () => {

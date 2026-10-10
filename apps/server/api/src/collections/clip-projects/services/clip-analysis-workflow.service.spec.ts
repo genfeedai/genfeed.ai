@@ -2,6 +2,7 @@ import type { ClipProjectsService } from '@api/collections/clip-projects/clip-pr
 import type {
   SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
+  SystemWorkflowTerminalFailureHandler,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import type { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import type { WhisperService } from '@api/services/whisper/whisper.service';
@@ -14,7 +15,15 @@ import type { ClipHighlightDetector } from './clip-highlight-detector.service';
 
 describe('ClipAnalysisWorkflowService', () => {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
-  const clipProjects = { findOne: vi.fn(), patch: vi.fn() };
+  const clipProjects = {
+    findOne: vi.fn(),
+    patch: vi.fn(),
+    settleInFlightFailure: vi.fn(),
+  };
+  const terminalFailures = new Map<
+    string,
+    SystemWorkflowTerminalFailureHandler
+  >();
   const http = { get: vi.fn(), post: vi.fn() };
   const whisper = { transcribeUrl: vi.fn() };
   const runner = {
@@ -37,6 +46,16 @@ describe('ClipAnalysisWorkflowService', () => {
         );
       },
     ),
+    terminalFailures: {
+      register: vi.fn(
+        (
+          canonicalId: string,
+          handler: SystemWorkflowTerminalFailureHandler,
+        ) => {
+          terminalFailures.set(canonicalId, handler);
+        },
+      ),
+    },
     registerWorkflow: vi.fn(),
   };
   const service = new ClipAnalysisWorkflowService(
@@ -71,6 +90,37 @@ describe('ClipAnalysisWorkflowService', () => {
       'clip.analysis.persist',
       'clip.analysis.fail',
     ]);
+  });
+
+  describe('last-resort terminal failure', () => {
+    const source = { fingerprint: 'sha256:source', retryCount: 2 };
+
+    it('settles the owned project from the queued job identifiers', async () => {
+      await terminalFailures.get('clip.analysis')?.({
+        inputValues: {
+          job: { orgId: 'org-1', projectId: 'project-1', source },
+        },
+        organizationId: 'org-1',
+        workflowError: 'Action contract input validation failed',
+      });
+
+      expect(clipProjects.settleInFlightFailure).toHaveBeenCalledWith(
+        'project-1',
+        'org-1',
+        source,
+      );
+    });
+
+    it('refuses a job from another tenant', async () => {
+      await expect(
+        terminalFailures.get('clip.analysis')?.({
+          inputValues: { job: { orgId: 'org-2', projectId: 'project-1' } },
+          organizationId: 'org-1',
+          workflowError: 'failed',
+        }),
+      ).rejects.toThrow('no project for its tenant');
+      expect(clipProjects.settleInFlightFailure).not.toHaveBeenCalled();
+    });
   });
 
   it('projects workflow failure onto the owned clip project', async () => {
@@ -495,8 +545,7 @@ describe('ClipAnalysisWorkflowService', () => {
     expect(clipProjects.patch).toHaveBeenCalledWith(
       'project-1',
       {
-        error:
-          'Nodes failed: prepare-source: Audio extraction job 7 failed: Source video is unreadable',
+        error: 'Audio extraction job 7 failed: Source video is unreadable',
         status: 'failed',
       },
       [],
