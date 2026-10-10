@@ -1,5 +1,10 @@
-import { createHash } from 'node:crypto';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import {
+  parseWorkflowActor,
+  refreshWorkflowActor,
+  toWorkflowActor,
+  workflowActorKey,
+} from '@api/authorization/brand-access/workflow-actor.util';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { KNOWLEDGE_SOURCE_WORKFLOW_IDS } from '@api/collections/contexts/services/knowledge-source-ingest-workflow-definition';
 import {
@@ -8,7 +13,6 @@ import {
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
-import { isCloudDeployment } from '@genfeedai/config';
 import type {
   KnowledgeSourceIngestWorkflowInput,
   KnowledgeWorkflowInitiatingActor,
@@ -31,73 +35,31 @@ export function parseKnowledgeWorkflowActor(
   value: unknown,
   organizationId: string,
 ): KnowledgeWorkflowInitiatingActor {
-  const actor = record(value);
-  if (
-    !nonempty(actor.userId) ||
-    !nonempty(actor.organizationId) ||
-    actor.organizationId !== organizationId ||
-    typeof actor.isApiKey !== 'boolean' ||
-    !Array.isArray(actor.scopes) ||
-    !actor.scopes.every(
-      (scope): scope is string => typeof scope === 'string',
-    ) ||
-    (actor.apiKeyId !== undefined && !nonempty(actor.apiKeyId)) ||
-    (isCloudDeployment() && actor.isApiKey && !nonempty(actor.apiKeyId))
-  )
-    denyKnowledgeWork();
-  return {
-    organizationId,
-    userId: actor.userId,
-    isApiKey: actor.isApiKey,
-    scopes: [...new Set(actor.scopes)].sort(),
-    ...(nonempty(actor.apiKeyId) ? { apiKeyId: actor.apiKeyId } : {}),
-  };
+  return parseWorkflowActor(value, organizationId, denyKnowledgeWork);
 }
 export function toKnowledgeWorkflowActor(
   actor: KnowledgeActor,
 ): KnowledgeWorkflowInitiatingActor {
-  return parseKnowledgeWorkflowActor(
-    {
-      organizationId: actor.organizationId,
-      userId: actor.userId,
-      isApiKey: actor.isApiKey ?? false,
-      scopes: actor.scopes ?? [],
-      apiKeyId: actor.apiKeyId,
-    },
-    actor.organizationId,
-  );
+  return toWorkflowActor(actor, denyKnowledgeWork);
 }
 export function knowledgeWorkflowActorKey(
   actor: KnowledgeWorkflowInitiatingActor,
 ): string {
-  return createHash('sha256')
-    .update(JSON.stringify(toKnowledgeWorkflowActor(actor)))
-    .digest('hex');
+  return workflowActorKey(actor, denyKnowledgeWork);
 }
-export async function refreshKnowledgeWorkflowActor(
+export function refreshKnowledgeWorkflowActor(
   tx: Prisma.TransactionClient,
   policy: BrandAccessService,
   value: unknown,
   organizationId: string,
 ): Promise<KnowledgeWorkflowInitiatingActor | undefined> {
-  if (value === undefined && !isCloudDeployment()) return undefined;
-  const actor = parseKnowledgeWorkflowActor(value, organizationId);
-  if (actor.isApiKey && isCloudDeployment()) {
-    const key = await tx.apiKey.findFirst({
-      where: {
-        id: actor.apiKeyId,
-        userId: actor.userId,
-        organizationId,
-        isRevoked: false,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-      select: { scopes: true },
-    });
-    if (!key) denyKnowledgeWork();
-    actor.scopes = actor.scopes.filter((scope) => key.scopes.includes(scope));
-  }
-  await policy.resolve(actor, tx);
-  return actor;
+  return refreshWorkflowActor(
+    tx,
+    policy,
+    value,
+    organizationId,
+    denyKnowledgeWork,
+  );
 }
 
 /** Read authority only from the server-persisted, pinned hidden execution. */

@@ -164,7 +164,7 @@ export default function BrandEditorForm({
             {canMoveOrganization ? (
               <FormControl
                 label="Organization"
-                helpText="Move this brand to another organization. Its content moves with it, and any shared workflows are copied into the new organization and will run there."
+                helpText="Move this brand to another organization. Its content, connected accounts, and workflows move with it. Members who only have access through the current organization lose access."
               >
                 <SelectField
                   name="organizationId"

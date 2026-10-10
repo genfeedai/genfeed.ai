@@ -14,6 +14,8 @@ import {
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { MemberRole } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
   getResumeStep,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
@@ -114,7 +116,28 @@ export function useOnboardingRouteAccess(pathname: string) {
     }
 
     if (isBillingEnabled && !isSuperAdmin && !isSubscribed && !hasPaygCredits) {
-      return '/onboarding/summary';
+      if (!hasAgentFirstOnboarding(isAgentModuleEnabled)) {
+        return '/onboarding/summary';
+      }
+
+      // Agent-first has no classic summary step (the proxy bounces it back to
+      // brand settings, which looped). The paywall is the organization's
+      // credits and subscription pages: buy a plan or a small credit pack, and
+      // nothing else renders until then.
+      const orgSlug = getBrandOrganizationSlug(brand);
+      if (!orgSlug) {
+        return null;
+      }
+
+      const paywallHrefs = [
+        createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.CREDITS),
+        createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.SUBSCRIPTION),
+      ];
+      const isOnPaywall = paywallHrefs.some(
+        (href) => pathname === href || pathname.startsWith(`${href}/`),
+      );
+
+      return isOnPaywall ? null : paywallHrefs[0];
     }
 
     return null;

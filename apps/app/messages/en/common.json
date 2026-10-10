@@ -483,6 +483,38 @@
         "label": "Unlock API keys with {tier}"
       }
     },
+    "brandMove": {
+      "cancel": "Cancel",
+      "close": "Close",
+      "description": "Each brand takes its content, connected accounts, and workflows with it. Members who only have access through this organization lose access. This cannot be easily undone.",
+      "destinationLabel": "Destination organization",
+      "destinationPlaceholder": "Choose an organization",
+      "batchAllFailed": "{count, plural, one {Couldn't move # brand.} other {Couldn't move # brands.}}",
+      "batchMoved": "{count, plural, one {Moved # brand.} other {Moved # brands.}}",
+      "batchPartial": "{moved, plural, one {Moved # brand} other {Moved # brands}}; {failed} couldn't be moved.",
+      "checkFailed": "Couldn't check this brand.",
+      "membersLost": "{count, plural, one {# member lost access.} other {# members lost access.}}",
+      "membersWillLose": "{count, plural, one {# member will lose access.} other {# members will lose access.}}",
+      "moveFailed": "Couldn't move this brand.",
+      "moveMany": "Move {count} brands",
+      "moveNone": "Move",
+      "moveOne": "Move 1 brand",
+      "moveSelected": "Move {count} selected",
+      "onlyBrand": "An organization keeps at least one brand, so its last brand can't be moved.",
+      "rowAction": "Move to organization",
+      "setupFailed": "Couldn't start the move. Please try again.",
+      "status": {
+        "blocked": "Blocked",
+        "checking": "Checking",
+        "failed": "Failed",
+        "moved": "Moved",
+        "moving": "Moving",
+        "ready": "Ready"
+      },
+      "titleMany": "Move {count} brands to another organization",
+      "titleOne": "Move 1 brand to another organization",
+      "workflowsMove": "{count, plural, one {# dedicated workflow moves with it.} other {# dedicated workflows move with it.}}"
+    },
     "characters": {
       "availability": {
         "brandsLabel": "Brands that can use this character",

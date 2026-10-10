@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -9,6 +9,7 @@ import {
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
 import type { BlockedCharacter } from '@props/characters/characters-page.props';
@@ -26,13 +27,22 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { Building2, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  Building2,
+  ExternalLink,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { readBlockedCharacters } from './blocked-characters.util';
 import BrandDeleteBlockedDialog from './brand-delete-blocked-dialog';
+import BrandMoveDialog from './brand-move-dialog';
+import { useBrandMoveDestinations } from './use-brand-move-destinations';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -43,7 +53,6 @@ function BrandsListContent() {
   const { orgSlug } = useOrgUrl();
   const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
-
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
@@ -114,12 +123,31 @@ function BrandsListContent() {
     enabled: !!organizationId,
   });
 
+  const translate = useTranslations('common.settings.brandMove');
+  const role = useUserRole();
+  const { destinations, isSuperAdmin } =
+    useBrandMoveDestinations(organizationId);
+  const hasElevatedRole =
+    role === MemberRole.OWNER || role === MemberRole.ADMIN;
+  // UI convenience only: the API requires owner/admin in both organizations.
+  const canMoveBrands =
+    isSuperAdmin || (hasElevatedRole && destinations.length > 0);
+
   useEffect(() => {
     if (brandsError) {
       logger.error('Failed to load brands', brandsError);
       notificationsService.error('Failed to load brands');
     }
   }, [brandsError, notificationsService]);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [brandsToMove, setBrandsToMove] = useState<Brand[]>([]);
+
+  // Selection is per page: ids picked on another page aren't in `selectedBrands`.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on page change only
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [currentPage]);
 
   const [blocked, setBlocked] = useState<{
     brand: Brand;
@@ -129,6 +157,23 @@ function BrandsListContent() {
   const refresh = useCallback(async () => {
     await refetch();
   }, [refetch]);
+
+  const handleMoved = useCallback(async () => {
+    setSelectedIds([]);
+    await refresh();
+  }, [refresh]);
+
+  // The page only knows the org's full brand count when everything fits on
+  // the first page; otherwise the "keep one brand" check is left to the API.
+  const sourceBrandCount =
+    currentPage === 1 && (brands?.length ?? 0) < ITEMS_PER_PAGE
+      ? brands?.length
+      : undefined;
+
+  const selectedBrands = useMemo(
+    () => (brands ?? []).filter((brand) => selectedIds.includes(brand.id)),
+    [brands, selectedIds],
+  );
 
   const handleDelete = useCallback(
     async (brand: Brand) => {
@@ -219,6 +264,15 @@ function BrandsListContent() {
         onClick: openBrandSettings,
         tooltip: 'Open settings',
       },
+      ...(canMoveBrands
+        ? [
+            {
+              icon: <ArrowRightLeft className="size-3.5" />,
+              onClick: (brand: Brand) => setBrandsToMove([brand]),
+              tooltip: translate('rowAction'),
+            },
+          ]
+        : []),
       {
         icon: <Trash2 className="size-3.5" />,
         onClick: (brand: Brand) => {
@@ -233,7 +287,7 @@ function BrandsListContent() {
         tooltip: 'Delete',
       },
     ],
-    [handleDelete, openBrandSettings, openConfirm],
+    [canMoveBrands, handleDelete, openBrandSettings, openConfirm, translate],
   );
 
   return (
@@ -242,12 +296,24 @@ function BrandsListContent() {
       description="Manage brands and settings."
       icon={Building2}
       right={
-        <Button
-          variant={ButtonVariant.DEFAULT}
-          icon={<Plus />}
-          label="Add Brand"
-          onClick={() => openBrandOverlay(null, () => refresh())}
-        />
+        <div className="flex items-center gap-2">
+          {canMoveBrands && selectedBrands.length > 0 ? (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              icon={<ArrowRightLeft />}
+              label={translate('moveSelected', {
+                count: selectedBrands.length,
+              })}
+              onClick={() => setBrandsToMove(selectedBrands)}
+            />
+          ) : null}
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            icon={<Plus />}
+            label="Add Brand"
+            onClick={() => openBrandOverlay(null, () => refresh())}
+          />
+        </div>
       }
     >
       <AppTable<Brand>
@@ -266,13 +332,27 @@ function BrandsListContent() {
             }}
           />
         }
+        getItemId={(brand) => brand.id}
         getRowKey={(brand) => brand.id}
         isLoading={isLoading}
         items={brands || []}
         getRowLink={getBrandLink}
+        onSelectionChange={setSelectedIds}
+        selectable={canMoveBrands}
+        selectedIds={selectedIds}
       />
 
       <AutoPagination showTotal totalLabel="brands" />
+
+      {brandsToMove.length > 0 && organizationId ? (
+        <BrandMoveDialog
+          brands={brandsToMove}
+          onClose={() => setBrandsToMove([])}
+          onMoved={handleMoved}
+          sourceBrandCount={sourceBrandCount}
+          sourceOrganizationId={organizationId}
+        />
+      ) : null}
 
       <BrandDeleteBlockedDialog
         brandLabel={blocked?.brand.label ?? ''}
