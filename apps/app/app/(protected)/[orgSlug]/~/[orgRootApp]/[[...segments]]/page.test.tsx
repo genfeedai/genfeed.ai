@@ -132,6 +132,12 @@ vi.mock('../../../[brandSlug]/messages/outreach/new/page', () => ({
   default: () => <div data-testid="outreach-sequence-new-page" />,
 }));
 
+vi.mock('../../../[brandSlug]/messages/overview/messages-overview', () => ({
+  default: ({ scope }: { scope?: string }) => (
+    <div data-scope={scope} data-testid="messages-overview" />
+  ),
+}));
+
 vi.mock('../../../[brandSlug]/messages/replies/page', () => ({
   default: () => <div data-testid="replies-page" />,
 }));
@@ -366,6 +372,7 @@ describe('OrgRootAppPage', () => {
   it.each([
     [['outreach'], 'outreach-sequences-page'],
     [['outreach', 'new'], 'outreach-sequence-new-page'],
+    [['overview'], 'messages-overview'],
     [['replies'], 'replies-page'],
     [['reply-drip'], 'reply-drip-page'],
   ])('renders the organization Messages route %j', async (segments, testId) => {
