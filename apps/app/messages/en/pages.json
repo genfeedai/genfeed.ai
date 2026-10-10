@@ -5316,6 +5316,30 @@
     "loading": "Loading generation receipts…",
     "refresh": "Reload saved details",
     "loadMore": "Load more",
+    "list": {
+      "kind": {
+        "image": "Image",
+        "video": "Video",
+        "text": "Text draft"
+      },
+      "status": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "needsReview": "Needs review",
+        "blocked": "Blocked",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "model": "Model: {model}",
+      "noModel": "not recorded",
+      "credits": "{count, plural, one {# credit} other {# credits}}",
+      "cost": {
+        "pending": "Cost pending",
+        "unavailable": "Cost unavailable",
+        "none": "No cost recorded"
+      },
+      "openOutput": "Open generated output"
+    },
     "select": "Select a generation to inspect.",
     "loadFailed": "Could not load saved generation details. Try again.",
     "unavailable": "This generation is unavailable or you no longer have access.",
