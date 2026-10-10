@@ -15,7 +15,12 @@ import { BrandedGenerationReceiptAccessService } from '@api/services/branded-gen
 import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientCategory } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  Platform,
+  PostCategory,
+  PostFormat,
+} from '@genfeedai/contracts';
 import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandedGenerationReceiptV1,
@@ -198,7 +203,23 @@ function fixture(description = 'Example Co offers a plan.') {
     },
   ];
   const events: Prisma.BrandedGenerationReceiptEventUncheckedCreateInput[] = [];
-  const post = { id: 'post-a', description };
+  const post = {
+    id: 'post-a',
+    organizationId: actor.organizationId,
+    brandId: actor.brandId,
+    isDeleted: false,
+    parentId: null,
+    order: 0,
+    platform: Platform.TWITTER,
+    credentialId: 'credential-a',
+    targetAttachments: [],
+    targetSettings: {},
+    category: PostCategory.TEXT,
+    format: PostFormat.STANDARD,
+    description,
+    ingredients: [],
+    children: [],
+  };
   const ingredient = {
     id: 'ingredient-a',
     s3Key: 'ingredients/images/ingredient-a',

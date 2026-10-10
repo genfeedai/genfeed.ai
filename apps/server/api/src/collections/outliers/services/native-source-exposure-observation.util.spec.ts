@@ -9,8 +9,8 @@ import { Platform, SocialSourceType } from '@genfeedai/contracts';
 import type {
   BreakoutOwnedProviderAttempt,
   BreakoutPublicationReference,
-  LearningFormat,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

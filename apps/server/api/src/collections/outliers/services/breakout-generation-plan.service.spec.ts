@@ -70,8 +70,11 @@ function fixture() {
       callback(prisma),
   );
   const registry = {
+    listCallableTextModels: vi.fn(async () => [
+      { key: 'openai/gpt-5.2', label: 'Text' },
+    ]),
     listCallableGenerationModels: vi.fn(async () => [
-      { key: 'openai/gpt-5.2', type: 'text', label: 'Text' },
+      { key: 'image/model', label: 'Image', type: 'image' },
     ]),
     validateModelForOrg: vi.fn(async () => ({
       key: 'image/model',
@@ -167,10 +170,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
     expect(h.prisma.breakoutResponse.findFirst).toHaveBeenCalledWith({
       where: { ...h.request.scope, id: h.request.responseId, isDeleted: false },
     });
-    expect(h.registry.listCallableGenerationModels).toHaveBeenCalledWith(
-      'org-a',
-      'text',
-    );
+    expect(h.registry.listCallableTextModels).toHaveBeenCalledWith('org-a');
     expect(h.router.resolveModelKey).toHaveBeenCalledWith({
       category: ModelCategory.TEXT,
       organizationId: 'org-a',
@@ -255,11 +255,11 @@ describe('actual pricing and native-admitted breakout planning', () => {
     );
     await expect(h.service.prepare(h.request)).rejects.toThrow('revoked');
     expect(h.prisma.breakoutResponse.findFirst).not.toHaveBeenCalled();
-    h.registry.listCallableGenerationModels.mockImplementationOnce(async () => {
+    h.registry.listCallableTextModels.mockImplementationOnce(async () => {
       vi.mocked(h.request.reauthorize).mockRejectedValueOnce(
         new Error('key narrowed'),
       );
-      return [{ key: 'openai/gpt-5.2', type: 'text', label: 'Text' }];
+      return [{ key: 'openai/gpt-5.2', label: 'Text' }];
     });
     await expect(h.service.prepare(h.request)).rejects.toThrow('key narrowed');
     expect(h.accounts.resolveDraft).not.toHaveBeenCalled();
@@ -275,7 +275,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
       status: 'held',
       reason: 'source_changed',
     });
-    h.registry.listCallableGenerationModels.mockResolvedValueOnce([]);
+    h.registry.listCallableTextModels.mockResolvedValueOnce([]);
     expect(await h.service.prepare(h.request)).toEqual({
       status: 'held',
       reason: 'model_unavailable',
@@ -307,6 +307,13 @@ describe('actual pricing and native-admitted breakout planning', () => {
         status: 'held',
         reason: 'media_brand_capability_unavailable',
       });
+      expect(h.registry.listCallableGenerationModels).toHaveBeenCalledWith(
+        'org-a',
+        ['image', 'carousel'].includes(format) ? 'image' : 'video',
+      );
+      expect(h.router.resolveModelKey).toHaveBeenCalledWith(
+        expect.objectContaining({ eligibleModelKeys: ['image/model'] }),
+      );
       expect(h.snapshots.preview).toHaveBeenCalledWith({
         organizationId: 'org-a',
         brandId: 'brand-a',

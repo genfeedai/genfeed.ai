@@ -386,8 +386,13 @@ describe('retained generation and publication recovery facts', () => {
     h.output.heldReason = 'media_brand_capability_unavailable';
     const execution = h.projection.execution;
     if (!execution) throw new Error('fixture provider execution is required');
+    // An unknown provider result is only a valid receipt once it is blocked.
     h.retain({
       ...h.projection,
+      state: 'blocked',
+      compliance: 'unverified',
+      artifact: null,
+      validation: null,
       execution: { ...execution, result: 'indeterminate' },
     });
     expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
@@ -735,15 +740,17 @@ function composedBindingFixture(
       contentHash: entry.kind === 'text' ? entry.contentHash : hash,
     })),
   );
+  const learning = h.projection.learning;
+  if (!learning) throw new Error('fixture learning is required');
   const projection = {
     ...h.projection,
     format,
     artifact: material.artifact,
     learning: {
-      ...h.projection.learning,
+      ...learning,
       global: {
-        ...h.projection.learning.global,
-        scope: { ...h.projection.learning.global.scope, format },
+        ...learning.global,
+        scope: { ...learning.global.scope, format },
       },
     },
   };

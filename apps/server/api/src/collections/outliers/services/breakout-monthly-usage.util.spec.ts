@@ -11,6 +11,9 @@ import type {
 } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
+// The ledger arithmetic uses the real Prisma.Decimal.
+vi.unmock('@genfeedai/prisma');
+
 const input = {
   organizationId: 'org-a',
   brandId: 'brand-a',

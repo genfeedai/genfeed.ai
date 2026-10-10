@@ -48,16 +48,17 @@ function createHarness() {
     log: vi.fn(),
     warn: vi.fn(),
   } satisfies ServerLogger;
+  const findOne = vi.fn().mockResolvedValue({
+    brandId: 'brand-1',
+    id: 'cred-1',
+    organizationId: 'org-1',
+    platform: 'INSTAGRAM',
+  });
   const credentials = {
     findAll: vi.fn(),
     findBrandAccounts: vi.fn(),
     findConnectedAccounts: vi.fn().mockResolvedValue([{ id: 'cred-1' }]),
-    findOne: vi.fn().mockResolvedValue({
-      brandId: 'brand-1',
-      id: 'cred-1',
-      organizationId: 'org-1',
-      platform: 'INSTAGRAM',
-    }),
+    findOne,
     mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
     resolveBrandAccount: vi.fn(),
@@ -82,6 +83,7 @@ function createHarness() {
     accountSnapshots,
     collectionState,
     credentials,
+    findOne,
     postAnalytics,
     posts,
     service,
@@ -118,7 +120,7 @@ describe('AnalyticsSocialCollectionService', () => {
     'propagates a native denial after %s returns without recording provider failure',
     async (platform) => {
       const h = createHarness();
-      h.credentials.findOne.mockResolvedValue({
+      h.findOne.mockResolvedValue({
         brandId: 'brand-1',
         id: 'cred-1',
         organizationId: 'org-1',

@@ -16,7 +16,7 @@ const source: BreakoutPublicationSourceV1 = {
   externalId: 'external-a',
   logicalPostId: 'logical-a',
   format: 'text',
-  publishedAt: '2026-09-01T00:00:00Z',
+  publishedAt: '2026-09-01T00:00:00.000Z',
   contentDigest: 'digest-a',
   publicationFingerprint: 'publication-a',
   isResponse: false,

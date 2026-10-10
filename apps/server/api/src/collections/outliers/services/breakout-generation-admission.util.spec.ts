@@ -9,10 +9,8 @@ import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/bre
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { Platform } from '@genfeedai/contracts';
 import { GENERATION_POOL_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
-import type {
-  BreakoutPublicationSource,
-  LearningFormat,
-} from '@genfeedai/contracts/interfaces';
+import type { BreakoutPublicationSource } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
 import type { Prisma } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -77,8 +75,8 @@ function fixture(format: LearningFormat = 'text', platform = Platform.TWITTER) {
     generationKey: 'generation-a',
   };
   const source: BreakoutPublicationSource = {
-    version: 1,
     ...admission.scope,
+    version: 1,
     credentialId: admission.credentialId,
     postId: 'source-a',
     externalId: response.externalId,

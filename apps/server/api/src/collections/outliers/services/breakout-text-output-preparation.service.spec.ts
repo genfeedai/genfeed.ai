@@ -43,6 +43,7 @@ const source: BreakoutPublicationSourceV1 = {
 function fixture() {
   const admission = {
     scope: {
+      version: 1 as const,
       organizationId: 'org-a',
       brandId: 'brand-a',
       platform: Platform.TWITTER,

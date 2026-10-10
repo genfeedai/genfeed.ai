@@ -158,6 +158,7 @@ describe('CreditReservationService', () => {
       service.reserve(
         {
           organizationId: 'org_1',
+          actorUserId: 'user_1',
           billingAccountId: 'ba_1',
           amount: 20,
           idempotencyKey: 'budget-a',
@@ -226,6 +227,7 @@ describe('CreditReservationService', () => {
       await service.reserve(
         {
           organizationId: scope.organizationId,
+          actorUserId: 'user_1',
           brandId: scope.brandId,
           billingAccountId: 'ba_1',
           amount: 20,

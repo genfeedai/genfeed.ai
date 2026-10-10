@@ -248,7 +248,7 @@ describe('BrandedTextGenerationService', () => {
         input: { ...input, format: 'thread' as const },
       };
       await h.service.generateThread(request);
-      expect(h.receipts.create).toHaveBeenCalledWith(request.input);
+      expect(h.receipts.create).toHaveBeenCalledWith(request.input, actor);
       expect(
         h.harness.resolveSnapshotBriefWithRecipe.mock.calls[0][5],
       ).toMatchObject({ global: { scope: { format: 'thread' } } });

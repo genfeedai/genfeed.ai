@@ -232,6 +232,7 @@ describe('provider collection resolved account boundaries', () => {
             sourceAttemptId: expect.any(String),
           },
         },
+        analyticsCollectionAuthorizationFixture,
       );
     },
   );
@@ -386,6 +387,7 @@ describe('C3 Facebook/Threads pre-provider source transport', () => {
             receivedAt: expect.any(Date),
           }),
         }),
+        analyticsCollectionAuthorizationFixture,
       );
     },
   );

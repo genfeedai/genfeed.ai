@@ -1,3 +1,4 @@
+import { analyticsCollectionAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import { AnalyticsProviderCollectionService } from '@api/analytics/services/analytics-provider-collection.service';
 import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
@@ -52,6 +53,13 @@ function harness(
     logicalPostId: 'logical-a',
     isResponse: false,
   };
+  const authorization = {
+    ...analyticsCollectionAuthorizationFixture,
+    initiatingActor: {
+      ...analyticsCollectionAuthorizationFixture.initiatingActor,
+      organizationId: source.organizationId,
+    },
+  };
   const preparation = vi.fn(async () => source);
   const persist = vi.fn(
     async (
@@ -60,7 +68,7 @@ function harness(
       _context: AnalyticsPersistenceContext,
     ) => {},
   );
-  const analytics = {
+  const serverAnalytics = {
     prepareLearningObservation: vi.fn(async () => null),
     prepareExposureObservation: preparation,
     processTwitterAnalytics: persist,
@@ -70,9 +78,12 @@ function harness(
     processPinterestAnalytics: persist,
     processLinkedInAnalytics: persist,
     processMastodonAnalytics: persist,
+  } satisfies ServerPostAnalytics;
+  const analytics = {
+    ...serverAnalytics,
     processFacebookAnalytics: persist,
     processThreadsAnalytics: persist,
-  } satisfies ServerPostAnalytics;
+  };
   const providerFetch = vi.fn(async () => ({
     views: 100,
     likes: 1,
@@ -130,10 +141,13 @@ function harness(
         logger,
         snapshots,
       );
-      return service.collect({
-        credentialId: source.credentialId,
-        posts: [post],
-      });
+      return service.collect(
+        {
+          credentialId: source.credentialId,
+          posts: [post],
+        },
+        authorization,
+      );
     }
     if (platform === Platform.YOUTUBE) {
       const service = new AnalyticsYouTubeCollectionService(
@@ -144,12 +158,15 @@ function harness(
         logger,
         snapshots,
       );
-      return service.collect({
-        organizationId: source.organizationId,
-        brandId: source.brandId,
-        credentialId: source.credentialId,
-        posts: [post],
-      });
+      return service.collect(
+        {
+          organizationId: source.organizationId,
+          brandId: source.brandId,
+          credentialId: source.credentialId,
+          posts: [post],
+        },
+        authorization,
+      );
     }
     if (platform === Platform.FACEBOOK || platform === Platform.THREADS) {
       const service = new AnalyticsProviderCollectionService(
@@ -177,8 +194,8 @@ function harness(
         snapshots,
       );
       return platform === Platform.FACEBOOK
-        ? service.collectFacebook({ posts: [post] })
-        : service.collectThreads({ posts: [post] });
+        ? service.collectFacebook({ posts: [post] }, authorization)
+        : service.collectThreads({ posts: [post] }, authorization);
     }
     const service = new AnalyticsSocialCollectionService(
       provider,
@@ -193,7 +210,7 @@ function harness(
       logger,
       snapshots,
     );
-    return service.collect({ posts: [post] });
+    return service.collect({ posts: [post] }, authorization);
   }
   return { source, preparation, persist, providerFetch, collect };
 }

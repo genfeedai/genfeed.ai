@@ -4,6 +4,7 @@ import { loadBreakoutPublication } from '@api/collections/outliers/services/brea
 import { BreakoutResponseReadsService } from '@api/collections/outliers/services/breakout-response-reads.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import { MemberRole, Platform } from '@genfeedai/contracts';
 import type { BreakoutResponse, Prisma } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,7 +52,7 @@ function fixture() {
     updatedAt: now,
   };
   const member = {
-    role: { key: MemberRole.MEMBER },
+    role: { key: MemberRole.USER },
     brands: [{ id: actor.brandId }],
   };
   const findMember = vi.fn(async (): Promise<typeof member | null> => member);
@@ -108,7 +109,7 @@ function fixture() {
   );
   const service = new BreakoutResponseReadsService(
     { $transaction: transaction } as unknown as PrismaService,
-    new BrandedGenerationReceiptAccessService(),
+    new BrandedGenerationReceiptAccessService(brandAccessFixture()),
   );
   vi.mocked(loadBreakoutPublication).mockResolvedValue({
     version: 1,

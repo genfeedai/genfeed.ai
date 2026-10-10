@@ -397,6 +397,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
   });
 
@@ -441,6 +442,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
   });
 });

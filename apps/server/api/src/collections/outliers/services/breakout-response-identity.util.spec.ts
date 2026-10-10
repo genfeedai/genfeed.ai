@@ -50,6 +50,7 @@ function receipt(): BreakoutBaselineReceiptResult {
       status: 'breakout',
       metric: input.metric,
       source: 'twitter:post:organic_metrics.impression_count',
+      exposureScope: 'organic',
       timeBasis: 'collection_interval',
       targetObservationId: input.targetObservationId,
       targetValue: 1000,
@@ -401,21 +402,24 @@ describe('durable breakout response and output identity', () => {
     expect(h.createOutputs).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    [],
-    Array.from({ length: 6 }, (_, index) => ({
-      ordinal: index + 1,
-      kind: 'follow_up' as const,
-      format: 'text' as const,
-    })),
-    [{ ...quote, ordinal: 2 }],
-    [{ ...quote, format: 'image' as const }],
-    [quote, { ...quote, ordinal: 2 }],
+  // Each case is one slots array; wrap it so it is not spread into arguments.
+  it.each(
     [
-      quote,
-      { ordinal: 3, kind: 'follow_up' as const, format: 'text' as const },
-    ],
-  ])('rejects invalid or over-cap output plan %#', async (slots) => {
+      [],
+      Array.from({ length: 6 }, (_, index) => ({
+        ordinal: index + 1,
+        kind: 'follow_up' as const,
+        format: 'text' as const,
+      })),
+      [{ ...quote, ordinal: 2 }],
+      [{ ...quote, format: 'image' as const }],
+      [quote, { ...quote, ordinal: 2 }],
+      [
+        quote,
+        { ordinal: 3, kind: 'follow_up' as const, format: 'text' as const },
+      ],
+    ].map((slots) => [slots]),
+  )('rejects invalid or over-cap output plan %#', async (slots) => {
     const h = harness();
     expect(await reserveBreakoutOutputPlan(h.tx, plan(slots))).toEqual({
       status: 'invalid_plan',
