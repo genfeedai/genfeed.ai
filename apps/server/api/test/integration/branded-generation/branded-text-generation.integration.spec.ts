@@ -24,6 +24,7 @@ import {
   PrismaClient,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -100,7 +101,9 @@ describe('Branded text generation seam (real Postgres)', () => {
         { connectionString: scoped.toString() },
         { schema },
       ),
-    });
+    }).$extends(
+      createMediaUrlExtension({ cdnUrl: 'https://cdn.example.test' }),
+    ) as unknown as PrismaClient;
     const access = new BrandedGenerationReceiptAccessService(
       new BrandAccessService(prisma as unknown as PrismaService),
     );
@@ -218,11 +221,10 @@ describe('Branded text generation seam (real Postgres)', () => {
     const db = prisma as unknown as PrismaService;
     const material = () =>
       new BrandedGenerationArtifactMaterialService(db, access, receipts);
-    const artifactMaterial = material();
     const seam = new BrandedTextGenerationService(
       receipts,
       new BrandIdentitySnapshotService(db, access, receipts),
-      artifactMaterial,
+      material(),
       new BrandValidationService(),
       new BrandValidationReceiptService(
         material(),
@@ -246,12 +248,12 @@ describe('Branded text generation seam (real Postgres)', () => {
       openRouter as never,
       new BrandAccessService(db),
     );
-    return { seam, openRouter, providerIds, artifactMaterial };
+    return { seam, openRouter, providerIds };
   }
 
   it('drives an approved-brand text generation through the saved receipt with a fake provider', async () => {
     const s = await seed();
-    const { seam, openRouter, providerIds, artifactMaterial } = buildSeam();
+    const { seam, openRouter, providerIds } = buildSeam();
     const actor = {
       actorId: s.owner,
       organizationId: s.source,
@@ -308,9 +310,6 @@ describe('Branded text generation seam (real Postgres)', () => {
     const value = seamInput();
     const completed = await seam.generate(request(value));
     if (completed.kind !== 'completed') {
-      if (completed.reasonCode === 'artifact_bind_failed' && completed.postId) {
-        await artifactMaterial.describePostArtifact(actor, completed.postId);
-      }
       throw new Error(
         `Branded text generation stopped: ${completed.reasonCode}`,
       );
