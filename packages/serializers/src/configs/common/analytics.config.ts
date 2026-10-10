@@ -16,6 +16,7 @@ import {
   analyticsTopContentAttributes,
   analyticsTopPostAttributes,
   analyticsTrendAttributes,
+  analyticsWinnerPostAttributes,
   fleetEvaluationPolicyAttributes,
 } from '@serializers/attributes/common';
 import { simpleConfig } from '@serializers/builders';
@@ -49,6 +50,12 @@ export const analyticsTopContentSerializerConfig = simpleConfig(
 export const analyticsTopPostSerializerConfig = simpleConfig(
   'analytics-top-post',
   analyticsTopPostAttributes,
+);
+
+/** #5502 `GET /analytics/winners`. */
+export const analyticsWinnerPostSerializerConfig = simpleConfig(
+  'analytics-winner-post',
+  analyticsWinnerPostAttributes,
 );
 
 export const analyticsOrgLeaderboardSerializerConfig = simpleConfig(
