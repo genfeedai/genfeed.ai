@@ -1618,6 +1618,17 @@
         "CRUN_PROVIDER_UNAVAILABLE": "The video provider could not be reached.",
         "CRUN_ENHANCEMENT_REQUIRED": "Enhance the prompt or remove pending skill and Knowledge selections before generating."
       }
+    },
+    "focusedPreview": {
+      "title": "Focused preview",
+      "open": "Open preview",
+      "back": "Back to gallery",
+      "previous": "Previous asset",
+      "next": "Next asset",
+      "related": "Related assets",
+      "recent": "Recent assets",
+      "loadedOnly": "Related assets shown here may be incomplete. Recent assets are shown separately.",
+      "unavailable": "This asset is no longer available in the current workspace."
     }
   },
   "warmupAccounts": {

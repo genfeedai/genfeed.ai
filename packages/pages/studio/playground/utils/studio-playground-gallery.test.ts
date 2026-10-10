@@ -1,12 +1,61 @@
 import { IngredientCategory } from '@genfeedai/contracts';
+import type { StudioPlaygroundJob } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildStudioGalleryQuery,
   loadStudioGalleryIngredients,
+  resolveFocusedStudioJobs,
   resolveStudioGalleryCategories,
   STUDIO_GALLERY_PAGE_SIZE,
 } from './studio-playground-gallery';
+
+describe('bounded focused gallery relationships', () => {
+  const job = (id: string, props: Partial<StudioPlaygroundJob> = {}) =>
+    ({ id, ingredientId: id, ...props }) as StudioPlaygroundJob;
+  it('groups actual run and parent/child identities but never proximity alone', () => {
+    const selected = job('selected', { runId: 'run-1', parentId: 'parent' });
+    const candidates = [
+      selected,
+      job('same-run', { runId: 'run-1' }),
+      job('parent'),
+      job('child', { parentId: 'selected' }),
+      job('sibling', { parentId: 'parent' }),
+      job('recent'),
+    ];
+    const groups = resolveFocusedStudioJobs(selected, candidates);
+    expect(groups.related.map((item) => item.id)).toEqual([
+      'selected',
+      'same-run',
+      'parent',
+      'child',
+      'sibling',
+    ]);
+    expect(groups.recent.map((item) => item.id)).toEqual(['recent']);
+  });
+  it('keeps unrelated source-less jobs recent and limits fallback to twelve loaded rows', () => {
+    const selected = job('selected');
+    const groups = resolveFocusedStudioJobs(selected, [
+      selected,
+      ...Array.from({ length: 50 }, (_, i) => job(`recent-${i}`)),
+    ]);
+    expect(groups.related).toEqual([selected]);
+    expect(groups.recent).toHaveLength(12);
+  });
+  it('omits soft-deleted relationships from navigation', () => {
+    const selected = job('selected');
+    const deleted = job('child', {
+      parentId: 'selected',
+      ingredient: {
+        id: 'child',
+        isDeleted: true,
+      } as StudioPlaygroundJob['ingredient'],
+    });
+    expect(
+      resolveFocusedStudioJobs(selected, [selected, deleted]).related,
+    ).toEqual([selected]);
+  });
+});
 
 describe('resolveStudioGalleryCategories', () => {
   it('loads every generated output category through the hydrated ingredients collection', () => {

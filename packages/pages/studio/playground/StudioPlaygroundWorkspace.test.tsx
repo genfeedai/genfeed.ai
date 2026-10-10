@@ -12,7 +12,10 @@ import {
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
-import type { PrepareCrunGenerationIntentProps } from '@genfeedai/props/studio/studio-playground.props';
+import type {
+  PrepareCrunGenerationIntentProps,
+  StudioPlaygroundFocusedPreviewProps,
+} from '@genfeedai/props/studio/studio-playground.props';
 import type { StudioPlaygroundJob } from '@pages/studio/playground/types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/playground/utils/studio-generation-setup-bridge';
 import {
@@ -471,19 +474,57 @@ vi.mock('@pages/studio/playground/hooks/useStudioGeneration', () => ({
 }));
 
 vi.mock(
+  '@pages/studio/playground/components/StudioPlaygroundFocusedPreview',
+  () => ({
+    default: ({
+      children,
+      jobs,
+      onClose,
+      onSelect,
+    }: StudioPlaygroundFocusedPreviewProps) => (
+      <div data-testid="studio-focused-preview">
+        <button type="button" onClick={onClose}>
+          Back to gallery
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (jobs[1]) onSelect(jobs[1]);
+          }}
+        >
+          Next focused asset
+        </button>
+        {children}
+      </div>
+    ),
+  }),
+);
+
+vi.mock(
   '@pages/studio/playground/components/StudioPlaygroundInspector',
   () => ({
     default: ({
       job,
       onRemix,
       onVary,
+      onOpenPreview,
     }: {
       job: { id: string; prompt: string };
       onRemix: (job: { id: string }) => void;
       onVary: (job: { id: string }) => void;
+      onOpenPreview?: () => void;
     }) => (
       <div data-testid="studio-inspector">
         <span>{job.prompt}</span>
+        {onOpenPreview ? (
+          <button
+            type="button"
+            data-testid="studio-open-focused-preview"
+            onClick={onOpenPreview}
+          >
+            Open preview
+          </button>
+        ) : null}
         <button type="button" onClick={() => onVary(job)}>
           Vary
         </button>
@@ -1409,6 +1450,106 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
   });
+
+  it('opens and navigates one focused inspector without replacing the draft, then restores gallery focus and scroll', async () => {
+    const jobs: StudioPlaygroundJob[] = ['image-9', 'image-10'].map((id) => ({
+      createdAt: 1,
+      id,
+      ingredientId: id,
+      ingredient: {
+        id,
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.GENERATED,
+      } as IIngredient,
+      prompt: `Prompt for ${id}`,
+      status: IngredientStatus.GENERATED,
+      type: 'image',
+    }));
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: jobs,
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep this draft'),
+    );
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(jobs[0]));
+    const scrollContainer = screen
+      .getByTestId('studio-results')
+      .closest('[tabindex="-1"]') as HTMLDivElement;
+    scrollContainer.scrollTop = 180;
+    scrollContainer.scrollTo = vi.fn();
+    const openButton = screen.getByRole('button', { name: 'Open preview' });
+    openButton.focus();
+    fireEvent.click(openButton);
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('studio-inspector')).toHaveLength(1);
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 0 });
+    fireEvent.click(screen.getByRole('button', { name: 'Next focused asset' }));
+    expect(screen.getByText('Prompt for image-10')).toBeVisible();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+      'Keep this draft',
+    );
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+    expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
+    expect(screen.getByTestId('studio-results')).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Open preview' }),
+      ).toHaveFocus(),
+    );
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 180 });
+  });
+
+  it.each(['brand', 'organization', 'session'])(
+    'does not revive a focused preview after switching %s away and back',
+    (scope) => {
+      const job: StudioPlaygroundJob = {
+        id: 'selected',
+        createdAt: 1,
+        prompt: 'Selected asset',
+        type: 'image',
+        status: IngredientStatus.GENERATED,
+      };
+      mocks.gallery.mockReturnValue({
+        isLoadingGallery: false,
+        refresh: vi.fn(),
+        storedJobs: [job],
+      });
+      const view = render(<StudioPlaygroundWorkspace />, {
+        wrapper: ContextSidebarHost,
+      });
+      act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
+      const scrollContainer = screen
+        .getByTestId('studio-results')
+        .closest('[tabindex="-1"]') as HTMLDivElement;
+      scrollContainer.scrollTo = vi.fn();
+      fireEvent.click(screen.getByRole('button', { name: 'Open preview' }));
+      expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
+      const scopedValue =
+        scope === 'brand'
+          ? mocks.brandId
+          : scope === 'organization'
+            ? mocks.organizationId
+            : mocks.authIdentity;
+      const original = scopedValue.value;
+      scopedValue.value = `${original}-changed`;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      scopedValue.value = original;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('studio-results')).toBeVisible();
+    },
+  );
 
   it('remixes a selected image as an image reference', () => {
     const job = {

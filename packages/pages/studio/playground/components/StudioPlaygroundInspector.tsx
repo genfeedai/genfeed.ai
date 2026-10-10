@@ -37,6 +37,7 @@ import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import {
   Download,
+  Maximize2,
   MessageSquare,
   RotateCcw,
   Send,
@@ -70,7 +71,9 @@ function isInspectorTab(value: string): value is InspectorTab {
  * model and close live in the sidebar header.
  */
 export default function StudioPlaygroundInspector({
+  isFocused = false,
   job,
+  onOpenPreview,
   onRemix,
   onEdit,
   onSelect,
@@ -384,13 +387,15 @@ export default function StudioPlaygroundInspector({
       );
     } else if (job.type === 'image' || job.type === 'image-edit') {
       preview = (
-        <div className="relative aspect-video w-full overflow-hidden rounded-md bg-foreground/[0.04]">
+        <div
+          className={`relative w-full overflow-hidden rounded-md bg-foreground/[0.04] ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
+        >
           <Image
             key={`${previewScope}:${previewRevision}`}
             alt={translate('inspector.previewAlt', { label })}
             className="object-contain"
             fill
-            sizes="480px"
+            sizes={isFocused ? '(min-width: 1024px) 65vw, 100vw' : '480px'}
             src={previewUrl}
             onError={() => setFailedPreviewScope(previewScope)}
           />
@@ -401,7 +406,7 @@ export default function StudioPlaygroundInspector({
         <VideoPlayer
           key={`${previewScope}:${previewRevision}`}
           ariaLabel={translate('inspector.previewAlt', { label })}
-          className="aspect-video w-full overflow-hidden rounded-md bg-foreground/[0.04]"
+          className={`w-full overflow-hidden rounded-md bg-foreground/[0.04] ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
           config={{
             controls: true,
             loop: false,
@@ -643,11 +648,32 @@ export default function StudioPlaygroundInspector({
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col"
+      className={
+        isFocused
+          ? 'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]'
+          : 'flex min-h-0 flex-1 flex-col'
+      }
       data-testid="studio-playground-inspector"
     >
-      <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4">
+      <div
+        className={
+          isFocused
+            ? 'flex min-w-0 flex-col gap-3'
+            : 'flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4'
+        }
+      >
         {preview}
+        {onOpenPreview && !isFocused ? (
+          <Button
+            data-testid="studio-open-focused-preview"
+            icon={<Maximize2 className="size-4" />}
+            label={translate('focusedPreview.open')}
+            onClick={onOpenPreview}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        ) : null}
         <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-xs">
           {factRows.map((row) => (
             <div className="contents" key={row.key}>

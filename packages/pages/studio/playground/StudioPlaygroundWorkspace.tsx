@@ -61,6 +61,7 @@ import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@pages/library/knowledge/components/KnowledgeReferenceSection';
 import StudioPlaygroundComposer from '@pages/studio/playground/components/StudioPlaygroundComposer';
+import StudioPlaygroundFocusedPreview from '@pages/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@pages/studio/playground/components/StudioPlaygroundInspector';
 import StudioPlaygroundResults from '@pages/studio/playground/components/StudioPlaygroundResults';
 import StudioPlaygroundStarterIdeas from '@pages/studio/playground/components/StudioPlaygroundStarterIdeas';
@@ -332,6 +333,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     ViewType.GRID,
   );
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [focusedScope, setFocusedScope] = useState<string | null>(null);
+  // The epoch also fences A → B → A changes without reviving the old selection.
+  const focusedScopeKey = `${crunRestoreScope}:${crunRestoreEpochRef.current}`;
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
+  const galleryPositionRef = useRef(0);
+  const focusReturnRef = useRef<HTMLElement | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
   const [contentLibraryRole, setContentLibraryRole] =
     useState<StudioPlaygroundReferenceRole>('reference');
@@ -912,6 +919,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
     [selectedJobId, visibleJobs],
   );
+  const isFocusedPreview =
+    focusedScope === focusedScopeKey && Boolean(selectedJob);
   const selectedRunJobs = useMemo(() => {
     if (!selectedJob) {
       return [];
@@ -2238,6 +2247,28 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   }, []);
   const handleCloseInspector = useCallback(() => {
     setSelectedJobId(null);
+    setFocusedScope(null);
+  }, []);
+  const handleOpenFocusedPreview = useCallback(() => {
+    focusReturnRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    galleryPositionRef.current = galleryScrollRef.current?.scrollTop ?? 0;
+    setFocusedScope(focusedScopeKey);
+    galleryScrollRef.current?.scrollTo({ top: 0 });
+  }, [focusedScopeKey]);
+  const handleCloseFocusedPreview = useCallback(() => {
+    setFocusedScope(null);
+    requestAnimationFrame(() => {
+      galleryScrollRef.current?.scrollTo({ top: galleryPositionRef.current });
+      const returnTarget = focusReturnRef.current?.isConnected
+        ? focusReturnRef.current
+        : (document.querySelector<HTMLElement>(
+            '[data-testid="studio-open-focused-preview"]',
+          ) ?? galleryScrollRef.current);
+      returnTarget?.focus({ preventScroll: true });
+    });
   }, []);
   // Remix feeds a finished image back into the composer as an image
   // reference. Videos are not offered: a video reference is dropped again by
@@ -2347,68 +2378,98 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4">
+          <div
+            ref={galleryScrollRef}
+            tabIndex={-1}
+            className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
+          >
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-              {galleryError ? (
-                <Alert role="alert">
-                  <AlertTitle>
-                    {translate(`history.${galleryError}FailedTitle`)}
-                  </AlertTitle>
-                  <AlertDescription>
-                    <p>
-                      {translate(`history.${galleryError}FailedDescription`)}
-                    </p>
-                    <Button
-                      aria-busy={isLoadingGallery}
-                      ariaLabel={translate('history.retry')}
-                      className="mt-3"
-                      disabled={isLoadingGallery}
-                      icon={<RotateCcw aria-hidden="true" className="size-4" />}
-                      isLoading={isLoadingGallery}
-                      onClick={refresh}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                      withWrapper={false}
-                    >
-                      {translate('history.retry')}
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              {galleryError && isLoadingGallery ? (
-                <p
-                  aria-live="polite"
-                  className="text-sm text-muted-foreground"
-                  role="status"
-                >
-                  {translate('history.retrying')}
-                </p>
-              ) : null}
-              {showStarterIdeas ? (
-                <StudioPlaygroundStarterIdeas
-                  character={pickStarterCharacter(characterMentions)}
-                  isDisabled={isGenerating}
-                  onSelect={handleStarterIdea}
-                  productReference={pickStarterProductReference(
-                    selectedBrand?.references,
-                  )}
-                />
-              ) : !galleryError || visibleJobs.length > 0 ? (
-                <StudioPlaygroundResults
-                  assetActions={{
-                    ...assetActions,
-                    onCancelGeneration: cancelJob,
-                  }}
-                  isLoading={isLoadingGallery}
+              {isFocusedPreview && selectedJob ? (
+                <StudioPlaygroundFocusedPreview
+                  job={selectedJob}
                   jobs={visibleJobs}
-                  isUseAsReferenceEnabled={canUseGeneratedReference}
-                  onReprompt={handleVaryRecipe}
+                  onClose={handleCloseFocusedPreview}
                   onSelect={handleSelectJob}
-                  onUseAsReference={handleUseGeneratedReference}
-                  selectedJobId={selectedJobId}
-                  view={resultsView}
-                />
-              ) : null}
+                >
+                  <StudioPlaygroundInspector
+                    isFocused
+                    job={selectedJob}
+                    onRemix={handleRemixJob}
+                    onEdit={handleEditJob}
+                    onSelect={handleSelectJob}
+                    onUseInPost={assetActions.onPublishIngredient}
+                    onVary={handleVaryRecipe}
+                    runJobs={selectedRunJobs}
+                  />
+                </StudioPlaygroundFocusedPreview>
+              ) : (
+                <>
+                  {galleryError ? (
+                    <Alert role="alert">
+                      <AlertTitle>
+                        {translate(`history.${galleryError}FailedTitle`)}
+                      </AlertTitle>
+                      <AlertDescription>
+                        <p>
+                          {translate(
+                            `history.${galleryError}FailedDescription`,
+                          )}
+                        </p>
+                        <Button
+                          aria-busy={isLoadingGallery}
+                          ariaLabel={translate('history.retry')}
+                          className="mt-3"
+                          disabled={isLoadingGallery}
+                          icon={
+                            <RotateCcw aria-hidden="true" className="size-4" />
+                          }
+                          isLoading={isLoadingGallery}
+                          onClick={refresh}
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                          withWrapper={false}
+                        >
+                          {translate('history.retry')}
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                  {galleryError && isLoadingGallery ? (
+                    <p
+                      aria-live="polite"
+                      className="text-sm text-muted-foreground"
+                      role="status"
+                    >
+                      {translate('history.retrying')}
+                    </p>
+                  ) : null}
+                  {showStarterIdeas ? (
+                    <StudioPlaygroundStarterIdeas
+                      character={pickStarterCharacter(characterMentions)}
+                      isDisabled={isGenerating}
+                      onSelect={handleStarterIdea}
+                      productReference={pickStarterProductReference(
+                        selectedBrand?.references,
+                      )}
+                    />
+                  ) : !galleryError || visibleJobs.length > 0 ? (
+                    <StudioPlaygroundResults
+                      assetActions={{
+                        ...assetActions,
+                        onCancelGeneration: cancelJob,
+                      }}
+                      isLoading={isLoadingGallery}
+                      jobs={visibleJobs}
+                      isUseAsReferenceEnabled={canUseGeneratedReference}
+                      onReprompt={handleVaryRecipe}
+                      onSelect={handleSelectJob}
+                      onUseAsReference={handleUseGeneratedReference}
+                      selectedJobId={selectedJobId}
+                      view={resultsView}
+                    />
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
           <PromptBarContainer
@@ -2532,7 +2593,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       <ContextSidebarPanel
         onClose={handleCloseInspector}
         selection={
-          selectedJob
+          selectedJob && !isFocusedPreview
             ? {
                 id: selectedJob.id,
                 kind: 'asset',
@@ -2545,9 +2606,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             : null
         }
       >
-        {selectedJob ? (
+        {selectedJob && !isFocusedPreview ? (
           <StudioPlaygroundInspector
             job={selectedJob}
+            onOpenPreview={handleOpenFocusedPreview}
             onRemix={handleRemixJob}
             onEdit={handleEditJob}
             onSelect={handleSelectJob}

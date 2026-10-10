@@ -1,5 +1,6 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
+import type { StudioPlaygroundJob } from '@genfeedai/contracts/interfaces/studio/studio-playground.interface';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { StudioPlaygroundFilter } from '@genfeedai/props/studio/studio-playground.props';
 import {
@@ -10,6 +11,31 @@ import type { IngredientsService } from '@services/content/ingredients.service';
 
 /** Recent-result capacity retained per output category. */
 export const STUDIO_GALLERY_PAGE_SIZE = 24;
+
+/** Relationships are only the persisted identities already loaded in this gallery. */
+export function resolveFocusedStudioJobs(
+  selected: StudioPlaygroundJob,
+  jobs: readonly StudioPlaygroundJob[],
+) {
+  const available = jobs.filter((job) => !job.ingredient?.isDeleted);
+  const sourceId = selected.ingredientId ?? selected.id;
+  const parentId = selected.parentId ?? selected.ingredient?.parentId;
+  const related = available.filter((job) => {
+    const id = job.ingredientId ?? job.id;
+    const parent = job.parentId ?? job.ingredient?.parentId;
+    return (
+      job.id === selected.id ||
+      Boolean(selected.runId && job.runId === selected.runId) ||
+      parent === sourceId ||
+      Boolean(parentId && (id === parentId || parent === parentId))
+    );
+  });
+  const relatedIds = new Set(related.map((job) => job.id));
+  return {
+    related,
+    recent: available.filter((job) => !relatedIds.has(job.id)).slice(0, 12),
+  };
+}
 
 export type { StudioPlaygroundFilter };
 
