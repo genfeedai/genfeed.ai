@@ -261,6 +261,15 @@ export class GenerationBillingService {
     }
   }
 
+  /** Preserve only the trusted adapter's observed completion in the existing quote ledger. */
+  recordProviderCompletion(
+    input: Parameters<
+      GenerationQuoteGroupService['recordProviderCompletion']
+    >[0],
+  ): Promise<void> {
+    return this.quoteGroups.recordProviderCompletion(input);
+  }
+
   /** Persist a provider attachment retry without charging at acceptance. */
   async rememberAcceptedOutput(input: {
     ingredientId: string;

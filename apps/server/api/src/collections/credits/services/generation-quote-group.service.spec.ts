@@ -1,9 +1,12 @@
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
+import type { GenerationNativeCompletionEvidence } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import {
   ActivitySource,
   CreditReservationStatus,
+  IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type {
@@ -45,6 +48,8 @@ function fixture(
       boundOutputIds: ['image-0', 'image-1', 'image-2'],
       dispatchClosed: true,
       failedOutputIds: ['image-0', 'image-1', 'image-2'],
+      providerCompletions: [] as GenerationNativeCompletionEvidence[],
+      providerCompletionConflicts: [] as string[],
       completedArtifacts: [] as {
         ingredientId: string;
         s3Key: string;
@@ -56,6 +61,7 @@ function fixture(
     id: `image-${outputIndex}`,
     status: IngredientStatus.FAILED,
     s3Key: null as string | null,
+    metadata: { externalId: `result-${outputIndex}`, externalProvider: 'fal' },
     generationBilling: {
       kind: 'quote-group',
       reservationId: hold.id,
@@ -153,6 +159,226 @@ function nativeFixture() {
 }
 
 describe('GenerationQuoteGroupService', () => {
+  const recordNative = (
+    state: ReturnType<typeof nativeFixture>,
+    index = 0,
+    duration = 3,
+  ) =>
+    state.service.recordProviderCompletion({
+      ingredientId: `image-${index}`,
+      organizationId: 'org-1',
+      externalId: `result-${index}`,
+      provider: 'fal',
+      modelKey: state.hold.metadata.modelQuote.modelKey,
+      quantities: { width: 1280, height: 720, duration },
+    });
+
+  it('settles native completion from actual adapter quantities and frozen source evidence once', async () => {
+    const state = nativeFixture();
+    for (let index = 0; index < 3; index++) {
+      state.prisma.ingredient.findFirst.mockResolvedValue(state.outputs[index]);
+      await recordNative(state, index);
+      state.recordComplete(index);
+    }
+    const expected = quoteModelBillablePricing(
+      state.hold.metadata.modelQuote.pricingProfile,
+      {
+        ...state.hold.metadata.modelQuote.quantities,
+        duration: 3,
+        modelKey: 'test/model',
+        provider: 'fal',
+      },
+      1,
+      '2026-09-30T00:00:00.000Z',
+    );
+    if (expected.status !== 'priced') throw new Error(expected.reason);
+
+    await state.service.settleGroup('hold-1', 'org-1');
+    await state.service.settleGroup('hold-1', 'org-1');
+
+    expect(state.credits.settleReservation).toHaveBeenCalledTimes(1);
+    expect(state.credits.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ actualAmount: expected.snapshot.credits }),
+    );
+    expect(expected.snapshot.credits).toBeLessThan(state.hold.amount);
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+    expect(state.hold.metadata.providerCompletions[0]).toEqual(
+      expect.objectContaining({
+        externalIdHash: quoteSnapshotHash('result-0'),
+        quoteHash: quoteSnapshotHash(state.hold.metadata.modelQuote),
+        duration: 3,
+      }),
+    );
+    expect(
+      JSON.stringify(state.hold.metadata.providerCompletions),
+    ).not.toContain('result-0');
+  });
+
+  it('records retry receipts idempotently and retains original proof after contradictory provider quantities', async () => {
+    const state = nativeFixture();
+    await recordNative(state);
+    const original = structuredClone(state.hold.metadata.providerCompletions);
+    await recordNative(state);
+    expect(state.prisma.creditReservation.updateMany).toHaveBeenCalledTimes(1);
+    await recordNative(state, 0, 4);
+    expect(state.hold.metadata.providerCompletions).toEqual(original);
+    expect(state.hold.metadata.providerCompletionConflicts).toEqual([
+      'image-0',
+    ]);
+    state.recordComplete(0);
+    await state.service.settleGroup('hold-1', 'org-1');
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+  });
+
+  it('settles a partial native result with the admitted input usage and no per-slot allocation', async () => {
+    const state = nativeFixture();
+    await recordNative(state);
+    state.recordComplete(0);
+    const expected = quoteModelBillablePricing(
+      state.hold.metadata.modelQuote.pricingProfile,
+      {
+        ...state.hold.metadata.modelQuote.quantities,
+        outputs: 1,
+        requests: 1,
+        duration: 3,
+        modelKey: 'test/model',
+        provider: 'fal',
+      },
+      1,
+      '2026-09-30T00:00:00.000Z',
+    );
+    if (expected.status !== 'priced') throw new Error(expected.reason);
+    await state.service.settleGroup('hold-1', 'org-1');
+    expect(state.credits.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ actualAmount: expected.snapshot.credits }),
+    );
+    expect(state.prisma.ingredient.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'image-0',
+        organizationId: 'org-1',
+        isDeleted: false,
+        category: IngredientCategory.VIDEO,
+      },
+      select: {
+        generationBilling: true,
+        metadata: { select: { externalId: true, externalProvider: true } },
+      },
+    });
+    expect(state.prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+          status: CreditReservationStatus.RESERVED,
+          metadata: { equals: expect.any(Object) },
+        }),
+      }),
+    );
+  });
+
+  it('retains a completed native result if its persisted proof no longer matches the frozen quote', async () => {
+    const state = nativeFixture();
+    await recordNative(state);
+    state.recordComplete(0);
+    state.hold.metadata.providerCompletions[0].quoteHash = 'b'.repeat(64);
+    await state.service.settleGroup('hold-1', 'org-1');
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'external-id',
+    'provider',
+    'model',
+    'output-index',
+    'missing-width',
+    'non-finite-duration',
+  ])(
+    'does not save trusted native proof after %s identity or quantity mismatch',
+    async (mismatch) => {
+      const state = nativeFixture();
+      if (mismatch === 'external-id')
+        state.outputs[0].metadata.externalId = 'other';
+      if (mismatch === 'provider')
+        state.outputs[0].metadata.externalProvider = 'replicate';
+      if (mismatch === 'model')
+        state.hold.metadata.modelQuote.modelKey = 'other/model';
+      if (mismatch === 'output-index')
+        state.outputs[0].generationBilling.outputIndex = 1;
+      const input = {
+        ingredientId: 'image-0',
+        organizationId: 'org-1',
+        externalId: 'result-0',
+        provider: 'fal' as const,
+        modelKey: 'test/model',
+        quantities: {
+          width: mismatch === 'missing-width' ? undefined : 1280,
+          height: 720,
+          duration: mismatch === 'non-finite-duration' ? Number.NaN : 3,
+        },
+      };
+      await expect(
+        state.service.recordProviderCompletion(input),
+      ).rejects.toThrow();
+      expect(state.prisma.creditReservation.updateMany).not.toHaveBeenCalled();
+      expect(state.credits.settleReservation).not.toHaveBeenCalled();
+      expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+    },
+  );
+
+  it('retains native funding above its approved credit ceiling without clamping', async () => {
+    const state = nativeFixture();
+    await recordNative(state, 0, 100);
+    state.recordComplete(0);
+    await state.service.settleGroup('hold-1', 'org-1');
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+  });
+
+  it('does not settle provider success until the separate durable artifact exists', async () => {
+    const state = nativeFixture();
+    state.hold.metadata.failedOutputIds = ['image-1', 'image-2'];
+    await recordNative(state);
+    await state.service.settleGroup('hold-1', 'org-1');
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+  });
+
+  it('retains heterogeneous native quantities rather than inventing a per-artifact price aggregation', async () => {
+    const state = nativeFixture();
+    for (let index = 0; index < 3; index++) {
+      state.prisma.ingredient.findFirst.mockResolvedValue(state.outputs[index]);
+      await recordNative(state, index, index === 0 ? 3 : 4);
+      state.recordComplete(index);
+    }
+    await state.service.settleGroup('hold-1', 'org-1');
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+  });
+
+  it('refuses a lost proof-write CAS without claiming financial completion', async () => {
+    const state = nativeFixture();
+    state.prisma.creditReservation.updateMany.mockResolvedValue({ count: 0 });
+    await expect(recordNative(state)).rejects.toBeInstanceOf(
+      ReservationEvidenceChangedException,
+    );
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+  });
+
+  it('preserves legacy non-native admission without inventing a native proof', async () => {
+    const state = fixture();
+    await state.service.recordProviderCompletion({
+      ingredientId: 'image-0',
+      organizationId: 'org-1',
+      externalId: 'result-0',
+      provider: 'fal',
+      modelKey: 'test/model',
+      quantities: { width: 1280, height: 720, duration: 3 },
+    });
+    expect(state.prisma.creditReservation.updateMany).not.toHaveBeenCalled();
+  });
+
   it('closes empty native dispatch and releases its unused hold only once', async () => {
     const state = nativeFixture();
     state.hold.metadata.boundOutputIds = [];
@@ -189,7 +415,7 @@ describe('GenerationQuoteGroupService', () => {
     expect(state.credits.releaseReservation).not.toHaveBeenCalled();
     expect(state.credits.settleReservation).not.toHaveBeenCalled();
     expect(state.logger.warn).toHaveBeenCalledWith(
-      'Generation completion quantity is unresolved; retain funding',
+      'Native completion proof is unresolved; retain funding',
       expect.objectContaining({ reservationId: 'hold-1' }),
     );
   });
