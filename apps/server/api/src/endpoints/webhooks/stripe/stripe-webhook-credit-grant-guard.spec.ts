@@ -10,6 +10,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -165,6 +166,7 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
         StripeWebhookBillingService,
         StripeSubscriptionCreditReconcilerService,
         CreditsUtilsService,
+        FreeTrialService,
         { provide: LoggerService, useValue: logger },
         { provide: PrismaService, useValue: prisma },
         { provide: BillingAccountsService, useValue: accounts },
