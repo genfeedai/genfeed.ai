@@ -1,6 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
@@ -12,6 +11,7 @@ import {
   HEYGEN_SPEECH_RETRYABLE_STATUSES,
   HEYGEN_SPEECH_TIMEOUT_MS,
   HEYGEN_SPEECH_URL,
+  mapHeyGenSpeechFailure,
   readHeyGenErrorEnvelope,
   readHeyGenRetryAfter,
   readHeyGenSpeech,
@@ -50,15 +50,7 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  HttpException,
-  HttpStatus,
-  Injectable,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
@@ -379,50 +371,7 @@ export class HeyGenService {
         code: code ?? null,
         status,
       });
-      throw this.speechFailure(status, code, param, retryAfter);
-    }
-  }
-
-  private speechFailure(
-    status: number,
-    code: string | undefined,
-    param: string | undefined,
-    retryAfter: number | undefined,
-  ): Error {
-    switch (status) {
-      case 400:
-        return new BadRequestException(
-          `HeyGen rejected the speech request (${code ?? 'invalid_parameter'}${
-            param ? `: ${param}` : ''
-          }).`,
-        );
-      case 402:
-        return new HeyGenSubmissionRejectedError();
-      case 403:
-        return new ForbiddenException(
-          'This HeyGen account cannot use that voice.',
-        );
-      case 404:
-        return new NotFoundException({
-          message: 'The HeyGen voice was not found in this workspace.',
-        });
-      case 409:
-        return new ConflictException(
-          code === 'voice_training_failed'
-            ? 'The HeyGen voice failed training.'
-            : 'The HeyGen voice is still processing. Try again shortly.',
-        );
-      case 429:
-        return new HttpException(
-          retryAfter === undefined
-            ? 'HeyGen Voice is rate limited.'
-            : `HeyGen Voice is rate limited. Retry after ${retryAfter} seconds.`,
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      default:
-        return status >= 500
-          ? new ServiceUnavailableException('HeyGen Voice is unavailable.')
-          : new Error(`HeyGen Voice returned status ${status}.`);
+      throw mapHeyGenSpeechFailure(status, code, param, retryAfter);
     }
   }
 

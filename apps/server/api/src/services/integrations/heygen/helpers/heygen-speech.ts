@@ -1,9 +1,19 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HEYGEN_API_ORIGIN } from '@api/services/integrations/heygen/helpers/heygen-video';
 import type {
   HeyGenSpeechBody,
   HeyGenSpeechInput,
   HeyGenSpeechResult,
 } from '@api/services/integrations/heygen/heygen-speech.types';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 /** HeyGen Voice speaks through the synchronous text-to-speech model endpoint. */
 export const HEYGEN_SPEECH_PATH = '/v3/models/audio/tts';
@@ -135,4 +145,48 @@ export function readHeyGenRetryAfter(headers: unknown): number | undefined {
   );
   const value = Number(entry?.[1]);
   return Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
+/** Maps a failed TTS response to the exception the caller should see. */
+export function mapHeyGenSpeechFailure(
+  status: number,
+  code: string | undefined,
+  param: string | undefined,
+  retryAfter: number | undefined,
+): Error {
+  switch (status) {
+    case 400:
+      return new BadRequestException(
+        `HeyGen rejected the speech request (${code ?? 'invalid_parameter'}${
+          param ? `: ${param}` : ''
+        }).`,
+      );
+    case 402:
+      return new HeyGenSubmissionRejectedError();
+    case 403:
+      return new ForbiddenException(
+        'This HeyGen account cannot use that voice.',
+      );
+    case 404:
+      return new NotFoundException({
+        message: 'The HeyGen voice was not found in this workspace.',
+      });
+    case 409:
+      return new ConflictException(
+        code === 'voice_training_failed'
+          ? 'The HeyGen voice failed training.'
+          : 'The HeyGen voice is still processing. Try again shortly.',
+      );
+    case 429:
+      return new HttpException(
+        retryAfter === undefined
+          ? 'HeyGen Voice is rate limited.'
+          : `HeyGen Voice is rate limited. Retry after ${retryAfter} seconds.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    default:
+      return status >= 500
+        ? new ServiceUnavailableException('HeyGen Voice is unavailable.')
+        : new Error(`HeyGen Voice returned status ${status}.`);
+  }
 }
