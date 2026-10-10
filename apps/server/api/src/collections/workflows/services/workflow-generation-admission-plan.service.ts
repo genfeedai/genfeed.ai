@@ -123,7 +123,10 @@ export class WorkflowGenerationAdmissionPlanService {
         });
         allocations.push(prepared.allocation);
       } catch (error: unknown) {
-        if (error instanceof BusinessLogicException) continue;
+        if (error instanceof BusinessLogicException)
+          unavailable(
+            `Workflow selected media operations are unresolved: ${node.id}`,
+          );
         throw error;
       }
     }

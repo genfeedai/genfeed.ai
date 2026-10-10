@@ -1,4 +1,5 @@
 import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
+import type { WorkflowMediaAllocationInput } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
 import { projectWorkflowAdmissionExecutable } from '@api/collections/workflows/utils/workflow-generation-admission-source.util';
 import { createInitialWorkflowNodeState } from '@api/collections/workflows/utils/workflow-initial-node-state.util';
 import type { WorkflowAdmissionAvailableSourceV1 } from '@api/collections/workflows/workflow-generation-admission.interface';
@@ -99,9 +100,9 @@ function makeService(overrides?: { billing?: unknown; source?: unknown }) {
     },
   };
   const billingPlan = {
-    prepareAllocation: vi.fn().mockResolvedValue({
+    prepareAllocation: vi.fn(async (_input: WorkflowMediaAllocationInput) => ({
       allocation: { actionId: 'imageGen', nodeId: 'media' },
-    }),
+    })),
   };
   const generationBilling = {
     recoverPreparation: vi.fn().mockResolvedValue({}),
@@ -180,5 +181,80 @@ describe('WorkflowGenerationAdmissionPlanService', () => {
       'Workflow selected media operations are unresolved',
     );
     expect(generationBilling.prepareFunding).not.toHaveBeenCalled();
+  });
+
+  it.each([0, 1])(
+    'does not create a partial hold when selected media allocation %s is unresolved',
+    async (unresolvedIndex) => {
+      const source = available({
+        id: 'second-media',
+        type: 'genfeedAction',
+        label: 'Video',
+        config: { actionId: 'videoGen', parameters: {} },
+        inputs: [],
+        isLocked: false,
+        cachedOutput: undefined,
+      });
+      const { billingPlan, generationBilling, service } = makeService({
+        source,
+      });
+      billingPlan.prepareAllocation.mockImplementation(async ({ node }) => {
+        const unresolvedNodeId =
+          unresolvedIndex === 0 ? 'media' : 'second-media';
+        if (node.id === unresolvedNodeId)
+          throw new BusinessLogicException('reviewed quote unavailable');
+        return { allocation: { actionId: 'imageGen', nodeId: node.id } };
+      });
+
+      await expect(service.fundExecution('execution-1', 'org')).rejects.toThrow(
+        'Workflow selected media operations are unresolved',
+      );
+      expect(generationBilling.prepareFunding).not.toHaveBeenCalled();
+      expect(generationBilling.recoverPreparation).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves an operational preparation failure before financial effects', async () => {
+    const { billingPlan, generationBilling, service } = makeService({
+      source: available(),
+    });
+    const failure = new Error('provider contract storage unavailable');
+    billingPlan.prepareAllocation.mockRejectedValue(failure);
+
+    await expect(service.fundExecution('execution-1', 'org')).rejects.toBe(
+      failure,
+    );
+    expect(generationBilling.prepareFunding).not.toHaveBeenCalled();
+  });
+
+  it('funds both selected media nodes when both preparation contracts resolve', async () => {
+    const source = available({
+      id: 'second-media',
+      type: 'genfeedAction',
+      label: 'Video',
+      config: { actionId: 'videoGen', parameters: {} },
+      inputs: [],
+      isLocked: false,
+      cachedOutput: undefined,
+    });
+    const { billingPlan, generationBilling, service } = makeService({ source });
+    billingPlan.prepareAllocation.mockImplementation(async ({ node }) => ({
+      allocation: {
+        actionId: node.id === 'media' ? 'imageGen' : 'videoGen',
+        nodeId: node.id,
+      },
+    }));
+
+    await service.fundExecution('execution-1', 'org');
+
+    expect(billingPlan.prepareAllocation).toHaveBeenCalledTimes(2);
+    expect(generationBilling.prepareFunding).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        allocations: [
+          { actionId: 'imageGen', nodeId: 'media' },
+          { actionId: 'videoGen', nodeId: 'second-media' },
+        ],
+      }),
+    );
   });
 });
