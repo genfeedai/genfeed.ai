@@ -3,7 +3,13 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { resolveOrganizationModulePreferences } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+  ORGANIZATION_MODULE_IDS,
+  resolveOrganizationModulePreferences,
+  resolveOrganizationModulePresentationAccess,
+} from '@genfeedai/contracts/constants';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -11,7 +17,8 @@ import { AppRail } from '@ui/shell/app-rail/AppRail';
 import RailAccount from '@ui/shell/app-rail/RailAccount';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
+import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
 import { usePinnedRailApps } from '@/components/shell/use-pinned-rail-apps';
@@ -35,6 +42,19 @@ function AppProtectedRailContent({
   const modulePreferences = resolveOrganizationModulePreferences(
     settingsLoading ? null : settings,
   );
+  const moduleAccess = useMemo(
+    () =>
+      settingsLoading
+        ? null
+        : Object.fromEntries(
+            ORGANIZATION_MODULE_IDS.map((moduleId) => [
+              moduleId,
+              resolveOrganizationModulePresentationAccess(settings, moduleId),
+            ]),
+          ),
+    [settings, settingsLoading],
+  );
+  const installedApps = useInstalledApps();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
     useOrgUrl();
@@ -118,7 +138,12 @@ function AppProtectedRailContent({
       brandAwareSlug={brandAwareAppSlug}
       brandSlug={effectiveBrandSlug}
       currentPath={pathname}
+      installedAppIds={
+        installedApps.status === 'ready' ? installedApps.installedAppIds : []
+      }
       isAssetGateLocked={isAssetGateLocked}
+      isFounderOperator={isSuperAdmin}
+      moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
       onNavigate={onNavigate}
       onTogglePin={togglePin}
@@ -127,6 +152,10 @@ function AppProtectedRailContent({
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
       showAdmin={isAdminChrome || isSuperAdmin}
+      storeHref={createOrganizationAppRoute(
+        effectiveOrgSlug,
+        APP_ROUTES.STORE.ROOT,
+      )}
     />
   );
 }

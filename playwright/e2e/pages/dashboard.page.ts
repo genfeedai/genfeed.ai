@@ -86,7 +86,7 @@ export class DashboardPage {
       )
       .first();
     this.navStudio = this.sidebar
-      .locator(`a[href*="${APP_ROUTES.STUDIO.ROOT}"]`)
+      .locator(`a[href*="${APP_ROUTES.STUDIO.PLAYGROUND}"]`)
       .first();
     this.navActivities = this.sidebar
       .locator(`a[href*="${APP_ROUTES.WORKSPACE.ACTIVITY}"]`)

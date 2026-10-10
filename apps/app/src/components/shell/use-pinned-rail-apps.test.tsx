@@ -26,7 +26,7 @@ function deferred() {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.getUsers.mockResolvedValue(mocks);
-  mocks.findMeSettings.mockResolvedValue({ pinnedAppIds: ['studio'] });
+  mocks.findMeSettings.mockResolvedValue({ pinnedAppIds: ['playground'] });
   mocks.patchMeSettings.mockImplementation(async (settings) => settings);
 });
 
@@ -34,11 +34,11 @@ describe('rail pin persistence', () => {
   it('performs one write for one toggle under StrictMode', async () => {
     const { result } = renderHook(usePinnedRailApps, { wrapper: StrictMode });
     await waitFor(() =>
-      expect(result.current.pinnedAppIds).toEqual(['studio']),
+      expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
     act(() => result.current.togglePin('discovery'));
     await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1));
-    expect(result.current.pinnedAppIds).toEqual(['studio', 'discovery']);
+    expect(result.current.pinnedAppIds).toEqual(['playground', 'discovery']);
   });
 
   it('rebases edits made during the initial read onto saved preferences', async () => {
@@ -47,13 +47,13 @@ describe('rail pin persistence', () => {
     const { result } = renderHook(usePinnedRailApps);
     act(() => result.current.togglePin('discovery'));
     expect(mocks.patchMeSettings).not.toHaveBeenCalled();
-    await act(async () => initial.resolve({ pinnedAppIds: ['studio'] }));
+    await act(async () => initial.resolve({ pinnedAppIds: ['playground'] }));
     await waitFor(() =>
       expect(mocks.patchMeSettings).toHaveBeenCalledWith({
-        pinnedAppIds: ['studio', 'discovery'],
+        pinnedAppIds: ['playground', 'discovery'],
       }),
     );
-    expect(result.current.pinnedAppIds).toEqual(['studio', 'discovery']);
+    expect(result.current.pinnedAppIds).toEqual(['playground', 'discovery']);
   });
 
   it.each(['success', 'failure'])(
@@ -66,7 +66,7 @@ describe('rail pin persistence', () => {
         .mockReturnValueOnce(second.promise);
       const { result } = renderHook(usePinnedRailApps);
       await waitFor(() =>
-        expect(result.current.pinnedAppIds).toEqual(['studio']),
+        expect(result.current.pinnedAppIds).toEqual(['playground']),
       );
       act(() => result.current.togglePin('discovery'));
       await waitFor(() =>
@@ -76,11 +76,11 @@ describe('rail pin persistence', () => {
       expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1);
       await act(async () => {
         if (outcome === 'success')
-          first.resolve({ pinnedAppIds: ['studio', 'discovery'] });
+          first.resolve({ pinnedAppIds: ['playground', 'discovery'] });
         else first.reject(new Error('offline'));
       });
       expect(result.current.pinnedAppIds).toEqual([
-        'studio',
+        'playground',
         'discovery',
         'messages',
       ]);
@@ -88,13 +88,15 @@ describe('rail pin persistence', () => {
         expect(mocks.patchMeSettings).toHaveBeenCalledTimes(2),
       );
       expect(mocks.patchMeSettings.mock.calls[1][0]).toEqual({
-        pinnedAppIds: ['studio', 'discovery', 'messages'],
+        pinnedAppIds: ['playground', 'discovery', 'messages'],
       });
       await act(async () =>
-        second.resolve({ pinnedAppIds: ['studio', 'discovery', 'messages'] }),
+        second.resolve({
+          pinnedAppIds: ['playground', 'discovery', 'messages'],
+        }),
       );
       expect(result.current.pinnedAppIds).toEqual([
-        'studio',
+        'playground',
         'discovery',
         'messages',
       ]);
@@ -105,12 +107,12 @@ describe('rail pin persistence', () => {
     mocks.patchMeSettings.mockRejectedValueOnce(new Error('offline'));
     const { result } = renderHook(usePinnedRailApps);
     await waitFor(() =>
-      expect(result.current.pinnedAppIds).toEqual(['studio']),
+      expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
     act(() => result.current.togglePin('discovery'));
     await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1));
     await waitFor(() =>
-      expect(result.current.pinnedAppIds).toEqual(['studio']),
+      expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
   });
 
@@ -127,14 +129,14 @@ describe('rail pin persistence', () => {
     mocks.patchMeSettings.mockReturnValueOnce(pending.promise);
     const { result, unmount } = renderHook(usePinnedRailApps);
     await waitFor(() =>
-      expect(result.current.pinnedAppIds).toEqual(['studio']),
+      expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
     act(() => result.current.togglePin('discovery'));
     await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1));
     act(() => result.current.togglePin('messages'));
     unmount();
     await act(async () =>
-      pending.resolve({ pinnedAppIds: ['studio', 'discovery'] }),
+      pending.resolve({ pinnedAppIds: ['playground', 'discovery'] }),
     );
     expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1);
   });

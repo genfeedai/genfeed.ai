@@ -13,13 +13,18 @@ import type {
 import {
   Calendar,
   ChartNoAxesColumn,
+  Clapperboard,
+  Film,
   Home,
   Images,
+  Layers,
   MessageSquare,
+  Scissors,
   ShieldCheck,
   Sparkles,
   Terminal,
   TrendingUp,
+  Wand2,
   Workflow,
 } from 'lucide-react';
 
@@ -34,10 +39,10 @@ function createScopedAppRoute({
 }
 
 /**
- * The daily loop sits on the rail: workspace, agent, library, publishing,
- * analytics. Studio, automation, messages and discovery stay in More until
- * the signed-in user pins them. Discovery is research that helps the loop;
- * it is not part of publishing or analytics.
+ * The daily loop is fixed on the rail: workspace, agent, library, publishing,
+ * analytics. Every other native app opens directly from the Apps launcher
+ * once the member installs it, and can be pinned below the loop (#5502).
+ * Studio tools are separate apps; there is no Studio parent.
  */
 export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
   {
@@ -92,28 +97,91 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     route: createScopedAppRoute({ brandPath: '/analytics/overview' }),
     visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.analytics,
   },
+  // Studio apps need a brand. Their org routes pick the member's last-used
+  // brand, or hand one-off generation to Agent when there is none.
   {
-    activePathRoots: ['/studio'],
-    description: 'studio.description',
-    icon: Sparkles,
-    group: 'more',
-    id: 'studio',
-    organizationModule: 'playground',
+    activePathRoots: [APP_ROUTES.STUDIO.PLAYGROUND],
+    description: 'playground.description',
+    icon: Wand2,
+    group: 'app',
+    id: 'playground',
     isBrandAware: true,
-    label: 'studio.label',
-    // Studio production tools require a brand. The org route hands one-off
-    // generation to Agent while preserving a stable rail destination.
-    route: createScopedAppRoute({
-      brandPath: '/studio/playground',
-      organizationPath: '/studio',
-    }),
+    label: 'playground.label',
+    organizationModule: 'playground',
+    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.PLAYGROUND }),
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+  },
+  {
+    activePathRoots: [APP_ROUTES.STUDIO.STORYBOARD],
+    description: 'storyboard.description',
+    icon: Clapperboard,
+    group: 'app',
+    id: 'storyboard',
+    isBrandAware: true,
+    label: 'storyboard.label',
+    organizationModule: 'storyboard',
+    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.STORYBOARD }),
+    surfaceFlagKey: 'studio_storyboard',
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+  },
+  {
+    // Turbo runs on the Batch surface until #5936 renames it.
+    activePathRoots: [APP_ROUTES.STUDIO.BATCH],
+    description: 'turbo.description',
+    icon: Layers,
+    group: 'app',
+    id: 'turbo',
+    isBrandAware: true,
+    label: 'turbo.label',
+    organizationModule: 'batch',
+    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.BATCH }),
+    surfaceFlagKey: 'studio_batch',
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+  },
+  {
+    activePathRoots: [APP_ROUTES.STUDIO.MOTION],
+    description: 'motion.description',
+    icon: Sparkles,
+    group: 'app',
+    id: 'motion',
+    isBrandAware: true,
+    label: 'motion.label',
+    organizationModule: 'motion',
+    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.MOTION }),
+    surfaceFlagKey: 'studio_motion',
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+  },
+  {
+    activePathRoots: [APP_ROUTES.STUDIO.CLIPS],
+    description: 'clips.description',
+    icon: Scissors,
+    group: 'app',
+    id: 'clips',
+    isBrandAware: true,
+    label: 'clips.label',
+    organizationModule: 'clips',
+    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.CLIPS }),
+    surfaceFlagKey: 'studio_clips',
+    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
+  },
+  {
+    activePathRoots: [APP_ROUTES.STUDIO.EDITOR],
+    description: 'editor.description',
+    icon: Film,
+    group: 'app',
+    id: 'editor',
+    isBrandAware: true,
+    label: 'editor.label',
+    organizationModule: 'editor',
+    route: createScopedAppRoute({ brandPath: APP_ROUTES.STUDIO.EDITOR }),
+    surfaceFlagKey: 'studio_editor',
     visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.studio,
   },
   {
     activePathRoots: ['/automation'],
     description: 'automation.description',
     icon: Workflow,
-    group: 'more',
+    group: 'app',
     id: 'automation',
     organizationModule: 'automation',
     label: 'automation.label',
@@ -124,7 +192,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     activePathRoots: ['/messages'],
     description: 'messages.description',
     icon: MessageSquare,
-    group: 'more',
+    group: 'app',
     id: 'messages',
     organizationModule: 'messages',
     label: 'messages.label',
@@ -135,7 +203,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     activePathRoots: ['/discovery'],
     description: 'discovery.description',
     icon: TrendingUp,
-    group: 'more',
+    group: 'app',
     id: 'discovery',
     organizationModule: 'discovery',
     label: 'discovery.label',
@@ -284,6 +352,23 @@ export function getAppRailFlagKeyForPath(
 ): AppRailFeatureFlagKey | undefined {
   const appId = getActiveAppId(APP_RAIL_REGISTRY, currentPath);
   return APP_RAIL_REGISTRY.find((app) => app.id === appId)?.visibilityFlagKey;
+}
+
+/**
+ * Whether the platform switches behind an app are on: its module flag and, for
+ * a Studio app, its surface flag. An unknown flag is on only while the flag
+ * provider is unconfigured.
+ */
+export function isAppRailItemEnabled(
+  app: AppRailItemConfig,
+  flags: Readonly<Record<string, unknown>>,
+  isConfigured: boolean,
+): boolean {
+  return [app.visibilityFlagKey, app.surfaceFlagKey].every(
+    (flagKey) =>
+      !flagKey ||
+      (Object.hasOwn(flags, flagKey) ? flags[flagKey] === true : !isConfigured),
+  );
 }
 
 export function getAppRailHref(

@@ -1,8 +1,15 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { ORGANIZATION_MODULES } from '@genfeedai/contracts/constants';
+import {
+  isNativeAppLaunchable,
+  isNativeSecondaryAppId,
+  NATIVE_SECONDARY_APP_IDS,
+  ORGANIZATION_MODULES,
+  resolveNativeAppAvailability,
+} from '@genfeedai/contracts/constants';
 import type {
+  AppRailItemConfig,
   AppRailNavigationItem,
   AppRailNavigationVia,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
@@ -10,12 +17,14 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
-  AppRailBadge,
   AppRailItemProps,
+  AppRailLauncherProps,
+  AppRailLauncherRowProps,
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Popover,
   PopoverPanelContent,
@@ -28,7 +37,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
-import { Ellipsis, Lock, Pin } from 'lucide-react';
+import { LayoutGrid, Lock, Pin, Store } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -39,6 +48,7 @@ import {
   getActiveAppId,
   getAppRailHref,
   getAppRailShortcut,
+  isAppRailItemEnabled,
   isAppRailItemLocked,
 } from './app-rail.registry';
 import { useAppRailNavigation } from './use-app-rail-navigation';
@@ -146,21 +156,14 @@ function AppRailItem({
   );
 }
 
-function AppRailMoreRow({
+function AppRailLauncherRow({
   badge,
   isActive,
   isPinned,
   item,
   onNavigateStart,
   onTogglePin,
-}: {
-  badge?: AppRailBadge;
-  isActive: boolean;
-  isPinned: boolean;
-  item: AppRailNavigationItem;
-  onNavigateStart: () => void;
-  onTogglePin?: (appId: string) => void;
-}) {
+}: AppRailLauncherRowProps) {
   const t = useTranslations('common.appRail');
   const Icon = item.app.icon;
   const intent = useNavigationIntentPrefetch(item.href);
@@ -178,7 +181,7 @@ function AppRailMoreRow({
         prefetch={false}
         aria-current={isActive ? 'page' : undefined}
         aria-label={accessibleLabel}
-        data-testid={`app-rail-more-item-${item.app.id}`}
+        data-testid={`app-rail-launcher-item-${item.app.id}`}
         onBlur={intent.onBlur}
         onClick={onNavigateStart}
         onFocus={intent.onFocus}
@@ -244,38 +247,44 @@ function AppRailMoreRow({
   );
 }
 
-function AppRailMore({
+/**
+ * The Apps launcher (#5502): the member's installed, permitted apps, searchable
+ * by name, with a way into the Store to find more. It replaces the old More
+ * overflow; apps open directly with no Studio parent in between.
+ */
+function AppRailLauncher({
   activeAppId,
   badges,
   items,
   onNavigateStart,
   onTogglePin,
   pinnedAppIds,
-}: {
-  activeAppId?: string;
-  badges?: AppRailProps['badges'];
-  items: readonly AppRailNavigationItem[];
-  onNavigateStart: (item: AppRailNavigationItem) => void;
-  onTogglePin?: (appId: string) => void;
-  pinnedAppIds: readonly string[];
-}) {
+  storeHref,
+}: AppRailLauncherProps) {
   const t = useTranslations('common.appRail');
+  const [query, setQuery] = useState('');
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const matchingItems = normalizedQuery
+    ? items.filter((item) =>
+        item.label.toLocaleLowerCase().includes(normalizedQuery),
+      )
+    : items;
   const isActive = items.some(
     (item) =>
       item.app.id === activeAppId && !pinnedAppIds.includes(item.app.id),
   );
-  const overflowCount = items.reduce((sum, item) => {
+  const unpinnedBadgeCount = items.reduce((sum, item) => {
     if (pinnedAppIds.includes(item.app.id)) return sum;
     const badge = badges?.[item.app.id];
     return sum + (!item.isLocked && badge && badge.count > 0 ? badge.count : 0);
   }, 0);
 
   return (
-    <Popover>
+    <Popover onOpenChange={(isOpen) => !isOpen && setQuery('')}>
       <PopoverTrigger
-        aria-label={t('more')}
+        aria-label={t('launcher')}
         data-active={isActive}
-        data-testid="app-rail-more"
+        data-testid="app-rail-launcher"
         className={cn(
           'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
           isActive
@@ -284,27 +293,37 @@ function AppRailMore({
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
         )}
       >
-        <Ellipsis aria-hidden="true" className="size-4" />
-        {overflowCount > 0 ? (
+        <LayoutGrid aria-hidden="true" className="size-4" />
+        {unpinnedBadgeCount > 0 ? (
           <span
             aria-hidden="true"
-            data-testid="app-rail-more-badge"
+            data-testid="app-rail-launcher-badge"
             className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
           >
-            {overflowCount > 99 ? '99+' : overflowCount}
+            {unpinnedBadgeCount > 99 ? '99+' : unpinnedBadgeCount}
           </span>
         ) : null}
       </PopoverTrigger>
       <PopoverPanelContent
         align="end"
-        className="w-auto min-w-44 p-1"
-        data-testid="app-rail-more-menu"
+        className="flex w-60 flex-col gap-1 p-1"
+        data-testid="app-rail-launcher-menu"
         side="right"
         sideOffset={10}
       >
-        <div className="flex flex-col" role="group" aria-label={t('more')}>
-          {items.map((item) => (
-            <AppRailMoreRow
+        {items.length > 0 ? (
+          <Input
+            aria-label={t('search')}
+            data-testid="app-rail-launcher-search"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('search')}
+            type="search"
+            value={query}
+          />
+        ) : null}
+        <div className="flex flex-col" role="group" aria-label={t('launcher')}>
+          {matchingItems.map((item) => (
+            <AppRailLauncherRow
               key={item.app.id}
               badge={badges?.[item.app.id]}
               isActive={
@@ -317,9 +336,65 @@ function AppRailMore({
               onTogglePin={onTogglePin}
             />
           ))}
+          {matchingItems.length === 0 ? (
+            <p
+              className="px-2 py-1.5 text-[13px] text-muted-foreground"
+              data-testid="app-rail-launcher-empty"
+            >
+              {items.length === 0 ? t('noApps') : t('noMatches')}
+            </p>
+          ) : null}
         </div>
+        {storeHref ? (
+          <Link
+            href={storeHref}
+            prefetch={false}
+            data-testid="app-rail-store"
+            onClick={() => onNavigateStart()}
+            className={cn(
+              'flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground transition-colors',
+              'hover:bg-foreground/[0.06] hover:text-foreground',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+            )}
+          >
+            <Store aria-hidden="true" className="size-4 shrink-0" />
+            <span className="truncate">{t('store')}</span>
+          </Link>
+        ) : null}
       </PopoverPanelContent>
     </Popover>
+  );
+}
+
+/**
+ * A launcher app shows only while its platform switches are on and the member
+ * has it installed with organization, subscription and release access. An
+ * absent `installedAppIds` or `moduleAccess` is a neutral surface with no
+ * member or organization to consult.
+ */
+function isLauncherAppAvailable(
+  app: AppRailItemConfig,
+  {
+    installedAppIds,
+    isFounderOperator,
+    moduleAccess,
+  }: Pick<
+    AppRailProps,
+    'installedAppIds' | 'isFounderOperator' | 'moduleAccess'
+  >,
+): boolean {
+  if (!isNativeSecondaryAppId(app.id)) return false;
+  return isNativeAppLaunchable(
+    resolveNativeAppAvailability({
+      appId: app.id,
+      installedAppIds: installedAppIds ?? NATIVE_SECONDARY_APP_IDS,
+      isFounderOperator: isFounderOperator === true,
+      organizationAccess:
+        moduleAccess === undefined || !app.organizationModule
+          ? { isAllowed: true, reason: null }
+          : (moduleAccess?.[app.organizationModule] ?? null),
+      pinnedAppIds: [],
+    }),
   );
 }
 
@@ -330,7 +405,10 @@ export function AppRail({
   currentPath,
   footer,
   header,
+  installedAppIds,
   isAssetGateLocked = false,
+  isFounderOperator,
+  moduleAccess,
   modulePreferences,
   onNavigate,
   onNavigationEvent,
@@ -340,6 +418,7 @@ export function AppRail({
   preservedSearch,
   resolveNavigation,
   showAdmin = false,
+  storeHref,
   surface = 'desktop',
 }: AppRailProps) {
   const { flags, isConfigured } = useFeatureFlagContext();
@@ -348,19 +427,34 @@ export function AppRail({
   const t = useTranslations('common.appRail');
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
   const apps = useMemo(() => {
-    const visible = APP_RAIL_REGISTRY.filter(
-      (app) =>
-        (!app.organizationModule ||
-          modulePreferences === undefined ||
-          modulePreferences?.[app.organizationModule] === true ||
-          !ORGANIZATION_MODULES[app.organizationModule].isToggleable) &&
-        (!app.visibilityFlagKey ||
-          (Object.hasOwn(flags, app.visibilityFlagKey)
-            ? flags[app.visibilityFlagKey] === true
-            : !isConfigured)),
-    );
+    const visible = APP_RAIL_REGISTRY.filter((app) => {
+      if (!isAppRailItemEnabled(app, flags, isConfigured)) {
+        return false;
+      }
+      if (app.group === 'app') {
+        return isLauncherAppAvailable(app, {
+          installedAppIds,
+          isFounderOperator,
+          moduleAccess,
+        });
+      }
+      return (
+        !app.organizationModule ||
+        modulePreferences === undefined ||
+        modulePreferences?.[app.organizationModule] === true ||
+        !ORGANIZATION_MODULES[app.organizationModule].isToggleable
+      );
+    });
     return showAdmin ? [...visible, ADMIN_RAIL_APP] : visible;
-  }, [flags, isConfigured, showAdmin, modulePreferences]);
+  }, [
+    flags,
+    installedAppIds,
+    isConfigured,
+    isFounderOperator,
+    moduleAccess,
+    modulePreferences,
+    showAdmin,
+  ]);
   const activeAppId = getActiveAppId(
     [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP],
     currentPath,
@@ -402,9 +496,9 @@ export function AppRail({
     isDesktop,
   ]);
   const dailyItems = items.filter((item) => item.app.group === 'daily');
-  const overflowItems = items.filter((item) => item.app.group === 'more');
+  const launcherItems = items.filter((item) => item.app.group === 'app');
   const pinnedItems = pinnedAppIds.flatMap((appId) => {
-    const item = overflowItems.find((candidate) => candidate.app.id === appId);
+    const item = launcherItems.find((candidate) => candidate.app.id === appId);
     return item ? [item] : [];
   });
   const handleNavigate = useCallback(
@@ -463,17 +557,18 @@ export function AppRail({
         ) : null}
         <div className="flex flex-col items-center gap-1">
           {dailyItems.map(renderItem)}
-          {overflowItems.length > 0 ? (
-            <AppRailMore
-              activeAppId={activeAppId}
-              badges={badges}
-              items={overflowItems}
-              onNavigateStart={(item) => handleNavigate(item, 'click')}
-              onTogglePin={onTogglePin}
-              pinnedAppIds={pinnedAppIds}
-            />
-          ) : null}
-          {overflowItems.length > 0 ? (
+          <AppRailLauncher
+            activeAppId={activeAppId}
+            badges={badges}
+            items={launcherItems}
+            onNavigateStart={(item) =>
+              item ? handleNavigate(item, 'click') : onNavigate?.()
+            }
+            onTogglePin={onTogglePin}
+            pinnedAppIds={pinnedAppIds}
+            storeHref={storeHref}
+          />
+          {pinnedItems.length > 0 ? (
             <Separator
               className="my-1 w-5"
               data-testid="app-rail-pins-separator"

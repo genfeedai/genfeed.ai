@@ -334,6 +334,10 @@ export const APP_ROUTES = {
    * generation lives in the Agent (`AGENT.NEW`) — the standalone
    * image/video/avatar/music tabs were retired.
    */
+  /** #5502 native app catalog; installation is per organization membership. */
+  STORE: {
+    ROOT: '/store',
+  },
   STUDIO: {
     MOTION: '/studio/motion',
     BATCH: '/studio/batch',

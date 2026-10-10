@@ -33,11 +33,16 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   agent: APP_DISPLAY_LABELS.agent,
   analytics: APP_DISPLAY_LABELS.analytics,
   automation: APP_DISPLAY_LABELS.automation,
+  clips: APP_DISPLAY_LABELS.clips,
+  editor: APP_DISPLAY_LABELS.editor,
   library: APP_DISPLAY_LABELS.library,
   messages: APP_DISPLAY_LABELS.messages,
+  motion: APP_DISPLAY_LABELS.motion,
+  playground: APP_DISPLAY_LABELS.playground,
   publishing: APP_DISPLAY_LABELS.publishing,
   discovery: APP_DISPLAY_LABELS.discovery,
-  studio: APP_DISPLAY_LABELS.studio,
+  storyboard: APP_DISPLAY_LABELS.storyboard,
+  turbo: APP_DISPLAY_LABELS.turbo,
   workspace: APP_DISPLAY_LABELS.workspace,
 };
 
