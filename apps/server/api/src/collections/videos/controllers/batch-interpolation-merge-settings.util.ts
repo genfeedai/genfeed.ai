@@ -20,8 +20,5 @@ export function toVideoMergeSettings(
     ...(settings.transitionDuration !== undefined
       ? { transitionDuration: settings.transitionDuration }
       : {}),
-    ...(settings.transitionEaseCurve
-      ? { transitionEaseCurve: settings.transitionEaseCurve }
-      : {}),
   };
 }

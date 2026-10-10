@@ -4,7 +4,6 @@ import {
   ActivityKey,
   IngredientStatus,
   JobState,
-  VideoEaseCurve,
   VideoTransition,
   WebSocketEventStatus,
   WebSocketEventType,
@@ -146,7 +145,6 @@ describe('VideoStitchService', () => {
             musicVolume: 25,
             transition: VideoTransition.FADE,
             transitionDuration: 0.75,
-            transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
           },
         }),
       );
@@ -187,7 +185,6 @@ describe('VideoStitchService', () => {
             ],
             transition: VideoTransition.FADE,
             transitionDuration: 0.75,
-            transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
           },
           room: getUserRoomName('auth-user-1'),
           type: 'merge-videos',
@@ -269,12 +266,6 @@ describe('VideoStitchService', () => {
         request({ settings: { transition: 'morph' as VideoTransition } }),
       ],
       ['transitionDuration', request({ settings: { transitionDuration: 3 } })],
-      [
-        'transitionEaseCurve',
-        request({
-          settings: { transitionEaseCurve: 'bounce' as VideoEaseCurve },
-        }),
-      ],
       ['musicVolume', request({ settings: { musicVolume: 101 } })],
       ['brandId', request({ brandId: '' })],
       ['idempotencyKey', request({ idempotencyKey: ' ' })],

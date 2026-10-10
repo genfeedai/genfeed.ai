@@ -3,11 +3,7 @@ import type {
   VideoStitchPlan,
   VideoStitchRequest,
 } from '@api/services/video-stitch/video-stitch.types';
-import {
-  IngredientCategory,
-  VideoEaseCurve,
-  VideoTransition,
-} from '@genfeedai/contracts';
+import { IngredientCategory, VideoTransition } from '@genfeedai/contracts';
 import {
   VIDEO_DIMENSIONS,
   VIDEO_STITCH_LIMITS,
@@ -102,16 +98,6 @@ export function validateVideoStitchRequest(request: VideoStitchRequest): void {
     throw stitchRequestError(
       'transitionDuration',
       `Transition duration must be ${VIDEO_STITCH_LIMITS.MIN_TRANSITION_DURATION}–${VIDEO_STITCH_LIMITS.MAX_TRANSITION_DURATION} seconds`,
-    );
-  }
-  const easeCurves: string[] = Object.values(VideoEaseCurve);
-  if (
-    settings.transitionEaseCurve !== undefined &&
-    !easeCurves.includes(settings.transitionEaseCurve)
-  ) {
-    throw stitchRequestError(
-      'transitionEaseCurve',
-      'Unsupported transition ease curve',
     );
   }
   for (const field of ['isCaptionsEnabled', 'isMuteVideoAudio'] as const) {
@@ -219,9 +205,6 @@ export function buildVideoStitchJobParams(
     transition,
     ...(hasTransition && settings.transitionDuration !== undefined
       ? { transitionDuration: settings.transitionDuration }
-      : {}),
-    ...(hasTransition && settings.transitionEaseCurve !== undefined
-      ? { transitionEaseCurve: settings.transitionEaseCurve }
       : {}),
     ...(settings.isMuteVideoAudio !== undefined &&
     !isMuteDeferredToCaptions(settings)

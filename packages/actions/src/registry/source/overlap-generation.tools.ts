@@ -221,17 +221,6 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
           maximum: 2,
           description: 'merge. Transition length in seconds (0.1-2).',
         },
-        transitionEaseCurve: {
-          type: 'string',
-          enum: [
-            'easyinoutexpo',
-            'easyinexpooutcubic',
-            'easyinquartoutquad',
-            'easyinoutcubic',
-            'easyinoutsine',
-          ],
-          description: 'merge. Ease curve for the transition between clips.',
-        },
       },
     },
   },

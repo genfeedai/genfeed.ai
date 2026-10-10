@@ -337,6 +337,27 @@ describe('AgentMediaTransformService merge', () => {
     expect(gateway.mergeVideos).not.toHaveBeenCalled();
   });
 
+  it('rejects a transition ease curve instead of silently dropping it', async () => {
+    const { gateway, service } = createService();
+
+    const result = await service.transformMedia(
+      {
+        ids: ['clip-1', 'clip-2'],
+        operation: 'merge',
+        transition: 'fade',
+        transitionEaseCurve: 'easyinoutsine',
+      },
+      context,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'Transition ease curves are not supported when merging videos',
+      success: false,
+    });
+    expect(gateway.mergeVideos).not.toHaveBeenCalled();
+  });
+
   it('reports a merge that returns no output id', async () => {
     const { gateway, service } = createService();
     gateway.mergeVideos.mockResolvedValue({ data: null });

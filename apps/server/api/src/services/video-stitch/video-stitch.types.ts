@@ -91,7 +91,6 @@ export interface VideoStitchJobParams {
   sourceStorageKeys: string[];
   transition: string;
   transitionDuration?: number;
-  transitionEaseCurve?: string;
   width?: number;
   [key: string]: unknown;
 }

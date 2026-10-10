@@ -64,7 +64,6 @@ describe('VideoMergeOrchestrationService', () => {
           musicVolume: 25,
           transition: VideoTransition.FADE,
           transitionDuration: 0.75,
-          transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
         }),
         'manual:key',
       ),
@@ -83,10 +82,22 @@ describe('VideoMergeOrchestrationService', () => {
         musicVolume: 25,
         transition: VideoTransition.FADE,
         transitionDuration: 0.75,
-        transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
       },
       userId: 'user-1',
     });
+  });
+
+  it('rejects a transition ease curve instead of merging without it', async () => {
+    await expect(
+      service.mergeVideos(
+        user,
+        makeDto({ transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE }),
+      ),
+    ).rejects.toThrow(
+      'Transition ease curves are not supported when merging videos',
+    );
+    expect(fixture.queued).toEqual([]);
+    expect(fixture.outputs()).toEqual([]);
   });
 
   it.each([

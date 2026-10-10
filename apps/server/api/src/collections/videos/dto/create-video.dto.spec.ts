@@ -184,6 +184,20 @@ describe('CreateMergedVideoDto unsupported zoom', () => {
     ).resolves.toMatchObject(value);
   });
 
+  it('rejects a transition ease curve instead of silently stripping it', async () => {
+    await expect(
+      new ValidationPipe().transform(
+        {
+          category: IngredientCategory.VIDEO,
+          ids: [entityId(1), entityId(2)],
+          transition: 'fade',
+          transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
+        },
+        { metatype: CreateMergedVideoDto, type: 'body' },
+      ),
+    ).rejects.toThrow();
+  });
+
   it.each([
     { zoomEaseCurve: VideoEaseCurve.EASE_IN_OUT_CUBIC },
     { zoomConfigs: [{ startZoom: 1, endZoom: 1.2 }] },

@@ -104,6 +104,7 @@ export {
   findInapplicableMediaTransformParameters,
   getMediaTransformOperation,
   isMediaTransformOperation,
+  MEDIA_MERGE_TRANSITION_EASE_UNSUPPORTED,
   MEDIA_MERGE_ZOOM_UNSUPPORTED,
   MEDIA_REFRAME_ASPECT_RATIOS,
   MEDIA_TRANSFORM_OPERATION_PARAMETERS,

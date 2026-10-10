@@ -11,6 +11,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import {
   findInapplicableMediaTransformParameters,
   isMediaTransformOperation,
+  MEDIA_MERGE_TRANSITION_EASE_UNSUPPORTED,
   MEDIA_MERGE_ZOOM_UNSUPPORTED,
   MEDIA_REFRAME_ASPECT_RATIOS,
   MEDIA_TRANSFORM_OPERATIONS,
@@ -30,7 +31,6 @@ const MERGE_OPTIONAL_PARAMETERS = [
   'musicVolume',
   'transition',
   'transitionDuration',
-  'transitionEaseCurve',
 ] as const;
 
 function fail(error: string): AgentToolResult {
@@ -76,6 +76,11 @@ export class AgentMediaTransformService {
       (params.zoomEaseCurve != null || params.zoomConfigs != null)
     ) {
       return fail(MEDIA_MERGE_ZOOM_UNSUPPORTED);
+    }
+    // FFmpeg's xfade has no easing, and a per-pixel custom transition is far
+    // too slow for full-size clips, so an ease curve is refused, not ignored.
+    if (operation === 'merge' && params.transitionEaseCurve != null) {
+      return fail(MEDIA_MERGE_TRANSITION_EASE_UNSUPPORTED);
     }
     const inapplicable = findInapplicableMediaTransformParameters(
       operation,

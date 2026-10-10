@@ -1,4 +1,4 @@
-import type { VideoEaseCurve, VideoTransition } from '../..';
+import type { VideoTransition } from '../..';
 
 /** Surfaces that join clips through the single stitch service (#5460). */
 export const VIDEO_STITCH_CALLER_KINDS = [
@@ -44,5 +44,4 @@ export interface IVideoMergeSettings {
   transition?: VideoTransition;
   /** Seconds, VIDEO_STITCH_LIMITS transition bounds. */
   transitionDuration?: number;
-  transitionEaseCurve?: VideoEaseCurve;
 }

@@ -1,9 +1,5 @@
 import type { StoryboardFrame } from '@genfeedai/client/schemas';
-import type {
-  IngredientFormat,
-  VideoEaseCurve,
-  VideoTransition,
-} from '@genfeedai/contracts';
+import type { IngredientFormat, VideoTransition } from '@genfeedai/contracts';
 import type {
   BrandRemixDraftEdits,
   BrandRemixRunView,
@@ -39,17 +35,6 @@ export interface StoryboardWorkspaceReference {
 export interface StoryboardReferencesPanelProps {
   readonly references: readonly StoryboardWorkspaceReference[];
   readonly actions?: ReactNode;
-}
-
-export interface EaseCurveSelectorProps {
-  value?: VideoEaseCurve;
-  onChange: (value: VideoEaseCurve | undefined) => void;
-  label?: string;
-  placeholder?: string;
-  isDisabled?: boolean;
-  className?: string;
-  dropdownDirection?: 'up' | 'down' | 'left' | 'right';
-  isFullWidth?: boolean;
 }
 
 export interface TransitionSelectorProps {
