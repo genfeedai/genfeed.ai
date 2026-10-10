@@ -53,7 +53,7 @@ describe('media.constant', () => {
       expect(config).toBeDefined();
       expect(config?.assetType).toBe('music');
       expect(config?.presetType).toBe(ModelCategory.MUSIC);
-      expect(config?.defaultModel).toBe(MODEL_KEYS.REPLICATE_META_MUSICGEN);
+      expect(config?.defaultModel).toBe(MODEL_KEYS.FAL_LYRIA3_PRO);
     });
 
     it('should have config for TEXT category', () => {

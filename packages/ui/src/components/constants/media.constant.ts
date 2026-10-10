@@ -68,8 +68,7 @@ export const MEDIA_TYPE_CONFIGS: Partial<
       style: true,
       tags: false,
     },
-    defaultModel:
-      MODEL_KEYS.REPLICATE_META_MUSICGEN as MediaConfig['defaultModel'],
+    defaultModel: MODEL_KEYS.FAL_LYRIA3_PRO as MediaConfig['defaultModel'],
     placeholder: 'Describe the music you want to create…',
     presetType: ModelCategory.MUSIC,
   },
