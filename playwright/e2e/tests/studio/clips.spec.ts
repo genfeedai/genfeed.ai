@@ -235,7 +235,7 @@ function jsonApiDraft(saved: Record<string, unknown>) {
 }
 
 /**
- * Serves the draft project behind "New project". Register it after a test's
+ * Serves an existing draft project. Register it after a test's
  * own project mocks: while the draft is open it answers project reads with the
  * autosaved draft; once a start request goes out, reads fall back to them.
  */
@@ -296,13 +296,13 @@ async function mockDraftProject(page: Page): Promise<DraftSession> {
   return session;
 }
 
-/** Starts a Clips project the way a creator does: New project → draft form. */
+/** Opens the source import page without creating a draft. */
 async function openNewProject(page: Page): Promise<DraftSession> {
   const session = await mockDraftProject(page);
 
   await page.goto(CLIPS_URL);
   await page.getByRole('link', { name: /new project/i }).click();
-  await expect(page).toHaveURL(new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`));
+  await expect(page).toHaveURL(new RegExp(`${CLIPS_URL}/new`));
   await expect(page.getByLabel(/youtube url/i)).toBeVisible();
 
   return session;
@@ -325,17 +325,11 @@ test.describe('Clip Factory', () => {
       'type',
       'url',
     );
-    await expect(authenticatedPage.locator('#max-clips')).toHaveAttribute(
-      'type',
-      'range',
-    );
-    await expect(authenticatedPage.locator('#min-virality')).toHaveAttribute(
-      'type',
-      'range',
-    );
+    await expect(authenticatedPage.locator('#max-clips')).toHaveCount(0);
+    await expect(authenticatedPage.locator('#min-virality')).toHaveCount(0);
     await expect(
       authenticatedPage.getByRole('button', {
-        name: /review highlights first/i,
+        name: /import & transcribe/i,
       }),
     ).toBeVisible();
   });
@@ -396,17 +390,14 @@ test.describe('Clip Factory', () => {
   test('restores a pasted YouTube URL after reload', async ({
     authenticatedPage,
   }) => {
-    const session = await openNewProject(authenticatedPage);
+    const session = await mockDraftProject(authenticatedPage);
+    session.saved.mode = 'raw-cut';
+    await authenticatedPage.goto(`${CLIPS_URL}/${MOCK_PROJECT_ID}`);
 
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
-    await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
 
     await expect.poll(() => session.saved.youtubeUrl).toBe(MOCK_YOUTUBE_URL);
     await expect.poll(() => session.saved.mode).toBe('raw-cut');
-    await expect(
-      authenticatedPage.getByTestId('clips-draft-save-state'),
-    ).toHaveText(/draft saved/i);
-
     await authenticatedPage.reload();
 
     await expect(authenticatedPage.getByLabel(/youtube url/i)).toHaveValue(
@@ -414,7 +405,7 @@ test.describe('Clip Factory', () => {
     );
     await expect(
       authenticatedPage.getByRole('button', { name: /raw cut/i }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    ).toHaveCount(0);
   });
 
   test('opens the analysis step for a Library video from Make clips', async ({
@@ -490,7 +481,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import & transcribe/i })
       .click();
 
     await expect(
@@ -599,7 +590,7 @@ test.describe('Clip Factory', () => {
       name: 'podcast.mp4',
     });
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import & transcribe/i })
       .click();
 
     await expect.poll(() => prepareBody).not.toBeNull();
@@ -776,7 +767,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import & transcribe/i })
       .click();
 
     await expect(authenticatedPage).toHaveURL(
@@ -917,7 +908,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import & transcribe/i })
       .click();
 
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
@@ -981,7 +972,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import & transcribe/i })
       .click();
 
     await authenticatedPage
@@ -1008,7 +999,7 @@ test.describe('Clip Factory', () => {
     await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /review highlights first/i })
+      .getByRole('button', { name: /import & transcribe/i })
       .click();
 
     await expect(
@@ -1017,17 +1008,34 @@ test.describe('Clip Factory', () => {
     await expect(authenticatedPage.getByLabel(/youtube url/i)).toBeVisible();
   });
 
-  test('should complete a raw-cut project without avatar identity', async ({
+  test('imports and generates a raw-cut project without avatar identity', async ({
     authenticatedPage,
   }) => {
     let createRequestBody: Record<string, unknown> | null = null;
+    let analyzeRequestBody: Record<string, unknown> | null = null;
+    let hasGenerated = false;
+    await authenticatedPage.route(API_ANALYZE, async (route) => {
+      analyzeRequestBody = JSON.parse(route.request().postData() ?? '{}');
+      await route.fulfill({
+        body: JSON.stringify({
+          projectId: MOCK_PROJECT_ID,
+          status: 'analyzing',
+        }),
+        contentType: 'application/json',
+        status: 202,
+      });
+    });
+    await mockHighlightsPolling(authenticatedPage);
 
-    await authenticatedPage.route(API_CREATE_FROM_YOUTUBE, async (route) => {
+    await authenticatedPage.route(API_GENERATE, async (route) => {
       createRequestBody = JSON.parse(
         route.request().postData() ?? '{}',
       ) as Record<string, unknown>;
+      hasGenerated = true;
       await route.fulfill({
         body: JSON.stringify({
+          clipCount: 1,
+          clipResultIds: ['raw-cut-1'],
           batchJobId: 'raw-cut-job-1',
           estimatedClips: 1,
           projectId: MOCK_PROJECT_ID,
@@ -1045,7 +1053,9 @@ test.describe('Clip Factory', () => {
       }
 
       await route.fulfill({
-        body: JSON.stringify(jsonApiProject('completed')),
+        body: JSON.stringify(
+          jsonApiProject(hasGenerated ? 'completed' : 'analyzed'),
+        ),
         contentType: 'application/json',
         status: 200,
       });
@@ -1088,17 +1098,21 @@ test.describe('Clip Factory', () => {
     );
 
     await openNewProject(authenticatedPage);
-    await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /start clip factory/i })
+      .getByRole('button', { name: /import & transcribe/i })
+      .click();
+    await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
+    await authenticatedPage
+      .getByRole('button', { name: /generate 3 raw cuts/i })
       .click();
 
     await expect.poll(() => createRequestBody).not.toBeNull();
     expect(createRequestBody).toMatchObject({
       mode: 'raw-cut',
-      youtubeUrl: MOCK_YOUTUBE_URL,
+      selectedHighlightIds: ['h1', 'h2', 'h3'],
     });
+    expect(analyzeRequestBody).toMatchObject({ youtubeUrl: MOCK_YOUTUBE_URL });
     expect(createRequestBody).not.toHaveProperty('avatarId');
     expect(createRequestBody).not.toHaveProperty('voiceId');
     await expect(

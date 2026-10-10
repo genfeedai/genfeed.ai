@@ -112,7 +112,7 @@ describe('record_external_publication execution', () => {
     await f.handler.recordExternalPublication(params, ctx);
     expect(f.scopeService.assertBrandAuthorized).toHaveBeenCalledWith(
       'brand-1',
-      'org-1',
+      { organizationId: 'org-1', userId: 'user-1' },
     );
   });
   it('rejects a brand the organization does not own before persistence', async () => {

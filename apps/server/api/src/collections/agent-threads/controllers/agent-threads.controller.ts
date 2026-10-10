@@ -288,6 +288,7 @@ export class AgentThreadsController {
         threadId,
         userId,
         isApiKey: user.isApiKey,
+        apiKeyId: user.apiKeyId,
         scopes: user.scopes,
       });
 

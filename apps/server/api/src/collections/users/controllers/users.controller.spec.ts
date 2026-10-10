@@ -10,6 +10,7 @@ import type { BetterAuthIdentityCacheService } from '@api/common/services/better
 import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -22,7 +23,12 @@ describe('UsersController', () => {
   let relationshipsController: UsersRelationshipsController;
   let usersService: Record<string, ReturnType<typeof vi.fn>>;
   let settingsService: Record<string, ReturnType<typeof vi.fn>>;
-  let brandsService: Record<string, ReturnType<typeof vi.fn>>;
+  let brandsService: Record<
+    'clearBrandSelectionForUser' | 'findAll' | 'findOne' | 'selectBrandForUser',
+    ReturnType<typeof vi.fn>
+  > & {
+    brandAccessService: ReturnType<typeof brandAccessFixture>;
+  };
   let organizationsService: Record<string, ReturnType<typeof vi.fn>>;
   let subscriptionsService: Record<string, ReturnType<typeof vi.fn>>;
   let membersService: Record<string, ReturnType<typeof vi.fn>>;
@@ -75,6 +81,7 @@ describe('UsersController', () => {
         .mockImplementation(async (settings: unknown) => settings),
     };
     brandsService = {
+      brandAccessService: brandAccessFixture(),
       clearBrandSelectionForUser: vi.fn(),
       findAll: vi.fn(),
       findOne: vi.fn(),
@@ -203,9 +210,14 @@ describe('UsersController', () => {
         expect.objectContaining({
           include: { credentials: true },
           where: {
-            id: { in: ['brand-1', 'brand-2'] },
-            isDeleted: false,
-            organizationId: orgId,
+            AND: [
+              { isDeleted: false, organizationId: orgId },
+              {
+                id: { in: ['brand-1', 'brand-2'] },
+                isDeleted: false,
+                organizationId: orgId,
+              },
+            ],
           },
         }),
         expect.any(Object),
@@ -1125,6 +1137,7 @@ describe('UsersController', () => {
         canonicalId,
         userId,
         orgId,
+        mockUser,
       );
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
         userId,
@@ -1173,6 +1186,7 @@ describe('UsersController', () => {
         canonicalId,
         userId,
         orgId,
+        mockUser,
       );
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
         userId,

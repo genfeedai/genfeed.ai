@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { SocialTimelineResponse } from '@genfeedai/contracts/interfaces';
 import type { Page, Response } from '@playwright/test';
 import {
-  createPlaywrightApiRoutePattern,
+  createPlaywrightMockApiRoutePattern,
   playwrightApiEndpoint,
 } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -210,7 +210,7 @@ function socialTimelinePayload(): SocialTimelineResponse {
 async function mockSocialTimelines(page: Page): Promise<void> {
   // This endpoint returns raw account data, not a JSON:API document.
   await page.route(
-    createPlaywrightApiRoutePattern('social-timelines/?(?:\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('social-timelines/?(?:\\?.*)?$'),
     async (route) => {
       await route.fulfill({
         body: JSON.stringify(socialTimelinePayload()),

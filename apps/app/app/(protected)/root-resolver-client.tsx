@@ -22,6 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 import { resolveOperationalHomeScope } from './home/operational-home.helpers';
@@ -29,6 +30,7 @@ import { resolveOperationalHomeScope } from './home/operational-home.helpers';
 const WORKSPACE_RESOLUTION_TIMEOUT_MS = 8_000;
 
 export default function ProtectedRootResolver() {
+  const translate = useTranslations('pages.organizationLanding');
   // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
   const isAgentModuleEnabled = useFeatureFlag('agent');
   const {
@@ -177,7 +179,7 @@ export default function ProtectedRootResolver() {
   if (hasNoBrandAccess)
     return (
       <p className="px-6 py-12 text-muted-foreground" role="status">
-        No brands assigned. Ask an organization admin for access.
+        {translate('noBrandAccess')}
       </p>
     );
 
@@ -195,13 +197,15 @@ export default function ProtectedRootResolver() {
       <main className="mx-auto flex min-h-[60vh] w-full max-w-3xl items-center px-4 py-10 sm:px-6">
         <Alert>
           <AlertTitle aria-level={1} role="heading">
-            Workspace setup needs attention
+            {translate('workspaceSetupTitle')}
           </AlertTitle>
           <AlertDescription>
             <p>
-              Genfeed could not resolve an active organization yet. Retry the
-              workspace bootstrap
-              {workspaceActionOrgSlug ? ' or continue brand setup.' : '.'}
+              {translate(
+                workspaceActionOrgSlug
+                  ? 'workspaceSetupWithBrand'
+                  : 'workspaceSetupDescription',
+              )}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
@@ -213,11 +217,13 @@ export default function ProtectedRootResolver() {
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               >
-                Retry workspace
+                {translate('retryWorkspace')}
               </Button>
               {workspaceActionOrgSlug ? (
                 <Button asChild variant={ButtonVariant.GHOST}>
-                  <Link href={APP_ROUTES.ONBOARDING.BRAND}>Continue setup</Link>
+                  <Link href={APP_ROUTES.ONBOARDING.BRAND}>
+                    {translate('continueSetup')}
+                  </Link>
                 </Button>
               ) : null}
             </div>

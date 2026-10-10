@@ -887,6 +887,7 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
     );
     Object.assign(handler, {
       brandAccessService: brandAccessFixture({
+        apiKey: { findFirst: vi.fn().mockResolvedValue({ scopes: [] }) },
         member: { findFirst: findMember },
       } as unknown as PrismaService),
     });
@@ -945,7 +946,10 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
     f.membership.role.key = MemberRole.OWNER;
     const result = await f.handler.getBrands(
       {},
-      { ...actor, apiKeyContext: { isApiKey: true, scopes: [] } },
+      {
+        ...actor,
+        apiKeyContext: { isApiKey: true, apiKeyId: 'key-a', scopes: [] },
+      },
     );
     expect(JSON.stringify(result)).toContain('brand-a');
     expect(JSON.stringify(result)).not.toContain('brand-b');

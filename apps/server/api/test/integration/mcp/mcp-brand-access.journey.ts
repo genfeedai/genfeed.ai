@@ -50,13 +50,37 @@ const redis = new Redis('redis://127.0.0.1:6379/1', {
   maxRetriesPerRequest: 1,
 });
 const cases: McpRuntimeCase[] = [];
+let principalStage = 'SIGNIN';
 const caseRun = async (id: string, run: () => Promise<void>) => {
   try {
     await run();
     cases.push({ id, status: 'passed' });
     process.stdout.write(`${id} passed\n`);
-  } catch {
-    throw new Error(id);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+    if (
+      id === 'B11_PROVIDER_NOT_STARTED' &&
+      /^(NEGATIVE_MUTATION_STARTED|PROVIDER_SUBMISSION_ATTEMPTED|(?:MUTATION_SNAPSHOT|NEGATIVE_MUTATION)_(WORKFLOW_EXECUTIONS|INGREDIENTS|CRUN_GENERATION_TASKS|POSTS|BRANDED_GENERATION_RECEIPTS|CREDIT_RESERVATIONS|CREDIT_TRANSACTIONS|CREDIT_BALANCES|BILLING_REVENUE_EVENTS|CONTEXT_BASES|CONTEXT_ENTRIES|KNOWLEDGE_SOURCES|KNOWLEDGE_SOURCE_VERSIONS|KNOWLEDGE_CAPTURE_REQUESTS))$/.test(
+        code,
+      )
+    )
+      throw new Error(`${id}_${code}`);
+    if (
+      id !== 'B01_REAL_PRINCIPALS' &&
+      [
+        'INVALID_RESPONSE_SHAPE',
+        'PROTECTED_READ_FAILED',
+        'VISIBLE_BRAND_MISSING',
+        'HIDDEN_BRAND_DISCLOSED',
+        'REST_LIST',
+        'REST_COUNT_METADATA',
+        'REST_FOREIGN_SCOPE',
+      ].includes(code)
+    )
+      throw new Error(`${id}_${code}`);
+    throw new Error(
+      id === 'B01_REAL_PRINCIPALS' ? `${id}_${principalStage}` : id,
+    );
   }
 };
 async function rest(
@@ -155,24 +179,60 @@ try {
   await caseRun('B01_REAL_PRINCIPALS', async () => {
     for (const label of ['U', 'V', 'W', 'Z'] as const) {
       const actor = fixture.actors[label];
-      const signin = await rest(undefined, '/v1/auth/sign-in/email', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          origin: 'http://127.0.0.1:3000',
-        },
-        body: JSON.stringify({ email: actor.email, password: actor.password }),
-      });
+      principalStage = 'SIGNIN';
+      const signIn = () =>
+        rest(undefined, '/v1/auth/sign-in/email', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            origin: 'http://127.0.0.1:3000',
+          },
+          body: JSON.stringify({
+            email: actor.email,
+            password: actor.password,
+          }),
+        });
+      let signin = await signIn();
+      if (signin.status === 429) {
+        principalStage = 'SIGNIN_HTTP_429';
+        const retryAfter = Number(signin.headers.get('x-retry-after'));
+        requireMcpRuntime(
+          Number.isInteger(retryAfter) && retryAfter > 0 && retryAfter <= 10,
+          'BOUNDED_SIGNIN_RETRY',
+        );
+        // Four real principals share the production three-per-ten-second cap.
+        // Respect its response interval; never clear counters or bypass it.
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryAfter * 1000 + 100),
+        );
+        signin = await signIn();
+      }
+      if (signin.status !== 200) {
+        principalStage = `SIGNIN_HTTP_${signin.status}`;
+        const code = record(signin.body).code;
+        if (
+          typeof code === 'string' &&
+          [
+            'INVALID_EMAIL_OR_PASSWORD',
+            'INVALID_ORIGIN',
+            'EMAIL_NOT_VERIFIED',
+            'USER_BANNED',
+          ].includes(code)
+        )
+          principalStage += `_${code}`;
+      } else principalStage = 'SIGNIN_IDENTITY';
       requireMcpRuntime(
         signin.status === 200 &&
           record(record(signin.body).user).id === actor.id,
         'REAL_SIGNIN',
       );
+      principalStage = 'COOKIE';
       const cookie = signin.headers
         .getSetCookie()
         .map((entry) => entry.split(';')[0])
         .join('; ');
       requireMcpRuntime(cookie, 'REAL_SESSION_COOKIE');
+      principalStage = 'TOKEN';
       const tokenResponse = await rest(undefined, '/v1/auth/token', {
         headers: { cookie },
       });
@@ -181,6 +241,7 @@ try {
         tokenResponse.status === 200 && typeof token === 'string',
         'REAL_JWT',
       );
+      principalStage = 'CONTEXT';
       const who = await rest(token, '/v1/auth/whoami');
       const data = record(record(who.body).data);
       requireMcpRuntime(
@@ -193,8 +254,10 @@ try {
         (await prisma.session.count({ where: { userId: actor.id } })) > 0,
         'REAL_PERSISTED_SESSION',
       );
+      principalStage = 'TRANSPORT';
       sessions[label] = { token, ...(await connect(token)) };
     }
+    principalStage = 'KEY_MINT';
     const minted = await rest(sessions.W.token, '/v1/api-keys', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -205,10 +268,12 @@ try {
         defaultBrandId: fixture.brands.A,
       }),
     });
+    principalStage = `KEY_MINT_HTTP_${minted.status}`;
     requireMcpRuntime(
       minted.status === 201 || minted.status === 200,
       'REAL_KEY_MINT',
     );
+    principalStage = 'KEY_SERIALIZER';
     const data = record(record(minted.body).data);
     const attributes = record(data.attributes ?? data);
     requireMcpRuntime(
@@ -216,6 +281,7 @@ try {
       'REAL_KEY_SERIALIZER',
     );
     key = attributes.key;
+    principalStage = 'KEY_BINDING';
     const persisted = await prisma.apiKey.findFirstOrThrow({
       where: {
         userId: fixture.actors.W.id,
@@ -253,9 +319,12 @@ try {
       const result = await rest(token, '/v1/brands?limit=1&page=1');
       requireMcpRuntime(result.status === 200, 'REST_LIST');
       visible(result.body, ['A']);
-      const metadata = record(result.body).meta;
+      const pagination = record(record(record(result.body).links).pagination);
       requireMcpRuntime(
-        metadata && JSON.stringify(metadata).includes('1'),
+        pagination.total === 1 &&
+          pagination.pages === 1 &&
+          pagination.page === 1 &&
+          pagination.limit === 1,
         'REST_COUNT_METADATA',
       );
       const spoof = await rest(
@@ -423,15 +492,26 @@ try {
   });
   let negativeStateDigest = '';
   await caseRun('B11_PROVIDER_NOT_STARTED', async () => {
-    const before = await mutationSnapshot();
+    const beforeTables = new Map<string, string>();
+    const before = await mutationSnapshot((table, digest) =>
+      beforeTables.set(table, digest),
+    );
     for (const label of ['B', 'D', 'X', 'missing'] as const)
       await denyTool('U', 'get_brand_context', {
         brandId: fixture.brands[label],
         includeSystemPrompt: false,
         query: 'authorization-negative-fixture',
       });
-    const after = await mutationSnapshot();
-    requireMcpRuntime(before === after, 'NEGATIVE_MUTATION_STARTED');
+    let changedTable = '';
+    const after = await mutationSnapshot((table, digest) => {
+      if (beforeTables.get(table) !== digest) changedTable = table;
+    });
+    requireMcpRuntime(
+      before === after,
+      changedTable
+        ? `NEGATIVE_MUTATION_${changedTable.toUpperCase()}`
+        : 'NEGATIVE_MUTATION_STARTED',
+    );
     negativeStateDigest = after;
     const network = readFileSync(
       process.env.MCP_AUTH_NETWORK_REPORT ?? '',
@@ -471,7 +551,7 @@ try {
   );
 } catch (error) {
   process.stderr.write(
-    `${error instanceof Error && /^B\d{2}_[A-Z_]+$/.test(error.message) ? error.message : 'JOURNEY_INFRASTRUCTURE'} failed\n`,
+    `${error instanceof Error && /^B\d{2}_[A-Z_]+(?:_[1-5][0-9]{2}(?:_[A-Z_]+)?)?$/.test(error.message) ? error.message : 'JOURNEY_INFRASTRUCTURE'} failed\n`,
   );
   process.exitCode = 1;
 } finally {

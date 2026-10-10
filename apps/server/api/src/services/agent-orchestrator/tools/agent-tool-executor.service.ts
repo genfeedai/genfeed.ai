@@ -444,6 +444,9 @@ export class AgentToolExecutorService implements OnModuleInit {
     }
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
     try {
+      // The runner persists an execution before dispatching its tool node.
+      // Reject inaccessible brands before that write, then recheck at dispatch.
+      await this.assertToolBrandScope(toolName, parameters, context);
       return await runWithActionOrigin(
         {
           ...resolveNestedActionOrigin(ActionOrigin.AGENT),
@@ -632,7 +635,13 @@ export class AgentToolExecutorService implements OnModuleInit {
     const scope = context.validatedScope;
     if (!scope) return;
 
-    if (parameterBrandId && parameterBrandId !== scope.brandId) {
+    // A newly created brand can be polled without rebinding the current thread.
+    // Both the current and requested brands were authorized above.
+    if (
+      toolName !== 'get_brand_scan_status' &&
+      parameterBrandId &&
+      parameterBrandId !== scope.brandId
+    ) {
       throw new Error(
         'Tool brand parameters must match the validated thread brand scope.',
       );

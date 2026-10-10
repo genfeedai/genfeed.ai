@@ -28,6 +28,7 @@ export const CONNECTED_SOURCE_CONTRACT_FILES = Object.freeze([
   'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
   'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
   'apps/server/api/src/services/integrations/crun/crun-task.postgres.spec.ts',
+  'apps/server/api/src/authorization/brand-access/brand-access.postgres.spec.ts',
 ]);
 
 export function partitionSourceContracts(files, root = ROOT) {

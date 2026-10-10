@@ -299,6 +299,7 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       getOrSet: (_key: string, factory: () => Promise<unknown>) => factory(),
     };
     const fakeBrandsService = {
+      brandAccessService: brandAccessFixture(prismaService),
       findOne: vi.fn(
         async (filter: { id?: string; organizationId: string }) => {
           if (filter.id) return fakeBrand(filter.id, filter.organizationId);

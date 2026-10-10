@@ -200,7 +200,6 @@
     "apps/app/app/(protected)/admin/overview/dashboard/overview-page.tsx": 24,
     "apps/app/app/(protected)/admin/videos/[id]/page.tsx": 2,
     "apps/app/app/(protected)/home/content.tsx": 12,
-    "apps/app/app/(protected)/root-resolver-client.tsx": 4,
     "apps/app/app/(public)/agent-auth/claim/page.tsx": 1,
     "apps/app/app/(public)/desktop/local/page.tsx": 1,
     "apps/app/app/(public)/forgot-password/content.tsx": 8,

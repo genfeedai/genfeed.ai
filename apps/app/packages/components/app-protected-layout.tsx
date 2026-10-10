@@ -34,6 +34,7 @@ import AppLayout from '@ui/layouts/app/AppLayout';
 import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
@@ -137,6 +138,7 @@ function AppLayoutWithDynamicMenu({
   children,
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
+  const translate = useTranslations('pages.organizationLanding');
   const {
     brandId,
     brands,
@@ -553,7 +555,7 @@ function AppLayoutWithDynamicMenu({
                 {brandSlug &&
                 isBrandScopeResolved &&
                 !brands.some((brand) => brand.slug === brandSlug) ? (
-                  <div className="p-6">Brand unavailable.</div>
+                  <div className="p-6">{translate('brandUnavailable')}</div>
                 ) : (
                   children
                 )}
@@ -562,7 +564,7 @@ function AppLayoutWithDynamicMenu({
           ) : brandSlug &&
             isBrandScopeResolved &&
             !brands.some((brand) => brand.slug === brandSlug) ? (
-            <div className="p-6">Brand unavailable.</div>
+            <div className="p-6">{translate('brandUnavailable')}</div>
           ) : (
             children
           )}
