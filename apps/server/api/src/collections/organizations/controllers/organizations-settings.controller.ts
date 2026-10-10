@@ -16,6 +16,7 @@ import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organiz
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import type { OrganizationOnboardingFinishedEvent } from '@api/collections/organizations/organization-events.types';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
+import { assertDefaultAvatarIngredient } from '@api/collections/organizations/services/organization-default-avatar.util';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -115,26 +116,6 @@ export class OrganizationsSettingsController {
     await this.accessBootstrapCacheService.invalidateForOrganization(
       organizationId,
     );
-  }
-
-  private async validateDefaultAvatarIngredient(
-    organizationId: string,
-    defaultAvatarIngredientId?: string | null,
-  ): Promise<void> {
-    if (defaultAvatarIngredientId == null) {
-      return;
-    }
-
-    const avatarIngredient = await this.ingredientsService.findAvatarImageById(
-      defaultAvatarIngredientId,
-      organizationId,
-    );
-
-    if (!avatarIngredient) {
-      throw new BadRequestException(
-        'Default avatar must reference an avatar image ingredient in this organization',
-      );
-    }
   }
 
   /**
@@ -260,7 +241,8 @@ export class OrganizationsSettingsController {
       );
     }
 
-    await this.validateDefaultAvatarIngredient(
+    await assertDefaultAvatarIngredient(
+      this.ingredientsService,
       resolvedOrganizationId,
       settingsDto.defaultAvatarIngredientId?.toString(),
     );
