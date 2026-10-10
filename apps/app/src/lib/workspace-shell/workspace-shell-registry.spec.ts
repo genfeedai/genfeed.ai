@@ -338,7 +338,6 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/publishing/campaigns',
       '/acme/moonrise/publishing/content',
       '/acme/moonrise/publishing/posts',
-      '/acme/moonrise/publishing/review',
       '/acme/~/publishing/posts',
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
@@ -445,7 +444,6 @@ describe('workspace shell trusted registry', () => {
   it.each([
     '/acme/~/library/shelf/approved',
     '/acme/~/publishing/content',
-    '/acme/~/publishing/review',
     '/acme/~/publishing/posts/post-1',
   ])('registers the organization collection surface %s', (pathname) => {
     expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({

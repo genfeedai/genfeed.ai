@@ -177,6 +177,51 @@ describe('ReleasePostsList selection from the release URL param', () => {
     );
   });
 
+  it('renders the approval queue as a Posts view and clears its selection on leave', () => {
+    searchParams = new URLSearchParams(
+      'view=approvals&account=a&batch=batch-1&filter=ready&item=item-1',
+    );
+    setLeadingNode.mockClear();
+    render(
+      <ReleasePostsList
+        approvals={<div>Approval queue content</div>}
+        scope={PageScope.ORGANIZATION}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+    expect(screen.getByText('Approval queue content')).toBeInTheDocument();
+    expect(screen.queryByText('Campaign release')).not.toBeInTheDocument();
+    // The queue owns the toolbar while its view is open.
+    expect(setLeadingNode).not.toHaveBeenCalledWith(expect.anything());
+    const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
+    render(toggle);
+    expect(
+      screen.getByRole('radio', { name: 'viewToggle.approvals' }),
+    ).toBeChecked();
+    act(() => screen.getByRole('radio', { name: 'viewToggle.list' }).click());
+    expect(replaceMock).toHaveBeenLastCalledWith(
+      '/genfeed-ai/paperclip/publishing/posts?account=a',
+      { scroll: false },
+    );
+  });
+
+  it('offers no approvals view without a queue', () => {
+    searchParams = new URLSearchParams('');
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+    const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
+    render(toggle);
+    expect(
+      screen.queryByRole('radio', { name: 'viewToggle.approvals' }),
+    ).not.toBeInTheDocument();
+  });
+
   it.each([false, true])(
     'shows one board error and retries with cached releases: %s',
     async (hasCachedReleases) => {

@@ -94,7 +94,7 @@ describe('workspace shell URL restoration', () => {
 
   it('removes invalid overlay state without changing scope or opaque queries', () => {
     const restored = restoreWorkspaceShellLocation({
-      pathname: '/acme/moonrise/publishing/review',
+      pathname: '/acme/moonrise/publishing/posts',
       searchParams: new URLSearchParams({
         overlay: 'model-produced-surface',
         taskId: 'task-1',

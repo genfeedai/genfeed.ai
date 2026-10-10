@@ -196,8 +196,8 @@ vi.mock('../../../[brandSlug]/publishing/content/page', () => ({
   },
 }));
 
-vi.mock('../../../[brandSlug]/publishing/review/page', () => ({
-  default: () => <div data-testid="publishing-review-page" />,
+vi.mock('../../../[brandSlug]/publishing/review/review-queue-content', () => ({
+  default: () => <div data-testid="publishing-review-queue" />,
 }));
 
 vi.mock('../../../[brandSlug]/publishing/posts/[id]/page', () => ({
@@ -549,25 +549,29 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
     expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
     expect(renderPostsListPageMock).toHaveBeenCalledWith({
+      approvals: expect.anything(),
       scope: PageScope.ORGANIZATION,
       searchParams,
     });
   });
 
-  it('returns not found for the retired org publishing calendar route', async () => {
-    // The calendar is the Posts desk's calendar view
-    // (`/publishing/posts?view=calendar`); the old route is hard-cut.
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-          segments: ['calendar'],
+  it.each(['calendar', 'review'])(
+    'returns not found for the retired org publishing %s route',
+    async (segment) => {
+      // Calendar and approvals are Posts views (`/publishing/posts?view=…`);
+      // the old routes are hard-cut.
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'publishing',
+            orgSlug: 'acme',
+            segments: [segment],
+          }),
         }),
-      }),
-    ).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(redirectMock).not.toHaveBeenCalled();
-  });
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(redirectMock).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([['content', '/acme/~/publishing/posts?']])(
     'redirects the org publishing %s route into the posts list',
@@ -582,24 +586,6 @@ describe('OrgRootAppPage', () => {
         }),
       ).rejects.toThrow();
       expect(redirectMock).toHaveBeenCalledWith(destination);
-    },
-  );
-
-  it.each([['review', 'publishing-review-page']])(
-    'renders the canonical org publishing %s page',
-    async (segment, testId) => {
-      const element = await OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-          segments: [segment],
-        }),
-      });
-
-      render(element);
-
-      expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-      expect(screen.getByTestId(testId)).toBeInTheDocument();
     },
   );
 
@@ -710,7 +696,6 @@ describe('OrgRootAppPage', () => {
     ['overview', 'extra'],
     ['posts', 'content-1', 'extra'],
     ['content', 'extra'],
-    ['review', 'extra'],
     ['campaigns', 'compare', 'extra'],
     ['campaigns', 'new', 'extra'],
     ['campaigns', 'cmp-1', 'content', 'extra'],
