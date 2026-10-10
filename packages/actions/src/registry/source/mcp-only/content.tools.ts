@@ -1,5 +1,30 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
+const ARTICLE_SELECTOR_PROPERTIES = {
+  articleId: {
+    description: 'The article to retrieve.',
+    minLength: 1,
+    pattern: '\\S',
+    type: 'string',
+  },
+  category: {
+    description: 'Search only. Filter by category.',
+    type: 'string',
+  },
+  limit: {
+    default: 10,
+    description: 'Search only. Maximum results to return.',
+    maximum: 50,
+    type: 'number',
+  },
+  query: {
+    description: 'Search query over published articles.',
+    minLength: 1,
+    pattern: '\\S',
+    type: 'string',
+  },
+} as const;
+
 export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
@@ -85,31 +110,22 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
       'Get one article by articleId, or search published articles by query (optionally filtered by category). Pass exactly one of articleId or query.',
     name: 'get_articles',
     parameters: {
-      oneOf: [{ required: ['articleId'] }, { required: ['query'] }],
-      properties: {
-        articleId: {
-          description: 'The article to retrieve.',
-          minLength: 1,
-          pattern: '\\S',
-          type: 'string',
+      // Strict-mode JSON Schema requires each branch to declare the property
+      // it requires, and the engine requires closed branch objects. Supplying
+      // both selectors matches both branches, which `oneOf` rejects.
+      oneOf: [
+        {
+          additionalProperties: false,
+          properties: ARTICLE_SELECTOR_PROPERTIES,
+          required: ['articleId'],
         },
-        query: {
-          description: 'Search query over published articles.',
-          minLength: 1,
-          pattern: '\\S',
-          type: 'string',
+        {
+          additionalProperties: false,
+          properties: ARTICLE_SELECTOR_PROPERTIES,
+          required: ['query'],
         },
-        category: {
-          description: 'Search only. Filter by category.',
-          type: 'string',
-        },
-        limit: {
-          default: 10,
-          description: 'Search only. Maximum results to return.',
-          maximum: 50,
-          type: 'number',
-        },
-      },
+      ],
+      properties: ARTICLE_SELECTOR_PROPERTIES,
       type: 'object',
     },
     requiredRole: 'user',
