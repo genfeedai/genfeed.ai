@@ -6,7 +6,7 @@ import {
   getScalePlan,
 } from '@genfeedai/pricing';
 import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import PricingContent, { getPriceQualifier } from './pricing-content';
@@ -48,6 +48,36 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('PricingContent launch pricing', () => {
+  it('shows PAYG as a credit price alongside the subscription prices', () => {
+    render(<PricingContent />);
+    const payg = screen.getByText('$0.01');
+    expect(payg.parentElement).toHaveTextContent('$0.01/credit');
+    expect(screen.getByText('No monthly fee')).toBeInTheDocument();
+    expect(screen.queryByText('Free', { exact: true })).not.toBeInTheDocument();
+    expect(screen.getByText('$39')).toBeInTheDocument();
+    expect(screen.getByText('$499')).toBeInTheDocument();
+  });
+
+  it('puts the monthly content service beside self-serve with the existing booking route', () => {
+    render(<PricingContent />);
+    const managed = within(
+      screen.getByRole('region', { name: 'Done for you · we run it' }),
+    );
+    expect(managed.getByText('$2,500')).toBeInTheDocument();
+    expect(managed.getByText('/month')).toBeInTheDocument();
+    expect(
+      managed.getByText('Monthly retainer. Final scope agreed on a call.'),
+    ).toBeInTheDocument();
+    expect(managed.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
+      'href',
+      '/done-for-you#book',
+    );
+    expect(managed.getByText('Performance reporting')).toBeInTheDocument();
+    expect(
+      managed.getByRole('link', { name: 'Explore the service' }),
+    ).toHaveAttribute('href', '/done-for-you');
+  });
+
   it('renders the struck-through original price next to the launch price on the Hosted card', () => {
     render(<PricingContent />);
 
@@ -77,7 +107,7 @@ describe('PricingContent launch pricing', () => {
     render(<PricingContent />);
 
     const enterpriseCard = screen
-      .getByRole('heading', { name: 'Your own studio, fully managed.' })
+      .getByRole('heading', { name: 'Custom terms for your organization.' })
       .closest('.bg-background');
 
     expect(enterpriseCard).toHaveClass('bg-background');
@@ -138,9 +168,7 @@ describe('PricingContent launch pricing', () => {
     // here is what made the Scale card read "Unlimited seats" twice.
     expect(getPriceQualifier(getScalePlan())).toBe('60,000 credits included');
     expect(getPriceQualifier(getProPlan())).toBe('5,900 credits included');
-    expect(getPriceQualifier(getPlanByTier('payg'))).toBe(
-      'Credits at $0.01 each',
-    );
+    expect(getPriceQualifier(getPlanByTier('payg'))).toBe('No monthly fee');
   });
 
   it('keeps the pricing cards comparable row by row', () => {

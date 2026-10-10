@@ -101,6 +101,20 @@ describe('ServiceLandingPage', () => {
     expect(screen.getByText('Booking calendar')).toBeInTheDocument();
   });
 
+  it('shows the monthly retainer in the service hero and leads the header with a call', () => {
+    render(<ServiceLandingPage slug="done-for-you" />);
+    expect(screen.getAllByText('From $2,500/month').length).toBeGreaterThan(0);
+    const header = within(screen.getByRole('banner'));
+    expect(header.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
+      'href',
+      '/done-for-you#book',
+    );
+    expect(
+      screen.getByRole('heading', { name: 'What does pricing look like?' })
+        .parentElement,
+    ).toHaveTextContent('From $2,500/month');
+  });
+
   it('carries what /services used to: smaller scopes and the focused pages', () => {
     render(<ServiceLandingPage slug="done-for-you" />);
 
