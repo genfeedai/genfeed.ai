@@ -39,12 +39,11 @@ describe('task-model.enum', () => {
   });
 
   describe('MusicTaskModel', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(MusicTaskModel)).toHaveLength(4);
+    it('should have 3 members', () => {
+      expect(Object.values(MusicTaskModel)).toHaveLength(3);
     });
 
     it('should have correct values', () => {
-      expect(MusicTaskModel.MUSICGEN).toBe('musicgen');
       expect(MusicTaskModel.RIFFUSION).toBe('riffusion');
       expect(MusicTaskModel.ELEVENLABS).toBe('elevenlabs');
       expect(MusicTaskModel.REPLICATE).toBe('replicate');

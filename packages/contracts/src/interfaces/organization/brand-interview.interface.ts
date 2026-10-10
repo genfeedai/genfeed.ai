@@ -4,6 +4,7 @@
  */
 import type { BrandInterviewStatus } from '../..';
 import type { IExpertPositioningScore } from '../ai/expert-positioning.interface';
+import type { IOnboardingAnswersProgress } from '../onboarding/onboarding-answers.interface';
 
 export type BrandInterviewGroup = 'identity' | 'voice' | 'strategy' | 'expert';
 
@@ -84,6 +85,8 @@ export interface IBrandInterviewCompleteness {
   overallScore: number;
   interviewableGapCount: number;
   incompleteFieldKeys: string[];
+  /** Agent onboarding card progress for this brand. */
+  onboardingAnswers: IOnboardingAnswersProgress;
 }
 
 /**

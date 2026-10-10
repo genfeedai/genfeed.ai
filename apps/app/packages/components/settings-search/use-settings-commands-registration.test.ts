@@ -247,7 +247,7 @@ describe('useSettingsCommandsRegistration', () => {
       confirmedOrganizationSlug: 'acme',
     });
 
-    renderHook(() => useSettingsCommandsRegistration('studio'));
+    renderHook(() => useSettingsCommandsRegistration('playground'));
 
     const commands = mockRegisterCommands.mock.calls.at(-1)?.[0] as {
       id: string;
@@ -268,9 +268,9 @@ describe('useSettingsCommandsRegistration', () => {
     }
 
     const { rerender } = renderHook(
-      (currentApp?: 'workspace' | 'studio') =>
+      (currentApp?: 'workspace' | 'playground') =>
         useSettingsCommandsRegistration(currentApp),
-      { initialProps: 'studio' },
+      { initialProps: 'playground' },
     );
 
     expect(lastRegisteredPriorities().every((priority) => priority === 5)).toBe(

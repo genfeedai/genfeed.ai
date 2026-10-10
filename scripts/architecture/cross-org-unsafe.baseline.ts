@@ -79,7 +79,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // parent workflow.
     {
       file: 'apps/server/api/src/collections/workflows/system-workflow-runner.service.ts',
-      line: 901,
+      line: 905,
     },
     // #6120: one shared system-principal mirror lookup for normal and failure binding proofs; both callers retain exact principal/soft-delete fences.
     {
@@ -322,7 +322,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // owned organizations.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 69,
+      line: 72,
     },
     // #6120: superadmin reads another organization's blacklist entry.
     {

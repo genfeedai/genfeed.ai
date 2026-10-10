@@ -273,11 +273,9 @@ vi.mock('next/navigation', () => ({
 function makePreset(overrides: Record<string, unknown> = {}) {
   return {
     category: 'video',
-    defaultBlacklists: ['low quality'],
-    defaultCamera: 'wide',
-    defaultMoods: ['bright'],
-    defaultScene: 'studio',
-    defaultStyle: 'cinematic',
+    aspectRatio: '9:16',
+    duration: 5,
+    style: 'cinematic',
     description: 'Preset description',
     id: 'preset-1',
     isActive: true,
@@ -292,11 +290,9 @@ function mockPresetsQuery(
   data = [
     makePreset(),
     makePreset({
-      defaultBlacklists: [],
-      defaultCamera: '',
-      defaultMoods: [],
-      defaultScene: '',
-      defaultStyle: '',
+      aspectRatio: '',
+      duration: undefined,
+      style: '',
       id: 'preset-2',
       isActive: false,
       label: 'Image Preset',
@@ -339,8 +335,9 @@ describe('PresetsList', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Launch Video')).toBeInTheDocument();
     expect(screen.getByText('Image Preset')).toBeInTheDocument();
-    expect(screen.getByText('Camera: wide')).toBeInTheDocument();
-    expect(screen.getByText('Blacklists: low quality')).toBeInTheDocument();
+    expect(screen.getByText('Aspect: 9:16')).toBeInTheDocument();
+    expect(screen.getByText('Duration: 5s')).toBeInTheDocument();
+    expect(screen.getByText('Style: cinematic')).toBeInTheDocument();
     expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
     expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
 
@@ -399,6 +396,7 @@ describe('PresetsList', () => {
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
         'Preset deactivated',
       );
+      expect(mocks.refetch).toHaveBeenCalledTimes(1);
     });
 
     mocks.patch.mockRejectedValueOnce(new Error('patch failed'));
@@ -413,6 +411,7 @@ describe('PresetsList', () => {
         'Failed to update preset',
       );
     });
+    expect(mocks.refetch).toHaveBeenCalledTimes(1);
   });
 
   it('opens edit and delete flows with the clicked preset', async () => {

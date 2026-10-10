@@ -50,6 +50,26 @@ describe('brand profile generation', () => {
     ).toEqual(['create', 'plan', 'analyze']);
   });
 
+  it('reads named offers and competitors and defaults them to empty lists', () => {
+    const profile = parseGeneratedBrandProfile(
+      JSON.stringify({
+        ...response,
+        competitors: ['Rival A', 'Rival B', 'Rival C', 'Rival D'],
+        offers: ['Coaching', 'coaching', 'Memberships'],
+      }),
+    );
+    expect(profile.strategy.offers).toEqual(['Coaching', 'Memberships']);
+    expect(profile.strategy.competitors).toEqual([
+      'Rival A',
+      'Rival B',
+      'Rival C',
+    ]);
+
+    const bare = parseGeneratedBrandProfile(JSON.stringify(response));
+    expect(bare.strategy.offers).toEqual([]);
+    expect(bare.strategy.competitors).toEqual([]);
+  });
+
   it('drops ungrounded prompt seeds and replaces them from canonical topics', () => {
     const profile = parseGeneratedBrandProfile(
       JSON.stringify({

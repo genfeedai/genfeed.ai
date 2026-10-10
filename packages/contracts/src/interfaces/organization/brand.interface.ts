@@ -110,6 +110,10 @@ export interface IBrandAgentStrategy {
   frequency?: string;
   goals?: string[];
   topics?: string[];
+  /** What the brand sells and wants content to drive. */
+  offers?: string[];
+  /** Brands the content positions against. */
+  competitors?: string[];
 }
 
 export interface IBrandAgentAutoPublish {

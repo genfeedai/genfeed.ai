@@ -577,6 +577,52 @@ describe('BrandInterviewService', () => {
       // All 13 in-scope fields should be incomplete for an empty brand
       expect(result.interviewableGapCount).toBe(IN_SCOPE_FIELD_KEYS.length);
     });
+
+    it('returns onboarding card progress and a score that rises with saved intel', async () => {
+      const brand = {
+        ...makeEmptyBrand(),
+        agentConfig: {
+          onboardingAnswers: {
+            fields: {
+              audience: {
+                status: 'answered',
+                updatedAt: '2026-10-10T00:00:00Z',
+              },
+              competitors: {
+                status: 'skipped',
+                updatedAt: '2026-10-10T00:00:00Z',
+              },
+              unknown: {
+                status: 'answered',
+                updatedAt: '2026-10-10T00:00:00Z',
+              },
+            },
+          },
+          signupPrefill: { hasScrapedWebsite: true, status: 'completed' },
+        },
+      };
+      brandDelegate.findFirst.mockResolvedValue(brand);
+      const before = await service.getCompleteness('brand-1', 'org-1');
+
+      expect(before.onboardingAnswers).toEqual({
+        fields: {
+          audience: { status: 'answered', updatedAt: '2026-10-10T00:00:00Z' },
+          competitors: { status: 'skipped', updatedAt: '2026-10-10T00:00:00Z' },
+        },
+        hasScannedWebsite: true,
+      });
+
+      brandDelegate.findFirst.mockResolvedValue({
+        ...brand,
+        agentConfig: {
+          ...brand.agentConfig,
+          strategy: { competitors: ['Rival'], offers: ['Memberships'] },
+          voice: { audience: ['Gym owners'] },
+        },
+      });
+      const after = await service.getCompleteness('brand-1', 'org-1');
+      expect(after.overallScore).toBeGreaterThan(before.overallScore);
+    });
   });
 
   // ── getActiveForBrand() ────────────────────────────────────────────────────

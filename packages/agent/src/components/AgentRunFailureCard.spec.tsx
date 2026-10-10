@@ -12,6 +12,10 @@ vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   },
 }));
 
+const { openModal } = vi.hoisted(() => ({ openModal: vi.fn() }));
+
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({ openModal }));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockButton(props: {
     ariaLabel?: string;
@@ -82,6 +86,22 @@ describe('AgentRunFailureCard', () => {
     render(<AgentRunFailureCard error="status code 503" onRetry={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+  });
+
+  it('sends an out-of-credits run to the credits prompt', () => {
+    render(
+      <AgentRunFailureCard error="Insufficient credits: 10 required, 0 available" />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Get credits' }));
+
+    expect(openModal).toHaveBeenCalledWith('modal-credits-required');
+  });
+
+  it('does not offer credits for unrelated failures', () => {
+    render(<AgentRunFailureCard error="status code 503" />);
+
+    expect(screen.queryByRole('button', { name: 'Get credits' })).toBeNull();
   });
 
   it('does not offer an unsafe retry for a terminal configuration failure', () => {

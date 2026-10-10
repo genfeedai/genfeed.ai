@@ -98,8 +98,9 @@ test.describe('Core Content Loop', () => {
     const breadcrumb = authenticatedPage.getByRole('navigation', {
       name: 'Breadcrumb',
     });
-    await expect(breadcrumb).toContainText('Studio');
+    // Storyboard is its own app: no Studio parent in the breadcrumb (#5502).
     await expect(breadcrumb).toContainText('Storyboard');
+    await expect(breadcrumb).not.toContainText('Studio');
     await authenticatedPage
       .getByRole('link', { name: 'New storyboard' })
       .click();

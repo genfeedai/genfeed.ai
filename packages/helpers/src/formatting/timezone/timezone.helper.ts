@@ -143,11 +143,21 @@ export function formatDateInTimezone(
   }
 }
 
+/**
+ * The zone every server render and the hydrating client render format dates
+ * in. The server cannot know the viewer's zone (the root layout is request-free
+ * and never reads cookies), so both sides start from this fixed value and the
+ * client switches to the viewer's zone right after hydration. A fixed value,
+ * rather than the host's zone, keeps prerendered and request-time HTML the
+ * same on every deployment.
+ */
+export const HYDRATION_TIME_ZONE = 'UTC';
+
 export function getBrowserTimezone(): string {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return resolveTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   } catch (_error) {
-    return 'UTC';
+    return HYDRATION_TIME_ZONE;
   }
 }
 
@@ -158,6 +168,24 @@ export function isValidTimezone(timezone: string): boolean {
   } catch (_error) {
     return false;
   }
+}
+
+/**
+ * Return `candidate` when it is a usable IANA zone, otherwise `fallback`.
+ * Runtimes without zone data report `undefined`, and a hand-set `TZ` can name
+ * a zone `Intl` rejects; formatting with either would throw.
+ */
+export function resolveTimeZone(
+  candidate: string | null | undefined,
+  fallback: string = HYDRATION_TIME_ZONE,
+): string {
+  const timeZone = candidate?.trim();
+
+  if (timeZone && isValidTimezone(timeZone)) {
+    return timeZone;
+  }
+
+  return fallback;
 }
 
 export function createDateFromTimezone(

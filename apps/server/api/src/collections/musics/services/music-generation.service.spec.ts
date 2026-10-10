@@ -760,6 +760,88 @@ describe('MusicGenerationService', () => {
     expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
   });
 
+  describe('resolveMusicModel (shared with the content pipeline music step)', () => {
+    it('returns the executable registry row for an active explicit model without consulting defaults', async () => {
+      const created = createService();
+
+      const resolved = await created.service.resolveMusicModel({
+        brandId: 'brand-1',
+        explicitModel: 'explicit-model',
+        organizationId: 'org-1',
+      });
+
+      expect(resolved).toEqual({
+        model: 'explicit-model',
+        modelDocument: activeMusicModel,
+      });
+      expect(created.routerService.resolveModelKey).not.toHaveBeenCalled();
+      expect(created.brandsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('rejects an inactive explicit model instead of swapping it', async () => {
+      const created = createService();
+      created.modelsService.findOne.mockResolvedValue({
+        ...activeMusicModel,
+        isActive: false,
+      } as never);
+
+      await expect(
+        created.service.resolveMusicModel({
+          explicitModel: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+          organizationId: 'org-1',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(created.routerService.resolveModelKey).not.toHaveBeenCalled();
+    });
+
+    it('falls through a retired brand pin to the active registry default', async () => {
+      const created = createService();
+      created.brandsService.findOne.mockResolvedValue({
+        defaultMusicModel: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+        id: 'brand-1',
+      } as never);
+      created.organizationSettingsService.findOne.mockResolvedValue(
+        {} as never,
+      );
+      created.routerService.resolveModelKey.mockResolvedValue({
+        key: MODEL_KEYS.FAL_LYRIA3_PRO,
+        source: 'registry-default',
+      } as never);
+
+      const resolved = await created.service.resolveMusicModel({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      });
+
+      expect(created.brandsService.findOne).toHaveBeenCalledWith({
+        id: 'brand-1',
+        organizationId: 'org-1',
+      });
+      expect(created.routerService.resolveModelKey).toHaveBeenCalledWith({
+        candidates: [MODEL_KEYS.REPLICATE_META_MUSICGEN, undefined],
+        category: ModelCategory.MUSIC,
+        organizationId: 'org-1',
+      });
+      expect(resolved.model).toBe(MODEL_KEYS.FAL_LYRIA3_PRO);
+    });
+
+    it('skips the brand lookup when no brand is in scope and uses the organization default', async () => {
+      const created = createService();
+
+      const resolved = await created.service.resolveMusicModel({
+        organizationId: 'org-1',
+      });
+
+      expect(created.brandsService.findOne).not.toHaveBeenCalled();
+      expect(created.routerService.resolveModelKey).toHaveBeenCalledWith({
+        candidates: [undefined, 'organization-model'],
+        category: ModelCategory.MUSIC,
+        organizationId: 'org-1',
+      });
+      expect(resolved.model).toBe('organization-model');
+    });
+  });
+
   it('clamps outputs to four and continues after a partial provider failure', async () => {
     const created = createService();
     created.musicProviderRegistry.generate

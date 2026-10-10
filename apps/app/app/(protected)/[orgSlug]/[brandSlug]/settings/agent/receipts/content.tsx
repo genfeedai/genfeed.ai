@@ -10,8 +10,11 @@ import type { BrandedGenerationReceiptInspectorInput } from '@genfeedai/props/co
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
+import { useGenerationReceiptMedia } from '@hooks/ui/generation-receipts/use-generation-receipt-media';
 import { BrandedGenerationReceiptsService } from '@services/ai/branded-generation-receipts.service';
 import BrandedGenerationReceiptInspector from '@ui/generation-receipts/BrandedGenerationReceiptInspector';
+import GenerationReceiptListItem from '@ui/generation-receipts/GenerationReceiptListItem';
+import { getGenerationReceiptMediaId } from '@ui/generation-receipts/generation-receipt-summary.util';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -294,6 +297,15 @@ export default function GenerationReceiptsContent() {
     detail.hasBrandId;
   const brandId = matched ? detail.brandId : '';
   const { state, load } = useReceiptList(organizationId, brandId);
+  const mediaIds = useMemo(
+    () =>
+      state.items.flatMap((item) => {
+        const id = getGenerationReceiptMediaId(item);
+        return id ? [id] : [];
+      }),
+    [state.items],
+  );
+  const media = useGenerationReceiptMedia(mediaIds);
   return (
     <Container fullWidth>
       <div className="space-y-6">
@@ -319,18 +331,19 @@ export default function GenerationReceiptsContent() {
           </div>
         ) : null}
         <ul className="space-y-3 text-sm">
-          {state.items.map((item) => (
-            <li key={item.id}>
-              <Link
+          {state.items.map((item) => {
+            const mediaId = getGenerationReceiptMediaId(item);
+            return (
+              <GenerationReceiptListItem
+                key={item.id}
+                receipt={item}
                 href={href(
                   `/settings/agent/receipts?receiptId=${encodeURIComponent(item.id)}`,
                 )}
-              >
-                {item.id} · {item.state} ·{' '}
-                {t('revision', { revision: item.revision })}
-              </Link>
-            </li>
-          ))}
+                media={mediaId ? (media.get(mediaId) ?? null) : null}
+              />
+            );
+          })}
         </ul>
         {state.cursor ? (
           <Button

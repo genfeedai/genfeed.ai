@@ -243,6 +243,7 @@ export class ContentOrchestrationService implements OnModuleInit {
       },
       () =>
         this.stepExecutorService.execute(step, {
+          brandId,
           globalPrompt,
           organizationId: request.context.organizationId,
           previousResult,
@@ -431,7 +432,12 @@ export class ContentOrchestrationService implements OnModuleInit {
     expectedType: PipelineStep['type'],
   ): PipelineStep {
     const step = this.readRecord(value);
-    if (step.type !== expectedType || typeof step.model !== 'string') {
+    // A text-to-music step may omit its model and resolve the saved or
+    // registry music default instead.
+    const hasValidModel =
+      typeof step.model === 'string' ||
+      (expectedType === 'text-to-music' && step.model === undefined);
+    if (step.type !== expectedType || !hasValidModel) {
       throw new Error(
         `Content pipeline action requires a ${expectedType} step`,
       );

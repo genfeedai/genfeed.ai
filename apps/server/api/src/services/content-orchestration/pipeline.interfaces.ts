@@ -33,7 +33,11 @@ export interface TextToSpeechStep {
 
 export interface TextToMusicStep {
   type: 'text-to-music';
-  model: MusicTaskModel;
+  /**
+   * Explicit music registry model key; strict when set. Omitted, the step
+   * uses the brand/organization saved default, then the registry default.
+   */
+  model?: string;
   prompt?: string;
   duration?: number;
 }

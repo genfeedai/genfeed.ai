@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ONBOARDING_ANSWER_FIELD_IDS,
+  ONBOARDING_ANSWER_REWARD_CREDITS,
+  ONBOARDING_ANSWER_TOTAL_CREDITS,
   ONBOARDING_JOURNEY_MISSIONS,
+  ONBOARDING_JOURNEY_TOTAL_CREDITS,
   ONBOARDING_SIGNUP_GIFT_CREDITS,
   ONBOARDING_TOTAL_VISIBLE_CREDITS,
   resolveMissionCtaHref,
@@ -55,16 +59,36 @@ describe('onboarding credit economics', () => {
     expect(ONBOARDING_SIGNUP_GIFT_CREDITS).toBe(25);
   });
 
-  it('puts most onboarding credits behind a real social account and a publish', () => {
+  it('puts most journey credits behind a real social account and a publish', () => {
     const provenRewards =
       rewardFor('connect_social_account') + rewardFor('publish_first_post');
 
     expect(provenRewards).toBeGreaterThan(
-      ONBOARDING_TOTAL_VISIBLE_CREDITS - provenRewards,
+      ONBOARDING_JOURNEY_TOTAL_CREDITS - provenRewards,
     );
   });
 
-  it('keeps the total visible onboarding credits at 200', () => {
-    expect(ONBOARDING_TOTAL_VISIBLE_CREDITS).toBe(200);
+  it('pays +5 per onboarding card and keeps all answers below the proven rewards', () => {
+    const provenRewards =
+      rewardFor('connect_social_account') + rewardFor('publish_first_post');
+
+    expect(ONBOARDING_ANSWER_FIELD_IDS).toEqual([
+      'goals',
+      'audience',
+      'offer',
+      'competitors',
+      'platforms',
+      'tone',
+      'cadence',
+    ]);
+    expect(ONBOARDING_ANSWER_REWARD_CREDITS).toBe(5);
+    expect(ONBOARDING_ANSWER_TOTAL_CREDITS).toBe(35);
+    expect(
+      ONBOARDING_SIGNUP_GIFT_CREDITS + ONBOARDING_ANSWER_TOTAL_CREDITS,
+    ).toBeLessThan(provenRewards);
+  });
+
+  it('counts the gift, answers and journey in the visible total', () => {
+    expect(ONBOARDING_TOTAL_VISIBLE_CREDITS).toBe(235);
   });
 });

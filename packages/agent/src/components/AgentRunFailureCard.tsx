@@ -1,11 +1,18 @@
 'use client';
 
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AgentFailureReason,
+  ButtonSize,
+  ButtonVariant,
+  ModalEnum,
+} from '@genfeedai/contracts';
+import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { Check, Copy, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Check, Coins, Copy, RefreshCw, TriangleAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface AgentRunFailureCardProps {
@@ -49,6 +56,7 @@ export function AgentRunFailureCard({
   onRetry,
   isRetrying = false,
 }: AgentRunFailureCardProps): ReactElement {
+  const translate = useTranslations('agent.runFailureCard');
   const formatted = formatAgentError(error);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -114,6 +122,17 @@ export function AgentRunFailureCard({
                 )
               }
             />
+            {formatted.reason === AgentFailureReason.INSUFFICIENT_CREDITS ? (
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+                onClick={() => openModal(ModalEnum.CREDITS_REQUIRED)}
+                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/30"
+                icon={<Coins className="size-3.5" />}
+              >
+                {translate('getCredits')}
+              </Button>
+            ) : null}
             {onRetry && formatted.isRetryable ? (
               <Button
                 variant={ButtonVariant.SECONDARY}

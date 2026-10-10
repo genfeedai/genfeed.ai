@@ -51,6 +51,8 @@ export interface UseStudioGenerateDraftParams {
 }
 
 export interface UseStudioGenerateDraftReturn {
+  /** The saved draft for this brand has been read and restored (or skipped). */
+  isLoaded: boolean;
   saveStatus: StudioGenerateDraftSaveStatus;
 }
 
@@ -370,5 +372,5 @@ export function useStudioPlaygroundDraft({
     };
   }, [brandId, flush]);
 
-  return { saveStatus: isArmed ? saveStatus : 'idle' };
+  return { isLoaded: isArmed, saveStatus: isArmed ? saveStatus : 'idle' };
 }

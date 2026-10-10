@@ -134,7 +134,7 @@ export class AnalyticsPage {
   async navigateToTrends(): Promise<void> {
     await this.page
       .getByTestId('desktop-app-rail')
-      .getByTestId('app-rail-more')
+      .getByTestId('app-rail-launcher')
       .click();
     await this.page.getByRole('link', { name: /^Discovery/ }).click();
     await sidebarLocator(this.page)

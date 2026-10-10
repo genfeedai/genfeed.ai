@@ -3,12 +3,22 @@ import type { ClipResultsService } from '@api/collections/clip-results/clip-resu
 import type {
   SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
+  SystemWorkflowTerminalFailureHandler,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { ClipFactoryWorkflowService } from './clip-factory-workflow.service';
 
 describe('ClipFactoryWorkflowService', () => {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
-  const clipProjects = { patch: vi.fn(), reconcileTerminalState: vi.fn() };
+  const clipProjects = {
+    findOne: vi.fn(),
+    patch: vi.fn(),
+    reconcileTerminalState: vi.fn(),
+    settleInFlightFailure: vi.fn(),
+  };
+  const terminalFailures = new Map<
+    string,
+    SystemWorkflowTerminalFailureHandler
+  >();
   const clipResults = { findByProject: vi.fn() };
   const runner = {
     registerAction: vi.fn(
@@ -16,6 +26,16 @@ describe('ClipFactoryWorkflowService', () => {
         actions.set(actionId, executor);
       },
     ),
+    terminalFailures: {
+      register: vi.fn(
+        (
+          canonicalId: string,
+          handler: SystemWorkflowTerminalFailureHandler,
+        ) => {
+          terminalFailures.set(canonicalId, handler);
+        },
+      ),
+    },
     registerWorkflow: vi.fn(),
   };
   const service = new ClipFactoryWorkflowService(
@@ -59,6 +79,102 @@ describe('ClipFactoryWorkflowService', () => {
     expect(clipProjects.patch).not.toHaveBeenCalled();
     expect(clipProjects.reconcileTerminalState).not.toHaveBeenCalled();
     expect(clipResults.findByProject).not.toHaveBeenCalled();
+  });
+
+  it('settles a stuck quick run when its failure workflow also fails', async () => {
+    await terminalFailures.get('clip.factory')?.({
+      inputValues: { job: { orgId: 'org-1', projectId: 'project-1' } },
+      organizationId: 'org-1',
+      workflowError: 'Action contract input validation failed',
+    });
+
+    expect(clipProjects.settleInFlightFailure).toHaveBeenCalledWith(
+      'project-1',
+      'org-1',
+      undefined,
+    );
+  });
+
+  describe('failure compensation', () => {
+    const source = {
+      fingerprint: 'sha256:source',
+      flow: 'quick',
+      kind: 'youtube',
+      maxRetries: 3,
+      retryCount: 0,
+      schemaVersion: 1,
+      status: 'completed',
+      updatedAt: '2026-10-10T00:00:00.000Z',
+    };
+    const job = {
+      language: 'en',
+      maxClips: 3,
+      minViralityScore: 50,
+      orgId: 'org-1',
+      projectId: 'project-1',
+      source,
+      userId: 'user-1',
+      youtubeUrl: 'https://youtu.be/abc123def45',
+    };
+    const fail = (workflowError: string, input = job) =>
+      actions.get('clip.factory.fail')?.({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input: { job: input, workflowError },
+      } as never);
+
+    it('makes a failure before any clip retryable from the transcribed source', async () => {
+      clipProjects.findOne.mockResolvedValue({ source });
+      clipResults.findByProject.mockResolvedValue([]);
+
+      await fail('Nodes failed: detect-highlights: Highlight model timed out');
+
+      expect(clipProjects.patch).toHaveBeenCalledWith(
+        'project-1',
+        {
+          error: 'Highlight model timed out',
+          source: expect.objectContaining({
+            failure: {
+              code: 'clip_source_processing_failed',
+              message: 'Highlight model timed out',
+              retryable: true,
+            },
+            retryCount: 0,
+            status: 'failed',
+          }),
+          status: 'failed',
+        },
+        [],
+        'org-1',
+      );
+    });
+
+    it('keeps a completed source once clips exist and records the reason', async () => {
+      clipProjects.findOne.mockResolvedValue({ source });
+      clipResults.findByProject.mockResolvedValue([{ id: 'clip-1' }]);
+
+      await fail('Nodes failed: generate: Avatar provider rejected the job');
+
+      expect(clipProjects.patch).toHaveBeenCalledWith(
+        'project-1',
+        {
+          error: 'Avatar provider rejected the job',
+          source,
+          status: 'failed',
+        },
+        [],
+        'org-1',
+      );
+    });
+
+    it('does not overwrite a newer retry from an old failure graph', async () => {
+      clipProjects.findOne.mockResolvedValue({
+        source: { ...source, retryCount: 1, status: 'queued' },
+      });
+
+      await fail('Old attempt failed');
+
+      expect(clipProjects.patch).not.toHaveBeenCalled();
+    });
   });
 
   it('plans hook review and one child input per discovered highlight', async () => {

@@ -55,6 +55,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
+  ONBOARDING_ANSWER_TOTAL_CREDITS,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
   type OnboardingJourneyMissionId,
@@ -568,7 +569,9 @@ export class AgentOnboardingToolHandler {
       ),
       signupGiftCredits,
       totalOnboardingCreditsVisible:
-        signupGiftCredits + ONBOARDING_JOURNEY_TOTAL_CREDITS,
+        signupGiftCredits +
+        ONBOARDING_ANSWER_TOTAL_CREDITS +
+        ONBOARDING_JOURNEY_TOTAL_CREDITS,
     };
   }
 

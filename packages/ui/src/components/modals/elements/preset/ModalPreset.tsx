@@ -96,6 +96,11 @@ export default function ModalPreset({
         if (typeof item.organizationId === 'string')
           data.organizationId = item.organizationId;
         if (typeof item.brandId === 'string') data.brandId = item.brandId;
+        // An emptied Duration is omitted by the form, and an omitted field
+        // keeps its stored value, so clear it explicitly.
+        if (data.duration === undefined && typeof item.duration === 'number') {
+          return { ...data, duration: null };
+        }
         return data;
       }
 

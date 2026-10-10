@@ -1,3 +1,7 @@
+import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
+import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
+import type { MusicGenerationProvider } from '@api/collections/musics/services/music-generation.types';
+import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import type {
   ImageToVideoStep,
@@ -15,6 +19,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import {
   ByokProvider,
   ImageTaskModel,
+  ModelCategory,
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/contracts';
@@ -26,10 +31,22 @@ import { SentryTraced } from '@sentry/nestjs';
 
 export interface StepExecutionContext {
   organizationId: string;
+  /** Brand whose saved defaults apply to steps without an explicit model. */
+  brandId?: string;
   previousResult?: StepResult;
   globalPrompt?: string;
   runReferences?: readonly GenerationBriefReference[];
 }
+
+/** Music providers whose calls can run on the organization's own key. */
+const MUSIC_BYOK_PROVIDERS: Partial<
+  Record<MusicGenerationProvider, ByokProvider>
+> = {
+  fal: ByokProvider.FAL,
+  replicate: ByokProvider.REPLICATE,
+};
+
+const DEFAULT_MUSIC_STEP_DURATION_SECONDS = 10;
 
 interface ReplicatePredictionOutput {
   output?: string | string[] | Record<string, unknown> | null;
@@ -45,6 +62,8 @@ export class StepExecutorService {
     private readonly higgsFieldService: HiggsFieldService,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
+    private readonly musicGenerationService: MusicGenerationService,
+    private readonly musicProviderRegistry: MusicGenerationProviderRegistryService,
     private readonly replicateService: ReplicateService,
   ) {}
 
@@ -188,6 +207,12 @@ export class StepExecutorService {
 
   // ── Text-to-Music ──────────────────────────────────────────────────
 
+  /**
+   * The model comes from the same policy as the music API: an explicit step
+   * model stays strict, otherwise the brand/organization saved default while
+   * active, otherwise the registry's active music default. The resolved
+   * registry row decides the provider and endpoint — nothing is hardcoded.
+   */
   private async executeTextToMusic(
     step: TextToMusicStep,
     context: StepExecutionContext,
@@ -197,28 +222,61 @@ export class StepExecutorService {
       throw new Error('Text-to-music step requires prompt');
     }
 
-    switch (step.model) {
-      case MusicTaskModel.REPLICATE: {
-        const byokKey = await this.byokService.resolveApiKey(
-          context.organizationId,
-          ByokProvider.REPLICATE,
-        );
-        const predictionId = await this.replicateService.runModel(
-          'meta/musicgen:latest',
-          {
-            duration: step.duration ?? 10,
-            prompt,
-          },
-          byokKey?.apiKey,
-        );
-        return this.pollReplicateMusicPrediction(predictionId, byokKey?.apiKey);
-      }
+    const { model, modelDocument } =
+      await this.musicGenerationService.resolveMusicModel({
+        brandId: context.brandId,
+        explicitModel: step.model,
+        organizationId: context.organizationId,
+      });
+    const provider = this.musicProviderRegistry.providerFor(
+      model,
+      modelDocument.provider,
+    );
+    const apiKeyOverride = await this.resolveMusicApiKey(
+      provider,
+      context.organizationId,
+    );
+    const duration = step.duration ?? DEFAULT_MUSIC_STEP_DURATION_SECONDS;
+    const result = await this.musicProviderRegistry.generate({
+      apiKeyOverride,
+      createMusicDto: Object.assign(new CreateMusicDto(), {
+        duration,
+        text: prompt,
+      }),
+      duration,
+      model,
+      modelCategory: ModelCategory.MUSIC,
+      modelEndpoint: String(modelDocument.endpoint),
+      modelProvider: modelDocument.provider,
+      outputs: 1,
+      prompt,
+      seed: -1,
+    });
 
-      default:
-        throw new Error(
-          `Music model ${step.model} not yet supported in v2 pipeline`,
-        );
+    if (result.outputUrl) {
+      return { contentType: 'audio/mpeg', url: result.outputUrl };
     }
+    if (provider !== 'replicate') {
+      throw new Error(
+        `Music model ${model} returned no output URL from ${provider ?? 'an unknown provider'}`,
+      );
+    }
+    return this.pollReplicateMusicPrediction(result.externalId, apiKeyOverride);
+  }
+
+  private async resolveMusicApiKey(
+    provider: MusicGenerationProvider | null,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    const byokProvider = provider ? MUSIC_BYOK_PROVIDERS[provider] : undefined;
+    if (!byokProvider) {
+      return undefined;
+    }
+    const byokKey = await this.byokService.resolveApiKey(
+      organizationId,
+      byokProvider,
+    );
+    return byokKey?.apiKey;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────

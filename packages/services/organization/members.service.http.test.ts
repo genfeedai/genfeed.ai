@@ -79,3 +79,48 @@ describe('MembersService invitation HTTP methods', () => {
     expect(result).toMatchObject({ id: 'inv_1', status: 'revoked' });
   });
 });
+
+describe('MembersService app installation HTTP methods (#5502)', () => {
+  let service: MembersService;
+  let http: MockHttpInstance;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    service = new MembersService('member-token');
+    http = installMockHttp(service);
+  });
+
+  it('reads the caller installations and drops unknown ids', async () => {
+    const controller = new AbortController();
+    http.get.mockResolvedValue(
+      axiosResponse({ installedAppIds: ['turbo', 'retired', 'clips'] }),
+    );
+
+    await expect(service.findMyApps(controller.signal)).resolves.toEqual([
+      'turbo',
+      'clips',
+    ]);
+    expect(http.get).toHaveBeenCalledWith('/me/apps', {
+      signal: controller.signal,
+    });
+  });
+
+  it('installs and uninstalls one app at a time', async () => {
+    http.put.mockResolvedValue(
+      axiosResponse({ installedAppIds: ['playground', 'turbo'] }),
+    );
+    http.delete.mockResolvedValue(
+      axiosResponse({ installedAppIds: ['playground'] }),
+    );
+
+    await expect(service.installApp('turbo')).resolves.toEqual([
+      'playground',
+      'turbo',
+    ]);
+    await expect(service.uninstallApp('turbo')).resolves.toEqual([
+      'playground',
+    ]);
+    expect(http.put).toHaveBeenCalledWith('/me/apps/turbo');
+    expect(http.delete).toHaveBeenCalledWith('/me/apps/turbo');
+  });
+});

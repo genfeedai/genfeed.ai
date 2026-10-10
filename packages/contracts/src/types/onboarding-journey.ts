@@ -1,3 +1,4 @@
+import type { OnboardingAnswerFieldId } from '../interfaces/onboarding/onboarding-answers.interface';
 import type {
   IOnboardingJourneyMissionDefinition,
   OnboardingJourneyMissionId,
@@ -104,5 +105,24 @@ export const ONBOARDING_JOURNEY_TOTAL_CREDITS =
     0,
   );
 
+/** Onboarding button cards in the order the agent asks them. */
+export const ONBOARDING_ANSWER_FIELD_IDS: readonly OnboardingAnswerFieldId[] = [
+  'goals',
+  'audience',
+  'offer',
+  'competitors',
+  'platforms',
+  'tone',
+  'cadence',
+];
+
+/** Granted once per brand per answered card; never for a skip. */
+export const ONBOARDING_ANSWER_REWARD_CREDITS = 5;
+
+export const ONBOARDING_ANSWER_TOTAL_CREDITS =
+  ONBOARDING_ANSWER_FIELD_IDS.length * ONBOARDING_ANSWER_REWARD_CREDITS;
+
 export const ONBOARDING_TOTAL_VISIBLE_CREDITS =
-  ONBOARDING_SIGNUP_GIFT_CREDITS + ONBOARDING_JOURNEY_TOTAL_CREDITS;
+  ONBOARDING_SIGNUP_GIFT_CREDITS +
+  ONBOARDING_ANSWER_TOTAL_CREDITS +
+  ONBOARDING_JOURNEY_TOTAL_CREDITS;

@@ -1,5 +1,6 @@
 import type { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { readOnboardingAnswersProgress } from '@api/collections/brands/utils/onboarding-answers-progress.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   CACHE_PATTERNS,
@@ -531,6 +532,7 @@ export class BrandInterviewService {
     return {
       incompleteFieldKeys: incompleteInScope.map((f) => f.key),
       interviewableGapCount: incompleteInScope.length,
+      onboardingAnswers: readOnboardingAnswersProgress(brand.agentConfig),
       overallScore: result.overallScore,
     };
   }

@@ -15,7 +15,10 @@ import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';
 import { getGenerationEntryHeaders } from '@services/core/generation-entry-headers';
-import { getPersistedVideoIngredientIds } from '@services/core/json-api-error-message';
+import {
+  getJsonApiErrorMember,
+  getPersistedVideoIngredientIds,
+} from '@services/core/json-api-error-message';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
@@ -48,6 +51,9 @@ function createInterceptorError(
  * a per-request `timeout` and are not bound by this default.
  */
 export const HTTP_REQUEST_TIMEOUT_MS = 30_000;
+
+/** `InsufficientCreditsException` code: the API refused a credit-spending action. */
+const INSUFFICIENT_CREDITS_ERROR_CODE = 'INSUFFICIENT_CREDITS';
 
 const httpServiceInstances = new ServiceInstanceManager<HTTPBaseService>();
 let requestOrganizationId: string | null = null;
@@ -413,6 +419,18 @@ export abstract class HTTPBaseService {
         'isAuthError',
         debugInfo,
       );
+    }
+
+    // Out of credits is the paywall: pages stay readable, and every refused
+    // credit-spending action (generate, clips, batch, editor, agent tools)
+    // answers with one prompt to buy credits or pick a plan. The caller still
+    // receives the rejection below.
+    if (
+      typeof window !== 'undefined' &&
+      getJsonApiErrorMember(response.data)?.code ===
+        INSUFFICIENT_CREDITS_ERROR_CODE
+    ) {
+      openModal(ModalEnum.CREDITS_REQUIRED);
     }
 
     // In production, sanitize error data. Throw a real Error (not a plain

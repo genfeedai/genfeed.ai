@@ -36,6 +36,10 @@ export interface IGeneratedBrandProfile {
   strategy: {
     goals: string[];
     topics: string[];
+    /** Offers the supplied brand information names. */
+    offers: string[];
+    /** Competitors the supplied brand information names explicitly. */
+    competitors: string[];
   };
   style: string;
   taglines: string[];

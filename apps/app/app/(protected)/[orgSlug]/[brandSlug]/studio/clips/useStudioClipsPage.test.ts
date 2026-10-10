@@ -184,6 +184,29 @@ describe('review route transition', () => {
   });
 });
 
+describe('failed projects', () => {
+  it('keeps the failure reason when a failed project is reopened', async () => {
+    mockGetProject.mockResolvedValue({
+      error: 'Avatar provider rejected the job',
+      name: 'Quick run',
+      settings: { mode: 'avatar' },
+      status: 'failed',
+    });
+    mockGetHookApproval.mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'clip-project-1' }),
+    );
+
+    await waitFor(() => expect(result.current.isHydrating).toBe(false));
+    expect(result.current.step).toBe('progress');
+    expect(result.current.project).toMatchObject({
+      error: 'Avatar provider rejected the job',
+      status: 'failed',
+    });
+  });
+});
+
 describe('draft projects', () => {
   const draftProject = {
     draft: {

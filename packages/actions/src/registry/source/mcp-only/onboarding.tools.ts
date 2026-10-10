@@ -10,13 +10,13 @@ export const MCP_ONBOARDING_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Set up a brand inside this conversation. Organization owners and admins can use create_from_url to create a new brand from a website for one credit on success; this queues create_brand_from_url for approval. For an existing brand, scan_url prefills its guide, save_answers stores goals, platforms, cadence and tone, and complete finishes account onboarding.',
+      'Set up a brand inside this conversation. Organization owners and admins can use create_from_url to create a new brand from a website for one credit on success; this queues create_brand_from_url for approval. For an existing brand, scan_url prefills its guide, save_answers stores goals, audience, offer, competitors, platforms, cadence and tone, and complete finishes account onboarding.',
     name: 'onboard_brand',
     parameters: {
       properties: {
         action: {
           description:
-            'create_from_url creates a new brand (owners/admins only, one credit on success); scan_url prefills an existing brand; save_answers stores goals, platforms, cadence and toneAdjustment; complete finishes onboarding.',
+            'create_from_url creates a new brand (owners/admins only, one credit on success); scan_url prefills an existing brand; save_answers stores goals, audience, offer, competitors, platforms, cadence and toneAdjustment; complete finishes onboarding.',
           enum: ['create_from_url', 'scan_url', 'save_answers', 'complete'],
           type: 'string',
         },
@@ -40,17 +40,35 @@ export const MCP_ONBOARDING_TOOLS: SourceTool[] = [
           default: false,
           type: 'boolean',
         },
+        audience: {
+          description: 'save_answers: up to 2 audience segments to write for',
+          items: { maxLength: 200, minLength: 1, type: 'string' },
+          maxItems: 2,
+          type: 'array',
+        },
         cadence: {
           description: 'save_answers: how often to post, e.g. "3 posts a week"',
           maxLength: 200,
           minLength: 1,
           type: 'string',
         },
+        competitors: {
+          description: 'save_answers: up to 3 competitors to position against',
+          items: { maxLength: 200, minLength: 1, type: 'string' },
+          maxItems: 3,
+          type: 'array',
+        },
         goals: {
           description: 'save_answers: what the user wants content to achieve',
           items: { maxLength: 200, minLength: 1, type: 'string' },
           maxItems: 10,
           type: 'array',
+        },
+        offer: {
+          description: 'save_answers: the offer content should drive',
+          maxLength: 200,
+          minLength: 1,
+          type: 'string',
         },
         platforms: {
           description: 'save_answers: platforms the user publishes on',

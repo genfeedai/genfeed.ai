@@ -5,30 +5,37 @@ import {
   getActiveAppId,
   getAppRailFlagKeyForPath,
   getAppRailHref,
+  isAppRailItemEnabled,
   isAppRailItemLocked,
 } from './app-rail.registry';
 
 describe('app rail registry', () => {
-  it('keeps the daily loop and More apps in the contracted order', () => {
+  it('keeps the core loop and the launcher apps in the contracted order (#5502)', () => {
     expect(APP_RAIL_REGISTRY.map((app) => app.id)).toEqual([
       'workspace',
       'agent',
       'library',
       'publishing',
       'analytics',
-      'studio',
+      'playground',
+      'storyboard',
+      'turbo',
+      'motion',
+      'clips',
+      'editor',
       'automation',
       'messages',
       'discovery',
     ]);
     expect(APP_RAIL_REGISTRY.map((app) => app.group)).toEqual([
       ...Array(5).fill('daily'),
-      ...Array(4).fill('more'),
+      ...Array(9).fill('app'),
     ]);
+    expect(APP_RAIL_REGISTRY.map((app) => app.id)).not.toContain('studio');
     expect(ADMIN_RAIL_APP.group).toBe('admin');
   });
 
-  it('uses the selected brand only for Agent/Studio on org-scoped routes (#4671)', () => {
+  it('uses the selected brand only for Agent and Studio apps on org-scoped routes (#4671)', () => {
     const scope = { orgSlug: 'acme', brandAwareSlug: 'selected' };
     const app = (id: string) => {
       const match = APP_RAIL_REGISTRY.find((candidate) => candidate.id === id);
@@ -36,14 +43,19 @@ describe('app rail registry', () => {
       return match;
     };
     expect(
-      ['agent', 'workspace', 'studio'].map((id) =>
+      ['agent', 'workspace', 'playground', 'turbo', 'editor'].map((id) =>
         getAppRailHref(app(id), scope),
       ),
     ).toEqual([
       '/acme/selected/agent',
       '/acme/~/workspace/overview',
       '/acme/selected/studio/playground',
+      '/acme/selected/studio/batch',
+      '/acme/selected/studio/editor',
     ]);
+    expect(getAppRailHref(app('clips'), { orgSlug: 'acme' })).toBe(
+      '/acme/~/studio/clips',
+    );
     expect(
       getAppRailHref(app('agent'), { ...scope, brandSlug: 'routed' }),
     ).toBe('/acme/routed/agent');
@@ -65,7 +77,13 @@ describe('app rail registry', () => {
 
   it('identifies nested product routes without inventing a source app for settings', () => {
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio/clips')).toBe(
-      'studio',
+      'clips',
+    );
+    expect(
+      getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio/batch/new'),
+    ).toBe('turbo');
+    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio')).toBe(
+      undefined,
     );
     expect(
       getActiveAppId(APP_RAIL_REGISTRY, '/acme/~/analytics/overview'),
@@ -88,6 +106,39 @@ describe('app rail registry', () => {
     expect(getAppRailFlagKeyForPath('/acme/brand/workspace')).toBeUndefined();
     expect(getAppRailFlagKeyForPath('/settings/personal')).toBeUndefined();
     expect(getAppRailFlagKeyForPath('/admin/users')).toBeUndefined();
+  });
+
+  it('gates each Studio tool with its own surface switch under the studio module', () => {
+    expect(
+      Object.fromEntries(
+        APP_RAIL_REGISTRY.filter(
+          (app) => app.visibilityFlagKey === 'studio',
+        ).map((app) => [app.id, app.surfaceFlagKey ?? null]),
+      ),
+    ).toEqual({
+      clips: 'studio_clips',
+      editor: 'studio_editor',
+      motion: 'studio_motion',
+      playground: null,
+      storyboard: 'studio_storyboard',
+      turbo: 'studio_batch',
+    });
+  });
+
+  it('turns an app off when either platform switch is off', () => {
+    const clips = APP_RAIL_REGISTRY.find((app) => app.id === 'clips');
+    if (!clips) throw new Error('missing clips rail app');
+    expect(
+      isAppRailItemEnabled(clips, { studio: true, studio_clips: true }, true),
+    ).toBe(true);
+    expect(
+      isAppRailItemEnabled(clips, { studio: true, studio_clips: false }, true),
+    ).toBe(false);
+    expect(
+      isAppRailItemEnabled(clips, { studio: false, studio_clips: true }, true),
+    ).toBe(false);
+    expect(isAppRailItemEnabled(clips, {}, true)).toBe(false);
+    expect(isAppRailItemEnabled(clips, {}, false)).toBe(true);
   });
 
   it('gates every app except Workspace with a module flag', () => {

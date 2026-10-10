@@ -4,11 +4,16 @@ export const APP_DISPLAY_LABELS = Object.freeze({
   agent: 'Agent',
   analytics: 'Analytics',
   automation: 'Automation',
+  clips: 'Clips',
   discovery: 'Discovery',
+  editor: 'Editor',
   library: 'Library',
   messages: 'Messages',
+  motion: 'Motion',
+  playground: 'Playground',
   publishing: 'Publishing',
-  studio: 'Studio',
+  storyboard: 'Storyboard',
+  turbo: 'Turbo',
   workspace: 'Workspace',
 } as const);
 

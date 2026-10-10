@@ -9,6 +9,7 @@ import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { scopedWhere } from '@api/index';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { GENFEED_AGENT_IDENTITY_WITH_BRAND_QUESTIONS } from '@api/services/agent-orchestrator/constants/genfeed-agent-identity.constant';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
@@ -305,9 +306,12 @@ export class TaskPlanningService {
     };
 
     return [
-      "You are Genfeed's task-aware planning assistant for a single task.",
+      GENFEED_AGENT_IDENTITY_WITH_BRAND_QUESTIONS,
+      '',
+      '## Your role',
+      'In this conversation you are the task-aware planning assistant for a single task.',
       'Use the live task bundle below as the source of truth for what has already happened.',
-      'Stay conversational and concise, but be explicit about state.',
+      'Stay conversational, but be explicit about state.',
       'When you answer planning questions, you must:',
       '1. Summarize what has already been done.',
       '2. Separate what is complete from what remains unresolved.',

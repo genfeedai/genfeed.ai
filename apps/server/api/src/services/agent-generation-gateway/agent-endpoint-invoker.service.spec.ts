@@ -117,7 +117,7 @@ describe('AgentEndpointInvoker', () => {
       }),
     };
     subscriptionGuard = {
-      assertActive: vi.fn(() => {
+      assertActive: vi.fn(async () => {
         order.push('subscription');
         return true;
       }),
@@ -220,6 +220,7 @@ describe('AgentEndpointInvoker', () => {
     expect(subscriptionGuard.assertActive).toHaveBeenCalledWith(
       expect.objectContaining({ originalUrl: '/v1/images' }),
       endpoint.creditsConfig,
+      'playground',
     );
     expect(creditsInterceptor.release).not.toHaveBeenCalled();
   });
@@ -309,7 +310,7 @@ describe('AgentEndpointInvoker', () => {
       creditsConfig: undefined,
       hasCreditsInterceptor: false,
     });
-    subscriptionGuard.assertActive.mockImplementation(() => {
+    subscriptionGuard.assertActive.mockImplementation(async () => {
       throw new ForbiddenException('Active subscription required');
     });
 
@@ -320,6 +321,7 @@ describe('AgentEndpointInvoker', () => {
     expect(subscriptionGuard.assertActive).toHaveBeenCalledWith(
       expect.objectContaining({ originalUrl: '/v1/images' }),
       undefined,
+      'playground',
     );
     expect(creditsGuard.admit).not.toHaveBeenCalled();
     expect(endpoint.handle).not.toHaveBeenCalled();
@@ -331,7 +333,7 @@ describe('AgentEndpointInvoker', () => {
       hasCreditsInterceptor: false,
       isSubscriptionCheckSkipped: true,
     });
-    subscriptionGuard.assertActive.mockImplementation(() => {
+    subscriptionGuard.assertActive.mockImplementation(async () => {
       throw new ForbiddenException('Active subscription required');
     });
 
