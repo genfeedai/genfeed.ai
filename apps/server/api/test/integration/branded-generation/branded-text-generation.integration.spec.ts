@@ -306,8 +306,12 @@ describe('Branded text generation seam (real Postgres)', () => {
 
     const value = seamInput();
     const completed = await seam.generate(request(value));
+    if (completed.kind !== 'completed') {
+      throw new Error(
+        `Branded text generation stopped: ${completed.reasonCode}`,
+      );
+    }
     expect(completed.kind).toBe('completed');
-    if (completed.kind !== 'completed') throw new Error('not completed');
     expect(completed).toMatchObject({
       text: 'Seam post text',
       hasNewDispatch: true,
