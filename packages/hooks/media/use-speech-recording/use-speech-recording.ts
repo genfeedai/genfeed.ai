@@ -1,4 +1,8 @@
 import {
+  describeRecordedAudio,
+  pickAudioRecordingFormat,
+} from '@genfeedai/helpers/media/audio-recording/audio-recording-format.helper';
+import {
   SpeechService,
   type SpeechTranscriptionResult,
 } from '@genfeedai/services/ai/speech.service';
@@ -69,6 +73,7 @@ export function useSpeechRecording({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recordedMimeTypeRef = useRef<string | undefined>(undefined);
   const generationRef = useRef(0);
   const isMountedRef = useRef(true);
 
@@ -127,9 +132,17 @@ export function useSpeechRecording({
       }
       streamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-      });
+      // Safari cannot record WebM, so ask for a format this browser supports
+      // instead of hardcoding one that makes the constructor throw.
+      const recordingFormat = pickAudioRecordingFormat();
+      const mediaRecorder = new MediaRecorder(
+        stream,
+        recordingFormat?.recorderMimeType
+          ? { mimeType: recordingFormat.recorderMimeType }
+          : undefined,
+      );
+      recordedMimeTypeRef.current =
+        mediaRecorder.mimeType || recordingFormat?.recorderMimeType;
 
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
@@ -179,7 +192,10 @@ export function useSpeechRecording({
     try {
       setIsProcessing(true);
 
-      const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+      const recordedAudio = describeRecordedAudio(recordedMimeTypeRef.current);
+      const audioBlob = new Blob(chunksRef.current, {
+        type: recordedAudio.blobType,
+      });
 
       if (!SpeechService.isFileSizeValid(audioBlob)) {
         throw new Error('Recording too long. Maximum 25MB allowed.');
@@ -190,9 +206,11 @@ export function useSpeechRecording({
         blobType: audioBlob.type,
       });
 
-      const audioFile = new File([audioBlob], 'recording.webm', {
-        type: audioBlob.type,
-      });
+      const audioFile = new File(
+        [audioBlob],
+        `recording.${recordedAudio.extension}`,
+        { type: audioBlob.type },
+      );
 
       cleanup();
       const speechService = await getSpeechService();
