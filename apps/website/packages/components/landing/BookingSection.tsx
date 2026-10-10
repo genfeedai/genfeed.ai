@@ -18,16 +18,18 @@ export default function BookingSection(): React.ReactElement {
         description="30 minutes on your channels, output target, and fit. If done-for-you makes sense, we scope it on the call. If it does not, you leave with a plan you can run yourself on Genfeed."
         className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
       />
-      <ButtonTracked
-        asChild
-        size={ButtonSize.PUBLIC}
-        trackingData={{ action: 'book_call', page: 'done-for-you' }}
-        trackingName="service_landing_click"
-      >
-        <a href={BOOKING_HREF} target="_blank" rel="noopener noreferrer">
-          Book a call <ArrowUpRight className="size-4" />
-        </a>
-      </ButtonTracked>
+      <div className="flex justify-center">
+        <ButtonTracked
+          asChild
+          size={ButtonSize.PUBLIC}
+          trackingData={{ action: 'book_call', page: 'done-for-you' }}
+          trackingName="service_landing_click"
+        >
+          <a href={BOOKING_HREF} target="_blank" rel="noopener noreferrer">
+            Book a call <ArrowUpRight className="size-4" />
+          </a>
+        </ButtonTracked>
+      </div>
     </WebSection>
   );
 }
