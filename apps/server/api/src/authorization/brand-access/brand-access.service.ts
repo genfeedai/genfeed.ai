@@ -9,6 +9,7 @@ export interface BrandAccessActor {
   userId: string;
   organizationId: string;
   isApiKey?: boolean;
+  apiKeyId?: string;
   scopes?: string[];
 }
 
@@ -30,14 +31,37 @@ export class BrandAccessService {
     if (!isCloudDeployment()) {
       return { where: base, role: null, brandIds: undefined };
     }
+    let effectiveActor = actor;
+    if (actor.isApiKey) {
+      if (!actor.apiKeyId?.trim()) {
+        throw new ForbiddenException('Brand access denied');
+      }
+      const key = await tx.apiKey.findFirst({
+        where: {
+          id: actor.apiKeyId,
+          userId: actor.userId,
+          organizationId: actor.organizationId,
+          isRevoked: false,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+        select: { scopes: true },
+      });
+      if (!key) throw new ForbiddenException('Brand access denied');
+      effectiveActor = {
+        ...actor,
+        scopes: (actor.scopes ?? []).filter((scope) =>
+          key.scopes.includes(scope),
+        ),
+      };
+    }
     const member = await tx.member.findFirst({
       where: {
         userId: actor.userId,
         organizationId: actor.organizationId,
         isActive: true,
         isDeleted: false,
-        organization: { isDeleted: false },
-        role: { isDeleted: false },
+        organization: { is: { isDeleted: false } },
+        role: { is: { isDeleted: false } },
       },
       select: {
         role: { select: { key: true } },
@@ -50,7 +74,10 @@ export class BrandAccessService {
     if (!member || !membershipRole) {
       throw new ForbiddenException('Brand access denied');
     }
-    const role = resolveApiKeyEffectiveMemberRole(actor, membershipRole);
+    const role = resolveApiKeyEffectiveMemberRole(
+      effectiveActor,
+      membershipRole,
+    );
     const privileged = role === MemberRole.OWNER || role === MemberRole.ADMIN;
     const brandIds = privileged
       ? undefined
@@ -79,7 +106,11 @@ export class BrandAccessService {
   ): Promise<void> {
     const where = await this.predicate(actor, tx);
     const brand = await tx.brand.findFirst({
-      where: { AND: [where, { id: brandId }] },
+      where: {
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        AND: [where, { id: brandId }],
+      },
       select: { id: true },
     });
     if (!brand) throw new ForbiddenException('Brand access denied');

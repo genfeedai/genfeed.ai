@@ -9,7 +9,6 @@ import {
   openSync,
   readdirSync,
   readFileSync,
-  readlinkSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -99,6 +98,7 @@ const runtimeKeys = new Set([
   'HOME',
   'PATH',
   'SENTRY_ENABLED',
+  'CHECKPOINT_DISABLE',
 ]);
 export function validateEnvironment(env) {
   demand(
@@ -116,6 +116,7 @@ export function validateEnvironment(env) {
     env.SENTRY_ENABLED === undefined || env.SENTRY_ENABLED === 'false',
     'TELEMETRY_ENABLED',
   );
+  demand(env.CHECKPOINT_DISABLE === '1', 'PRISMA_TELEMETRY_ENABLED');
   const db = new URL(env.DATABASE_URL);
   demand(
     db.protocol === 'postgresql:' &&
@@ -332,6 +333,47 @@ const command = (exe, args, options = {}) =>
 function inspect(id) {
   return JSON.parse(command('docker', ['inspect', id]))[0];
 }
+export function readProcessNetworkNamespace(pid, runCommand = command) {
+  demand(Number.isSafeInteger(pid) && pid > 0, 'INVALID_NAMESPACE_PID');
+  // Docker's namespace owner runs as root. The runner cannot read its
+  // procfs namespace link without the same privilege used by nsenter.
+  try {
+    return runCommand('sudo', ['-n', 'readlink', `/proc/${pid}/ns/net`]);
+  } catch {
+    throw new Error('NETWORK_NAMESPACE_READ');
+  }
+}
+export function readJourneyFailure(output) {
+  const lines = output.split('\n');
+  const principalFailure = lines.find((line) =>
+    /^B01_REAL_PRINCIPALS_(SIGNIN|SIGNIN_IDENTITY|SIGNIN_HTTP_[1-5][0-9]{2}(?:_(INVALID_EMAIL_OR_PASSWORD|INVALID_ORIGIN|EMAIL_NOT_VERIFIED|USER_BANNED))?|COOKIE|TOKEN|CONTEXT|TRANSPORT|KEY_MINT|KEY_MINT_HTTP_[1-5][0-9]{2}|KEY_SERIALIZER|KEY_BINDING) failed$/.test(
+      line,
+    ),
+  );
+  if (principalFailure) return principalFailure.slice(0, -' failed'.length);
+  const mutationFailure = lines.find((line) =>
+    /^B11_PROVIDER_NOT_STARTED_(NEGATIVE_MUTATION_STARTED|PROVIDER_SUBMISSION_ATTEMPTED|(?:MUTATION_SNAPSHOT|NEGATIVE_MUTATION)_(WORKFLOW_EXECUTIONS|INGREDIENTS|CRUN_GENERATION_TASKS|POSTS|BRANDED_GENERATION_RECEIPTS|CREDIT_RESERVATIONS|CREDIT_TRANSACTIONS|CREDIT_BALANCES|BILLING_REVENUE_EVENTS|CONTEXT_BASES|CONTEXT_ENTRIES|KNOWLEDGE_SOURCES|KNOWLEDGE_SOURCE_VERSIONS|KNOWLEDGE_CAPTURE_REQUESTS)) failed$/.test(
+      line,
+    ),
+  );
+  if (mutationFailure) return mutationFailure.slice(0, -' failed'.length);
+  for (const id of CONTRACT.cases)
+    for (const code of [
+      'INVALID_RESPONSE_SHAPE',
+      'PROTECTED_READ_FAILED',
+      'VISIBLE_BRAND_MISSING',
+      'HIDDEN_BRAND_DISCLOSED',
+      'REST_LIST',
+      'REST_COUNT_METADATA',
+      'REST_FOREIGN_SCOPE',
+    ])
+      if (lines.includes(`${id}_${code} failed`)) return `${id}_${code}`;
+  return (
+    CONTRACT.cases.find((id) => lines.includes(`${id} failed`)) ??
+    'JOURNEY_INFRASTRUCTURE'
+  );
+}
+
 function processStart(pid) {
   const text = readFileSync(`/proc/${pid}/stat`, 'utf8');
   return text.slice(text.lastIndexOf(')') + 2).split(' ')[19];
@@ -368,10 +410,17 @@ function cleanInputs(source, destination) {
     }
   };
   walk(source);
+  scrubRuntimeExport(destination);
+}
+
+export function scrubRuntimeExport(destination) {
   const scrub = (directory) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const file = join(directory, entry.name);
-      if (entry.name.startsWith('.env')) {
+      if (
+        entry.name.startsWith('.env') ||
+        ['.agents', '.codex', '.claude', '.turbo'].includes(entry.name)
+      ) {
         rmSync(file, { recursive: true, force: true });
         continue;
       }
@@ -571,6 +620,8 @@ export async function runRuntime(options) {
           'exec',
           pg,
           'pg_isready',
+          '-h',
+          '127.0.0.1',
           '-U',
           user,
           '-d',
@@ -589,7 +640,7 @@ export async function runRuntime(options) {
       pid: pgState.State.Pid,
       startedAt: pgState.State.StartedAt,
       start: processStart(pgState.State.Pid),
-      namespace: readlinkSync(`/proc/${pgState.State.Pid}/ns/net`),
+      namespace: readProcessNetworkNamespace(pgState.State.Pid),
     };
     const redis = command('docker', [
       'run',
@@ -617,6 +668,8 @@ export async function runRuntime(options) {
       'exec',
       pg,
       'psql',
+      '-h',
+      '127.0.0.1',
       '-U',
       user,
       '-d',
@@ -644,6 +697,7 @@ export async function runRuntime(options) {
     Object.assign(env, {
       GITHUB_ACTIONS: 'true',
       SENTRY_ENABLED: 'false',
+      CHECKPOINT_DISABLE: '1',
       DATABASE_URL: `postgresql://${user}:${password}@127.0.0.1:5432/${CONTRACT.database}`,
       REDIS_URL: 'redis://127.0.0.1:6379',
       REDIS_QUEUE_DB: '0',
@@ -681,8 +735,7 @@ export async function runRuntime(options) {
       validateContainer(inspect(pg), pgIdentity);
       demand(
         processStart(pgIdentity.pid) === pgIdentity.start &&
-          readlinkSync(`/proc/${pgIdentity.pid}/ns/net`) ===
-            pgIdentity.namespace,
+          readProcessNetworkNamespace(pgIdentity.pid) === pgIdentity.namespace,
         'NAMESPACE_OWNER_CHANGED',
       );
       const base = [
@@ -773,11 +826,14 @@ export async function runRuntime(options) {
       const handle = launch(stage, exe, args, settings);
       const result = await handle.done;
       clearTimeout(handle.timer);
-      assertChildOutcome(result);
-      return readFileSync(
+      const output = readFileSync(
         join(options.state, `${stage}.private.log`),
         'utf8',
       ).trim();
+      if (stage === 'journey' && result.code !== 0)
+        process.stderr.write(`${readJourneyFailure(output)} failed\n`);
+      assertChildOutcome(result);
+      return output;
     };
     const requireFromPrisma = createRequire(
       join(clean, 'packages/prisma/package.json'),
@@ -806,8 +862,6 @@ export async function runRuntime(options) {
         [
           '--preload',
           guard,
-          '--tsconfig-override',
-          join(clean, 'apps/server/api/tsconfig.json'),
           join(
             clean,
             'apps/server/api/test/integration/mcp/mcp-auth-runtime.fixture.ts',
@@ -877,8 +931,6 @@ export async function runRuntime(options) {
         [
           '--preload',
           guard,
-          '--tsconfig-override',
-          join(clean, 'apps/server/api/tsconfig.json'),
           join(
             clean,
             'apps/server/api/test/integration/mcp/mcp-brand-access.journey.ts',

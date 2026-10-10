@@ -5,10 +5,10 @@ import type { CreateKnowledgeSpaceDto } from '@api/collections/contexts/dto/crea
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
 import type { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
+import { assertKnowledgeGovernance } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import { captureIdempotentKnowledgeSource } from '@api/collections/contexts/utils/knowledge-idempotent-capture';
 import { buildKnowledgeMediaReferenceKey } from '@api/collections/contexts/utils/knowledge-media-identity.util';
-import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -20,13 +20,11 @@ import {
   KnowledgeRetrievalState,
   KnowledgeSourceKind,
   type KnowledgeSourcePurpose,
-  MemberRole,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 
@@ -37,40 +35,9 @@ export class KnowledgeRecordsService {
     private readonly brandAccessService: BrandAccessService,
   ) {}
 
-  private isGovernanceRole(role: string | undefined): boolean {
-    return role === MemberRole.OWNER || role === MemberRole.ADMIN;
-  }
-
   async assertCanBackfill(actor: KnowledgeActor): Promise<void> {
     await this.brandAccessService.resolve(actor);
-    await this.assertCanGovern(actor);
-  }
-
-  private async assertCanGovern(actor: KnowledgeActor): Promise<void> {
-    const member = await this.prisma.member.findFirst({
-      select: { role: { select: { key: true } } },
-      where: {
-        organization: { isDeleted: false },
-        role: { isDeleted: false },
-        isActive: true,
-        isDeleted: false,
-        organizationId: actor.organizationId,
-        userId: actor.userId,
-      },
-    });
-    const canonicalRole = Object.values(MemberRole).find(
-      (role) => role === member?.role?.key,
-    );
-    const role = canonicalRole
-      ? resolveApiKeyEffectiveMemberRole(actor, canonicalRole)
-      : undefined;
-    if (this.isGovernanceRole(role)) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      'Knowledge governance requires an organization admin',
-    );
+    await assertKnowledgeGovernance(this.prisma, actor);
   }
 
   private async ownership(
@@ -668,6 +635,7 @@ export class KnowledgeRecordsService {
               userId: actor.userId,
               organizationId: actor.organizationId,
               isApiKey: actor.isApiKey === true,
+              apiKeyId: actor.apiKeyId,
               scopes: actor.scopes ?? [],
             },
           },
@@ -710,6 +678,7 @@ export class KnowledgeRecordsService {
               userId: actor.userId,
               organizationId: actor.organizationId,
               isApiKey: actor.isApiKey === true,
+              apiKeyId: actor.apiKeyId,
               scopes: actor.scopes ?? [],
             },
           },
@@ -913,7 +882,7 @@ export class KnowledgeRecordsService {
     id: string,
     purgeScheduledAt: string,
   ) {
-    await this.assertCanGovern(actor);
+    await assertKnowledgeGovernance(this.prisma, actor);
     return this.mutateVersion(actor, sourceId, id, (version) => {
       if (version.isLegalHold)
         throw new BadRequestException(
@@ -933,7 +902,7 @@ export class KnowledgeRecordsService {
 
   /** Purge clears payload, provenance and every derived chunk; receipt identity stays. */
   async purgeVersion(actor: KnowledgeActor, sourceId: string, id: string) {
-    await this.assertCanGovern(actor);
+    await assertKnowledgeGovernance(this.prisma, actor);
     return this.mutateVersion(
       actor,
       sourceId,
@@ -965,7 +934,7 @@ export class KnowledgeRecordsService {
     id: string,
     isLegalHold: boolean,
   ) {
-    await this.assertCanGovern(actor);
+    await assertKnowledgeGovernance(this.prisma, actor);
     return this.mutateVersion(actor, sourceId, id, () => ({
       isLegalHold,
     }));
@@ -973,7 +942,7 @@ export class KnowledgeRecordsService {
 
   /** Policy erasure removes payload and chunks and marks the receipt unavailable. */
   async eraseVersion(actor: KnowledgeActor, sourceId: string, id: string) {
-    await this.assertCanGovern(actor);
+    await assertKnowledgeGovernance(this.prisma, actor);
     return this.mutateVersion(
       actor,
       sourceId,

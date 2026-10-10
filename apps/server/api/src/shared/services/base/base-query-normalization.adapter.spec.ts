@@ -191,6 +191,31 @@ describe('BaseQueryNormalizationAdapter', () => {
     },
   );
 
+  it.each(['first', 'last'] as const)(
+    'preserves nullable field ordering (%s) through explicit query normalization',
+    (nulls) => {
+      expect(
+        adapter.resolveFindAllInput(
+          {
+            orderBy: [
+              { lastAttemptAt: { nulls, sort: 'asc' } },
+              { metadata: { publishedAt: { nulls, sort: -1 } } },
+              { id: 'asc' },
+            ],
+            where: { organizationId: 'org-1', isDeleted: false },
+          },
+          { limit: 1 },
+        ),
+      ).toMatchObject({
+        orderBy: [
+          { lastAttemptAt: { nulls, sort: 'asc' } },
+          { metadata: { publishedAt: { nulls, sort: 'desc' } } },
+          { id: 'asc' },
+        ],
+      });
+    },
+  );
+
   it('preserves nested sort precedence through explicit query normalization', () => {
     expect(
       adapter.resolveFindAllInput(

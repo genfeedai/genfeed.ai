@@ -225,7 +225,7 @@ function literalCaseCount(source, file) {
   return count;
 }
 
-test('retains all connected Crun cases and their real fixture-owning API job', () => {
+test('retains all connected cases and their real fixture-owning API job', () => {
   const root = fileURLToPath(new URL('../..', import.meta.url));
   const workflow = readFileSync(
     path.join(root, '.github/workflows/ci.yml'),
@@ -236,6 +236,7 @@ test('retains all connected Crun cases and their real fixture-owning API job', (
   assert.match(apiJob, /postgres:[\s\S]*redis:/);
   assert.match(apiJob, /WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql:/);
   assert.match(apiJob, /CRUN_TEST_REDIS_URL: redis:/);
+  assert.match(apiJob, /KNOWLEDGE_TEST_DATABASE_URL: postgresql:/);
   assert.match(
     apiJob,
     /cd apps\/server\/api && bunx vitest run --config vitest\.config\.ts/,
@@ -247,14 +248,19 @@ test('retains all connected Crun cases and their real fixture-owning API job', (
   assert.match(config, /include: \[.*'src\/\*\*\/\*\.spec\.ts'/);
   for (const [index, file] of CONNECTED_SOURCE_CONTRACT_FILES.entries()) {
     const source = readFileSync(path.join(root, file), 'utf8');
-    assert.equal(literalCaseCount(source, file), [18, 23, 10][index]);
+    assert.equal(literalCaseCount(source, file), [18, 23, 10, 7][index]);
     assert.doesNotMatch(
       source,
       /\b(?:it|describe)\.(?:skip|todo|only|skipIf|runIf)\b/,
     );
-    assert.match(source, /WORKFLOW_BILLING_TEST_DATABASE_URL/);
-    assert.match(source, /CRUN_TEST_REDIS_URL/);
-    assert.match(source, /throw new Error\(\s*'Dedicated /);
+    if (file.endsWith('brand-access.postgres.spec.ts')) {
+      assert.match(source, /KNOWLEDGE_TEST_DATABASE_URL/);
+      assert.match(source, /throw new Error\([\s\S]*isolated test database/);
+    } else {
+      assert.match(source, /WORKFLOW_BILLING_TEST_DATABASE_URL/);
+      assert.match(source, /CRUN_TEST_REDIS_URL/);
+      assert.match(source, /throw new Error\(\s*'Dedicated /);
+    }
     assert.equal(config.includes(path.basename(file)), false);
   }
 });

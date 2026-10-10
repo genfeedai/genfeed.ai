@@ -2960,7 +2960,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
         entry.path ===
         'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
     )?.sha256,
-    '46eb0387aa5f44e15b083e11351d9961affde26903bc8e9cfc9608ea468b7443',
+    '48e47d70f80eca75fb6acc16cfa11e325f54666780d117dbc175a1e2721f7d0c',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(

@@ -188,10 +188,12 @@ describe('authenticated MCP result classification with actual gate and audit map
       .post('/agent-tools/search_knowledge/execute')
       .send({ parameters: {}, context: { brandId: 'foreign-brand' } })
       .expect(403);
-    expect(assertBrandAuthorized).toHaveBeenCalledWith(
-      'foreign-brand',
-      'canonical-org',
-    );
+    expect(assertBrandAuthorized).toHaveBeenCalledWith('foreign-brand', {
+      userId: 'canonical-user',
+      organizationId: 'canonical-org',
+      isApiKey: undefined,
+      scopes: undefined,
+    });
     expect(executeTool).not.toHaveBeenCalled();
   });
   it('rejects unknown top-level body properties with 400 (#5898)', async () => {

@@ -25,6 +25,7 @@ function fixture() {
       : null;
   });
   const policy = new BrandAccessService({
+    apiKey: { findFirst: vi.fn().mockResolvedValue({ scopes: [] }) },
     member: { findFirst: findMember },
     brand: { findFirst: findBrand },
   } as unknown as PrismaService);
@@ -140,7 +141,12 @@ describe('context assembly fresh authorization before cached layers', () => {
     expect(f.getOrSet).not.toHaveBeenCalled();
     f.member.role.key = MemberRole.OWNER;
     await expect(
-      f.service.assembleContext({ ...params, isApiKey: true, scopes: [] }),
+      f.service.assembleContext({
+        ...params,
+        isApiKey: true,
+        apiKeyId: 'key-a',
+        scopes: [],
+      }),
     ).rejects.toThrow(ForbiddenException);
     expect(f.getOrSet).not.toHaveBeenCalled();
   });

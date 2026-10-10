@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 export interface BrandedGenerationActorV1 {
   isApiKey?: boolean;
+  apiKeyId?: string;
   scopes?: string[];
   organizationId: string;
   brandId: string;

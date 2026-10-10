@@ -236,7 +236,7 @@ export default function StoryboardCreate() {
                         aria-hidden
                         className="text-xs text-muted-foreground"
                       >
-                        s
+                        {translate('secondsUnit')}
                       </span>
                     </div>
                   </>

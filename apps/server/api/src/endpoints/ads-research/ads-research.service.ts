@@ -8,6 +8,7 @@ import {
   resolveAdsLaunchObjectives,
   toPlatformLabel,
 } from '@api/endpoints/ads-research/ads-launch-goals.util';
+import { parseAdsResearchNumber } from '@api/endpoints/ads-research/ads-research-metrics.util';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
@@ -684,11 +685,11 @@ export class AdsResearchService {
       channel: AdsChannel.ALL,
       cta: item.ctaText as string | undefined,
       explanation: this.buildExplanation({
-        ctr: this.toNumber(item.ctr),
+        ctr: parseAdsResearchNumber(item.ctr),
         industry: item.industry as string | undefined,
         patterns,
         platform,
-        roas: this.toNumber(item.roas),
+        roas: parseAdsResearchNumber(item.roas),
       }),
       headline: item.headlineText as string | undefined,
       firstSeenAt: item.presentationStartDate as string | undefined,
@@ -699,19 +700,19 @@ export class AdsResearchService {
       lastSeenAt: item.presentationEndDate as string | undefined,
       metricLabel: 'Performance score',
       metrics: {
-        clicks: this.toNumber(item.clicks),
-        conversionRate: this.toNumber(item.conversionRate),
-        conversions: this.toNumber(item.conversions),
-        cpc: this.toNumber(item.cpc),
-        cpm: this.toNumber(item.cpm),
-        ctr: this.toNumber(item.ctr),
-        impressions: this.toNumber(item.impressions),
-        performanceScore: this.toNumber(item.performanceScore),
-        revenue: this.toNumber(item.revenue),
-        roas: this.toNumber(item.roas),
-        spend: this.toNumber(item.spend),
+        clicks: parseAdsResearchNumber(item.clicks),
+        conversionRate: parseAdsResearchNumber(item.conversionRate),
+        conversions: parseAdsResearchNumber(item.conversions),
+        cpc: parseAdsResearchNumber(item.cpc),
+        cpm: parseAdsResearchNumber(item.cpm),
+        ctr: parseAdsResearchNumber(item.ctr),
+        impressions: parseAdsResearchNumber(item.impressions),
+        performanceScore: parseAdsResearchNumber(item.performanceScore),
+        revenue: parseAdsResearchNumber(item.revenue),
+        roas: parseAdsResearchNumber(item.roas),
+        spend: parseAdsResearchNumber(item.spend),
       },
-      metricValue: this.toNumber(item.performanceScore),
+      metricValue: parseAdsResearchNumber(item.performanceScore),
       patternSummary: patterns,
       platform,
       previewUrl: imageUrls[0] || videoUrls[0],
@@ -826,7 +827,7 @@ export class AdsResearchService {
       lastSeenAt: item.presentationEndDate as string | undefined,
       longevity,
       metricLabel: 'Estimated reach',
-      metricValue: this.toNumber(item.estimatedReach),
+      metricValue: parseAdsResearchNumber(item.estimatedReach),
       metrics: {},
       patternSummary,
       platform,
@@ -1169,18 +1170,5 @@ export class AdsResearchService {
       loginCustomerId: params.loginCustomerId,
       organizationId,
     };
-  }
-
-  private toNumber(value: unknown): number | undefined {
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : undefined;
-    }
-
-    if (typeof value === 'string' && value.trim().length > 0) {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : undefined;
-    }
-
-    return undefined;
   }
 }

@@ -14,12 +14,12 @@ export type PrismaFilter = Record<string, unknown>;
 export type PrismaUpdate = Record<string, unknown>;
 export type PopulateInput = (string | PopulateOption)[] | 'none';
 
-type PrismaOrderDirection = 'asc' | 'desc' | number;
+type PrismaOrderDirection = 'asc' | 'desc' | 'first' | 'last' | number;
 type PrismaOrderByInput = {
   [field: string]: PrismaOrderDirection | PrismaOrderByInput;
 };
 type PrismaOrderBy = {
-  [field: string]: 'asc' | 'desc' | PrismaOrderBy;
+  [field: string]: 'asc' | 'desc' | 'first' | 'last' | PrismaOrderBy;
 };
 
 export interface PrismaFindAllInput {
@@ -313,12 +313,19 @@ export class BaseQueryNormalizationAdapter {
 
     const normalizeDirection = (
       direction: unknown,
-    ): 'asc' | 'desc' | PrismaOrderBy => {
+      field?: string,
+    ): 'asc' | 'desc' | 'first' | 'last' | PrismaOrderBy => {
+      if (
+        field === 'nulls' &&
+        (direction === 'first' || direction === 'last')
+      ) {
+        return direction;
+      }
       if (this.isPlainObject(direction)) {
         return Object.fromEntries(
           Object.entries(direction).map(([field, nestedDirection]) => [
             field,
-            normalizeDirection(nestedDirection),
+            normalizeDirection(nestedDirection, field),
           ]),
         );
       }
