@@ -11,6 +11,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Spinner from '@ui/primitives/spinner';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
   if (status === 'complete') {
@@ -61,10 +62,12 @@ function BrandContextRowIcon({
   );
 }
 
-function resolveScoreHint(score: number): string {
-  if (score >= 70) return 'Strong: outputs will sound like you';
-  if (score > 0) return 'Each answer makes outputs more specific';
-  return 'Starts with your website';
+function resolveScoreHintKey(
+  score: number,
+): 'hintEmpty' | 'hintPartial' | 'hintStrong' {
+  if (score >= 70) return 'hintStrong';
+  if (score > 0) return 'hintPartial';
+  return 'hintEmpty';
 }
 
 function BrandContextChecklist({
@@ -74,6 +77,7 @@ function BrandContextChecklist({
   brandContext: OnboardingBrandContextPanel;
   isCreditRewardsVisible: boolean;
 }) {
+  const translate = useTranslations('agent.onboardingChecklist');
   const score = brandContext.score ?? 0;
 
   return (
@@ -81,7 +85,7 @@ function BrandContextChecklist({
       <div className="border-b border-border px-4 py-3">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-semibold text-foreground">
-            Brand context
+            {translate('brandContext')}
           </h2>
           <span
             className="text-sm font-semibold text-foreground"
@@ -91,7 +95,7 @@ function BrandContextChecklist({
           </span>
         </div>
         <div
-          aria-label="Brand context"
+          aria-label={translate('brandContext')}
           aria-valuemax={100}
           aria-valuemin={0}
           aria-valuenow={score}
@@ -104,11 +108,11 @@ function BrandContextChecklist({
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          {resolveScoreHint(score)}
+          {translate(resolveScoreHintKey(score))}
         </p>
         {isCreditRewardsVisible ? (
           <div className="mt-3 flex items-center justify-between text-2xs text-muted-foreground">
-            <span>Credits earned</span>
+            <span>{translate('creditsEarned')}</span>
             <span className="font-medium text-foreground">
               +{brandContext.creditsEarned}
             </span>
@@ -136,8 +140,9 @@ function BrandContextChecklist({
                     : 'text-foreground',
                 )}
               >
-                {row.label}
-                {row.status === 'skipped' ? ' (skipped)' : ''}
+                {row.status === 'skipped'
+                  ? translate('rowSkipped', { label: row.label })
+                  : row.label}
               </span>
               {isCreditRewardsVisible && row.rewardCredits ? (
                 <span
@@ -148,16 +153,17 @@ function BrandContextChecklist({
                       : 'text-muted-foreground',
                   )}
                 >
-                  +{row.rewardCredits}
-                  {row.isRewardEarned ? ' earned' : ''}
+                  {translate(
+                    row.isRewardEarned ? 'rewardEarned' : 'rewardPending',
+                    { credits: row.rewardCredits },
+                  )}
                 </span>
               ) : null}
             </li>
           ))}
         </ul>
         <p className="mt-3 px-2 text-2xs leading-relaxed text-muted-foreground">
-          Every answer is saved to your brand and used in every post, image and
-          video.
+          {translate('footer')}
         </p>
       </div>
     </div>

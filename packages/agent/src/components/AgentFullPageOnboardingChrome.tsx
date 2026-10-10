@@ -77,7 +77,7 @@ export function AgentFullPageOnboardingChrome({
         </div>
         {brandContext ? (
           <span className="text-xs text-muted-foreground">
-            {brandContext.score ?? 0}%
+            {brandContext.score === null ? '–' : `${brandContext.score}%`}
           </span>
         ) : isCreditRewardsVisible ? (
           <span className="text-xs text-muted-foreground">
