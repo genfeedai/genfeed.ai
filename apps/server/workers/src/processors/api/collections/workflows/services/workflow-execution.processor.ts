@@ -171,15 +171,61 @@ export class WorkflowExecutionProcessor extends WorkerHost {
           userId: systemRun.input.userId,
         });
       } catch (compensationError: unknown) {
-        throw toTerminalSystemRunError(
-          new AggregateError(
-            [error, compensationError],
-            `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${failureWorkflow.canonicalId} both failed`,
-          ),
+        const doubleFailure = new AggregateError(
+          [error, compensationError],
+          `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${failureWorkflow.canonicalId} both failed`,
         );
+        await this.settleAfterCompensationFailure(
+          job,
+          systemRun.input,
+          failureWorkflow.canonicalId,
+          error,
+          doubleFailure,
+        );
+        throw toTerminalSystemRunError(doubleFailure);
       }
       throw error;
     }
+  }
+
+  /**
+   * The workflow and its compensation both failed, so nothing marked the owned
+   * record terminal. The registered last resort does, and the double failure
+   * is reported once whatever happens (#6655).
+   */
+  private async settleAfterCompensationFailure(
+    job: Job<WorkflowExecutionJobData>,
+    input: NonNullable<WorkflowExecutionJobData['systemRun']>['input'],
+    failureCanonicalId: string,
+    workflowError: unknown,
+    doubleFailure: AggregateError,
+  ): Promise<void> {
+    let isSettled = false;
+    try {
+      isSettled = await this.systemWorkflowRunner.terminalFailures.settle(
+        input,
+        workflowError instanceof Error
+          ? workflowError.message
+          : String(workflowError),
+      );
+    } catch (settleError: unknown) {
+      this.logger.error(
+        `${this.logContext} terminal failure settlement failed`,
+        settleError,
+        { canonicalId: input.canonicalId, jobId: job.id },
+      );
+    }
+    this.logger.error(
+      `${this.logContext} workflow and failure workflow both failed`,
+      doubleFailure,
+      {
+        canonicalId: input.canonicalId,
+        failureCanonicalId,
+        isSettled,
+        jobId: job.id,
+        organizationId: input.organizationId,
+      },
+    );
   }
 
   private async executeSystemRun(

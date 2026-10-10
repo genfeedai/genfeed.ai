@@ -25,6 +25,7 @@ import {
   submittedGenerationMetadataSchema,
 } from '@api/helpers/utils/credits/persist-submission-failure.util';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
@@ -85,7 +86,8 @@ const TERMINAL_FAILURE_STATUSES: readonly string[] = [
  *    ingredient already ended, so a lost webhook cannot strand credits.
  *
  * Settlement is a queued reserved-settlement job keyed by the hold, so webhook
- * and poll retries collapse into one CreditTransaction.
+ * and poll retries collapse into one CreditTransaction. Settle/release also
+ * settles the output's generation receipt, detached from the billing outcome.
  */
 @Injectable()
 export class GenerationBillingService {
@@ -98,6 +100,7 @@ export class GenerationBillingService {
     private readonly logger: LoggerService,
     private readonly quoteGroups: GenerationQuoteGroupService,
     @Optional() private readonly holdRecovery?: GenerationHoldRecoveryService,
+    @Optional() private readonly receipts?: MediaGenerationReceiptsService,
   ) {
     this.byok = new GenerationByokUsage(queue, prisma, logger);
   }
@@ -351,6 +354,7 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<GenerationSettlementOutcome> {
+    void this.receipts?.syncTerminal(organizationId, ingredientId, 'settled');
     if (
       !(await this.crunDispositionAllowed(
         ingredientId,
@@ -582,6 +586,7 @@ export class GenerationBillingService {
     organizationId: string,
     reason: 'release' | 'expiry' = 'release',
   ): Promise<GenerationReleaseOutcome> {
+    void this.receipts?.syncTerminal(organizationId, ingredientId, 'released');
     if (
       !(await this.crunDispositionAllowed(
         ingredientId,

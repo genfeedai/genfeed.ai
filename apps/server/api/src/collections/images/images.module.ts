@@ -23,6 +23,7 @@ import { ImageGenerationAdmissionService } from '@api/collections/images/service
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
+import { ImageGenerationReceiptsService } from '@api/collections/images/services/image-generation-receipts.service';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
@@ -63,6 +64,7 @@ import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
+import { MediaGenerationReceiptsModule } from '@api/services/media-generation-receipts/media-generation-receipts.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -121,6 +123,7 @@ import { Module } from '@nestjs/common';
     HiggsFieldModule,
     KlingAIModule,
     LeonardoAIModule,
+    MediaGenerationReceiptsModule,
     MediaVendorCostModule,
     ModelsModule,
     NotificationsModule,
@@ -153,6 +156,7 @@ import { Module } from '@nestjs/common';
     ImageGenerationCreditsService,
     ImageGenerationProviderDispatchService,
     ImageGenerationProviderRegistryService,
+    ImageGenerationReceiptsService,
     ImageGenerationService,
     ImageResizeService,
     ImageReframeService,

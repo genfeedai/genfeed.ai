@@ -135,9 +135,20 @@ export default function ClipsProgressView({
                     : isSourceFailed
                       ? t('sourceFailedDescription')
                       : project.status === 'failed'
-                        ? t('pipelineFailed')
+                        ? canRetryFailedClips
+                          ? t('pipelineFailed')
+                          : t('pipelineFailedNoRetry')
                         : pendingDescription}
         </p>
+
+        {project.status === 'failed' && !isSourceFailed && project.error ? (
+          <p
+            role="status"
+            className="mt-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            {project.error}
+          </p>
+        ) : null}
 
         {project.status !== 'completed' &&
           project.status !== 'partially-completed' &&

@@ -3,12 +3,15 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentOnboardingChecklistProps,
+  OnboardingBrandContextPanel,
+  OnboardingBrandContextRowStatus,
   OnboardingChecklistStatus,
 } from '@genfeedai/props/ui/agent/agent-onboarding.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Spinner from '@ui/primitives/spinner';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
   if (status === 'complete') {
@@ -34,7 +37,141 @@ function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
   );
 }
 
+function BrandContextRowIcon({
+  status,
+}: {
+  status: OnboardingBrandContextRowStatus;
+}) {
+  if (status === 'done') {
+    return (
+      <div className="flex size-5 items-center justify-center rounded-full bg-success/10 text-success">
+        <Check className="size-3" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex size-5 items-center justify-center">
+      <div
+        className={cn(
+          'size-3 rounded-full border-2',
+          status === 'now' ? 'border-primary' : 'border-foreground/20',
+        )}
+      />
+    </div>
+  );
+}
+
+function resolveScoreHintKey(
+  score: number,
+): 'hintEmpty' | 'hintPartial' | 'hintStrong' {
+  if (score >= 70) return 'hintStrong';
+  if (score > 0) return 'hintPartial';
+  return 'hintEmpty';
+}
+
+function BrandContextChecklist({
+  brandContext,
+  isCreditRewardsVisible,
+}: {
+  brandContext: OnboardingBrandContextPanel;
+  isCreditRewardsVisible: boolean;
+}) {
+  const translate = useTranslations('agent.onboardingChecklist');
+  const score = brandContext.score ?? 0;
+
+  return (
+    <div className="flex h-full flex-col bg-background/50">
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold text-foreground">
+            {translate('brandContext')}
+          </h2>
+          <span
+            className="text-sm font-semibold text-foreground"
+            data-testid="onboarding-brand-context-score"
+          >
+            {brandContext.score === null ? '–' : `${score}%`}
+          </span>
+        </div>
+        <div
+          aria-label={translate('brandContext')}
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={score}
+          className="mt-2 h-2 overflow-hidden rounded-full bg-foreground/8"
+          role="progressbar"
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${score}%` }}
+          />
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {translate(resolveScoreHintKey(score))}
+        </p>
+        {isCreditRewardsVisible ? (
+          <div className="mt-3 flex items-center justify-between text-2xs text-muted-foreground">
+            <span>{translate('creditsEarned')}</span>
+            <span className="font-medium text-foreground">
+              +{brandContext.creditsEarned}
+            </span>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3">
+        <ul className="flex flex-col gap-1">
+          {brandContext.rows.map((row) => (
+            <li
+              key={row.id}
+              className={cn(
+                'flex items-center gap-3 px-2 py-2',
+                row.status === 'now' && 'bg-foreground/[0.04]',
+              )}
+              data-status={row.status}
+            >
+              <BrandContextRowIcon status={row.status} />
+              <span
+                className={cn(
+                  'flex-1 text-sm',
+                  row.status === 'todo' || row.status === 'skipped'
+                    ? 'text-muted-foreground'
+                    : 'text-foreground',
+                )}
+              >
+                {row.status === 'skipped'
+                  ? translate('rowSkipped', { label: row.label })
+                  : row.label}
+              </span>
+              {isCreditRewardsVisible && row.rewardCredits ? (
+                <span
+                  className={cn(
+                    'shrink-0 text-2xs font-medium',
+                    row.isRewardEarned
+                      ? 'text-success'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  {translate(
+                    row.isRewardEarned ? 'rewardEarned' : 'rewardPending',
+                    { credits: row.rewardCredits },
+                  )}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 px-2 text-2xs leading-relaxed text-muted-foreground">
+          {translate('footer')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function AgentOnboardingChecklist({
+  brandContext,
   steps,
   currentStepId,
   earnedCredits = 0,
@@ -55,6 +192,15 @@ export function AgentOnboardingChecklist({
       : 0);
   const resolvedTotalVisibleCredits =
     totalOnboardingCreditsVisible ?? signupGiftCredits + totalJourneyCredits;
+
+  if (brandContext) {
+    return (
+      <BrandContextChecklist
+        brandContext={brandContext}
+        isCreditRewardsVisible={isCreditRewardsVisible}
+      />
+    );
+  }
 
   return (
     <div className="flex h-full flex-col bg-background/50">

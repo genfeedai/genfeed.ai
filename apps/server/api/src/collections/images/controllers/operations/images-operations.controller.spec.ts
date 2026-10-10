@@ -1,9 +1,11 @@
+import { ImageGenerationReceiptsService } from '@api/collections/images/services/image-generation-receipts.service';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
 } from '@api/services/harness/media-prompt-enhancement.service';
+import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 
 vi.mock('@api/services/integrations/klingai/services/klingai.service', () => ({
@@ -300,6 +302,15 @@ describe('ImagesOperationsController', () => {
           },
         },
         ImageGenerationProviderRegistryService,
+        ImageGenerationReceiptsService,
+        {
+          provide: MediaGenerationReceiptsService,
+          useValue: {
+            open: vi.fn().mockResolvedValue(undefined),
+            recordAccepted: vi.fn().mockResolvedValue(undefined),
+            syncTerminal: vi.fn().mockResolvedValue(undefined),
+          },
+        },
         ImageGenerationService,
         {
           inject: [HiggsFieldService],

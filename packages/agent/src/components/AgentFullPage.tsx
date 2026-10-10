@@ -14,8 +14,6 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useTranslations } from 'next-intl';
 import type { ReactElement, ReactNode } from 'react';
 
-const showOnboardingChecklistChrome = false;
-
 interface AgentFullPageProps {
   apiService: AgentApiService;
   /** Knowledge selection sent with every turn from the composer. */
@@ -72,6 +70,7 @@ export function AgentFullPage({
     mobileOutputsOpen,
     mobileSetupOpen,
     mobileThreadsOpen,
+    onboardingBrandContext,
     onboardingCompletionPercent,
     onboardingEarnedCredits,
     onboardingSignupGiftCredits,
@@ -176,8 +175,9 @@ export function AgentFullPage({
         </ContextSidebarPanel>
       ) : null}
 
-      {showOnboardingChecklistChrome && onboardingMode && (
+      {onboardingMode && onboardingBrandContext ? (
         <AgentFullPageOnboardingChrome
+          brandContext={onboardingBrandContext}
           completionPercent={onboardingCompletionPercent}
           currentStepId={currentStepId}
           earnedCredits={onboardingEarnedCredits}
@@ -188,7 +188,7 @@ export function AgentFullPage({
           mobileChecklistOpen={mobileChecklistOpen}
           onMobileChecklistOpenChange={setMobileChecklistOpen}
         />
-      )}
+      ) : null}
 
       <AgentFullPageMobileDrawers
         apiService={apiService}

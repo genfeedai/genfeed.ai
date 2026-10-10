@@ -92,6 +92,13 @@ vi.mock('@api/services/batch-generation/batch-generation.service', () => ({
   BatchGenerationService: class BatchGenerationService {},
 }));
 
+vi.mock(
+  '@api/services/router/default-generation-affordability.service',
+  () => ({
+    DefaultGenerationAffordabilityService: class DefaultGenerationAffordabilityService {},
+  }),
+);
+
 vi.mock('@serializers/helpers/plain-json.helper', () => ({
   toPlainJson: (value: unknown) => value,
 }));
@@ -122,6 +129,9 @@ describe('AuthBootstrapService', () => {
   const usersService = {
     findOne: vi.fn(),
   };
+  const defaultGenerationAffordability = {
+    canAffordDefaultGeneration: vi.fn(),
+  };
 
   let service: AuthBootstrapService;
 
@@ -137,6 +147,7 @@ describe('AuthBootstrapService', () => {
       organizationSettingsService as never,
       streaksService as never,
       usersService as never,
+      defaultGenerationAffordability as never,
     );
 
     accessBootstrapCacheService.get.mockResolvedValue(null);
@@ -168,6 +179,9 @@ describe('AuthBootstrapService', () => {
     organizationSettingsService.findOne.mockResolvedValue(null);
     streaksService.getStreakSummary.mockResolvedValue(null);
     usersService.findOne.mockResolvedValue(null);
+    defaultGenerationAffordability.canAffordDefaultGeneration.mockResolvedValue(
+      true,
+    );
 
     mockGetIsSuperAdmin.mockReturnValue(false);
     mockGetStripeSubscriptionStatus.mockReturnValue('');
@@ -389,6 +403,45 @@ describe('AuthBootstrapService', () => {
     expect(result.currentUser?.settings).toEqual(settings);
   });
 
+  it.each([true, false])(
+    'reports whether the wallet affords one default image (%s)',
+    async (isAffordable) => {
+      organizationSettingsService.findOne.mockResolvedValue({
+        defaultImageModel: 'org-default-image-model',
+      });
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(5);
+      defaultGenerationAffordability.canAffordDefaultGeneration.mockResolvedValue(
+        isAffordable,
+      );
+
+      const result = await service.getBootstrap({
+        context: { organizationId: 'org_1', userId: 'user_1' },
+        user: { id: 'user_1', organizationId: 'org_1', userId: 'user_1' },
+      } as never);
+
+      expect(result.access.canAffordDefaultGeneration).toBe(isAffordable);
+      expect(
+        defaultGenerationAffordability.canAffordDefaultGeneration,
+      ).toHaveBeenCalledWith({
+        balance: 5,
+        organizationDefaultImageModel: 'org-default-image-model',
+        organizationId: 'org_1',
+      });
+    },
+  );
+
+  it('leaves affordability unknown without an organization', async () => {
+    const result = await service.getBootstrap({
+      context: { userId: 'user_1' },
+      user: { id: 'user_1' },
+    } as never);
+
+    expect(result.access).not.toHaveProperty('canAffordDefaultGeneration');
+    expect(
+      defaultGenerationAffordability.canAffordDefaultGeneration,
+    ).not.toHaveBeenCalled();
+  });
+
   it('builds a nested shell bootstrap payload from authoritative services', async () => {
     const userId = 'test-object-id';
     const organizationId = 'test-object-id';
@@ -474,6 +527,7 @@ describe('AuthBootstrapService', () => {
     expect(result).toEqual({
       access: {
         brandId,
+        canAffordDefaultGeneration: true,
         creditsBalance: 125,
         hasDismissedAssetGate: false,
         hasEverHadCredits: true,

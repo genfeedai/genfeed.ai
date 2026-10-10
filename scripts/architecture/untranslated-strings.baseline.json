@@ -273,7 +273,7 @@
     "packages/agent/src/components/AgentConversationTurnNavigator.tsx": 1,
     "packages/agent/src/components/AgentFullPageMobileBar.tsx": 3,
     "packages/agent/src/components/AgentFullPageMobileDrawers.tsx": 3,
-    "packages/agent/src/components/AgentFullPageOnboardingChrome.tsx": 4,
+    "packages/agent/src/components/AgentFullPageOnboardingChrome.tsx": 2,
     "packages/agent/src/components/AgentGeneratedTextCard.tsx": 6,
     "packages/agent/src/components/AgentIconStrip.tsx": 1,
     "packages/agent/src/components/AgentOAuthConnectMenu.tsx": 3,

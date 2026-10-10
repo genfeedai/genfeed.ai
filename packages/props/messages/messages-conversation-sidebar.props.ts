@@ -12,13 +12,14 @@ export type MessagesInboxView =
   | 'unread';
 
 /**
- * One mailbox stream with optional conversation-type filters. Mentions and
- * replies remain valid wire types but have no dedicated filter yet.
+ * One mailbox stream with conversation-type filters (#5502: DMs, Replies,
+ * Comments). Mentions remain a valid wire type without a filter.
  */
 export type MessagesSurface =
   | 'all'
   | SocialConversationType.COMMENT
-  | SocialConversationType.DM;
+  | SocialConversationType.DM
+  | SocialConversationType.REPLY;
 
 export interface PaginationState {
   hasNext: boolean;

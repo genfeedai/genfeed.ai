@@ -1812,6 +1812,33 @@
       "chooseBrandToConnect": "Choose a brand in the conversation filters before connecting an account.",
       "noMessages": "No messages in this thread yet."
     },
+    "overview": {
+      "actionsTitle": "Open the inbox",
+      "cards": {
+        "inbox": {
+          "cta": "Open inbox",
+          "description": "Every open conversation across connected accounts.",
+          "label": "Inbox"
+        },
+        "kind": {
+          "cta": "Open {kind}",
+          "description": "{count, plural, =0 {Nothing open.} one {# open conversation.} other {# open conversations.}}"
+        }
+      },
+      "description": "What is waiting for a reply, by conversation type.",
+      "error": "Message counts could not be loaded.",
+      "kinds": {
+        "comments": "Comments",
+        "dms": "DMs",
+        "replies": "Replies"
+      },
+      "kpi": {
+        "openHelp": "Open conversations",
+        "unread": "Unread",
+        "unreadHelp": "Conversations with unread messages"
+      },
+      "title": "Overview"
+    },
     "pagination": {
       "conversationCount": "{count, plural, one {# conversation} other {# conversations}}",
       "conversationPage": "Page {page} of {pages}",
@@ -1852,7 +1879,8 @@
       "surfaces": {
         "all": "All",
         "comments": "Comments",
-        "dms": "DMs"
+        "dms": "DMs",
+        "replies": "Replies"
       },
       "syncNow": "Sync now",
       "title": "Conversations",
@@ -2275,9 +2303,34 @@
     "insufficientCredits": "Not enough credits to rewrite the remaining items.",
     "cancelled": "Rewrite stopped. {count, plural, =0 {No captions were rewritten.} one {# caption was rewritten.} other {# captions were rewritten.}}"
   },
+  "store": {
+    "title": "Store",
+    "description": "Install apps into your own setup. Installing never changes your organization's access or starts any work.",
+    "appsTitle": "Apps",
+    "workflowsTitle": "Workflows",
+    "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
+    "openWorkflows": "Open workflow library",
+    "install": "Install",
+    "uninstall": "Uninstall",
+    "open": "Open",
+    "installFailed": "Couldn't install {app}. Try again.",
+    "uninstallFailed": "Couldn't uninstall {app}. Try again.",
+    "loadFailed": "Couldn't load your apps. Reload the page to try again.",
+    "loadingApp": "Loading app",
+    "organizationDisabled": "Turned off for your organization.",
+    "manageModules": "Organization settings",
+    "subscriptionRequired": "Needs a paid plan.",
+    "viewPlans": "View plans",
+    "founderOnly": "Not released yet.",
+    "unavailable": "Unavailable right now."
+  },
   "appRail": {
     "apps": "Apps",
-    "more": "More",
+    "launcher": "Apps",
+    "search": "Search apps",
+    "noApps": "No apps installed yet.",
+    "noMatches": "No matching apps.",
+    "store": "Store",
     "pin": "Pin {app}",
     "unpin": "Unpin {app}",
     "navigation": "App navigation",
@@ -2294,9 +2347,29 @@
       "label": "Workspace",
       "description": "Command center."
     },
-    "studio": {
-      "label": "Studio",
-      "description": "Create assets."
+    "playground": {
+      "label": "Playground",
+      "description": "Generate and iterate on assets."
+    },
+    "storyboard": {
+      "label": "Storyboard",
+      "description": "Plan scenes and shots."
+    },
+    "turbo": {
+      "label": "Turbo",
+      "description": "Produce content in volume."
+    },
+    "motion": {
+      "label": "Motion",
+      "description": "Compose animated visuals."
+    },
+    "clips": {
+      "label": "Clips",
+      "description": "Cut highlights from long videos."
+    },
+    "editor": {
+      "label": "Editor",
+      "description": "Finish videos on a timeline."
     },
     "library": {
       "label": "Library",

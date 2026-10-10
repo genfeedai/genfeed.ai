@@ -91,3 +91,11 @@ export interface ModelCapabilities {
   speedTier: 'fast' | 'medium' | 'slow';
   qualityTier: 'basic' | 'standard' | 'high' | 'ultra';
 }
+
+export interface DefaultGenerationAffordabilityInput {
+  organizationId: string;
+  /** Authoritative wallet balance, already read by the caller. */
+  balance: number;
+  /** The organization's own default image model setting, when it has one. */
+  organizationDefaultImageModel?: string | null;
+}
