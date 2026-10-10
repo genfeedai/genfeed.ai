@@ -11,7 +11,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
-import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
@@ -30,10 +29,8 @@ import { WebhookDispatchService } from '@api/services/webhook-client/webhook-cli
 import { hasOrganizationBilling } from '@genfeedai/config';
 import { ByokProvider, MemberRole } from '@genfeedai/contracts';
 import {
-  isOrganizationModuleUnreleased,
-  ORGANIZATION_MODULE_IDS,
+  findNewlyEnabledUnreleasedModules,
   ORGANIZATION_MODULES,
-  organizationModuleOverridesSchema,
 } from '@genfeedai/contracts/constants';
 import type {
   IByokProviderStatus,
@@ -269,8 +266,19 @@ export class OrganizationsSettingsController {
         resolvedOrganizationId,
       );
 
-    if (!isSuperAdmin) {
-      this.assertNoUnreleasedModuleEnabled(organizationSettings, settingsDto);
+    const unreleased = isSuperAdmin
+      ? []
+      : findNewlyEnabledUnreleasedModules({
+          hasOrganizationBilling: hasOrganizationBilling(),
+          isReleasePreviewEnabled:
+            organizationSettings.isReleasePreviewEnabled === true,
+          nextOverrides: settingsDto.moduleOverrides,
+          previousOverrides: organizationSettings.moduleOverrides,
+        });
+    if (unreleased.length > 0) {
+      throw new ForbiddenException(
+        `${unreleased.map((id) => ORGANIZATION_MODULES[id].label).join(', ')} not released yet`,
+      );
     }
 
     const normalizedSettingsDto =
@@ -288,44 +296,6 @@ export class OrganizationsSettingsController {
     await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
 
     return serializeSingle(req, OrganizationSettingSerializer, data);
-  }
-
-  /**
-   * #5502 customer owners and admins cannot switch on a founder-only module
-   * while it is unreleased for their organization. Values already stored stay
-   * as they are, so other module changes still save; admission refuses new
-   * work in an unreleased module regardless.
-   */
-  private assertNoUnreleasedModuleEnabled(
-    current: Pick<
-      OrganizationSettingDocument,
-      'isReleasePreviewEnabled' | 'moduleOverrides'
-    >,
-    settingsDto: UpdateOrganizationSettingDto,
-  ): void {
-    const next = settingsDto.moduleOverrides;
-    if (!next) return;
-    const parsedCurrent = organizationModuleOverridesSchema.safeParse(
-      current.moduleOverrides ?? {},
-    );
-    const previous: Partial<Record<string, boolean>> = parsedCurrent.success
-      ? parsedCurrent.data
-      : {};
-    const newlyEnabled = ORGANIZATION_MODULE_IDS.filter(
-      (moduleId) =>
-        next[moduleId as keyof typeof next] === true &&
-        previous[moduleId] !== true &&
-        isOrganizationModuleUnreleased(
-          moduleId,
-          hasOrganizationBilling(),
-          current.isReleasePreviewEnabled === true,
-        ),
-    );
-    if (newlyEnabled.length > 0) {
-      throw new ForbiddenException(
-        `${newlyEnabled.map((moduleId) => ORGANIZATION_MODULES[moduleId].label).join(', ')} not released yet`,
-      );
-    }
   }
 
   @Post(':organizationId/settings/webhooks/test')

@@ -140,6 +140,43 @@ export function isOrganizationModuleUnreleased(
   );
 }
 
+export interface UnreleasedModuleChangeInput {
+  hasOrganizationBilling: boolean;
+  isReleasePreviewEnabled: boolean;
+  /** Stored overrides; an unreadable value counts as nothing switched on. */
+  previousOverrides: unknown;
+  nextOverrides: Partial<Record<OrganizationModuleId, boolean>> | undefined;
+}
+
+/**
+ * #5502 modules a settings update would switch from off to on while they are
+ * unreleased for the organization. Values already stored are not reported, so
+ * other module changes still save; admission refuses unreleased work anyway.
+ */
+export function findNewlyEnabledUnreleasedModules({
+  hasOrganizationBilling,
+  isReleasePreviewEnabled,
+  nextOverrides,
+  previousOverrides,
+}: UnreleasedModuleChangeInput): OrganizationModuleId[] {
+  if (!nextOverrides) return [];
+  const parsed = organizationModuleOverridesSchema.safeParse(
+    previousOverrides ?? {},
+  );
+  const previous: Partial<Record<OrganizationModuleId, boolean>> =
+    parsed.success ? parsed.data : {};
+  return ORGANIZATION_MODULE_IDS.filter(
+    (moduleId) =>
+      nextOverrides[moduleId] === true &&
+      previous[moduleId] !== true &&
+      isOrganizationModuleUnreleased(
+        moduleId,
+        hasOrganizationBilling,
+        isReleasePreviewEnabled,
+      ),
+  );
+}
+
 /** Navigation/preferences only. Enabled subscription modules still require fresh admission. */
 export function resolveOrganizationModulePreferences(
   settings: OrganizationModulePreferenceInput | null | undefined,

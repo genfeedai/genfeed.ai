@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  findNewlyEnabledUnreleasedModules,
   ORGANIZATION_MODULE_IDS,
   ORGANIZATION_MODULES,
   type OrganizationModuleAccessInput,
@@ -119,6 +120,60 @@ describe('founder-only release gate (#5502)', () => {
         'clips',
       ),
     ).toEqual({ isAllowed: false, reason: 'unreleased' });
+  });
+});
+
+describe('newly enabled unreleased modules (#5502)', () => {
+  const base = {
+    hasOrganizationBilling: true,
+    isReleasePreviewEnabled: false,
+    previousOverrides: { motion: false, batch: false },
+  };
+
+  it('reports founder-only modules switched from off to on', () => {
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        nextOverrides: { batch: true, clips: true, motion: true },
+      }),
+    ).toEqual(['motion', 'clips']);
+  });
+
+  it('ignores stored values, preview organizations and self-hosted', () => {
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        nextOverrides: { motion: true },
+        previousOverrides: { motion: true },
+      }),
+    ).toEqual([]);
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        isReleasePreviewEnabled: true,
+        nextOverrides: { motion: true },
+      }),
+    ).toEqual([]);
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        hasOrganizationBilling: false,
+        nextOverrides: { motion: true },
+      }),
+    ).toEqual([]);
+  });
+
+  it('treats unreadable stored overrides as nothing switched on', () => {
+    expect(
+      findNewlyEnabledUnreleasedModules({
+        ...base,
+        nextOverrides: { editor: true },
+        previousOverrides: { editor: 'yes' },
+      }),
+    ).toEqual(['editor']);
+    expect(
+      findNewlyEnabledUnreleasedModules({ ...base, nextOverrides: undefined }),
+    ).toEqual([]);
   });
 });
 
