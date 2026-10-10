@@ -102,7 +102,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.PLAYGROUND);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(

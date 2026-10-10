@@ -193,6 +193,8 @@ export const APP_ROUTES = {
      */
     OUTREACH: '/messages/outreach',
     OUTREACH_NEW: '/messages/outreach/new',
+    /** #5502 Messages overview: waiting conversations per kind. */
+    OVERVIEW: '/messages/overview',
     /**
      * Author replies on your own posts (reply-bot surface).
      */
@@ -334,6 +336,10 @@ export const APP_ROUTES = {
    * generation lives in the Agent (`AGENT.NEW`) — the standalone
    * image/video/avatar/music tabs were retired.
    */
+  /** #5502 native app catalog; installation is per organization membership. */
+  STORE: {
+    ROOT: '/store',
+  },
   STUDIO: {
     MOTION: '/studio/motion',
     BATCH: '/studio/batch',
@@ -592,6 +598,9 @@ export function isUserFacingAppPathname(pathname: string): boolean {
 
 /** Query param that selects one conversation in the Messages inbox. */
 export const MESSAGES_CONVERSATION_QUERY_PARAM = 'socialConversation';
+
+/** #5502 query param that seeds the Messages inbox type filter (`dm`, `reply`, `comment`). */
+export const MESSAGES_TYPE_QUERY_PARAM = 'type';
 
 /** Brand-relative path that opens one Messages conversation. */
 export function createMessagesConversationRoute(
