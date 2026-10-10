@@ -1,3 +1,4 @@
+import { analyticsCollectionAuthorizationFixture as baseAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
@@ -18,6 +19,14 @@ import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interface
 import type { ContentLearningCheckpoint } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
+
+const analyticsCollectionAuthorizationFixture = {
+  ...baseAuthorizationFixture,
+  initiatingActor: {
+    ...baseAuthorizationFixture.initiatingActor,
+    organizationId: 'org_1',
+  },
+};
 
 const TWITTER = 'TWITTER' as never;
 
@@ -122,11 +131,17 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
       userId: 'user_1',
     } as unknown as PostDocument);
 
-    await service.updateTodayAnalytics('post_1', TWITTER, metrics, {
-      organizationId: 'org_1',
-      brandId: 'brand_1',
-      credentialId: 'credential_1',
-    });
+    await service.updateTodayAnalytics(
+      'post_1',
+      TWITTER,
+      metrics,
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
+      analyticsCollectionAuthorizationFixture,
+    );
 
     const create = upsert.mock.calls[0][0].create;
 
@@ -154,11 +169,17 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
       userId: 'user_1',
     } as unknown as PostDocument);
 
-    await service.updateTodayAnalytics('post_1', TWITTER, metrics, {
-      organizationId: 'org_1',
-      brandId: 'brand_1',
-      credentialId: 'credential_1',
-    });
+    await service.updateTodayAnalytics(
+      'post_1',
+      TWITTER,
+      metrics,
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
+      analyticsCollectionAuthorizationFixture,
+    );
 
     expect(upsert.mock.calls[0][0].create).toMatchObject({
       brandId: 'brand_1',
@@ -187,6 +208,7 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
 
     expect(result).toBeNull();
@@ -209,11 +231,16 @@ describe('PostAnalyticsService provider metric mapping', () => {
         data: [{ organic_metrics: { impression_count: impressions } }],
       });
 
-      await service.processTwitterAnalytics('post_1', analytics, {
-        organizationId: 'org_1',
-        brandId: 'brand_1',
-        credentialId: 'credential_1',
-      });
+      await service.processTwitterAnalytics(
+        'post_1',
+        analytics,
+        {
+          organizationId: 'org_1',
+          brandId: 'brand_1',
+          credentialId: 'credential_1',
+        },
+        analyticsCollectionAuthorizationFixture,
+      );
 
       const expected = {
         impressions: impressions ?? null,
@@ -257,6 +284,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
     expect(upsert.mock.calls[0][0].create).toMatchObject({
       isPinned: true,
@@ -291,14 +319,25 @@ describe('PostAnalyticsService provider metric mapping', () => {
           ),
         };
         if (platform === Platform.FACEBOOK)
-          await service.processFacebookAnalytics('post_1', analytics, context);
+          await service.processFacebookAnalytics(
+            'post_1',
+            analytics,
+            context,
+            analyticsCollectionAuthorizationFixture,
+          );
         else if (platform === Platform.INSTAGRAM)
-          await service.processInstagramAnalytics('post_1', analytics, context);
+          await service.processInstagramAnalytics(
+            'post_1',
+            analytics,
+            context,
+            analyticsCollectionAuthorizationFixture,
+          );
         if (platform === Platform.THREADS)
           await service.processThreadsAnalytics(
             'post_1',
             { ...analytics, replies: 1, reposts: 0, quotes: 0 },
             context,
+            analyticsCollectionAuthorizationFixture,
           );
         expect(update).toHaveBeenLastCalledWith(
           'post_1',
@@ -310,6 +349,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
             }),
           }),
           context,
+          analyticsCollectionAuthorizationFixture,
         );
       }
     },
@@ -336,6 +376,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
 
     expect(update).toHaveBeenCalledWith(
@@ -356,6 +397,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
   });
 
@@ -380,6 +422,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
 
     expect(update).toHaveBeenCalledWith(
@@ -399,6 +442,7 @@ describe('PostAnalyticsService provider metric mapping', () => {
         brandId: 'brand_1',
         credentialId: 'credential_1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
   });
 });
@@ -416,7 +460,13 @@ describe('analytics explicit account baseline refresh', () => {
       brandId: 'brand_1',
       userId: 'u',
     });
-    await h.service.updateTodayAnalytics('p', TWITTER, metrics, context);
+    await h.service.updateTodayAnalytics(
+      'p',
+      TWITTER,
+      metrics,
+      context,
+      analyticsCollectionAuthorizationFixture,
+    );
     expect(h.upsert).toHaveBeenCalledOnce();
     expect(h.refresh).not.toHaveBeenCalled();
     h.refresh.mockRejectedValueOnce(new Error('snapshot failed'));
@@ -606,6 +656,7 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
         'TWITTER',
         h.metrics,
         h.context,
+        analyticsCollectionAuthorizationFixture,
       ),
     ).not.toBeNull();
     expect(trace).toEqual([
@@ -638,12 +689,15 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
       {
         organizationId: 'org_1',
         actionType: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
+        userId: analyticsCollectionAuthorizationFixture.initiatingActor.userId,
         canonicalId: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
         source: 'content-learning-analytics',
         inputValues: {
           credentialId: 'credential_1',
           materializationOnly: true,
           refreshBucket: bucket,
+          initiatingActor:
+            analyticsCollectionAuthorizationFixture.initiatingActor,
         },
       },
       'learning-materialize-' +
@@ -681,6 +735,7 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
           'TWITTER',
           h.metrics,
           h.context,
+          analyticsCollectionAuthorizationFixture,
         ),
       ).not.toBeNull();
       expect(h.upsert).toHaveBeenCalledOnce();
@@ -692,7 +747,13 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
       error = new Error('capture DB');
     h.capture.mockRejectedValue(error);
     await expect(
-      h.service.updateTodayAnalytics('post_1', 'TWITTER', h.metrics, h.context),
+      h.service.updateTodayAnalytics(
+        'post_1',
+        'TWITTER',
+        h.metrics,
+        h.context,
+        analyticsCollectionAuthorizationFixture,
+      ),
     ).rejects.toBe(error);
     expect(h.upsert).toHaveBeenCalledOnce();
     expect(h.queue).not.toHaveBeenCalled();
@@ -712,6 +773,7 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
           'TWITTER',
           h.metrics,
           h.context,
+          analyticsCollectionAuthorizationFixture,
         ),
       ).not.toBeNull();
       expect(h.logger.warn).toHaveBeenCalledWith(
@@ -748,6 +810,7 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
           'TWITTER',
           h.metrics,
           h.context,
+          analyticsCollectionAuthorizationFixture,
         ),
       ).not.toBeNull();
       expect(h.capture).not.toHaveBeenCalled();
@@ -770,6 +833,7 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
         'TWITTER',
         h.metrics,
         h.context,
+        analyticsCollectionAuthorizationFixture,
       );
       expect(h.queue).not.toHaveBeenCalled();
     },
@@ -784,6 +848,7 @@ describe('C4 observation and notification completion boundaries', () => {
       'TWITTER',
       { totalViews: 9999, totalLikes: 0, totalComments: 0 },
       h.context,
+      analyticsCollectionAuthorizationFixture,
     );
     expect(h.upsert).toHaveBeenCalledOnce();
     expect(h.capture).not.toHaveBeenCalled();
@@ -801,7 +866,13 @@ describe('C4 observation and notification completion boundaries', () => {
     );
     let finished = false;
     const pending = h.service
-      .updateTodayAnalytics('post_1', 'TWITTER', h.metrics, h.context)
+      .updateTodayAnalytics(
+        'post_1',
+        'TWITTER',
+        h.metrics,
+        h.context,
+        analyticsCollectionAuthorizationFixture,
+      )
       .then((row) => {
         finished = true;
         return row;
@@ -824,6 +895,7 @@ describe('C4 observation and notification completion boundaries', () => {
       'TWITTER',
       h.metrics,
       h.context,
+      analyticsCollectionAuthorizationFixture,
     );
     expect(h.queue).not.toHaveBeenCalled();
   });

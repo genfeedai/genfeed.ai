@@ -1,6 +1,7 @@
 import { Platform } from '@genfeedai/contracts';
 import type { OutlierBaselinePostInput } from '@genfeedai/contracts/interfaces/analytics/outlier-baseline.interface';
 import { z } from 'zod';
+import type { BreakoutCollectionContext } from './breakout-evidence.interface';
 
 export const outlierConfigurationSchema = z
   .object({
@@ -112,6 +113,7 @@ export interface LearningPublicationSourceV1 {
   approvalVersion: string;
 }
 export interface AnalyticsPersistenceContext {
+  exposureObservation?: BreakoutCollectionContext;
   learningObservation?: {
     publicationSource?: LearningPublicationSourceV1;
     sourceAttemptId: string;

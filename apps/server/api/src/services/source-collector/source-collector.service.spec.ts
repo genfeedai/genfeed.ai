@@ -7,7 +7,7 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { HttpStatus, ServiceUnavailableException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('SourceCollectorService', () => {
   const logger = {
@@ -91,6 +91,8 @@ describe('SourceCollectorService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    brandOAuth.collectTimeline.mockReset();
+    appBearer.collectTimeline.mockReset();
     instagramOfficial.canCollect.mockResolvedValue(false);
     instagramBusinessDiscovery.canCollect.mockResolvedValue(false);
     tiktokOfficial.canCollect.mockResolvedValue(false);
@@ -108,6 +110,108 @@ describe('SourceCollectorService', () => {
       linkedinOfficial as never,
       apify as never,
     );
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('timestamps the actual winning provider call and creates a new identity on recollection', async () => {
+    vi.useFakeTimers();
+    const started = new Date('2026-10-08T12:00:00Z');
+    vi.setSystemTime(started);
+    brandOAuth.canCollect.mockResolvedValue(true);
+    brandOAuth.collectTimeline.mockImplementation(async () => {
+      vi.setSystemTime(new Date(started.getTime() + 2500));
+      return {
+        handle: 'brand',
+        platform: SocialSourcePlatform.TWITTER,
+        provider: 'brand-oauth',
+        posts: [],
+      };
+    });
+    const context = {
+      organizationId: 'org-a',
+      brandId: 'brand-a',
+      credentialId: 'credential-a',
+      captureBreakoutEvidence: true,
+    };
+    const first = await service.collectTimeline(
+      SocialSourcePlatform.TWITTER,
+      'brand',
+      context,
+    );
+    expect(first.breakoutAttempt).toMatchObject({
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      credentialId: context.credentialId,
+      platform: SocialSourcePlatform.TWITTER,
+      provider: 'brand-oauth',
+      requestStartedAt: started,
+      receivedAt: new Date(started.getTime() + 2500),
+    });
+    const second = await service.collectTimeline(
+      SocialSourcePlatform.TWITTER,
+      'brand',
+      context,
+    );
+    expect(first.breakoutAttempt?.sourceAttemptId).toMatch(/^[a-f0-9-]{36}$/);
+    expect(second.breakoutAttempt?.sourceAttemptId).not.toBe(
+      first.breakoutAttempt?.sourceAttemptId,
+    );
+    expect(first.breakoutAttempt).not.toHaveProperty('actorId');
+  });
+
+  it('retains fallback provenance and does not accept provider-supplied attempt authority', async () => {
+    brandOAuth.canCollect.mockResolvedValue(true);
+    brandOAuth.collectTimeline.mockRejectedValueOnce(
+      new Error('OAuth unavailable'),
+    );
+    appBearer.canCollect.mockResolvedValue(true);
+    appBearer.collectTimeline.mockResolvedValue({
+      handle: 'brand',
+      platform: SocialSourcePlatform.TWITTER,
+      provider: 'app-bearer',
+      posts: [],
+      breakoutAttempt: { provider: 'brand-oauth', sourceAttemptId: 'forged' },
+    });
+    const context = {
+      organizationId: 'org-a',
+      brandId: 'brand-a',
+      credentialId: 'credential-a',
+      captureBreakoutEvidence: true,
+    };
+    const result = await service.collectTimeline(
+      SocialSourcePlatform.TWITTER,
+      'brand',
+      context,
+    );
+    expect(result.breakoutAttempt?.provider).toBe('app-bearer');
+    expect(result.breakoutAttempt?.sourceAttemptId).not.toBe('forged');
+    const ordinary = await service.collectTimeline(
+      SocialSourcePlatform.TWITTER,
+      'brand',
+      {},
+    );
+    expect(ordinary).not.toHaveProperty('breakoutAttempt');
+  });
+
+  it('does not capture unbound own-account requests missing an explicit credential', async () => {
+    brandOAuth.canCollect.mockResolvedValue(true);
+    brandOAuth.collectTimeline.mockResolvedValue({
+      handle: 'brand',
+      platform: SocialSourcePlatform.TWITTER,
+      provider: 'brand-oauth',
+      posts: [],
+    });
+    const result = await service.collectTimeline(
+      SocialSourcePlatform.TWITTER,
+      'brand',
+      {
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        captureBreakoutEvidence: true,
+      },
+    );
+    expect(result).not.toHaveProperty('breakoutAttempt');
   });
 
   it('prefers the official own-account provider over Apify for Instagram', async () => {

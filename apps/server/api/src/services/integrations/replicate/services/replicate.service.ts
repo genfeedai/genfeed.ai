@@ -1,8 +1,6 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
-import {
-  runStructuredCompletion,
-  toStructuredJsonSchema,
-} from '@api/services/integrations/llm/structured-output.util';
+import { buildReplicateStructuredPrompt } from '@api/services/integrations/llm/replicate-structured-prompt.util';
+import { runStructuredCompletion } from '@api/services/integrations/llm/structured-output.util';
 import type {
   OpenRouterMessage,
   OpenRouterMessageContentPart,
@@ -587,11 +585,11 @@ export class ReplicateService {
   ): Promise<TResult> {
     const { input, beforeAttempt, onAttempt, prompt, schema, schemaName } =
       params;
-    const schemaPrompt = [
+    const schemaPrompt = buildReplicateStructuredPrompt(
       prompt,
-      `Answer with a single JSON document matching this JSON Schema named "${schemaName}":`,
-      JSON.stringify(toStructuredJsonSchema(schema)),
-    ].join('\n\n');
+      schema,
+      schemaName,
+    );
 
     return runStructuredCompletion({
       attempt: async (repair) => {

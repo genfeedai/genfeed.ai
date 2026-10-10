@@ -772,9 +772,11 @@ contentLearningOperations ContentLearningOperation[]
   @@index([appSource])
   @@index([stripeCustomerId])
   @@map("users")
+  botAccountLinks BotAccountLink[]
 }
 
 model Organization {
+  postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[]
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
@@ -992,6 +994,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   @@index([accountType])
   @@index([billingAccountId])
   @@map("organizations")
+  botAccountLinks BotAccountLink[]
 }
 
 enum McpApprovalStatus {
@@ -1028,6 +1031,7 @@ model McpApproval {
 }
 
 model Brand {
+  postExposureObservations PostExposureObservation[]
   brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_brand")
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
@@ -1196,6 +1200,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
   @@index([organizationId, updatedAt, id], map: "brands_org_updated_at_id_idx")
   @@map("brands")
+  executionReadDependencies WorkflowExecutionReadBrandDependency[]
 }
 
 enum BrandInterviewStatus {
@@ -1887,6 +1892,8 @@ model PlatformSetting {
 // ═══════════════════════════════════════════════════════════════
 
 model Credential {
+  postExposureObservations PostExposureObservation[]
+  @@unique([id, organizationId, brandId], map: "credentials_id_exposure_scope_key")
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
 contentLearningEnrollments ContentLearningEnrollment[]
@@ -2099,6 +2106,7 @@ model ApiKey {
   @@index([keyFingerprint])
   @@index([defaultBrandId])
   @@map("api_keys")
+  botAccountLinks BotAccountLink[]
 }
 
 model DesktopAuthCode {
@@ -2231,6 +2239,8 @@ model OrgIntegration {
 
   @@index([organizationId, isDeleted])
   @@map("org_integrations")
+  botAccountLinks BotAccountLink[]
+  @@unique([id, organizationId], map: "org_integrations_id_organizationId_key")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2741,6 +2751,12 @@ model LinkClick {
 // ═══════════════════════════════════════════════════════════════
 
 model Post {
+  exposureObservations PostExposureObservation[]
+  breakoutResponses BreakoutResponse[] @relation("breakout_source_post")
+  breakoutOutputId String? @unique
+  breakoutOutput BreakoutResponseOutput? @relation(fields: [breakoutOutputId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "posts_breakout_output_scope_fkey")
+  @@unique([breakoutOutputId, organizationId, brandId], map: "posts_breakout_output_scope_key")
+  @@unique([id, organizationId, brandId], map: "posts_id_exposure_scope_key")
 learningDecisionId String? @unique
 learningDecision ContentLearningDecision? @relation(fields: [learningDecisionId], references: [id])
 learningCheckpoints ContentLearningCheckpoint[]
@@ -4495,6 +4511,8 @@ model AgentThread {
   @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@index([organizationId, brandId, isDeleted, updatedAt(sort: Desc)], map: "agent_threads_org_brand_deleted_updated_at_idx")
   @@map("agent_threads")
+  executionReadScopes WorkflowExecutionReadScope[]
+  @@unique([id, organizationId], map: "agent_threads_id_organizationId_key")
 }
 
 model AgentMessage {
@@ -4814,6 +4832,8 @@ model AgentStrategy {
   @@index([organizationId, preferredWorkflowId])
   @@index([organizationId, preferredWorkflowTemplateId])
   @@map("agent_strategies")
+  executionReadScopes WorkflowExecutionReadScope[]
+  @@unique([id, organizationId], map: "agent_strategies_id_organizationId_key")
 }
 
 model AgentStrategyOpportunity {
@@ -5080,6 +5100,8 @@ model Workflow {
   @@index([defaultRecurringBrandId, organizationId])
   @@unique([organizationId, userId, templateInstantiationKey], map: "workflows_template_instantiation_scope_key")
   @@map("workflows")
+  /// Server-written configuring principal; never accepted from workflow DTO metadata.
+  scheduleInitiatingActor Json?
 }
 
 /// Immutable executable workflow definition. A version is append-only: edits
@@ -5105,6 +5127,8 @@ model WorkflowVersion {
   @@unique([workflowId, version])
   @@index([organizationId, workflowId, version(sort: Desc)])
   @@map("workflow_versions")
+  batchReadScopes WorkflowExecutionReadScope[]
+  @@unique([id, organizationId], map: "workflow_versions_id_organizationId_key")
 }
 
 enum AgentFailureReason {
@@ -5197,6 +5221,9 @@ model WorkflowExecution {
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
   @@map("workflow_executions")
   @@unique([id, organizationId])
+  readScope WorkflowExecutionReadScope?
+  readParentEdges WorkflowExecutionReadLineage[] @relation("read_lineage_child_execution")
+  readChildEdges WorkflowExecutionReadLineage[] @relation("read_lineage_parent_execution")
 }
 
 /// Per-node execution results, unique on (executionId, nodeId). One upsert
@@ -5633,6 +5660,8 @@ model SourcePost {
 
   listeningEvidence ListeningEvidence[]
   nativeActions SourcePostNativeAction[]
+  exposureObservations PostExposureObservation[]
+  breakoutSourceResponses BreakoutResponse[]
 
   @@unique([id, organizationId, brandId], map: "source_posts_id_scope_key")
   @@unique([sourceId, externalId], map: "source_posts_source_external_key")
@@ -8279,6 +8308,137 @@ model OutlierConfiguration {
   @@map("outlier_configurations")
 }
 
+/// Immutable provider measurements collected prospectively. These observations
+/// carry evidence, never generation or publication authority.
+model PostExposureObservation {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  brandId String
+  brand Brand @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_brand_scope_fkey")
+  credentialId String
+  credential Credential @relation(fields: [credentialId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_credential_scope_fkey")
+  postId String?
+  post Post? @relation(fields: [postId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_post_scope_fkey")
+  nativeSourcePostId String?
+  nativeSourcePost SourcePost? @relation(fields: [nativeSourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "post_exposure_observations_native_source_scope_fkey")
+  platform String
+  format String
+  externalId String
+  logicalPostId String
+  publishedAt DateTime
+  contentDigest String
+  publicationFingerprint String
+  sourceAttemptId String
+  sourceFingerprint String
+  requestStartedAt DateTime
+  receivedAt DateTime
+  providerAsOf DateTime?
+  exposures Json
+  isPinned Boolean?
+  isPromoted Boolean?
+  isResponse Boolean
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  breakoutBaselineReceipts BreakoutBaselineReceipt[]
+  @@unique([id, organizationId])
+  @@unique([organizationId, credentialId, platform, externalId, sourceAttemptId], map: "post_exposure_observations_attempt_key")
+  @@unique([id, organizationId, brandId, credentialId], map: "post_exposure_observations_receipt_scope_key")
+  @@index([organizationId, brandId, credentialId, platform, format, isDeleted, publishedAt(sort: Desc)], map: "post_exposure_observations_baseline_idx")
+  @@index([organizationId, postId, isDeleted, receivedAt(sort: Desc)], map: "post_exposure_observations_post_idx")
+  @@index([organizationId, nativeSourcePostId, isDeleted, receivedAt(sort: Desc)], map: "post_exposure_observations_native_source_idx")
+  @@map("post_exposure_observations")
+}
+
+/// Historical comparison evidence only. A receipt never authorizes generation
+/// or publication; execution must revalidate current source and account policy.
+model BreakoutBaselineReceipt {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  credentialId String
+  targetObservationId String
+  targetObservation PostExposureObservation @relation(fields: [targetObservationId, organizationId, brandId, credentialId], references: [id, organizationId, brandId, credentialId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_baseline_receipts_target_scope_fkey")
+  platform String
+  format String
+  metric String
+  optionsFingerprint String
+  evidenceFingerprint String
+  idempotencyKey String
+  evaluation Json
+  evaluatedAt DateTime
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  responses BreakoutResponse[]
+  @@unique([id, organizationId])
+  @@unique([id, organizationId, brandId, credentialId], map: "breakout_baseline_receipts_response_scope_key")
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, brandId, credentialId, isDeleted, evaluatedAt(sort: Desc)], map: "breakout_baseline_receipts_scope_idx")
+  @@map("breakout_baseline_receipts")
+}
+
+/// One durable identity per original own-account publication. Detection and
+/// output reservation confer no authority to spend credits or publish.
+model BreakoutResponse {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  credentialId String
+  platform String
+  externalId String
+  logicalPostId String
+  sourcePostId String?
+  sourcePost Post? @relation("breakout_source_post", fields: [sourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_source_post_scope_fkey")
+  nativeSourcePostId String?
+  nativeSourcePost SourcePost? @relation(fields: [nativeSourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_native_source_scope_fkey")
+  triggerReceiptId String
+  triggerReceipt BreakoutBaselineReceipt @relation(fields: [triggerReceiptId, organizationId, brandId, credentialId], references: [id, organizationId, brandId, credentialId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_responses_trigger_scope_fkey")
+  publicationFingerprint String
+  contentDigest String
+  detectedAt DateTime
+  state String @default("detected")
+  heldReason String?
+  expiresAt DateTime?
+  outputPlanFingerprint String?
+  outputs BreakoutResponseOutput[]
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, organizationId, brandId, credentialId], map: "breakout_responses_output_scope_key")
+  @@unique([organizationId, credentialId, platform, externalId], map: "breakout_responses_source_key")
+  @@index([organizationId, brandId, credentialId, isDeleted, state, detectedAt(sort: Desc)], map: "breakout_responses_scope_idx")
+  @@map("breakout_responses")
+}
+
+/// Slots are never recycled after deletion/failure. The same generation key
+/// must be reconciled before any ambiguous provider attempt is retried.
+model BreakoutResponseOutput {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  credentialId String
+  responseId String
+  response BreakoutResponse @relation(fields: [responseId, organizationId, brandId, credentialId], references: [id, organizationId, brandId, credentialId], onDelete: Restrict, onUpdate: Cascade, map: "breakout_response_outputs_response_scope_fkey")
+  ordinal Int
+  kind String
+  format String
+  generationKey String
+  state String @default("reserved")
+  heldReason String?
+  workflowExecutionId String?
+  artifact Post?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, organizationId, brandId], map: "breakout_response_outputs_post_scope_key")
+  @@unique([organizationId, responseId, ordinal], map: "breakout_response_outputs_slot_key")
+  @@unique([organizationId, generationKey], map: "breakout_response_outputs_generation_key")
+  @@index([organizationId, brandId, credentialId, isDeleted, state], map: "breakout_response_outputs_scope_idx")
+  @@map("breakout_response_outputs")
+}
+
 model OutlierBaselineSnapshot {
   inputFingerprint String
   id String @id @default(cuid())
@@ -9238,4 +9398,86 @@ model SourcePostNativeAction {
   @@unique([organizationId, brandId, idempotencyKey], map: "source_post_native_actions_scope_key")
   @@index([organizationId, brandId, postId, isDeleted], map: "source_post_native_actions_scope_post_idx")
   @@map("source_post_native_actions")
+}
+
+
+/// Verified private bot association. Native IDs and report bindings never imply this relation.
+model BotAccountLink {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_org_fkey")
+  integrationId String
+  integration OrgIntegration @relation(fields: [integrationId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_installation_fkey")
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_user_fkey")
+  platform IntegrationPlatform
+  remoteUserId String
+  revision Int @default(1)
+  capturedIsApiKey Boolean @default(false)
+  capturedApiKeyId String?
+  capturedApiKey ApiKey? @relation(fields: [capturedApiKeyId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "bot_account_links_key_fkey")
+  capturedScopes String[] @default([])
+  verifiedAt DateTime @default(now())
+  revokedAt DateTime?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([organizationId, integrationId, platform, remoteUserId], map: "bot_account_links_installation_identity_key")
+  @@index([organizationId, userId, isDeleted], map: "bot_account_links_user_idx")
+  @@map("bot_account_links")
+}
+
+/// A producer certificate, not a grant. Missing/unproven scope cannot authorize restricted history.
+model WorkflowExecutionReadScope {
+  executionId String @id
+  organizationId String
+  execution WorkflowExecution @relation(fields: [executionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_execution_fkey")
+  protocolVersion Int @default(1)
+  family String
+  coverage String @default("UNPROVEN")
+  scopeClass String @default("ORG_ONLY")
+  rootContentHash String
+  producer String
+  proactiveStrategyId String?
+  proactiveStrategy AgentStrategy? @relation(fields: [proactiveStrategyId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_strategy_fkey")
+  proactiveThreadId String?
+  proactiveThread AgentThread? @relation(fields: [proactiveThreadId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_thread_fkey")
+  batchChildVersionId String?
+  batchChildVersion WorkflowVersion? @relation(fields: [batchChildVersionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_scopes_batch_version_fkey")
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  dependencies WorkflowExecutionReadBrandDependency[]
+  parentEdges WorkflowExecutionReadLineage[] @relation("read_lineage_child_scope")
+  childEdges WorkflowExecutionReadLineage[] @relation("read_lineage_parent_scope")
+  @@unique([executionId, organizationId], map: "workflow_execution_read_scopes_execution_org_key")
+  @@map("workflow_execution_read_scopes")
+}
+
+/// Append-only complete private-brand dependency set, including deleted brands.
+model WorkflowExecutionReadBrandDependency {
+  executionId String
+  organizationId String
+  brandId String
+  scope WorkflowExecutionReadScope @relation(fields: [executionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_dependencies_scope_fkey")
+  brand Brand @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_dependencies_brand_fkey")
+  createdAt DateTime @default(now())
+  @@id([executionId, organizationId, brandId])
+  @@map("workflow_execution_read_brand_dependencies")
+}
+
+/// Actual persisted parent-node/item lineage; JSON parent pointers are not sufficient proof.
+model WorkflowExecutionReadLineage {
+  parentExecutionId String
+  childExecutionId String
+  organizationId String
+  parentNodeId String
+  itemIndex Int @default(-1)
+  parentExecution WorkflowExecution @relation("read_lineage_parent_execution", fields: [parentExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_parent_execution_fkey")
+  childExecution WorkflowExecution @relation("read_lineage_child_execution", fields: [childExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_child_execution_fkey")
+  parentScope WorkflowExecutionReadScope @relation("read_lineage_parent_scope", fields: [parentExecutionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_parent_scope_fkey")
+  childScope WorkflowExecutionReadScope @relation("read_lineage_child_scope", fields: [childExecutionId, organizationId], references: [executionId, organizationId], onDelete: Restrict, onUpdate: Cascade, map: "workflow_execution_read_lineage_child_scope_fkey")
+  createdAt DateTime @default(now())
+  @@id([parentExecutionId, childExecutionId, parentNodeId, itemIndex, organizationId])
+  @@index([childExecutionId, organizationId], map: "workflow_execution_read_lineage_child_idx")
+  @@map("workflow_execution_read_lineage")
 }

@@ -8,6 +8,11 @@ import type {
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
+import type {
+  BreakoutExposureEvidence,
+  BreakoutExposureMetric,
+} from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -60,6 +65,9 @@ export class TwitterBrandOAuthProvider implements SourceTimelineProvider {
 
     const posts = await this.twitterService.getUserTimelineByUsername(handle, {
       accessToken,
+      ...(context.captureBreakoutEvidence
+        ? { captureBreakoutEvidence: true }
+        : {}),
       excludeReplies: !context.includeReplies,
       excludeRetweets: !context.includeReposts,
       maxResults: context.limit ?? 25,
@@ -173,6 +181,12 @@ function mapSingleTweet(tweet: {
 }
 
 function mapOfficialTweet(tweet: {
+  nativeAuthorVerified?: boolean;
+  nativeFormat?: LearningFormat;
+  attachmentMediaKeys?: string[];
+  breakoutExposures?: Partial<
+    Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+  >;
   id: string;
   text: string;
   createdAt?: Date;
@@ -193,6 +207,14 @@ function mapOfficialTweet(tweet: {
     authorId: tweet.authorId,
     authorUsername: tweet.authorUsername,
     contentType: 'tweet',
+    ...(tweet.breakoutExposures
+      ? {
+          breakoutExposures: tweet.breakoutExposures,
+          nativeFormat: tweet.nativeFormat,
+          nativeAuthorVerified: tweet.nativeAuthorVerified,
+          attachmentMediaKeys: tweet.attachmentMediaKeys,
+        }
+      : {}),
     contentUrl: tweet.authorUsername
       ? `https://x.com/${tweet.authorUsername}/status/${tweet.id}`
       : undefined,

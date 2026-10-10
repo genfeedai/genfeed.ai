@@ -1,4 +1,5 @@
 import type { YouTubeAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import { analyticsCollectionAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
   learningPublicationFinalizationVersionV1,
@@ -85,10 +86,36 @@ function input(): YouTubeAnalyticsCollectionInput {
 }
 
 describe('AnalyticsYouTubeCollectionService', () => {
+  it('propagates native revocation during the provider await without writing collected data or failure state', async () => {
+    const h = createHarness();
+    const denied = new Error('membership_revoked');
+    let revoked = false;
+    const authorization = {
+      ...analyticsCollectionAuthorizationFixture,
+      admit: vi.fn(async () => {
+        if (revoked) throw denied;
+      }),
+    };
+    h.youtube.getMediaAnalyticsBatch.mockImplementation(async () => {
+      revoked = true;
+      return new Map([['video-1', { views: 42 }]]);
+    });
+    await expect(h.service.collect(input(), authorization)).rejects.toBe(
+      denied,
+    );
+    expect(h.youtube.getMediaAnalyticsBatch).toHaveBeenCalledOnce();
+    expect(h.postAnalytics.processYouTubeAnalytics).not.toHaveBeenCalled();
+    expect(h.collectionState.markFailedBatch).not.toHaveBeenCalled();
+    expect(h.collectionState.markReadyBatch).not.toHaveBeenCalled();
+    expect(h.accountSnapshots.upsertDailySnapshot).not.toHaveBeenCalled();
+  });
   it('collects and finalizes exactly one action item', async () => {
     const harness = createHarness(new Map([['video-1', { views: 42 }]]));
 
-    await harness.service.collect(input());
+    await harness.service.collect(
+      input(),
+      analyticsCollectionAuthorizationFixture,
+    );
 
     expect(harness.youtube.getMediaAnalyticsBatch).toHaveBeenCalledWith(
       'org-1',
@@ -109,6 +136,7 @@ describe('AnalyticsYouTubeCollectionService', () => {
         },
         organizationId: 'org-1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
     expect(harness.collectionState.markReadyBatch).toHaveBeenCalledWith([
       expect.objectContaining({
@@ -128,9 +156,9 @@ describe('AnalyticsYouTubeCollectionService', () => {
   it('records delayed state and fails when provider data is unavailable', async () => {
     const harness = createHarness();
 
-    await expect(harness.service.collect(input())).rejects.toThrow(
-      'analytics are not available',
-    );
+    await expect(
+      harness.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toThrow('analytics are not available');
 
     expect(harness.collectionState.markFailedBatch).toHaveBeenCalled();
   });
@@ -144,9 +172,9 @@ describe('AnalyticsYouTubeCollectionService', () => {
     }
     batch.posts.push({ ...post, id: 'post-2' });
 
-    await expect(harness.service.collect(batch)).rejects.toThrow(
-      'requires exactly one post',
-    );
+    await expect(
+      harness.service.collect(batch, analyticsCollectionAuthorizationFixture),
+    ).rejects.toThrow('requires exactly one post');
   });
 });
 
@@ -225,7 +253,7 @@ describe('C3 youtube canonical pre-provider observation transport', () => {
     h.postAnalytics.processYouTubeAnalytics.mockImplementation(async () => {
       trace.push('persist');
     });
-    await h.service.collect(data);
+    await h.service.collect(data, analyticsCollectionAuthorizationFixture);
     expect(
       h.postAnalytics.prepareLearningObservation,
     ).toHaveBeenCalledExactlyOnceWith({
@@ -249,6 +277,7 @@ describe('C3 youtube canonical pre-provider observation transport', () => {
           receivedAt: expect.any(Date),
         }),
       }),
+      analyticsCollectionAuthorizationFixture,
     );
     expect(
       h.postAnalytics.processYouTubeAnalytics.mock.calls[0]?.[2]
@@ -261,7 +290,7 @@ describe('C3 youtube canonical pre-provider observation transport', () => {
   });
   it('keeps ordinary analytics when preparation is null and omits source authority', async () => {
     const h = createHarness(new Map([['video-1', { views: 42 }]]));
-    await h.service.collect(input());
+    await h.service.collect(input(), analyticsCollectionAuthorizationFixture);
     const context = h.postAnalytics.processYouTubeAnalytics.mock.calls[0]?.[2];
     expect(context?.learningObservation).not.toHaveProperty(
       'publicationSource',
@@ -271,7 +300,9 @@ describe('C3 youtube canonical pre-provider observation transport', () => {
     const h = createHarness(),
       error = new Error('preparation DB');
     h.postAnalytics.prepareLearningObservation.mockRejectedValue(error);
-    await expect(h.service.collect(input())).rejects.toBe(error);
+    await expect(
+      h.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toBe(error);
     expect(h.youtube.getMediaAnalyticsBatch).not.toHaveBeenCalled();
     expect(h.postAnalytics.processYouTubeAnalytics).not.toHaveBeenCalled();
   });

@@ -435,6 +435,61 @@ describe('SocialSourcesService', () => {
       expect(result.count).toBe(0);
     });
 
+    it('passes server attempt evidence to native persistence only for an explicit own-account collection', async () => {
+      const collection = {
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        provider: 'brand-oauth',
+        posts: [
+          {
+            id: 'tweet-a',
+            text: 'Own post',
+            authorId: 'author-a',
+            platform: SocialSourcePlatform.TWITTER,
+            nativeFormat: 'text',
+            nativeAuthorVerified: true,
+          },
+        ],
+        breakoutAttempt: {
+          organizationId: ownAccountSource.organizationId,
+          brandId: ownAccountSource.brandId,
+          credentialId: ownAccountSource.credentialId,
+          platform: SocialSourcePlatform.TWITTER,
+          provider: 'brand-oauth',
+          sourceAttemptId: 'attempt-a',
+          requestStartedAt: new Date(),
+          receivedAt: new Date(),
+        },
+      };
+      sourceCollector.collectTimeline.mockResolvedValue(collection);
+      sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+        posts: [],
+        rejectedCount: 0,
+      });
+      socialSource.update.mockResolvedValue({ id: ownAccountSource.id });
+      await service.resyncOwnAccount(ownAccountSource as never);
+      expect(sourceCollector.collectTimeline).toHaveBeenCalledWith(
+        SocialSourcePlatform.TWITTER,
+        'openai',
+        expect.objectContaining({
+          captureBreakoutEvidence: true,
+          credentialId: ownAccountSource.credentialId,
+        }),
+      );
+      expect(sourcePostsService.upsertCollectedPosts).toHaveBeenCalledWith(
+        ownAccountSource,
+        expect.arrayContaining([
+          expect.objectContaining({
+            authorId: 'author-a',
+            externalId: 'tweet-a',
+            raw: collection.posts[0],
+          }),
+        ]),
+        collection,
+      );
+      expect(collection.breakoutAttempt).not.toHaveProperty('actorId');
+    });
+
     it('rejects a source that is not an own-account source', async () => {
       await expect(
         service.resyncOwnAccount({

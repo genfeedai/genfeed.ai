@@ -114,6 +114,7 @@ describe('ANALYTICS_MENU_ITEMS', () => {
       'Insights',
       'Hooks',
       'Outliers',
+      'Breakouts',
       'Performance Lab',
     ]);
   });

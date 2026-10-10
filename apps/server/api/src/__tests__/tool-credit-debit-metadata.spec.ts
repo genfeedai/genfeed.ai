@@ -18,6 +18,9 @@ const ALLOWED_FILES = new Set([
   'agent-llm-round-reservation.util.ts',
   'agent-turn-round-runner.service.ts',
   'batch-project-credits.service.ts',
+  // Server-owned breakout response generation: native admission, not an agent tool; specs verify the hold and settlement.
+  'breakout-output-quality.service.ts',
+  'breakout-text-output-generation.service.ts',
   'credits.utils.service.ts',
   'evaluations.service.ts',
   'expert-first-system.service.ts',

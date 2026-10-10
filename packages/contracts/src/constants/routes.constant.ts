@@ -80,6 +80,7 @@ export const APP_ROUTES = {
   ANALYTICS: {
     ROOT: '/analytics',
     BRANDS: '/analytics/brands',
+    BREAKOUTS: '/analytics/breakouts',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
     /**

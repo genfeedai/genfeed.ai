@@ -1,3 +1,4 @@
+export * from './breakout-response.config';
 export * from './listening-analysis.config';
 export * from './listening-topic.config';
 export * from './listening-topic-outcome.config';

@@ -191,6 +191,76 @@ describe('BrandedTextGenerationService', () => {
   });
 
   describe('fresh generation', () => {
+    it('admits the real credit hold after winning resolution and before the provider', async () => {
+      arrangeHappyPath(h);
+      const admitDispatch = vi.fn(async () => {
+        expect(h.receipts.recordCompiledResolution).toHaveBeenCalledOnce();
+        expect(h.openRouter.chatCompletion).not.toHaveBeenCalled();
+      });
+      const reauthorize = vi.fn(async () => undefined);
+      await h.service.generate({ ...h.request, admitDispatch, reauthorize });
+      expect(admitDispatch).toHaveBeenCalledOnce();
+      expect(reauthorize).toHaveBeenCalledTimes(5);
+    });
+    it('does not dispatch or persist when atomic credit admission rejects the request', async () => {
+      arrangeHappyPath(h);
+      await expect(
+        h.service.generate({
+          ...h.request,
+          admitDispatch: async () => {
+            throw new Error('budget_exhausted');
+          },
+        }),
+      ).rejects.toThrow('budget_exhausted');
+      expect(h.openRouter.chatCompletion).not.toHaveBeenCalled();
+      expect(h.request.persistText).not.toHaveBeenCalled();
+    });
+    it('checks the captured continuation before looking up a private provider key', async () => {
+      arrangeHappyPath(h);
+      await expect(
+        h.service.generate({
+          ...h.request,
+          reauthorize: async () => {
+            throw new Error('key_revoked');
+          },
+        }),
+      ).rejects.toThrow('key_revoked');
+      expect(h.request.resolveApiKey).not.toHaveBeenCalled();
+      expect(h.receipts.create).not.toHaveBeenCalled();
+    });
+    it('retains the actual accepted provider receipt when the initiator is revoked before artifact creation', async () => {
+      arrangeHappyPath(h);
+      const reauthorize = vi.fn(async () => {
+        if (h.receipts.recordDispatch.mock.calls.length)
+          throw new Error('key_revoked');
+      });
+      await expect(
+        h.service.generate({ ...h.request, reauthorize }),
+      ).rejects.toThrow('key_revoked');
+      expect(h.receipts.recordDispatch).toHaveBeenCalledOnce();
+      expect(h.request.persistText).not.toHaveBeenCalled();
+      expect(h.receipts.fail).not.toHaveBeenCalled();
+    });
+    it('generates a complete thread through the same actual receipt, material and quality lifecycle', async () => {
+      arrangeHappyPath(h);
+      const request = {
+        ...h.request,
+        input: { ...input, format: 'thread' as const },
+      };
+      await h.service.generateThread(request);
+      expect(h.receipts.create).toHaveBeenCalledWith(request.input, actor);
+      expect(
+        h.harness.resolveSnapshotBriefWithRecipe.mock.calls[0][5],
+      ).toMatchObject({ global: { scope: { format: 'thread' } } });
+      expect(h.material.describePostArtifact).toHaveBeenCalledWith(
+        actor,
+        'post-1',
+      );
+      expect(h.validation.validateReceipt).toHaveBeenCalledOnce();
+      await expect(h.service.generate(request)).rejects.toThrow(
+        'brand_format_unsupported',
+      );
+    });
     it('runs create → resolve → dispatch → bind → validate with one provider call', async () => {
       arrangeHappyPath(h);
       const outcome = await h.service.generate(h.request);

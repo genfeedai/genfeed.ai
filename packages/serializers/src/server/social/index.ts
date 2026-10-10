@@ -1,3 +1,4 @@
+export * from './breakout-response.serializer';
 export * from './listening-analysis.serializer';
 export * from './listening-topic.serializer';
 export * from './listening-topic-outcome.serializer';

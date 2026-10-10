@@ -1,4 +1,5 @@
 import type { SocialAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import { analyticsCollectionAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
   learningPublicationFinalizationVersionV1,
@@ -47,16 +48,17 @@ function createHarness() {
     log: vi.fn(),
     warn: vi.fn(),
   } satisfies ServerLogger;
+  const findOne = vi.fn().mockResolvedValue({
+    brandId: 'brand-1',
+    id: 'cred-1',
+    organizationId: 'org-1',
+    platform: 'INSTAGRAM',
+  });
   const credentials = {
     findAll: vi.fn(),
     findBrandAccounts: vi.fn(),
     findConnectedAccounts: vi.fn().mockResolvedValue([{ id: 'cred-1' }]),
-    findOne: vi.fn().mockResolvedValue({
-      brandId: 'brand-1',
-      id: 'cred-1',
-      organizationId: 'org-1',
-      platform: 'INSTAGRAM',
-    }),
+    findOne,
     mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
     resolveBrandAccount: vi.fn(),
@@ -81,6 +83,7 @@ function createHarness() {
     accountSnapshots,
     collectionState,
     credentials,
+    findOne,
     postAnalytics,
     posts,
     service,
@@ -107,10 +110,59 @@ function input(
 }
 
 describe('AnalyticsSocialCollectionService', () => {
+  it.each([
+    CredentialPlatform.INSTAGRAM,
+    CredentialPlatform.TIKTOK,
+    CredentialPlatform.PINTEREST,
+    CredentialPlatform.LINKEDIN,
+    CredentialPlatform.MASTODON,
+  ])(
+    'propagates a native denial after %s returns without recording provider failure',
+    async (platform) => {
+      const h = createHarness();
+      h.findOne.mockResolvedValue({
+        brandId: 'brand-1',
+        id: 'cred-1',
+        organizationId: 'org-1',
+        platform: platform.toUpperCase(),
+      });
+      const denied = new Error('key_revoked');
+      let revoked = false;
+      const authorization = {
+        ...analyticsCollectionAuthorizationFixture,
+        admit: vi.fn(async () => {
+          if (revoked) throw denied;
+        }),
+      };
+      h.socialAnalytics.getMediaAnalytics.mockImplementation(async () => {
+        revoked = true;
+        return { views: 42 };
+      });
+      await expect(
+        h.service.collect(input(platform), authorization),
+      ).rejects.toBe(denied);
+      expect(h.socialAnalytics.getMediaAnalytics).toHaveBeenCalledOnce();
+      for (const process of [
+        h.postAnalytics.processInstagramAnalytics,
+        h.postAnalytics.processTikTokAnalytics,
+        h.postAnalytics.processPinterestAnalytics,
+        h.postAnalytics.processLinkedInAnalytics,
+        h.postAnalytics.processMastodonAnalytics,
+      ])
+        expect(process).not.toHaveBeenCalled();
+      expect(h.collectionState.markFailed).not.toHaveBeenCalled();
+      expect(h.collectionState.markReady).not.toHaveBeenCalled();
+      expect(h.posts.patch).not.toHaveBeenCalled();
+      expect(h.accountSnapshots.upsertDailySnapshot).not.toHaveBeenCalled();
+    },
+  );
   it('collects and finalizes exactly one action item', async () => {
     const harness = createHarness();
 
-    await harness.service.collect(input());
+    await harness.service.collect(
+      input(),
+      analyticsCollectionAuthorizationFixture,
+    );
 
     expect(harness.socialAnalytics.getMediaAnalytics).toHaveBeenCalledWith(
       'org-1',
@@ -133,6 +185,7 @@ describe('AnalyticsSocialCollectionService', () => {
         },
         organizationId: 'org-1',
       },
+      analyticsCollectionAuthorizationFixture,
     );
     expect(
       harness.postAnalytics.processInstagramAnalytics.mock.calls[0]?.[2]
@@ -159,7 +212,9 @@ describe('AnalyticsSocialCollectionService', () => {
       error,
     );
 
-    await expect(harness.service.collect(input())).rejects.toBe(error);
+    await expect(
+      harness.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toBe(error);
 
     expect(harness.collectionState.markFailed).toHaveBeenCalled();
     expect(harness.posts.patch).toHaveBeenCalledWith('post-1', {
@@ -176,9 +231,9 @@ describe('AnalyticsSocialCollectionService', () => {
     }
     batch.posts.push({ ...post, id: 'post-2' });
 
-    await expect(harness.service.collect(batch)).rejects.toThrow(
-      'requires exactly one post',
-    );
+    await expect(
+      harness.service.collect(batch, analyticsCollectionAuthorizationFixture),
+    ).rejects.toThrow('requires exactly one post');
   });
 });
 
@@ -256,7 +311,7 @@ describe('C3 social source preparation', () => {
     h.postAnalytics.processInstagramAnalytics.mockImplementation(async () => {
       trace.push('persist');
     });
-    await h.service.collect(data);
+    await h.service.collect(data, analyticsCollectionAuthorizationFixture);
     expect(trace).toEqual(['prepare', 'provider', 'persist']);
     expect(
       h.postAnalytics.prepareLearningObservation,
@@ -276,6 +331,7 @@ describe('C3 social source preparation', () => {
           publicationSource: source,
         }),
       }),
+      analyticsCollectionAuthorizationFixture,
     );
     expect(
       h.postAnalytics.processInstagramAnalytics.mock.calls[0]?.[2]
@@ -290,7 +346,9 @@ describe('C3 social source preparation', () => {
     const h = createHarness(),
       error = new Error('preparation DB');
     h.postAnalytics.prepareLearningObservation.mockRejectedValue(error);
-    await expect(h.service.collect(input())).rejects.toBe(error);
+    await expect(
+      h.service.collect(input(), analyticsCollectionAuthorizationFixture),
+    ).rejects.toBe(error);
     expect(h.socialAnalytics.getMediaAnalytics).not.toHaveBeenCalled();
   });
 });

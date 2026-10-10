@@ -1,3 +1,4 @@
+import { analyticsCollectionAuthorizationFixture } from '@api/analytics/analytics-collection-authorization.fixture';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { Test } from '@nestjs/testing';
@@ -424,6 +425,13 @@ describe('analytics ingestion to dashboard smoke path', () => {
         views: 3000,
       },
       { organizationId, brandId, credentialId: 'credential-smoke' },
+      {
+        ...analyticsCollectionAuthorizationFixture,
+        initiatingActor: {
+          ...analyticsCollectionAuthorizationFixture.initiatingActor,
+          organizationId,
+        },
+      },
     );
 
     expect(dependencies.capture).not.toHaveBeenCalled();

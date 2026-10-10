@@ -1,3 +1,4 @@
+export * from './breakout-response.attributes';
 export * from './listening-analysis.attributes';
 export * from './listening-topic.attributes';
 export * from './listening-topic-outcome.attributes';

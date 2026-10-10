@@ -2,17 +2,24 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
+import { runWithStrategyBudgetAttribution } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditReservationStatus } from '@genfeedai/contracts';
+import { CreditReservationStatus, Platform } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditReservationService', () => {
   const prisma = {
+    agentStrategy: {
+      findFirst: vi.fn(async () => ({
+        id: 'strategy-a',
+        platforms: ['twitter'],
+      })),
+    },
     crunGenerationTask: {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -139,6 +146,106 @@ describe('CreditReservationService', () => {
       },
     });
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+  });
+
+  it('runs internal budget admission in the hold transaction and leaves no wallet hold after rejection', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    const admission = vi.fn(async (tx: PrismaTransactionClient) => {
+      expect(tx).toBe(txClient);
+      throw new Error('monthly_subbudget_exhausted');
+    });
+    await expect(
+      service.reserve(
+        {
+          organizationId: 'org_1',
+          actorUserId: 'user_1',
+          billingAccountId: 'ba_1',
+          amount: 20,
+          idempotencyKey: 'budget-a',
+        },
+        admission,
+      ),
+    ).rejects.toThrow('monthly_subbudget_exhausted');
+    expect(admission).toHaveBeenCalledOnce();
+    expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+  });
+  it('applies the server breakout admission to an existing media credit producer before wallet mutation', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    const reject = vi.fn(async (tx: PrismaTransactionClient) => {
+      expect(tx).toBe(txClient);
+      throw new Error('breakout_current_budget_exhausted');
+    });
+    await expect(
+      runWithStrategyBudgetAttribution(
+        txClient,
+        {
+          version: 1,
+          organizationId: 'org_1',
+          brandId: 'brand-a',
+          strategyId: 'strategy-a',
+          platform: Platform.TWITTER,
+          format: 'video',
+        },
+        async () =>
+          service.reserve({
+            organizationId: 'org_1',
+            billingAccountId: 'ba_1',
+            brandId: 'brand-a',
+            actorUserId: 'user_1',
+            amount: 20,
+            idempotencyKey: 'media-a',
+          }),
+        reject,
+      ),
+    ).rejects.toThrow('breakout_current_budget_exhausted');
+    expect(reject).toHaveBeenCalledOnce();
+    expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+  });
+
+  it('captures server strategy allocation on the actual hold and strips forged producer metadata', async () => {
+    const scope = {
+      version: 1 as const,
+      organizationId: 'org_1',
+      brandId: 'brand_1',
+      strategyId: 'strategy-a',
+      platform: Platform.TWITTER,
+      format: 'text' as const,
+    };
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    prisma.creditReservation.create.mockImplementation(async ({ data }) => ({
+      ...data,
+      id: 'allocated-hold',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      settledAmount: null,
+      isDeleted: false,
+    }));
+    const admission = vi.fn(async () => undefined);
+    await runWithStrategyBudgetAttribution(txClient, scope, async () => {
+      await service.reserve(
+        {
+          organizationId: scope.organizationId,
+          actorUserId: 'user_1',
+          brandId: scope.brandId,
+          billingAccountId: 'ba_1',
+          amount: 20,
+          idempotencyKey: 'allocated-a',
+          metadata: {
+            assetId: 'output-a',
+            strategyBudgetAttribution: { forged: true },
+          },
+        },
+        admission,
+      );
+    });
+    expect(admission).toHaveBeenCalledWith(txClient);
+    expect(prisma.creditReservation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metadata: { assetId: 'output-a', strategyBudgetAttribution: scope },
+      }),
+    });
   });
 
   it.each(['40001', '40P01'])(

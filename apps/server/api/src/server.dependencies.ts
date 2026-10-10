@@ -1,5 +1,9 @@
 import type { ByokProvider } from '@genfeedai/contracts';
-import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
+import type {
+  AnalyticsPersistenceContext,
+  BreakoutPublicationSourceInput,
+  BreakoutPublicationSourceV1,
+} from '@genfeedai/contracts/interfaces';
 import type { LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
@@ -121,6 +125,10 @@ export interface ServerSocialAnalytics {
 }
 
 export interface ServerPostAnalytics {
+  /** Legacy adapters may omit this port; they cannot produce breakout evidence. */
+  prepareExposureObservation?(
+    input: BreakoutPublicationSourceInput,
+  ): Promise<BreakoutPublicationSourceV1 | null>;
   prepareLearningObservation(
     input: Pick<
       LearningPublicationSourceV1,
@@ -136,36 +144,43 @@ export interface ServerPostAnalytics {
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processLinkedInAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processMastodonAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processPinterestAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processTikTokAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processTwitterAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
   processYouTubeAnalytics(
     postId: string,
     analytics: unknown,
     context: AnalyticsPersistenceContext,
+    authorization?: AnalyticsCollectionAuthorization,
   ): Promise<void>;
 }
 
@@ -318,3 +333,5 @@ export interface ServerPrisma {
     findFirst(args: unknown): Promise<{ id: string } | null>;
   };
 }
+
+import type { AnalyticsCollectionAuthorization } from '@api/analytics/analytics-collection-action.types';
