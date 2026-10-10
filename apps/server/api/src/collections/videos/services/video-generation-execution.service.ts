@@ -29,6 +29,11 @@ import {
   isReplicateSubmissionRejected,
   ReplicateProviderError,
 } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import {
+  resolveMediaGenerationReceiptPrompts,
+  resolveMediaGenerationReceiptSurface,
+} from '@api/services/media-generation-receipts/media-generation-receipt-input.util';
+import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -78,6 +83,7 @@ export class VideoGenerationExecutionService {
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly webhooksService: WebhooksService,
+    private readonly mediaReceipts: MediaGenerationReceiptsService,
   ) {}
 
   async execute(context: VideoGenerationContext): Promise<void> {
@@ -105,7 +111,7 @@ export class VideoGenerationExecutionService {
       } else if (placement === 'sequential') {
         await this.createSequentialOutputs(context, outputs, accepted);
       } else {
-        await this.bindOutputCredits(
+        await this.admitOutput(
           context,
           context.ingredientData.id.toString(),
           outputs,
@@ -175,7 +181,7 @@ export class VideoGenerationExecutionService {
     outputs: number,
     accepted: Set<string>,
   ): Promise<void> {
-    await this.bindOutputCredits(
+    await this.admitOutput(
       context,
       context.ingredientData.id.toString(),
       outputs,
@@ -186,7 +192,7 @@ export class VideoGenerationExecutionService {
       const id = documents.ingredientData.id.toString();
       context.pendingIngredientIds.push(id);
       additionalDocuments.push(documents);
-      await this.bindOutputCredits(context, id, outputs);
+      await this.admitOutput(context, id, outputs);
     }
     const generation = await this.dispatch(
       context,
@@ -250,7 +256,7 @@ export class VideoGenerationExecutionService {
           : await this.createAdditionalDocuments(context);
       const id = documents.ingredientData.id.toString();
       if (index > 0) context.pendingIngredientIds.push(id);
-      await this.bindOutputCredits(context, id, outputs);
+      await this.admitOutput(context, id, outputs);
       const generation = await this.dispatch(context, index + 1, [id]);
       accepted.add(id);
       await this.persistAcceptedOutput(
@@ -277,6 +283,13 @@ export class VideoGenerationExecutionService {
     metadataId: string,
     generation: StartedVideoGeneration,
   ): Promise<void> {
+    void this.mediaReceipts.recordAccepted({
+      organizationId: context.user.organizationId,
+      ingredientId,
+      provider: generation.provider,
+      model: context.model,
+      externalId: generation.externalId,
+    });
     try {
       await this.metadataService.patch(
         metadataId,
@@ -563,14 +576,16 @@ export class VideoGenerationExecutionService {
   }
 
   /**
-   * Binds one output to an even share of the request's credit hold,
-   * before dispatch so a fast webhook finds the hold.
+   * Admits one output for dispatch: opens its generation receipt (detached,
+   * never blocking) and binds an even share of the request's credit hold
+   * before dispatch, so a fast webhook finds the hold.
    */
-  private async bindOutputCredits(
+  private async admitOutput(
     context: VideoGenerationContext,
     ingredientId: string,
     outputs: number,
   ): Promise<void> {
+    this.openReceipt(context, ingredientId, outputs);
     const request = context.request as unknown as GenerationBillingRequest;
     const amount = request?.creditsConfig?.amount;
     if (amount === undefined) {
@@ -579,6 +594,49 @@ export class VideoGenerationExecutionService {
     await this.generationBilling.bindOutput(request, {
       credits: amount / Math.max(outputs, 1),
       ingredientId,
+    });
+  }
+
+  private openReceipt(
+    context: VideoGenerationContext,
+    ingredientId: string,
+    outputs: number,
+  ): void {
+    const dto = context.createVideoDto;
+    void this.mediaReceipts.open({
+      organizationId: context.user.organizationId,
+      brandId: String(context.brand.id),
+      actorId: context.user.userId ?? context.user.id,
+      isApiKey: context.user.isApiKey,
+      apiKeyId: context.user.apiKeyId,
+      scopes: context.user.scopes,
+      ingredientId,
+      parentIngredientId: String(context.ingredientData.id),
+      mediaKind: 'video',
+      surface: resolveMediaGenerationReceiptSurface(),
+      provider:
+        this.providerDispatchService.providerFor(
+          context.model,
+          context.modelProvider,
+        ) ??
+        context.modelProvider ??
+        'unknown',
+      model: context.model,
+      ...resolveMediaGenerationReceiptPrompts({
+        harness: context.generationHarness,
+        fallbackPrompt: dto.text ?? '',
+        dispatched: [
+          context.preparedFalDispatch?.input.prompt,
+          context.promptInput.prompt,
+        ],
+      }),
+      generationParameters: {
+        width: context.width,
+        height: context.height,
+        outputs,
+        ...(dto.duration !== undefined ? { duration: dto.duration } : {}),
+        ...(dto.resolution ? { resolution: dto.resolution } : {}),
+      },
     });
   }
 
