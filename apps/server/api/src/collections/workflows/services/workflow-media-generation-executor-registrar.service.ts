@@ -1,20 +1,21 @@
-import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
-import { assertWorkflowGenerationActorAdmission } from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
-import { parseWorkflowGenerationAdmissionSource } from '@api/collections/workflows/utils/workflow-generation-admission-source.util';
-import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import {
   currentWorkflowGenerationDispatch,
   runWithWorkflowGenerationDispatch,
 } from '@api/collections/workflow-executions/services/workflow-generation-dispatch.context';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import {
   type ValidatedWorkflowMediaDispatch,
   WorkflowMediaBillingPlanService,
 } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
+import { assertWorkflowGenerationActorAdmission } from '@api/collections/workflows/utils/workflow-generation-actor-admission.util';
+import { parseWorkflowGenerationAdmissionSource } from '@api/collections/workflows/utils/workflow-generation-admission-source.util';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { workflowExecutionGenerationBillingSchema } from '@api/helpers/utils/credits/workflow-generation-billing.schema';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -69,9 +70,10 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
     @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly falVideo?: FalVideoGenerationProviderAdapter,
-    @Optional() private readonly webhooks?: WebhooksService,
+    @Optional() _webhooks?: WebhooksService,
     @Optional() private readonly brandAccess?: BrandAccessService,
-    @Optional() private readonly falOutputFinalization?: WorkflowFalOutputFinalizationService,
+    @Optional()
+    private readonly falOutputFinalization?: WorkflowFalOutputFinalizationService,
   ) {}
 
   private async processingMediaUrl(
@@ -211,7 +213,13 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         const finalization = this.falOutputFinalization;
         const pending = await this.dispatchFundedMedia(funded, () =>
           this.helper.createAndLinkProcessingOutput({
-            continuation: { actionId: 'videoGen', context, isByok: Boolean(funded.credential), node, provider: 'fal' },
+            continuation: {
+              actionId: 'videoGen',
+              context,
+              isByok: Boolean(funded.credential),
+              node,
+              provider: 'fal',
+            },
             output: prepared.output,
             resultUrl: (id) => this.helper.buildVideoIngredientUrl(id),
             runProvider: async () => {
@@ -227,18 +235,35 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
                 height: 0,
               });
               if (result.completion !== 'remote-output' || !result.externalId) {
-                throw new BusinessLogicException('Fal returned no accepted remote video');
+                throw new BusinessLogicException(
+                  'Fal returned no accepted remote video',
+                );
               }
-              return { externalId: result.externalId, completionQuantities: result.completionQuantities };
+              return {
+                externalId: result.externalId,
+                completionQuantities: result.completionQuantities,
+              };
             },
             onProviderAccepted: async (_output, continuationId) => {
-              await finalization.finalize(continuationId, context.organizationId);
+              await finalization.finalize(
+                continuationId,
+                context.organizationId,
+              );
             },
           }),
         );
-        return { generationBriefEvidence: prepared.generationBriefEvidence, generationSource: prepared.generationSource, id: pending.ingredientId, model, provider: 'fal', status: IngredientStatus.PROCESSING, videoUrl: this.helper.buildVideoIngredientUrl(pending.ingredientId) };
+        return {
+          generationBriefEvidence: prepared.generationBriefEvidence,
+          generationSource: prepared.generationSource,
+          id: pending.ingredientId,
+          model,
+          provider: 'fal',
+          status: IngredientStatus.PROCESSING,
+          videoUrl: this.helper.buildVideoIngredientUrl(pending.ingredientId),
+        };
       }
-      if (!replicateService) throw new Error('Replicate workflow provider is unavailable');
+      if (!replicateService)
+        throw new Error('Replicate workflow provider is unavailable');
       const byok = funded
         ? funded.credential
         : await this.byokService?.resolveApiKey(
@@ -730,9 +755,25 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       );
     }
     if (execution.generationAdmissionSource) {
-      const source = parseWorkflowGenerationAdmissionSource(execution.generationAdmissionSource);
-      if (!this.brandAccess || source.state !== 'available' || source.organizationId !== context.organizationId || source.actorUserId !== context.userId || source.workflowVersionId !== context.workflowVersionId) throw new BusinessLogicException('Workflow generation actor admission is unavailable');
-      await assertWorkflowGenerationActorAdmission(this.brandAccess, source, this.prisma, node.id);
+      const source = parseWorkflowGenerationAdmissionSource(
+        execution.generationAdmissionSource,
+      );
+      if (
+        !this.brandAccess ||
+        source.state !== 'available' ||
+        source.organizationId !== context.organizationId ||
+        source.actorUserId !== context.userId ||
+        source.workflowVersionId !== context.workflowVersionId
+      )
+        throw new BusinessLogicException(
+          'Workflow generation actor admission is unavailable',
+        );
+      await assertWorkflowGenerationActorAdmission(
+        this.brandAccess,
+        source,
+        this.prisma,
+        node.id,
+      );
     }
     const dispatch = currentWorkflowGenerationDispatch();
     if (

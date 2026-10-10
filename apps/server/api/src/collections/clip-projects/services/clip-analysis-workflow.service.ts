@@ -15,14 +15,14 @@ import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import {
+  type ClipAnalysisTranscription,
+  readSavedClipTranscription,
+} from '@api/collections/clip-projects/services/clip-analysis-transcription.util';
+import {
   buildClipAnalysisFailureWorkflowDefinition,
   buildClipAnalysisWorkflowDefinition,
   CLIP_ANALYSIS_ACTION_IDS,
 } from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
-import {
-  type ClipAnalysisTranscription,
-  readSavedClipTranscription,
-} from '@api/collections/clip-projects/services/clip-analysis-transcription.util';
 import { ClipHighlightDetector } from '@api/collections/clip-projects/services/clip-highlight-detector.service';
 import {
   type SystemWorkflowActionRequest,

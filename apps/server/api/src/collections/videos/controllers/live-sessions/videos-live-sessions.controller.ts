@@ -1,8 +1,8 @@
-import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateLiveSessionDto } from '@api/collections/videos/dto/create-live-session.dto';
 import { LiveSessionCreditsService } from '@api/collections/videos/services/live-session-credits.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,

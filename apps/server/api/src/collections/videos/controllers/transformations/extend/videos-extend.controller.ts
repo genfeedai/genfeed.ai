@@ -7,13 +7,27 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ModelsGuard, ValidateModel } from '@api/helpers/guards/models/models.guard';
-import { returnNotFound, serializeSingle } from '@api/helpers/utils/response/response.util';
+import {
+  ModelsGuard,
+  ValidateModel,
+} from '@api/helpers/guards/models/models.guard';
+import {
+  returnNotFound,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
-import { Body, Controller, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 
 @AutoSwagger()
 @Controller('videos')
@@ -36,13 +50,26 @@ export class VideosExtendController {
     @Param('videoId') videoId: string,
     @Body() dto: VideoExtendDto,
   ): Promise<JsonApiSingleResponse> {
-    const source = await this.videosService.findOne({ id: videoId, organizationId: user.organizationId, isDeleted: false, category: IngredientCategory.VIDEO });
+    const source = await this.videosService.findOne({
+      id: videoId,
+      organizationId: user.organizationId,
+      isDeleted: false,
+      category: IngredientCategory.VIDEO,
+    });
     if (!source) return returnNotFound(VideosExtendController.name, videoId);
     // The existing workflow funding compiler owns the hold and terminal settlement.
     // Creating a draft or an ordinary HTTP hold cannot execute a continuation.
     const queued = await this.extensionExecution.enqueue(user, videoId, dto);
-    const execution = await this.prisma.workflowExecution.findFirst({ where: { id: queued.executionId, organizationId: user.organizationId, userId: user.userId ?? user.id, isDeleted: false } });
-    if (!execution) return returnNotFound(VideosExtendController.name, queued.executionId);
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: {
+        id: queued.executionId,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
+        isDeleted: false,
+      },
+    });
+    if (!execution)
+      return returnNotFound(VideosExtendController.name, queued.executionId);
     return serializeSingle(request, WorkflowExecutionSerializer, execution);
   }
 }

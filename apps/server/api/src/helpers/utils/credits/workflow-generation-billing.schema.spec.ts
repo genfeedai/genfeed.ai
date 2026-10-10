@@ -61,10 +61,17 @@ describe('provider-discriminated workflow billing preparation', () => {
     const allocation = falAllocation();
     const output = allocation.dispatch.preparationContract.reviewedOutput;
     allocation.dispatch.preparationContract.brief = {
-      kind: 'reviewed-provider-schema', modelKey: output.modelKey, mediaKind: 'video', schemaVersion: output.version, schemaFamily: 'video-reference-v1', inputSchemaHash: 'a'.repeat(64), adapterVersion: 1,
+      kind: 'reviewed-provider-schema',
+      modelKey: output.modelKey,
+      mediaKind: 'video',
+      schemaVersion: output.version,
+      schemaFamily: 'video-reference-v1',
+      inputSchemaHash: 'a'.repeat(64),
+      adapterVersion: 1,
     };
     expect(schema.safeParse(allocation).success).toBe(true);
-    allocation.dispatch.preparationContract.brief.schemaVersion = 'unapproved-version';
+    allocation.dispatch.preparationContract.brief.schemaVersion =
+      'unapproved-version';
     expect(schema.safeParse(allocation).success).toBe(false);
   });
   it('rejects a mixed provider identity even if outer dispatch is replaced', () => {

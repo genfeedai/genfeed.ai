@@ -70,8 +70,11 @@ function preparationContract(
   const brief = prepared.generationBriefEvidence;
   if (
     brief.modelKey !== prepared.model ||
-    (brief.status !== 'compiled' && !(prepared.provider === 'fal' && brief.status === 'exempted')) ||
-    (prepared.provider === 'fal' && quoteSnapshotHash(output) !== quoteSnapshotHash(prepared.reviewedOutput)) ||
+    (brief.status !== 'compiled' &&
+      !(prepared.provider === 'fal' && brief.status === 'exempted')) ||
+    (prepared.provider === 'fal' &&
+      quoteSnapshotHash(output) !==
+        quoteSnapshotHash(prepared.reviewedOutput)) ||
     output.modelKey !== prepared.model ||
     output.provider !== prepared.provider ||
     quoteSnapshotHash(output.target) !== quoteSnapshotHash(prepared.target)
@@ -83,15 +86,20 @@ function preparationContract(
     version: 1,
     preparationVersion: prepared.preparationVersion,
     actionId: prepared.actionId,
-    brief: brief.status === 'compiled' ? {
-      briefVersion: brief.briefVersion,
-      compilerId: brief.compilerId,
-      compilerVersion: brief.compilerVersion,
-      profileId: brief.profileId,
-      profileVersion: brief.profileVersion,
-      modelKey: brief.modelKey,
-      mediaKind: brief.mediaKind,
-    } : prepared.provider === 'fal' ? prepared.schemaPreparation : unavailable('Workflow generation brief contract is unresolved'),
+    brief:
+      brief.status === 'compiled'
+        ? {
+            briefVersion: brief.briefVersion,
+            compilerId: brief.compilerId,
+            compilerVersion: brief.compilerVersion,
+            profileId: brief.profileId,
+            profileVersion: brief.profileVersion,
+            modelKey: brief.modelKey,
+            mediaKind: brief.mediaKind,
+          }
+        : prepared.provider === 'fal'
+          ? prepared.schemaPreparation
+          : unavailable('Workflow generation brief contract is unresolved'),
     reviewedOutput: output,
   };
 }
@@ -116,7 +124,11 @@ export class WorkflowMediaBillingPlanService {
     );
     if (
       prepared.generationBriefEvidence.modelKey !== prepared.model ||
-      (prepared.generationBriefEvidence.status !== 'compiled' && !(prepared.provider === 'fal' && prepared.generationBriefEvidence.status === 'exempted'))
+      (prepared.generationBriefEvidence.status !== 'compiled' &&
+        !(
+          prepared.provider === 'fal' &&
+          prepared.generationBriefEvidence.status === 'exempted'
+        ))
     )
       unavailable('Workflow generation brief contract is unresolved');
     const projection = projectWorkflowMediaProviderInput(prepared.input);
@@ -140,15 +152,23 @@ export class WorkflowMediaBillingPlanService {
     );
     const quote =
       route.kind === 'platform'
-        ? await this.quotes.quoteSnapshotByKey(prepared.model, {
-            ...projection.dimensions,
-            ...(prepared.provider === 'fal' ? prepared.referenceQuoteEvidence : {}),
-            requests: 1,
-            outputs: 1,
-            provider: prepared.provider,
-            providerInput: prepared.input,
-            organizationId: args.context.organizationId,
-          }, prepared.provider === 'fal' ? prepared.nativeOutputQuoteEvidence : undefined)
+        ? await this.quotes.quoteSnapshotByKey(
+            prepared.model,
+            {
+              ...projection.dimensions,
+              ...(prepared.provider === 'fal'
+                ? prepared.referenceQuoteEvidence
+                : {}),
+              requests: 1,
+              outputs: 1,
+              provider: prepared.provider,
+              providerInput: prepared.input,
+              organizationId: args.context.organizationId,
+            },
+            prepared.provider === 'fal'
+              ? prepared.nativeOutputQuoteEvidence
+              : undefined,
+          )
         : undefined;
     if (quote)
       assertWorkflowMediaPricingUnits(quote.pricingProfile, quote.quantities);
@@ -267,13 +287,17 @@ export class WorkflowMediaBillingPlanService {
         prepared.model,
         {
           ...projection.dimensions,
-          ...(prepared.provider === 'fal' ? prepared.referenceQuoteEvidence : {}),
+          ...(prepared.provider === 'fal'
+            ? prepared.referenceQuoteEvidence
+            : {}),
           requests: 1,
           outputs: 1,
           provider: prepared.provider,
           providerInput: prepared.input,
         },
-        prepared.provider === 'fal' ? prepared.nativeOutputQuoteEvidence : undefined,
+        prepared.provider === 'fal'
+          ? prepared.nativeOutputQuoteEvidence
+          : undefined,
       );
       quantities = { ...actual, requests: 1, outputs: 1 };
       assertWorkflowMediaPricingUnits(frozen.quote.pricingProfile, quantities);

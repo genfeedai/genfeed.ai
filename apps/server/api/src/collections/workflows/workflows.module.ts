@@ -1,15 +1,15 @@
-import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
-import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
+import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
 import { WorkflowMediaBillingPlanService } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
 import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
+import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';

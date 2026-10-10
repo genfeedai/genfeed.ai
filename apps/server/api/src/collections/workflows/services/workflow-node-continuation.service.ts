@@ -1,10 +1,10 @@
-import { mergeWorkflowProviderResult } from '@api/collections/workflows/services/workflow-provider-result.util';
 import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import { createWorkflowMediaCostIntent } from '@api/collections/workflows/services/workflow-media-cost-intent';
 import {
   finishWorkflowContinuationSettlement,
   recordFundedWorkflowSubmissionIntent,
 } from '@api/collections/workflows/services/workflow-node-continuation-billing.util';
+import { mergeWorkflowProviderResult } from '@api/collections/workflows/services/workflow-provider-result.util';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getActionDefinition } from '@genfeedai/actions';
@@ -199,7 +199,11 @@ export class WorkflowNodeContinuationService {
     continuationId: string;
     externalId: string;
     organizationId: string;
-    completionQuantities?: { width?: number; height?: number; duration?: number };
+    completionQuantities?: {
+      width?: number;
+      height?: number;
+      duration?: number;
+    };
   }): Promise<void> {
     const webhookUrl = this.configService?.get('GENFEEDAI_WEBHOOKS_URL');
     const requiresPoll = !canReceiveProviderWebhooks(webhookUrl);
@@ -225,13 +229,27 @@ export class WorkflowNodeContinuationService {
         );
       }
 
-      const previousResult = this.readProviderResult(continuation.providerResult);
-      const previousAccepted = this.readProviderResult(previousResult.acceptedFalOutput);
-      const previousQuantities = this.readProviderResult(previousAccepted.completionQuantities);
-      if (continuation.provider === 'fal' && previousResult.acceptedFalOutput !== undefined) {
-        if (previousAccepted.externalId !== input.externalId) throw new Error('Fal accepted output identity changed');
+      const previousResult = this.readProviderResult(
+        continuation.providerResult,
+      );
+      const previousAccepted = this.readProviderResult(
+        previousResult.acceptedFalOutput,
+      );
+      const previousQuantities = this.readProviderResult(
+        previousAccepted.completionQuantities,
+      );
+      if (
+        continuation.provider === 'fal' &&
+        previousResult.acceptedFalOutput !== undefined
+      ) {
+        if (previousAccepted.externalId !== input.externalId)
+          throw new Error('Fal accepted output identity changed');
         for (const key of ['width', 'height', 'duration'] as const) {
-          if (input.completionQuantities?.[key] !== undefined && previousQuantities[key] !== input.completionQuantities[key]) throw new Error(`Fal accepted ${key} changed`);
+          if (
+            input.completionQuantities?.[key] !== undefined &&
+            previousQuantities[key] !== input.completionQuantities[key]
+          )
+            throw new Error(`Fal accepted ${key} changed`);
         }
       }
 
@@ -239,7 +257,17 @@ export class WorkflowNodeContinuationService {
         data: {
           externalId: input.externalId,
           ...(continuation.provider === 'fal'
-            ? { providerResult: { ...previousResult, acceptedFalOutput: previousResult.acceptedFalOutput ?? { externalId: input.externalId, ...(input.completionQuantities ? { completionQuantities: input.completionQuantities } : {}) } } as Prisma.InputJsonValue }
+            ? {
+                providerResult: {
+                  ...previousResult,
+                  acceptedFalOutput: previousResult.acceptedFalOutput ?? {
+                    externalId: input.externalId,
+                    ...(input.completionQuantities
+                      ? { completionQuantities: input.completionQuantities }
+                      : {}),
+                  },
+                } as Prisma.InputJsonValue,
+              }
             : {}),
           ...(continuation.provider === 'heygen' && requiresPoll
             ? {
@@ -283,32 +311,89 @@ export class WorkflowNodeContinuationService {
     organizationId: string;
     ingredientId: string;
     externalId: string;
-    measurement: { width: number; height: number; duration: number; framesPerSecond: number; assetHash: string; sizeBytes: number; assetKey: string };
+    measurement: {
+      width: number;
+      height: number;
+      duration: number;
+      framesPerSecond: number;
+      assetHash: string;
+      sizeBytes: number;
+      assetKey: string;
+    };
   }): Promise<void> {
     const measured = input.measurement;
-    if (![measured.width, measured.height, measured.sizeBytes].every((value) => Number.isSafeInteger(value) && value > 0) || ![measured.duration, measured.framesPerSecond].every((value) => Number.isFinite(value) && value > 0) || !/^[a-f0-9]{64}$/.test(measured.assetHash) || !measured.assetKey) throw new Error('Fal output measurement is incomplete');
+    if (
+      ![measured.width, measured.height, measured.sizeBytes].every(
+        (value) => Number.isSafeInteger(value) && value > 0,
+      ) ||
+      ![measured.duration, measured.framesPerSecond].every(
+        (value) => Number.isFinite(value) && value > 0,
+      ) ||
+      !/^[a-f0-9]{64}$/.test(measured.assetHash) ||
+      !measured.assetKey
+    )
+      throw new Error('Fal output measurement is incomplete');
     await this.prisma.$transaction(async (transaction) => {
-      const row = await transaction.workflowNodeContinuation.findFirst({ where: { id: input.continuationId, organizationId: input.organizationId, ingredientId: input.ingredientId, externalId: input.externalId, provider: 'fal', status: WorkflowNodeContinuationStatus.WAITING_PROVIDER } });
-      if (!row) throw new Error('Fal output measurement has no matching accepted continuation');
+      const row = await transaction.workflowNodeContinuation.findFirst({
+        where: {
+          id: input.continuationId,
+          organizationId: input.organizationId,
+          ingredientId: input.ingredientId,
+          externalId: input.externalId,
+          provider: 'fal',
+          status: WorkflowNodeContinuationStatus.WAITING_PROVIDER,
+        },
+      });
+      if (!row)
+        throw new Error(
+          'Fal output measurement has no matching accepted continuation',
+        );
       const original = this.readProviderResult(row.providerResult);
       const accepted = this.readProviderResult(original.acceptedFalOutput);
-      if (accepted.externalId !== input.externalId) throw new Error('Fal accepted output identity changed');
+      if (accepted.externalId !== input.externalId)
+        throw new Error('Fal accepted output identity changed');
       const reported = this.readProviderResult(accepted.completionQuantities);
       for (const key of ['width', 'height', 'duration'] as const) {
-        if (reported[key] !== undefined && reported[key] !== measured[key]) throw new Error(`Fal measured ${key} disagrees with the provider`);
+        if (reported[key] !== undefined && reported[key] !== measured[key])
+          throw new Error(`Fal measured ${key} disagrees with the provider`);
       }
       const existing = this.readProviderResult(original.measuredFalOutput);
-      if (original.measuredFalOutput !== undefined && (existing.externalId !== input.externalId || Object.entries(measured).some(([key, value]) => this.readProviderResult(existing.measurement)[key] !== value))) throw new Error('Fal output measurement changed');
+      if (
+        original.measuredFalOutput !== undefined &&
+        (existing.externalId !== input.externalId ||
+          Object.entries(measured).some(
+            ([key, value]) =>
+              this.readProviderResult(existing.measurement)[key] !== value,
+          ))
+      )
+        throw new Error('Fal output measurement changed');
       const updated = await transaction.workflowNodeContinuation.updateMany({
-        where: { id: row.id, organizationId: input.organizationId, status: row.status, updatedAt: row.updatedAt, externalId: input.externalId },
-        data: { providerResult: { ...original, measuredFalOutput: { externalId: input.externalId, measurement: measured } } as Prisma.InputJsonValue },
+        where: {
+          id: row.id,
+          organizationId: input.organizationId,
+          status: row.status,
+          updatedAt: row.updatedAt,
+          externalId: input.externalId,
+        },
+        data: {
+          providerResult: {
+            ...original,
+            measuredFalOutput: {
+              externalId: input.externalId,
+              measurement: measured,
+            },
+          } as Prisma.InputJsonValue,
+        },
       });
-      if (updated.count !== 1) throw new Error('Fal output measurement lost its continuation claim');
+      if (updated.count !== 1)
+        throw new Error('Fal output measurement lost its continuation claim');
     });
   }
 
   private readProviderResult(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 
   async requestHeygenPollAttempt(input: {
@@ -723,7 +808,10 @@ export class WorkflowNodeContinuationService {
       const claimed = await transaction.workflowNodeContinuation.updateMany({
         data: {
           error: input.error ?? null,
-          providerResult: mergeWorkflowProviderResult(continuation.providerResult, input.providerResult),
+          providerResult: mergeWorkflowProviderResult(
+            continuation.providerResult,
+            input.providerResult,
+          ),
           resumeClaimedAt: canResume ? new Date() : null,
           status: canResume
             ? WorkflowNodeContinuationStatus.RESUMING
@@ -811,7 +899,10 @@ export class WorkflowNodeContinuationService {
         data: {
           error: input.error ?? null,
           ...(callbackExternalId ? { externalId: callbackExternalId } : {}),
-          providerResult: mergeWorkflowProviderResult(continuation.providerResult, input.providerResult),
+          providerResult: mergeWorkflowProviderResult(
+            continuation.providerResult,
+            input.providerResult,
+          ),
           status: input.succeeded
             ? WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED
             : WorkflowNodeContinuationStatus.PROVIDER_FAILED,

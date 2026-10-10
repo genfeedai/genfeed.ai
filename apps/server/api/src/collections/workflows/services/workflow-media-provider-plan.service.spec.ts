@@ -436,7 +436,7 @@ describe('WorkflowMediaProviderPlanService', () => {
     expect(f.getPresignedDownloadUrl).not.toHaveBeenCalled();
   });
 
-  it('keeps native extension duration unknown and resolves references before returning the exact provider input', async () => {
+  it('preserves the requested native extension duration and resolves references before returning the exact provider input', async () => {
     const f = fixture();
     const prepared = await f.service.prepareNode(
       node('videoGen', {
@@ -451,7 +451,7 @@ describe('WorkflowMediaProviderPlanService', () => {
     );
     expect(prepared.input).toMatchObject({
       aspect_ratio: 'adaptive',
-      duration: -1,
+      duration: 8,
       reference_videos: ['https://storage.test/source.mp4?signed=1'],
     });
     expect(prepared.output).toMatchObject({

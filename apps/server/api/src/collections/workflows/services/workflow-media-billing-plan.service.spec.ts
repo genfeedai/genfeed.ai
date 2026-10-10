@@ -247,7 +247,7 @@ describe('server-owned single-operation workflow media billing compiler', () => 
     expect(f.quoteSnapshotByKey).not.toHaveBeenCalled();
   });
   it.each([false, true])(
-    'rejects the actual Seedance native extension duration -1 before funding either route, BYOK=%s',
+    'rejects the editing-only duration -1 for native extension before funding either route, BYOK=%s',
     async (byok) => {
       const f = fixture(byok);
       const video = {
@@ -260,7 +260,7 @@ describe('server-owned single-operation workflow media billing compiler', () => 
             brandId: 'brand-1',
             prompt: 'extend',
             actionVerb: 'extend',
-            duration: 8,
+            duration: -1,
           },
         }),
         inputs: new Map([['videoReference', 'https://public.test/source.mp4']]),
@@ -285,7 +285,8 @@ describe('server-owned single-operation workflow media billing compiler', () => 
     const f = fixture();
     const planned = await f.service.prepareAllocation(args);
     const changed = structuredClone(planned.allocation);
-    if (!('compilerVersion' in changed.dispatch.preparationContract.brief)) throw new Error('Expected compiled brief fixture');
+    if (!('compilerVersion' in changed.dispatch.preparationContract.brief))
+      throw new Error('Expected compiled brief fixture');
     changed.dispatch.preparationContract.brief.compilerVersion++;
     changed.dispatch.billableFingerprint = quoteSnapshotHash({
       ...changed.dispatch,

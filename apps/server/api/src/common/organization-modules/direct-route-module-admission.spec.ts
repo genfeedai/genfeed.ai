@@ -31,16 +31,16 @@ import { VideosLipSyncController } from '@api/collections/videos/controllers/tra
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
 import { VideosResizeController } from '@api/collections/videos/controllers/transformations/resize/videos-resize.controller';
 import { VideosUpscaleController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale.controller';
-import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import {
   ORGANIZATION_MODULE_KEY,
   type OrganizationModuleEndpointPolicy,
 } from '@api/common/organization-modules/organization-module.decorator';
 import { OrganizationModuleGuard } from '@api/common/organization-modules/organization-module.guard';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { MCPController } from '@api/endpoints/mcp/mcp.controller';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
-import { RequestMethod, type ExecutionContext } from '@nestjs/common';
+import { type ExecutionContext, RequestMethod } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
@@ -94,7 +94,7 @@ function context(
   controller: object,
   handler: object,
   method: string,
-  flags: Record<string, boolean> = {},
+  flags: { isApiKey?: boolean; isSuperAdmin?: boolean } = {},
 ): ExecutionContext {
   return {
     getClass: () => controller,
@@ -203,12 +203,12 @@ describe('direct product route module admission inventory', () => {
       const isSubscriptionGatedFresh = vi.fn().mockResolvedValue(true);
       const access = new OrganizationModuleAccessService(
         {
-          organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
+          organization: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }),
+          },
           organizationSetting: {
             findUnique: vi.fn().mockResolvedValue({
               moduleOverrides: {
-                playground: false,
-                storyboard: false,
                 motion: false,
                 clips: false,
                 batch: false,
@@ -278,7 +278,7 @@ describe('direct product route module admission inventory', () => {
         organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
         organizationSetting: {
           findUnique: vi.fn().mockResolvedValue({
-            moduleOverrides: { playground: false, motion: false },
+            moduleOverrides: { motion: false },
           }),
         },
       } as never,

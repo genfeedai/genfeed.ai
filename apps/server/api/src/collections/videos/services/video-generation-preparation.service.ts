@@ -1,4 +1,3 @@
-import { measureStoredSeedanceVideoReferences } from '@api/collections/videos/services/seedance-reference-measurement.util';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -20,6 +19,7 @@ import {
   type SeedanceVideoReferenceEvidence,
   seedanceVideoReferenceLimit,
 } from '@api/collections/videos/services/seedance-reference-evidence.util';
+import { measureStoredSeedanceVideoReferences } from '@api/collections/videos/services/seedance-reference-measurement.util';
 import type {
   PromptInput,
   ResolvedVideoGenerationRequest,
@@ -408,13 +408,25 @@ export class VideoGenerationPreparationService {
       !createVideoDto.videoReferences?.length
     )
       return undefined;
-    return measureStoredSeedanceVideoReferences({
-      files: this.filesClientService,
-      findStoredVideo: async (id, organizationId) => {
-        const ingredient = await this.ingredientsService.findOne({ id, organizationId, isDeleted: false, category: IngredientCategory.VIDEO });
-        return ingredient ? { s3Key: ingredient.s3Key ?? null } : null;
+    return measureStoredSeedanceVideoReferences(
+      {
+        files: this.filesClientService,
+        findStoredVideo: async (id, organizationId) => {
+          const ingredient = await this.ingredientsService.findOne({
+            id,
+            organizationId,
+            isDeleted: false,
+            category: IngredientCategory.VIDEO,
+          });
+          return ingredient ? { s3Key: ingredient.s3Key ?? null } : null;
+        },
       },
-    }, { endpoint, organizationId: user.organizationId, assetIds: createVideoDto.videoReferences.map(String) });
+      {
+        endpoint,
+        organizationId: user.organizationId,
+        assetIds: createVideoDto.videoReferences.map(String),
+      },
+    );
   }
 
   async assertFreshNativeVideoReferences(

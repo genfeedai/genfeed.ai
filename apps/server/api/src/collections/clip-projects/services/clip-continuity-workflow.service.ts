@@ -1,4 +1,3 @@
-import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import {
   buildClipContinuityFailureWorkflowDefinition,
@@ -8,6 +7,7 @@ import {
   CLIP_CONTINUITY_FAILURE_WORKFLOW_ID,
   CLIP_CONTINUITY_WORKFLOW_ID,
 } from '@api/collections/clip-projects/services/clip-continuity-workflow-definition';
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {

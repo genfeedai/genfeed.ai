@@ -25,12 +25,13 @@ describe('ClipAnalysisWorkflowService', () => {
             ...request,
             context: {
               executionId: 'execution-1',
-              organizationId: 'org-1',
-              userId: 'user-1',
-              runId: 'execution-1',
-              workflowId: 'workflow-1',
-              workflowVersionId: 'version-1',
               ...request.context,
+              organizationId: request.context?.organizationId ?? 'org-1',
+              userId: request.context?.userId ?? 'user-1',
+              runId: request.context?.runId ?? 'execution-1',
+              workflowId: request.context?.workflowId ?? 'workflow-1',
+              workflowVersionId:
+                request.context?.workflowVersionId ?? 'version-1',
             },
           }),
         );

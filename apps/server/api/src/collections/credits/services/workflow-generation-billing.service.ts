@@ -1,7 +1,7 @@
-import { readWorkflowFalCompletionEvidence } from '@api/collections/credits/services/workflow-fal-completion-evidence.util';
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
+import { readWorkflowFalCompletionEvidence } from '@api/collections/credits/services/workflow-fal-completion-evidence.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import {
@@ -381,9 +381,14 @@ export class WorkflowGenerationBillingService {
       return;
     }
     if (evidence.kind === 'completed') {
-      const fal = continuation.provider === 'fal'
-        ? await readWorkflowFalCompletionEvidence(tx, { ...continuation, id: continuation.id ?? '' }, allocation)
-        : undefined;
+      const fal =
+        continuation.provider === 'fal'
+          ? await readWorkflowFalCompletionEvidence(
+              tx,
+              { ...continuation, id: continuation.id ?? '' },
+              allocation,
+            )
+          : undefined;
       await this.recordOperationProof(
         tx,
         continuation.executionId,
@@ -391,7 +396,9 @@ export class WorkflowGenerationBillingService {
         {
           artifacts: [
             {
-              assetKey: fal?.assetKey ?? `workflow-generation/${continuation.ingredientId}`,
+              assetKey:
+                fal?.assetKey ??
+                `workflow-generation/${continuation.ingredientId}`,
               ingredientId: continuation.ingredientId,
               role: 'primary',
             },

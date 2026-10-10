@@ -1,4 +1,3 @@
-import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import {
   buildClipFactoryFailureWorkflowDefinition,
@@ -12,6 +11,7 @@ import type {
   ClipHighlight,
   ClipHookReviewContext,
 } from '@api/collections/clip-projects/services/clip-generation.service';
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import {
   type SystemWorkflowActionRequest,

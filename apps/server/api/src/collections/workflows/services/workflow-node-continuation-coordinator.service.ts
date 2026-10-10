@@ -1,6 +1,6 @@
-import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowFalOutputFinalizationService } from '@api/collections/workflows/services/workflow-fal-output-finalization.service';
 import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
 import {
   type ProviderContinuationIdentity,
@@ -20,7 +20,8 @@ export class WorkflowNodeContinuationCoordinatorService {
     private readonly executions: WorkflowExecutionsService,
     private readonly workflowExecutor: WorkflowExecutorService,
     private readonly logger: LoggerService,
-    @Optional() private readonly falOutputs?: WorkflowFalOutputFinalizationService,
+    @Optional()
+    private readonly falOutputs?: WorkflowFalOutputFinalizationService,
   ) {}
 
   async completeProviderAction(input: {

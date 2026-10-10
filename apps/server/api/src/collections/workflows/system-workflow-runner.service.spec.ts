@@ -117,10 +117,24 @@ describe('SystemWorkflowRunnerService definitions', () => {
 
   it('refuses synchronous execution of a funded system graph before creating a mirror or output', async () => {
     const { runner } = createRunner();
-    runner.registerWorkflow({ ...definition, canonicalId: 'funded-generation', generationAdmission: true });
-    const input = { actionType: 'video.extend', canonicalId: 'funded-generation', organizationId: 'org-1', source: 'test', userId: 'user-1' };
-    await expect(runner.startWorkflow(input)).rejects.toThrow('queued execution admission');
-    await expect(runner.runWorkflow(input)).rejects.toThrow('queued execution admission');
+    runner.registerWorkflow({
+      ...definition,
+      canonicalId: 'funded-generation',
+      generationAdmission: true,
+    });
+    const input = {
+      actionType: 'video.extend',
+      canonicalId: 'funded-generation',
+      organizationId: 'org-1',
+      source: 'test',
+      userId: 'user-1',
+    };
+    await expect(runner.startWorkflow(input)).rejects.toThrow(
+      'queued execution admission',
+    );
+    await expect(runner.runWorkflow(input)).rejects.toThrow(
+      'queued execution admission',
+    );
   });
 
   it('rejects a registered workflow whose result node is absent', () => {
@@ -2086,9 +2100,36 @@ describe('registered Clips module admission', () => {
     '$graph.canonicalId $nodeId respects fresh access after revocation',
     async ({ graph, nodeId, allowed }) => {
       const assertAccess = vi.fn().mockResolvedValue(undefined);
+      const pin = buildWorkflowVersionDefinition(graph.definition);
       const { runner, executors } = createRunner(
         undefined,
-        {},
+        {
+          workflowExecution: {
+            findFirst: vi.fn().mockResolvedValue({
+              workflowVersion: {
+                id: 'parent-version',
+                workflowId: 'parent-workflow',
+                organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                contentHash: pin.contentHash,
+                graph: pin.graph,
+                inputSchema: pin.inputSchema,
+                workflow: {
+                  isDeleted: false,
+                  organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                  userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+                  metadata: {
+                    sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+                    [SYSTEM_WORKFLOW_METADATA_KEY]:
+                      buildHiddenSystemWorkflowMetadata({
+                        canonicalId: graph.canonicalId,
+                      }),
+                  },
+                },
+              },
+            }),
+          },
+        },
         {},
         {},
         { assertAccess },

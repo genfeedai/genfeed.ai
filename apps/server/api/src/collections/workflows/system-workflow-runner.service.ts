@@ -1,4 +1,3 @@
-import { assertReservedSystemActionAdmission } from '@api/collections/workflows/utils/reserved-system-action-admission.util';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
@@ -29,6 +28,7 @@ import {
   WORKFLOW_FOR_EACH_ACTION_ID,
 } from '@api/collections/workflows/system-workflow-for-each.util';
 import { ensureHiddenSystemWorkflowMirror } from '@api/collections/workflows/system-workflow-mirror.util';
+import { assertReservedSystemActionAdmission } from '@api/collections/workflows/utils/reserved-system-action-admission.util';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import {
   WORKFLOW_ENGINE_ADAPTER,
@@ -207,7 +207,11 @@ export class SystemWorkflowRunnerService
       this.getEngineAdapter().registerExecutor(
         actionId,
         async (node, inputs, context) => {
-          await assertReservedSystemActionAdmission(this.prisma, this.workflowDefinitions, { actionId, nodeId: node.id, context });
+          await assertReservedSystemActionAdmission(
+            this.prisma,
+            this.workflowDefinitions,
+            { actionId, nodeId: node.id, context },
+          );
           const moduleContext = getOrganizationModuleExecutionContext();
           if (moduleContext) {
             if (moduleContext.organizationId !== context.organizationId) {
@@ -478,15 +482,21 @@ export class SystemWorkflowRunnerService
       userId,
       input.organizationId,
       {
-        ...(definition.generationAdmission ? {
-          admission: {
-            apiKeyId: input.apiKeyId,
-            actorScopes: input.actorScopes,
-            systemWorkflowCanonicalId: definition.canonicalId,
-            selection: { mode: 'full' as const, respectLocks: true },
-            trigger: { type: 'api', platform: input.source, data: input.inputValues ?? {} },
-          },
-        } : {}),
+        ...(definition.generationAdmission
+          ? {
+              admission: {
+                apiKeyId: input.apiKeyId,
+                actorScopes: input.actorScopes,
+                systemWorkflowCanonicalId: definition.canonicalId,
+                selection: { mode: 'full' as const, respectLocks: true },
+                trigger: {
+                  type: 'api',
+                  platform: input.source,
+                  data: input.inputValues ?? {},
+                },
+              },
+            }
+          : {}),
         idempotencyKey: input.idempotencyKey,
         inputValues: input.inputValues ?? {},
         metadata: {
@@ -585,7 +595,9 @@ export class SystemWorkflowRunnerService
     userId: string;
   }> {
     if (definition.generationAdmission) {
-      throw new Error('Funded system generation must use queued execution admission');
+      throw new Error(
+        'Funded system generation must use queued execution admission',
+      );
     }
     return this.runWithDefinitionModule(definition, input.organizationId, () =>
       this.startAdmittedDefinition(definition, input),

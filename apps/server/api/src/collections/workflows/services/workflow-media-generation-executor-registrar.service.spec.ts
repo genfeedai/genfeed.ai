@@ -219,7 +219,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
       expect.objectContaining({
         aspect_ratio: 'adaptive',
-        duration: -1,
+        duration: 8,
         reference_videos: ['https://s3.example.com/source-video-1?sig=signed'],
       }),
       undefined,

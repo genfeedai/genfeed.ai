@@ -1,5 +1,9 @@
-import { buildPlaygroundNativeExtendWorkflowDefinition, PLAYGROUND_NATIVE_EXTEND_WORKFLOW_ID, buildPlaygroundFabricatedExtendWorkflowDefinition, PLAYGROUND_FABRICATED_EXTEND_WORKFLOW_ID } from '@api/collections/workflows/services/playground-extend-workflow-definition';
-import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
+import {
+  buildPlaygroundFabricatedExtendWorkflowDefinition,
+  buildPlaygroundNativeExtendWorkflowDefinition,
+  PLAYGROUND_FABRICATED_EXTEND_WORKFLOW_ID,
+  PLAYGROUND_NATIVE_EXTEND_WORKFLOW_ID,
+} from '@api/collections/workflows/services/playground-extend-workflow-definition';
 import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { EXECUTABLE_WORKFLOW_IDENTITY_SELECT } from '@api/collections/workflows/services/workflow-executor.constants';
 import {
@@ -17,7 +21,10 @@ import type {
   WorkflowGenerationAdmissionSourceV1,
   WorkflowGenerationSelection,
 } from '@api/collections/workflows/workflow-generation-admission.interface';
-import { hydrateWorkflowDefinition } from '@api/collections/workflows/workflow-version-definition';
+import {
+  buildWorkflowVersionDefinition,
+  hydrateWorkflowDefinition,
+} from '@api/collections/workflows/workflow-version-definition';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import type { Prisma } from '@genfeedai/prisma';
@@ -52,8 +59,12 @@ export function workflowGenerationAdmissionRequestHash(
 ): string {
   return quoteSnapshotHash({
     actorUserId: input.actorUserId,
-    ...(input.apiKeyId ? { apiKeyId: input.apiKeyId, actorScopes: input.actorScopes ?? [] } : {}),
-    ...(input.systemWorkflowCanonicalId ? { systemWorkflowCanonicalId: input.systemWorkflowCanonicalId } : {}),
+    ...(input.apiKeyId
+      ? { apiKeyId: input.apiKeyId, actorScopes: input.actorScopes ?? [] }
+      : {}),
+    ...(input.systemWorkflowCanonicalId
+      ? { systemWorkflowCanonicalId: input.systemWorkflowCanonicalId }
+      : {}),
     organizationId: input.organizationId,
     selection: input.selection,
     trigger: input.trigger,
@@ -105,7 +116,9 @@ export function buildWorkflowGenerationAdmissionSource(
   if (partial && !partial.isValid) unavailable('Workflow selection is invalid');
   const body = {
     actorUserId: input.actorUserId,
-    ...(input.apiKeyId ? { apiKeyId: input.apiKeyId, actorScopes: input.actorScopes ?? [] } : {}),
+    ...(input.apiKeyId
+      ? { apiKeyId: input.apiKeyId, actorScopes: input.actorScopes ?? [] }
+      : {}),
     brandId: workflow.brandId ?? null,
     initiallyCompletedNodeIds: [...initial.completedNodes],
     initialNodeOutputs: Object.fromEntries(initial.nodeCache),
@@ -168,12 +181,35 @@ export async function captureWorkflowGenerationAdmissionSource(
   const hidden = isGlobalHiddenMirror(version);
   if (hidden) {
     if (!input.systemWorkflowCanonicalId) return null;
-    if (![PLAYGROUND_NATIVE_EXTEND_WORKFLOW_ID, PLAYGROUND_FABRICATED_EXTEND_WORKFLOW_ID].includes(input.systemWorkflowCanonicalId) || getSystemWorkflowMetadata(version.workflow.metadata)?.canonicalId !== input.systemWorkflowCanonicalId || version.workflow.isDeleted) unavailable('System generation admission is unavailable');
-    const expected = buildWorkflowVersionDefinition((input.systemWorkflowCanonicalId === PLAYGROUND_NATIVE_EXTEND_WORKFLOW_ID ? buildPlaygroundNativeExtendWorkflowDefinition() : buildPlaygroundFabricatedExtendWorkflowDefinition()).definition);
-    if (version.contentHash !== expected.contentHash) unavailable('System generation definition differs from its registered pin');
-    const actual = buildWorkflowVersionDefinition({ ...version.graph as unknown as typeof expected.graph, inputVariables: version.inputSchema as unknown as typeof expected.inputSchema });
-    if (actual.contentHash !== expected.contentHash) unavailable('System generation graph differs from its registered pin');
-  } else if (input.systemWorkflowCanonicalId) unavailable('System generation mirror ownership is unavailable');
+    if (
+      ![
+        PLAYGROUND_NATIVE_EXTEND_WORKFLOW_ID,
+        PLAYGROUND_FABRICATED_EXTEND_WORKFLOW_ID,
+      ].includes(input.systemWorkflowCanonicalId) ||
+      getSystemWorkflowMetadata(version.workflow.metadata)?.canonicalId !==
+        input.systemWorkflowCanonicalId ||
+      version.workflow.isDeleted
+    )
+      unavailable('System generation admission is unavailable');
+    const expected = buildWorkflowVersionDefinition(
+      (input.systemWorkflowCanonicalId === PLAYGROUND_NATIVE_EXTEND_WORKFLOW_ID
+        ? buildPlaygroundNativeExtendWorkflowDefinition()
+        : buildPlaygroundFabricatedExtendWorkflowDefinition()
+      ).definition,
+    );
+    if (version.contentHash !== expected.contentHash)
+      unavailable(
+        'System generation definition differs from its registered pin',
+      );
+    const actual = buildWorkflowVersionDefinition({
+      ...(version.graph as unknown as typeof expected.graph),
+      inputVariables:
+        version.inputSchema as unknown as typeof expected.inputSchema,
+    });
+    if (actual.contentHash !== expected.contentHash)
+      unavailable('System generation graph differs from its registered pin');
+  } else if (input.systemWorkflowCanonicalId)
+    unavailable('System generation mirror ownership is unavailable');
   const isTenantOwned =
     version.organizationId === input.organizationId &&
     version.organizationId === version.workflow.organizationId &&

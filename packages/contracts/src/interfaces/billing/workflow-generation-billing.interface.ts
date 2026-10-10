@@ -42,23 +42,25 @@ export interface WorkflowMediaPreparationContract {
   version: 1;
   preparationVersion: 1;
   actionId: 'imageGen' | 'videoGen';
-  brief: {
-    briefVersion: number;
-    compilerId: string;
-    compilerVersion: number;
-    profileId: string;
-    profileVersion: number;
-    modelKey: string;
-    mediaKind: 'image' | 'video';
-  } | {
-    kind: 'reviewed-provider-schema';
-    modelKey: string;
-    mediaKind: 'video';
-    schemaVersion: string;
-    schemaFamily: string;
-    inputSchemaHash: string;
-    adapterVersion: 1;
-  };
+  brief:
+    | {
+        briefVersion: number;
+        compilerId: string;
+        compilerVersion: number;
+        profileId: string;
+        profileVersion: number;
+        modelKey: string;
+        mediaKind: 'image' | 'video';
+      }
+    | {
+        kind: 'reviewed-provider-schema';
+        modelKey: string;
+        mediaKind: 'video';
+        schemaVersion: string;
+        schemaFamily: string;
+        inputSchemaHash: string;
+        adapterVersion: 1;
+      };
   reviewedOutput: WorkflowReviewedOutputContract;
 }
 

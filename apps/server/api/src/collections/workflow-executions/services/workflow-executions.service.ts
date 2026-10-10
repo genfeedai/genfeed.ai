@@ -82,7 +82,11 @@ type WorkflowExecutionRuntimeStateRow = {
 type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
   admission?: Pick<
     WorkflowGenerationAdmissionCaptureInput,
-    'selection' | 'trigger' | 'apiKeyId' | 'actorScopes' | 'systemWorkflowCanonicalId'
+    | 'selection'
+    | 'trigger'
+    | 'apiKeyId'
+    | 'actorScopes'
+    | 'systemWorkflowCanonicalId'
   >;
   costEstimate?: WorkflowCostEstimate;
   estimatedDurationMs?: number;

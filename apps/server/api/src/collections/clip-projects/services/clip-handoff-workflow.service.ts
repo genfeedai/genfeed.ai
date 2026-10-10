@@ -1,10 +1,10 @@
-import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import {
   type ClipLibraryLinkResult,
   ClipLibraryLinkService,
 } from '@api/collections/clip-projects/services/clip-library-link.service';
+import { assertClipWorkflowActor } from '@api/collections/clip-projects/services/clip-workflow-actor.util';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
