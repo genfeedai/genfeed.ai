@@ -139,8 +139,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         question: 'How fast can we start?',
       },
       {
-        answer:
-          'Pricing is scoped on the call around content volume, channel mix, and review load, so the engagement is sized to what you actually need.',
+        answer: `${serviceOffering.priceLabel}. We agree on deliverables, channels, timing, review rounds, and how software credits are covered before you start.`,
         question: 'What does pricing look like?',
       },
       {
@@ -157,14 +156,12 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       'You are replacing internal content coordination, fragmented freelancers, or inconsistent agency execution.',
     ],
     heroAccent: 'content',
-    heroDescription:
-      'A high-touch content retainer for high-end SMBs that need consistent output without building an internal content team.',
+    heroDescription: serviceOffering.description,
     heroTitle: 'We run your',
     includes: COMMON_SERVICE_INCLUDES,
     intro:
       'You bring the expertise, raw ideas, customer context, and final approvals. We handle strategy, production, and publishing so your brand shows up consistently without creating another layer of internal coordination.',
-    metaDescription:
-      'Done-for-you content retainer for high-end SMBs. We handle strategy, production, and publishing so your brand ships consistently.',
+    metaDescription: `${serviceOffering.name} content ${serviceOffering.priceLabel.toLowerCase()}. We handle strategy, production, and publishing. Book a call to scope your monthly retainer.`,
     metaTitle: 'Done-For-You Content | Genfeed.ai',
     outcomes: [
       {
@@ -190,6 +187,9 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       'Built for businesses that already know content matters but do not want to manage another internal function.',
     outcomesTitle: 'What This Solves',
     process: COMMON_SERVICE_PROCESS,
+    priceLabel: serviceOffering.priceLabel,
+    priceNote: serviceOffering.priceNote,
+    priceCtaHint: serviceOffering.cta,
     processDescription:
       'Clear operating rhythm. Minimal coordination overhead.',
     processTitle: 'How It Works',

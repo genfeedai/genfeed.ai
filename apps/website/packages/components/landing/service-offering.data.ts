@@ -1,6 +1,15 @@
+import { formatPrice } from '@genfeedai/pricing';
+
+const STARTING_MONTHLY_PRICE = 2500;
+
 export const serviceOffering = {
+  name: 'Done for you',
+  cta: 'Book a call',
+  startingMonthlyPrice: STARTING_MONTHLY_PRICE,
+  priceLabel: `From ${formatPrice(STARTING_MONTHLY_PRICE)}/month`,
+  priceNote: 'Monthly retainer. Final scope agreed on a call.',
   description:
-    'We help plan, create, and publish content. Book a call to agree on scope.',
+    'You bring the expertise. We handle strategy, production, and publishing. You approve what goes out.',
   includes: [
     'Content strategy and planning',
     'Video, image, and written content',

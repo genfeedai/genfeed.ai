@@ -39,7 +39,7 @@ export interface ServiceLandingPageProps {
 const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
 
 // Product acquisition pages lead with the connected agent. Service offers keep
-// self-serve and booking, with calls booked on the done-for-you page.
+// self-serve and direct booking links.
 function LandingActions({
   slug,
 }: ServiceLandingActionsProps): React.ReactElement {
@@ -81,12 +81,27 @@ export default function ServiceLandingPage({
 }: ServiceLandingPageProps): React.ReactElement {
   const config = (serviceLandingConfigBySlug[slug] ??
     pitchLandingConfigBySlug[slug]) as ServiceLandingConfig;
+  const isBookingPage = slug === BOOKING_PAGE_SLUG;
   const topbar = (
     <LandingTopbar
-      ctaHref={SIGN_UP_HREF}
-      ctaLabel={config.isAgentFirst ? 'Connect your agent' : 'Start free'}
-      secondaryCtaHref={config.isAgentFirst ? SIGN_UP_HREF : BOOKING_HREF}
-      secondaryCtaLabel={config.isAgentFirst ? 'Start for $0' : 'Book a call'}
+      ctaHref={isBookingPage ? BOOKING_HREF : SIGN_UP_HREF}
+      ctaLabel={
+        config.isAgentFirst
+          ? 'Connect your agent'
+          : isBookingPage
+            ? 'Book a call'
+            : 'Start free'
+      }
+      secondaryCtaHref={
+        config.isAgentFirst || isBookingPage ? SIGN_UP_HREF : BOOKING_HREF
+      }
+      secondaryCtaLabel={
+        config.isAgentFirst
+          ? 'Start for $0'
+          : isBookingPage
+            ? 'Start free'
+            : 'Book a call'
+      }
       primaryAction={
         config.isAgentFirst ? (
           <ConnectAgentButton
@@ -118,6 +133,18 @@ export default function ServiceLandingPage({
           }
           description={config.heroDescription}
           heroActions={<LandingActions slug={slug} />}
+          heroDetails={
+            isBookingPage ? (
+              <div>
+                <p className="text-3xl font-semibold tracking-[-0.02em] text-surface">
+                  {config.priceLabel}
+                </p>
+                <p className="mt-2 text-sm text-surface/60">
+                  {config.priceNote}
+                </p>
+              </div>
+            ) : undefined
+          }
           showFooter={false}
         >
           <WebSection maxWidth="md" className="pt-0">

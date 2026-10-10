@@ -5,6 +5,8 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 
 ## Rules (permanent — user corrections)
 
+- [Website direct booking links](feedback_website_direct_booking_links.md) — Book a call opens the configured booking page; no scheduling iframe
+
 - [product_switches_in_platform_settings](rules/product_switches_in_platform_settings.md) — product feature switches are typed Admin platform settings read through the cached `getFeatureSettings()`; env holds only secrets and infrastructure (#5407)
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
 - [Keep future delivery workflows](feedback_keep_future_delivery_workflows.md) — browser/mobile/IDE lanes remain available; manual browser/mobile runs default to validation, with release readiness verified separately
