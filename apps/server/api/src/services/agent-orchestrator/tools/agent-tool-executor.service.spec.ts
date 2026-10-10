@@ -1033,7 +1033,7 @@ describe('AgentToolExecutorService', () => {
     );
     const onboardingCreditGrantsService = {
       captureOnboardingCompletedBestEffort: vi.fn(),
-    grantTrialCreditsBestEffort: vi.fn().mockResolvedValue(true),
+      grantTrialCreditsBestEffort: vi.fn().mockResolvedValue(true),
       completeMissions: vi
         .fn()
         .mockImplementation(async (_organizationId: string, ids: string[]) =>

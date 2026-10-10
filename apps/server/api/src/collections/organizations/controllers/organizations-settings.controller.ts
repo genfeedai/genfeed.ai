@@ -14,8 +14,11 @@ import { UpdateOrganizationSettingDto } from '@api/collections/organization-sett
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
-import type { OrganizationOnboardingFinishedEvent } from '@api/collections/organizations/organization-events.types';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
+import {
+  assertSettingsPatchAllowed,
+  onboardingSkipEvent,
+} from '@api/collections/organizations/utils/organization-settings-patch.util';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -77,12 +80,6 @@ import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
  * directly; over HTTP only platform superadmins (Admin app, self-hosted local
  * identity) may change them, so an org owner cannot self-upgrade.
  */
-const BILLING_CONTROLLED_SETTINGS = [
-  'subscriptionTier',
-  'seatsLimit',
-  'brandsLimit',
-] as const;
-
 @AutoSwagger()
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -221,31 +218,8 @@ export class OrganizationsSettingsController {
     @Param('organizationId') organizationId: string,
     @Body() settingsDto: UpdateOrganizationSettingDto,
   ): Promise<JsonApiSingleResponse> {
-    if (
-      Object.hasOwn(settingsDto, 'onboardingJourneyMissions') ||
-      Object.hasOwn(settingsDto, 'onboardingJourneyCompletedAt')
-    ) {
-      throw new BadRequestException(
-        'Onboarding journey state is managed by the server',
-      );
-    }
     const isSuperAdmin = getIsSuperAdmin(req.user, req);
-    if (
-      !isSuperAdmin &&
-      BILLING_CONTROLLED_SETTINGS.some((field) =>
-        Object.hasOwn(settingsDto, field),
-      )
-    ) {
-      throw new BadRequestException(
-        'Plan limits and subscription tier are managed by billing',
-      );
-    }
-    if (
-      !isSuperAdmin &&
-      Object.hasOwn(settingsDto, 'isReleasePreviewEnabled')
-    ) {
-      throw new ForbiddenException('Release preview is managed by Genfeed');
-    }
+    assertSettingsPatchAllowed(settingsDto, isSuperAdmin);
     const resolvedOrganizationId = this.resolveOrganizationId(
       req,
       organizationId,
@@ -297,18 +271,15 @@ export class OrganizationsSettingsController {
       organizationSettings.id,
       normalizedSettingsDto,
     );
-    // `isFirstLogin: false` is the classic onboarding skip (REST audit #1354);
-    // skipping still starts the free trial, so the trial credits are granted.
-    const actorUserId = req.user?.userId || req.user?.id;
-    if (settingsDto.isFirstLogin === false && actorUserId) {
-      const event: OrganizationOnboardingFinishedEvent = {
-        organizationId: resolvedOrganizationId,
-        outcome: 'skipped',
-        userId: actorUserId,
-      };
+    const skipEvent = onboardingSkipEvent(
+      settingsDto,
+      resolvedOrganizationId,
+      req.user,
+    );
+    if (skipEvent) {
       await this.eventEmitter.emitAsync(
         ORGANIZATION_ONBOARDING_FINISHED_EVENT,
-        event,
+        skipEvent,
       );
     }
     await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
