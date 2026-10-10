@@ -1,16 +1,32 @@
 import type {
+  VideoStitchContext,
+  VideoStitchHandle,
   VideoStitchJobParams,
+  VideoStitchOutcome,
+  VideoStitchOutputRow,
   VideoStitchPlan,
   VideoStitchRequest,
+  VideoStitchState,
 } from '@api/services/video-stitch/video-stitch.types';
-import { IngredientCategory, VideoTransition } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  VideoTransition,
+} from '@genfeedai/contracts';
 import {
   VIDEO_DIMENSIONS,
   VIDEO_STITCH_LIMITS,
 } from '@genfeedai/contracts/constants';
-import type { IVideoMergeSettings } from '@genfeedai/contracts/interfaces';
+import {
+  type IVideoMergeSettings,
+  VIDEO_STITCH_CALLER_KINDS,
+  VIDEO_STITCH_GENERATION_SOURCE_PREFIX,
+  type VideoStitchCallerKind,
+  videoStitchJobId,
+} from '@genfeedai/contracts/interfaces';
 import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { BadRequestException } from '@nestjs/common';
+import { z } from 'zod';
 
 const STITCH_STORAGE_KEY = /^ingredients\/(videos|avatars)\/[^\s]+$/;
 
@@ -225,4 +241,101 @@ export function buildVideoStitchJobParams(
         }
       : {}),
   };
+}
+
+export const persistedStitchResult = z.object({
+  duration: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  s3Key: z
+    .string()
+    .min(1)
+    .refine((key) => key.startsWith('ingredients/videos/')),
+  size: z.number().positive().optional(),
+  success: z.literal(true),
+  width: z.number().positive().optional(),
+});
+
+export const captionsResult = z.object({
+  s3Key: z
+    .string()
+    .min(1)
+    .refine((key) => key.startsWith('ingredients/videos/')),
+  size: z.number().positive().optional(),
+});
+
+export type PersistedStitchResult = z.infer<typeof persistedStitchResult>;
+
+/** Postgres reports a unique-index collision as Prisma error P2002. */
+export function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
+
+export function toVideoStitchState(status: string): VideoStitchState {
+  if (status === IngredientStatus.FAILED) return 'failed';
+  if (
+    status === IngredientStatus.GENERATED ||
+    status === IngredientStatus.VALIDATED
+  )
+    return 'generated';
+  return 'processing';
+}
+
+export function readVideoStitchCallerKind(
+  generationSource: string | null,
+): VideoStitchCallerKind | undefined {
+  const kind = generationSource?.startsWith(
+    VIDEO_STITCH_GENERATION_SOURCE_PREFIX,
+  )
+    ? generationSource.slice(VIDEO_STITCH_GENERATION_SOURCE_PREFIX.length)
+    : undefined;
+  return VIDEO_STITCH_CALLER_KINDS.find((candidate) => candidate === kind);
+}
+
+export function videoStitchHandle(
+  organizationId: string,
+  output: VideoStitchOutputRow,
+  isExisting: boolean,
+): VideoStitchHandle {
+  return {
+    isExisting,
+    jobId: videoStitchJobId(output.id),
+    organizationId,
+    outputId: output.id,
+    state: toVideoStitchState(output.status),
+  };
+}
+
+export function videoStitchOutcome(
+  jobId: string,
+  output: VideoStitchOutputRow,
+): VideoStitchOutcome {
+  const state = toVideoStitchState(output.status);
+  return {
+    ...(state === 'failed' && output.generationError
+      ? { error: output.generationError }
+      : {}),
+    jobId,
+    outputId: output.id,
+    ...(state === 'generated' && output.s3Key ? { s3Key: output.s3Key } : {}),
+    state,
+  };
+}
+
+export function videoStitchActivityValue(
+  context: VideoStitchContext,
+  label: string,
+  extra: Record<string, unknown> = {},
+): string {
+  return JSON.stringify({
+    callerKind: context.callerKind,
+    frameCount: context.clipCount,
+    ingredientId: context.outputId,
+    label,
+    ...extra,
+    type: 'merge',
+  });
 }

@@ -15,15 +15,23 @@ import type {
   VideoStitchPlan,
   VideoStitchRef,
   VideoStitchRequest,
-  VideoStitchState,
 } from '@api/services/video-stitch/video-stitch.types';
 import {
   buildVideoStitchJobParams,
+  captionsResult,
   isMuteDeferredToCaptions,
+  isUniqueConstraintViolation,
+  type PersistedStitchResult,
+  persistedStitchResult,
   readVideoMergeSettings,
+  readVideoStitchCallerKind,
   resolveStitchClipStorageKey,
   stitchRequestError,
+  toVideoStitchState,
   validateVideoStitchRequest,
+  videoStitchActivityValue,
+  videoStitchHandle,
+  videoStitchOutcome,
 } from '@api/services/video-stitch/video-stitch.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -44,9 +52,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/contracts';
 import {
-  VIDEO_STITCH_CALLER_KINDS,
   VIDEO_STITCH_GENERATION_SOURCE_PREFIX,
-  type VideoStitchCallerKind,
   videoStitchGenerationSource,
   videoStitchJobId,
 } from '@genfeedai/contracts/interfaces';
@@ -58,7 +64,6 @@ import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
-import { z } from 'zod';
 
 const STITCH_JOB_TIMEOUT_MS = 300_000;
 /**
@@ -86,58 +91,6 @@ const OUTPUT_SELECT = {
   status: true,
   userId: true,
 } as const;
-
-const persistedStitchResult = z.object({
-  duration: z.number().positive().optional(),
-  height: z.number().positive().optional(),
-  s3Key: z
-    .string()
-    .min(1)
-    .refine((key) => key.startsWith('ingredients/videos/')),
-  size: z.number().positive().optional(),
-  success: z.literal(true),
-  width: z.number().positive().optional(),
-});
-
-const captionsResult = z.object({
-  s3Key: z
-    .string()
-    .min(1)
-    .refine((key) => key.startsWith('ingredients/videos/')),
-  size: z.number().positive().optional(),
-});
-
-type PersistedStitchResult = z.infer<typeof persistedStitchResult>;
-
-/** Postgres reports a unique-index collision as Prisma error P2002. */
-function isUniqueConstraintViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { code?: unknown }).code === 'P2002'
-  );
-}
-
-function toState(status: string): VideoStitchState {
-  if (status === IngredientStatus.FAILED) return 'failed';
-  if (
-    status === IngredientStatus.GENERATED ||
-    status === IngredientStatus.VALIDATED
-  )
-    return 'generated';
-  return 'processing';
-}
-
-function readCallerKind(
-  generationSource: string | null,
-): VideoStitchCallerKind | undefined {
-  const kind = generationSource?.startsWith(
-    VIDEO_STITCH_GENERATION_SOURCE_PREFIX,
-  )
-    ? generationSource.slice(VIDEO_STITCH_GENERATION_SOURCE_PREFIX.length)
-    : undefined;
-  return VIDEO_STITCH_CALLER_KINDS.find((candidate) => candidate === kind);
-}
 
 /**
  * The single path that joins clips into one video (#5460). Storyboard and
@@ -178,7 +131,7 @@ export class VideoStitchService {
       request.idempotencyKey,
     );
     if (existing) {
-      return this.toHandle(request.organizationId, existing, true);
+      return videoStitchHandle(request.organizationId, existing, true);
     }
 
     const plan = await this.plan(request);
@@ -222,7 +175,7 @@ export class VideoStitchService {
       if (!winner) {
         throw error;
       }
-      return this.toHandle(request.organizationId, winner, true);
+      return videoStitchHandle(request.organizationId, winner, true);
     }
 
     const context = this.contextFromRequest(request, outputId, plan);
@@ -266,7 +219,7 @@ export class VideoStitchService {
     );
     if (reopened.count !== 1) {
       const current = {
-        ...this.toHandle(handle.organizationId, output, true),
+        ...videoStitchHandle(handle.organizationId, output, true),
         ...(handle.roomUserId ? { roomUserId: handle.roomUserId } : {}),
       };
       if (current.state !== 'processing') {
@@ -326,8 +279,8 @@ export class VideoStitchService {
       handle.organizationId,
       handle.outputId,
     );
-    if (toState(output.status) !== 'processing') {
-      return this.toOutcome(handle.jobId, output);
+    if (toVideoStitchState(output.status) !== 'processing') {
+      return videoStitchOutcome(handle.jobId, output);
     }
     const context = this.contextFromOutput(output, handle);
     const deadline = Date.now() + timeoutMs;
@@ -374,8 +327,8 @@ export class VideoStitchService {
       handle.organizationId,
       handle.outputId,
     );
-    if (toState(output.status) !== 'processing') {
-      return this.toOutcome(handle.jobId, output);
+    if (toVideoStitchState(output.status) !== 'processing') {
+      return videoStitchOutcome(handle.jobId, output);
     }
     const context = this.contextFromOutput(output, handle);
     const status = await this.fileQueueService.findJobStatus(handle.jobId);
@@ -462,7 +415,7 @@ export class VideoStitchService {
       handle.organizationId,
       handle.outputId,
     );
-    if (toState(output.status) !== 'processing') {
+    if (toVideoStitchState(output.status) !== 'processing') {
       return;
     }
     await this.fail(this.contextFromOutput(output, handle), new Error(reason));
@@ -629,7 +582,7 @@ export class VideoStitchService {
         context.organizationId,
         context.outputId,
       );
-      return this.toOutcome(context.jobId, output);
+      return videoStitchOutcome(context.jobId, output);
     }
 
     const finalFile = await this.addCaptionsIfEnabled(context, {
@@ -657,7 +610,7 @@ export class VideoStitchService {
         context.organizationId,
         context.outputId,
       );
-      return this.toOutcome(context.jobId, output);
+      return videoStitchOutcome(context.jobId, output);
     }
 
     // Completion bypasses IngredientsService.patch, so unlock the
@@ -687,7 +640,7 @@ export class VideoStitchService {
         },
         {
           key: ActivityKey.VIDEO_COMPLETED,
-          value: this.activityValue(context, label, {
+          value: videoStitchActivityValue(context, label, {
             progress: 100,
             resultId: context.outputId,
             resultType: 'VIDEO',
@@ -777,7 +730,9 @@ export class VideoStitchService {
       },
       {
         key: ActivityKey.VIDEO_FAILED,
-        value: this.activityValue(context, 'Merge failed', { error: message }),
+        value: videoStitchActivityValue(context, 'Merge failed', {
+          error: message,
+        }),
       },
     );
     await this.websocketService.publishBackgroundTaskUpdate({
@@ -804,7 +759,7 @@ export class VideoStitchService {
         { id: activityId, organizationId: context.organizationId },
         {
           key: ActivityKey.VIDEO_PROCESSING,
-          value: this.activityValue(context, label),
+          value: videoStitchActivityValue(context, label),
         },
       );
     } else {
@@ -820,7 +775,7 @@ export class VideoStitchService {
             ? ActivitySource.WORKFLOW_EXECUTION
             : ActivitySource.WEB,
         userId: context.userId,
-        value: this.activityValue(context, label),
+        value: videoStitchActivityValue(context, label),
       });
     }
     await this.websocketService.publishBackgroundTaskUpdate({
@@ -1009,7 +964,7 @@ export class VideoStitchService {
     const userId = output.userId ?? '';
     return {
       brandId: output.brandId,
-      callerKind: readCallerKind(output.generationSource),
+      callerKind: readVideoStitchCallerKind(output.generationSource),
       clipCount: output._count.sources,
       jobId: handle.jobId,
       organizationId: handle.organizationId,
@@ -1020,52 +975,7 @@ export class VideoStitchService {
     };
   }
 
-  private toHandle(
-    organizationId: string,
-    output: VideoStitchOutputRow,
-    isExisting: boolean,
-  ): VideoStitchHandle {
-    return {
-      isExisting,
-      jobId: videoStitchJobId(output.id),
-      organizationId,
-      outputId: output.id,
-      state: toState(output.status),
-    };
-  }
-
-  private toOutcome(
-    jobId: string,
-    output: VideoStitchOutputRow,
-  ): VideoStitchOutcome {
-    const state = toState(output.status);
-    return {
-      ...(state === 'failed' && output.generationError
-        ? { error: output.generationError }
-        : {}),
-      jobId,
-      outputId: output.id,
-      ...(state === 'generated' && output.s3Key ? { s3Key: output.s3Key } : {}),
-      state,
-    };
-  }
-
   private activityId(outputId: string): string {
     return `video-stitch:${outputId}`;
-  }
-
-  private activityValue(
-    context: VideoStitchContext,
-    label: string,
-    extra: Record<string, unknown> = {},
-  ): string {
-    return JSON.stringify({
-      callerKind: context.callerKind,
-      frameCount: context.clipCount,
-      ingredientId: context.outputId,
-      label,
-      ...extra,
-      type: 'merge',
-    });
   }
 }

@@ -45,7 +45,10 @@ export class CronIngredientsService {
   // Lock TTL: 10 minutes (should be longer than max expected execution time)
   private static readonly LOCK_TTL_SECONDS = 600;
   /** Persisted so status readers (e.g. MCP get_job_status) see why it failed. */
-  private static readonly PROCESSING_TIMEOUT_ERROR = 'Processing timed out';
+  private static readonly PROCESSING_TIMEOUT_FAILURE = {
+    generationError: 'Processing timed out',
+    status: IngredientStatus.FAILED,
+  } as const;
 
   // Category → processing/failed activity key mapping
   private static readonly CATEGORY_ACTIVITY_KEYS: Record<
@@ -144,10 +147,7 @@ export class CronIngredientsService {
           },
           status: IngredientStatus.PROCESSING, // Double-check status hasn't changed
         },
-        {
-          generationError: CronIngredientsService.PROCESSING_TIMEOUT_ERROR,
-          status: IngredientStatus.FAILED,
-        },
+        CronIngredientsService.PROCESSING_TIMEOUT_FAILURE,
       );
 
       const duration = Date.now() - startTime;
@@ -288,10 +288,7 @@ export class CronIngredientsService {
         },
         status: IngredientStatus.PROCESSING,
       },
-      {
-        generationError: CronIngredientsService.PROCESSING_TIMEOUT_ERROR,
-        status: IngredientStatus.FAILED,
-      },
+      CronIngredientsService.PROCESSING_TIMEOUT_FAILURE,
     );
 
     return {
