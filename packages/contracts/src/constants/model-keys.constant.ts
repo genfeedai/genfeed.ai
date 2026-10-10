@@ -91,6 +91,7 @@ export const MODEL_KEYS = {
   ARGIL_ATOM: 'argil/atom',
   HEYGEN_AVATAR: 'heygen/avatar',
   HEYGEN_VIDEO: 'heygen/heygen-video-1',
+  HEYGEN_VOICE: 'heygen/heygen-voice-1',
   REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1: 'deepseek-ai/deepseek-r1',
   REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET: 'anthropic/claude-4.5-sonnet',
   REPLICATE_GOOGLE_GEMINI_2_5_FLASH: 'google/gemini-2.5-flash',

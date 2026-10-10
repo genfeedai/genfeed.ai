@@ -2,6 +2,8 @@ import {
   deriveRequiredSelectorKeys,
   parseContractReviewedPricing,
 } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { HEYGEN_SCHEMA_FIXTURES } from '@api/seeds/fixtures/heygen-rate-schemas';
+import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.types';
 import flux3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/flux-3-image.schema.json';
 import ideogramOpenapi from '@api/services/prompt-builder/builders/replicate/fixtures/ideogram-4-5.schema.json';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -20,11 +22,6 @@ export interface RateSeedLogger {
 /** Marks a contract the sheet wrote, as opposed to one an operator approved. */
 export const RATE_SHEET_REVIEWER = 'rate-sheet';
 
-interface SchemaFixture {
-  openapi: typeof flux3Openapi | typeof ideogramOpenapi;
-  schemaFamily: string;
-}
-
 /** Input schemas the pre-sheet seeds shipped, for rows that have none yet. */
 const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   'black-forest-labs/flux-3-image': {
@@ -39,6 +36,7 @@ const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
     openapi: ideogramOpenapi,
     schemaFamily: 'ideogram-image-edit-v1',
   },
+  ...HEYGEN_SCHEMA_FIXTURES,
 };
 
 function conditionalDimensions(
@@ -285,7 +283,8 @@ export async function seedReviewedProviderRates(
   for (const entry of entries)
     if (
       entry.provider === ModelProvider.REPLICATE ||
-      entry.provider === ModelProvider.FAL
+      entry.provider === ModelProvider.FAL ||
+      entry.provider === ModelProvider.HEYGEN
     )
       if (await seedEntry(prisma, entry, logger)) written += 1;
   return written;

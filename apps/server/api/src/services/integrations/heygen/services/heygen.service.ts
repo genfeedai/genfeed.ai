@@ -1,8 +1,21 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
+import {
+  buildHeyGenSpeechBody,
+  countHeyGenSpeechCharacters,
+  HEYGEN_SPEECH_MAX_ATTEMPTS,
+  HEYGEN_SPEECH_RETRY_BASE_DELAY_MS,
+  HEYGEN_SPEECH_RETRYABLE_STATUSES,
+  HEYGEN_SPEECH_TIMEOUT_MS,
+  HEYGEN_SPEECH_URL,
+  readHeyGenErrorEnvelope,
+  readHeyGenRetryAfter,
+  readHeyGenSpeech,
+} from '@api/services/integrations/heygen/helpers/heygen-speech';
 import {
   buildHeyGenVideoCreateBody,
   HEYGEN_API_ORIGIN,
@@ -20,6 +33,10 @@ import type {
   HeyGenAvatarCandidate,
   ResolvedHeyGenConnection,
 } from '@api/services/integrations/heygen/heygen-identity.types';
+import type {
+  HeyGenSpeechInput as HeyGenSpeechRequest,
+  HeyGenSpeechResult,
+} from '@api/services/integrations/heygen/heygen-speech.types';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
@@ -33,7 +50,15 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
@@ -281,6 +306,128 @@ export class HeyGenService {
         throw new HeyGenSubmissionRejectedError();
       throw error;
     }
+  }
+
+  /**
+   * HeyGen Voice (`heygen-voice-1`) on the synchronous
+   * `POST /v3/models/audio/tts`: one request, one WAV url back, no polling.
+   * Billed per submitted character, so the result carries the characters
+   * counted. Only 502/503/504 are retried, because HeyGen documents those as
+   * "did not complete and is safe to retry"; a timeout or dropped connection
+   * is ambiguous and is never replayed.
+   */
+  public async generateSpeech(
+    params: HeyGenSpeechRequest & {
+      apiKeyOverride?: string;
+      organizationId?: string;
+    },
+  ): Promise<HeyGenSpeechResult> {
+    let body: ReturnType<typeof buildHeyGenSpeechBody>;
+    try {
+      body = buildHeyGenSpeechBody(params);
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'Invalid HeyGen Voice request.',
+      );
+    }
+    const apiKey = await this.resolveApiKey(
+      params.apiKeyOverride,
+      params.organizationId,
+    );
+    const characters = countHeyGenSpeechCharacters(body.text);
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    for (let attempt = 1; ; attempt += 1) {
+      let status: number;
+      let data: unknown;
+      let retryAfter: number | undefined;
+      try {
+        const response = await firstValueFrom(
+          this.httpService.post<unknown>(HEYGEN_SPEECH_URL, body, {
+            headers: this.getHeaders(apiKey),
+            timeout: HEYGEN_SPEECH_TIMEOUT_MS,
+          }),
+        );
+        if (response.status >= 200 && response.status < 300)
+          return readHeyGenSpeech(response.data, characters);
+        status = response.status;
+        data = response.data;
+        retryAfter = readHeyGenRetryAfter(response.headers);
+      } catch (error: unknown) {
+        if (!isAxiosError(error) || !error.response) {
+          this.loggerService.error(`${caller} error`, {
+            errorType: error instanceof Error ? error.name : 'Unknown',
+          });
+          throw error;
+        }
+        status = error.response.status;
+        data = error.response.data;
+        retryAfter = readHeyGenRetryAfter(error.response.headers);
+      }
+      if (
+        HEYGEN_SPEECH_RETRYABLE_STATUSES.has(status) &&
+        attempt < HEYGEN_SPEECH_MAX_ATTEMPTS
+      ) {
+        await this.delay(
+          HEYGEN_SPEECH_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
+        );
+        continue;
+      }
+      const { code, param } = readHeyGenErrorEnvelope(data);
+      this.loggerService.error(`${caller} error`, {
+        code: code ?? null,
+        status,
+      });
+      throw this.speechFailure(status, code, param, retryAfter);
+    }
+  }
+
+  private speechFailure(
+    status: number,
+    code: string | undefined,
+    param: string | undefined,
+    retryAfter: number | undefined,
+  ): Error {
+    switch (status) {
+      case 400:
+        return new BadRequestException(
+          `HeyGen rejected the speech request (${code ?? 'invalid_parameter'}${
+            param ? `: ${param}` : ''
+          }).`,
+        );
+      case 402:
+        return new HeyGenSubmissionRejectedError();
+      case 403:
+        return new ForbiddenException(
+          'This HeyGen account cannot use that voice.',
+        );
+      case 404:
+        return new NotFoundException({
+          message: 'The HeyGen voice was not found in this workspace.',
+        });
+      case 409:
+        return new ConflictException(
+          code === 'voice_training_failed'
+            ? 'The HeyGen voice failed training.'
+            : 'The HeyGen voice is still processing. Try again shortly.',
+        );
+      case 429:
+        return new HttpException(
+          retryAfter === undefined
+            ? 'HeyGen Voice is rate limited.'
+            : `HeyGen Voice is rate limited. Retry after ${retryAfter} seconds.`,
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      default:
+        return status >= 500
+          ? new ServiceUnavailableException('HeyGen Voice is unavailable.')
+          : new Error(`HeyGen Voice returned status ${status}.`);
+    }
+  }
+
+  private delay(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
 
   public async getVoices(

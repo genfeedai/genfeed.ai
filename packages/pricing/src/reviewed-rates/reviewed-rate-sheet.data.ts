@@ -1052,6 +1052,20 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:34.961Z',
   },
   {
+    endpoint: 'heygen/heygen-voice-1',
+    provider: 'heygen',
+    rates: [
+      {
+        component: 'output',
+        unit: 'character',
+        unitPriceUsd: 0.00003,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://app.heygen.com/developers/api?modal=pricing',
+    verifiedAt: '2026-10-10T07:18:30.000Z',
+  },
+  {
     endpoint: 'ideogram-ai/ideogram-4-5',
     provider: 'replicate',
     rates: [

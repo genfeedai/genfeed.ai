@@ -296,6 +296,7 @@ describe('model.enum', () => {
         'higgsfield/genjutsu/motion-transfer/v1.0',
       );
       expect(MODEL_KEYS.HEYGEN_VIDEO).toBe('heygen/heygen-video-1');
+      expect(MODEL_KEYS.HEYGEN_VOICE).toBe('heygen/heygen-voice-1');
     });
   });
 

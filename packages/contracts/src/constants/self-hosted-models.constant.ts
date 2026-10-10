@@ -442,6 +442,34 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
+   * HeyGen Voice (`heygen-voice-1`) on the synchronous
+   * `POST /v3/models/audio/tts`. Unlike every other row, `providerCostUsd` is
+   * USD per **1,000 characters** ($30 per 1M at HeyGen's list price), so
+   * `cost` is the price of a 1,000-character request. Bill time counts the
+   * submitted characters through the reviewed `character` rate, and dispatch
+   * refuses to run without it, because a flat reading would undercharge long
+   * text. HeyGen sells it at half price until 2026-10-31; we quote the list
+   * price, so the promotion widens our margin and never lowers the price.
+   */
+  {
+    category: ModelCategory.VOICE,
+    cost: 10,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'HeyGen Voice — speaks text of up to 5,000 characters in a HeyGen Voice clone your workspace owns. 10 credits per 1,000 characters.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.HEYGEN_VOICE,
+    label: 'HeyGen Voice',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'heygen-voice-1', owner: 'heygen' },
+    providerCostUsd: 0.03,
+  },
+  /**
    * Legacy. MusicGen's weights are CC-BY-NC 4.0 (facebookresearch/audiocraft,
    * Hugging Face `facebook/musicgen-large`), so output cannot be sold, and it
    * ranks last (19 of 19) on the Artificial Analysis instrumental board.
