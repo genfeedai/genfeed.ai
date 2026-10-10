@@ -421,10 +421,12 @@ export class ClipProjectsService extends BaseService<
     if (
       !current ||
       !IN_FLIGHT_CLIP_PROJECT_STATUSES.has(current.status) ||
-      (attempt &&
-        current.source &&
-        (current.source.fingerprint !== attempt.fingerprint ||
-          current.source.retryCount !== attempt.retryCount))
+      (attempt
+        ? current.source &&
+          (current.source.fingerprint !== attempt.fingerprint ||
+            current.source.retryCount !== attempt.retryCount)
+        : // A job without an attempt predates any source retry.
+          (current.source?.retryCount ?? 0) > 0)
     ) {
       return false;
     }

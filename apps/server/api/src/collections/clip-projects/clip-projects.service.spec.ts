@@ -190,6 +190,7 @@ describe('ClipProjectsService', () => {
         stuck,
         { fingerprint: 'sha256:source', retryCount: 0 },
       ],
+      ['a retried source from a job without an attempt', stuck, undefined],
       ['a finished project', { ...stuck, status: 'analyzed' }, undefined],
       ['an already failed project', { ...stuck, status: 'failed' }, undefined],
     ])('leaves %s untouched', async (_label, project, attempt) => {
@@ -201,6 +202,18 @@ describe('ClipProjectsService', () => {
       expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
     });
 
+    it('settles a never-retried source from a job without an attempt', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue({
+        ...stuck,
+        config: { source: { ...source, retryCount: 0 } },
+      });
+      prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.settleInFlightFailure('project-1', 'org-1', undefined),
+      ).resolves.toBe(true);
+    });
+
     it('keeps a completed source once clips exist', async () => {
       prisma.clipProject.findFirst.mockResolvedValue({
         ...stuck,
@@ -210,7 +223,10 @@ describe('ClipProjectsService', () => {
       clipResultsService.findByProject.mockResolvedValue([{ id: 'clip-1' }]);
       prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.settleInFlightFailure('project-1', 'org-1', undefined);
+      await service.settleInFlightFailure('project-1', 'org-1', {
+        fingerprint: 'sha256:source',
+        retryCount: 1,
+      });
 
       expect(prisma.clipProject.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
