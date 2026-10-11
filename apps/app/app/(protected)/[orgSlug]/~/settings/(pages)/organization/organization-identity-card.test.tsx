@@ -154,8 +154,12 @@ describe('OrganizationIdentityCard', () => {
     await waitFor(() =>
       expect(boundary.generateLogo).toHaveBeenCalledExactlyOnceWith('org-1'),
     );
-    await waitFor(() => expect(refreshOrganizations).toHaveBeenCalledOnce());
-  });
+    // The first poll runs after the 4s interval; the logo URL never changes in
+    // this mock, so it keeps polling.
+    await waitFor(() => expect(refreshOrganizations).toHaveBeenCalled(), {
+      timeout: 6000,
+    });
+  }, 10000);
 
   it('shows the server message when logo generation fails', async () => {
     boundary.generateLogo.mockRejectedValue({

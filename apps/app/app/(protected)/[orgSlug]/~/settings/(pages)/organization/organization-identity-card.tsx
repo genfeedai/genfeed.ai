@@ -31,6 +31,9 @@ const HANDLE_PATTERN = /^[a-z0-9][a-z0-9-]{0,46}[a-z0-9]$/;
 // Two more than the 48-character handle limit: the display-only `@` prefix.
 const HANDLE_INPUT_MAX_LENGTH = 49;
 
+const LOGO_POLL_MS = 4000;
+const LOGO_POLL_ATTEMPTS = 15;
+
 /** Organization name, handle and logo — the logo also drives the org switcher. */
 export default function OrganizationIdentityCard({
   organizationId,
@@ -47,6 +50,8 @@ export default function OrganizationIdentityCard({
   const mounted = useRef(true);
   const organization = organizations.find((org) => org.id === organizationId);
   const logoUrl = organization?.logoUrl ?? null;
+  const logoUrlRef = useRef(logoUrl);
+  logoUrlRef.current = logoUrl;
 
   useEffect(() => {
     mounted.current = true;
@@ -85,8 +90,21 @@ export default function OrganizationIdentityCard({
     setGenerateError(null);
     try {
       const service = await getOrganizationsService();
+      const previousLogoUrl = logoUrlRef.current;
       await service.generateLogo(organizationId);
-      await refreshOrganizations();
+      // Generation finishes asynchronously (webhook); poll until the logo
+      // URL changes, for at most about a minute.
+      for (
+        let attempt = 0;
+        attempt < LOGO_POLL_ATTEMPTS && mounted.current;
+        attempt += 1
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, LOGO_POLL_MS));
+        await refreshOrganizations();
+        if (logoUrlRef.current !== previousLogoUrl) {
+          break;
+        }
+      }
     } catch (error) {
       logger.error('Failed to generate organization logo', error);
       if (mounted.current) {
