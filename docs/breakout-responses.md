@@ -293,6 +293,13 @@ visual rules, so the preflight warns (`artifact_media_unsupported`) instead of b
 receipt can only resolve to `needs_review`, and each visual follow-up lands as
 `brand_review_required` in the review queue until a member approves it. Nothing auto-publishes.
 
+Each generated visual also gets its own approved-brand receipt, which persists the palette,
+font, OCR and placement proofs the validator can make (the last two only while the Admin
+setting `isBrandVisualAnalysisEnabled` is on). A visual that fails a hard brand rule (a
+blocked receipt) is composed onto the caption draft but not queued for review or scored; the
+output reads `awaiting_review` with `quality_or_brand_blocked`, which no approval clears, and
+the schedule-time and dispatch gates refuse it. A missing receipt changes nothing.
+
 Publication of a visual post runs the same admission at schedule time and at dispatch as text
 (re-reading the channel catalog, the composed material and every per-visual score). The
 YouTube direct upload runs it before the PUBLISHING write and before the upload job.
