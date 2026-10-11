@@ -1,4 +1,5 @@
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { collectPost } from '@api/collections/outliers/services/breakout-acceptance.collection.fixture';
 import { runQueuedBreakoutExecution } from '@api/collections/outliers/services/breakout-acceptance.execution.fixture';
 import {
@@ -72,7 +73,7 @@ describe.skipIf(!connectionString)(
 
     type Scene = DetectedBreakout & {
       delivery: DeliveryHarness;
-      generatorKey: { actor: BrandAccessActor; id: string } | null;
+      generatorKey: { actor: WorkflowInitiatingActor; id: string } | null;
       outputId: string;
       postId: string;
     };
