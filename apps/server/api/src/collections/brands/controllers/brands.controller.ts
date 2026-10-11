@@ -8,6 +8,7 @@ import {
   verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
 import { decorateBrandResponse } from '@api/collections/brands/controllers/brand-response.helpers';
+import { BrandFleetAccess } from '@api/collections/brands/decorators/brand-fleet-access.decorator';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -25,7 +26,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -62,28 +62,12 @@ import {
   Post,
   Query,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-/**
- * Fleet is provisioned by Genfeed staff for a customer, so only a superadmin
- * may set it. Everyone else's value is dropped before the write.
- */
-function withoutFleetUnlessSuperAdmin<T extends { isFleetEnabled?: boolean }>(
-  dto: T,
-  isSuperAdmin: boolean,
-): T {
-  if (isSuperAdmin || dto.isFleetEnabled === undefined) {
-    return dto;
-  }
-  const { isFleetEnabled: _isFleetEnabled, ...rest } = dto;
-  return rest as T;
-}
-
 @AutoSwagger()
 @Controller('brands')
-@UseGuards(RolesGuard)
+@BrandFleetAccess()
 export class BrandsController extends BaseCRUDController<
   BrandDocument,
   CreateBrandDto,
@@ -189,15 +173,11 @@ export class BrandsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     // `syncOrganizationName` is an onboarding-only control flag, never persisted
     // on the brand row — strip it before any CRUD patch (REST audit #1354).
-    const { organizationLabel, syncOrganizationName, ...restWithFleet } =
+    const { organizationLabel, syncOrganizationName, ...rest } =
       updateDto as UpdateBrandDto & {
         organizationLabel?: string;
         syncOrganizationName?: boolean;
       };
-    const rest = withoutFleetUnlessSuperAdmin(
-      restWithFleet,
-      getIsSuperAdmin(user, request),
-    );
 
     if (rest.watermarkLogoId) {
       await this.brandWatermarkLogoService.validateWatermarkLogo(
@@ -351,10 +331,7 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createDto: CreateBrandDto,
   ): Promise<JsonApiSingleResponse> {
-    const enrichedDto = this.enrichCreateDto(
-      withoutFleetUnlessSuperAdmin(createDto, getIsSuperAdmin(user, request)),
-      user,
-    );
+    const enrichedDto = this.enrichCreateDto(createDto, user);
     const data: BrandDocument = await this.brandsService.create(enrichedDto);
 
     return serializeSingle(request, BrandSerializer, data);
