@@ -240,6 +240,7 @@ describe('common-month actual spend and active reservations', () => {
         settledAmount: null,
         status: CreditReservationStatus.RESERVED,
         metadata: video,
+        workloadId: null,
       },
       {
         id: 'judge-hold',
@@ -249,6 +250,7 @@ describe('common-month actual spend and active reservations', () => {
         settledAmount: null,
         status: CreditReservationStatus.RESERVED,
         metadata: image,
+        workloadId: null,
       },
     );
     expect(
@@ -277,6 +279,7 @@ describe('common-month actual spend and active reservations', () => {
       settledAmount: null,
       status: CreditReservationStatus.RESERVED,
       metadata: {},
+      workloadId: null,
     });
     expect(await readBreakoutMonthlyUsage(h.tx, input)).toEqual({
       status: 'held',
