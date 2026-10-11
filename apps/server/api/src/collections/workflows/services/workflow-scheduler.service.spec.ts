@@ -955,6 +955,80 @@ describe('WorkflowSchedulerService — scheduled run actor', () => {
     expectHeld(created, 'no longer has access');
   });
 
+  describe('grandfathered legacy schedule (#6706 data migration)', () => {
+    // Exactly the JSON the 20261011130000 migration writes for an owner who is still an active
+    // member; the Postgres spec proves that SQL output equals the production save path's value.
+    const grandfathered = {
+      isApiKey: false,
+      organizationId: 'org-1',
+      scopes: [],
+      userId: 'owner-1',
+    };
+
+    it('runs in Cloud as the owner once, after re-checking the owner live', async () => {
+      const created = fixture({
+        scheduleInitiatingActor: grandfathered,
+        userId: 'owner-1',
+      });
+
+      await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+      expect(created.prisma.member.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isActive: true,
+            isDeleted: false,
+            organizationId: 'org-1',
+            userId: 'owner-1',
+          }),
+        }),
+      );
+      expect(
+        created.workflowExecutorService.executeManualWorkflowDocument,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        created.workflowExecutorService.executeManualWorkflowDocument,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'wf-1' }),
+        'owner-1',
+        'org-1',
+        {},
+        { scheduledFireJobId: 'fire-1', triggeredBy: 'schedule' },
+        WorkflowExecutionTrigger.SCHEDULED,
+      );
+      expect(created.prisma.workflow.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isScheduleEnabled: false }),
+        }),
+      );
+    });
+
+    it('still holds the row when the owner has left since the migration ran', async () => {
+      const created = fixture({
+        scheduleInitiatingActor: grandfathered,
+        userId: 'owner-1',
+      });
+      created.prisma.member.findFirst.mockResolvedValue(null);
+
+      await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+      expectHeld(created, 'no longer has access');
+    });
+
+    it('still holds a brand workflow the owner can no longer reach', async () => {
+      const created = fixture({
+        brandId: 'brand-1',
+        scheduleInitiatingActor: grandfathered,
+        userId: 'owner-1',
+      });
+      created.prisma.brand.findFirst.mockResolvedValue(null);
+
+      await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+      expectHeld(created, 'no longer has access');
+    });
+  });
+
   it('holds a schedule whose API key was revoked or expired', async () => {
     const created = fixture({
       scheduleInitiatingActor: {
