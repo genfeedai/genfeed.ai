@@ -1,14 +1,25 @@
-import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import {
+  type BrandAccessActor,
+  BrandAccessService,
+} from '@api/authorization/brand-access/brand-access.service';
+import { getRequestPrincipal } from '@api/authorization/brand-access/request-principal.context';
+import {
+  parseWorkflowActor,
+  toWorkflowActor,
+  type WorkflowInitiatingActor,
+} from '@api/authorization/brand-access/workflow-actor.util';
 import { admitBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-admission.util';
 import {
-  admitBreakoutPublicationActor,
+  type BreakoutResponseExecutionAdmission,
+  denyBreakoutExecution,
+  readBreakoutPublicationAdmission,
   reauthorizeBreakoutPublicationActor,
 } from '@api/collections/outliers/services/breakout-response-execution-admission.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TargetExecutionState } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import type { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.service';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -44,11 +55,11 @@ export function isBreakoutPublicationCandidate(
 }
 
 /**
- * Admits one breakout post for publication. Authority is the actor pinned on the hidden
- * execution that generated the output (read from the output row, so a delivery restamping
- * `post.workflowExecutionId` never changes it), re-read live on every check. Business
- * evidence is `admitBreakoutPublication`, which receives that same live check as its
- * `reauthorize`.
+ * Admits one breakout post for publication. Scope is pinned on the hidden execution that
+ * generated the output (read from the output row, so a delivery restamping
+ * `post.workflowExecutionId` never changes it). Authority is the publishing actor (see
+ * `resolvePublishingActor`), re-read live on every check. Business evidence is
+ * `admitBreakoutPublication`, which receives that same live check as its `reauthorize`.
  */
 async function admitBreakoutPost(
   tx: Prisma.TransactionClient,
@@ -79,6 +90,7 @@ async function admitBreakoutPost(
       brandId: true,
       credentialId: true,
       workflowExecutionId: true,
+      publicationActor: true,
     },
   });
   const response = output
@@ -103,13 +115,12 @@ async function admitBreakoutPost(
   )
     hold('publication_state_unavailable');
   const policy = new BrandAccessService(tx as unknown as PrismaService);
-  const admission = await admitBreakoutPublicationActor(
+  const generated = await readBreakoutPublicationAdmission(
     tx,
-    policy,
     output.workflowExecutionId,
     organizationId,
   );
-  const { scope } = admission;
+  const { scope } = generated;
   if (
     scope.brandId !== output.brandId ||
     scope.credentialId !== output.credentialId ||
@@ -118,6 +129,16 @@ async function admitBreakoutPost(
     scope.strategyId !== post.agentStrategyId
   )
     hold('actor_scope_changed');
+  const principal = getRequestPrincipal();
+  const admission = {
+    initiatingActor: resolvePublishingActor(
+      principal,
+      output.publicationActor,
+      generated,
+    ),
+    scope,
+  };
+  await reauthorizeBreakoutPublicationActor(tx, policy, admission);
   await admitBreakoutPublication(tx, {
     scope: {
       organizationId,
@@ -129,11 +150,40 @@ async function admitBreakoutPost(
     },
     strategyId: post.agentStrategyId,
     postId,
-    workflowExecutionId: admission.workflowExecutionId,
+    workflowExecutionId: generated.workflowExecutionId,
     phase,
     reauthorize: (client) =>
       reauthorizeBreakoutPublicationActor(client, policy, admission),
   });
+  // Remember who scheduled it, so dispatch (which has no request) re-checks that same person.
+  if (principal)
+    await tx.breakoutResponseOutput.updateMany({
+      where: scopedWhere(organizationId, { id: outputId }),
+      data: { publicationActor: toPrismaJson(admission.initiatingActor) },
+    });
+}
+
+/**
+ * Who publishes this output. A person or key scheduling it right now (the authenticated
+ * request) is the authority, whatever generated the draft, so a human can publish what a
+ * review-only key drafted. Without a request (a worker dispatching, a system path) it is the
+ * last person who scheduled it, re-checked live, and otherwise only the generating actor.
+ */
+function resolvePublishingActor(
+  principal: BrandAccessActor | undefined,
+  scheduled: Prisma.JsonValue | null,
+  generated: BreakoutResponseExecutionAdmission,
+): WorkflowInitiatingActor {
+  const { organizationId } = generated.scope;
+  if (principal)
+    return parseWorkflowActor(
+      toWorkflowActor(principal, denyBreakoutExecution),
+      organizationId,
+      denyBreakoutExecution,
+    );
+  if (scheduled !== null)
+    return parseWorkflowActor(scheduled, organizationId, denyBreakoutExecution);
+  return generated.initiatingActor;
 }
 
 /**

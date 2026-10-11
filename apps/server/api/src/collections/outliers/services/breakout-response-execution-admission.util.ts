@@ -202,13 +202,14 @@ export async function reauthorizeBreakoutPublicationActor(
 }
 
 /**
- * The publication fence's read of the same pinned execution: the actor that was bound when the
- * response was produced, re-checked live. A post whose execution carries no bound actor, or whose
- * actor lost its authority or its publishing scope, is denied.
+ * The publication fence's read of the generating execution: its validated scope and the actor
+ * that was bound when the response was produced. A response whose execution carries no bound
+ * actor is denied. This is not an authorization: the caller must run
+ * `reauthorizeBreakoutPublicationActor` for whichever actor publishes (the generating actor
+ * only when no human scheduled it).
  */
-export async function admitBreakoutPublicationActor(
+export async function readBreakoutPublicationAdmission(
   tx: Prisma.TransactionClient,
-  policy: BrandAccessService,
   executionId: string,
   organizationId: string,
 ): Promise<BreakoutResponseExecutionAdmission> {
@@ -217,12 +218,10 @@ export async function admitBreakoutPublicationActor(
     select: { userId: true, workflowId: true },
   });
   if (!execution) denyBreakoutExecution();
-  const admission = await readPinnedBreakoutExecution(tx, {
+  return readPinnedBreakoutExecution(tx, {
     executionId,
     organizationId,
     userId: execution.userId,
     workflowId: execution.workflowId,
   });
-  await reauthorizeBreakoutPublicationActor(tx, policy, admission);
-  return admission;
 }

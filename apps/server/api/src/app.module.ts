@@ -27,6 +27,7 @@ import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
 import { ActionOriginInterceptor } from '@api/helpers/interceptors/action-origin/action-origin.interceptor';
+import { RequestPrincipalInterceptor } from '@api/helpers/interceptors/request-principal/request-principal.interceptor';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { OAuthModule } from '@api/oauth/oauth.module';
 import { CacheModule } from '@api/services/cache/cache.module';
@@ -112,6 +113,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_INTERCEPTOR,
       useClass: ActionOriginInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestPrincipalInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

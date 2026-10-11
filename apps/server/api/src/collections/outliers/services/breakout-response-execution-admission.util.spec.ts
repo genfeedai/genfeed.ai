@@ -1,9 +1,10 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
-  admitBreakoutPublicationActor,
   admitBreakoutResponseExecution,
   buildBreakoutResponseExecutionRequest,
+  readBreakoutPublicationAdmission,
   reauthorizeBreakoutActor,
+  reauthorizeBreakoutPublicationActor,
 } from '@api/collections/outliers/services/breakout-response-execution-admission.util';
 import {
   BREAKOUT_RESPONSE_WORKFLOW_ID,
@@ -23,6 +24,22 @@ vi.mock('@genfeedai/config', async (original) => ({
   ...(await original<typeof import('@genfeedai/config')>()),
   isCloudDeployment: () => runtime.cloud,
 }));
+
+/** The generating actor publishing on its own: the pinned read, then the live publishing check. */
+async function admitBreakoutPublicationActor(
+  prisma: PrismaService,
+  policy: BrandAccessService,
+  executionId: string,
+  organizationId: string,
+) {
+  const admission = await readBreakoutPublicationAdmission(
+    prisma,
+    executionId,
+    organizationId,
+  );
+  await reauthorizeBreakoutPublicationActor(prisma, policy, admission);
+  return admission;
+}
 
 const actor = {
   userId: 'opaque-user',

@@ -1,3 +1,4 @@
+import { runWithRequestPrincipal } from '@api/authorization/brand-access/request-principal.context';
 import { admitBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-admission.util';
 import {
   assertBreakoutPublicationDispatch,
@@ -105,6 +106,7 @@ function harness(options: { actor?: Record<string, unknown> } = {}) {
     brandId: 'brand-a',
     credentialId: 'credential-a',
     workflowExecutionId: 'exec-gen' as string | null,
+    publicationActor: null as Record<string, unknown> | null,
   };
   const findPost = vi.fn(
     async (args: { where: Record<string, unknown> }): Promise<unknown> =>
@@ -124,9 +126,15 @@ function harness(options: { actor?: Record<string, unknown> } = {}) {
   }));
   const findBrand = vi.fn(async () => ({ id: 'brand-a' }));
   const findKey = vi.fn(async () => ({ scopes: ['posts:schedule'] }));
+  const updateOutput = vi.fn(
+    async (args: { data: { publicationActor: Record<string, unknown> } }) => {
+      output.publicationActor = args.data.publicationActor;
+      return { count: 1 };
+    },
+  );
   const tx = {
     post: { findFirst: findPost },
-    breakoutResponseOutput: { findFirst: findOutput },
+    breakoutResponseOutput: { findFirst: findOutput, updateMany: updateOutput },
     breakoutResponse: { findFirst: findResponse },
     workflowExecution: { findFirst: findExecution },
     member: { findFirst: findMember },
@@ -147,6 +155,7 @@ function harness(options: { actor?: Record<string, unknown> } = {}) {
     execution,
     findPost,
     findOutput,
+    updateOutput,
     findResponse,
     findExecution,
     findMember,
@@ -526,6 +535,209 @@ describe('breakout publication fence', () => {
       await expect(
         assertBreakoutPublicationFence(h.tx, candidate),
       ).rejects.toThrow('quota_exhausted');
+    });
+  });
+});
+
+describe('breakout publication by the member who schedules it', () => {
+  const scheduler = {
+    userId: 'user-b',
+    organizationId: 'org-a',
+    isApiKey: false,
+    scopes: [] as string[],
+  };
+  const target = { organizationId: 'org-a', postId: 'post-a' };
+
+  /** A draft that a review-only key generated. */
+  function reviewOnlyDraft() {
+    const h = harness({ actor: keyActor(['posts:draft']) });
+    h.findKey.mockResolvedValue({ scopes: ['posts:draft'] } as never);
+    return h;
+  }
+
+  function scheduleAs(
+    principal: typeof scheduler | undefined,
+    h: ReturnType<typeof harness>,
+  ) {
+    return runWithRequestPrincipal(principal, () =>
+      assertBreakoutPublicationFence(h.tx, candidate),
+    );
+  }
+
+  beforeEach(() => {
+    runtime.cloud = true;
+    vi.mocked(admitBreakoutPublication)
+      .mockReset()
+      .mockResolvedValue({ scoreId: 'score-a' });
+  });
+
+  it('publishes a review-only key draft once a member with brand access schedules it', async () => {
+    const h = reviewOnlyDraft();
+    await scheduleAs(scheduler, h);
+    expect(admitBreakoutPublication).toHaveBeenCalledOnce();
+    expect(h.findMember).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: 'user-b' }),
+      }),
+    );
+    // The generating key is not the authority and is never consulted for scopes.
+    expect(h.findKey).not.toHaveBeenCalled();
+    expect(h.updateOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          publicationActor: expect.objectContaining({ userId: 'user-b' }),
+        },
+        where: expect.objectContaining({
+          id: 'output-a',
+          organizationId: 'org-a',
+          isDeleted: false,
+        }),
+      }),
+    );
+  });
+
+  it('publishes for a key that holds posts:schedule, whatever generated the draft', async () => {
+    const h = reviewOnlyDraft();
+    h.findKey.mockResolvedValue({ scopes: ['posts:schedule'] } as never);
+    await scheduleAs(
+      {
+        ...scheduler,
+        isApiKey: true,
+        apiKeyId: 'key-b',
+        scopes: ['posts:schedule'],
+      },
+      h,
+    );
+    expect(admitBreakoutPublication).toHaveBeenCalledOnce();
+  });
+
+  it('holds a member without access to the brand', async () => {
+    const h = reviewOnlyDraft();
+    h.findMember.mockResolvedValue({
+      role: { key: MemberRole.CREATOR },
+      brands: [],
+    });
+    h.findBrand.mockResolvedValue(null as never);
+    await expect(scheduleAs(scheduler, h)).rejects.toThrow(
+      'Brand access denied',
+    );
+    expect(admitBreakoutPublication).not.toHaveBeenCalled();
+    expect(h.updateOutput).not.toHaveBeenCalled();
+  });
+
+  it('holds a non-member', async () => {
+    const h = reviewOnlyDraft();
+    h.findMember.mockResolvedValue(null as never);
+    await expect(scheduleAs(scheduler, h)).rejects.toThrow(
+      'Brand access denied',
+    );
+    expect(h.updateOutput).not.toHaveBeenCalled();
+  });
+
+  it('holds a review-only key that schedules, even for a draft a member generated', async () => {
+    const h = harness();
+    h.findKey.mockResolvedValue({ scopes: ['posts:draft'] } as never);
+    await expect(
+      scheduleAs(
+        {
+          ...scheduler,
+          isApiKey: true,
+          apiKeyId: 'key-b',
+          scopes: ['posts:draft'],
+        },
+        h,
+      ),
+    ).rejects.toThrow('Breakout execution denied');
+    expect(admitBreakoutPublication).not.toHaveBeenCalled();
+    expect(h.updateOutput).not.toHaveBeenCalled();
+  });
+
+  it('holds a principal of another organization', async () => {
+    const h = reviewOnlyDraft();
+    await expect(
+      scheduleAs({ ...scheduler, organizationId: 'org-foreign' }, h),
+    ).rejects.toThrow('Breakout execution denied');
+    expect(admitBreakoutPublication).not.toHaveBeenCalled();
+  });
+
+  it('keeps a system path with no requesting user held for a review-only draft', async () => {
+    const h = reviewOnlyDraft();
+    await expect(scheduleAs(undefined, h)).rejects.toThrow(
+      'Breakout execution denied',
+    );
+    expect(admitBreakoutPublication).not.toHaveBeenCalled();
+    expect(h.updateOutput).not.toHaveBeenCalled();
+  });
+
+  describe('at dispatch, with no request', () => {
+    async function scheduledByMember() {
+      const h = reviewOnlyDraft();
+      await scheduleAs(scheduler, h);
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      vi.mocked(admitBreakoutPublication).mockClear();
+      h.findMember.mockClear();
+      h.findKey.mockClear();
+      return h;
+    }
+
+    it('re-checks the member who scheduled it, not the generating key', async () => {
+      const h = await scheduledByMember();
+      await assertBreakoutPublicationDispatch(h.prisma, target);
+      expect(admitBreakoutPublication).toHaveBeenCalledOnce();
+      expect(h.findMember).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ userId: 'user-b' }),
+        }),
+      );
+      expect(h.findKey).not.toHaveBeenCalled();
+    });
+
+    it('holds once the membership was revoked between schedule and dispatch', async () => {
+      const h = await scheduledByMember();
+      h.findMember.mockResolvedValue(null as never);
+      await expect(
+        assertBreakoutPublicationDispatch(h.prisma, target),
+      ).rejects.toThrow('Brand access denied');
+      expect(admitBreakoutPublication).not.toHaveBeenCalled();
+    });
+
+    it('holds once the member lost the brand between schedule and dispatch', async () => {
+      const h = await scheduledByMember();
+      h.findMember.mockResolvedValue({
+        role: { key: MemberRole.CREATOR },
+        brands: [],
+      });
+      h.findBrand.mockResolvedValue(null as never);
+      await expect(
+        assertBreakoutPublicationDispatch(h.prisma, target),
+      ).rejects.toThrow('Brand access denied');
+    });
+
+    it('holds an output whose persisted scheduler is malformed', async () => {
+      const h = await scheduledByMember();
+      h.output.publicationActor = { userId: 'user-b' };
+      await expect(
+        assertBreakoutPublicationDispatch(h.prisma, target),
+      ).rejects.toThrow('Breakout execution denied');
+    });
+
+    it('holds a persisted scheduler of another organization', async () => {
+      const h = await scheduledByMember();
+      h.output.publicationActor = {
+        ...scheduler,
+        organizationId: 'org-foreign',
+      };
+      await expect(
+        assertBreakoutPublicationDispatch(h.prisma, target),
+      ).rejects.toThrow('Breakout execution denied');
+    });
+
+    it('stays held for a review-only draft nobody scheduled', async () => {
+      const h = reviewOnlyDraft();
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      await expect(
+        assertBreakoutPublicationDispatch(h.prisma, target),
+      ).rejects.toThrow('Breakout execution denied');
     });
   });
 });
