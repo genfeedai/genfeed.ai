@@ -46,6 +46,7 @@ import {
 import type { PrismaClient } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import type { Queue } from 'bullmq';
 
 /** The one hidden workflow shape every seeded hidden fixture mirrors. */
@@ -187,7 +188,7 @@ export function buildCollectionHarness(
   };
   const credentials = {
     resolveBrandAccount: async () => ({
-      accessToken: 'plain-access-token',
+      accessToken: EncryptionUtil.encrypt('acceptance-x-token'),
       id: world.credentialId,
     }),
   } as unknown as ServerCredentialStore;
@@ -353,33 +354,43 @@ export function resolveCollectionAuthorization(
 
 export type BreakoutCandidate = {
   history: PublishedPost[];
-  /** The breakout-to-be: published about an hour ago, observed once at 30 minutes. */
+  /** The breakout-to-be, with its earlier prospective observations already stored. */
   target: PublishedPost;
 };
 
+export type CandidateOptions = {
+  /** Earlier measurements of the target, as [age since publication, impressions]. */
+  earlier?: Array<{ ageMs: number; impressions: number }>;
+  history?: number[];
+  /** The target's age when the collector next measures it (and the baseline age). */
+  targetAgeMs?: number;
+};
+
 /**
- * Five comparable earlier posts plus a target published 62 minutes ago and observed once at
- * 30 minutes, so the next collection of the target is its second, hour-old measurement.
+ * Five comparable earlier posts plus a target published `targetAgeMs` ago (62 minutes by
+ * default) with earlier measurements stored, so the next collection of the target is its
+ * latest, tenfold measurement at the age the baseline was taken.
  */
 export async function seedBreakoutCandidate(
   db: PrismaClient<'query'>,
   world: AcceptanceWorld,
-  options: { earlyImpressions?: number; history?: number[] } = {},
+  options: CandidateOptions = {},
 ): Promise<BreakoutCandidate> {
   const nowMs = Date.now();
+  const targetAgeMs = options.targetAgeMs ?? 62 * MINUTE_MS;
   const history = await seedComparableHistory(db, world, {
     nowMs,
+    observedAtAgeMs: targetAgeMs,
     values: options.history,
   });
   const target = await publishOwnPost(db, world, {
-    publishedAt: new Date(nowMs - 62 * MINUTE_MS),
+    publishedAt: new Date(nowMs - targetAgeMs),
     text: 'The post that is about to break out',
   });
-  await captureObservationAt(
-    db,
-    target,
-    await resolveExposureSource(db, world, target),
-    { ageMs: 30 * MINUTE_MS, impressions: options.earlyImpressions ?? 400 },
-  );
+  const source = await resolveExposureSource(db, world, target);
+  for (const earlier of options.earlier ?? [
+    { ageMs: 30 * MINUTE_MS, impressions: 400 },
+  ])
+    await captureObservationAt(db, target, source, earlier);
   return { history, target };
 }

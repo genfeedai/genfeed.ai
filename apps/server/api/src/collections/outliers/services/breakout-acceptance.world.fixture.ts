@@ -10,6 +10,7 @@ import { PublishApprovalsService } from '@api/publish-approvals/publish-approval
 import type { ServerLogger } from '@api/server.dependencies';
 import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   Platform,
   PostCategory,
@@ -524,23 +525,87 @@ export async function captureObservationAt(
 export async function seedComparableHistory(
   db: PrismaClient<'query'>,
   world: AcceptanceWorld,
-  options: { values?: number[]; nowMs?: number } = {},
+  options: {
+    /** Age of each earlier post when it was observed; the breakout is compared at this age. */
+    observedAtAgeMs?: number;
+    values?: number[];
+    nowMs?: number;
+  } = {},
 ): Promise<PublishedPost[]> {
   const values = options.values ?? [100, 110, 120, 90, 105];
   const nowMs = options.nowMs ?? Date.now();
+  const observedAtAgeMs = options.observedAtAgeMs ?? 60 * MINUTE_MS;
+  // Earlier posts are always old enough to have been observed at that age.
+  const daysBack = Math.ceil(observedAtAgeMs / DAY_MS) + 1;
   const posts: PublishedPost[] = [];
   for (const [index, impressions] of values.entries()) {
     const post = await publishOwnPost(db, world, {
-      publishedAt: new Date(nowMs - (index + 2) * DAY_MS),
+      publishedAt: new Date(nowMs - (index + daysBack) * DAY_MS),
       text: `History post ${index + 1} for the acceptance baseline`,
     });
     const source = await resolveExposureSource(db, world, post);
     if (!source) throw new Error('History publication did not resolve');
     await captureObservationAt(db, post, source, {
-      ageMs: 60 * MINUTE_MS,
+      ageMs: observedAtAgeMs,
       impressions,
     });
     posts.push(post);
   }
   return posts;
+}
+
+/** The member's session ends (left the organization or was deactivated). */
+export async function revokeMembership(
+  db: PrismaClient<'query'>,
+  world: AcceptanceWorld,
+  user: AcceptanceUser,
+): Promise<void> {
+  await db.member.update({
+    data: { isActive: false },
+    where: scopedWhere(world.organizationId, { id: user.memberId }),
+  });
+}
+
+export async function restoreMembership(
+  db: PrismaClient<'query'>,
+  world: AcceptanceWorld,
+  user: AcceptanceUser,
+): Promise<void> {
+  await db.member.update({
+    data: { isActive: true },
+    where: scopedWhere(world.organizationId, { id: user.memberId }),
+  });
+}
+
+/** The member keeps the organization but loses assignment to the brand. */
+export async function removeBrandAccess(
+  db: PrismaClient<'query'>,
+  world: AcceptanceWorld,
+  user: AcceptanceUser,
+): Promise<void> {
+  await db.member.update({
+    data: { brands: { disconnect: [{ id: world.brandId }] } },
+    where: scopedWhere(world.organizationId, { id: user.memberId }),
+  });
+}
+
+export async function grantBrandAccess(
+  db: PrismaClient<'query'>,
+  world: AcceptanceWorld,
+  user: AcceptanceUser,
+): Promise<void> {
+  await db.member.update({
+    data: { brands: { connect: [{ id: world.brandId }] } },
+    where: scopedWhere(world.organizationId, { id: user.memberId }),
+  });
+}
+
+export async function revokeApiKey(
+  db: PrismaClient<'query'>,
+  keyId: string,
+): Promise<void> {
+  await db.apiKey.update({
+    data: { isRevoked: true, revokedAt: new Date() },
+    where: { id: keyId },
+  });
 }

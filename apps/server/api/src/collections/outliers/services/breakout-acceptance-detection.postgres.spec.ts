@@ -36,10 +36,8 @@ vi.mock('@genfeedai/config', async (original) => ({
   ...(await original<typeof import('@genfeedai/config')>()),
   isCloudDeployment: () => true,
 }));
-// The credential store is faked with an already-plain token.
-vi.mock('@libs/utils/encryption/encryption.util', () => ({
-  EncryptionUtil: { decrypt: (value: string) => value },
-}));
+// A throwaway key for the credential token round trip; not a secret.
+vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'breakout-acceptance-test-key');
 
 const connectionString = acceptanceDatabaseUrl();
 
