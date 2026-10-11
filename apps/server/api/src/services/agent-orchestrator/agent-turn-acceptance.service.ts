@@ -179,57 +179,13 @@ export class AgentTurnAcceptanceService {
           request.clientRequestId,
         ),
         inputValues: {
-          request: {
-            content: request.content,
-            generationEntry:
-              getActionOriginContext().generationEntry ??
-              context.generationEntry,
-            hostSupportsApproval: request.hostSupportsApproval === true,
-            // The authenticated principal rides the durable request so the
-            // queued turn can bind schedules to it without ever inferring one.
-            ...(context.initiatingPrincipal
-              ? { initiatingPrincipal: context.initiatingPrincipal }
-              : {}),
-            clientRequestId: request.clientRequestId,
+          request: this.buildDurableTurnRequest({
+            brandId: thread.brandId,
+            context,
+            contextVersion,
+            request,
             threadId,
-            ...(request.agentType ? { agentType: request.agentType } : {}),
-            ...(request.artifactReferences?.length
-              ? { artifactReferences: request.artifactReferences }
-              : {}),
-            ...(request.attachments?.length
-              ? { attachments: request.attachments }
-              : {}),
-            ...(thread.brandId ? { brandId: thread.brandId } : {}),
-            // Acceptance has already loaded and authorized this exact thread
-            // version. Pin it into the durable request so the execution
-            // revalidates the same scope instead of downgrading to a missing
-            // version context.
-            expectedContextVersion: contextVersion,
-            ...(request.generationMode
-              ? { generationMode: request.generationMode }
-              : {}),
-            ...(request.generationSettings
-              ? { generationSettings: request.generationSettings }
-              : {}),
-            ...(request.requestedSkillSlugs
-              ? { requestedSkillSlugs: request.requestedSkillSlugs }
-              : {}),
-            ...(request.knowledgeSelection
-              ? { knowledgeSelection: request.knowledgeSelection }
-              : {}),
-            ...(request.model ? { model: request.model } : {}),
-            ...(request.pageContext
-              ? { pageContext: request.pageContext }
-              : {}),
-            ...(request.agentMode !== undefined
-              ? { agentMode: request.agentMode }
-              : {}),
-            ...(request.source ? { source: request.source } : {}),
-            ...(request.systemPromptOverride
-              ? { systemPromptOverride: request.systemPromptOverride }
-              : {}),
-            ...(request.transferId ? { transferId: request.transferId } : {}),
-          },
+          }),
         },
         metadata: {
           clientRequestId: request.clientRequestId,
@@ -271,6 +227,65 @@ export class AgentTurnAcceptanceService {
       queuedAt,
       status: 'queued',
       threadId,
+    };
+  }
+
+  /** The durable request the queued turn executes from. */
+  private buildDurableTurnRequest(input: {
+    brandId: string | null | undefined;
+    context: AgentChatContext;
+    contextVersion: number;
+    request: AgentChatRequest & { clientRequestId: string };
+    threadId: string;
+  }): Record<string, unknown> {
+    const { brandId, context, contextVersion, request, threadId } = input;
+    return {
+      content: request.content,
+      generationEntry:
+        getActionOriginContext().generationEntry ?? context.generationEntry,
+      hostSupportsApproval: request.hostSupportsApproval === true,
+      // The authenticated principal rides the durable request so the queued
+      // turn can bind schedules to it without ever inferring one.
+      ...(context.initiatingPrincipal
+        ? { initiatingPrincipal: context.initiatingPrincipal }
+        : {}),
+      clientRequestId: request.clientRequestId,
+      threadId,
+      ...(request.agentType ? { agentType: request.agentType } : {}),
+      ...(request.artifactReferences?.length
+        ? { artifactReferences: request.artifactReferences }
+        : {}),
+      ...(request.attachments?.length
+        ? { attachments: request.attachments }
+        : {}),
+      ...(brandId ? { brandId } : {}),
+      // Acceptance has already loaded and authorized this exact thread
+      // version. Pin it into the durable request so the execution
+      // revalidates the same scope instead of downgrading to a missing
+      // version context.
+      expectedContextVersion: contextVersion,
+      ...(request.generationMode
+        ? { generationMode: request.generationMode }
+        : {}),
+      ...(request.generationSettings
+        ? { generationSettings: request.generationSettings }
+        : {}),
+      ...(request.requestedSkillSlugs
+        ? { requestedSkillSlugs: request.requestedSkillSlugs }
+        : {}),
+      ...(request.knowledgeSelection
+        ? { knowledgeSelection: request.knowledgeSelection }
+        : {}),
+      ...(request.model ? { model: request.model } : {}),
+      ...(request.pageContext ? { pageContext: request.pageContext } : {}),
+      ...(request.agentMode !== undefined
+        ? { agentMode: request.agentMode }
+        : {}),
+      ...(request.source ? { source: request.source } : {}),
+      ...(request.systemPromptOverride
+        ? { systemPromptOverride: request.systemPromptOverride }
+        : {}),
+      ...(request.transferId ? { transferId: request.transferId } : {}),
     };
   }
 
