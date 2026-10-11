@@ -587,8 +587,12 @@ export class AgentToolExecutorService implements OnModuleInit {
               userId: policyResult.approvedByUserId,
             })
           : undefined;
+        // The captured principal describes the reviewer, not the requester the
+        // tool now runs as, so it must not outlive the swap.
+        const { initiatingPrincipal: _reviewerPrincipal, ...requesterContext } =
+          context;
         context = {
-          ...context,
+          ...requesterContext,
           ...(approver ? { scheduleAuthorityPrincipal: approver } : {}),
           userId: policyResult.executeAsUserId,
         };
