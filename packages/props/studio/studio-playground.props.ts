@@ -194,6 +194,8 @@ export interface StudioPlaygroundResultsProps {
   isUseAsReferenceEnabled?: (job: StudioPlaygroundJob) => boolean;
   /** Attaches a ready asset to the open composer without changing its type. */
   onUseAsReference?: (job: StudioPlaygroundJob) => void;
+  /** Successful Inspector preview retries, keyed by job id. */
+  previewRevisions?: Readonly<Record<string, number>>;
   selectedJobId?: string | null;
   view: ViewType.GRID | ViewType.LIST;
 }
@@ -213,6 +215,11 @@ export interface StudioPlaygroundCardProps {
   isUseAsReferenceEnabled?: boolean;
   /** Attaches a ready asset to the open composer without changing its type. */
   onUseAsReference?: (job: StudioPlaygroundJob) => void;
+  /**
+   * Bumped after the Inspector recovers this asset's saved preview. A new
+   * value clears the card's preview failure and reauthorizes its media.
+   */
+  previewRevision?: number;
   view: ViewType.GRID | ViewType.LIST;
 }
 
@@ -220,6 +227,14 @@ export interface StudioPlaygroundInspectorProps {
   isFocused?: boolean;
   job: StudioPlaygroundJob;
   onOpenPreview?: () => void;
+  /**
+   * A retried saved preview actually loaded. `recoveredUrl` is the freshly
+   * read stored URL when one was re-read (legacy delivery), else undefined.
+   */
+  onPreviewRecovered?: (
+    job: StudioPlaygroundJob,
+    recoveredUrl: string | undefined,
+  ) => void;
   /** Attaches a finished image to the composer as an image reference. */
   onRemix: (job: StudioPlaygroundJob) => void;
   onEdit?: (job: StudioPlaygroundJob) => void;
@@ -227,6 +242,15 @@ export interface StudioPlaygroundInspectorProps {
   onUseInPost: (ingredient: IIngredient) => void;
   onVary: (job: StudioPlaygroundJob) => void;
   runJobs: readonly StudioPlaygroundJob[];
+}
+
+/** One asset's successful Inspector preview retry, as the gallery applies it. */
+export interface StudioPlaygroundPreviewRecovery {
+  revision: number;
+  /** The gallery URL that failed; the override applies only while it is current. */
+  staleUrl?: string;
+  /** The freshly read stored URL, when the retry re-read one. */
+  url?: string;
 }
 
 export interface StudioPlaygroundFocusedPreviewProps {

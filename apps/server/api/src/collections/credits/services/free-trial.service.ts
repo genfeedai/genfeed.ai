@@ -3,9 +3,9 @@ import { isCreditTransactionConflict } from '@api/collections/credits/services/c
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import {
   isFreeTrialEnforced,
-  paidCreditGrantWhere,
   paidSubscriptionWhere,
   readFreeTrialState,
+  trialExemptingGrantWhere,
 } from '@api/collections/credits/services/free-trial-state.util';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { FreeTrialExpiredException } from '@api/exceptions/business-logic.exception';
@@ -22,8 +22,10 @@ import {
 import {
   FREE_TRIAL_DURATION_MS,
   resolveFreeTrialEndsAt,
+  resolveFreeTrialRolloutAt,
 } from '@genfeedai/contracts/constants';
 import type { IFreeTrialState } from '@genfeedai/contracts/interfaces/billing';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
@@ -63,14 +65,20 @@ export class FreeTrialService {
     private readonly notificationsPublisher: NotificationsPublisherService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly logger: LoggerService,
+    private readonly config: ConfigService,
   ) {}
+
+  /** `FREE_TRIAL_ROLLOUT_AT`, or the default rollout moment. */
+  get rolloutAt(): Date {
+    return resolveFreeTrialRolloutAt(this.config.get('FREE_TRIAL_ROLLOUT_AT'));
+  }
 
   getState(
     organizationId: string,
     now: Date = new Date(),
     client: PrismaTransactionClient = this.prisma,
   ): Promise<IFreeTrialState> {
-    return readFreeTrialState(client, organizationId, now);
+    return readFreeTrialState(client, organizationId, now, this.rolloutAt);
   }
 
   /**
@@ -108,6 +116,10 @@ export class FreeTrialService {
     if (!isFreeTrialEnforced()) {
       return [];
     }
+    // Nobody's window can have closed before rollout + 72h.
+    if (now.getTime() < this.rolloutAt.getTime() + FREE_TRIAL_DURATION_MS) {
+      return [];
+    }
     const createdBefore = new Date(now.getTime() - FREE_TRIAL_DURATION_MS);
     // tenant-scope-ignore: the trial-expiry sweep discovers organization ids across tenants; each id is then expired in its own organization-scoped transaction.
     const wallets = await crossOrgUnsafe(
@@ -123,7 +135,7 @@ export class FreeTrialService {
             organization: {
               is: {
                 createdAt: { lte: createdBefore },
-                creditTransactions: { none: paidCreditGrantWhere() },
+                creditTransactions: { none: trialExemptingGrantWhere() },
                 isDeleted: false,
                 isProactiveOnboarding: false,
                 subscriptions: { none: paidSubscriptionWhere() },
@@ -239,7 +251,8 @@ export class FreeTrialService {
     });
     if (
       !organization ||
-      resolveFreeTrialEndsAt(organization.createdAt).getTime() > now.getTime()
+      resolveFreeTrialEndsAt(organization.createdAt, this.rolloutAt).getTime() >
+        now.getTime()
     ) {
       return null;
     }

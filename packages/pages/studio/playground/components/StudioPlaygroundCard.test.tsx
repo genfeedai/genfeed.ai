@@ -273,6 +273,45 @@ describe('StudioPlaygroundCard', () => {
     );
   });
 
+  it('leaves the preview fallback after a successful Inspector retry and reauthorizes the tile', () => {
+    const props = {
+      assetActions: buildAssetActions(),
+      job: generatedJob,
+      onReprompt: vi.fn(),
+      onSelect: vi.fn(),
+      view: ViewType.GRID,
+    } as const;
+    const { rerender } = render(<StudioPlaygroundCard {...props} />);
+    expect(masonryMocks.image.mock.calls.at(-1)?.[0].previewRetryRevision).toBe(
+      0,
+    );
+    act(() => masonryMocks.image.mock.calls.at(-1)?.[0].onMediaError?.());
+    expect(screen.getByTestId('studio-asset-job-1')).toHaveAttribute(
+      'data-asset-media-state',
+      'fallback',
+    );
+    masonryMocks.image.mockClear();
+
+    // The Inspector's retry loaded the same saved asset: the card follows.
+    rerender(<StudioPlaygroundCard {...props} previewRevision={1} />);
+
+    expect(screen.getByTestId('studio-asset-job-1')).toHaveAttribute(
+      'data-asset-media-state',
+      'ready',
+    );
+    expect(screen.queryByText('Preview unavailable')).not.toBeInTheDocument();
+    expect(masonryMocks.image.mock.calls.at(-1)?.[0].previewRetryRevision).toBe(
+      1,
+    );
+
+    // A failure under the new revision is still reported, not masked.
+    act(() => masonryMocks.image.mock.calls.at(-1)?.[0].onMediaError?.());
+    expect(screen.getByTestId('studio-asset-job-1')).toHaveAttribute(
+      'data-asset-media-state',
+      'fallback',
+    );
+  });
+
   it('shows the fallback immediately when a generated asset has no url', () => {
     render(
       <StudioPlaygroundCard

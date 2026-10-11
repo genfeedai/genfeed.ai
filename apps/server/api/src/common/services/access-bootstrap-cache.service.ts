@@ -43,6 +43,13 @@ export interface AccessBootstrapStatePayload {
    * admission is refused server-side and the app shows the paywall.
    */
   isTrialExpired?: boolean;
+  /**
+   * Below this balance the organization is "running low"
+   * (`LowCreditThresholdService`: one default image for a never-paid
+   * organization in its trial, 10% of the latest paid grant, never below one
+   * image, for a paying one). Null when no low-balance warning applies.
+   */
+  lowCreditThreshold?: number | null;
   // First-asset unlock gate flags surfaced to the client without an extra request.
   hasGeneratedFirstAsset: boolean;
   hasDismissedAssetGate: boolean;

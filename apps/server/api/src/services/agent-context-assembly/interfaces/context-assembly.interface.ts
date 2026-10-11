@@ -1,5 +1,6 @@
 import type {
   IBrandKitReadiness,
+  IMissingBrandContext,
   KnowledgeRetrievalCitation,
 } from '@genfeedai/contracts/interfaces';
 
@@ -31,6 +32,11 @@ export interface AssembleContextParams {
   platform?: string;
   layers?: ContextLayers;
   credentialId?: string;
+  /**
+   * The conversation the context is for. The missing brand context layer
+   * returns nothing once this conversation has asked its one question.
+   */
+  threadId?: string;
 }
 
 export interface ContextLayers {
@@ -42,6 +48,11 @@ export interface ContextLayers {
   ragContext?: boolean;
   recentPosts?: boolean;
   performancePatterns?: boolean;
+  /**
+   * Brand fields the agent may ask about in-flow (requires an explicit
+   * `brandId`). Default off: only interactive chat turns ask.
+   */
+  missingBrandContext?: boolean;
 }
 
 /** Every layer name `assembleContext` can record in `layersUsed`. */
@@ -54,7 +65,8 @@ export type AssembledContextLayerName =
   | 'ragContext'
   | 'recentPosts'
   | 'performancePatterns'
-  | 'credentialContext';
+  | 'credentialContext'
+  | 'missingBrandContext';
 
 /**
  * A retrieved Knowledge passage from the automatic chat-retrieval layer,
@@ -122,6 +134,8 @@ export interface AssembledBrandContext {
   ragEntries?: AssembledRagEntry[];
   brandKnowledgeEntries?: AssembledBrandKnowledgeEntry[];
   recentPostSummaries?: string[];
+  /** Askable missing brand fields, set only when that layer is on. */
+  missingBrandContext?: IMissingBrandContext;
   topPatterns?: Array<{
     patternType: string;
     label: string;

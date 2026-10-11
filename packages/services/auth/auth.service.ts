@@ -34,6 +34,12 @@ export interface AccessBootstrapState {
   trialEndsAt?: string | null;
   /** The free trial is over and the organization never paid. */
   isTrialExpired?: boolean;
+  /**
+   * Balance below which the low-balance warning shows (server-computed,
+   * relative to the organization's plan or pack). Null or absent means no
+   * warning.
+   */
+  lowCreditThreshold?: number | null;
   // First-asset unlock gate flags (see AccessBootstrapStatePayload on the API).
   hasGeneratedFirstAsset: boolean;
   hasDismissedAssetGate: boolean;

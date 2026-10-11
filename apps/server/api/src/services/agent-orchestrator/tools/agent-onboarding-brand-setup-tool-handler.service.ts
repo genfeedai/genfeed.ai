@@ -7,6 +7,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/tools/agent-brand-context-ask.service';
 import { completeExpertBrandHandoff } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-handoff.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -104,6 +105,7 @@ export class AgentOnboardingBrandSetupToolHandler {
       'findOne' | 'updateAgentConfig'
     >,
     private readonly brandDataMapper: BrandDataMapper,
+    private readonly brandContextAsks: AgentBrandContextAskService,
     @Optional() private readonly signupPrefillService?: SignupPrefillService,
     @Optional() private readonly organizationsService?: OrganizationsService,
     @Optional() private readonly usersService?: UsersService,
@@ -313,6 +315,13 @@ export class AgentOnboardingBrandSetupToolHandler {
       throw new ForbiddenException(
         'The brand is not available in this organization.',
       );
+    const saveMode = await this.brandContextAsks.resolveSaveMode(ctx);
+    if (saveMode === 'in_flow')
+      this.brandContextAsks.assertInFlowSaveAllowed(
+        brand.agentConfig,
+        ctx.threadId,
+        [...answeredFields, ...skippedFields],
+      );
     const isLearningFromInstagram = tone === TONE_LEARN_FROM_INSTAGRAM;
     if (isLearningFromInstagram) {
       const accounts = await this.credentialsService?.findConnectedAccounts(
@@ -367,11 +376,12 @@ export class AgentOnboardingBrandSetupToolHandler {
       throw new ForbiddenException(
         'The brand is not available in this organization.',
       );
-    const rewardedFields = await this.grantAnswerCredits(
-      ctx,
-      brandId,
-      answeredFields,
-    );
+    // Answer credits are an onboarding reward only, so an in-flow answer
+    // after onboarding never grants them.
+    const rewardedFields =
+      saveMode === 'onboarding'
+        ? await this.grantAnswerCredits(ctx, brandId, answeredFields)
+        : [];
     return {
       creditsUsed: 0,
       success: true,

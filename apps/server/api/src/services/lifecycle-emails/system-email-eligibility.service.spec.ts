@@ -9,6 +9,11 @@ const input = {
   userId: 'user-1',
   templateKey: 'welcome-day-2',
 };
+// A rollout long past, so windows run from organization creation.
+const configGet = vi.fn((key: string): string | undefined =>
+  key === 'FREE_TRIAL_ROLLOUT_AT' ? '2026-01-01T00:00:00.000Z' : undefined,
+);
+
 function fixture() {
   const prisma = {
     credential: { findFirst: vi.fn().mockResolvedValue(null) },
@@ -28,6 +33,7 @@ function fixture() {
     prisma,
     service: new SystemEmailEligibilityService(
       prisma as unknown as PrismaService,
+      { apiUrl: '', get: configGet },
     ),
   };
 }
@@ -64,13 +70,28 @@ describe('send-time system email eligibility', () => {
   });
   it('subtracts held credits and cancels low-balance email after a top-up', async () => {
     const { prisma, service } = fixture();
-    expect(
-      await service.shouldSend({ ...input, templateKey: 'credit-low' }),
-    ).toBe(true);
+    const lowCredit = {
+      ...input,
+      templateKey: 'credit-low',
+      policyData: { lowCreditThreshold: 1000 },
+    };
+    expect(await service.shouldSend(lowCredit)).toBe(true);
     prisma.creditBalance.findFirst.mockResolvedValue({
       balance: 5000,
       heldAmount: 400,
     });
+    expect(await service.shouldSend(lowCredit)).toBe(false);
+  });
+  it('judges a low-balance email against the relative threshold it was queued with', async () => {
+    const { service } = fixture();
+    // 800 spendable: low against a 1000-credit threshold, not against 500.
+    expect(
+      await service.shouldSend({
+        ...input,
+        templateKey: 'credit-low',
+        policyData: { lowCreditThreshold: 500 },
+      }),
+    ).toBe(false);
     expect(
       await service.shouldSend({ ...input, templateKey: 'credit-low' }),
     ).toBe(false);
@@ -148,6 +169,17 @@ describe('free-trial notice eligibility at send time', () => {
     const { prisma, service } = fixture();
     prisma.organization.findFirst.mockResolvedValue(neverPaid(hours));
     expect(await service.shouldSend({ ...input, templateKey })).toBe(expected);
+  });
+
+  it('keeps "ends soon" for a legacy organization inside its rollout grace', async () => {
+    const { prisma, service } = fixture();
+    prisma.organization.findFirst.mockResolvedValue(neverPaid(24 * 400));
+    configGet.mockImplementationOnce(() =>
+      new Date(Date.now() - 50 * HOUR_MS).toISOString(),
+    );
+    expect(
+      await service.shouldSend({ ...input, templateKey: 'trial-ending' }),
+    ).toBe(true);
   });
 
   it.each(['trial-ending', 'trial-ended', 'trial-credits-low'])(

@@ -1,4 +1,5 @@
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { LowCreditThresholdModule } from '@api/services/low-credit-threshold/low-credit-threshold.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -15,6 +16,7 @@ import { LifecycleEmailsController } from './lifecycle-emails.controller';
   imports: [
     ConfigModule,
     LoggerModule,
+    LowCreditThresholdModule,
     NotificationsModule,
     WorkflowsCoreModule,
   ],

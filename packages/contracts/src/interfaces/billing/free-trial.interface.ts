@@ -27,3 +27,13 @@ export interface IFreeTrialEmailDefinition {
   subject: string;
   templateKey: FreeTrialEmailTemplateKey;
 }
+
+/**
+ * The balance below which an organization is "running low"
+ * (`LowCreditThresholdService`). `threshold` is null when no alert applies:
+ * an expired trial, or neither a default-image price nor a paid grant known.
+ */
+export interface ILowCreditStanding {
+  isTrialSubject: boolean;
+  threshold: number | null;
+}

@@ -323,7 +323,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organization-scoped serializable transaction.
     {
       file: 'apps/server/api/src/collections/credits/services/free-trial.service.ts',
-      line: 113,
+      line: 125,
     },
     // #6120: the signup welcome entitlement is user-scoped across the user's
     // owned organizations.

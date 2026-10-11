@@ -95,11 +95,13 @@ vi.mock('next/image', () => ({
     alt,
     src,
     onError,
+    onLoad,
   }: {
     alt: string;
     src: string;
     onError?: () => void;
-  }) => <img alt={alt} src={src} onError={onError} />,
+    onLoad?: () => void;
+  }) => <img alt={alt} src={src} onError={onError} onLoad={onLoad} />,
 }));
 
 vi.mock('@ui/masonry/shared/useMasonryHover', () => ({
@@ -257,6 +259,52 @@ describe('StudioPlaygroundInspector', () => {
     expect(mocks.download).not.toHaveBeenCalled();
   });
 
+  it('reports a retried preview to the gallery only once it actually loads', async () => {
+    const ingredient = {
+      id: 'ing-1',
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      cdnUrl: 'https://cdn.example/saved.png',
+    } as IIngredient;
+    const job = { ...recipeJob, ingredient };
+    const onPreviewRecovered = vi.fn();
+    mocks.findOne.mockResolvedValue(ingredient);
+    render(
+      <StudioPlaygroundInspector
+        job={job}
+        onPreviewRecovered={onPreviewRecovered}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[job]}
+      />,
+    );
+    await waitFor(() => expect(mocks.findOne).toHaveBeenCalledTimes(1));
+    // A first, ordinary load is not a recovery.
+    fireEvent.load(screen.getByRole('img', { name: 'Image preview' }));
+    fireEvent.error(screen.getByRole('img', { name: 'Image preview' }));
+    mocks.findOne.mockResolvedValueOnce({
+      ...ingredient,
+      cdnUrl: 'https://cdn.example/refreshed.png',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry preview' }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('img', { name: 'Image preview' }),
+      ).toHaveAttribute('src', 'https://cdn.example/refreshed.png'),
+    );
+    expect(onPreviewRecovered).not.toHaveBeenCalled();
+
+    fireEvent.load(screen.getByRole('img', { name: 'Image preview' }));
+    fireEvent.load(screen.getByRole('img', { name: 'Image preview' }));
+
+    expect(onPreviewRecovered).toHaveBeenCalledExactlyOnceWith(
+      job,
+      'https://cdn.example/refreshed.png',
+    );
+  });
+
   it('keeps a retry failure distinct from generation failure and does not resurrect a foreign asset', async () => {
     const ingredient = {
       id: 'ing-1',
@@ -265,10 +313,12 @@ describe('StudioPlaygroundInspector', () => {
       cdnUrl: 'https://cdn.example/saved.png',
     } as IIngredient;
     const job = { ...recipeJob, ingredient };
+    const onPreviewRecovered = vi.fn();
     mocks.findOne.mockResolvedValue(ingredient);
     render(
       <StudioPlaygroundInspector
         job={job}
+        onPreviewRecovered={onPreviewRecovered}
         onRemix={vi.fn()}
         onUseInPost={vi.fn()}
         onSelect={vi.fn()}
@@ -291,6 +341,7 @@ describe('StudioPlaygroundInspector', () => {
     );
     expect(screen.queryByRole('img', { name: 'Image preview' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Vary' })).toBeEnabled();
+    expect(onPreviewRecovered).not.toHaveBeenCalled();
   });
 
   it('aborts a preview retry after selection changes and ignores its late image', async () => {

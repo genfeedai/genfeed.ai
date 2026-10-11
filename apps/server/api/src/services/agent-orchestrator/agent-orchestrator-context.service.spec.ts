@@ -134,6 +134,7 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
           brandGuidance: true,
           brandIdentity: true,
           brandMemory: true,
+          missingBrandContext: true,
           performancePatterns: true,
           ragContext: true,
           recentPosts: true,
@@ -142,6 +143,61 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
       }),
     );
   });
+
+  it.each([
+    [{ source: 'agent' as const }, true],
+    [{}, true],
+    [{ source: 'onboarding' as const }, false],
+    [{ source: 'proactive' as const }, false],
+    [{ agentType: AgentType.BRAND_INTERVIEW }, false],
+  ])(
+    'asks for missing brand context only in interactive chat turns: %j',
+    async (request, isAsked) => {
+      const assembleContext = vi.fn().mockResolvedValue(null);
+      const service = new AgentOrchestratorContextService(
+        {
+          getLocalDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
+          resolveModelKey: vi.fn().mockResolvedValue('test-model'),
+          resolveOverrideModelKey: vi.fn().mockResolvedValue('test-model'),
+        } as never,
+        {} as never,
+        {
+          findOne: vi.fn().mockResolvedValue(null),
+        } as never,
+        {
+          prepareForTurn: vi.fn().mockResolvedValue({
+            existingScope: null,
+            initialBrandId: 'brand-1',
+          }),
+        } as never,
+        {
+          getFeedbackMemoriesForGeneration: vi.fn().mockResolvedValue([]),
+        } as never,
+        {} as never,
+        { assembleContext } as never,
+        { findOne: vi.fn().mockResolvedValue(null) } as never,
+        { findOneById: vi.fn() } as never,
+        modelAccess as never,
+      );
+
+      await service.resolveSystemPromptAndModel(
+        {
+          content: 'Draft a caption',
+          threadId: THREAD_ID,
+          ...request,
+        },
+        CONTEXT,
+      );
+
+      expect(assembleContext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-1',
+          layers: expect.objectContaining({ missingBrandContext: isAsked }),
+          threadId: THREAD_ID,
+        }),
+      );
+    },
+  );
 });
 
 describe('AgentOrchestratorContextService onboarding prompt selection', () => {

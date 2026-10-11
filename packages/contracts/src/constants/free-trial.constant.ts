@@ -25,13 +25,41 @@ export const FREE_TRIAL_ENDING_NOTICE_MS = 24 * HOUR_MS;
 export const FREE_TRIAL_NOTICE_GRACE_MS = 24 * HOUR_MS;
 
 /**
- * The trial clock starts when the organization is created. Signup creates the
- * organization in the same request that grants the signup gift, so this is
- * the moment the first free credits land. The column is immutable and set by
- * the database, so it needs no migration and cannot be reset by a client.
+ * When the free trial started being enforced. Organizations created before it
+ * get a full trial window from this moment instead of losing their free
+ * credits on deploy. Deployments override it with `FREE_TRIAL_ROLLOUT_AT`
+ * (ISO 8601) through the API `ConfigService`.
  */
-export function resolveFreeTrialEndsAt(organizationCreatedAt: Date): Date {
-  return new Date(organizationCreatedAt.getTime() + FREE_TRIAL_DURATION_MS);
+export const FREE_TRIAL_ROLLOUT_AT_DEFAULT = '2026-10-11T00:00:00.000Z';
+
+/**
+ * The configured rollout moment, or the default when unset or not a valid
+ * ISO 8601 date (a typo must never move every trial window).
+ */
+export function resolveFreeTrialRolloutAt(configured?: string | null): Date {
+  const candidate = configured?.trim()
+    ? new Date(configured.trim())
+    : new Date(FREE_TRIAL_ROLLOUT_AT_DEFAULT);
+  return Number.isFinite(candidate.getTime())
+    ? candidate
+    : new Date(FREE_TRIAL_ROLLOUT_AT_DEFAULT);
+}
+
+/**
+ * The trial clock starts when the organization is created, or at the
+ * rollout for an organization that predates it. Signup creates the
+ * organization in the same request that grants the signup gift, so creation
+ * is the moment the first free credits land. The column is immutable and set
+ * by the database, so it needs no migration and cannot be reset by a client.
+ */
+export function resolveFreeTrialEndsAt(
+  organizationCreatedAt: Date,
+  rolloutAt: Date,
+): Date {
+  return new Date(
+    Math.max(organizationCreatedAt.getTime(), rolloutAt.getTime()) +
+      FREE_TRIAL_DURATION_MS,
+  );
 }
 
 export const FREE_TRIAL_EMAILS = {

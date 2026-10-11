@@ -1,5 +1,5 @@
 import { readFreeTrialState } from '@api/collections/credits/services/free-trial-state.util';
-import { SERVER_TOKENS } from '@api/server.dependencies';
+import { SERVER_TOKENS, type ServerConfig } from '@api/server.dependencies';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -9,6 +9,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
+import { resolveFreeTrialRolloutAt } from '@genfeedai/contracts/constants';
 import { CredentialPlatform, type Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -37,6 +38,7 @@ export const GENERATED_CONTENT_FILTER = {
 export class SystemEmailEligibilityService {
   constructor(
     @Inject(SERVER_TOKENS.prisma) private readonly prisma: PrismaService,
+    @Inject(SERVER_TOKENS.config) private readonly config: ServerConfig,
   ) {}
 
   async shouldSend(input: SystemEmailEligibilityInput): Promise<boolean> {
@@ -89,30 +91,25 @@ export class SystemEmailEligibilityService {
         });
         if (!balance) return false;
         const spendable = balance.balance - balance.heldAmount;
+        // The relative threshold the alert was queued against
+        // (`LowCreditThresholdService`); a top-up since then cancels it.
+        const threshold = data.lowCreditThreshold;
         return input.templateKey === 'credit-exhausted'
           ? spendable <= 0
-          : spendable > 0 && spendable < 1000;
+          : typeof threshold === 'number' &&
+              spendable > 0 &&
+              spendable < threshold;
       }
       // A trial notice is stale once the organization pays (it leaves the
       // trial). "Ends soon" and "running low" are also stale once it ended.
       case 'trial-ending':
       case 'trial-credits-low': {
-        const trial = await readFreeTrialState(
-          this.prisma,
-          input.organizationId,
-          new Date(),
-        );
+        const trial = await this.readTrial(input.organizationId);
         return trial.trialEndsAt !== null && !trial.isTrialExpired;
       }
       case 'trial-ended':
         return (
-          (
-            await readFreeTrialState(
-              this.prisma,
-              input.organizationId,
-              new Date(),
-            )
-          ).trialEndsAt !== null
+          (await this.readTrial(input.organizationId)).trialEndsAt !== null
         );
       case 'checkout-recovery': {
         const deliveryId =
@@ -151,6 +148,16 @@ export class SystemEmailEligibilityService {
       default:
         return true;
     }
+  }
+
+  /** Trial state at send time, with the same rollout floor as admission. */
+  private readTrial(organizationId: string) {
+    return readFreeTrialState(
+      this.prisma,
+      organizationId,
+      new Date(),
+      resolveFreeTrialRolloutAt(this.config.get('FREE_TRIAL_ROLLOUT_AT')),
+    );
   }
 
   /** A recap only goes out when the closed period actually produced outputs. */

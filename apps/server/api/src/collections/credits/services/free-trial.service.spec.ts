@@ -14,6 +14,7 @@ import {
   ActivitySource,
   CreditTransactionCategory,
 } from '@genfeedai/contracts';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -77,6 +78,8 @@ describe('FreeTrialService', () => {
   const emit = vi.fn();
   const invalidateForOrganization = vi.fn();
   const logger = { log: vi.fn() };
+  // Most cases run after a rollout long past, so the window is createdAt+72h.
+  const configGet = vi.fn();
 
   function buildService(): FreeTrialService {
     return new FreeTrialService(
@@ -99,6 +102,7 @@ describe('FreeTrialService', () => {
       { emit } as unknown as NotificationsPublisherService,
       { invalidateForOrganization } as unknown as AccessBootstrapCacheService,
       logger as unknown as LoggerService,
+      { get: configGet } as unknown as ConfigService,
     );
   }
 
@@ -106,6 +110,7 @@ describe('FreeTrialService', () => {
     vi.clearAllMocks();
     vi.spyOn(deployment, 'usesMeteredCredits').mockReturnValue(true);
     vi.spyOn(deployment, 'isSelfHostedDeployment').mockReturnValue(false);
+    configGet.mockReturnValue('2026-01-01T00:00:00.000Z');
     organizationFindFirst.mockResolvedValue(subject());
     walletFindFirst.mockResolvedValue({
       balance: 60,
@@ -152,6 +157,10 @@ describe('FreeTrialService', () => {
         'a wallet shared with another organization',
         subject({ billingAccount: { organizationLinks: [{ id: 'l' }] } }),
       ],
+      [
+        'an operator comp on its billing account',
+        subject({ billingAccount: { creditTransactions: [{ id: 'comp' }] } }),
+      ],
       ['proactive onboarding', subject({ isProactiveOnboarding: true })],
       ['a warm-up workspace', subject({ warmupAccounts: [{ id: 'w' }] })],
     ])('exempts an organization with %s', async (_label, organization) => {
@@ -160,6 +169,32 @@ describe('FreeTrialService', () => {
       await expect(
         buildService().getState('org_1', PAST_WINDOW),
       ).resolves.toEqual({ isTrialExpired: false, trialEndsAt: null });
+    });
+
+    it('counts an operator comp like a purchase, so comped credits never expire', async () => {
+      await buildService().getState('org_1', PAST_WINDOW);
+
+      const select = organizationFindFirst.mock.calls[0][0].select;
+      expect(select.creditTransactions.where.OR).toContainEqual({
+        amount: { gt: 0 },
+        isDeleted: false,
+        OR: [
+          {
+            source: {
+              in: [
+                ActivitySource.SUPERADMIN,
+                'proactive-onboarding',
+                'warmup-handoff',
+                'warmup-preparation',
+              ],
+            },
+          },
+          { referenceType: 'warmup-account' },
+        ],
+      });
+      expect(select.billingAccount.select.creditTransactions.where).toEqual(
+        select.creditTransactions.where,
+      );
     });
 
     it('treats an abandoned checkout (no Stripe subscription) as never paid', async () => {
@@ -173,7 +208,7 @@ describe('FreeTrialService', () => {
           { status: { in: ['ACTIVE', 'TRIALING'] } },
         ],
       });
-      expect(select.creditTransactions.where).toEqual({
+      expect(select.creditTransactions.where.OR).toContainEqual({
         amount: { gt: 0 },
         isDeleted: false,
         OR: [
@@ -199,6 +234,107 @@ describe('FreeTrialService', () => {
         buildService().getState('org_1', PAST_WINDOW),
       ).resolves.toEqual({ isTrialExpired: false, trialEndsAt: null });
       expect(organizationFindFirst).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('rollout floor (FREE_TRIAL_ROLLOUT_AT)', () => {
+    const LEGACY_CREATED_AT = new Date('2025-03-01T00:00:00.000Z');
+    const ROLLOUT = '2026-10-11T00:00:00.000Z';
+    const LEGACY_ENDS_AT = new Date('2026-10-14T00:00:00.000Z');
+
+    beforeEach(() => {
+      configGet.mockReturnValue(ROLLOUT);
+    });
+
+    it('gives an organization created long before rollout its window from the rollout', async () => {
+      organizationFindFirst.mockResolvedValue({
+        ...subject(),
+        createdAt: LEGACY_CREATED_AT,
+      });
+
+      await expect(
+        buildService().getState('org_1', new Date('2026-10-13T00:00:00.000Z')),
+      ).resolves.toEqual({
+        isTrialExpired: false,
+        trialEndsAt: LEGACY_ENDS_AT,
+      });
+      expect(configGet).toHaveBeenCalledWith('FREE_TRIAL_ROLLOUT_AT');
+    });
+
+    it('does not refuse a legacy organization before rollout + 72h, then refuses it', async () => {
+      organizationFindFirst.mockImplementation(async () => ({
+        ...subject(),
+        createdAt: LEGACY_CREATED_AT,
+      }));
+      const service = buildService();
+
+      await expect(
+        service.assertTrialActive(
+          'org_1',
+          new Date('2026-10-13T23:59:59.000Z'),
+        ),
+      ).resolves.toBeUndefined();
+      await expect(
+        service.assertTrialActive('org_1', LEGACY_ENDS_AT),
+      ).rejects.toBeInstanceOf(FreeTrialExpiredException);
+    });
+
+    it('expires a legacy organization only after rollout + 72h', async () => {
+      organizationFindFirst.mockResolvedValue({
+        ...subject(),
+        createdAt: LEGACY_CREATED_AT,
+      });
+
+      await expect(
+        buildService().expireTrialCredits(
+          'org_1',
+          new Date('2026-10-12T00:00:00.000Z'),
+        ),
+      ).resolves.toBe(0);
+      expect(applyDelta).not.toHaveBeenCalled();
+      await expect(
+        buildService().expireTrialCredits(
+          'org_1',
+          new Date('2026-10-14T00:00:01.000Z'),
+        ),
+      ).resolves.toBe(60);
+    });
+
+    it('discovers no candidates before rollout + 72h', async () => {
+      await expect(
+        buildService().findExpiryCandidates(
+          new Date('2026-10-13T00:00:00.000Z'),
+          undefined,
+          100,
+        ),
+      ).resolves.toEqual([]);
+      expect(walletFindMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps createdAt + 72h for an organization created after the rollout', async () => {
+      organizationFindFirst.mockResolvedValue({
+        ...subject(),
+        createdAt: new Date('2026-10-20T09:00:00.000Z'),
+      });
+
+      await expect(
+        buildService().getState('org_1', new Date('2026-10-21T00:00:00.000Z')),
+      ).resolves.toEqual({
+        isTrialExpired: false,
+        trialEndsAt: new Date('2026-10-23T09:00:00.000Z'),
+      });
+    });
+
+    it('falls back to the default rollout when the configured value is invalid', async () => {
+      configGet.mockReturnValue('not-a-date');
+      organizationFindFirst.mockResolvedValue({
+        ...subject(),
+        createdAt: LEGACY_CREATED_AT,
+      });
+
+      await expect(
+        buildService().getState('org_1', new Date('2026-10-13T00:00:00.000Z')),
+      ).resolves.toMatchObject({ trialEndsAt: LEGACY_ENDS_AT });
     });
   });
 

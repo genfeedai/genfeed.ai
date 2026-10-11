@@ -18,9 +18,11 @@ import {
 } from '@api/services/signup-prefill/utils/brand-system-prompt.util';
 import { buildSignupHarnessProfile } from '@api/services/signup-prefill/utils/harness-seed.util';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
+import { toOnboardingScanSuggestions } from '@api/services/signup-prefill/utils/onboarding-scan-suggestions.util';
 import type {
   IBrandVoiceAnalysis,
   IExtractedBrandData,
+  IOnboardingScanSuggestions,
   IScrapedBrandData,
   IScrapedBrandDataJson,
   SignupPrefillOptions,
@@ -54,6 +56,8 @@ export interface SignupPrefillMarker {
   hasHarnessProfile?: boolean;
   startedAt?: string;
   status: SignupPrefillStatus;
+  /** Card suggestions from the scan, kept for in-flow asks after onboarding. */
+  suggestions?: IOnboardingScanSuggestions;
 }
 
 export interface SignupPrefillResult {
@@ -190,14 +194,7 @@ export class SignupPrefillService {
               primaryColor: readString(brand.primaryColor),
               secondaryColor: readString(brand.secondaryColor),
               logoUrl: state.scrapedData?.logoUrl,
-              suggestions: {
-                audiences: (state.brandVoice?.audienceSegments ?? []).slice(
-                  0,
-                  4,
-                ),
-                offers: (state.brandVoice?.offers ?? []).slice(0, 4),
-                competitors: (state.brandVoice?.competitors ?? []).slice(0, 3),
-              },
+              suggestions: toOnboardingScanSuggestions(state.brandVoice),
             }),
           };
         },
@@ -571,6 +568,9 @@ export class SignupPrefillService {
         hasHarnessProfile: Boolean(state.hasHarnessProfile),
         hasScrapedWebsite: Boolean(state.scrapedData),
         status: 'completed',
+        ...(state.brandVoice
+          ? { suggestions: toOnboardingScanSuggestions(state.brandVoice) }
+          : {}),
       },
       state.deadlineAt,
     );

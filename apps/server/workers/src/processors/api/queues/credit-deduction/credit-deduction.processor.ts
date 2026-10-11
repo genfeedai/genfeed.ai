@@ -1,8 +1,6 @@
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
-import { resolveLowCreditThreshold } from '@api/collections/credits/services/low-credit-threshold.util';
 import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { crunReceiptAllowsDisposition } from '@api/helpers/utils/credits/generation-quote-group.schema';
@@ -12,7 +10,7 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { getCrunMediaKind } from '@api/services/integrations/crun/crun-media-kind.util';
 import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
 import { FreeTrialEmailsService } from '@api/services/lifecycle-emails/free-trial-emails.service';
-import { DefaultGenerationAffordabilityService } from '@api/services/router/default-generation-affordability.service';
+import { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import {
   ActivityKey,
   ActivitySource,
@@ -38,11 +36,6 @@ import { Job, UnrecoverableError } from 'bullmq';
 
 const LOW_CREDITS_DEBOUNCE_TTL_SECONDS = 86400; // 24 hours
 
-type LowCreditStanding = {
-  isTrialSubject: boolean;
-  threshold: number | null;
-};
-
 @Processor(CREDIT_DEDUCTION_QUEUE)
 export class CreditDeductionProcessor extends WorkerHost {
   private readonly constructorName = 'CreditDeductionProcessor';
@@ -54,8 +47,7 @@ export class CreditDeductionProcessor extends WorkerHost {
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
-    private readonly freeTrialService: FreeTrialService,
-    private readonly defaultGenerationAffordability: DefaultGenerationAffordabilityService,
+    private readonly lowCreditThreshold: LowCreditThresholdService,
     private readonly freeTrialEmails: FreeTrialEmailsService,
   ) {
     super();
@@ -538,54 +530,17 @@ export class CreditDeductionProcessor extends WorkerHost {
     return Boolean(asset?.s3Key || asset?.metadata?.result);
   }
 
-  /**
-   * The relative low-credit threshold (`resolveLowCreditThreshold`): one
-   * default image for a never-paid organization in its trial, 10% of the
-   * latest paid grant (never below one image) for a paying one. An expired
-   * trial gets no alert: admission already refuses it and its leftover free
-   * credits are about to be swept.
-   */
-  private async resolveLowCreditStanding(
-    organizationId: string,
-  ): Promise<LowCreditStanding> {
-    const trial = await this.freeTrialService.getState(organizationId);
-    if (trial.isTrialExpired) {
-      return { isTrialSubject: true, threshold: null };
-    }
-    const isTrialSubject = trial.trialEndsAt !== null;
-    const settings = await this.prisma.organizationSetting.findFirst({
-      select: { defaultImageModel: true },
-      where: { organizationId },
-    });
-    const [defaultImageCredits, latestPaidGrantCredits] = await Promise.all([
-      this.defaultGenerationAffordability.getDefaultImageCredits(
-        organizationId,
-        settings?.defaultImageModel,
-      ),
-      isTrialSubject
-        ? Promise.resolve(null)
-        : this.creditTransactionsService.getLatestPaidGrantCredits(
-            organizationId,
-          ),
-    ]);
-    return {
-      isTrialSubject,
-      threshold: resolveLowCreditThreshold({
-        defaultImageCredits,
-        isTrialSubject,
-        latestPaidGrantCredits,
-      }),
-    };
-  }
-
   private async checkLowCredits(organizationId: string): Promise<void> {
     try {
       const balance =
         await this.creditsUtilsService.getOrganizationCreditsBalance(
           organizationId,
         );
+      // Relative threshold (`LowCreditThresholdService`): one default image
+      // for a never-paid organization in its trial, 10% of the latest paid
+      // grant (never below one image) for a paying one.
       const { isTrialSubject, threshold } =
-        await this.resolveLowCreditStanding(organizationId);
+        await this.lowCreditThreshold.resolve(organizationId);
 
       if (threshold === null || balance >= threshold) {
         return;

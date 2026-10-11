@@ -59,6 +59,7 @@ interface ApiEnvConfig extends IEnvConfig {
   API_SLOW_QUERY_SAMPLE_SIZE?: string;
   API_SLOW_QUERY_THRESHOLD_MS?: string;
   CONTENT_HARNESS_PACKAGES?: string;
+  FREE_TRIAL_ROLLOUT_AT?: string;
   GENERATION_BRIEF_LIVE_EVAL?: '0' | '1';
   POSTHOG_HOST?: string;
   POSTHOG_PROJECT_API_KEY?: string;
@@ -105,6 +106,9 @@ const apiSpecificSchema = {
     )
     .optional()
     .allow('', '/usr/src/app/content-harness/index.cjs'),
+  // Hosted free trial: organizations created before this moment get their
+  // 3-day window from it (FREE_TRIAL_ROLLOUT_AT_DEFAULT when unset).
+  FREE_TRIAL_ROLLOUT_AT: Joi.string().isoDate().optional().allow(''),
   GENERATION_BRIEF_LIVE_EVAL: Joi.string().valid('0', '1').optional().allow(''),
   POSTHOG_HOST: Joi.string().uri().optional().allow(''),
   POSTHOG_PROJECT_API_KEY: Joi.string().optional().allow(''),

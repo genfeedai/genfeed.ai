@@ -16,6 +16,7 @@ import {
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
+import { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import { DefaultGenerationAffordabilityService } from '@api/services/router/default-generation-affordability.service';
 import {
   ReviewInboxSummary,
@@ -78,6 +79,7 @@ export class AuthBootstrapService {
     private readonly usersService: UsersService,
     private readonly defaultGenerationAffordability: DefaultGenerationAffordabilityService,
     private readonly freeTrialService: FreeTrialService,
+    private readonly lowCreditThresholdService: LowCreditThresholdService,
   ) {}
 
   private getOverviewBootstrapCacheKey(
@@ -410,18 +412,20 @@ export class AuthBootstrapService {
     base: BootstrapBaseData,
     organizationId: string,
   ): Promise<AccessBootstrapCachePayload['access']> {
-    const [canAffordDefaultGeneration, trial] = await Promise.all([
+    const [canAffordDefaultGeneration, trial, lowCredits] = await Promise.all([
       this.defaultGenerationAffordability.canAffordDefaultGeneration({
         balance: base.access.creditsBalance,
         organizationDefaultImageModel: base.settings?.defaultImageModel,
         organizationId,
       }),
       this.freeTrialService.getState(organizationId),
+      this.lowCreditThresholdService.resolve(organizationId),
     ]);
     return {
       ...base.access,
       canAffordDefaultGeneration,
       isTrialExpired: trial.isTrialExpired,
+      lowCreditThreshold: lowCredits.threshold,
       trialEndsAt: trial.trialEndsAt?.toISOString() ?? null,
     };
   }

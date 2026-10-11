@@ -1,6 +1,7 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
+import { resolveMissingBrandContext } from '@api/collections/brands/utils/brand-context-asks.util';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -22,6 +23,7 @@ import type {
   RenderedBrandSystemPrompt,
   SystemPromptOptions,
 } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import { buildMissingBrandContextSection } from '@api/services/agent-orchestrator/constants/missing-brand-context.constant';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -49,6 +51,7 @@ const DEFAULT_LAYERS: Required<ContextLayers> = {
   brandIdentity: true,
   brandKnowledge: true,
   brandMemory: true,
+  missingBrandContext: false,
   performancePatterns: false,
   ragContext: true,
   recentPosts: true,
@@ -212,6 +215,11 @@ export class AgentContextAssemblyService {
       effectiveBrandAgentConfig,
       layers.brandGuidance,
     );
+    // Brand-owned like saved memory: only for an explicit brand scope, never
+    // for the member's cosmetic fallback brand.
+    if (layers.missingBrandContext && params.brandId) {
+      this.applyMissingBrandContext(context, brand, params.threadId);
+    }
 
     return { brandId, context };
   }
@@ -360,6 +368,23 @@ export class AgentContextAssemblyService {
       this.applyBrandGuidance(context, effectiveBrandAgentConfig);
     }
     return context;
+  }
+
+  private applyMissingBrandContext(
+    context: AssembledBrandContext,
+    brand: BrandRecord,
+    threadId: string | undefined,
+  ): void {
+    const missing = resolveMissingBrandContext({
+      brand,
+      now: context.assembledAt,
+      threadId,
+    });
+    if (missing.fields.length === 0) {
+      return;
+    }
+    context.missingBrandContext = missing;
+    context.layersUsed.push('missingBrandContext');
   }
 
   private applyVisualIdentity(
@@ -531,6 +556,10 @@ export class AgentContextAssemblyService {
     sections.push(...buildVoicePromptSections(context));
     const strategySection = buildStrategyPrompt(context);
     if (strategySection) sections.push(strategySection);
+    const missingContextSection = buildMissingBrandContextSection(
+      context.missingBrandContext,
+    );
+    if (missingContextSection) sections.push(missingContextSection);
     if (context.persona) add('## Custom Instructions', context.persona);
     if (
       options.includeMemoryInsights !== false &&

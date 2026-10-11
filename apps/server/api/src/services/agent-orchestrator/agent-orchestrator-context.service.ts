@@ -68,6 +68,19 @@ function buildGenerationModePrompt(
   return '';
 }
 
+/**
+ * Interactive chat turns may ask one missing brand-context question in-flow.
+ * Onboarding asks its own cards, the brand interview runs its own script, and
+ * proactive runs have nobody to answer.
+ */
+function isInFlowBrandQuestionTurn(request: AgentChatRequest): boolean {
+  return (
+    request.source !== 'onboarding' &&
+    request.source !== 'proactive' &&
+    request.agentType !== AgentType.BRAND_INTERVIEW
+  );
+}
+
 @Injectable()
 export class AgentOrchestratorContextService {
   private readonly constructorName = String(this.constructor.name);
@@ -281,6 +294,7 @@ export class AgentOrchestratorContextService {
         brandGuidance: true,
         brandIdentity: true,
         brandMemory: true,
+        missingBrandContext: isInFlowBrandQuestionTurn(request),
         performancePatterns: true,
         ragContext: true,
         recentPosts: true,
@@ -288,6 +302,7 @@ export class AgentOrchestratorContextService {
       organizationId: context.organizationId,
       platform: policy.platform,
       query: request.content,
+      threadId: isEntityId(request.threadId) ? request.threadId : undefined,
       userId: context.userId,
       isApiKey: context.apiKeyContext?.isApiKey,
       apiKeyId: context.apiKeyContext?.apiKeyId,

@@ -48,6 +48,12 @@ export interface BaseMasonryProps<T extends IIngredient = IIngredient> {
   onImageLoad?: () => void;
   /** Notify a parent surface so it can replace the tile with its own fallback. */
   onMediaError?: () => void;
+  /**
+   * Bumped by a surface after a successful preview retry elsewhere; a new
+   * value reauthorizes the tile's delivery grant instead of reusing the one
+   * that failed. Media reads only, never a generation.
+   */
+  previewRetryRevision?: number;
   onMarkRejected?: (ingredient: T) => void;
   onMarkValidated?: (ingredient: T) => void;
   onMarkArchived?: (ingredient: T) => void;

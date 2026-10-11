@@ -6,6 +6,7 @@ import {
   FREE_TRIAL_EMAILS,
   FREE_TRIAL_ENDING_NOTICE_MS,
   FREE_TRIAL_NOTICE_GRACE_MS,
+  resolveFreeTrialRolloutAt,
 } from '@genfeedai/contracts/constants';
 import type {
   FreeTrialEmailTemplateKey,
@@ -51,7 +52,7 @@ export class FreeTrialEmailsService {
     now: Date = new Date(),
   ): Promise<FreeTrialEmailTemplateKey | null> {
     const notice = this.dueNotice(
-      await readFreeTrialState(this.prisma, organizationId, now),
+      await this.readTrial(organizationId, now),
       now,
     );
     if (!notice) {
@@ -69,11 +70,25 @@ export class FreeTrialEmailsService {
     organizationId: string,
     now: Date = new Date(),
   ): Promise<boolean> {
-    const state = await readFreeTrialState(this.prisma, organizationId, now);
+    const state = await this.readTrial(organizationId, now);
     if (!state.trialEndsAt || state.isTrialExpired) {
       return false;
     }
     return this.queue(organizationId, 'trial-credits-low');
+  }
+
+  /**
+   * Same rollout floor as admission: an organization that predates the trial
+   * gets its window, and so its "ends soon" and "has ended" notices, from the
+   * rollout.
+   */
+  private readTrial(organizationId: string, now: Date) {
+    return readFreeTrialState(
+      this.prisma,
+      organizationId,
+      now,
+      resolveFreeTrialRolloutAt(this.config.get('FREE_TRIAL_ROLLOUT_AT')),
+    );
   }
 
   private dueNotice(

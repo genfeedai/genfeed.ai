@@ -166,7 +166,6 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
         StripeWebhookBillingService,
         StripeSubscriptionCreditReconcilerService,
         CreditsUtilsService,
-        FreeTrialService,
         { provide: LoggerService, useValue: logger },
         { provide: PrismaService, useValue: prisma },
         { provide: BillingAccountsService, useValue: accounts },
@@ -193,6 +192,15 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
         { provide: UsersService, useValue: { findOne: vi.fn() } },
         { provide: EventEmitter2, useValue: { emit: vi.fn() } },
         { provide: CreditReservationService, useValue: {} },
+        // Credit grants are never gated by the free trial; admission's trial
+        // gate has its own specs (free-trial.service.spec).
+        {
+          provide: FreeTrialService,
+          useValue: {
+            assertTrialActive: vi.fn(),
+            isTrialExpired: vi.fn().mockResolvedValue(false),
+          },
+        },
         {
           provide: OrganizationSettingsService,
           useValue: { findOne: vi.fn(async () => null), patch: vi.fn() },

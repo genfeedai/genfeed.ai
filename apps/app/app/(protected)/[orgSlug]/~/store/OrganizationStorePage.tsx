@@ -1,6 +1,5 @@
 'use client';
 
-import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
@@ -8,6 +7,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   isNativeSecondaryAppId,
+  isReleasePreviewActive,
   isWorkflowLibraryVisible,
   listStoreNativeAppIds,
   type NativeSecondaryAppId,
@@ -56,7 +56,6 @@ export default function OrganizationStorePage() {
   const translate = useTranslations('common.store');
   const translateRail = useTranslations('common.appRail');
   const { selectedBrand, settings, settingsLoading } = useBrand();
-  const { isSuperAdmin } = useAccessState();
   const { flags, isConfigured } = useFeatureFlagContext();
   const { orgSlug } = useOrgUrl();
   const installedApps = useInstalledApps();
@@ -65,9 +64,14 @@ export default function OrganizationStorePage() {
   >({});
   const brandSlug = selectedBrand?.slug?.trim() || undefined;
   const isLoading = settingsLoading || installedApps.status === 'loading';
+  // Founder-only apps are listed where unreleased work is visible: self-hosted
+  // or a cloud organization on release preview.
+  const isReleasePreview = isReleasePreviewActive(
+    settingsLoading ? null : settings,
+  );
 
   const apps = useMemo<StoreAppEntry[]>(() => {
-    const listedAppIds = new Set(listStoreNativeAppIds(isSuperAdmin));
+    const listedAppIds = new Set(listStoreNativeAppIds(isReleasePreview));
     return APP_RAIL_REGISTRY.flatMap((app) => {
       const appId = app.id;
       if (!isNativeSecondaryAppId(appId) || !listedAppIds.has(appId)) {
@@ -77,7 +81,7 @@ export default function OrganizationStorePage() {
       const state = resolveNativeAppAvailability({
         appId,
         installedAppIds: installedApps.installedAppIds,
-        isFounderOperator: isSuperAdmin,
+        isFounderOperator: isReleasePreview,
         organizationAccess:
           !isEnabled || !app.organizationModule
             ? { isAllowed: false, reason: 'unavailable' }
@@ -107,7 +111,7 @@ export default function OrganizationStorePage() {
     flags,
     installedApps.installedAppIds,
     isConfigured,
-    isSuperAdmin,
+    isReleasePreview,
     orgSlug,
     settings,
     translateRail,

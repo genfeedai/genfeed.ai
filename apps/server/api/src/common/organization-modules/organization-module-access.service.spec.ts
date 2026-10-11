@@ -35,6 +35,35 @@ function createService(
 describe('OrganizationModuleAccessService', () => {
   beforeEach(() => config.hasOrganizationBilling.mockReturnValue(true));
 
+  it('reports release preview from the organization setting on cloud (#5502)', async () => {
+    const preview = createService({}, true);
+    await expect(preview.service.isReleasePreviewActive('org-1')).resolves.toBe(
+      true,
+    );
+    expect(preview.prisma.organizationSetting.findUnique).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1' },
+      select: { isReleasePreviewEnabled: true },
+    });
+
+    const customer = createService({}, false);
+    await expect(
+      customer.service.isReleasePreviewActive('org-1'),
+    ).resolves.toBe(false);
+
+    const missing = createService();
+    missing.prisma.organizationSetting.findUnique.mockResolvedValue(null);
+    await expect(missing.service.isReleasePreviewActive('org-1')).resolves.toBe(
+      false,
+    );
+  });
+
+  it('treats self-hosted organizations as release preview without a read', async () => {
+    config.hasOrganizationBilling.mockReturnValue(false);
+    const { service, prisma } = createService({}, false);
+    await expect(service.isReleasePreviewActive('org-1')).resolves.toBe(true);
+    expect(prisma.organizationSetting.findUnique).not.toHaveBeenCalled();
+  });
+
   it('skips optional background fills for disabled or unverifiable access while admitting enabled work', async () => {
     const { service, prisma } = createService({ analytics: false });
     await expect(service.canStartWork('org-1', 'analytics')).resolves.toBe(

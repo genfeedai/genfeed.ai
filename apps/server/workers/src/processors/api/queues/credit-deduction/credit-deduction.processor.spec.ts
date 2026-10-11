@@ -2,6 +2,7 @@ import type { CreditTransactionsService } from '@api/collections/credits/service
 import { currentWorkflowAccountingScope } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import {
   ActivityKey,
   ActivitySource,
@@ -99,8 +100,13 @@ describe('CreditDeductionProcessor', () => {
       redisService as never,
       logger as never,
       prisma as never,
-      freeTrialService as never,
-      affordability as never,
+      // The real shared threshold owner over the mocked inputs.
+      new LowCreditThresholdService(
+        prisma as never,
+        freeTrialService as never,
+        affordability as never,
+        creditTransactionsService as never,
+      ),
       freeTrialEmails as never,
     );
   });
@@ -859,7 +865,6 @@ describe('Crun media BYOK consumer authority', () => {
       {} as never,
       logger as never,
       prisma as never,
-      {} as never,
       {} as never,
       {} as never,
     );

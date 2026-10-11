@@ -168,10 +168,12 @@ describe('detectPlatformIntentSuffix', () => {
   });
 });
 
-it('excludes saving onboarding answers from general default tools', () => {
-  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).not.toContain(
-    'save_onboarding_answers',
-  );
+it('lets every agent type save an in-flow brand context answer', () => {
+  for (const agentType of Object.values(AgentType)) {
+    const tools = getAgentTypeConfig(agentType).defaultTools;
+    if (tools.includes('request_input'))
+      expect(tools).toContain('save_onboarding_answers');
+  }
 });
 
 it('excludes URL scans from general default tools', () => {

@@ -17,6 +17,7 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
+import { LowCreditThresholdModule } from '@api/services/low-credit-threshold/low-credit-threshold.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -43,6 +44,7 @@ import { PassportModule } from '@nestjs/passport';
     MembersModule,
     OrganizationsModule,
     OrganizationSettingsModule,
+    LowCreditThresholdModule,
     PostsModule,
     RouterModule,
     StreaksModule,

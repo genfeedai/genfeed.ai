@@ -39,6 +39,7 @@ describe('AgentWorkObjectService review and scope boundary', () => {
   const publisher = { publishWorkEvent: vi.fn(), publishInputRequest: vi.fn() };
   const scorer = { scoreText: vi.fn() };
   const executions = { cancelExecution: vi.fn() };
+  const brandContextAsks = { recordAsk: vi.fn() };
   let service: AgentWorkObjectService;
   let ingredient: Record<string, unknown>;
   beforeEach(() => {
@@ -70,6 +71,7 @@ describe('AgentWorkObjectService review and scope boundary', () => {
       scorer as never,
       executions as never,
       {} as never,
+      brandContextAsks as never,
     );
   });
   it('requires the exact organization, brand and thread owner', async () => {
@@ -499,6 +501,58 @@ describe('AgentWorkObjectService review and scope boundary', () => {
       else await expect(request).resolves.toMatchObject({ success: true });
     },
   );
+
+  describe('in-flow brand context cards', () => {
+    const card = {
+      requestId: 'brand_context:offer',
+      title: 'Offer',
+      prompt: 'So calls to action point at what you sell.',
+      allowFreeText: false,
+      options: [
+        { id: 'products', label: 'Products' },
+        { id: 'skip', label: 'Skip' },
+      ],
+    };
+
+    it('validates and records the ask before showing the card', async () => {
+      prisma.agentThread.findFirst.mockResolvedValue({ source: 'agent' });
+      brandContextAsks.recordAsk.mockResolvedValue(true);
+      await service.requestInput(card, context as never);
+      expect(brandContextAsks.recordAsk).toHaveBeenCalledWith(
+        {
+          allowFreeText: false,
+          isMultiSelect: false,
+          maxSelections: undefined,
+          options: card.options,
+          requestId: 'brand_context:offer',
+        },
+        scope,
+      );
+      expect(
+        brandContextAsks.recordAsk.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        publisher.publishInputRequest.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
+    it('never shows a card the server refused', async () => {
+      prisma.agentThread.findFirst.mockResolvedValue({ source: 'agent' });
+      brandContextAsks.recordAsk.mockRejectedValue(
+        new Error('Do not ask for this brand context now.'),
+      );
+      await expect(
+        service.requestInput(card, context as never),
+      ).rejects.toThrow('Do not ask');
+      expect(publisher.publishInputRequest).not.toHaveBeenCalled();
+    });
+
+    it('leaves onboarding cards to the onboarding contract', async () => {
+      prisma.agentThread.findFirst.mockResolvedValue({ source: 'onboarding' });
+      await service.requestInput(card, context as never);
+      expect(brandContextAsks.recordAsk).not.toHaveBeenCalled();
+      expect(publisher.publishInputRequest).toHaveBeenCalled();
+    });
+  });
 
   it('defaults to free text and a single selection', async () => {
     await service.requestInput(

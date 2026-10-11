@@ -38,6 +38,9 @@ const WORKFLOW_RUN_TOOLS: CuratedActionName[] = [
 
 const SHARED_READ_TOOLS: CuratedActionName[] = [
   'request_input',
+  // Saves the answer to an in-flow brand context card; the handler only
+  // accepts fields this conversation asked on such a card.
+  'save_onboarding_answers',
   'present_work_object',
   'ingest_source_media',
   'get_analytics',
@@ -107,8 +110,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
         .filter(
           (tool) =>
             tool.name !== 'complete_brand_onboarding_step' &&
-            tool.name !== 'scan_brand_url' &&
-            tool.name !== 'save_onboarding_answers',
+            tool.name !== 'scan_brand_url',
         )
         .map((tool) => tool.name),
       'capture_memory',

@@ -72,6 +72,7 @@ import { useStudioPlaygroundDraft } from '@pages/studio/playground/hooks/useStud
 import { useStudioPlaygroundGallery } from '@pages/studio/playground/hooks/useStudioPlaygroundGallery';
 import { useStudioPlaygroundHandoff } from '@pages/studio/playground/hooks/useStudioPlaygroundHandoff';
 import { useStudioPlaygroundModels } from '@pages/studio/playground/hooks/useStudioPlaygroundModels';
+import { useStudioPlaygroundPreviewRecovery } from '@pages/studio/playground/hooks/useStudioPlaygroundPreviewRecovery';
 import { useStudioPlaygroundSettings } from '@pages/studio/playground/hooks/useStudioPlaygroundSettings';
 import { useStudioPromptEnhancement } from '@pages/studio/playground/hooks/useStudioPromptEnhancement';
 import {
@@ -889,6 +890,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     });
     return resultSort === 'oldest' ? [...filtered].reverse() : filtered;
   }, [galleryJobs, resultSort, resultType, search]);
+  const { previewRevisions, recoverPreview, recoveredJobs } =
+    useStudioPlaygroundPreviewRecovery(visibleJobs);
   const showStarterIdeas =
     !galleryError &&
     !isLoadingGallery &&
@@ -2419,6 +2422,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                     job={selectedJob}
                     onRemix={handleRemixJob}
                     onEdit={handleEditJob}
+                    onPreviewRecovered={recoverPreview}
                     onSelect={handleSelectJob}
                     onUseInPost={assetActions.onPublishIngredient}
                     onVary={handleVaryRecipe}
@@ -2482,11 +2486,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                         onCancelGeneration: cancelJob,
                       }}
                       isLoading={isLoadingGallery}
-                      jobs={visibleJobs}
+                      jobs={recoveredJobs}
                       isUseAsReferenceEnabled={canUseGeneratedReference}
                       onReprompt={handleVaryRecipe}
                       onSelect={handleSelectJob}
                       onUseAsReference={handleUseGeneratedReference}
+                      previewRevisions={previewRevisions}
                       selectedJobId={selectedJobId}
                       view={resultsView}
                     />
@@ -2633,6 +2638,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
           <StudioPlaygroundInspector
             job={selectedJob}
             onOpenPreview={handleOpenFocusedPreview}
+            onPreviewRecovered={recoverPreview}
             onRemix={handleRemixJob}
             onEdit={handleEditJob}
             onSelect={handleSelectJob}

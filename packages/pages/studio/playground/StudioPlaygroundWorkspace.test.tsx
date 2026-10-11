@@ -508,14 +508,26 @@ vi.mock(
       onRemix,
       onVary,
       onOpenPreview,
+      onPreviewRecovered,
     }: {
       job: { id: string; prompt: string };
       onRemix: (job: { id: string }) => void;
       onVary: (job: { id: string }) => void;
       onOpenPreview?: () => void;
+      onPreviewRecovered?: (job: { id: string }, url?: string) => void;
     }) => (
       <div data-testid="studio-inspector">
         <span>{job.prompt}</span>
+        {onPreviewRecovered ? (
+          <button
+            type="button"
+            onClick={() =>
+              onPreviewRecovered(job, 'https://cdn.example/fresh.png')
+            }
+          >
+            Report recovered preview
+          </button>
+        ) : null}
         {onOpenPreview ? (
           <button
             type="button"
@@ -1684,6 +1696,43 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.notify).toHaveBeenCalledWith(
       'continuation.originalUnavailable',
     );
+  });
+
+  it('hands a successful Inspector preview retry back to the gallery card', () => {
+    const job = {
+      createdAt: 1,
+      id: 'job-7',
+      ingredientId: 'ing-7',
+      prompt: 'Selected asset prompt',
+      status: 'GENERATED',
+      type: 'image',
+      url: 'https://cdn.example/expired.png',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+    expect(mocks.results.mock.calls.at(-1)?.[0].previewRevisions).toEqual({});
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Report recovered preview' }),
+    );
+
+    const recovered = mocks.results.mock.calls.at(-1)?.[0];
+    expect(recovered.previewRevisions).toEqual({ 'job-7': 1 });
+    expect(recovered.jobs).toEqual([
+      expect.objectContaining({
+        id: 'job-7',
+        url: 'https://cdn.example/fresh.png',
+      }),
+    ]);
+    expect(mocks.submit).not.toHaveBeenCalled();
   });
 
   it('opens the selected asset in the context sidebar and deselects on close', () => {

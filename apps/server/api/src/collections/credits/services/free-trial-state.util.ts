@@ -42,6 +42,38 @@ export function paidCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
 }
 
 /**
+ * Credits an operator granted on purpose: a superadmin comp
+ * (`ActivitySource.SUPERADMIN`), proactive-onboarding seeding
+ * (`ProactiveOnboardingService`) and warm-up preparation or handoff grants
+ * (`creditWarmupWallet`, reference type `warmup-account`). An operator comp
+ * never expires, so it exempts the organization from the trial exactly like
+ * a purchase.
+ */
+const OPERATOR_CREDIT_GRANT_SOURCES: readonly string[] = [
+  ActivitySource.SUPERADMIN,
+  'proactive-onboarding',
+  'warmup-handoff',
+  'warmup-preparation',
+];
+const WARMUP_GRANT_REFERENCE_TYPE = 'warmup-account';
+
+export function operatorCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
+  return {
+    amount: { gt: 0 },
+    isDeleted: false,
+    OR: [
+      { source: { in: [...OPERATOR_CREDIT_GRANT_SOURCES] } },
+      { referenceType: WARMUP_GRANT_REFERENCE_TYPE },
+    ],
+  };
+}
+
+/** Any grant that takes an organization out of the trial: paid or comped. */
+export function trialExemptingGrantWhere(): Prisma.CreditTransactionWhereInput {
+  return { OR: [paidCreditGrantWhere(), operatorCreditGrantWhere()] };
+}
+
+/**
  * A subscription Stripe created (any status, so a lapsed payer still counts as
  * having paid) or one that is active or trialing right now. A checkout that
  * was started and abandoned leaves an `INCOMPLETE` row with no Stripe id,
@@ -68,7 +100,7 @@ function trialSubjectSelect(organizationId: string) {
         creditTransactions: {
           select: { id: true },
           take: 1,
-          where: paidCreditGrantWhere(),
+          where: trialExemptingGrantWhere(),
         },
         // Another organization on the same billing account shares the wallet,
         // so expiring "this" organization's credits would spend theirs.
@@ -98,7 +130,7 @@ function trialSubjectSelect(organizationId: string) {
     creditTransactions: {
       select: { id: true },
       take: 1,
-      where: paidCreditGrantWhere(),
+      where: trialExemptingGrantWhere(),
     },
     isProactiveOnboarding: true,
     subscriptions: {
@@ -157,6 +189,7 @@ export async function readFreeTrialState(
   client: FreeTrialStateClient,
   organizationId: string,
   now: Date,
+  rolloutAt: Date,
 ): Promise<IFreeTrialState> {
   if (!isFreeTrialEnforced() || !organizationId) {
     return FREE_TRIAL_NOT_APPLICABLE;
@@ -168,7 +201,7 @@ export async function readFreeTrialState(
   if (!organization || isExemptFromTrial(organization)) {
     return FREE_TRIAL_NOT_APPLICABLE;
   }
-  const trialEndsAt = resolveFreeTrialEndsAt(organization.createdAt);
+  const trialEndsAt = resolveFreeTrialEndsAt(organization.createdAt, rolloutAt);
   return {
     isTrialExpired: now.getTime() >= trialEndsAt.getTime(),
     trialEndsAt,

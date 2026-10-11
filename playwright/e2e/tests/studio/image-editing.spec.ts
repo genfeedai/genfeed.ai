@@ -152,16 +152,24 @@ for (const { model, editing } of [
         },
       }),
     );
+    // The server keeps the composer draft across reloads; the consumed
+    // `editImage` entry no longer re-seeds the composer on reload.
+    let savedDraft: Record<string, unknown> | null = null;
     await page.route(
       '**/v1/studio-generate-drafts/current**',
       async (route) => {
-        if (route.request().method() === 'GET') {
-          await route.fulfill({ json: { data: null } });
-          return;
-        }
-        const body = route.request().postDataJSON();
+        if (route.request().method() !== 'GET')
+          savedDraft = route.request().postDataJSON();
         await route.fulfill({
-          json: { data: { ...body.data, id: 'editing-draft-e2e' } },
+          json: {
+            data: savedDraft
+              ? {
+                  id: 'editing-draft-e2e',
+                  type: 'studio-generate-draft',
+                  attributes: { ...savedDraft, droppedReferenceIds: [] },
+                }
+              : null,
+          },
         });
       },
     );
@@ -277,6 +285,14 @@ for (const { model, editing } of [
     await expect(page.getByTestId('studio-playground-results')).toBeVisible();
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('studio-playground-results')).toBeVisible();
+    if (editing) {
+      // The Library entry was consumed; the reload restores the saved draft.
+      expect(new URL(page.url()).searchParams.has('editImage')).toBe(false);
+      await expect(composer).toHaveText('Change only the sign to OPEN');
+      await expect(
+        page.getByRole('group', { name: `Editing target: ${sourceId}` }),
+      ).toBeVisible();
+    }
     await expect(
       page
         .getByRole('article', {

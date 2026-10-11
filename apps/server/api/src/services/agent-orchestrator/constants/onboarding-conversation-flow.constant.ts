@@ -26,6 +26,7 @@ export const ONBOARDING_BUTTON_CARDS: readonly IOnboardingButtonCard[] = [
       SKIP,
     ],
     save: 'goals: the chosen labels',
+    askReason: 'so every post works toward what you want',
   },
   {
     field: 'audience',
@@ -43,6 +44,7 @@ export const ONBOARDING_BUTTON_CARDS: readonly IOnboardingButtonCard[] = [
       SKIP,
     ],
     save: 'audience: the chosen labels',
+    askReason: 'so posts talk to the right people',
     skipWarning:
       'Without an audience, posts talk to everyone and land with no one.',
   },
@@ -61,6 +63,7 @@ export const ONBOARDING_BUTTON_CARDS: readonly IOnboardingButtonCard[] = [
       SKIP,
     ],
     save: 'offer: the chosen label',
+    askReason: 'so calls to action point at what you sell',
     skipWarning: 'Without an offer, calls to action stay vague.',
   },
   {
@@ -72,6 +75,7 @@ export const ONBOARDING_BUTTON_CARDS: readonly IOnboardingButtonCard[] = [
     maxSuggestions: 3,
     options: [SKIP],
     save: 'competitors: the chosen labels',
+    askReason: 'so I can position you against them',
     skipWarning:
       "Without competitors, I can't position you against them or track their ads and trends.",
   },
@@ -88,6 +92,7 @@ export const ONBOARDING_BUTTON_CARDS: readonly IOnboardingButtonCard[] = [
       SKIP,
     ],
     save: 'platforms: short_video saves both tiktok and youtube; the other ids map directly to their platform values',
+    askReason: 'so drafts fit the channels you post on',
   },
   {
     field: 'tone',
@@ -100,7 +105,8 @@ export const ONBOARDING_BUTTON_CARDS: readonly IOnboardingButtonCard[] = [
       { id: 'learn_from_instagram', label: 'Learn from my Instagram' },
       SKIP,
     ],
-    save: 'toneAdjustment: the chosen id (keep preserves the scanned voice); learn_from_instagram follows the Instagram voice branch below',
+    save: 'toneAdjustment: the chosen id (keep preserves the scanned voice)',
+    askReason: 'so posts sound like you',
   },
   {
     field: 'cadence',
@@ -113,6 +119,7 @@ export const ONBOARDING_BUTTON_CARDS: readonly IOnboardingButtonCard[] = [
       SKIP,
     ],
     save: 'cadence: the chosen id',
+    askReason: 'so I plan the right amount of content',
   },
 ];
 

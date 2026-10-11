@@ -21,6 +21,7 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
 } from '@genfeedai/contracts/types';
 import { PrismaClient } from '@genfeedai/prisma';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
@@ -146,6 +147,7 @@ describe.skipIf(!connectionString)(
         socket as unknown as NotificationsPublisherService,
         cache as unknown as AccessBootstrapCacheService,
         logger,
+        { get: () => undefined } as unknown as ConfigService,
       );
       reservations = new CreditReservationService(
         prismaService,

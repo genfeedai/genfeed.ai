@@ -22,7 +22,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const LOW_CREDITS_THRESHOLD = 1000;
 const DISMISS_KEY = 'genfeed:low-credits-dismissed:v1';
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -98,6 +97,11 @@ function LowCreditsContent({
   const { orgHref } = useOrgUrl();
   const { accessState, isTrialUsedUp } = useAccessState();
   const isTrialEnded = isTrialUsedUp && accessState?.isTrialExpired === true;
+  // Server-computed and relative to the organization's plan or pack (see
+  // `LowCreditThresholdService`). Unknown means no ordinary low warning.
+  const lowCreditThreshold = coerceFiniteBalance(
+    accessState?.lowCreditThreshold,
+  );
   const isBillingEnabled = hasOrganizationBillingHint();
   const ctaHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
   const plansHref = orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION);
@@ -123,15 +127,16 @@ function LowCreditsContent({
     if (isTrialUsedUp) {
       return 'critical';
     }
-    if (
-      !isLowBalanceWarningEnabled ||
-      balance === null ||
-      balance >= LOW_CREDITS_THRESHOLD
-    ) {
+    if (!isLowBalanceWarningEnabled || balance === null) {
       return null;
     }
-    return balance === 0 ? 'critical' : 'warning';
-  }, [balance, isLowBalanceWarningEnabled, isTrialUsedUp]);
+    if (balance <= 0) {
+      return 'critical';
+    }
+    return lowCreditThreshold !== null && balance < lowCreditThreshold
+      ? 'warning'
+      : null;
+  }, [balance, isLowBalanceWarningEnabled, isTrialUsedUp, lowCreditThreshold]);
 
   const handleDismiss = useCallback(() => {
     if (balance === null) {
