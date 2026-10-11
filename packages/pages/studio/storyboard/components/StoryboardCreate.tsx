@@ -5,24 +5,34 @@ import {
   useGalleryModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StoryboardComposerSelect from '@pages/studio/storyboard/components/StoryboardComposerSelect';
 import StoryboardPresetChips from '@pages/studio/storyboard/components/StoryboardPresetChips';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
-import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
 import { storyboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-plan';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { Paperclip } from 'lucide-react';
+import { ArrowUp, Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+
+const FORMAT_OPTIONS = ['9:16', '16:9', '1:1'].map((value) => ({
+  label: value,
+  value,
+}));
+const RUNTIME_BUDGET_SECONDS = [15, 30, 45, 60];
 
 /** Selection/upload saves media only; creating a draft never dispatches paid work. */
 export default function StoryboardCreate() {
@@ -64,6 +74,24 @@ export default function StoryboardCreate() {
     Number.isFinite(Number(budget)) &&
     Number(budget) > 0 &&
     Number(budget) <= 60;
+  // Presets may carry a runtime outside the quick picks; keep it selectable.
+  const budgetSeconds = Number(budget);
+  const budgetOptions = [
+    ...new Set([
+      ...RUNTIME_BUDGET_SECONDS,
+      ...(validBudget ? [budgetSeconds] : []),
+    ]),
+  ]
+    .sort((a, b) => a - b)
+    .map((seconds) => ({
+      label: `${seconds}${translate('secondsUnit')}`,
+      value: String(seconds),
+    }));
+  const saveLabel = isCreating
+    ? translate('saving')
+    : error
+      ? translate('retrySaving')
+      : translate('save');
   const video = selected?.brandId === brandId ? selected : undefined;
   const valid =
     mode === 'brief'
@@ -171,59 +199,65 @@ export default function StoryboardCreate() {
           ) : null}
         </div>
         <div className="sticky bottom-4 z-10 mt-auto">
-          {mode === 'brief' ? (
-            <StoryboardPresetChips
-              isDisabled={isCreating}
-              onSelect={applyPreset}
-            />
-          ) : null}
-          <PromptBarComposer
-            data-testid="storyboard-composer"
-            density="compact"
-            banner={
-              error ? (
-                <p role="alert" className="p-3 text-sm text-destructive">
-                  {error}
-                </p>
+          <PromptBarContainer
+            layoutMode="inflow"
+            maxWidth="full"
+            topContent={
+              mode === 'brief' ? (
+                <StoryboardPresetChips
+                  isDisabled={isCreating}
+                  onSelect={applyPreset}
+                />
               ) : undefined
             }
           >
-            {mode === 'brief' ? (
-              <PromptEditor
-                ariaLabel={translate('brief')}
-                value={brief}
-                isDisabled={isCreating}
-                placeholder={translate('briefPlaceholder')}
-                onValueChange={setBrief}
-                onSubmit={() => void submit()}
-                className="min-h-16"
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {translate('videoHelp')}
-              </p>
-            )}
-            <PromptBarToolbar
-              leading={
-                mode === 'brief' ? (
-                  <>
-                    <Button
-                      ariaLabel={translateWorkspace('references')}
-                      icon={<Paperclip className="size-4" />}
-                      variant={ButtonVariant.GHOST}
-                      onClick={chooseStartingImage}
-                      disabled={isCreating}
-                    />
-                    <div className="w-28">
-                      <StoryboardSelect
-                        ariaLabel={translate('formatAria')}
-                        value={format}
-                        placeholder={translate('chooseFormat')}
+            <PromptBarComposer
+              data-testid="storyboard-composer"
+              density="compact"
+              banner={
+                error ? (
+                  <p role="alert" className="p-3 text-sm text-destructive">
+                    {error}
+                  </p>
+                ) : undefined
+              }
+            >
+              {mode === 'brief' ? (
+                <PromptEditor
+                  ariaLabel={translate('brief')}
+                  value={brief}
+                  isDisabled={isCreating}
+                  placeholder={translate('briefPlaceholder')}
+                  onValueChange={setBrief}
+                  onSubmit={() => void submit()}
+                  className="min-h-16"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {translate('videoHelp')}
+                </p>
+              )}
+              <PromptBarToolbar
+                density="compact"
+                leading={
+                  mode === 'brief' ? (
+                    <>
+                      <Button
+                        ariaLabel={translateWorkspace('references')}
+                        icon={<Paperclip className="size-4" />}
                         isDisabled={isCreating}
-                        options={['9:16', '16:9', '1:1'].map((value) => ({
-                          value,
-                          label: value,
-                        }))}
+                        onClick={chooseStartingImage}
+                        size={ButtonSize.ICON}
+                        tooltip={translateWorkspace('references')}
+                        tooltipPosition="top"
+                        variant={ButtonVariant.GHOST}
+                        withWrapper={false}
+                      />
+                      <StoryboardComposerSelect
+                        ariaLabel={translate('formatAria')}
+                        isDisabled={isCreating}
+                        options={FORMAT_OPTIONS}
+                        value={format}
                         onChange={(value) => {
                           if (
                             value === '9:16' ||
@@ -233,48 +267,38 @@ export default function StoryboardCreate() {
                             setFormat(value);
                         }}
                       />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        aria-label={translate('runtimeBudget')}
-                        className="w-20"
-                        type="number"
-                        min={1}
-                        max={60}
+                      <StoryboardComposerSelect
+                        ariaLabel={translate('runtimeBudget')}
+                        isDisabled={isCreating}
+                        options={budgetOptions}
                         value={budget}
-                        disabled={isCreating}
-                        onChange={(event) => setBudget(event.target.value)}
+                        onChange={setBudget}
                       />
-                      <span
-                        aria-hidden
-                        className="text-xs text-muted-foreground"
-                      >
-                        {translate('secondsUnit')}
-                      </span>
-                    </div>
-                  </>
-                ) : null
-              }
-              trailing={
-                <Button
-                  label={
-                    isCreating
-                      ? translate('saving')
-                      : error
-                        ? translate('retrySaving')
-                        : translate('save')
-                  }
-                  disabled={isCreating || !valid}
-                  onClick={() => void submit()}
-                />
-              }
-            />
-            {mode === 'brief' ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {translate('characterCount', { count: brief.length })}
-              </p>
-            ) : null}
-          </PromptBarComposer>
+                    </>
+                  ) : null
+                }
+                trailing={
+                  <Button
+                    ariaLabel={saveLabel}
+                    icon={<ArrowUp className="size-4" />}
+                    isDisabled={isCreating || !valid}
+                    isLoading={isCreating}
+                    onClick={() => void submit()}
+                    size={ButtonSize.ICON}
+                    tooltip={saveLabel}
+                    tooltipPosition="top"
+                    variant={ButtonVariant.DEFAULT}
+                    withWrapper={false}
+                  />
+                }
+              />
+              {mode === 'brief' ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {translate('characterCount', { count: brief.length })}
+                </p>
+              ) : null}
+            </PromptBarComposer>
+          </PromptBarContainer>
           <p className="mt-2 text-xs text-muted-foreground">
             {translate('description')}
           </p>
