@@ -60,3 +60,62 @@ test('a video samples frames and keeps them identified', {
   assert.equal(media.evidence.frameCount, 6);
   assert.deepEqual(media.evidence.diagnostics, []);
 });
+
+test('an OffthreadVideo frame is placed but never attributed to a file it cannot be tied to', {
+  skip: !browser,
+  timeout: 240_000,
+}, async () => {
+  const { createFixtureMedia } = await import('./create-fixture-media.mjs');
+  const { renderVisualComposition } = await import('./render.mjs');
+  const media = await mkdtemp(join(tmpdir(), 'visual-evidence-media-'));
+  const root = await mkdtemp(join(tmpdir(), 'visual-evidence-'));
+  try {
+    await createFixtureMedia(media);
+    const clip = await readFile(join(media, 'clip.mp4'));
+    const image = await readFile(join(media, 'image.png'));
+    const [out] = await renderVisualComposition(
+      {
+        id: 'evidence-media',
+        sourceCode: `import React from 'react';
+import {AbsoluteFill, Img, OffthreadVideo, staticFile} from 'remotion';
+export const VisualComposition = () => (
+  <AbsoluteFill>
+    <OffthreadVideo src={staticFile('assets/clip')} style={{width: 160, height: 90}} />
+    <Img src={staticFile('assets/image')} style={{width: 48, height: 48}} />
+  </AbsoluteFill>
+);`,
+        settings: { width: 320, height: 256, fps: 30, durationFrames: 6 },
+        props: {},
+        assets: [
+          { id: 'clip', mime: 'video/mp4', bytes: clip.toString('base64') },
+          { id: 'image', mime: 'image/png', bytes: image.toString('base64') },
+        ],
+        outputs: [{ format: 'png', frame: 1 }],
+        mode: 'export',
+      },
+      {
+        root,
+        runtimeModules: resolve(here, 'node_modules'),
+        browserExecutable: browser,
+        log: () => {},
+      },
+    );
+    // A plain image is traced to its file. An OffthreadVideo frame is a blob: URL
+    // built from a proxy response, which the DOM cannot tie to a file, so it is
+    // placed but unresolved (never guessed).
+    const placed = out.evidence.captures[0].placedAssets;
+    assert.equal(placed.length, 2);
+    assert.deepEqual(
+      placed
+        .map((entry) => [entry.assetId, entry.contentHash])
+        .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      [
+        ['image', sha256Prefixed(image)],
+        [null, null],
+      ],
+    );
+  } finally {
+    await rm(media, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true });
+  }
+});

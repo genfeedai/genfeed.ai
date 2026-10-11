@@ -4,6 +4,7 @@ import { validateEvidence, validateMedia } from './protocol.mjs';
 import {
   analyzeSnapshot,
   attachRenderEvidence,
+  fetchedKey,
   framesToInspect,
   parseCssColor,
   RenderEvidenceRun,
@@ -92,11 +93,14 @@ function snapshotOf(elements, { extraDocuments = 0 } = {}) {
 }
 
 const ORIGIN = 'http://localhost:3000';
+const LOGO_URL = `${ORIGIN}/public/assets/logo`;
+const fetched = (...urls) => new Set(urls.map(fetchedKey));
 const view = {
   assetHashes: new Map([['logo', LOGO_HASH]]),
   width: 320,
   height: 256,
   origin: ORIGIN,
+  loaded: fetched(LOGO_URL),
 };
 
 test('parses computed colours into RRGGBBAA', () => {
@@ -110,26 +114,26 @@ test('parses computed colours into RRGGBBAA', () => {
 test('resolves staged assets, proxies, embedded data and externals', () => {
   const hashes = new Map([['logo', LOGO_HASH]]);
   const asset = { kind: 'asset', assetId: 'logo', contentHash: LOGO_HASH };
+  const proxy = `${ORIGIN}/proxy?src=${encodeURIComponent(LOGO_URL)}&time=1`;
+  const loaded = fetched(LOGO_URL, proxy, `${ORIGIN}/public/assets/missing`);
+  assert.deepEqual(resolveSource(LOGO_URL, hashes, ORIGIN, loaded), asset);
   assert.deepEqual(
-    resolveSource(`${ORIGIN}/public/assets/logo`, hashes, ORIGIN),
+    resolveSource(`${LOGO_URL}#fragment`, hashes, ORIGIN, loaded),
     asset,
+    'a fragment is not part of what was fetched',
   );
   assert.deepEqual(
-    resolveSource('/public/assets/logo', hashes, ORIGIN),
+    resolveSource('/public/assets/logo', hashes, ORIGIN, loaded),
     asset,
     'a relative URL is served by the page itself',
   );
   assert.deepEqual(
-    resolveSource(
-      `http://localhost:41234/proxy?src=${encodeURIComponent(`${ORIGIN}/public/assets/logo`)}&time=1`,
-      hashes,
-      ORIGIN,
-    ),
+    resolveSource(proxy, hashes, ORIGIN, loaded),
     asset,
-    'the loopback compositor proxy wraps the staged file',
+    'the proxy route reads the staged file',
   );
   assert.deepEqual(
-    resolveSource(`${ORIGIN}/public/assets/missing`, hashes, ORIGIN),
+    resolveSource(`${ORIGIN}/public/assets/missing`, hashes, ORIGIN, loaded),
     { kind: 'asset', assetId: 'missing', contentHash: null },
   );
   assert.deepEqual(
@@ -137,34 +141,53 @@ test('resolves staged assets, proxies, embedded data and externals', () => {
       `data:image/png;base64,${SMALL_PNG.toString('base64')}`,
       hashes,
       ORIGIN,
+      loaded,
     ),
     { kind: 'embedded', assetId: null, contentHash: LOGO_HASH },
   );
   assert.equal(
-    resolveSource('https://example.com/a.png', hashes, ORIGIN).kind,
+    resolveSource('https://example.com/a.png', hashes, ORIGIN, loaded).kind,
     'external',
   );
-  assert.equal(resolveSource(null, hashes, ORIGIN).kind, 'unknown');
+  assert.equal(resolveSource(null, hashes, ORIGIN, loaded).kind, 'unknown');
 });
 
-test('a foreign URL cannot borrow a staged asset by naming its path', () => {
+test('a URL that names a staged asset but was never fetched proves nothing', () => {
   const hashes = new Map([['logo', LOGO_HASH]]);
-  for (const forged of [
+  assert.equal(
+    resolveSource(LOGO_URL, hashes, ORIGIN, fetched()).kind,
+    'external',
+    'a broken image box still has bounds',
+  );
+});
+
+test('a foreign or non-http URL cannot borrow a staged asset by naming its path', () => {
+  const hashes = new Map([['logo', LOGO_HASH]]);
+  const forgeries = [
     'https://example.com/assets/logo',
     'http://localhost:9999/public/assets/logo',
-    `https://example.com/proxy?src=${encodeURIComponent(`${ORIGIN}/public/assets/logo`)}`,
+    `https://example.com/proxy?src=${encodeURIComponent(LOGO_URL)}`,
     `${ORIGIN}/proxy?src=${encodeURIComponent('https://example.com/assets/logo')}`,
     '//example.com/assets/logo',
-  ])
+    'http://127.0.0.1:9/x?src=/assets/logo',
+    'blob:http://localhost:3000/assets/logo',
+    'file:///assets/logo',
+  ];
+  // Even if the browser reports a response for every one of them.
+  const loaded = fetched(
+    LOGO_URL,
+    ...forgeries.filter((u) => /^https?:/.test(u)),
+  );
+  for (const forged of forgeries)
     assert.equal(
-      resolveSource(forged, hashes, ORIGIN).kind,
+      resolveSource(forged, hashes, ORIGIN, loaded).kind,
       'external',
       forged,
     );
   assert.equal(
-    resolveSource(`${ORIGIN}/public/assets/logo`, hashes, null).kind,
+    resolveSource(LOGO_URL, hashes, null, loaded).kind,
     'external',
-    'without a known page origin nothing absolute is trusted',
+    'without a known page origin nothing is trusted',
   );
 });
 
@@ -355,6 +378,16 @@ test('captures at the screenshot of a requested frame and passes calls through',
 
   evidence.begin({ format: 'png', frame: 4 }, { durationFrames: 30 });
   const page = await browser.newPage();
+  page.handlers.get('Network.requestWillBeSent')({
+    requestId: 'r1',
+    request: { url: `${ORIGIN}/public/assets/f` },
+  });
+  page.handlers.get('Network.responseReceived')({
+    response: { url: `${ORIGIN}/public/assets/f`, status: 200 },
+  });
+  page.handlers.get('Network.responseReceived')({
+    response: { url: `${ORIGIN}/public/assets/never`, status: 404 },
+  });
   page.handlers.get('CSS.fontsUpdated')({
     font: {
       fontFamily: 'Brand',

@@ -18,14 +18,14 @@ export const EVIDENCE_PNG = Buffer.from(
 );
 export const EVIDENCE_COMPOSITION = `
 import React from 'react';
-import {AbsoluteFill, staticFile} from 'remotion';
+import {AbsoluteFill, Img, staticFile} from 'remotion';
 export const VisualComposition = () => (
   <AbsoluteFill style={{background: '#102030'}}>
     <style>{"@font-face{font-family:'ZodiakBrand';src:url('" + staticFile('assets/zodiak-regular') + "') format('woff2');font-weight:400;}"}</style>
     <div style={{position: 'absolute', left: 20, top: 20, fontFamily: 'ZodiakBrand, serif', fontSize: 44, color: '#FFCC00'}}>Brand headline</div>
     <div style={{position: 'absolute', left: 20, top: 120, fontFamily: 'NoSuchBrandFontXyz, sans-serif', fontSize: 30, color: 'rgba(255, 255, 255, 0.5)'}}>Fallback line</div>
     <div style={{position: 'absolute', left: 20, top: 200, opacity: 0, fontSize: 30}}>Never visible</div>
-    <img src={staticFile('assets/logo-png')} style={{position: 'absolute', left: 150, top: 170, width: 60, height: 40, transform: 'rotate(10deg)', opacity: 0.5}} />
+    <Img src={staticFile('assets/logo-png')} style={{position: 'absolute', left: 150, top: 170, width: 60, height: 40, transform: 'rotate(10deg)', opacity: 0.5}} />
   </AbsoluteFill>
 );`;
 export const EVIDENCE_SETTINGS = {

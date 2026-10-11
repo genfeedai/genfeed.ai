@@ -46,7 +46,6 @@ function clamp(value, limit) {
     : value;
 }
 
-const RELATIVE = 'http://relative.invalid';
 function parseUrl(candidate, base) {
   try {
     return new URL(candidate, base);
@@ -55,36 +54,44 @@ function parseUrl(candidate, base) {
   }
 }
 
-const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+const HTTP = new Set(['http:', 'https:']);
 
-// A URL names a staged asset only when it is relative or served by the page's own
-// origin. A composition can write any absolute URL, including one whose path looks
-// like /assets/<id>, but only the renderer's server actually serves staged files.
-function isOwnUrl(candidate, origin) {
-  const absolute = parseUrl(candidate);
-  if (absolute !== null) return absolute.origin === origin;
-  // Resolve against a sentinel so a protocol-relative URL cannot pass as relative.
-  return parseUrl(candidate, RELATIVE)?.origin === RELATIVE;
+function httpUrl(candidate, origin) {
+  if (!origin) return null;
+  const url = parseUrl(candidate, origin);
+  return url !== null && HTTP.has(url.protocol) ? url : null;
+}
+
+/** Network events carry no fragment, so the key does not either. */
+export function fetchedKey(href) {
+  const url = parseUrl(href);
+  if (url === null) return null;
+  url.hash = '';
+  return url.href;
 }
 
 // Only the path may name an asset; a query string can carry any text.
-function assetPath(candidate) {
-  const pathname = parseUrl(candidate, RELATIVE)?.pathname ?? '';
-  let decoded = pathname;
+function assetId(url) {
+  let decoded = url.pathname;
   try {
-    decoded = decodeURIComponent(pathname);
+    decoded = decodeURIComponent(url.pathname);
   } catch {
     // Keep the raw path; the pattern below still has to match.
   }
-  return /\/assets\/([a-zA-Z0-9_-]{1,200})$/.exec(decoded);
+  return /\/assets\/([a-zA-Z0-9_-]{1,200})$/.exec(decoded)?.[1] ?? null;
 }
 
 /**
- * Resolve a URL the composition loaded to the staged asset it came from.
- * Remotion serves staticFile("assets/<id>") from the page origin, and wraps
- * OffthreadVideo sources in a loopback `?src=` proxy URL.
+ * Resolve a URL the composition used to the staged asset it was loaded from.
+ * A name is not enough: a composition can write any URL, so a staged asset is
+ * reported only when the browser actually fetched it from the page's own origin
+ * (`loaded` holds the URLs Chromium got a successful response for). Remotion
+ * serves staticFile("assets/<id>") from the page origin, and its `/proxy?src=`
+ * route reads a staged file the same way. An OffthreadVideo frame is a `blob:`
+ * URL built from a proxy response, which the DOM cannot tie back to a file, so it
+ * stays unresolved rather than guessed.
  */
-export function resolveSource(raw, assetHashes, origin) {
+export function resolveSource(raw, assetHashes, origin, loaded) {
   if (typeof raw !== 'string' || raw.length === 0)
     return { kind: 'unknown', assetId: null, contentHash: null };
   if (raw.startsWith('data:')) {
@@ -105,26 +112,21 @@ export function resolveSource(raw, assetHashes, origin) {
       return { kind: 'unknown', assetId: null, contentHash: null };
     }
   }
-  const candidates = [];
-  if (isOwnUrl(raw, origin)) candidates.push(raw);
-  const outer = parseUrl(raw, RELATIVE);
-  const nested = outer?.searchParams.get('src');
-  const isProxy =
-    outer !== null &&
-    (outer.origin === RELATIVE ||
-      outer.origin === origin ||
-      LOOPBACK.has(outer.hostname));
-  if (nested && isProxy && isOwnUrl(nested, origin)) candidates.push(nested);
-  for (const candidate of candidates) {
-    const match = assetPath(candidate);
-    if (match)
-      return {
-        kind: 'asset',
-        assetId: match[1],
-        contentHash: assetHashes.get(match[1]) ?? null,
-      };
+  const unproven = { kind: 'external', assetId: null, contentHash: null };
+  const outer = httpUrl(raw, origin);
+  if (outer === null || !loaded.has(fetchedKey(outer.href))) return unproven;
+  let id = outer.origin === origin ? assetId(outer) : null;
+  if (id === null) {
+    const nested = outer.searchParams.get('src');
+    const isProxy = outer.origin === origin;
+    // The proxy is handed the file's absolute URL; a relative one is not Remotion's.
+    const inner = nested && isProxy ? parseUrl(nested) : null;
+    if (inner !== null && HTTP.has(inner.protocol) && inner.origin === origin)
+      id = assetId(inner);
   }
-  return { kind: 'external', assetId: null, contentHash: null };
+  return id === null
+    ? unproven
+    : { kind: 'asset', assetId: id, contentHash: assetHashes.get(id) ?? null };
 }
 
 export function parseCssColor(value) {
@@ -179,7 +181,7 @@ function isOnCanvas(bounds, width, height) {
  */
 export function analyzeSnapshot(
   snapshot,
-  { assetHashes, width, height, origin },
+  { assetHashes, width, height, origin, loaded },
 ) {
   const diagnostics = [];
   const documents = snapshot.documents ?? [];
@@ -297,7 +299,7 @@ export function analyzeSnapshot(
         diagnostics.push('placed_assets_truncated');
         return;
       }
-      const resolved = resolveSource(source.raw, assetHashes, origin);
+      const resolved = resolveSource(source.raw, assetHashes, origin, loaded);
       placedAssets.push({
         role: source.role,
         sourceKind: resolved.kind,
@@ -312,8 +314,8 @@ export function analyzeSnapshot(
   return { diagnostics: [...new Set(diagnostics)], textLayers, placedAssets };
 }
 
-export function normalizeFontFace(font, assetHashes, origin) {
-  const source = resolveSource(font.src, assetHashes, origin);
+export function normalizeFontFace(font, assetHashes, origin, loaded) {
+  const source = resolveSource(font.src, assetHashes, origin, loaded);
   return {
     family: clamp(String(font.fontFamily ?? ''), 512),
     style: clamp(String(font.fontStyle ?? 'normal'), 32),
@@ -387,12 +389,18 @@ export class RenderEvidenceRun {
     this.diagnostics = new Set();
     this.origin = null;
     this.pageOrigin = () => null;
+    this.loaded = new Set();
     this.browser = null;
     this.currentFrame = null;
   }
   recordFrameRequest(params) {
     const frame = params?.arguments?.[0]?.value;
     if (Number.isInteger(frame)) this.currentFrame = frame;
+  }
+  /** A URL Chromium got a successful response for, or served from its cache. */
+  recordLoaded(href) {
+    const key = typeof href === 'string' ? fetchedKey(href) : null;
+    if (key !== null && this.loaded.size < 10_000) this.loaded.add(key);
   }
   recordFontFace(font) {
     if (this.rawFontFaces.size >= EVIDENCE_LIMITS.fontFaces) {
@@ -443,6 +451,7 @@ export class RenderEvidenceRun {
       width: this.width,
       height: this.height,
       origin: this.origin,
+      loaded: this.loaded,
     });
     for (const code of analysis.diagnostics) this.diagnostics.add(code);
     if (!analysis.textLayers) throw new Error('snapshot_empty');
@@ -464,7 +473,7 @@ export class RenderEvidenceRun {
       frameCount: this.frameCount,
       captures: [...this.captures].sort((a, b) => a.frame - b.frame),
       fontFaces: [...this.rawFontFaces.values()].map((font) =>
-        normalizeFontFace(font, this.assetHashes, this.origin),
+        normalizeFontFace(font, this.assetHashes, this.origin, this.loaded),
       ),
       assets: [...this.assetHashes].map(([id, contentHash]) => ({
         id,
@@ -503,8 +512,22 @@ export function attachRenderEvidence(browser, { assetHashes, width, height }) {
             return null;
           }
         };
+        await client.send('Network.enable');
         await client.send('DOM.enable');
         await client.send('CSS.enable');
+        const requested = new Map();
+        client.on('Network.requestWillBeSent', (event) => {
+          if (requested.size < 10_000)
+            requested.set(event?.requestId, event?.request?.url);
+        });
+        client.on('Network.responseReceived', (event) => {
+          const status = event?.response?.status;
+          if (status >= 200 && status < 400)
+            current.recordLoaded(event.response.url);
+        });
+        client.on('Network.requestServedFromCache', (event) =>
+          current.recordLoaded(requested.get(event?.requestId)),
+        );
         client.on('CSS.fontsUpdated', (event) => {
           if (event?.font) current.recordFontFace(event.font);
         });
