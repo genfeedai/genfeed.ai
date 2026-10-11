@@ -832,16 +832,104 @@ describe('preflight capability admission', () => {
       ]);
     },
   );
-  it.each(['image', 'video'] as const)('blocks %s', (mediaKind) => {
-    expect(
-      service.preflightBrandCapabilities({
+  it.each(['image', 'video'] as const)(
+    'admits %s for review only with a warning',
+    (mediaKind) => {
+      const report = service.preflightBrandCapabilities({
         snapshot: snapshot(),
         provider: 'p',
         model: 'm',
         mediaKind,
-      }).status,
-    ).toBe('blocked');
-  });
+      });
+      expect(report.status).toBe('supported');
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: 'artifact_media_unsupported',
+          severity: 'warning',
+        }),
+      );
+      expect(
+        report.diagnostics.some(
+          (diagnostic) => diagnostic.severity === 'error',
+        ),
+      ).toBe(false);
+    },
+  );
+  it.each(['image', 'video'] as const)(
+    'warns, never blocks, on required visual rules it cannot prove for %s',
+    (mediaKind) => {
+      const value = snapshot();
+      const rules = value.generationRules;
+      rules.palette = [
+        {
+          id: 'palette',
+          color: '#123456',
+          usage: 'background',
+          required: true,
+          evidenceIds: ['evidence-a'],
+        },
+      ];
+      rules.typography = [
+        {
+          id: 'type',
+          role: 'body',
+          family: 'Example',
+          weight: 400,
+          style: 'normal',
+          availability: 'unknown',
+          required: true,
+          evidenceIds: ['evidence-a'],
+        },
+      ];
+      rules.assets = [
+        {
+          id: 'asset-logo',
+          assetId: 'ref-logo',
+          role: 'logo',
+          required: true,
+          evidenceIds: ['evidence-a'],
+        },
+        {
+          id: 'asset-product',
+          assetId: 'ref-product',
+          role: 'product',
+          required: true,
+          evidenceIds: ['evidence-a'],
+        },
+      ];
+      value.contentHash = hashBrandIdentitySnapshotV1(value);
+      const report = service.preflightBrandCapabilities({
+        snapshot: value,
+        provider: 'p',
+        model: 'm',
+        mediaKind,
+      });
+      expect(report.status).toBe('supported');
+      expect(report.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+        'factual_coverage_unverified',
+        'artifact_media_unsupported',
+        'exact_palette_unavailable',
+        'exact_font_unavailable',
+        'text_coverage_incomplete',
+        'exact_logo_unavailable',
+        'exact_product_unavailable',
+      ]);
+      expect(
+        report.diagnostics.every(
+          (diagnostic) => diagnostic.severity === 'warning',
+        ),
+      ).toBe(true);
+      // The same snapshot still blocks text, which can prove its rules.
+      expect(
+        service.preflightBrandCapabilities({
+          snapshot: value,
+          provider: 'p',
+          model: 'm',
+          mediaKind: 'text',
+        }).status,
+      ).toBe('blocked');
+    },
+  );
   it.each(['', ' ', 'x'.repeat(513)])(
     'rejects invalid provider/model identifier',
     (value) => {
