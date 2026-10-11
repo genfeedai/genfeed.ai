@@ -350,15 +350,24 @@ describe('PostAnalyticsService prospective capture wiring', () => {
       expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
       expect(h.findResponse).not.toHaveBeenCalled();
     });
-    it('queues nothing when detection is held or the response already moved on', async () => {
-      const held = harness();
-      await collect(held);
-      expect(held.queueSystemWorkflow).not.toHaveBeenCalled();
-      const planned = harness();
-      planned.detect.mockResolvedValue(registered);
-      planned.findResponse.mockResolvedValue(null);
-      await collect(planned);
-      expect(planned.queueSystemWorkflow).not.toHaveBeenCalled();
+    it('queues nothing when no detected response awaits its plan', async () => {
+      const h = harness();
+      h.findResponse.mockResolvedValue(null);
+      await collect(h);
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+    it('re-offers a still detected response when a later collection only replays detection', async () => {
+      const h = harness();
+      h.capture.mockResolvedValue({
+        status: 'replayed',
+        observationId: 'observation-a',
+      });
+      h.detect.mockResolvedValue({ ...registered, status: 'replayed' });
+      await collect(h);
+      expect(h.queueSystemWorkflow).toHaveBeenCalledOnce();
+      expect(h.queueSystemWorkflow.mock.calls[0]?.[1]).toBe(
+        'breakout-response-execute-response-a',
+      );
     });
     it('queues nothing when a held capture fails the collection', async () => {
       const h = harness();
