@@ -226,9 +226,9 @@
         "alt": "A sculptural amber product emerges from a dark presentation pedestal surrounded by coordinated campaign photographs and a softly lit cinematic frame; cohesive product launch"
       },
       {
-        "route": "/fleet",
-        "file": "page-fleet-v1.webp",
-        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /fleet. Subject: A disciplined array of graphite inference modules each holding a distinctive optical lens, connected by precise silver rails around a single amber creative job; managed model production. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "route": "/custom-models",
+        "file": "page-custom-models-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /custom-models. Subject: A disciplined array of graphite inference modules each holding a distinctive optical lens, connected by precise silver rails around a single amber creative job; managed model production. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
         "alt": "A disciplined array of graphite inference modules each holding a distinctive optical lens, connected by precise silver rails around a single amber creative job; managed model production"
       },
       {

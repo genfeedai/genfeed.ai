@@ -22,7 +22,7 @@ const DIRECTORY_EXEMPT = new Set<string>([
   '/',
   '/done-for-you',
   '/facebook',
-  '/fleet',
+  '/custom-models',
   '/founder-content',
   '/instagram',
   '/launch-content',

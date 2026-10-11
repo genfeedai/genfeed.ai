@@ -2,11 +2,11 @@ import type { ServiceLandingConfig } from '@web-components/landing/service-landi
 import { Bot, Cpu, Server } from 'lucide-react';
 
 export const pitchLandingConfigs: ServiceLandingConfig[] = [
-  // ── Fleet ────────────────────────────────────────────────────────────────────
+  // ── Custom Models ────────────────────────────────────────────────────────────
   {
-    badge: 'Fleet',
+    badge: 'Custom Models',
     closingDescription:
-      'If you need owned models and AI influencers running at scale, book a call and we will design the fleet, or start free on Genfeed to try the workflow first.',
+      'If you need owned models and AI influencers running at scale, book a call and we will design your custom models, or start free on Genfeed to try the workflow first.',
     closingTitle: 'Your Own Models. Your Own AI Influencers.',
     deliverableBuckets: [
       {
@@ -31,15 +31,15 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
         items: [
           'Dedicated GPU inference capacity',
           'Delivery pipeline and scheduling',
-          'Ongoing model and fleet operation',
+          'Ongoing model operation and updates',
           'Managed, hands-off runtime',
         ],
         title: 'Operation',
       },
     ],
     deliverablesDescription:
-      'A managed model fleet: custom LoRAs, AI influencers, and dedicated inference, designed, trained, and run for you on our GPU estate.',
-    deliverablesTitle: 'What The Fleet Delivers',
+      'Managed custom models: custom LoRAs, AI influencers, and dedicated inference, designed, trained, and run for you on our GPU estate.',
+    deliverablesTitle: 'What Custom Models Deliver',
     faqDescription: 'For operators running owned models at scale.',
     faqs: [
       {
@@ -59,7 +59,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'Both. We can build and run your own AI influencers end to end, or deliver a fleet your team directs while we handle training and infrastructure.',
+          'Both. We can build and run your own AI influencers end to end, or deliver custom models your team directs while we handle training and infrastructure.',
         question: 'Do you run the influencers or do we?',
       },
       {
@@ -75,9 +75,9 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'You want owned models, not per-generation tool credits.',
       'You are building AI influencers or a high-volume visual operation.',
     ],
-    heroAccent: 'model fleet',
+    heroAccent: 'custom models',
     heroDescription:
-      'Custom LoRAs, AI influencers, and dedicated inference, designed, trained, and operated for you on our GPU fleet.',
+      'Custom LoRAs, AI influencers, and dedicated inference, designed, trained, and operated for you on our GPU infrastructure.',
     heroTitle: 'We run your',
     includes: [
       'Custom LoRA training',
@@ -90,10 +90,10 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'Managed operation',
     ],
     intro:
-      'Generic models drift and credits meter every frame. A fleet is different: your own trained models, consistent identities, and dedicated capacity, built and run so you can produce at scale without touching infrastructure.',
+      'Generic models drift and credits meter every frame. Custom models are different: your own trained models, consistent identities, and dedicated capacity, built and run so you can produce at scale without touching infrastructure.',
     metaDescription:
-      'Managed model fleet: custom LoRAs, AI influencers, and dedicated inference, trained and operated for you on GPU infrastructure. Custom scope.',
-    metaTitle: 'Managed Model Fleet: Custom LoRAs | Genfeed.ai',
+      'Managed custom models: custom LoRAs, AI influencers, and dedicated inference, trained and operated for you on GPU infrastructure. Custom scope.',
+    metaTitle: 'Custom Models: Managed Custom LoRAs | Genfeed.ai',
     outcomes: [
       {
         description:
@@ -122,7 +122,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     process: [
       {
         description:
-          'Define the subjects, styles, characters, and output volume the fleet needs to deliver.',
+          'Define the subjects, styles, characters, and output volume your custom models need to deliver.',
         step: 'Design',
       },
       {
@@ -137,14 +137,14 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         description:
-          'Operate and update the fleet over time: new models, refreshed styles, and scaling as you grow.',
+          'Operate and update your custom models over time: new models, refreshed styles, and scaling as you grow.',
         step: 'Operate',
       },
     ],
     processDescription: 'Owned models, run for you end to end.',
     processTitle: 'How It Works',
-    slug: 'fleet',
-    title: 'Model Fleet',
+    slug: 'custom-models',
+    title: 'Custom Models',
   },
 ];
 

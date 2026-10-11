@@ -67,6 +67,16 @@ describe('website next.config', () => {
     });
   });
 
+  it('permanently redirects the retired /fleet page to /custom-models', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: '/custom-models',
+      permanent: true,
+      source: '/fleet',
+    });
+  });
+
   it('publishes the canonical OpenAPI document from the website origin', async () => {
     const redirects = await config.redirects?.();
 
