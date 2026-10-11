@@ -33,6 +33,7 @@ function createMockPrisma() {
   return {
     apiKey: { findFirst: vi.fn().mockResolvedValue(null) },
     brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
+    organization: { findFirst: vi.fn().mockResolvedValue(null) },
     member: {
       findFirst: vi
         .fn()
@@ -1506,12 +1507,13 @@ describe('WorkflowSchedulerService — automatic platform seed marking (#6689)',
     const { prisma } = created;
     prisma.workflow.findMany.mockResolvedValue([reconcileRow]);
     prisma.workflow.updateMany.mockResolvedValue({ count: 1 });
-    // The organization owner is an active member (the same row also satisfies a live actor
-    // refresh, which reads the member's brands and role).
+    // The row's user owns the organization and is an active member (the member row also
+    // satisfies a live actor refresh, which reads the member's brands and role).
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org-1' });
     prisma.member.findFirst.mockResolvedValue({
       brands: [],
+      id: 'member-row-1',
       role: { key: MemberRole.ADMIN },
-      userId: 'owner-1',
     });
     return created;
   }
@@ -1594,7 +1596,7 @@ describe('WorkflowSchedulerService — automatic platform seed marking (#6689)',
 
   it('does not mark a row owned by a member who is not the organization owner', async () => {
     const created = fixture({ userId: 'member-2' });
-    created.prisma.member.findFirst.mockResolvedValue(null);
+    created.prisma.organization.findFirst.mockResolvedValue(null);
 
     await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
 

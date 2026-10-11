@@ -34,6 +34,7 @@ function row(overrides: Record<string, unknown> = {}) {
 function createDeps() {
   const prisma = {
     member: { findFirst: vi.fn() },
+    organization: { findFirst: vi.fn() },
     workflow: { findMany: vi.fn(), updateMany: vi.fn() },
   };
   const logger = {
@@ -128,7 +129,8 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    prisma.member.findFirst.mockResolvedValue({ userId: 'seed-user' });
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org-1' });
+    prisma.member.findFirst.mockResolvedValue({ id: 'member-row-1' });
     prisma.workflow.findMany.mockResolvedValue([row()]);
     prisma.workflow.updateMany.mockResolvedValue({ count: 1 });
   });
@@ -139,12 +141,15 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
     ).resolves.toBe(template.id);
 
     // The owner is proven from the organization, never from the row.
+    expect(prisma.organization.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: { id: 'org-1', isDeleted: false, userId: 'seed-user' },
+    });
     expect(prisma.member.findFirst).toHaveBeenCalledWith({
-      select: { userId: true },
+      select: { id: true },
       where: {
         isActive: true,
         isDeleted: false,
-        organization: { isDeleted: false, userId: 'seed-user' },
         organizationId: 'org-1',
         userId: 'seed-user',
       },
@@ -216,19 +221,31 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
         reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled(overrides)),
       ).resolves.toBeNull();
     }
+    expect(prisma.organization.findFirst).not.toHaveBeenCalled();
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
     expect(prisma.workflow.findMany).not.toHaveBeenCalled();
     expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
   });
 
   it('does not mark a row owned by a member who is not the organization owner', async () => {
-    prisma.member.findFirst.mockResolvedValue(null);
+    prisma.organization.findFirst.mockResolvedValue(null);
 
     await expect(
       reconcileSeededWorkflowBeforeScheduledRun(
         deps,
         scheduled({ userId: 'member-2' }),
       ),
+    ).resolves.toBeNull();
+    expect(prisma.member.findFirst).not.toHaveBeenCalled();
+    expect(prisma.workflow.findMany).not.toHaveBeenCalled();
+    expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does not mark a row whose owner is no longer an active member', async () => {
+    prisma.member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled()),
     ).resolves.toBeNull();
     expect(prisma.workflow.findMany).not.toHaveBeenCalled();
     expect(prisma.workflow.updateMany).not.toHaveBeenCalled();

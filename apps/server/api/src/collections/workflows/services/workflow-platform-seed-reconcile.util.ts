@@ -189,17 +189,7 @@ export async function reconcileSeededWorkflowBeforeScheduledRun(
   }
 
   try {
-    const owner = await deps.prisma.member.findFirst({
-      select: { userId: true },
-      where: {
-        isActive: true,
-        isDeleted: false,
-        organization: { isDeleted: false, userId: workflow.userId },
-        organizationId: workflow.organizationId,
-        userId: workflow.userId,
-      },
-    });
-    if (!owner) {
+    if (!(await isActiveOrganizationOwner(deps.prisma, workflow))) {
       return null;
     }
 
@@ -231,6 +221,35 @@ export async function reconcileSeededWorkflowBeforeScheduledRun(
     );
     return null;
   }
+}
+
+/**
+ * Whether the row's user is the organization's owner (`Organization.userId`) and still an active
+ * member of it. Both are read from the database, never from the row.
+ */
+async function isActiveOrganizationOwner(
+  prisma: PrismaService,
+  workflow: Pick<ScheduledSeedReconcileRow, 'organizationId' | 'userId'>,
+): Promise<boolean> {
+  const organization = await prisma.organization.findFirst({
+    select: { id: true },
+    where: {
+      id: workflow.organizationId,
+      isDeleted: false,
+      userId: workflow.userId,
+    },
+  });
+  if (!organization) {
+    return false;
+  }
+  const member = await prisma.member.findFirst({
+    select: { id: true },
+    where: scopedWhere(workflow.organizationId, {
+      isActive: true,
+      userId: workflow.userId,
+    }),
+  });
+  return member !== null;
 }
 
 function findCanonicalSeedTemplateForUnmarkedRow(
