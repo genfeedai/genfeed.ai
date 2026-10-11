@@ -150,8 +150,12 @@ export default function OrganizationStorePage() {
           ),
     [activeFilter, apps],
   );
+  // Only apps the member can open or install headline the Store; a locked app
+  // stays on its shelf with its access note instead.
   const featuredApps = visibleApps.filter(
-    (app) => STORE_APP_CATALOG[app.appId].isFeatured,
+    (app) =>
+      STORE_APP_CATALOG[app.appId].isFeatured &&
+      (isAppOpenable(app) || app.state === 'not-installed'),
   );
   // No per-member app usage is recorded anywhere, so "most used" cannot be
   // computed. Show the member's own openable apps instead: pinned first, then
