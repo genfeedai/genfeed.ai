@@ -257,7 +257,9 @@ describe.skipIf(!connectionString)(
       expect(result.success).toBe(true);
       const sent = delivery.published[0]?.post;
       expect(
-        (sent?.ingredients ?? []).map((item: { id: string }) => item.id),
+        (sent?.ingredients ?? []).map((item) =>
+          typeof item === 'string' ? item : item.id,
+        ),
       ).toEqual(post.ingredients.map((item) => item.id));
     });
 
