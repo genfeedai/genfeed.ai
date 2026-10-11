@@ -124,6 +124,7 @@ export default function AppLayout({
         >
           {railComponent ? (
             <DesktopRail
+              hasStaticMark={!menuComponent && !isSidebarToggleInTitlebar}
               sidebarToggle={
                 isSidebarToggleInTitlebar ? null : desktopSidebarToggle
               }
