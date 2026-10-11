@@ -99,7 +99,6 @@ export default function StoryboardRunsPage(): ReactElement {
 
   return (
     <Container
-      description={translate('description')}
       label={translate('title')}
       right={
         <Button asChild>

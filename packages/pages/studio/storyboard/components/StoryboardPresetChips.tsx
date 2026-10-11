@@ -20,7 +20,6 @@ export default function StoryboardPresetChips({
       className="mb-2 flex flex-col gap-1.5"
       role="group"
     >
-      <p className="text-xs text-muted-foreground">{translate('chipsLabel')}</p>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {STORYBOARD_PRESETS.map((preset) => (
           <Button

@@ -33,6 +33,9 @@ const FORMAT_OPTIONS = ['9:16', '16:9', '1:1'].map((value) => ({
   value,
 }));
 const RUNTIME_BUDGET_SECONDS = [15, 30, 45, 60];
+const MAX_BRIEF_LENGTH = 2000;
+// The counter only appears once the brief is close to the limit.
+const CHARACTER_COUNT_THRESHOLD = MAX_BRIEF_LENGTH * 0.8;
 
 /** Selection/upload saves media only; creating a draft never dispatches paid work. */
 export default function StoryboardCreate() {
@@ -96,7 +99,7 @@ export default function StoryboardCreate() {
   const valid =
     mode === 'brief'
       ? (brief.trim().length > 0 || Boolean(image)) &&
-        brief.trim().length <= 2000 &&
+        brief.trim().length <= MAX_BRIEF_LENGTH &&
         validBudget
       : Boolean(video);
   function chooseStartingImage() {
@@ -186,12 +189,6 @@ export default function StoryboardCreate() {
           />
         </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
-          <h2 className="text-xl font-medium">
-            {translateWorkspace('emptyTitle')}
-          </h2>
-          <p className="max-w-md text-sm text-muted-foreground">
-            {translateWorkspace('emptyDescription')}
-          </p>
           {mode === 'video' ? (
             <p role="status" className="text-sm">
               {video?.title || translate('chooseOwnedVideo')}
@@ -232,11 +229,7 @@ export default function StoryboardCreate() {
                   onSubmit={() => void submit()}
                   className="min-h-16"
                 />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {translate('videoHelp')}
-                </p>
-              )}
+              ) : null}
               <PromptBarToolbar
                 density="compact"
                 leading={
@@ -292,16 +285,19 @@ export default function StoryboardCreate() {
                   />
                 }
               />
-              {mode === 'brief' ? (
-                <p className="mt-2 text-xs text-muted-foreground">
+              {mode === 'brief' && brief.length >= CHARACTER_COUNT_THRESHOLD ? (
+                <p
+                  className={
+                    brief.length > MAX_BRIEF_LENGTH
+                      ? 'mt-2 text-xs text-destructive'
+                      : 'mt-2 text-xs text-muted-foreground'
+                  }
+                >
                   {translate('characterCount', { count: brief.length })}
                 </p>
               ) : null}
             </PromptBarComposer>
           </PromptBarContainer>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {translate('description')}
-          </p>
         </div>
       </div>
       <StoryboardReferencesPanel

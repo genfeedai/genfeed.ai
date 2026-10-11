@@ -34,7 +34,6 @@ export default function StoryboardRunsOnboarding(): ReactElement {
         <StoryboardShotStrip format="16:9" shotCount={5} />
       </Card>
       <CollectionSection
-        description={translate('presetsDescription')}
         itemCount={STORYBOARD_PRESETS.length}
         title={translate('presetsTitle')}
       >

@@ -108,14 +108,9 @@ export default function StoryboardRunRecipe({
       aria-label={translate('regionLabel')}
       className="flex flex-col gap-4 border-y border-border bg-card/40 p-4"
     >
-      <div>
-        <h2 className="text-sm font-semibold text-foreground">
-          {translate('title')}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {translate('description')}
-        </p>
-      </div>
+      <h2 className="text-sm font-semibold text-foreground">
+        {translate('title')}
+      </h2>
 
       <Field label={translate('objective')}>
         <Textarea
@@ -178,9 +173,6 @@ export default function StoryboardRunRecipe({
 
       {outputKind === 'copy' ? null : (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">
-            {translate('referencesHelp')}
-          </p>
           <div className="flex flex-wrap items-center gap-2">
             {recipe.referenceAssetIds.map((assetId, index) => {
               const reference =

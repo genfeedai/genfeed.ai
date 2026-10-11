@@ -27,6 +27,9 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 
+// The brief counter only appears once the brief is close to its 2,000 limit.
+const CHARACTER_COUNT_THRESHOLD = 1600;
+
 /** Neutral detail page stays separate until existing-run migration is integrated. */
 export default function StoryboardDraftPage({
   run,
@@ -236,18 +239,18 @@ export default function StoryboardDraftPage({
                     />
                   }
                   trailing={
-                    <p className="text-xs text-muted-foreground">
-                      {translate('create.characterCount', {
-                        count: sourceAutosave.value.brief.length,
-                      })}
-                    </p>
+                    sourceAutosave.value.brief.length >=
+                    CHARACTER_COUNT_THRESHOLD ? (
+                      <p className="text-xs text-muted-foreground">
+                        {translate('create.characterCount', {
+                          count: sourceAutosave.value.brief.length,
+                        })}
+                      </p>
+                    ) : undefined
                   }
                 />
               </PromptBarComposer>
             </PromptBarContainer>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {translate('draft.briefDescription')}
-            </p>
           </div>
         ) : null}
       </div>

@@ -92,6 +92,7 @@ export default function StoryboardPresetGrid({
                 )}
                 data-testid="storyboard-preset"
                 key={preset.id}
+                title={translate(`items.${preset.id}.description`)}
               >
                 <Card
                   actions={
@@ -107,7 +108,6 @@ export default function StoryboardPresetGrid({
                   }
                   bodyClassName="h-full"
                   className="flex w-full flex-col"
-                  description={translate(`items.${preset.id}.description`)}
                   icon={<preset.icon className="size-4" />}
                   label={title}
                 >

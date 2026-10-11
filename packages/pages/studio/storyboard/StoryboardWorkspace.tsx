@@ -122,10 +122,6 @@ export function LegacyStoryboardWorkspace() {
       <SectionTopbar title={translate('workspace.title')} />
       <Container>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            {translate('workspace.intro')}
-          </p>
-
           {/* Remix runs start from a Discovery source and are saved as
               storyboard runs; brief-sourced runs (#5454) join here. */}
           <Card
@@ -216,10 +212,7 @@ export function LegacyStoryboardWorkspace() {
           ) : null}
 
           {mode === 'interpolate' ? (
-            <Card
-              label={translate('autoMerge.label')}
-              description={translate('autoMerge.description')}
-            >
+            <Card label={translate('autoMerge.label')}>
               <MergeSettingsPanel
                 isDisabled={isStoryboardGenerating}
                 settings={mergeSettings}
@@ -352,10 +345,7 @@ export function LegacyStoryboardWorkspace() {
           ) : null}
 
           {mode === 'merge' ? (
-            <Card
-              label={translate('workspace.mergeTitle')}
-              description={translate('workspace.mergeDescription')}
-            >
+            <Card label={translate('workspace.mergeTitle')}>
               <div className="flex flex-col gap-3">
                 {mergeVideoIds.length === 0 ? (
                   <div className="rounded-md bg-background-secondary/50 px-3 py-6 text-center text-sm text-muted-foreground">
