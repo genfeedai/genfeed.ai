@@ -156,6 +156,96 @@ describe('common-month actual spend and active reservations', () => {
     const holdWhere = h.findReservations.mock.calls[0]?.[0];
     expect(JSON.stringify(holdWhere)).not.toContain('expiresAt');
   });
+  it('counts every component of a visual output (caption, visual, judgement) under its output format and platform, once', async () => {
+    const h = fixture();
+    const image = {
+      strategyBudgetAttribution: {
+        ...attribution,
+        platform: Platform.INSTAGRAM,
+        format: 'image' as const,
+      },
+    };
+    const video = {
+      strategyBudgetAttribution: {
+        ...attribution,
+        platform: Platform.INSTAGRAM,
+        format: 'video' as const,
+      },
+    };
+    h.rows.push(
+      {
+        id: 'caption-charge',
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        amount: 2,
+        category: 'deduct',
+        metadata: image,
+        reservationId: 'caption-hold',
+        reservation: null,
+      },
+      {
+        id: 'image-charge',
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        amount: 30,
+        category: 'deduct',
+        metadata: image,
+        reservationId: 'image-hold',
+        reservation: null,
+      },
+    );
+    h.holds.push(
+      {
+        id: 'video-hold',
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        amount: 40,
+        settledAmount: null,
+        status: CreditReservationStatus.RESERVED,
+        metadata: video,
+      },
+      {
+        id: 'judge-hold',
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        amount: 3,
+        settledAmount: null,
+        status: CreditReservationStatus.RESERVED,
+        metadata: image,
+      },
+    );
+    expect(
+      await readBreakoutMonthlyUsage(h.tx, {
+        ...input,
+        platform: Platform.INSTAGRAM,
+        storedMonthlyUsed: 0,
+      }),
+    ).toMatchObject({
+      spentCredits: 42,
+      heldCredits: 48,
+      usedCredits: 90,
+      dimensionUsage: {
+        platforms: { [Platform.INSTAGRAM]: 75, [Platform.TWITTER]: 15 },
+        formats: { text: 15, image: 35, video: 40 },
+      },
+    });
+  });
+  it('holds capacity when a visual hold has no readable allocation instead of assuming zero', async () => {
+    const h = fixture();
+    h.holds.push({
+      id: 'unattributed-visual-hold',
+      organizationId: input.organizationId,
+      brandId: input.brandId,
+      amount: 40,
+      settledAmount: null,
+      status: CreditReservationStatus.RESERVED,
+      metadata: {},
+    });
+    expect(await readBreakoutMonthlyUsage(h.tx, input)).toEqual({
+      status: 'held',
+      reason: 'ledger_usage_unavailable',
+    });
+  });
   it('inherits exact scoped settlement attribution and subtracts actual refunds', async () => {
     const h = fixture();
     h.rows[0].metadata = null;
