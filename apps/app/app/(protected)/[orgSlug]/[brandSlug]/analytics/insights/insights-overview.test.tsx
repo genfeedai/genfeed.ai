@@ -65,6 +65,23 @@ describe('InsightsOverview', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('leaves the title and Refresh to the Analytics sub-topbar instead of nesting its own page chrome', () => {
+    render(<InsightsOverview brandId="brand-123" />);
+
+    // Only the insight list card keeps its own heading; no nested page title.
+    expect(screen.getAllByText('AI Insights')).toHaveLength(1);
+    expect(
+      screen.queryByText('AI-driven analytics and recommendations.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /refresh/i }),
+    ).not.toBeInTheDocument();
+    expect(vi.mocked(useInsights)).toHaveBeenCalledWith({
+      brandId: 'brand-123',
+      enabled: true,
+    });
+  });
+
   it('mounts the social intelligence inbox inside the analytics scope', () => {
     render(<InsightsOverview brandId="brand-123" />);
 

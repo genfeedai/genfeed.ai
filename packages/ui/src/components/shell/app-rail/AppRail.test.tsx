@@ -1610,6 +1610,45 @@ describe('AppRail', () => {
       expect(onTogglePin).toHaveBeenCalledWith('playground');
     });
 
+    it('keeps pin actions quiet at rest and reveals them on row hover, keyboard focus, or touch', () => {
+      const onTogglePin = vi.fn();
+      render(
+        <AppRail
+          orgSlug="acme"
+          onTogglePin={onTogglePin}
+          pinnedAppIds={['playground']}
+        />,
+      );
+      openLauncher();
+
+      for (const name of ['Unpin Playground', 'Pin Messages']) {
+        const action = screen.getByRole('button', { name });
+        // Hover-capable pointers: hidden and inert at rest, revealed by the
+        // row's hover or focus-within; space stays reserved (no layout shift).
+        expect(action).toHaveClass(
+          'size-8',
+          'shrink-0',
+          '[@media(hover:hover)]:opacity-0',
+          '[@media(hover:hover)]:pointer-events-none',
+          '[@media(hover:hover)]:group-hover/app-rail-row:opacity-100',
+          '[@media(hover:hover)]:group-hover/app-rail-row:pointer-events-auto',
+          '[@media(hover:hover)]:group-focus-within/app-rail-row:opacity-100',
+          '[@media(hover:hover)]:group-focus-within/app-rail-row:pointer-events-auto',
+          // Touch / no-hover: always visible with a full-size target.
+          '[@media(hover:none)]:size-11',
+          'motion-reduce:transition-none',
+        );
+        expect(action.parentElement).toHaveClass('group/app-rail-row');
+        // The primary app link shares the row, so focusing it reveals the action.
+        expect(
+          action.parentElement?.querySelector('a[href]'),
+        ).toBeInTheDocument();
+      }
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pin Messages' }));
+      expect(onTogglePin).toHaveBeenCalledExactlyOnceWith('messages');
+    });
+
     it('preserves task context search params when switching apps', () => {
       render(
         <AppRail

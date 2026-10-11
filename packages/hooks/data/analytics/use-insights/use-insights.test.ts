@@ -36,6 +36,7 @@ vi.mock('@genfeedai/services/analytics/insights.service', () => ({
 }));
 
 // Import after mocks
+import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
 
 describe('useInsights', () => {
@@ -74,6 +75,32 @@ describe('useInsights', () => {
       });
 
       expect(result.current).toBeDefined();
+    });
+
+    it('reloads insights when the Analytics sub-topbar Refresh bumps refreshTrigger', async () => {
+      const context = { refreshTrigger: 0 };
+      vi.mocked(useAnalyticsContext).mockImplementation(
+        () => context as ReturnType<typeof useAnalyticsContext>,
+      );
+      const { rerender, result } = renderHook(
+        () => useInsights({ brandId: 'brand_123' }),
+        { wrapper: createQueryWrapper() },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      expect(mockInsightsService.getInsights).toHaveBeenCalledTimes(1);
+
+      context.refreshTrigger = 1;
+      rerender();
+
+      await waitFor(() => {
+        expect(mockInsightsService.getInsights).toHaveBeenCalledTimes(2);
+      });
+      vi.mocked(useAnalyticsContext).mockImplementation(
+        () => ({ refreshTrigger: 0 }) as ReturnType<typeof useAnalyticsContext>,
+      );
     });
 
     it('should accept enabled option', () => {

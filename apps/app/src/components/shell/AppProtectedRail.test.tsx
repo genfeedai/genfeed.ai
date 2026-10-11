@@ -318,11 +318,23 @@ describe('AppProtectedRail', () => {
     installedApps.status = 'ready';
   });
 
-  it('opens founder-only apps to the operator', () => {
-    mockAccessState.isSuperAdmin = true;
+  it('opens founder-only apps to an organization on release preview', () => {
+    brandContextState.settings = {
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+      moduleOverrides: {},
+    };
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ isFounderOperator: true }),
+    );
+  });
+
+  it('keeps founder-only apps closed to a super admin without release preview', () => {
+    mockAccessState.isSuperAdmin = true;
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isFounderOperator: false }),
     );
   });
 

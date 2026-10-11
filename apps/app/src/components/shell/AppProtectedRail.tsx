@@ -6,6 +6,7 @@ import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-c
 import {
   APP_ROUTES,
   createOrganizationAppRoute,
+  isReleasePreviewActive,
   ORGANIZATION_MODULE_IDS,
   resolveOrganizationModulePreferences,
   resolveOrganizationModulePresentationAccess,
@@ -142,7 +143,9 @@ function AppProtectedRailContent({
         installedApps.status === 'ready' ? installedApps.installedAppIds : []
       }
       isAssetGateLocked={isAssetGateLocked}
-      isFounderOperator={isSuperAdmin}
+      isFounderOperator={isReleasePreviewActive(
+        settingsLoading ? null : settings,
+      )}
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
       onNavigate={onNavigate}

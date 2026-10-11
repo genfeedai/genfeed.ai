@@ -56,6 +56,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -76,6 +77,7 @@ export default function StudioPlaygroundInspector({
   isFocused = false,
   job,
   onOpenPreview,
+  onPreviewRecovered,
   onRemix,
   onEdit,
   onSelect,
@@ -296,6 +298,22 @@ export default function StudioPlaygroundInspector({
     orgId,
   ]);
 
+  // Report each successful retry once, so the gallery card for the same asset
+  // leaves its own "Preview unavailable" state instead of staying stale.
+  const reportedRecoveryRef = useRef<string | null>(null);
+  const handlePreviewLoaded = () => {
+    if (previewRevision === 0 || !onPreviewRecovered) return;
+    const recovery = `${previewScope}\u0001${previewRevision}`;
+    if (reportedRecoveryRef.current === recovery) return;
+    reportedRecoveryRef.current = recovery;
+    onPreviewRecovered(
+      job,
+      ingredient?.mediaDelivery
+        ? undefined
+        : resolveStudioAssetUrl(currentReceipt),
+    );
+  };
+
   const handleRetryPreview = () => {
     if (!ingredient || isPreviewLoading || isPreviewUnsupported) return;
     setFailedPreviewScope(null);
@@ -400,6 +418,7 @@ export default function StudioPlaygroundInspector({
             sizes={isFocused ? '(min-width: 1024px) 65vw, 100vw' : '480px'}
             src={previewUrl}
             onError={() => setFailedPreviewScope(previewScope)}
+            onLoad={handlePreviewLoaded}
           />
         </div>
       );
@@ -417,7 +436,10 @@ export default function StudioPlaygroundInspector({
             preload: 'metadata',
           }}
           src={previewUrl}
-          mediaProps={{ onError: () => setFailedPreviewScope(previewScope) }}
+          mediaProps={{
+            onError: () => setFailedPreviewScope(previewScope),
+            onLoadedData: handlePreviewLoaded,
+          }}
           onPlaybackError={() => setFailedPreviewScope(previewScope)}
           thumbnail={ingredient?.thumbnailUrl}
         />

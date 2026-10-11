@@ -6,7 +6,6 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import type { ExecutionContext } from '@nestjs/common';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import type { Request } from 'express';
 import { defer, firstValueFrom } from 'rxjs';
 
 describe('MemberAppsController (#5502)', () => {
@@ -18,16 +17,22 @@ describe('MemberAppsController (#5502)', () => {
       userId: 'user-1',
       ...overrides,
     }) as unknown as User;
-  const request = {} as Request;
 
-  function makeController() {
+  function makeController({ isReleasePreview = false } = {}) {
     const membersService = {
       findInstalledAppIds: vi.fn().mockResolvedValue(['playground']),
       setAppInstalled: vi.fn().mockResolvedValue(['playground', 'turbo']),
     };
+    const moduleAccess = {
+      isReleasePreviewActive: vi.fn().mockResolvedValue(isReleasePreview),
+    };
     return {
-      controller: new MemberAppsController(membersService as never),
+      controller: new MemberAppsController(
+        membersService as never,
+        moduleAccess as never,
+      ),
       membersService,
+      moduleAccess,
     };
   }
 
@@ -46,9 +51,9 @@ describe('MemberAppsController (#5502)', () => {
   it('installs a released app for the caller only', async () => {
     const { controller, membersService } = makeController();
 
-    await expect(
-      controller.installApp(request, makeUser(), 'turbo'),
-    ).resolves.toEqual({ installedAppIds: ['playground', 'turbo'] });
+    await expect(controller.installApp(makeUser(), 'turbo')).resolves.toEqual({
+      installedAppIds: ['playground', 'turbo'],
+    });
     expect(membersService.setAppInstalled).toHaveBeenCalledWith(
       'org-1',
       'user-1',
@@ -57,23 +62,22 @@ describe('MemberAppsController (#5502)', () => {
     );
   });
 
-  it('refuses founder-only apps to customers', async () => {
-    const { controller, membersService } = makeController();
+  it('refuses founder-only apps outside release preview', async () => {
+    const { controller, membersService, moduleAccess } = makeController();
 
     await expect(
-      controller.installApp(request, makeUser(), 'motion'),
+      controller.installApp(makeUser(), 'motion'),
     ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(moduleAccess.isReleasePreviewActive).toHaveBeenCalledWith('org-1');
     expect(membersService.setAppInstalled).not.toHaveBeenCalled();
   });
 
-  it('lets the founder operator install founder-only apps', async () => {
-    const { controller, membersService } = makeController();
+  it('installs founder-only apps for an organization on release preview', async () => {
+    const { controller, membersService } = makeController({
+      isReleasePreview: true,
+    });
 
-    await controller.installApp(
-      request,
-      makeUser({ isSuperAdmin: true }),
-      'motion',
-    );
+    await controller.installApp(makeUser(), 'motion');
     expect(membersService.setAppInstalled).toHaveBeenCalledWith(
       'org-1',
       'user-1',
@@ -82,15 +86,11 @@ describe('MemberAppsController (#5502)', () => {
     );
   });
 
-  it('honors a request context that revokes operator access', async () => {
+  it('does not let a super admin install around release preview', async () => {
     const { controller, membersService } = makeController();
 
     await expect(
-      controller.installApp(
-        { context: { isSuperAdmin: false } } as unknown as Request,
-        makeUser({ isSuperAdmin: true }),
-        'editor',
-      ),
+      controller.installApp(makeUser({ isSuperAdmin: true }), 'editor'),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(membersService.setAppInstalled).not.toHaveBeenCalled();
   });
@@ -112,7 +112,7 @@ describe('MemberAppsController (#5502)', () => {
 
     for (const appId of ['workspace', 'studio', '__proto__']) {
       await expect(
-        controller.installApp(request, makeUser(), appId),
+        controller.installApp(makeUser(), appId),
       ).rejects.toBeInstanceOf(NotFoundException);
       await expect(
         controller.uninstallApp(makeUser(), appId),
@@ -128,7 +128,7 @@ describe('MemberAppsController (#5502)', () => {
       controller.findInstalledApps(makeUser({ organizationId: '' })),
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
-      controller.installApp(request, makeUser({ organizationId: '' }), 'turbo'),
+      controller.installApp(makeUser({ organizationId: '' }), 'turbo'),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(membersService.findInstalledAppIds).not.toHaveBeenCalled();
     expect(membersService.setAppInstalled).not.toHaveBeenCalled();
@@ -212,11 +212,7 @@ describe('MemberAppsController (#5502)', () => {
         handle: () =>
           defer(() =>
             method === 'PUT'
-              ? controller.installApp(
-                  req as unknown as Request,
-                  req.user,
-                  'turbo',
-                )
+              ? controller.installApp(req.user, 'turbo')
               : controller.uninstallApp(req.user, 'turbo'),
           ),
       };

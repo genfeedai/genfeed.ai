@@ -10,6 +10,7 @@ import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
+import { getMasonryActionsBarClassName } from '@ui/masonry/shared/masonry-actions-visibility';
 import type { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
@@ -213,12 +214,7 @@ export default function MasonryImageActionsBar({
   }
 
   return (
-    <div
-      className={cn(
-        'absolute top-2 right-2 z-50 overflow-visible transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 focus-within:pointer-events-auto',
-        showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
-      )}
-    >
+    <div className={getMasonryActionsBarClassName(showActions)}>
       <div className="flex items-start justify-end gap-2">
         <div className="flex-shrink-0 flex items-center gap-2">
           {onVoteIngredient ? (

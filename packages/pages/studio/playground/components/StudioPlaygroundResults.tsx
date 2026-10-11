@@ -75,6 +75,7 @@ export default function StudioPlaygroundResults({
   onReprompt,
   onSelect,
   onUseAsReference,
+  previewRevisions,
   selectedJobId,
   view,
 }: StudioPlaygroundResultsProps): ReactElement {
@@ -104,6 +105,7 @@ export default function StudioPlaygroundResults({
         parentJob={
           job.parentId ? jobsByIngredientId.get(job.parentId) : undefined
         }
+        previewRevision={previewRevisions?.[job.id]}
         view={view}
       />
     );
