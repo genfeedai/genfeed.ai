@@ -160,11 +160,19 @@ export type ScheduledSeedReconcileRow = {
   userId: string;
 };
 
+export type ScheduledSeedReconcileResult =
+  | { platformSeedKey: string; status: 'marked' }
+  | { status: 'not-candidate' }
+  | { status: 'unmarked' };
+
 /**
  * Marks, right before the Cloud scheduler would run it, an unmarked row that is provably the
- * seeding flow's own canonical workflow, so no operator step is needed. Returns the platform
- * seed key only when this call marked that row, and the caller then runs it as a platform
- * workflow; `null` leaves the row to the scheduler's existing actor rules.
+ * seeding flow's own canonical workflow, so no operator step is needed. `marked` means this call
+ * marked that row and the caller runs it as a platform workflow. `unmarked` means the row was a
+ * candidate but this call did not mark it (a concurrent writer won, another row is the oldest,
+ * the owner check failed, or the database failed), so the caller must re-read the row before it
+ * decides anything from a possibly stale copy. `not-candidate` means nothing was read or
+ * written and the in-memory row is authoritative.
  *
  * The seeding user is the organization owner (`Organization.userId`): the seeders were always
  * called with it (`migrate:workflows` seeded each organization under its owner), so a row owned
@@ -182,15 +190,15 @@ export type ScheduledSeedReconcileRow = {
 export async function reconcileSeededWorkflowBeforeScheduledRun(
   deps: { logger: LoggerService; prisma: PrismaService },
   workflow: ScheduledSeedReconcileRow,
-): Promise<string | null> {
+): Promise<ScheduledSeedReconcileResult> {
   const template = findCanonicalSeedTemplateForUnmarkedRow(workflow);
   if (!template) {
-    return null;
+    return { status: 'not-candidate' };
   }
 
   try {
     if (!(await isActiveOrganizationOwner(deps.prisma, workflow))) {
-      return null;
+      return { status: 'unmarked' };
     }
 
     const outcome = await reconcilePlatformSeedMarker(deps, {
@@ -209,7 +217,9 @@ export async function reconcileSeededWorkflowBeforeScheduledRun(
         },
       );
     }
-    return outcome === 'marked' ? template.id : null;
+    return outcome === 'marked'
+      ? { platformSeedKey: template.id, status: 'marked' }
+      : { status: 'unmarked' };
   } catch (error: unknown) {
     deps.logger.warn(
       'Could not reconcile a seeded workflow before its scheduled run; it keeps its existing authority rules',
@@ -219,7 +229,7 @@ export async function reconcileSeededWorkflowBeforeScheduledRun(
         workflowId: workflow.id,
       },
     );
-    return null;
+    return { status: 'unmarked' };
   }
 }
 

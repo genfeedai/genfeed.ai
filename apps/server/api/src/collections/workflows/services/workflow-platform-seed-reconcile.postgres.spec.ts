@@ -192,7 +192,7 @@ describe.skipIf(!connectionString)(
 
       await expect(
         reconcileSeededWorkflowBeforeScheduledRun(deps, await asScheduled(id)),
-      ).resolves.toBe(template.id);
+      ).resolves.toEqual({ platformSeedKey: template.id, status: 'marked' });
 
       const row = await load(id);
       expect(row.platformSeedKey).toBe(template.id);
@@ -245,7 +245,7 @@ describe.skipIf(!connectionString)(
             deps,
             await asScheduled(id),
           ),
-        ).resolves.toBeNull();
+        ).resolves.not.toMatchObject({ status: 'marked' });
       }
 
       for (const id of Object.values(untouched)) {
@@ -274,7 +274,7 @@ describe.skipIf(!connectionString)(
 
       await expect(
         reconcileSeededWorkflowBeforeScheduledRun(deps, await asScheduled(id)),
-      ).resolves.toBeNull();
+      ).resolves.toEqual({ status: 'unmarked' });
       expect((await load(id)).platformSeedKey).toBeNull();
     });
 
@@ -322,7 +322,9 @@ describe.skipIf(!connectionString)(
         ),
       );
 
-      expect(results.filter((key) => key === template.id)).toHaveLength(1);
+      expect(
+        results.filter((result) => result.status === 'marked'),
+      ).toHaveLength(1);
       expect((await load(oldest)).platformSeedKey).toBe(template.id);
       expect((await load(duplicate)).platformSeedKey).toBeNull();
     });
@@ -417,7 +419,7 @@ describe.skipIf(!connectionString)(
       // The reconcile re-reads the row, so the edit already fails the canonical check.
       await expect(
         reconcileSeededWorkflowBeforeScheduledRun(deps, stale),
-      ).resolves.toBeNull();
+      ).resolves.toEqual({ status: 'unmarked' });
       expect((await load(id)).platformSeedKey).toBeNull();
     });
   },

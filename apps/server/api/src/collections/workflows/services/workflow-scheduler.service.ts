@@ -375,13 +375,26 @@ export class WorkflowSchedulerService implements OnModuleInit {
     if (!isCloudDeployment()) {
       return;
     }
-    const platformSeedKey = await reconcileSeededWorkflowBeforeScheduledRun(
+    const result = await reconcileSeededWorkflowBeforeScheduledRun(
       { logger: this.logger, prisma: this.prisma },
       workflow,
     );
-    if (platformSeedKey) {
-      workflow.platformSeedKey = platformSeedKey;
+    if (result.status === 'marked') {
+      workflow.platformSeedKey = result.platformSeedKey;
       workflow.scheduleInitiatingActor = null;
+      return;
+    }
+    if (result.status === 'unmarked') {
+      // A concurrent fire or reconcile may have marked the row (or bound an actor) after this
+      // copy was read. Refresh the authority fields before they can cause a stale hold.
+      const persisted = await this.prisma.workflow.findFirst({
+        select: { platformSeedKey: true, scheduleInitiatingActor: true },
+        where: scopedWhere(workflow.organizationId, { id: workflow.id }),
+      });
+      if (persisted) {
+        workflow.platformSeedKey = persisted.platformSeedKey;
+        workflow.scheduleInitiatingActor = persisted.scheduleInitiatingActor;
+      }
     }
   }
 

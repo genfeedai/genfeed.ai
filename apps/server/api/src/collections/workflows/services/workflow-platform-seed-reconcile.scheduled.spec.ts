@@ -138,7 +138,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
   it('marks an unmarked canonical row owned by the active organization owner', async () => {
     await expect(
       reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled()),
-    ).resolves.toBe(template.id);
+    ).resolves.toEqual({ platformSeedKey: template.id, status: 'marked' });
 
     // The owner is proven from the organization, never from the row.
     expect(prisma.organization.findFirst).toHaveBeenCalledWith({
@@ -181,7 +181,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
         deps,
         scheduled({ scheduleInitiatingActor: ownerActor }),
       ),
-    ).resolves.toBe(template.id);
+    ).resolves.toEqual({ platformSeedKey: template.id, status: 'marked' });
   });
 
   it('never reads or writes for a row that is not provably the seeded canonical one', async () => {
@@ -219,7 +219,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
     for (const overrides of cases) {
       await expect(
         reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled(overrides)),
-      ).resolves.toBeNull();
+      ).resolves.toEqual({ status: 'not-candidate' });
     }
     expect(prisma.organization.findFirst).not.toHaveBeenCalled();
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
@@ -235,7 +235,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
         deps,
         scheduled({ userId: 'member-2' }),
       ),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ status: 'unmarked' });
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
     expect(prisma.workflow.findMany).not.toHaveBeenCalled();
     expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
@@ -246,7 +246,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
 
     await expect(
       reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled()),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ status: 'unmarked' });
     expect(prisma.workflow.findMany).not.toHaveBeenCalled();
     expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
   });
@@ -267,7 +267,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
           },
         }),
       ),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ status: 'not-candidate' });
     expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
   });
 
@@ -276,7 +276,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
 
     await expect(
       reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled()),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ status: 'unmarked' });
   });
 
   it('is a no-op when a concurrent reconcile marked a row first', async () => {
@@ -289,7 +289,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
 
     await expect(
       reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled()),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ status: 'unmarked' });
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
@@ -298,7 +298,7 @@ describe('reconcileSeededWorkflowBeforeScheduledRun', () => {
 
     await expect(
       reconcileSeededWorkflowBeforeScheduledRun(deps, scheduled()),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ status: 'unmarked' });
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Could not reconcile'),
       expect.objectContaining({ workflowId: 'wf-1' }),

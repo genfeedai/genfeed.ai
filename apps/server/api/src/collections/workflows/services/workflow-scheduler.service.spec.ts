@@ -1647,6 +1647,32 @@ describe('WorkflowSchedulerService — automatic platform seed marking (#6689)',
     expect(created.prisma.member.findFirst).toHaveBeenCalledTimes(2);
   });
 
+  it('does not hold a row that a concurrent fire marked while this one was reconciling', async () => {
+    const created = fixture();
+    const loaded = await created.prisma.workflow.findFirst();
+    created.prisma.workflow.updateMany.mockResolvedValue({ count: 0 });
+    created.prisma.workflow.findFirst
+      .mockResolvedValueOnce(loaded)
+      // The re-read after the lost compare-and-set sees the winner's marker.
+      .mockResolvedValueOnce({
+        platformSeedKey: template.id,
+        scheduleInitiatingActor: null,
+      });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(runAs(created)).toHaveBeenCalledWith(
+      expect.anything(),
+      'owner-1',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(created.queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+    expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps running on the actor rules when the reconcile itself fails', async () => {
     const created = fixture({ scheduleInitiatingActor: ownerActor });
     created.prisma.workflow.findMany.mockRejectedValue(
