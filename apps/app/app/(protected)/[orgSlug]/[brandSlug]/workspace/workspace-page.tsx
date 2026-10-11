@@ -306,8 +306,13 @@ function WorkspacePageContentContent({
   );
   const workspaceInboxTableColumns = useMemo(
     () =>
-      getWorkspaceInboxTableColumns(translate, statusTranslate, statusLabels),
-    [translate, statusTranslate, statusLabels],
+      getWorkspaceInboxTableColumns(
+        translate,
+        statusTranslate,
+        statusLabels,
+        inboxRead.isUnread,
+      ),
+    [translate, statusTranslate, statusLabels, inboxRead.isUnread],
   );
   const inboxTableColumns = hasInboxPaths
     ? workspaceInboxTableColumns

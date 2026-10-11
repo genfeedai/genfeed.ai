@@ -19,6 +19,7 @@ export function getWorkspaceInboxTableColumns(
   translate: WorkspaceTranslate,
   statusTranslate: WorkspaceTranslate,
   statusLabels: Record<TaskStatus, string>,
+  isUnread: (task: Task) => boolean,
 ) {
   return [
     {
