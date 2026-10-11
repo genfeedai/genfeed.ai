@@ -28,7 +28,6 @@ import {
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
-import { Prisma } from '@genfeedai/prisma';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
@@ -262,19 +261,38 @@ describe.skipIf(!connectionString)(
       ).toEqual(post.ingredients.map((item) => item.id));
     });
 
-    it('generates a video follow-up and holds it behind the media readiness gate until its asset is ready', async () => {
+    it('generates a video follow-up, judges it from its frames and publishes it once the media gate passes', async () => {
       const scene = await generate('video');
       const { harness, world } = scene;
-      const outputs = await outputsOf(scene);
-      const video = must(outputs[1], 'the video output');
+      const video = must((await outputsOf(scene))[1], 'the video output');
       expect(video.format).toBe('video');
       expect(harness.mediaGateway.calls[0]?.kind).toBe('video');
       expect(harness.visualJudge.calls[0]?.kind).toBe('video');
       const post = await postOf(world, video.id);
+      expect(post.ingredients).toHaveLength(1);
+      expect(post.ingredients[0]?.category).toBe('VIDEO');
+
+      const delivery = buildDeliveryHarness(db, prisma, logger, world);
+      await approveAndSchedule(
+        harness,
+        world,
+        post.id,
+        principalOf(world, world.owner),
+      );
+      const { result } = await delivery.deliver(post.id);
+      expect(result.success).toBe(true);
+      expect(delivery.published).toHaveLength(1);
+    });
+
+    it('holds a video behind the media readiness gate while its asset does not meet the channel limits, and never republishes the failed output', async () => {
+      const scene = await generate('video');
+      const { harness, world } = scene;
+      const video = must((await outputsOf(scene))[1], 'the video output');
+      const post = await postOf(world, video.id);
 
       const delivery = buildDeliveryHarness(db, prisma, logger, world);
       const conforming = delivery.files.probe;
-      // The stored asset does not yet meet X's video limits (an unconverted master file).
+      // The stored asset does not meet X's video limits (an unconverted master file).
       delivery.files.probe = async (url, kind) => ({
         ...(await conforming(url, kind)),
         audioCodec: 'opus',
@@ -301,23 +319,17 @@ describe.skipIf(!connectionString)(
         ).targetExecutionState,
       ).toBe(TargetExecutionState.FAILED);
 
-      // The asset is replaced by a conforming file; scheduling again publishes it.
+      // A failed breakout publication is never repeated by scheduling the same output again.
       delivery.files.probe = conforming;
-      await db.ingredient.updateMany({
-        data: { mediaProbe: Prisma.DbNull, mediaProbedAt: null },
-        where: scopedWhere(world.organizationId, {
-          id: { in: post.ingredients.map((item) => item.id) },
-        }),
-      });
-      await scheduleDirectly(
-        harness,
-        world,
-        post.id,
-        principalOf(world, world.owner),
-      );
-      const { result } = await delivery.deliver(post.id);
-      expect(result.success).toBe(true);
-      expect(delivery.published).toHaveLength(1);
+      await expect(
+        scheduleDirectly(
+          harness,
+          world,
+          post.id,
+          principalOf(world, world.owner),
+        ),
+      ).rejects.toThrow('publication_failed');
+      expect(delivery.published).toHaveLength(0);
     });
 
     it('keeps a short source a short and holds it where the channel publishes no shorts, spending nothing on it', async () => {
