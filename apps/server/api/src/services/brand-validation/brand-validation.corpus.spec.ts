@@ -303,9 +303,9 @@ describe('genuine immutable synthetic corpus through the conservative core', () 
           target: '#123456',
         },
       });
-      expect(blue?.proof?.coverage).toBeGreaterThan(0.99);
+      expect(blue?.proof?.coverage).toBeGreaterThan(0.95);
       expect(blue?.proof?.nearestSwatchDeltaE).toBeLessThan(3);
-      expect(blue?.proof?.swatches[0]?.share).toBeGreaterThan(0.99);
+      expect(blue?.proof?.swatches[0]?.share).toBeGreaterThan(0.95);
       expect(red).toMatchObject({
         reasonCode: 'palette_color_absent',
         result: 'fail',

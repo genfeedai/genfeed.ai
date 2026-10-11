@@ -196,16 +196,17 @@ async function solid(
   );
 }
 async function split(left: string, right: string) {
-  const half = await sharp({
+  // Three quarters left color, one quarter right color.
+  const quarter = await sharp({
     create: { background: right, channels: 3, height: 128, width: 128 },
   })
     .png()
     .toBuffer();
   return new Uint8Array(
     await sharp({
-      create: { background: left, channels: 3, height: 128, width: 256 },
+      create: { background: left, channels: 3, height: 128, width: 512 },
     })
-      .composite([{ input: half, left: 128, top: 0 }])
+      .composite([{ input: quarter, left: 384, top: 0 }])
       .png()
       .toBuffer(),
   );

@@ -12,6 +12,7 @@ import {
   type BrandGenerationRulesV1,
   type BrandIdentitySnapshotV1,
   brandApprovedLiteralV1Schema,
+  brandArtifactValidationCheckV1Schema,
   brandArtifactValidationReportV1Schema,
   brandAssetReferenceV1Schema,
   brandAssetTextCoverageV1Schema,
