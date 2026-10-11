@@ -417,5 +417,159 @@ describe('breakout response execution admission', () => {
         admitBreakoutPublicationActor(keyed.prisma, keyed.policy, 'run', 'org'),
       ).rejects.toThrow('Breakout execution denied');
     });
+
+    it.each([
+      [
+        'a child of another workflow',
+        (e: ReturnType<typeof fixture>['execution']) => {
+          e.result.metadata = {
+            source: BREAKOUT_RESPONSE_WORKFLOW_SOURCE,
+            canonicalId: BREAKOUT_RESPONSE_WORKFLOW_ID,
+            parentExecutionId: 'parent',
+          };
+        },
+      ],
+      [
+        'another producer',
+        (e: ReturnType<typeof fixture>['execution']) => {
+          e.result.metadata = {
+            source: 'manual',
+            canonicalId: BREAKOUT_RESPONSE_WORKFLOW_ID,
+          };
+        },
+      ],
+      [
+        'a tenant-owned mirror',
+        (e: ReturnType<typeof fixture>['execution']) => {
+          e.workflow.organizationId = 'org';
+        },
+      ],
+      [
+        'a version of another workflow',
+        (e: ReturnType<typeof fixture>['execution']) => {
+          e.workflowVersion.workflowId = 'other';
+        },
+      ],
+      [
+        'owned by a user other than the actor',
+        (e: ReturnType<typeof fixture>['execution']) => {
+          e.userId = 'someone-else';
+        },
+      ],
+    ])('denies a publication whose execution is %s', async (_name, mutate) => {
+      const f = fixture();
+      mutate(f.execution);
+      await expect(
+        admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'org'),
+      ).rejects.toThrow('Breakout execution denied');
+      expect(f.findMember).not.toHaveBeenCalled();
+    });
+
+    it('denies an actor of another organization', async () => {
+      const f = fixture();
+      f.execution.result = {
+        ...f.execution.result,
+        inputValues: {
+          request: {
+            ...f.stored,
+            initiatingActor: { ...actor, organizationId: 'foreign' },
+          },
+        },
+      };
+      await expect(
+        admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'org'),
+      ).rejects.toThrow('Breakout execution denied');
+      expect(f.findMember).not.toHaveBeenCalled();
+    });
+
+    describe('publishing scope of an API-key actor', () => {
+      function keyed(persistedScopes: string[], liveScopes: string[]) {
+        const f = fixture();
+        const keyActor = {
+          ...actor,
+          isApiKey: true,
+          apiKeyId: 'key',
+          scopes: persistedScopes,
+        };
+        f.execution.result = {
+          ...f.execution.result,
+          inputValues: {
+            request: { ...f.stored, initiatingActor: keyActor },
+          },
+        };
+        f.findKey.mockResolvedValue({ scopes: liveScopes });
+        return { f, keyActor };
+      }
+
+      it.each([
+        [['posts:draft'], ['posts:draft']],
+        [['analytics:read', 'posts:approve'], ['analytics:read']],
+        [[], []],
+        // The key was narrowed after the actor was pinned.
+        [['posts:schedule'], ['posts:draft']],
+      ])(
+        'never publishes for a review-only key (%j, now %j)',
+        async (persisted, live) => {
+          const { f } = keyed(persisted, live);
+          await expect(
+            admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'org'),
+          ).rejects.toThrow('Breakout execution denied');
+        },
+      );
+
+      it.each([['posts:schedule'], ['posts:publish']])(
+        'publishes for a key that still holds %s',
+        async (scopeName) => {
+          const { f } = keyed([scopeName, 'posts:draft'], [scopeName]);
+          await expect(
+            admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'org'),
+          ).resolves.toMatchObject({ workflowExecutionId: 'run' });
+        },
+      );
+
+      it('applies the same scope rule outside Cloud, where scopes are not re-read', async () => {
+        runtime.cloud = false;
+        const reviewOnly = keyed(['posts:draft'], []);
+        await expect(
+          admitBreakoutPublicationActor(
+            reviewOnly.f.prisma,
+            reviewOnly.f.policy,
+            'run',
+            'org',
+          ),
+        ).rejects.toThrow('Breakout execution denied');
+        const publisher = keyed(['posts:publish'], []);
+        await expect(
+          admitBreakoutPublicationActor(
+            publisher.f.prisma,
+            publisher.f.policy,
+            'run',
+            'org',
+          ),
+        ).resolves.toMatchObject({ workflowExecutionId: 'run' });
+      });
+
+      it('lets a human member publish without any API-key scope', async () => {
+        const f = fixture();
+        await expect(
+          admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'org'),
+        ).resolves.toMatchObject({ initiatingActor: actor });
+      });
+
+      it('does not require a publishing scope to generate drafts', async () => {
+        const { f } = keyed(['posts:draft'], ['posts:draft']);
+        await expect(
+          reauthorizeBreakoutActor(f.prisma, f.policy, {
+            initiatingActor: {
+              ...actor,
+              isApiKey: true,
+              apiKeyId: 'key',
+              scopes: ['posts:draft'],
+            },
+            scope,
+          }),
+        ).resolves.toMatchObject({ scopes: ['posts:draft'] });
+      });
+    });
   });
 });

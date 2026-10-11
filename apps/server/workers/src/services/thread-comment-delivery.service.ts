@@ -151,6 +151,18 @@ export class ThreadCommentDeliveryService {
       return;
     }
 
+    // A breakout thread was admitted, scored and published as one unit with its segments.
+    // Its parent is already PUBLISHED, so a delayed comment cannot be re-admitted: never
+    // send one.
+    if (parent.breakoutOutputId) {
+      await this.failChildren(
+        children,
+        'Breakout thread comments publish with their parent and cannot be delayed',
+        url,
+      );
+      return;
+    }
+
     const platform = fromPrismaCredentialPlatform(
       String(parent.platform ?? ''),
     );

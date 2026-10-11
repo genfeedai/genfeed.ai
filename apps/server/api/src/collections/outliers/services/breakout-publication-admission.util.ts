@@ -20,6 +20,7 @@ export type BreakoutPublicationAdmission = Readonly<{
   scope: Readonly<BreakoutOutputRecoveryInput>;
   strategyId: string;
   postId: string;
+  /** The hidden execution that generated the output, never the delivery execution stamped on the post. */
   workflowExecutionId: string;
   phase: 'schedule' | 'dispatch';
   /** Must verify original/current actor, exact material approval and actual operation/dispatch claim. */
@@ -59,7 +60,7 @@ export async function admitBreakoutPublication(
   const key = `agent-strategy-config:${admission.strategyId}`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
   await admission.reauthorize(tx);
-  await assertCurrentSourceGrowth(tx, admission, nowMs);
+  const quoteTweetId = await assertCurrentSourceGrowth(tx, admission, nowMs);
   const { scope } = admission;
   const recovery = await readBreakoutOutputRecovery(tx, scope);
   await admission.reauthorize(tx);
@@ -84,12 +85,14 @@ export async function admitBreakoutPublication(
       parentId: null,
       breakoutOutputId: scope.outputId,
       agentStrategyId: admission.strategyId,
-      workflowExecutionId: admission.workflowExecutionId,
+      // Not `workflowExecutionId`: delivery restamps it on every retry and accept. The
+      // generating execution is pinned on the output row and in the quality binding.
       isDeleted: false,
     },
     select: {
       ...brandedPostMaterialSelect,
       groupId: true,
+      quoteTweetId: true,
       targetExecutionState: true,
     },
   });
@@ -104,6 +107,9 @@ export async function admitBreakoutPublication(
       ))
   )
     hold('publication_state_changed');
+  // The X quote is published through this post, so its link must still be the response's own.
+  if ((post.quoteTweetId ?? null) !== quoteTweetId)
+    hold('quote_binding_changed');
   const layout = describeBrandedPostMaterialLayout(scope, post);
   if (
     (layout.format !== 'text' && layout.format !== 'thread') ||
@@ -143,7 +149,7 @@ async function assertCurrentSourceGrowth(
   tx: Prisma.TransactionClient,
   admission: BreakoutPublicationAdmission,
   nowMs: number,
-): Promise<void> {
+): Promise<string | null> {
   const { scope } = admission;
   const response = await tx.breakoutResponse.findFirst({
     where: {
@@ -220,6 +226,10 @@ async function assertCurrentSourceGrowth(
   });
   await admission.reauthorize(tx);
   if (growth.status === 'held') hold(growth.reason);
+  // Only a quote output links to the source post; every other output links to none.
+  if (output.kind !== 'quote') return null;
+  if (!response.externalId) hold('quote_binding_changed');
+  return response.externalId;
 }
 
 async function assertCurrentQuality(

@@ -87,9 +87,13 @@ function fixture() {
   const post = {
     ...material,
     groupId: 'group-a',
+    quoteTweetId: null as string | null,
+    // Delivery restamps this on every retry and accept; the admission must not read it.
+    workflowExecutionId: 'execution-delivery',
     targetExecutionState: TargetExecutionState.SCHEDULED,
   };
   const output = {
+    kind: 'follow_up',
     ordinal: 1,
     heldReason: null as string | null,
     state: 'generating',
@@ -135,7 +139,14 @@ function fixture() {
     breakoutBaselineReceipt: {
       findFirst: vi.fn(async () => ({ metric: 'views' })),
     },
-    post: { findFirst: vi.fn(async () => post) },
+    post: {
+      findFirst: vi.fn(async (args: Prisma.PostFindFirstArgs) => {
+        const pinned = args.where?.workflowExecutionId;
+        return pinned !== undefined && pinned !== post.workflowExecutionId
+          ? null
+          : post;
+      }),
+    },
     agentStrategy: { findFirst: vi.fn(async () => strategy) },
     contentScore: { findFirst: scoreQuery },
   };
@@ -225,11 +236,108 @@ describe('fresh business evidence before native breakout publication', () => {
           parentId: null,
           breakoutOutputId: 'output-a',
           agentStrategyId: 'strategy-a',
-          workflowExecutionId: 'execution-a',
           isDeleted: false,
         },
       }),
     );
+  });
+  it('admits a retry after delivery restamped the post, pinning the generating execution on the output and score', async () => {
+    const h = fixture();
+    expect(h.post.workflowExecutionId).not.toBe(
+      h.admission.workflowExecutionId,
+    );
+    for (const phase of ['schedule', 'dispatch'] as const) {
+      h.post.targetExecutionState =
+        phase === 'dispatch'
+          ? TargetExecutionState.PUBLISHING
+          : TargetExecutionState.SCHEDULED;
+      vi.mocked(readBreakoutOutputRecovery).mockResolvedValue({
+        status: 'available',
+        responseId: 'response-a',
+        outputId: 'output-a',
+        state: phase === 'dispatch' ? 'publishing' : 'scheduled',
+        reason:
+          phase === 'dispatch'
+            ? 'publication_in_flight'
+            : 'publication_admission_required',
+        action: phase === 'dispatch' ? 'wait' : 'none',
+        mayRepeatPaidRequest: false,
+        postId: 'post-a',
+        externalId: null,
+      });
+      expect(
+        await admitBreakoutPublication(h.tx, { ...h.admission, phase }, nowMs),
+      ).toEqual({ scoreId: 'score-a' });
+    }
+    expect(h.raw.breakoutResponseOutput.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ workflowExecutionId: 'execution-a' }),
+      }),
+    );
+    expect(h.scoreQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          data: {
+            path: ['breakoutQuality'],
+            equals: expect.objectContaining({
+              workflowExecutionId: 'execution-a',
+            }),
+          },
+        }),
+      }),
+    );
+  });
+  it('holds an output that another execution generated', async () => {
+    const h = fixture();
+    h.raw.breakoutResponseOutput.findFirst.mockResolvedValue(null as never);
+    await expect(
+      admitBreakoutPublication(h.tx, h.admission, nowMs),
+    ).rejects.toThrow('output_unavailable');
+  });
+  describe('quote binding', () => {
+    it('lets a quote output publish only through its own source link', async () => {
+      const h = fixture();
+      h.output.kind = 'quote';
+      h.post.quoteTweetId = source.externalId;
+      expect(await admitBreakoutPublication(h.tx, h.admission, nowMs)).toEqual({
+        scoreId: 'score-a',
+      });
+      for (const changed of [null, 'tweet-other']) {
+        h.post.quoteTweetId = changed;
+        await expect(
+          admitBreakoutPublication(h.tx, h.admission, nowMs),
+        ).rejects.toThrow('quote_binding_changed');
+      }
+    });
+    it('holds a quote output whose response has no source link', async () => {
+      const h = fixture();
+      h.output.kind = 'quote';
+      h.response.externalId = null as never;
+      h.post.quoteTweetId = null;
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('quote_binding_changed');
+    });
+    it('holds an output that is not a quote but carries a quote link', async () => {
+      const h = fixture();
+      h.post.quoteTweetId = source.externalId;
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('quote_binding_changed');
+      h.post.quoteTweetId = null;
+      expect(await admitBreakoutPublication(h.tx, h.admission, nowMs)).toEqual({
+        scoreId: 'score-a',
+      });
+    });
+    it('checks the link before reading quality or capacity', async () => {
+      const h = fixture();
+      h.post.quoteTweetId = 'tweet-other';
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('quote_binding_changed');
+      expect(h.scoreQuery).not.toHaveBeenCalled();
+      expect(readBreakoutLiveCapacity).not.toHaveBeenCalled();
+    });
   });
   it('requires a whole-thread score, including root and ordered child material', async () => {
     const h = fixture();
