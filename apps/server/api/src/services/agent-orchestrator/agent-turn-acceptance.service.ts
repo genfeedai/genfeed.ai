@@ -185,6 +185,11 @@ export class AgentTurnAcceptanceService {
               getActionOriginContext().generationEntry ??
               context.generationEntry,
             hostSupportsApproval: request.hostSupportsApproval === true,
+            // The authenticated principal rides the durable request so the
+            // queued turn can bind schedules to it without ever inferring one.
+            ...(context.initiatingPrincipal
+              ? { initiatingPrincipal: context.initiatingPrincipal }
+              : {}),
             clientRequestId: request.clientRequestId,
             threadId,
             ...(request.agentType ? { agentType: request.agentType } : {}),

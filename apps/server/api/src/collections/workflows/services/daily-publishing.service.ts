@@ -38,6 +38,9 @@ import {
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+/** The scheduled actor was denied mid-run: the account is held and does no further work. */
+const ACTOR_HELD_OUTCOME = 'actor-held';
+
 interface DailyAccount {
   credentialId: string;
   platform: 'twitter' | 'linkedin';
@@ -278,8 +281,11 @@ export class DailyPublishingService implements OnModuleInit {
       post.externalId ? [{ ...post, externalId: post.externalId }] : [],
     );
     const errors: string[] = [];
-    // Breakout capture is gated on the scheduled parent's configuring principal. A chain that
-    // cannot be validated degrades to ordinary actor-less collection.
+    // Collection is gated on the scheduled parent's configuring principal. An account whose
+    // schedule is genuinely unbound resolves no authorization and collects ordinary actor-less
+    // data. A bound actor that is denied (membership or key revoked, brand access lost, a chain
+    // that cannot be validated) stops the account instead of quietly degrading to actor-less
+    // work: the slot is held and nothing is selected, generated or scheduled for it.
     let authorization: AnalyticsCollectionAuthorization | undefined;
     if (items.length > 0) {
       try {
@@ -292,9 +298,11 @@ export class DailyPublishingService implements OnModuleInit {
           action.provenance,
         );
       } catch (error) {
-        errors.push(
-          `actor: ${error instanceof Error ? error.message : 'Actor authorization failed'}`,
-        );
+        return {
+          ...state,
+          analyticsRefreshError: `actor: ${error instanceof Error ? error.message : 'Actor authorization failed'}`,
+          outcome: ACTOR_HELD_OUTCOME,
+        };
       }
     }
     let successful = 0;
@@ -327,8 +335,13 @@ export class DailyPublishingService implements OnModuleInit {
         errors.push(
           `${post.id}: ${error instanceof Error ? error.message : 'Analytics refresh failed'}`,
         );
-        // A revoked actor stops every later post at the same gate.
-        if (isAnalyticsCollectionAuthorizationFailure(error)) break;
+        // A revoked actor stops every later post at the same gate, and the account with it.
+        if (isAnalyticsCollectionAuthorizationFailure(error))
+          return {
+            ...state,
+            analyticsRefreshError: errors.join('; '),
+            outcome: ACTOR_HELD_OUTCOME,
+          };
       }
     }
     if (successful > 0) {
@@ -353,6 +366,7 @@ export class DailyPublishingService implements OnModuleInit {
     action: SystemWorkflowActionRequest,
   ): Promise<DailyState> {
     const state = action.input.state as DailyState;
+    if (state.outcome === ACTOR_HELD_OUTCOME) return state;
     await this.assertAccount(action, state);
     const scope = {
       organizationId: action.context.organizationId,
@@ -497,6 +511,7 @@ export class DailyPublishingService implements OnModuleInit {
     execute: (state: DailyState) => Promise<DailyState>,
   ): Promise<DailyState> {
     const state = action.input.state as DailyState;
+    if (state.outcome === ACTOR_HELD_OUTCOME) return state;
     if (typeof state.postId !== 'string' || !state.postId.trim())
       throw new Error('Daily slot postId must be a nonempty string');
     await this.assertAccount(action, state);

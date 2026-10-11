@@ -12,6 +12,7 @@ import { AgentScopeContextService } from '@api/index';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import type { AgentTurnAcknowledgement } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
+import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
 import type { AgentInputRequestResponsePayload } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
@@ -253,6 +254,11 @@ export class AgentThreadRuntimeController {
       // The answer continues on a new execution. Returning it lets the client
       // pin its stream to that run instead of the one that asked.
       let continuation: AgentTurnAcknowledgement | null = null;
+      const initiatingPrincipal = buildAgentInitiatingPrincipal({
+        auth: user,
+        organizationId,
+        userId,
+      });
       if (requestId.startsWith('recurring-workflow:')) {
         await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
           answer: body.answer,
@@ -260,6 +266,7 @@ export class AgentThreadRuntimeController {
             typeof inputRequest.fieldId === 'string'
               ? inputRequest.fieldId
               : undefined,
+          initiatingPrincipal,
           organizationId,
           threadId,
           userId,
@@ -283,6 +290,7 @@ export class AgentThreadRuntimeController {
           {
             organizationId,
             userId,
+            initiatingPrincipal,
             generationEntry: getActionOriginContext().generationEntry,
           },
         );
@@ -334,6 +342,11 @@ export class AgentThreadRuntimeController {
         },
         {
           apiKeyContext: user,
+          initiatingPrincipal: buildAgentInitiatingPrincipal({
+            auth: user,
+            organizationId,
+            userId,
+          }),
           organizationId,
           userId,
         },

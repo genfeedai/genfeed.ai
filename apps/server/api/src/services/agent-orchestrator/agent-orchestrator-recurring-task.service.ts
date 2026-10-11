@@ -17,6 +17,7 @@ import {
   type ParsedCadencePhrase,
   parseCadencePhrase,
 } from '@api/services/agent-orchestrator/utils/agent-cadence-phrase.util';
+import type { AgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import {
   extractRecurringContentCount,
   extractStyleNotes,
@@ -82,6 +83,7 @@ export class AgentOrchestratorRecurringTaskService {
   async resumeRecurringTaskDraftFromInput(params: {
     answer: string;
     fieldId?: string;
+    initiatingPrincipal?: AgentInitiatingPrincipal;
     organizationId: string;
     executionId?: string;
     scope: ValidatedAgentScope;
@@ -113,6 +115,9 @@ export class AgentOrchestratorRecurringTaskService {
 
     const context: AgentChatContext = {
       executionId: params.executionId,
+      ...(params.initiatingPrincipal
+        ? { initiatingPrincipal: params.initiatingPrincipal }
+        : {}),
       organizationId: params.organizationId,
       scope: params.scope,
       userId: params.userId,
@@ -390,6 +395,7 @@ export class AgentOrchestratorRecurringTaskService {
       },
       {
         apiKeyContext: params.context.apiKeyContext,
+        initiatingPrincipal: params.context.initiatingPrincipal,
         brandId: params.context.scope?.brandId,
         organizationId: params.context.organizationId,
         runId: params.context.executionId,

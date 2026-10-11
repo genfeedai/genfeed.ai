@@ -341,6 +341,114 @@ describe('trusted proactive turn limits and memory routing', () => {
   });
 });
 
+describe('authenticated principal restored at the worker boundary', () => {
+  const principal = {
+    isApiKey: false,
+    organizationId: 'org',
+    scopes: [],
+    userId: 'user',
+  };
+  const interactive = {
+    content: 'Create a weekly task',
+    source: 'agent',
+    threadId: 'thread',
+  };
+
+  it('gives an accepted interactive turn the principal it was accepted for', async () => {
+    const { service, stream } = setup('api');
+    const prepared = await service.prepare(
+      { ...interactive, initiatingPrincipal: principal },
+      workflowContext,
+    );
+    await service.execute(prepared.state);
+    expect(stream.runStreamLoop.mock.calls[0][0]).toMatchObject({
+      initiatingPrincipal: principal,
+    });
+  });
+
+  it('keeps an API key identity intact', async () => {
+    const { service, stream } = setup('api');
+    const apiKeyPrincipal = {
+      ...principal,
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      scopes: ['posts:schedule'],
+    };
+    const prepared = await service.prepare(
+      { ...interactive, initiatingPrincipal: apiKeyPrincipal },
+      workflowContext,
+    );
+    await service.execute(prepared.state);
+    expect(stream.runStreamLoop.mock.calls[0][0]).toMatchObject({
+      initiatingPrincipal: apiKeyPrincipal,
+    });
+  });
+
+  it('drops a principal issued for another user or organization', async () => {
+    const { service, stream } = setup('api');
+    for (const stale of [
+      { ...principal, userId: 'someone-else' },
+      { ...principal, organizationId: 'other-org' },
+    ]) {
+      const prepared = await service.prepare(
+        { ...interactive, initiatingPrincipal: stale },
+        workflowContext,
+      );
+      await service.execute(prepared.state);
+    }
+    for (const call of stream.runStreamLoop.mock.calls) {
+      expect(call[0]).not.toHaveProperty('initiatingPrincipal');
+    }
+  });
+
+  it('never gives a proactive strategy turn a principal, even if one is planted', async () => {
+    const { service, stream } = setup();
+    const prepared = await service.prepare(
+      { ...request, initiatingPrincipal: principal },
+      workflowContext,
+    );
+    await service.execute(prepared.state);
+    expect(stream.runStreamLoop.mock.calls[0][0]).not.toHaveProperty(
+      'initiatingPrincipal',
+    );
+  });
+
+  it('gives a thread UI action the principal it was accepted for', async () => {
+    const { service, actions } = setup('api');
+    service.onModuleInit();
+    const uiAction = actions.get(AGENT_RUNTIME_ACTION_IDS.UI_ACTION);
+    if (!uiAction) throw new Error('Missing ui-action worker action');
+    const execute = vi
+      .spyOn(service, 'executeUiAction')
+      .mockResolvedValue({} as never);
+    await uiAction({
+      context: {
+        organizationId: 'org',
+        runId: 'run',
+        userId: 'user',
+        workflowId: 'workflow',
+        workflowVersionId: 'version',
+      },
+      input: {
+        request: {
+          action: 'confirm_install_official_workflow',
+          initiatingPrincipal: principal,
+          threadId: 'thread',
+        },
+      },
+      provenance: {
+        executionId: 'run',
+        workflowId: 'workflow',
+        workflowLabel: 'Agent',
+      },
+    });
+    expect(execute).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ initiatingPrincipal: principal }),
+    );
+  });
+});
+
 describe('thread title seeding', () => {
   const interactive = {
     content: 'Try again',

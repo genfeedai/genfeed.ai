@@ -371,8 +371,8 @@ describe('daily account publishing', () => {
       },
     );
 
-    it('degrades to actor-less collection and reports a revoked principal', async () => {
-      const { prisma, state, invoke, twitter } = setup();
+    it('holds the account when the bound principal was revoked, instead of collecting actor-less', async () => {
+      const { prisma, state, invoke, twitter, outliers } = setup();
       prisma.workflowExecution.findFirst.mockImplementation(
         executionLookup(scheduledBy),
       );
@@ -381,15 +381,15 @@ describe('daily account publishing', () => {
       const result = await invoke('daily-publishing.collect-analytics', {
         item: state,
       });
-      expect(twitter.collect).toHaveBeenCalledTimes(3);
-      for (const call of twitter.collect.mock.calls)
-        expect(call[1]).toBeUndefined();
+      expect(twitter.collect).not.toHaveBeenCalled();
+      expect(outliers.refresh).not.toHaveBeenCalled();
       expect(result).toMatchObject({
         analyticsRefreshError: expect.stringContaining('actor:'),
+        outcome: 'actor-held',
       });
     });
 
-    it('degrades to actor-less collection when the parent chain does not hold', async () => {
+    it('holds the account when the bound parent chain does not hold', async () => {
       const { prisma, state, invoke, twitter } = setup();
       const forged = dailyChain({ actor: CHAIN_ACTOR, trigger: 'scheduled' });
       forged[0].workflow.organizationId = 'foreign';
@@ -397,9 +397,45 @@ describe('daily account publishing', () => {
         executionLookup(forged),
       );
       prisma.post.findMany.mockResolvedValue(duePosts);
-      await invoke('daily-publishing.collect-analytics', { item: state });
+      const result = await invoke('daily-publishing.collect-analytics', {
+        item: state,
+      });
+      expect(twitter.collect).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ outcome: 'actor-held' });
+    });
+
+    it('keeps ordinary actor-less collection for a scheduled run whose account is genuinely unbound', async () => {
+      const { prisma, state, invoke, twitter } = setup();
+      prisma.workflowExecution.findFirst.mockImplementation(
+        executionLookup(dailyChain({ trigger: 'scheduled' })),
+      );
+      prisma.post.findMany.mockResolvedValue(duePosts);
+      const result = await invoke('daily-publishing.collect-analytics', {
+        item: state,
+      });
       expect(twitter.collect).toHaveBeenCalledTimes(3);
-      expect(twitter.collect.mock.calls[0]?.[1]).toBeUndefined();
+      for (const call of twitter.collect.mock.calls)
+        expect(call[1]).toBeUndefined();
+      expect(result).not.toHaveProperty('outcome', 'actor-held');
+    });
+
+    it('does no further work for a held account', async () => {
+      const { prisma, posts, state, invoke } = setup();
+      const held = {
+        ...state,
+        outcome: 'actor-held',
+        postId: undefined,
+        request: { brandId: 'brand', autoPublish: true },
+      };
+      for (const step of ['select', 'generate', 'evaluate', 'schedule']) {
+        expect(await invoke(`daily-publishing.${step}`, { state: held })).toBe(
+          held,
+        );
+      }
+      expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+      expect(prisma.post.findFirst).not.toHaveBeenCalled();
+      expect(prisma.post.upsert).not.toHaveBeenCalled();
+      expect(posts.batchSchedule).not.toHaveBeenCalled();
     });
 
     it('stops at the first authorization failure instead of retrying every post', async () => {
@@ -423,6 +459,7 @@ describe('daily account publishing', () => {
       expect(twitter.collect).toHaveBeenCalledTimes(2);
       expect(result).toMatchObject({
         analyticsRefreshError: expect.stringContaining('Brand access denied'),
+        outcome: 'actor-held',
       });
     });
 

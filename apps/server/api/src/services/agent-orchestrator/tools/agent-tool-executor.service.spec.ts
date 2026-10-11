@@ -1097,6 +1097,7 @@ describe('AgentToolExecutorService', () => {
           workflowsService as never,
           marketplaceApiClient as never,
         ),
+        workflowSchedulerService as never,
         marketplaceApiClient as never,
         marketplaceInstallService as never,
         workflowInstallCacheService as never,
@@ -5086,6 +5087,8 @@ describe('AgentToolExecutorService', () => {
         schedule: '0 17 * * *',
         timezone: 'Europe/Malta',
       }),
+      undefined,
+      undefined,
     );
     expect(result.data).toEqual(
       expect.objectContaining({
@@ -5378,6 +5381,8 @@ describe('AgentToolExecutorService', () => {
         schedule: '0 9 * * 1',
         timezone: 'Europe/Malta',
       }),
+      undefined,
+      undefined,
     );
     expect(result.data).toEqual(
       expect.objectContaining({
@@ -5449,6 +5454,8 @@ describe('AgentToolExecutorService', () => {
           }),
         ],
       }),
+      undefined,
+      undefined,
     );
   });
 
@@ -5498,6 +5505,8 @@ describe('AgentToolExecutorService', () => {
           }),
         ],
       }),
+      undefined,
+      undefined,
     );
   });
 
@@ -6413,6 +6422,7 @@ describe('AgentToolExecutorService', () => {
             { install: vi.fn(), listCatalogForOrganization: vi.fn() } as never,
             workflowsService as never,
           ),
+          { updateSchedule: vi.fn() } as never,
         ),
         new AgentWorkflowToolCreateService(
           workflowsService as never,
@@ -6654,6 +6664,8 @@ describe('AgentToolExecutorService', () => {
         timezone: 'Europe/Malta',
         trigger: 'manual',
       }),
+      undefined,
+      undefined,
     );
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({
@@ -7054,6 +7066,8 @@ describe('AgentToolExecutorService', () => {
       CTX.userId,
       CTX.organizationId,
       CTX.brandId,
+      undefined,
+      undefined,
     );
     expect(result.data.workflow).toEqual(
       expect.objectContaining({
@@ -7183,6 +7197,7 @@ describe('AgentToolExecutorService', () => {
       '0 9 * * *',
       'UTC',
       true,
+      undefined,
     );
   });
 
@@ -7217,6 +7232,7 @@ describe('AgentToolExecutorService', () => {
       '0 9 * * *',
       'Europe/Malta',
       false,
+      undefined,
     );
   });
 

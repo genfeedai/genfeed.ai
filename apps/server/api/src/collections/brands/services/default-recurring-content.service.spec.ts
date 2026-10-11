@@ -8,6 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 
@@ -43,6 +44,7 @@ type StoredWorkflow = {
   metadata: Record<string, unknown>;
   organizationId: string;
   schedule: string;
+  scheduleInitiatingActor?: unknown;
   timezone: string;
 };
 
@@ -132,6 +134,7 @@ function rowFromCreateData(
     metadata,
     organizationId: (data.organizationId as string) ?? '',
     schedule: (data.schedule as string) ?? '',
+    scheduleInitiatingActor: data.scheduleInitiatingActor,
     timezone: (data.timezone as string) ?? '',
   };
 }
@@ -838,6 +841,7 @@ describe('DefaultRecurringContentService', () => {
         '0 12 * * *',
         'America/New_York',
         false,
+        undefined,
       );
     }
   });
@@ -872,6 +876,7 @@ describe('DefaultRecurringContentService', () => {
       '0 12 * * *',
       'UTC',
       true,
+      undefined,
     );
     expect(updateSchedule).not.toHaveBeenCalledWith(
       'user_workflow',
@@ -923,10 +928,126 @@ describe('DefaultRecurringContentService', () => {
         data: {
           isScheduleEnabled: true,
           schedule: '0 12 * * *',
+          scheduleInitiatingActor: Prisma.DbNull,
           timezone: 'UTC',
         },
       }),
     );
     expect(warnSpy).toHaveBeenCalled();
+  });
+
+  describe('schedule initiating actor', () => {
+    const principal = {
+      isApiKey: false,
+      organizationId: ORGANIZATION_ID,
+      scopes: [],
+      userId: USER_ID,
+    };
+    const config = {
+      schedule: {
+        cronExpression: '0 12 * * *',
+        enabled: true,
+        timezone: 'UTC',
+      },
+    };
+
+    it('binds the created default workflows to the authenticated caller', async () => {
+      const { committed, prisma } = createFakePrisma({ brand: buildBrand() });
+      const service = createService(prisma);
+
+      await service.ensureDefaultBundle({ ...buildParams(), principal });
+
+      expect(committed).toHaveLength(CONTENT_TYPES.length);
+      for (const row of committed) {
+        expect(row.scheduleInitiatingActor).toEqual(principal);
+      }
+    });
+
+    it('leaves a system path with no caller unbound', async () => {
+      const { committed, prisma } = createFakePrisma({ brand: buildBrand() });
+      const service = createService(prisma);
+
+      await service.ensureDefaultBundle(buildParams());
+
+      expect(committed).toHaveLength(CONTENT_TYPES.length);
+      for (const row of committed) {
+        expect(row.scheduleInitiatingActor).toBeUndefined();
+      }
+    });
+
+    it('rejects a caller from another organization instead of relabelling it', async () => {
+      const { committed, prisma } = createFakePrisma({ brand: buildBrand() });
+      const service = createService(prisma);
+
+      await expect(
+        service.ensureDefaultBundle({
+          ...buildParams(),
+          principal: { ...principal, organizationId: 'org_other' },
+        }),
+      ).rejects.toThrow();
+      expect(committed).toHaveLength(0);
+    });
+
+    it('passes the caller to the shared schedule contract on an agent-config save', async () => {
+      const { prisma } = createFakePrisma({
+        brand: buildBrand(),
+        initialWorkflows: [buildStoredWorkflow('post', true)],
+      });
+      const updateSchedule = vi.fn().mockResolvedValue(undefined);
+      const service = createService(
+        prisma,
+        createWorkflowScheduler(updateSchedule),
+      );
+
+      await service.updateScheduleFromAgentConfig(
+        ORGANIZATION_ID,
+        BRAND_ID,
+        config,
+        { principal },
+      );
+
+      expect(updateSchedule).toHaveBeenCalledWith(
+        'seed_post',
+        ORGANIZATION_ID,
+        '0 12 * * *',
+        'UTC',
+        true,
+        principal,
+      );
+    });
+
+    it('writes the binding on the degraded direct-update path', async () => {
+      const { prisma } = createFakePrisma({
+        brand: buildBrand(),
+        initialWorkflows: [buildStoredWorkflow('post', true)],
+      });
+      const rawPrisma = prisma as unknown as {
+        workflow: { update: (args: UpdateArgs) => Promise<unknown> };
+      };
+      const updateSpy = vi.fn(rawPrisma.workflow.update);
+      rawPrisma.workflow.update = updateSpy;
+      const service = new DefaultRecurringContentService(
+        prisma,
+        createLogger(),
+        {
+          get: () => {
+            throw new Error('WorkflowSchedulerService is not registered');
+          },
+        } as unknown as ModuleRef,
+      );
+
+      await service.updateScheduleFromAgentConfig(
+        ORGANIZATION_ID,
+        BRAND_ID,
+        config,
+        { isSchedulerRequired: false, principal },
+      );
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ scheduleInitiatingActor: principal }),
+        }),
+      );
+    });
   });
 });

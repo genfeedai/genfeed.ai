@@ -581,6 +581,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       toolPayload,
       {
         apiKeyContext: params.context.apiKeyContext,
+        initiatingPrincipal: params.context.initiatingPrincipal,
         ...(params.context.requestedSkillSlugs?.length
           ? { requestedSkillSlugs: params.context.requestedSkillSlugs }
           : {}),

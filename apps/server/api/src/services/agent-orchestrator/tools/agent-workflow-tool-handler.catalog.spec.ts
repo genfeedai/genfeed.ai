@@ -92,6 +92,7 @@ describe('AgentWorkflowToolInstallService system workflow catalog', () => {
       systemWorkflowCatalogService as never,
       {} as never,
       {} as never,
+      {} as never,
     );
   });
 
