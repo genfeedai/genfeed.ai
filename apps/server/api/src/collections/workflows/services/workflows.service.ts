@@ -36,6 +36,7 @@ import {
   type WorkflowSchedulePrincipal,
 } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import {
+  appendWorkflowVersion,
   buildWorkflowVersionDefinition,
   createVersionedWorkflow,
   hydrateWorkflowDefinition,
@@ -61,7 +62,6 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -312,37 +312,9 @@ export class WorkflowsService extends BaseService<
       nodes: definition.nodes ?? existing.nodes,
     });
 
-    const updated = await this.prisma.$transaction(async (transaction) => {
-      const version = await transaction.workflowVersion.create({
-        data: {
-          contentHash: nextDefinition.contentHash,
-          graph: toPrismaJson(nextDefinition.graph),
-          inputSchema: toPrismaJson(nextDefinition.inputSchema),
-          organizationId: existing.organizationId,
-          userId: existing.userId,
-          version: existing.version + 1,
-          workflowId: existing.id,
-        },
-      });
-      // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on workflow.id after the tenant-scoped load; currentVersionId is the concurrency token.
-      const changed = await transaction.workflow.updateMany({
-        data: { ...scalarPatch, currentVersionId: version.id },
-        where: {
-          currentVersionId: existing.versionId,
-          id,
-          isDeleted: false,
-          organizationId: existing.organizationId,
-        },
-      });
-      if (changed.count !== 1) {
-        throw new Error(`Workflow ${id} was edited concurrently`);
-      }
-
-      return transaction.workflow.findFirstOrThrow({
-        include: { currentVersion: true },
-        where: scopedWhere(existing.organizationId, { id }),
-      });
-    });
+    const updated = await this.prisma.$transaction((transaction) =>
+      appendWorkflowVersion(transaction, existing, nextDefinition, scalarPatch),
+    );
 
     return this.normalizeDocument(updated);
   }
