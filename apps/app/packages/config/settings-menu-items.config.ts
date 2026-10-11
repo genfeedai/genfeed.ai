@@ -137,9 +137,9 @@ function buildOrganizationMenuItems(
     },
     {
       group: 'Organization',
-      href: APP_ROUTES.SETTINGS.DEFAULTS,
+      href: APP_ROUTES.SETTINGS.PREFERENCES,
       hrefScope: 'organization',
-      label: 'Defaults',
+      label: 'Preferences',
       outline: SlidersHorizontal,
       solid: SlidersHorizontal,
     },
