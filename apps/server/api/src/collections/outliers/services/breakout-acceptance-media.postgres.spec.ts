@@ -28,6 +28,7 @@ import {
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
+import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
@@ -38,6 +39,17 @@ vi.mock('@genfeedai/config', async (original) => ({
   // The visual judge samples video frames through cloud storage.
   isSelfHostedDeployment: () => false,
 }));
+// The receipt material service reads a finished visual from object storage; the fake image
+// provider writes its bytes to this in-memory store.
+vi.mock('@genfeedai/storage', async (original) => {
+  const fixture = await import(
+    '@api/collections/outliers/services/breakout-acceptance.media.fixture'
+  );
+  return {
+    ...(await original<typeof import('@genfeedai/storage')>()),
+    createStorageProvider: () => fixture.acceptanceStorage,
+  };
+});
 // A throwaway key for the credential and prompt round trips; not a secret.
 vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'breakout-acceptance-test-key');
 vi.setConfig({ testTimeout: 180_000 });
@@ -225,6 +237,116 @@ describe.skipIf(!connectionString)(
       expect(published.targetExecutionState).toBe(
         TargetExecutionState.PUBLISHED,
       );
+    });
+
+    it('records an approved-brand receipt for the generated visual and keeps the output in review', async () => {
+      const scene = await generate('image');
+      const { world } = scene;
+      const imageOutput = must((await outputsOf(scene))[1], 'the image output');
+      const post = await postOf(world, imageOutput.id);
+      const visual = must(post.ingredients[0], 'the generated visual');
+      const row = must(
+        await db.brandedGenerationReceipt.findFirst({
+          where: scopedWhere(world.organizationId, {
+            requestKey: `${visual.id}:brand-validation`,
+          }),
+        }),
+        'the visual brand receipt',
+      );
+      expect(row).toMatchObject({
+        mode: 'approved_brand',
+        state: 'needs_review',
+      });
+      const receipt = brandedGenerationReceiptV1Schema.parse(row.projection);
+      expect(receipt).toMatchObject({
+        compliance: 'unverified',
+        format: 'image',
+        generationId: visual.id,
+        artifact: { id: visual.id, kind: 'ingredient', mediaKind: 'image' },
+      });
+      // Factual coverage is never verified, so no media receipt can be ready.
+      expect(receipt.validation?.checks.at(-1)).toMatchObject({
+        result: 'unknown',
+        ruleId: 'system:factual_coverage',
+      });
+      expect(await recoveryOf(scene, imageOutput.id)).toMatchObject({
+        reason: 'brand_review_required',
+        state: 'awaiting_review',
+      });
+      expect(post.reviewTurboRunId).toBeTruthy();
+    });
+
+    it('holds a visual that fails a hard palette rule: composed, not reviewed, not publishable', async () => {
+      const detected = await detectBreakout(env, {
+        brandRules: {
+          evidence: [
+            { id: 'evidence-palette', label: 'Palette', sourceType: 'manual' },
+          ],
+          palette: [
+            {
+              appliesToMediaKinds: ['image'],
+              color: '#FF0000',
+              evidenceIds: ['evidence-palette'],
+              id: 'brand-red',
+              required: true,
+              usage: 'background',
+            },
+          ],
+        },
+        candidate: { media: 'image' },
+        world: TWO_OUTPUTS,
+      });
+      // The fake image provider draws #123456, which has no brand red in it.
+      const { harness, world } = detected;
+      const run = await runQueuedBreakoutExecution(
+        harness,
+        prisma,
+        detected.jobId,
+      );
+      expect(run.result.status).toBe('held');
+      const scene = { ...detected, ...run };
+      const imageOutput = must((await outputsOf(scene))[1], 'the image output');
+      const post = await postOf(world, imageOutput.id);
+      expect(post.ingredients).toHaveLength(1);
+      expect(post.reviewTurboRunId).toBeNull();
+      expect(post.targetExecutionState).toBe(TargetExecutionState.DRAFT);
+      const visual = must(post.ingredients[0], 'the generated visual');
+      const row = must(
+        await db.brandedGenerationReceipt.findFirst({
+          where: scopedWhere(world.organizationId, {
+            requestKey: `${visual.id}:brand-validation`,
+          }),
+        }),
+        'the visual brand receipt',
+      );
+      expect(row.state).toBe('blocked');
+      const receipt = brandedGenerationReceiptV1Schema.parse(row.projection);
+      expect(receipt.compliance).toBe('failed');
+      expect(
+        receipt.validation?.checks.find(
+          (check) => check.ruleId === 'brand-red',
+        ),
+      ).toMatchObject({
+        reasonCode: 'palette_color_absent',
+        result: 'fail',
+        proof: { coverage: 0, kind: 'palette', target: '#FF0000' },
+      });
+      expect(await recoveryOf(scene, imageOutput.id)).toMatchObject({
+        action: 'none',
+        reason: 'quality_or_brand_blocked',
+        state: 'awaiting_review',
+      });
+      // No approval path: the publication gate refuses it as well.
+      await expect(
+        scheduleDirectly(
+          harness,
+          world,
+          post.id,
+          principalOf(world, world.owner),
+        ),
+      ).rejects.toThrow('quality_or_brand_blocked');
+      // The visual was neither judged nor scored: nothing more is spent on a blocked output.
+      expect(harness.visualJudge.calls).toHaveLength(0);
     });
 
     it('generates a carousel follow-up whose ordered ingredients survive the review pin and the dispatch fence', async () => {

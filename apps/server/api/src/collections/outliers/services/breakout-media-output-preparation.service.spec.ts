@@ -11,6 +11,7 @@ import {
 import type { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import type { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import type { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
+import type { BreakoutVisualBrandReceiptService } from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory, Platform } from '@genfeedai/contracts';
 import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
@@ -142,6 +143,20 @@ function fixture(
       return { turboRunId: 'run-a' };
     }),
   };
+  const visualBrand = {
+    validate: vi.fn(
+      async (
+        _admission: BreakoutGenerationAdmission,
+        visuals: { ingredientId: string; prompt: string }[],
+      ) => {
+        calls.push('brand');
+        return {
+          isBlocked: false,
+          states: visuals.map(() => 'needs_review' as const),
+        };
+      },
+    ),
+  };
   vi.mocked(bindBreakoutMediaPostArtifact).mockImplementation(async () => {
     calls.push('compose');
     return { status: 'bound', outputId: 'output-a', postId: 'caption-post' };
@@ -153,9 +168,11 @@ function fixture(
     media as unknown as BreakoutMediaOutputGenerationService,
     quality as unknown as BreakoutOutputQualityService,
     review as unknown as BreakoutReviewHandoffService,
+    visualBrand as unknown as BreakoutVisualBrandReceiptService,
   );
   return {
     service,
+    visualBrand,
     request,
     admission,
     reauthorize,
@@ -171,6 +188,50 @@ function fixture(
 describe('visual breakout output pipeline', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('validates each generated visual against the approved brand with its own prompt', async () => {
+    const h = fixture('image');
+    await h.service.generate(h.request);
+    expect(h.visualBrand.validate).toHaveBeenCalledWith(h.admission, [
+      {
+        ingredientId: 'asset-1',
+        prompt: expect.stringContaining('follow-up 2'),
+      },
+    ]);
+  });
+
+  it('composes a visual that failed a hard brand rule but neither reviews nor scores it', async () => {
+    const h = fixture('image');
+    h.visualBrand.validate.mockResolvedValueOnce({
+      isBlocked: true,
+      states: ['blocked'],
+    });
+    expect(await h.service.generate(h.request)).toEqual({
+      kind: 'stopped',
+      reasonCode: 'quality_or_brand_blocked',
+    });
+    expect(h.calls).toEqual([
+      'preflight',
+      'caption:generation-a:caption',
+      'media:generation-a:media:1',
+      'brand',
+      'compose',
+    ]);
+    expect(h.review.queue).not.toHaveBeenCalled();
+    expect(h.quality.evaluate).not.toHaveBeenCalled();
+  });
+
+  it('does not validate visuals that are still generating', async () => {
+    const h = fixture('image');
+    h.media.generate.mockResolvedValueOnce({
+      ingredientIds: ['asset-1'],
+      state: 'processing',
+    });
+    expect(await h.service.generate(h.request)).toMatchObject({
+      kind: 'in_progress',
+    });
+    expect(h.visualBrand.validate).not.toHaveBeenCalled();
+  });
+
   it('runs the free preflight, the caption, the visual, the composition and the quality gate in order', async () => {
     const h = fixture('image');
     expect(await h.service.generate(h.request)).toEqual({
@@ -181,6 +242,7 @@ describe('visual breakout output pipeline', () => {
       'preflight',
       'caption:generation-a:caption',
       'media:generation-a:media:1',
+      'brand',
       'compose',
       'quality',
     ]);

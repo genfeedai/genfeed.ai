@@ -3,6 +3,7 @@ import {
   type BreakoutRecoveryBase,
   breakoutPublicationState,
 } from '@api/collections/outliers/services/breakout-output-publication-state.util';
+import { breakoutVisualBrandRequestKey } from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import {
   type BrandedPostMaterialRecord,
@@ -271,6 +272,29 @@ export async function readBreakoutMediaOutputRecovery(
       state: 'generation_in_flight',
       reason: 'provider_pending',
       action: 'wait',
+    };
+  // A visual whose own approved-brand receipt is blocked failed a hard brand rule: nothing a
+  // member can approve clears it. Only a blocked receipt tightens; a missing one changes nothing.
+  const blockedVisual = await tx.brandedGenerationReceipt.findFirst({
+    where: {
+      organizationId,
+      brandId,
+      requestKey: {
+        in: visuals.map((visual) => breakoutVisualBrandRequestKey(visual.id)),
+      },
+      candidateIndex: 0,
+      state: 'blocked',
+      isDeleted: false,
+    },
+    select: { id: true },
+  });
+  if (blockedVisual)
+    return {
+      ...base,
+      postId: captionPostId,
+      state: 'awaiting_review',
+      reason: 'quality_or_brand_blocked',
+      action: 'none',
     };
   if (!post)
     return {

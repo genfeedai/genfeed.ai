@@ -11,6 +11,7 @@ import {
   seedScheduledCollectionChain,
 } from '@api/collections/outliers/services/breakout-acceptance.collection.fixture';
 import {
+  type ApprovedBrandRules,
   buildExecutionHarness,
   type ExecutionHarness,
   seedApprovedBrandIdentity,
@@ -49,6 +50,8 @@ export type DetectOptions = {
     world: AcceptanceWorld,
     db: PrismaClient<'query'>,
   ) => WorkflowInitiatingActor | Promise<WorkflowInitiatingActor>;
+  /** Rules the approved brand identity carries (none by default). */
+  brandRules?: Partial<ApprovedBrandRules>;
   candidate?: CandidateOptions;
   /** The latest, breakout measurement (default tenfold-plus). */
   impressions?: number;
@@ -71,7 +74,7 @@ export async function detectBreakout(
 ): Promise<DetectedBreakout> {
   const { db, logger, prisma } = env;
   const world = await seedAcceptanceWorld(db, options.world);
-  await seedApprovedBrandIdentity(db, world);
+  await seedApprovedBrandIdentity(db, world, options.brandRules);
   const candidate = await seedBreakoutCandidate(db, world, options.candidate);
   const harness = buildExecutionHarness(db, prisma, logger, world);
   harness.tweets.set(candidate.target.externalId, {

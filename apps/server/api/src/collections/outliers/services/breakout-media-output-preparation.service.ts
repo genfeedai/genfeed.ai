@@ -13,6 +13,7 @@ import {
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
+import { BreakoutVisualBrandReceiptService } from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -72,6 +73,7 @@ export class BreakoutMediaOutputPreparationService {
     private readonly media: BreakoutMediaOutputGenerationService,
     private readonly quality: BreakoutOutputQualityService,
     private readonly review: BreakoutReviewHandoffService,
+    private readonly visualBrand: BreakoutVisualBrandReceiptService,
   ) {}
 
   async generate(
@@ -105,15 +107,29 @@ export class BreakoutMediaOutputPreparationService {
         await this.assertModel(request, plan);
       },
     };
+    const prompts = buildBreakoutVisualPrompts(
+      description,
+      plan,
+      output.ordinal,
+    );
     const generation = await this.media.generate({
       admission: guarded,
       provider: model.provider,
-      prompts: buildBreakoutVisualPrompts(description, plan, output.ordinal),
+      prompts,
       settings: this.settings(plan, model.key),
     });
     if (generation.state !== 'ready')
       return { kind: 'in_progress', reasonCode: 'provider_outcome_pending' };
     await admission.reauthorize(this.prisma);
+    // Each finished visual gets its own approved-brand receipt. Nothing is generated or paid here;
+    // a visual that fails a hard brand rule keeps the whole output out of review and publication.
+    const brand = await this.visualBrand.validate(
+      admission,
+      generation.ingredientIds.map((ingredientId, index) => ({
+        ingredientId,
+        prompt: prompts[index] ?? '',
+      })),
+    );
     const bound = await this.prisma.$transaction(async (tx) => {
       await admission.reauthorize(tx);
       const result = await bindBreakoutMediaPostArtifact(tx, {
@@ -135,6 +151,10 @@ export class BreakoutMediaOutputPreparationService {
       );
       return { kind: 'stopped', reasonCode: `artifact_${bound.reason}` };
     }
+    // A visual that failed a hard brand rule is composed (the lineage stays visible) but neither
+    // reviewed, scored nor ever publishable.
+    if (brand.isBlocked)
+      return { kind: 'stopped', reasonCode: 'quality_or_brand_blocked' };
     // The approved-brand check leaves factual coverage unverified, so a caption the receipt did
     // not clear sends the finished post to a member's review; it is still scored.
     if (caption.isReviewRequired)

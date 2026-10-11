@@ -125,12 +125,18 @@ function fixture(format = 'carousel') {
     row: row as typeof row | null,
     visuals: Array.from({ length: parts }, (_, index) => visual(index)),
     post: null as (BrandedPostMaterialRecord & Record<string, unknown>) | null,
+    /** A visual's own approved-brand receipt that failed a hard rule, when there is one. */
+    blockedVisual: null as { id: string } | null,
   };
   const tx = {
     breakoutResponse: { findFirst: vi.fn(async () => response) },
     breakoutResponseOutput: { findFirst: vi.fn(async () => output) },
     post: { findFirst: vi.fn(async () => state.post) },
-    brandedGenerationReceipt: { findFirst: vi.fn(async () => state.row) },
+    brandedGenerationReceipt: {
+      findFirst: vi.fn(async (args?: { where?: { state?: string } }) =>
+        args?.where?.state === 'blocked' ? state.blockedVisual : state.row,
+      ),
+    },
     ingredient: { findMany: vi.fn(async () => state.visuals) },
   } as unknown as Prisma.TransactionClient;
   function retain(next: BrandedGenerationReceiptV1) {
@@ -197,6 +203,62 @@ describe('visual output recovery facts', () => {
     expect(await read(h)).toMatchObject({
       state: 'reconciliation_required',
       reason: 'generation_receipt_missing',
+    });
+  });
+
+  it('holds a composed output whose visual failed a hard brand rule, beyond any approval', async () => {
+    const h = fixture('image');
+    h.ready();
+    h.compose();
+    h.state.blockedVisual = { id: 'visual-receipt-a' };
+    expect(await read(h)).toMatchObject({
+      action: 'none',
+      mayRepeatPaidRequest: false,
+      reason: 'quality_or_brand_blocked',
+      state: 'awaiting_review',
+    });
+    // A member's approval of the post cannot clear it.
+    if (!h.state.post) throw new Error('fixture post is required');
+    h.state.post.reviewDecision = PersistedReviewDecision.APPROVED;
+    h.state.post.reviewVersionPinId = 'pin-a';
+    expect(await read(h)).toMatchObject({
+      reason: 'quality_or_brand_blocked',
+      state: 'awaiting_review',
+    });
+  });
+
+  it('asks only for blocked receipts of this group’s visuals', async () => {
+    const h = fixture('carousel');
+    h.ready();
+    h.compose();
+    await read(h);
+    const blockedQuery = vi
+      .mocked(h.tx.brandedGenerationReceipt.findFirst)
+      .mock.calls.map(([args]) => args)
+      .find((args) => args?.where?.state === 'blocked');
+    expect(blockedQuery?.where).toMatchObject({
+      brandId: input.brandId,
+      candidateIndex: 0,
+      isDeleted: false,
+      organizationId: input.organizationId,
+      requestKey: {
+        in: [
+          'asset-1:brand-validation',
+          'asset-2:brand-validation',
+          'asset-3:brand-validation',
+        ],
+      },
+      state: 'blocked',
+    });
+  });
+
+  it('is unchanged when no visual receipt is blocked, including when none exists', async () => {
+    const h = fixture('image');
+    h.ready();
+    h.compose();
+    h.state.blockedVisual = null;
+    expect(await read(h)).not.toMatchObject({
+      reason: 'quality_or_brand_blocked',
     });
   });
 

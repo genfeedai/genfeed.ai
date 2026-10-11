@@ -15,12 +15,14 @@ import { BreakoutResponseExecutionWorkflowService } from '@api/collections/outli
 import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
+import { BreakoutVisualBrandReceiptService } from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
 import { BreakoutVisualQualityService } from '@api/collections/outliers/services/breakout-visual-quality.service';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
+import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
 import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -46,6 +48,7 @@ import { Module } from '@nestjs/common';
     PostsCoreModule,
     AgentGenerationGatewayModule,
     BrandValidationModule,
+    BrandValidationReceiptModule,
     BrandedGenerationReceiptsModule,
     BrandedTextGenerationModule,
     ByokModule,
@@ -62,6 +65,7 @@ import { Module } from '@nestjs/common';
     BreakoutMediaOutputPreparationService,
     BreakoutReviewHandoffService,
     BreakoutTextOutputGenerationService,
+    BreakoutVisualBrandReceiptService,
     BreakoutVisualQualityService,
   ],
   exports: [

@@ -43,6 +43,7 @@ import {
 import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
+import { BreakoutVisualBrandReceiptService } from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
 import { BreakoutVisualQualityService } from '@api/collections/outliers/services/breakout-visual-quality.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
@@ -74,18 +75,34 @@ import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summar
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ModelCategory } from '@genfeedai/contracts';
+import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { PrismaClient } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 /** An OpenRouter text model id the production eligibility check accepts. */
 export const ACCEPTANCE_TEXT_MODEL = 'anthropic/claude-sonnet-4.5';
 
+export type ApprovedBrandRules = Pick<
+  BrandIdentitySnapshotV1['generationRules'],
+  | 'assets'
+  | 'avoid'
+  | 'evidence'
+  | 'examples'
+  | 'facts'
+  | 'mandatory'
+  | 'palette'
+  | 'schemaVersion'
+  | 'typography'
+>;
+
 /** A minimal approved Brand OS revision, so approved-brand generation can compile a snapshot. */
 export async function seedApprovedBrandIdentity(
   db: PrismaClient<'query'>,
   world: AcceptanceWorld,
+  /** Rules the approved revision carries, on top of an empty rule set. */
+  overrides: Partial<ApprovedBrandRules> = {},
 ): Promise<void> {
-  const rules = {
+  const rules: ApprovedBrandRules = {
     assets: [],
     avoid: [],
     evidence: [],
@@ -95,6 +112,7 @@ export async function seedApprovedBrandIdentity(
     palette: [],
     schemaVersion: 1 as const,
     typography: [],
+    ...overrides,
   };
   await db.brandOsRevision.create({
     data: {
@@ -504,6 +522,14 @@ export function buildExecutionHarness(
     ),
     quality,
     reviewHandoff,
+    new BreakoutVisualBrandReceiptService(
+      prisma,
+      receipts,
+      material,
+      snapshots,
+      validation,
+      logger,
+    ),
   );
   const execution = new BreakoutResponseExecutionService(
     prisma,

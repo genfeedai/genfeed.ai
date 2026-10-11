@@ -16,12 +16,37 @@ import {
   IngredientStatus,
   type PrismaClient,
 } from '@genfeedai/prisma';
+import sharp from 'sharp';
 
 /** Catalog keys the fake registry offers for each visual category. */
 export const ACCEPTANCE_IMAGE_MODEL = 'acceptance/image-model';
 export const ACCEPTANCE_VIDEO_MODEL = 'acceptance/video-model';
 /** Credits one generated visual costs, quoted and charged. */
 export const VISUAL_GENERATION_CREDITS = 5;
+
+/**
+ * The object storage the receipt material service reads a finished visual from: the gateway
+ * writes the bytes it "generated" here, keyed by the ingredient's storage key.
+ */
+export const acceptanceObjectStore = new Map<string, Uint8Array>();
+export const acceptanceStorage = {
+  readVersionedBytes: async (key: string) => {
+    const bytes = acceptanceObjectStore.get(key);
+    if (!bytes) throw new Error(`No acceptance object ${key}`);
+    return { bytes, version: 'acceptance:v1' };
+  },
+};
+
+/** A real PNG of one solid color, the file a fake image provider "generates". */
+export async function acceptancePng(color: string): Promise<Uint8Array> {
+  return new Uint8Array(
+    await sharp({
+      create: { background: color, channels: 3, height: 128, width: 128 },
+    })
+      .png()
+      .toBuffer(),
+  );
+}
 
 export function acceptanceMediaCategory(key: string): ModelCategory {
   return key === ACCEPTANCE_VIDEO_MODEL
@@ -45,6 +70,8 @@ export class FakeMediaGateway {
   onProvider?: (index: number) => Promise<void>;
   /** Leaves a placeholder that never completes, as a wait that timed out does. */
   isSilent = false;
+  /** The solid color of every generated image. */
+  imageColor = '#123456';
 
   constructor(
     private readonly db: PrismaClient<'query'>,
@@ -91,12 +118,19 @@ export class FakeMediaGateway {
       throw new Error('The visual generation hold was not placed');
     await this.onProvider?.(index);
     if (this.isSilent) return { data: {} };
+    const s3Key = `acceptance/generated/${randomUUID()}`;
+    acceptanceObjectStore.set(
+      s3Key,
+      kind === 'image'
+        ? await acceptancePng(this.imageColor)
+        : new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]),
+    );
     await this.db.ingredient.updateMany({
       data: {
         fileSize: 4096,
         generationCompletedAt: new Date(),
         mimeType: kind === 'image' ? 'image/png' : 'video/mp4',
-        s3Key: `acceptance/generated/${randomUUID()}`,
+        s3Key,
         status: IngredientStatus.GENERATED,
         version: 1,
       },
