@@ -125,6 +125,7 @@ function harness() {
       ),
     },
     postAnalytics: { findMany: vi.fn(async () => []) },
+    workflowExecution: { findFirst: vi.fn(async () => null) },
   };
   prisma.$transaction.mockImplementation(
     async (
@@ -374,10 +375,12 @@ describe('daily publishing executable graph', () => {
       fixture.socialAnalytics,
     ]) {
       for (const call of collector.collect.mock.calls) {
+        // No persisted schedule binding in this in-memory run: ordinary actor-less collection.
         expect(call).toEqual([
           expect.objectContaining({
             posts: [expect.objectContaining({ organizationId: 'org' })],
           }),
+          undefined,
         ]);
       }
     }

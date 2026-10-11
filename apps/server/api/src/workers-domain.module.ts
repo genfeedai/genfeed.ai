@@ -3,6 +3,7 @@ import { AnalyticsSocialCollectionService } from '@api/analytics/services/analyt
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { AnalyticsYouTubeCollectionService } from '@api/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { AdCreativeMappingsService } from '@api/collections/ad-creative-mappings/services/ad-creative-mappings.service';
@@ -457,6 +458,7 @@ const WORKER_DOMAIN_SERVICES = [
     WORKFLOW_EXECUTOR,
   ],
   imports: [
+    BrandAccessModule,
     ContentLearningCoreModule,
     OutliersCoreModule,
     CacheModule,

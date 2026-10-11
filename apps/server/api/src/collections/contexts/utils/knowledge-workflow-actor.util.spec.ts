@@ -1,4 +1,9 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import {
+  type ExecutionFixture,
+  executionLookup,
+  hiddenExecutionRow,
+} from '@api/authorization/brand-access/hidden-execution-chain.fixture';
 import { KNOWLEDGE_SOURCE_WORKFLOW_IDS } from '@api/collections/contexts/services/knowledge-source-ingest-workflow-definition';
 import {
   knowledgeWorkflowActorKey,
@@ -221,5 +226,210 @@ describe('server-owned queued Knowledge authority', () => {
       refreshKnowledgeWorkflowActor(f.prisma, f.policy, undefined, 'org'),
     ).resolves.toBeUndefined();
     expect(f.findMember).not.toHaveBeenCalled();
+  });
+});
+
+describe('Knowledge backfill fan-out chain', () => {
+  const stored = {
+    organizationId: 'org',
+    sourceId: 'source',
+    versionId: 'version',
+    initiatingActor: actor,
+  };
+  function chain() {
+    const parent = hiddenExecutionRow({
+      id: 'parent',
+      canonicalId: KNOWLEDGE_SOURCE_WORKFLOW_IDS.BACKFILL,
+      workflowId: 'backfill-workflow',
+      userId: actor.userId,
+      inputValues: {
+        request: { organizationId: 'org', initiatingActor: actor },
+      },
+      metadata: { source: 'knowledge-source-backfill' },
+    });
+    const child = hiddenExecutionRow({
+      id: 'run',
+      canonicalId: KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+      workflowId: 'workflow',
+      versionId: 'pinned',
+      userId: actor.userId,
+      inputValues: { request: stored },
+      metadata: {
+        parentExecutionId: 'parent',
+        parentNodeId: 'ingest-sources',
+        parentWorkflowId: 'backfill-workflow',
+        workflowForEachIndex: 1,
+      },
+    });
+    return { child, parent };
+  }
+  function harness(rows: ExecutionFixture[]) {
+    const findMember = vi
+      .fn()
+      .mockResolvedValue({ role: { key: MemberRole.ADMIN }, brands: [] });
+    const findDiscovery = vi.fn().mockResolvedValue({
+      output: { items: [{ sourceId: 'other' }, stored] },
+    });
+    const prisma = {
+      member: { findFirst: findMember },
+      apiKey: { findFirst: vi.fn() },
+      workflowExecution: { findFirst: vi.fn(executionLookup(rows)) },
+      workflowExecutionNodeResult: { findFirst: findDiscovery },
+    } as unknown as PrismaService;
+    const action = {
+      context: {
+        organizationId: 'org',
+        userId: actor.userId,
+        workflowId: 'workflow',
+        workflowVersionId: 'pinned',
+        runId: 'run',
+      },
+      provenance: {
+        executionId: 'run',
+        workflowId: 'workflow',
+        workflowLabel: 'Knowledge',
+      },
+      input: { request: stored },
+    } satisfies SystemWorkflowActionRequest;
+    return {
+      action,
+      findDiscovery,
+      findMember,
+      policy: new BrandAccessService(prisma),
+      prisma,
+    };
+  }
+  const run = (h: ReturnType<typeof harness>) =>
+    validateKnowledgeWorkflowAction(
+      h.prisma,
+      h.policy,
+      h.action,
+      KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+      stored,
+    );
+
+  beforeEach(() => {
+    runtime.cloud = true;
+  });
+
+  it('admits a child that its pinned hidden backfill parent discovered', async () => {
+    const { child, parent } = chain();
+    const h = harness([parent, child]);
+    await expect(run(h)).resolves.toEqual(stored);
+    expect(h.findMember).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [
+      'a parent that is not the backfill workflow',
+      (p: ExecutionFixture) => {
+        p.workflow.metadata = hiddenExecutionRow({
+          id: 'x',
+          canonicalId: KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+        }).workflow.metadata;
+      },
+    ],
+    [
+      'a parent that was not queued as a backfill',
+      (p: ExecutionFixture) => {
+        p.result.metadata.source = 'knowledge-source';
+      },
+    ],
+    [
+      'a customer-owned parent',
+      (p: ExecutionFixture) => {
+        p.workflow.organizationId = 'org';
+      },
+    ],
+    [
+      'a parent run by another user',
+      (p: ExecutionFixture) => {
+        p.userId = 'other';
+      },
+    ],
+    [
+      'a parent in another organization request',
+      (p: ExecutionFixture) => {
+        p.result.inputValues = {
+          request: { organizationId: 'foreign', initiatingActor: actor },
+        };
+      },
+    ],
+    [
+      'a parent actor that differs from the child actor',
+      (p: ExecutionFixture) => {
+        p.result.inputValues = {
+          request: {
+            organizationId: 'org',
+            initiatingActor: { ...actor, scopes: ['admin'] },
+          },
+        };
+      },
+    ],
+    [
+      'a parent node other than the fan-out',
+      (_p: ExecutionFixture, c: ExecutionFixture) => {
+        c.result.metadata.parentNodeId = 'elsewhere';
+      },
+    ],
+    [
+      'an invalid fan-out index',
+      (_p: ExecutionFixture, c: ExecutionFixture) => {
+        c.result.metadata.workflowForEachIndex = 1.5;
+      },
+    ],
+    [
+      'a recorded parent workflow that differs',
+      (_p: ExecutionFixture, c: ExecutionFixture) => {
+        c.result.metadata.parentWorkflowId = 'other';
+      },
+    ],
+    [
+      'a child with no actor',
+      (_p: ExecutionFixture, c: ExecutionFixture) => {
+        c.result.inputValues = {
+          request: { ...stored, initiatingActor: undefined },
+        };
+      },
+    ],
+  ])('denies %s before any membership read', async (_name, tamper) => {
+    const { child, parent } = chain();
+    tamper(parent, child);
+    const h = harness([parent, child]);
+    await expect(run(h)).rejects.toThrow('Knowledge access denied');
+    expect(h.findMember).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a different source', { items: [{}, { ...stored, sourceId: 'other' }] }],
+    ['a different version', { items: [{}, { ...stored, versionId: 'other' }] }],
+    [
+      'a different actor',
+      {
+        items: [{}, { ...stored, initiatingActor: { ...actor, userId: 'x' } }],
+      },
+    ],
+    ['another index', { items: [stored] }],
+    ['no items', {}],
+  ])('denies a parent that discovered %s', async (_name, output) => {
+    const { child, parent } = chain();
+    const h = harness([parent, child]);
+    h.findDiscovery.mockResolvedValue({ output });
+    await expect(run(h)).rejects.toThrow('Knowledge access denied');
+    expect(h.findMember).not.toHaveBeenCalled();
+  });
+
+  it('denies a child whose discovery output is gone', async () => {
+    const { child, parent } = chain();
+    const h = harness([parent, child]);
+    h.findDiscovery.mockResolvedValue(null);
+    await expect(run(h)).rejects.toThrow('Knowledge access denied');
+  });
+
+  it('checks live membership after the chain holds', async () => {
+    const { child, parent } = chain();
+    const h = harness([parent, child]);
+    h.findMember.mockResolvedValue(null);
+    await expect(run(h)).rejects.toThrow('Brand access denied');
   });
 });
