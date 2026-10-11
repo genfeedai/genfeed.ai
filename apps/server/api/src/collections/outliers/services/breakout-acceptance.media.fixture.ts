@@ -123,7 +123,7 @@ export class FakeVisualJudge {
   scoreFor?: (index: number) => number;
   score = 88;
   /** Credits the judgement reports as billed. */
-  billed = 2;
+  billed = 1;
 
   evaluateImage = (
     url: string,

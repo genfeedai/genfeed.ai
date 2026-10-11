@@ -35,6 +35,8 @@ vi.unmock('@prisma/adapter-pg');
 vi.mock('@genfeedai/config', async (original) => ({
   ...(await original<typeof import('@genfeedai/config')>()),
   isCloudDeployment: () => true,
+  // The visual judge samples video frames through cloud storage.
+  isSelfHostedDeployment: () => false,
 }));
 // A throwaway key for the credential and prompt round trips; not a secret.
 vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'breakout-acceptance-test-key');
@@ -425,7 +427,7 @@ describe.skipIf(!connectionString)(
       };
       expect(await recoveryOf(detected, must(outputs[1]).id)).toMatchObject({
         mayRepeatPaidRequest: false,
-        state: 'reconciliation_required',
+        state: 'generation_in_flight',
       });
 
       // A worker retry of the same execution does not pay again.

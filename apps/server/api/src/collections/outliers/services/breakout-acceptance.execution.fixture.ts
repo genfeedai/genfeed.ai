@@ -388,8 +388,8 @@ export function buildExecutionHarness(
     visualJudge as Stub,
     {
       findOne: async () => ({
-        inputCostPerMillionTokens: 100,
-        outputCostPerMillionTokens: 100,
+        inputCostPerMillionTokens: 10_000,
+        outputCostPerMillionTokens: 10_000,
         pricingType: 'per-token',
       }),
     } as Stub,
