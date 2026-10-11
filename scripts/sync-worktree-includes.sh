@@ -14,9 +14,8 @@
 #   bun run wt:sync                       # from inside a freshly-created worktree
 #   scripts/sync-worktree-includes.sh              # ditto
 #   scripts/sync-worktree-includes.sh <worktree>   # target an explicit worktree
-#                                                   # (used by the `git wt` alias,
-#                                                   # since `git worktree add`
-#                                                   # leaves you in the primary)
+#                                                   # (`git worktree add` leaves
+#                                                   # you in the primary)
 #
 # Safe + idempotent: never clobbers an existing file, no-ops in the primary
 # worktree, and skips patterns that match nothing.

@@ -1,8 +1,8 @@
 /**
  * Reads a file from the sibling `genfeedai/benchmark` checkout at the pinned
  * revision, so a pinned copy can be proven verbatim. The sibling is found
- * from the main checkout (via the shared git dir), which also works inside a
- * `.worktrees/*` worktree. Returns null when there is no sibling checkout or
+ * from the main checkout (via the shared git dir), which also works inside any
+ * linked worktree. Returns null when there is no sibling checkout or
  * it lacks the revision — CI has neither, and the check is then skipped.
  */
 

@@ -5,7 +5,8 @@ import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@genfeedai/prisma';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 vi.mock('@api/collections/contexts/utils/extract-source-text.util', () => ({
   extractSourceText: vi.fn().mockResolvedValue({
@@ -151,6 +152,14 @@ describe('KnowledgeRefreshService', () => {
         schedule: '*/15 * * * *',
         templateId: 'source-maintenance',
       }),
+      actor.brandId,
+      {
+        apiKeyId: undefined,
+        isApiKey: false,
+        organizationId: actor.organizationId,
+        scopes: [],
+        userId: actor.userId,
+      },
     );
   });
 
@@ -318,7 +327,10 @@ describe('KnowledgeRefreshService', () => {
     internals.prisma.knowledgeSource.findFirst.mockResolvedValue({
       refreshWorkflowId: 'wf-winner',
     });
-    internals.prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-loser' });
+    internals.prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-loser',
+      organizationId: 'org-1',
+    });
 
     await service.setPolicy(actor, 'source-1', { isEnabled: true });
 
@@ -371,6 +383,162 @@ describe('KnowledgeRefreshService', () => {
       refreshRunId: 'run-new',
       sourceId: 'source-1',
     });
+  });
+});
+
+describe('KnowledgeRefreshService schedule initiating actor', () => {
+  const apiKeyActor = {
+    apiKeyId: 'key-1',
+    brandId: 'brand-1',
+    isApiKey: true,
+    organizationId: 'org-1',
+    role: 'owner',
+    scopes: ['workflows:write', 'brands:read', 'brands:read'],
+    userId: 'user-1',
+  };
+
+  function setup() {
+    const built = buildService();
+    const internals = built.service as unknown as {
+      prisma: {
+        workflow: {
+          findFirst: ReturnType<typeof vi.fn>;
+          updateMany: ReturnType<typeof vi.fn>;
+        };
+      };
+      workflowQueue: { syncWorkflowScheduler: ReturnType<typeof vi.fn> };
+      workflows: { createWorkflow: ReturnType<typeof vi.fn> };
+    };
+    built.records.getSource.mockResolvedValue({
+      id: 'source-1',
+      kind: KnowledgeSourceKind.URL,
+      refreshWorkflowId: 'wf-refresh',
+      referenceUrl: 'https://ex.com',
+      title: 'Docs',
+    });
+    internals.workflows.createWorkflow.mockResolvedValue({ id: 'wf-refresh' });
+    internals.prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-refresh',
+      organizationId: 'org-1',
+    });
+    return { ...built, internals };
+  }
+
+  function writtenActors(
+    internals: ReturnType<typeof setup>['internals'],
+  ): unknown[] {
+    return internals.prisma.workflow.updateMany.mock.calls.map(
+      ([args]) =>
+        (args as { data: { scheduleInitiatingActor?: unknown } }).data
+          .scheduleInitiatingActor,
+    );
+  }
+
+  it('binds a newly created refresh schedule to the authenticated actor only', async () => {
+    const { service, internals, records } = setup();
+    internals.prisma.workflow.findFirst.mockResolvedValue(null);
+    records.getSource.mockResolvedValue({
+      id: 'source-1',
+      kind: KnowledgeSourceKind.URL,
+      referenceUrl: 'https://ex.com',
+      title: 'Docs',
+    });
+
+    await service.setPolicy(apiKeyActor, 'source-1', { isEnabled: true });
+
+    const call = internals.workflows.createWorkflow.mock.calls[0] as unknown[];
+    expect(call[3]).toBe('brand-1');
+    expect(call[4]).toEqual({
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      organizationId: 'org-1',
+      scopes: ['workflows:write', 'brands:read', 'brands:read'],
+      userId: 'user-1',
+    });
+    expect(JSON.stringify(call[4])).not.toContain('role');
+    expect(JSON.stringify(call[4])).not.toContain('brandId');
+  });
+
+  it('binds an existing schedule to the normalized authenticated actor', async () => {
+    const { service, internals } = setup();
+
+    await service.setPolicy(apiKeyActor, 'source-1', { isEnabled: true });
+
+    expect(writtenActors(internals)).toEqual([
+      {
+        apiKeyId: 'key-1',
+        isApiKey: true,
+        organizationId: 'org-1',
+        scopes: ['brands:read', 'workflows:write'],
+        userId: 'user-1',
+      },
+    ]);
+  });
+
+  it('rewrites the binding to the new configuring actor on a re-save', async () => {
+    const { service, internals } = setup();
+
+    await service.setPolicy(apiKeyActor, 'source-1', { isEnabled: true });
+    await service.setPolicy(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-2' },
+      'source-1',
+      { isEnabled: true },
+    );
+
+    expect(writtenActors(internals)).toEqual([
+      expect.objectContaining({ userId: 'user-1' }),
+      {
+        isApiKey: false,
+        organizationId: 'org-1',
+        scopes: [],
+        userId: 'user-2',
+      },
+    ]);
+  });
+
+  it('clears the binding when the schedule is paused', async () => {
+    const { service, internals } = setup();
+
+    await service.setPolicy(apiKeyActor, 'source-1', { isEnabled: false });
+
+    expect(writtenActors(internals)).toEqual([Prisma.DbNull]);
+  });
+
+  it('clears the binding when the source is unscheduled', async () => {
+    const { service, internals } = setup();
+
+    await service.unscheduleSource(actor, 'source-1');
+
+    expect(writtenActors(internals)).toEqual([Prisma.DbNull]);
+  });
+
+  it('rejects an actor from another organization before persisting or scheduling', async () => {
+    const { service, internals } = setup();
+    internals.prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-refresh',
+      organizationId: 'org-2',
+    });
+
+    await expect(
+      service.setPolicy(apiKeyActor, 'source-1', { isEnabled: true }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(internals.prisma.workflow.updateMany).not.toHaveBeenCalled();
+    expect(
+      internals.workflowQueue.syncWorkflowScheduler,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('rejects an actor without a user identity instead of storing it', async () => {
+    const { service, internals } = setup();
+
+    await expect(
+      service.setPolicy({ ...actor, userId: ' ' }, 'source-1', {
+        isEnabled: true,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(internals.prisma.workflow.updateMany).not.toHaveBeenCalled();
   });
 });
 
