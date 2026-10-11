@@ -7,14 +7,11 @@ import {
   assertBrandValidationMetadata,
   copyBrandValidationMaterial,
 } from '@api/services/brand-validation/brand-validation-material.util';
-import { proveBrandLiteralChecksFromOcr } from '@api/services/brand-validation/brand-validation-ocr.util';
-import { proveBrandPaletteChecks } from '@api/services/brand-validation/brand-validation-palette.util';
-import { proveBrandPlacementChecks } from '@api/services/brand-validation/brand-validation-placement.util';
+import { proveBrandMediaChecks } from '@api/services/brand-validation/brand-validation-media-proof.util';
 import {
   assertBrandValidationRuleDomain,
   buildBrandValidationChecks,
 } from '@api/services/brand-validation/brand-validation-rules.util';
-import { BrandArtifactVisual } from '@api/services/brand-validation/brand-validation-visual.util';
 import type { BrandVisualAnalysis } from '@api/services/brand-validation/brand-visual-analysis.types';
 import {
   hashBrandedGenerationArtifactManifestV1,
@@ -267,25 +264,16 @@ export class BrandValidationService {
         throw new BadRequestException('brand_validation_reference_mismatch');
       referenceIds.add(reference.assetReferenceId);
     }
-    const validated = { snapshot, artifact, material };
-    const visual = new BrandArtifactVisual(validated);
-    const textChecks = buildBrandValidationChecks(
-      snapshot,
-      artifact.mediaKind,
-      text,
-      artifact.mediaKind === 'text' &&
-        text !== null &&
-        artifact.parts.length === 0,
-    );
-    const checks = await proveBrandPlacementChecks(
-      validated,
-      await proveBrandLiteralChecksFromOcr(
-        validated,
-        await proveBrandPaletteChecks(validated, textChecks, visual),
-        visual,
-        options.visualAnalysis,
+    const checks = await proveBrandMediaChecks(
+      { snapshot, artifact, material },
+      buildBrandValidationChecks(
+        snapshot,
+        artifact.mediaKind,
+        text,
+        artifact.mediaKind === 'text' &&
+          text !== null &&
+          artifact.parts.length === 0,
       ),
-      visual,
       options.visualAnalysis,
     );
     const diagnostics: BrandArtifactValidationReportV1['diagnostics'] = [

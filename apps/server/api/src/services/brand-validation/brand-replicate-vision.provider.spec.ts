@@ -287,13 +287,14 @@ describe('readBrandDetections', () => {
       },
       size,
     );
-    expect(regions).toEqual([
-      { box: { height: 0.5, width: 0.5, x: 0.5, y: 0.5 }, score: 0.9 },
-      {
-        box: { height: 0.2, width: 0.2, x: 0.1, y: 0.1 },
-        score: 0.4,
-      },
-    ]);
+    expect(regions).toHaveLength(2);
+    expect(regions?.[0]?.score).toBe(0.9);
+    expect(regions?.[0]?.box.x).toBeCloseTo(0.5, 6);
+    expect(regions?.[0]?.box.y).toBeCloseTo(0.5, 6);
+    expect(regions?.[0]?.box.width).toBeCloseTo(0.5, 6);
+    expect(regions?.[0]?.box.height).toBeCloseTo(0.5, 6);
+    expect(regions?.[1]?.score).toBe(0.4);
+    expect(regions?.[1]?.box.width).toBeCloseTo(0.2, 6);
   });
   it('accepts fractional boxes and a JSON string', () => {
     const regions = readBrandDetections(

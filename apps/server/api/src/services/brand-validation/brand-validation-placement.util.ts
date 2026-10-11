@@ -9,7 +9,7 @@ import type {
   BrandArtifactValidationCheckV1,
   BrandArtifactValidationInputV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import sharp from 'sharp';
+import sharp, { type Sharp } from 'sharp';
 
 /** A detected region is compared with the approved asset only at or above this confidence. */
 export const BRAND_PLACEMENT_MIN_DETECTION_SCORE = 0.3;
@@ -44,7 +44,7 @@ function unknownCheck(
   return { ...check, reasonCode, result: 'unknown' };
 }
 
-async function grayscale(source: sharp.Sharp): Promise<Float64Array | null> {
+async function grayscale(source: Sharp): Promise<Float64Array | null> {
   try {
     const { data } = await source
       .flatten({ background: '#ffffff' })

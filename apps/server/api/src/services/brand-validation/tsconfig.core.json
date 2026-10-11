@@ -19,6 +19,7 @@
     "./brand-validation-visual.util.ts",
     "./brand-validation-ocr.util.ts",
     "./brand-validation-ocr.spec.ts",
+    "./brand-validation-media-proof.util.ts",
     "./brand-validation-placement.util.ts",
     "./brand-validation-placement.spec.ts",
     "./brand-visual-analysis.types.ts",
