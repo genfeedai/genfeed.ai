@@ -6,6 +6,10 @@ import type {
 } from '@genfeedai/props/content/branded-generation-receipt.props';
 import { useBrandedGenerationReceipt } from '@hooks/ui/generation-receipts/use-branded-generation-receipt';
 import BrandIdentitySnapshotView from '@ui/components/generation-receipts/BrandIdentitySnapshotView';
+import {
+  type BrandProofTranslate,
+  summarizeBrandProof,
+} from '@ui/components/generation-receipts/brand-proof-summary.util';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
@@ -50,6 +54,7 @@ function recordedLayers(
 function recordedChecks(
   label: string,
   detailsLabel: string,
+  translateProof: BrandProofTranslate,
   validation: NonNullable<
     BrandedGenerationReceiptInspectorState['receipt']
   >['validation'],
@@ -68,6 +73,11 @@ function recordedChecks(
               {check.method} · {check.evaluatorId} · {check.evaluatorVersion} ·{' '}
               {check.reasonCode} · {check.evidenceIds.join(', ')}
             </p>
+            {check.proof ? (
+              <p className="text-xs">
+                {summarizeBrandProof(check.proof, translateProof)}
+              </p>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -274,7 +284,12 @@ function SavedMetadata({
         })}
       </section>
       {receipt.validation ? (
-        recordedChecks(t('validation'), t('details'), receipt.validation)
+        recordedChecks(
+          t('validation'),
+          t('details'),
+          (key, values) => t(key as Parameters<typeof t>[0], values),
+          receipt.validation,
+        )
       ) : (
         <p className="text-sm text-muted-foreground">{t('noValidation')}</p>
       )}

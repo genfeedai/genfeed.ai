@@ -156,6 +156,32 @@ describe('shared saved receipt inspector', () => {
           evidenceIds: [],
           reasonCode: 'validation_unavailable',
         },
+        {
+          ruleId: 'saved-palette',
+          category: 'palette',
+          severity: 'hard',
+          result: 'pass',
+          method: 'deterministic_render',
+          evidenceIds: ['saved-evidence'],
+          proof: {
+            kind: 'palette',
+            algorithm: 'ciede2000-presence-v1',
+            artifactHash,
+            partId: 'part',
+            partVersion: 'v1',
+            partHash: artifactHash,
+            mediaKind: 'image',
+            decoder: 'sharp',
+            sampledFrames: 1,
+            analyzedPixels: 4096,
+            target: '#123456',
+            maxDeltaE: 8,
+            minCoverage: 0.01,
+            coverage: 0.5,
+            nearestSwatchDeltaE: 0,
+            swatches: [],
+          },
+        },
       ],
       quality: {
         score: 1,
@@ -276,6 +302,7 @@ describe('shared saved receipt inspector', () => {
     expect(
       screen.getByText('saved-fact · fact · hard · unknown'),
     ).toBeInTheDocument();
+    expect(screen.getByText('proof.palette')).toBeInTheDocument();
     const savedDetails = Array.from(
       view.container.querySelectorAll('pre'),
     ).find((node) => node.textContent?.includes('saved-report'));
