@@ -173,7 +173,7 @@ describe('OrganizationStorePage (#5502)', () => {
       within(card('turbo')).getByRole('link', {
         name: 'Organization settings',
       }),
-    ).toHaveAttribute('href', '/acme/~/settings/general');
+    ).toHaveAttribute('href', '/acme/~/settings/modules');
     expect(appState('discovery')).toBe('subscription-required');
     expect(
       within(card('discovery')).getByRole('link', { name: 'View plans' }),

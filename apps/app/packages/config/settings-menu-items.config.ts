@@ -127,6 +127,14 @@ function buildOrganizationMenuItems(
     },
     {
       group: 'Organization',
+      href: APP_ROUTES.SETTINGS.MODULES,
+      hrefScope: 'organization',
+      label: 'Modules',
+      outline: LayoutGrid,
+      solid: LayoutGrid,
+    },
+    {
+      group: 'Organization',
       href: APP_ROUTES.SETTINGS.MEMBERS,
       hrefScope: 'organization',
       label: 'Members',

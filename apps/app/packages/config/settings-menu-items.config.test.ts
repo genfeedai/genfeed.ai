@@ -55,6 +55,7 @@ describe('buildSettingsMenuItems', () => {
         ),
       ).toEqual([
         'General',
+        'Modules',
         'Members',
         'Brands',
         'Models',
@@ -75,6 +76,7 @@ describe('buildSettingsMenuItems', () => {
         }).map((i) => i.label),
       ).toEqual([
         'General',
+        'Modules',
         'Members',
         'Brands',
         'Models',
@@ -97,6 +99,7 @@ describe('buildSettingsMenuItems', () => {
         ),
       ).toEqual([
         ['General', 'Organization'],
+        ['Modules', 'Organization'],
         ['Members', 'Organization'],
         ['Brands', 'Organization'],
         ['Models', 'Organization'],

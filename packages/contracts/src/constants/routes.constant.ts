@@ -301,6 +301,8 @@ export const APP_ROUTES = {
     ABOUT: '/settings/about',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
+    /** Which tools the organization can use; the Store links turned-off apps here. */
+    MODULES: '/settings/modules',
     /** Personal email and future in-app notification preferences. */
     NOTIFICATIONS: '/settings/notifications',
     /** Creation heatmap, streaks, and setup checklist. */

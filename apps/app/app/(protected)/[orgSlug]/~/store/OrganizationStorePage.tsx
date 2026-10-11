@@ -175,7 +175,7 @@ export default function OrganizationStorePage() {
                   isPinned={pinnedAppIds.includes(app.appId)}
                   manageModulesHref={createOrganizationAppRoute(
                     orgSlug,
-                    APP_ROUTES.SETTINGS.GENERAL,
+                    APP_ROUTES.SETTINGS.MODULES,
                   )}
                   onInstall={(appId) => void runAction(appId, 'install')}
                   onTogglePin={togglePin}
