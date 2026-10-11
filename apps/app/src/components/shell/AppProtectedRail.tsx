@@ -106,9 +106,12 @@ function AppProtectedRailContent({
         threadId: searchParams.get('thread'),
       });
 
+      // A destination the shell registry does not know (an org-level app
+      // entry such as `~/studio/storyboard`, resolved by its own route) must
+      // keep its own link, not fall back to the current page.
       return {
         announcement: launch.announcement,
-        href: launch.href,
+        href: launch.registryKey === null ? destinationHref : launch.href,
       };
     },
     [currentHref, searchParams],
