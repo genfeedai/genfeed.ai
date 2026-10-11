@@ -29,6 +29,8 @@ import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-d
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
+type Deps = ConstructorParameters<typeof ScheduledPostDeliveryService>;
+
 /** The request principal of an authenticated user or key, as the request interceptor binds it. */
 export function principalOf(
   world: Pick<AcceptanceWorld, 'organizationId'>,
@@ -115,30 +117,34 @@ export function buildDeliveryHarness(
     logger,
     new PostLifecycleService(db, silentLogger),
   );
-  const anything = new Proxy({}, { get: () => async () => undefined }) as never;
+  const anything: unknown = new Proxy({}, { get: () => async () => undefined });
   const actions = new Map<string, RegisteredAction>();
   const service = new ScheduledPostDeliveryService(
     logger,
-    new ScheduledPostFailureService(logger, anything, scheduler),
+    new ScheduledPostFailureService(
+      logger,
+      anything as ConstructorParameters<typeof ScheduledPostFailureService>[1],
+      scheduler,
+    ),
     {
       findOne: async (query: { id: string; organizationId?: string }) =>
         db.credential.findFirst({
           where: scopedWhere(world.organizationId, { id: query.id }),
         }),
-    } as never,
+    } as unknown as Deps[2],
     {
       findOne: async (query: { id: string }) =>
         db.organization.findFirst({
           where: { id: query.id, isDeleted: false },
         }),
-    } as never,
+    } as unknown as Deps[3],
     {
       checkQuota: async () => ({
         allowed: true,
         currentCount: 0,
         dailyLimit: 100,
       }),
-    } as never,
+    } as unknown as Deps[4],
     {
       getPublisher: () => ({
         publish: async (context: PublishContext) => {
@@ -146,18 +152,18 @@ export function buildDeliveryHarness(
           return publisher.answer(context);
         },
       }),
-    } as never,
+    } as unknown as Deps[5],
     {
       registerAction: (id: string, action: RegisteredAction) => {
         actions.set(id, action);
       },
-    } as never,
+    } as unknown as Deps[6],
     {
       emitLegacyPostFailed: async () => undefined,
       emitLegacyPostPublished: async () => undefined,
-    } as never,
+    } as unknown as Deps[7],
     scheduler,
-    { schedulePostWatch: async () => ({ scheduled: 0 }) } as never,
+    { schedulePostWatch: async () => ({ scheduled: 0 }) } as unknown as Deps[9],
     {
       resolveForCredentials: async (
         _client: unknown,
@@ -176,10 +182,10 @@ export function buildDeliveryHarness(
             },
           ]),
         ),
-    } as never,
+    } as unknown as Deps[10],
     libsPrisma,
-    { evaluatePublishReadiness: async () => [] } as never,
-    anything,
+    { evaluatePublishReadiness: async () => [] } as unknown as Deps[12],
+    anything as Deps[13],
   );
   service.onModuleInit();
   const approvals = new PublishApprovalsService(

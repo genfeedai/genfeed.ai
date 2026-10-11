@@ -160,7 +160,11 @@ export function buildCollectionHarness(
     queues[3] as unknown as Queue,
     queues[4] as unknown as Queue,
     logger,
-    { assertAccess: async () => undefined } as never,
+    {
+      assertAccess: async () => undefined,
+    } as unknown as ConstructorParameters<
+      typeof WorkflowExecutionQueueService
+    >[6],
   );
   const outliers = new OutliersService(
     prisma,
