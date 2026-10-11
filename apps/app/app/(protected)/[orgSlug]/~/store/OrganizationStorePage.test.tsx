@@ -113,6 +113,13 @@ describe('OrganizationStorePage (#5502)', () => {
   });
 
   it('shows featured apps, your installed apps and category shelves', () => {
+    // Turbo ships switched off, and a turned-off app is not headlined, so the
+    // organization turns it on to see all three featured apps.
+    mocks.brand.settings = {
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: true,
+      moduleOverrides: { turbo: true },
+    };
     render(<OrganizationStorePage />);
 
     expect(
@@ -124,6 +131,17 @@ describe('OrganizationStorePage (#5502)', () => {
       'store-featured-storyboard',
       'store-featured-turbo',
     ]);
+    // Every card, featured or not, leads with its app thumbnail.
+    for (const appId of ['playground', 'storyboard', 'turbo']) {
+      expect(
+        within(screen.getByTestId(`store-featured-${appId}`)).getByTestId(
+          `store-thumbnail-${appId}`,
+        ),
+      ).toBeInTheDocument();
+    }
+    expect(
+      within(card('discovery')).getByTestId('store-thumbnail-discovery'),
+    ).toBeInTheDocument();
     // Only the installed, openable app is listed under Your apps; no usage
     // counts exist, so nothing claims to be "most used".
     expect(

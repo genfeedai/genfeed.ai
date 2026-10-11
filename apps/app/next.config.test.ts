@@ -18,6 +18,12 @@ import appPackage from './package.json' with { type: 'json' };
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(appDir, '../..');
 
+/**
+ * Org segment of the brand-scoped app-home redirects: `v1` is the API prefix,
+ * never an organization, so `/v1/<segment>/library` must not be redirected.
+ */
+const GUARDED_ORG_SLUG = ':orgSlug((?!v1(?:/|$))[^/]+)';
+
 /** The test redirect helper may join repeated keys; production emits both. */
 function categoryValues(target: URL): string[] {
   return target.searchParams
@@ -345,7 +351,7 @@ describe('app next.config', () => {
           overviewPath,
         ),
         permanent: true,
-        source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+        source: createBrandAppRoute(GUARDED_ORG_SLUG, ':brandSlug', appRoot),
       });
       // Must not collapse overview back onto bare root.
       expect(
@@ -374,7 +380,7 @@ describe('app next.config', () => {
       ),
       permanent: true,
       source: createBrandAppRoute(
-        ':orgSlug',
+        GUARDED_ORG_SLUG,
         ':brandSlug',
         APP_ROUTES.LIBRARY.ROOT,
       ),
