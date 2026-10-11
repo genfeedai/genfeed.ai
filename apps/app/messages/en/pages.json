@@ -1233,6 +1233,68 @@
       "needsTwoFrames": "Select at least two frames",
       "summary": "{frames, plural, one {# frame} other {# frames}} / {transitions, plural, one {# transition} other {# transitions}}"
     },
+    "onboarding": {
+      "description": "Turn a one-line idea or an existing video into a shot-by-shot storyboard, then generate it.",
+      "otherWaysTitle": "Or start another way",
+      "presetsDescription": "One click saves an editable draft. You review a credit quote before anything is generated.",
+      "presetsTitle": "Start with a preset",
+      "remixAction": "Choose a video",
+      "remixDescription": "Pick a post or ad from Discovery, or upload your own video, and rebuild it shot by shot for your brand.",
+      "remixTitle": "Remix a video",
+      "scratchAction": "New storyboard",
+      "scratchDescription": "Write your own brief, add a starting image or style references, and set the format and runtime.",
+      "scratchTitle": "Start from scratch",
+      "title": "Turn an idea into a storyboard"
+    },
+    "presets": {
+      "chipsAria": "Storyboard presets",
+      "chipsLabel": "Start from a preset",
+      "create": "Try this",
+      "createAria": "Create a storyboard from {title}",
+      "creating": "Creating…",
+      "items": {
+        "beforeAfter": {
+          "description": "Show the starting point and the finished result side by side.",
+          "title": "Before and after"
+        },
+        "behindTheScenes": {
+          "description": "Show how the work really gets made.",
+          "title": "Behind the scenes"
+        },
+        "customerStory": {
+          "description": "A casual, user-generated style testimonial with candid B-roll.",
+          "title": "Customer story"
+        },
+        "founderStory": {
+          "description": "The problem, the early days, the turning point and the mission.",
+          "title": "Founder story"
+        },
+        "howTo": {
+          "description": "Teach one skill step by step and end on a clear result.",
+          "title": "How-to tutorial"
+        },
+        "productLaunch": {
+          "description": "Tease a product with fast cuts, then reveal it with a bold promise.",
+          "title": "Product launch teaser"
+        },
+        "seasonRecap": {
+          "description": "Relive the biggest moments of an event or season.",
+          "title": "Event or season recap"
+        },
+        "threeStepExplainer": {
+          "description": "A problem, three clear steps and the outcome.",
+          "title": "3-step explainer"
+        }
+      },
+      "listAria": "Storyboard presets",
+      "prefillAria": "Use the {title} preset",
+      "runtime": "{seconds}s",
+      "seeAll": "See all presets",
+      "selectBrand": "Choose a brand to start a storyboard from a preset.",
+      "shelfTitle": "Start from a preset",
+      "shots": "{count, plural, one {# shot} other {# shots}}",
+      "showFewer": "Show fewer"
+    },
     "recipe": {
       "addReferences": "Add references",
       "aspectRatio": "Aspect ratio",
@@ -1289,7 +1351,6 @@
     "runs": {
       "all": "All storyboards",
       "description": "Every storyboard run for this brand. Open one to continue where you left off.",
-      "empty": "No storyboards yet. Remix a video from Discovery or build one from your images.",
       "lastEdited": "Edited {time}",
       "more": "Load more",
       "needsYou": "Needs you",

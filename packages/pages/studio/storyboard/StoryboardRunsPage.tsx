@@ -5,6 +5,8 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardListRun } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import StoryboardPresetShelf from '@pages/studio/storyboard/components/StoryboardPresetShelf';
+import StoryboardRunsOnboarding from '@pages/studio/storyboard/components/StoryboardRunsOnboarding';
 import { useStoryboardRuns } from '@pages/studio/storyboard/hooks/use-storyboard-runs';
 import { isStoryboardRunNeedingAttention } from '@pages/studio/storyboard/utils/storyboard-run-summary';
 import Card from '@ui/card/Card';
@@ -110,8 +112,9 @@ export default function StoryboardRunsPage(): ReactElement {
       <div className="flex flex-col gap-8">
         {error ? <p role="alert">{error}</p> : null}
         {!isLoading && runs.length === 0 && !error ? (
-          <p className="text-sm text-muted-foreground">{translate('empty')}</p>
+          <StoryboardRunsOnboarding />
         ) : null}
+        {runs.length > 0 ? <StoryboardPresetShelf /> : null}
         {needsAttention.length > 0 ? (
           <CollectionSection
             itemCount={needsAttention.length}

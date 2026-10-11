@@ -7,7 +7,9 @@ import {
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StoryboardPresetChips from '@pages/studio/storyboard/components/StoryboardPresetChips';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
@@ -89,6 +91,11 @@ export default function StoryboardCreate() {
       },
     });
   }
+  function applyPreset(preset: StoryboardPreset) {
+    setBrief(preset.brief);
+    setFormat(preset.format);
+    setBudget(String(preset.runtimeBudgetSeconds));
+  }
   async function submit() {
     if (!valid || isCreating) return;
     const input =
@@ -164,6 +171,12 @@ export default function StoryboardCreate() {
           ) : null}
         </div>
         <div className="sticky bottom-4 z-10 mt-auto">
+          {mode === 'brief' ? (
+            <StoryboardPresetChips
+              isDisabled={isCreating}
+              onSelect={applyPreset}
+            />
+          ) : null}
           <PromptBarComposer
             data-testid="storyboard-composer"
             density="compact"
