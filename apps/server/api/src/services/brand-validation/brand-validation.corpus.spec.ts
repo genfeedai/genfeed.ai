@@ -6,12 +6,16 @@ import {
   hashBrandedGenerationArtifactManifestV1,
   hashBrandIdentitySnapshotV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import type { BrandArtifactProofV1 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandArtifactValidationInputV1,
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { describe, expect, it } from 'vitest';
 
+function paletteProof(check?: { proof?: BrandArtifactProofV1 }) {
+  return check?.proof?.kind === 'palette' ? check.proof : undefined;
+}
 const service = new BrandValidationService();
 // CI runners may have no ffmpeg; the video proof then stays unknown (covered separately).
 const hasVideoDecoder = await isBrandVideoDecoderAvailable();
@@ -303,9 +307,9 @@ describe('genuine immutable synthetic corpus through the conservative core', () 
         target: '#123456',
       },
     });
-    expect(blue?.proof?.coverage).toBeGreaterThan(0.95);
-    expect(blue?.proof?.nearestSwatchDeltaE).toBeLessThan(3);
-    expect(blue?.proof?.swatches[0]?.share).toBeGreaterThan(0.95);
+    expect(paletteProof(blue)?.coverage).toBeGreaterThan(0.95);
+    expect(paletteProof(blue)?.nearestSwatchDeltaE).toBeLessThan(3);
+    expect(paletteProof(blue)?.swatches[0]?.share).toBeGreaterThan(0.95);
     expect(red).toMatchObject({
       reasonCode: 'palette_color_absent',
       result: 'fail',

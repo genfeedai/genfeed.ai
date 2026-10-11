@@ -13,6 +13,7 @@ import {
   hashBrandedGenerationArtifactManifestV1,
   hashBrandIdentitySnapshotV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import type { BrandArtifactProofV1 } from '@genfeedai/contracts/api-types/contracts';
 import { brandArtifactValidationReportV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandArtifactValidationInputV1,
@@ -21,6 +22,9 @@ import type {
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 
+function paletteProof(check?: { proof?: BrandArtifactProofV1 }) {
+  return check?.proof?.kind === 'palette' ? check.proof : undefined;
+}
 const service = new BrandValidationService();
 
 describe('CIEDE2000', () => {
@@ -262,8 +266,8 @@ describe('artifact-bound palette proof for images', () => {
     ]);
     const report = await service.validateBrandArtifact(input);
     const [blue, white, red] = report.checks;
-    expect(blue.proof?.coverage).toBe(0.75);
-    expect(white.proof?.coverage).toBe(0.25);
+    expect(paletteProof(blue)?.coverage).toBe(0.75);
+    expect(paletteProof(white)?.coverage).toBe(0.25);
     expect(blue.result).toBe('pass');
     expect(white.result).toBe('pass');
     expect(red).toMatchObject({
