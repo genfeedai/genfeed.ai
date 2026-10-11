@@ -84,6 +84,7 @@ export async function holdBrandSchedules(
     )
     .map((workflow) => workflow.id);
   if (touchedWorkflowIds.length > 0) {
+    // sql-risk-audit: ignore bulk-write-tenant-review -- the ids come from the brand-pinned read above in this transaction; a relocation spans the source and destination tenants.
     // tenant-scope-ignore: ids come from the brand-pinned read above inside this transaction.
     await tx.workflow.updateMany({
       data: {
