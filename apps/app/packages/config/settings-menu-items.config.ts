@@ -10,6 +10,7 @@ import {
   Building2,
   ChartColumn,
   CircleQuestionMark,
+  Cpu,
   CreditCard,
   Flame,
   Gift,
@@ -21,6 +22,7 @@ import {
   Puzzle,
   Receipt,
   Send,
+  SlidersHorizontal,
   Tag,
   User,
   Users,
@@ -135,6 +137,14 @@ function buildOrganizationMenuItems(
     },
     {
       group: 'Organization',
+      href: APP_ROUTES.SETTINGS.DEFAULTS,
+      hrefScope: 'organization',
+      label: 'Defaults',
+      outline: SlidersHorizontal,
+      solid: SlidersHorizontal,
+    },
+    {
+      group: 'Organization',
       href: APP_ROUTES.SETTINGS.MEMBERS,
       hrefScope: 'organization',
       label: 'Members',
@@ -149,6 +159,14 @@ function buildOrganizationMenuItems(
       label: 'Brands',
       outline: Tag,
       solid: Tag,
+    },
+    {
+      group: 'Organization',
+      href: APP_ROUTES.SETTINGS.FLEET,
+      hrefScope: 'organization',
+      label: 'Fleet',
+      outline: Cpu,
+      solid: Cpu,
     },
     {
       // Org model catalog + defaults for the studio prompt bar.

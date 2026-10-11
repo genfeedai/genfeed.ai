@@ -701,6 +701,8 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/progress',
       '/:orgSlug/~/settings/members',
       '/:orgSlug/~/settings/modules',
+      '/:orgSlug/~/settings/defaults',
+      '/:orgSlug/~/settings/fleet',
       '/:orgSlug/~/settings/credits',
       '/:orgSlug/~/settings/subscription',
       '/:orgSlug/~/settings/referrals',

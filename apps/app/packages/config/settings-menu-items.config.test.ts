@@ -56,8 +56,10 @@ describe('buildSettingsMenuItems', () => {
       ).toEqual([
         'General',
         'Modules',
+        'Defaults',
         'Members',
         'Brands',
+        'Fleet',
         'Models',
         'Agents',
         'Credits',
@@ -77,8 +79,10 @@ describe('buildSettingsMenuItems', () => {
       ).toEqual([
         'General',
         'Modules',
+        'Defaults',
         'Members',
         'Brands',
+        'Fleet',
         'Models',
         'Agents',
         'Memory',
@@ -100,8 +104,10 @@ describe('buildSettingsMenuItems', () => {
       ).toEqual([
         ['General', 'Organization'],
         ['Modules', 'Organization'],
+        ['Defaults', 'Organization'],
         ['Members', 'Organization'],
         ['Brands', 'Organization'],
+        ['Fleet', 'Organization'],
         ['Models', 'Organization'],
         ['Agents', 'Organization'],
         ['Credits', 'Billing'],
