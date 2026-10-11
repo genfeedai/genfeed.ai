@@ -63,6 +63,7 @@ import {
   shouldUseKnowledgeWorkflowEntry,
   toWorkflowToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/knowledge-workflow-execution.util';
+import type { AgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import type {
   AgentThreadModeValue,
   CuratedActionName,
@@ -139,6 +140,12 @@ export interface ToolExecutionContext {
   proactiveTextDraftOnly?: true;
   creditBudget?: number;
   apiKeyContext?: ApiKeyPublishingContext;
+  /**
+   * The authenticated principal a schedule saved by this tool call is bound to.
+   * Captured where the request is authenticated; never derived from a workflow
+   * or brand owner. Absent for system turns.
+   */
+  initiatingPrincipal?: AgentInitiatingPrincipal;
   /** URLs of user-attached images from the chat message */
   attachmentUrls?: string[];
   userId: string;

@@ -14,6 +14,7 @@ import {
   resolveLearningPublicationSourceV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { captureAndDetectPostExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
+import { enqueueDetectedBreakoutResponseAfterCommit } from '@api/collections/outliers/services/breakout-response-execution-queue.util';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
@@ -148,6 +149,16 @@ export class PostAnalyticsService extends BaseService<
     );
     if (result.status !== 'captured' && result.status !== 'replayed')
       throw new Error(`Exposure observation held: ${result.status}`);
+    // Only after the observation and detection commit, and only for this bound actor.
+    await enqueueDetectedBreakoutResponseAfterCommit(
+      {
+        logger: this.logger,
+        prisma: this.prisma,
+        queue: this.workflowQueue,
+      },
+      authorization.initiatingActor,
+      source,
+    );
   }
   private async persistLearningObservation(
     postId: string,

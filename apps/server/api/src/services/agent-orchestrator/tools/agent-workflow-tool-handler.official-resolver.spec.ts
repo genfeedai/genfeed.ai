@@ -104,6 +104,7 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
         systemWorkflowCatalogService as never,
         workflowsService as never,
       ),
+      { updateSchedule: vi.fn() } as never,
       undefined,
       undefined,
       cacheService as never,

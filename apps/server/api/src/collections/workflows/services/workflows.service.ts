@@ -6,6 +6,7 @@ import { FeaturedWorkflowsService } from '@api/collections/workflows/services/fe
 import type { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import {
   buildFeaturedWorkflowCopyPayload,
+  buildWorkflowClonePayload,
   buildWorkflowCreatePayload,
   getDefaultInputValuesFromWorkflowData,
   getMissingRequiredInputKeys,
@@ -24,13 +25,18 @@ import {
   validateTemplateInstantiationKey,
 } from '@api/collections/workflows/services/workflow-template-instantiation.util';
 import {
-  buildSystemWorkflowDuplicateMetadata,
   isProtectedSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
 } from '@api/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
+import { PLATFORM_SEED_INVALIDATING_PATCH_FIELDS } from '@api/collections/workflows/utils/workflow-platform-seed.util';
 import {
+  resolveScheduleInitiatingActor,
+  type WorkflowSchedulePrincipal,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
+import {
+  appendWorkflowVersion,
   buildWorkflowVersionDefinition,
   createVersionedWorkflow,
   hydrateWorkflowDefinition,
@@ -56,7 +62,6 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -189,18 +194,43 @@ export class WorkflowsService extends BaseService<
     );
   }
 
+  /**
+   * Tenant-facing create. Whatever the input carries, the platform authority marker is
+   * dropped: only {@link createPlatformSeeded} can write it.
+   */
   override async create(
     createDto: CreateWorkflowDto,
+  ): Promise<WorkflowDocument> {
+    return this.persistCreate(createDto);
+  }
+
+  /**
+   * Seeder-only create: persists the workflow marked as the canonical seeded template
+   * `platformSeedKey`, so Cloud runs its schedule under platform authority without an actor.
+   * Nothing else may call this; callers resolve the key from the code-owned catalog.
+   */
+  async createPlatformSeeded(
+    createDto: CreateWorkflowDto,
+    platformSeedKey: string,
+  ): Promise<WorkflowDocument> {
+    return this.persistCreate(createDto, platformSeedKey);
+  }
+
+  private async persistCreate(
+    createDto: CreateWorkflowDto,
+    platformSeedKey?: string,
   ): Promise<WorkflowDocument> {
     const { definition, workflow } = splitWorkflowDefinition(
       createDto as unknown as Record<string, unknown>,
     );
     delete workflow.currentVersionId;
+    delete workflow.platformSeedKey;
     const created = await this.prisma.$transaction((transaction) =>
       createVersionedWorkflow(
         transaction,
         workflow as VersionedWorkflowIdentityInput,
         definition,
+        { platformSeedKey },
       ),
     );
 
@@ -222,6 +252,14 @@ export class WorkflowsService extends BaseService<
       throw new BadRequestException(
         'Template instantiation identity is immutable',
       );
+    }
+    if ('scheduleInitiatingActor' in workflowPatch) {
+      throw new BadRequestException(
+        'The schedule initiating actor is server-owned',
+      );
+    }
+    if ('platformSeedKey' in workflowPatch) {
+      throw new BadRequestException('The platform seed key is server-owned');
     }
     const configPatch = pickDefinedFields(
       workflowPatch,
@@ -246,6 +284,14 @@ export class WorkflowsService extends BaseService<
       delete scalarPatch[field];
     }
     delete scalarPatch.currentVersionId;
+    // Editing what a seeded workflow is or runs makes it a tenant workflow in the same write.
+    if (
+      PLATFORM_SEED_INVALIDATING_PATCH_FIELDS.some(
+        (field) => field in workflowPatch,
+      )
+    ) {
+      scalarPatch.platformSeedKey = null;
+    }
 
     const hasDefinitionPatch = WORKFLOW_DEFINITION_FIELDS.some(
       (field) => field in workflowPatch,
@@ -266,37 +312,9 @@ export class WorkflowsService extends BaseService<
       nodes: definition.nodes ?? existing.nodes,
     });
 
-    const updated = await this.prisma.$transaction(async (transaction) => {
-      const version = await transaction.workflowVersion.create({
-        data: {
-          contentHash: nextDefinition.contentHash,
-          graph: toPrismaJson(nextDefinition.graph),
-          inputSchema: toPrismaJson(nextDefinition.inputSchema),
-          organizationId: existing.organizationId,
-          userId: existing.userId,
-          version: existing.version + 1,
-          workflowId: existing.id,
-        },
-      });
-      // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on workflow.id after the tenant-scoped load; currentVersionId is the concurrency token.
-      const changed = await transaction.workflow.updateMany({
-        data: { ...scalarPatch, currentVersionId: version.id },
-        where: {
-          currentVersionId: existing.versionId,
-          id,
-          isDeleted: false,
-          organizationId: existing.organizationId,
-        },
-      });
-      if (changed.count !== 1) {
-        throw new Error(`Workflow ${id} was edited concurrently`);
-      }
-
-      return transaction.workflow.findFirstOrThrow({
-        include: { currentVersion: true },
-        where: scopedWhere(existing.organizationId, { id }),
-      });
-    });
+    const updated = await this.prisma.$transaction((transaction) =>
+      appendWorkflowVersion(transaction, existing, nextDefinition, scalarPatch),
+    );
 
     return this.normalizeDocument(updated);
   }
@@ -365,6 +383,7 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
+    schedulePrincipal?: WorkflowSchedulePrincipal,
   ): Promise<WorkflowEntity> {
     const key = validateTemplateInstantiationKey(workflowData);
 
@@ -395,6 +414,7 @@ export class WorkflowsService extends BaseService<
         organizationId,
         resolveWorkflowBrandId((workflowData as WorkflowCreateExtras).brandId),
         defaultBrandId,
+        schedulePrincipal,
       );
     }
 
@@ -427,6 +447,7 @@ export class WorkflowsService extends BaseService<
         brandId,
         canonicalId,
         organizationId,
+        schedulePrincipal,
         userId,
       });
 
@@ -444,6 +465,12 @@ export class WorkflowsService extends BaseService<
       brandId,
       defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
       organizationId,
+      scheduleInitiatingActor: resolveScheduleInitiatingActor({
+        isEnabled: workflowData.isScheduleEnabled,
+        organizationId,
+        principal: schedulePrincipal,
+        schedule: workflowData.schedule,
+      }),
       userId,
       workflowData: {
         ...(workflowData as WorkflowCreateExtras),
@@ -554,6 +581,7 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
     targetBrandId?: string,
     fallbackBrandId?: string,
+    schedulePrincipal?: WorkflowSchedulePrincipal,
   ): Promise<WorkflowEntity> {
     const workflowDoc = await this.findVisibleOrThrow(workflowId, {
       organizationId,
@@ -562,8 +590,6 @@ export class WorkflowsService extends BaseService<
     const isProtectedSystemWorkflow = isProtectedSystemWorkflowMetadata(
       workflowDoc.metadata,
     );
-    const sourceWorkflowId = workflowDoc.id;
-    const sourceLabel = workflowDoc.label ?? 'Workflow';
 
     // An explicit target brand must be valid — fail loudly rather than
     // silently substituting a brand the caller didn't ask for.
@@ -587,49 +613,15 @@ export class WorkflowsService extends BaseService<
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
     const clonedWorkflow = await this.create(
-      buildWorkflowCreatePayload({
+      buildWorkflowClonePayload({
         brandId,
-        defaultLabel: `${sourceLabel} (Copy)`,
+        isProtectedSystemWorkflow,
+        isSourceBrandAccessible,
         organizationId,
+        schedulePrincipal,
+        source: workflowDoc,
+        targetBrandId,
         userId,
-        workflowData: {
-          config: workflowDoc.config,
-          defaultRecurringBrandId: isProtectedSystemWorkflow
-            ? null
-            : targetBrandId ||
-              (!isSourceBrandAccessible
-                ? brandId
-                : workflowDoc.defaultRecurringBrandId) ||
-              null,
-          description: workflowDoc.description ?? undefined,
-          edges: workflowDoc.edges,
-          edgeStyle: workflowDoc.edgeStyle,
-          executionCount: 0,
-          inputVariables: workflowDoc.inputVariables,
-          isScheduleEnabled: isProtectedSystemWorkflow
-            ? false
-            : workflowDoc.isScheduleEnabled,
-          label: `${sourceLabel} (Copy)`,
-          lastExecutedAt: undefined,
-          lockedNodeIds: isProtectedSystemWorkflow
-            ? []
-            : (workflowDoc.lockedNodeIds ?? []),
-          metadata: buildSystemWorkflowDuplicateMetadata(
-            workflowDoc.metadata,
-            sourceWorkflowId,
-          ),
-          nodes: workflowDoc.nodes,
-          progress: 0,
-          recurrence: undefined,
-          schedule: isProtectedSystemWorkflow
-            ? undefined
-            : (workflowDoc.schedule ?? undefined),
-          startedAt: undefined,
-          status: WorkflowStatus.DRAFT,
-          thumbnail: workflowDoc.thumbnail ?? undefined,
-          thumbnailNodeId: workflowDoc.thumbnailNodeId ?? undefined,
-          timezone: workflowDoc.timezone ?? undefined,
-        },
       }) as unknown as CreateWorkflowDto,
     );
 

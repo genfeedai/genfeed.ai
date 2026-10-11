@@ -89,10 +89,12 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
       mockBrand.id,
       validDto,
     );
+    // The saving principal is bound as the schedule's actor (#6682).
     expect(mockBrandsService.updateAgentConfig).toHaveBeenCalledWith(
       mockBrand.id,
       orgId,
       validDto,
+      expect.objectContaining({ organizationId: orgId }),
     );
     expect(mockSkillsService.assertAccessibleSkillSlugs).toHaveBeenCalledWith(
       orgId,
@@ -243,6 +245,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
       expect.anything(),
       orgId,
       expect.anything(),
+      expect.anything(),
     );
   });
 
@@ -257,6 +260,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     );
     expect(mockBrandsService.updateAgentConfig).toHaveBeenCalledWith(
       brandId,
+      expect.anything(),
       expect.anything(),
       expect.anything(),
     );

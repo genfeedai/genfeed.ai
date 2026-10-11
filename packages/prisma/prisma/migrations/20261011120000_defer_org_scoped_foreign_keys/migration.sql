@@ -1,0 +1,97 @@
+-- Moving a brand to another organization rewrites the organization id of every
+-- row that carries one. A child row can name several parents by composite
+-- (id, organizationId, ...) keys: an exposure observation names its brand, its
+-- credential and its post. Whichever parent the move updates first, the child
+-- is checked against the others before they follow it, and the move fails.
+--
+-- These constraints become DEFERRABLE INITIALLY IMMEDIATE: they behave exactly
+-- as before until a transaction runs SET CONSTRAINTS ... DEFERRED, which the
+-- brand relocation does so every parent and child agree again before commit.
+-- ON UPDATE CASCADE itself still runs immediately; only the check is deferred.
+-- Metadata only: no rows are rewritten or revalidated.
+BEGIN;
+
+ALTER TABLE ad_watched_advertisers ALTER CONSTRAINT "ad_watched_advertisers_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE agent_threads ALTER CONSTRAINT "agent_threads_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE agent_transfers ALTER CONSTRAINT "agent_transfers_destinationBrandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE agent_transfers ALTER CONSTRAINT "agent_transfers_sourceBrandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE bot_account_links ALTER CONSTRAINT bot_account_links_installation_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE breakout_baseline_receipts ALTER CONSTRAINT breakout_baseline_receipts_target_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE breakout_response_outputs ALTER CONSTRAINT breakout_response_outputs_response_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE breakout_responses ALTER CONSTRAINT breakout_responses_native_source_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE breakout_responses ALTER CONSTRAINT breakout_responses_source_post_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE breakout_responses ALTER CONSTRAINT breakout_responses_trigger_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE campaign_paid_activations ALTER CONSTRAINT "campaign_paid_activations_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE campaign_paid_activations ALTER CONSTRAINT "campaign_paid_activations_campaignId_organizationId_brandId_fke" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE campaign_targets ALTER CONSTRAINT "campaign_targets_campaignId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE campaigns ALTER CONSTRAINT "campaigns_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE clip_results ALTER CONSTRAINT "clip_results_projectId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE content_drafts ALTER CONSTRAINT "content_drafts_approvedVersionPinId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE content_version_pins ALTER CONSTRAINT "content_version_pins_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE context_entries ALTER CONSTRAINT context_entries_knowledge_version_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE generation_prompt_snapshots ALTER CONSTRAINT generation_prompt_snapshots_brand_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_capture_requests ALTER CONSTRAINT knowledge_capture_requests_source_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_source_refresh_runs ALTER CONSTRAINT knowledge_source_refresh_runs_candidate_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_source_refresh_runs ALTER CONSTRAINT knowledge_source_refresh_runs_source_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_source_versions ALTER CONSTRAINT "knowledge_source_versions_sourceId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_sources ALTER CONSTRAINT "knowledge_sources_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_space_memberships ALTER CONSTRAINT "knowledge_space_memberships_sourceId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_space_memberships ALTER CONSTRAINT "knowledge_space_memberships_spaceId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE knowledge_spaces ALTER CONSTRAINT "knowledge_spaces_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_evidence ALTER CONSTRAINT "listening_evidence_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_evidence ALTER CONSTRAINT "listening_evidence_sourcePostId_scope_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_evidence ALTER CONSTRAINT "listening_evidence_topicId_scope_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_evidence ALTER CONSTRAINT "listening_evidence_topicSourceId_scope_topic_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_signals ALTER CONSTRAINT listening_signals_brand_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_signals ALTER CONSTRAINT listening_signals_theme_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_signals ALTER CONSTRAINT listening_signals_topic_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_theme_evidence ALTER CONSTRAINT listening_theme_evidence_evidence_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_theme_evidence ALTER CONSTRAINT listening_theme_evidence_theme_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_themes ALTER CONSTRAINT listening_themes_brand_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_themes ALTER CONSTRAINT listening_themes_topic_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_topic_sources ALTER CONSTRAINT "listening_topic_sources_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_topic_sources ALTER CONSTRAINT "listening_topic_sources_sourceId_scope_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_topic_sources ALTER CONSTRAINT "listening_topic_sources_topicId_scope_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE listening_topics ALTER CONSTRAINT "listening_topics_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE llm_vendor_costs ALTER CONSTRAINT llm_vendor_costs_brand_tenant_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE media_vendor_costs ALTER CONSTRAINT media_vendor_costs_brand_tenant_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE newsletters ALTER CONSTRAINT "newsletters_approvedVersionPinId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE outlier_post_performances ALTER CONSTRAINT "outlier_post_performances_baselineSnapshotId_organizationI_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE post_exposure_observations ALTER CONSTRAINT post_exposure_observations_brand_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE post_exposure_observations ALTER CONSTRAINT post_exposure_observations_credential_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE post_exposure_observations ALTER CONSTRAINT post_exposure_observations_native_source_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE post_exposure_observations ALTER CONSTRAINT post_exposure_observations_post_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE post_groups ALTER CONSTRAINT "post_groups_campaignId_organizationId_brandId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE posts ALTER CONSTRAINT posts_breakout_output_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE posts ALTER CONSTRAINT "posts_campaignId_organizationId_brandId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE posts ALTER CONSTRAINT posts_listening_theme_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE posts ALTER CONSTRAINT "posts_reviewVersionPinId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE publish_approvals ALTER CONSTRAINT "publish_approvals_artifactVersionPinId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE publish_approvals ALTER CONSTRAINT "publish_approvals_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE saved_ads ALTER CONSTRAINT "saved_ads_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE skill_assignments ALTER CONSTRAINT skill_assignments_brand_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE skill_grants ALTER CONSTRAINT skill_grants_recipient_brand_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE skill_resolutions ALTER CONSTRAINT skill_resolutions_brand_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE skills ALTER CONSTRAINT skills_owner_brand_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE social_warmup_enrollments ALTER CONSTRAINT "social_warmup_enrollments_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE social_warmup_events ALTER CONSTRAINT "social_warmup_events_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE social_warmup_events ALTER CONSTRAINT social_warmup_events_enrollment_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE social_warmup_signals ALTER CONSTRAINT "social_warmup_signals_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE social_warmup_signals ALTER CONSTRAINT social_warmup_signals_enrollment_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE source_post_native_actions ALTER CONSTRAINT source_post_native_actions_post_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE studio_generate_drafts ALTER CONSTRAINT "studio_generate_drafts_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE studio_looks ALTER CONSTRAINT "studio_looks_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_brand_dependencies ALTER CONSTRAINT workflow_execution_read_dependencies_brand_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_brand_dependencies ALTER CONSTRAINT workflow_execution_read_dependencies_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_lineage ALTER CONSTRAINT workflow_execution_read_lineage_child_execution_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_lineage ALTER CONSTRAINT workflow_execution_read_lineage_child_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_lineage ALTER CONSTRAINT workflow_execution_read_lineage_parent_execution_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_lineage ALTER CONSTRAINT workflow_execution_read_lineage_parent_scope_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_scopes ALTER CONSTRAINT workflow_execution_read_scopes_batch_version_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_scopes ALTER CONSTRAINT workflow_execution_read_scopes_execution_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_scopes ALTER CONSTRAINT workflow_execution_read_scopes_strategy_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflow_execution_read_scopes ALTER CONSTRAINT workflow_execution_read_scopes_thread_fkey DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workflows ALTER CONSTRAINT "workflows_brandId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workspace_inbox_reads ALTER CONSTRAINT "workspace_inbox_reads_taskId_organizationId_fkey" DEFERRABLE INITIALLY IMMEDIATE;
+
+COMMIT;

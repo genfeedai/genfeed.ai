@@ -80,8 +80,15 @@ async function pickDestination() {
 }
 
 const preview = {
-  counts: { soleBrandWorkflows: 0, staleMembers: 1 },
+  counts: {
+    personasToReset: 0,
+    schedulesToHold: 0,
+    soleBrandWorkflows: 0,
+    staleMembers: 1,
+  },
   movingResources: [{ count: 4, label: 'posts', resource: 'post' }],
+  personasToReset: [],
+  schedulesToHold: [],
 };
 
 describe('BrandMoveDialog', () => {

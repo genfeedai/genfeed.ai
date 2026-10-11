@@ -15,6 +15,7 @@ import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import {
   authorizeResearchFindingReferences,
   isAuthorizedAnalyticsQueryReference,
@@ -114,6 +115,11 @@ export class AgentOrchestratorController {
 
       const result = await this.orchestratorService.chat(authorizedRequest, {
         apiKeyContext: user,
+        initiatingPrincipal: buildAgentInitiatingPrincipal({
+          auth: user,
+          organizationId: organization,
+          userId: dbUserId,
+        }),
         organizationId: organization,
         userId: dbUserId,
       });
@@ -144,6 +150,11 @@ export class AgentOrchestratorController {
         authorizedRequest,
         {
           apiKeyContext: user,
+          initiatingPrincipal: buildAgentInitiatingPrincipal({
+            auth: user,
+            organizationId: organization,
+            userId: dbUserId,
+          }),
           organizationId: organization,
           userId: dbUserId,
         },

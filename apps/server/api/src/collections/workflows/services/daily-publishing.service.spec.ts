@@ -1,6 +1,15 @@
 import { createHash } from 'node:crypto';
+import { admitAnalyticsCollection } from '@api/analytics/analytics-collection-authorization';
 import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import {
+  CHAIN_ACTOR,
+  type ExecutionFixture,
+  executionLookup,
+  hiddenExecutionRow,
+  tenantExecutionRow,
+} from '@api/authorization/brand-access/hidden-execution-chain.fixture';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
@@ -16,8 +25,43 @@ import {
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getActionDefinition } from '@genfeedai/actions';
+import { MemberRole } from '@genfeedai/contracts';
 import type { ModuleRef } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
+
+const runtime = vi.hoisted(() => ({ cloud: true }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => runtime.cloud,
+}));
+
+/** The hidden daily account child and its tenant parent, as a run records them. */
+function dailyChain(
+  parent: Partial<Parameters<typeof tenantExecutionRow>[0]>,
+): [ExecutionFixture, ExecutionFixture] {
+  const tenant = tenantExecutionRow({
+    id: 'parent',
+    trigger: 'manual',
+    userId: 'user',
+    workflowId: 'tenant-workflow',
+    ...parent,
+  });
+  const child = hiddenExecutionRow({
+    id: 'execution',
+    canonicalId: 'daily-publishing.account',
+    inputValues: { item: {} },
+    metadata: {
+      parentExecutionId: 'parent',
+      parentNodeId: 'publish-each-account',
+      parentWorkflowId: 'tenant-workflow',
+      workflowForEachIndex: 0,
+    },
+    userId: 'user',
+    versionId: 'version',
+    workflowId: 'workflow',
+  });
+  return [tenant, child];
+}
 
 function setup() {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
@@ -25,6 +69,13 @@ function setup() {
     agentStrategy: { findFirst: vi.fn() },
     brand: { findFirst: vi.fn().mockResolvedValue(null) },
     credential: { findFirst: vi.fn().mockResolvedValue({ id: 'account' }) },
+    apiKey: { findFirst: vi.fn() },
+    member: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ role: { key: MemberRole.ADMIN }, brands: [] }),
+    },
+    workflowExecution: { findFirst: vi.fn(executionLookup(dailyChain({}))) },
     post: {
       findFirst: vi.fn(),
       findFirstOrThrow: vi.fn(),
@@ -47,19 +98,21 @@ function setup() {
   };
   const ref = {
     get: (token: unknown) =>
-      token === OutliersService
-        ? outliers
-        : token === SystemWorkflowRunnerService
-          ? runner
-          : token === PostsService
-            ? posts
-            : token === AnalyticsTwitterCollectionService
-              ? twitter
-              : token === AnalyticsSocialCollectionService
-                ? social
-                : token === ContentQualityScorerService
-                  ? quality
-                  : undefined,
+      token === BrandAccessService
+        ? new BrandAccessService(prisma as unknown as PrismaService)
+        : token === OutliersService
+          ? outliers
+          : token === SystemWorkflowRunnerService
+            ? runner
+            : token === PostsService
+              ? posts
+              : token === AnalyticsTwitterCollectionService
+                ? twitter
+                : token === AnalyticsSocialCollectionService
+                  ? social
+                  : token === ContentQualityScorerService
+                    ? quality
+                    : undefined,
   };
   new DailyPublishingService(
     prisma as unknown as PrismaService,
@@ -80,6 +133,7 @@ function setup() {
     actions.get(id)?.({
       input,
       context: {
+        executionId: 'execution',
         organizationId: 'org',
         userId: 'user',
         workflowId: 'workflow',
@@ -274,6 +328,147 @@ describe('daily account publishing', () => {
       });
     },
   );
+  describe('breakout capture authorization', () => {
+    const duePosts = ['one', 'two', 'three'].map((id) => ({
+      id,
+      externalId: `ext-${id}`,
+      organizationId: 'org',
+      brandId: 'brand',
+    }));
+    const scheduledBy = dailyChain({
+      actor: CHAIN_ACTOR,
+      trigger: 'scheduled',
+    });
+
+    it('collects ordinary posts without authorization when the run is not schedule-bound', async () => {
+      const { prisma, state, invoke, twitter } = setup();
+      prisma.post.findMany.mockResolvedValue(duePosts);
+      await invoke('daily-publishing.collect-analytics', { item: state });
+      expect(twitter.collect).toHaveBeenCalledTimes(3);
+      for (const call of twitter.collect.mock.calls)
+        expect(call[1]).toBeUndefined();
+    });
+
+    it.each([
+      ['twitter', 'twitter'],
+      ['linkedin', 'social'],
+    ] as const)(
+      'passes the scheduled configuring principal to every %s collection',
+      async (platform, collectorName) => {
+        const setupResult = setup();
+        const { prisma, state, invoke } = setupResult;
+        const collector = setupResult[collectorName];
+        prisma.workflowExecution.findFirst.mockImplementation(
+          executionLookup(scheduledBy),
+        );
+        prisma.post.findMany.mockResolvedValue(duePosts);
+        await invoke('daily-publishing.collect-analytics', {
+          item: { ...state, platform },
+        });
+        expect(collector.collect).toHaveBeenCalledTimes(3);
+        for (const call of collector.collect.mock.calls)
+          expect(call[1]).toMatchObject({ initiatingActor: CHAIN_ACTOR });
+      },
+    );
+
+    it('holds the account when the bound principal was revoked, instead of collecting actor-less', async () => {
+      const { prisma, state, invoke, twitter, outliers } = setup();
+      prisma.workflowExecution.findFirst.mockImplementation(
+        executionLookup(scheduledBy),
+      );
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.post.findMany.mockResolvedValue(duePosts);
+      const result = await invoke('daily-publishing.collect-analytics', {
+        item: state,
+      });
+      expect(twitter.collect).not.toHaveBeenCalled();
+      expect(outliers.refresh).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        analyticsRefreshError: expect.stringContaining('actor:'),
+        outcome: 'actor-held',
+      });
+    });
+
+    it('holds the account when the bound parent chain does not hold', async () => {
+      const { prisma, state, invoke, twitter } = setup();
+      const forged = dailyChain({ actor: CHAIN_ACTOR, trigger: 'scheduled' });
+      forged[0].workflow.organizationId = 'foreign';
+      prisma.workflowExecution.findFirst.mockImplementation(
+        executionLookup(forged),
+      );
+      prisma.post.findMany.mockResolvedValue(duePosts);
+      const result = await invoke('daily-publishing.collect-analytics', {
+        item: state,
+      });
+      expect(twitter.collect).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ outcome: 'actor-held' });
+    });
+
+    it('keeps ordinary actor-less collection for a scheduled run whose account is genuinely unbound', async () => {
+      const { prisma, state, invoke, twitter } = setup();
+      prisma.workflowExecution.findFirst.mockImplementation(
+        executionLookup(dailyChain({ trigger: 'scheduled' })),
+      );
+      prisma.post.findMany.mockResolvedValue(duePosts);
+      const result = await invoke('daily-publishing.collect-analytics', {
+        item: state,
+      });
+      expect(twitter.collect).toHaveBeenCalledTimes(3);
+      for (const call of twitter.collect.mock.calls)
+        expect(call[1]).toBeUndefined();
+      expect(result).not.toHaveProperty('outcome', 'actor-held');
+    });
+
+    it('does no further work for a held account', async () => {
+      const { prisma, posts, state, invoke } = setup();
+      const held = {
+        ...state,
+        outcome: 'actor-held',
+        postId: undefined,
+        request: { brandId: 'brand', autoPublish: true },
+      };
+      for (const step of ['select', 'generate', 'evaluate', 'schedule']) {
+        expect(await invoke(`daily-publishing.${step}`, { state: held })).toBe(
+          held,
+        );
+      }
+      expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+      expect(prisma.post.findFirst).not.toHaveBeenCalled();
+      expect(prisma.post.upsert).not.toHaveBeenCalled();
+      expect(posts.batchSchedule).not.toHaveBeenCalled();
+    });
+
+    it('stops at the first authorization failure instead of retrying every post', async () => {
+      const { prisma, state, invoke, twitter } = setup();
+      prisma.workflowExecution.findFirst.mockImplementation(
+        executionLookup(scheduledBy),
+      );
+      prisma.post.findMany.mockResolvedValue(duePosts);
+      twitter.collect.mockImplementation(
+        async (
+          _data: unknown,
+          authorization: Parameters<typeof admitAnalyticsCollection>[0],
+        ) => {
+          await admitAnalyticsCollection(authorization);
+          prisma.member.findFirst.mockResolvedValue(null);
+        },
+      );
+      const result = await invoke('daily-publishing.collect-analytics', {
+        item: state,
+      });
+      expect(twitter.collect).toHaveBeenCalledTimes(2);
+      expect(result).toMatchObject({
+        analyticsRefreshError: expect.stringContaining('Brand access denied'),
+        outcome: 'actor-held',
+      });
+    });
+
+    it('does not resolve any actor when there is nothing to collect', async () => {
+      const { prisma, state, invoke } = setup();
+      await invoke('daily-publishing.collect-analytics', { item: state });
+      expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
+    });
+  });
   it('refreshes once after a successful account batch and records a baseline error', async () => {
     const { prisma, state, invoke, twitter, outliers } = setup();
     prisma.post.findMany.mockResolvedValue(

@@ -24,6 +24,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { BreakoutGenerationModule } from '@api/collections/outliers/breakout-generation.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
@@ -110,6 +111,8 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => ContentPerformanceModule),
     forwardRef(() => ContentRunsModule),
     forwardRef(() => ContextsModule),
+    // Registers the system-only breakout response executor the API enqueues.
+    BreakoutGenerationModule,
     forwardRef(() => SocialSourcesModule),
     forwardRef(() => CreativePatternsModule),
     forwardRef(() => CredentialsModule),

@@ -78,6 +78,55 @@ describe('WorkflowAutomationExecutorRegistrarService', () => {
       collection,
     });
   });
+  it('hands the trusted execution context to analytics discovery and collection', async () => {
+    const executors = new Map<string, NodeExecutor>();
+    const analytics = {
+      collectFacebook: vi.fn(),
+      collectSocial: vi.fn(),
+      collectThreads: vi.fn(),
+      collectTwitter: vi.fn(),
+      collectYouTube: vi.fn(),
+      discoverPosts: vi.fn(),
+    };
+    const registrar = new WorkflowAutomationExecutorRegistrarService(
+      undefined,
+      undefined,
+      analytics as never,
+    );
+    registrar.register({
+      registerExecutor: (id: string, executor: NodeExecutor) =>
+        executors.set(id, executor),
+    } as never);
+    const context = {
+      executionId: 'run',
+      organizationId: 'authenticated',
+    } as never;
+    const item = { id: 'post' };
+    for (const [actionId, method] of [
+      ['analytics.facebook.collect', analytics.collectFacebook],
+      ['analytics.social.collect', analytics.collectSocial],
+      ['analytics.threads.collect', analytics.collectThreads],
+      ['analytics.twitter.collect', analytics.collectTwitter],
+      ['analytics.youtube.collect', analytics.collectYouTube],
+    ] as const) {
+      await executors.get(actionId)?.(
+        { config: {} } as never,
+        new Map([['item', item]]),
+        context,
+      );
+      expect(method).toHaveBeenCalledWith({ item }, context);
+    }
+    await executors.get('analytics.posts.discover')?.(
+      { config: { platforms: ['twitter'] } } as never,
+      new Map(),
+      context,
+    );
+    expect(analytics.discoverPosts).toHaveBeenCalledWith(
+      'authenticated',
+      { platforms: ['twitter'] },
+      context,
+    );
+  });
   it('registers every automation action exactly once', () => {
     const registered: string[] = [];
     const engine = {

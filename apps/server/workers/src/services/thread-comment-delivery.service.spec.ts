@@ -173,6 +173,37 @@ describe('ThreadCommentDeliveryService', () => {
     );
   });
 
+  it('never sends a delayed comment of a breakout response, whose parent is already published', async () => {
+    mocks.prisma.post.findMany.mockResolvedValue([createChild()]);
+    mocks.prisma.post.findFirst.mockResolvedValueOnce(
+      createParent({ breakoutOutputId: 'output-1' }),
+    );
+
+    await createService(mocks).publishDueThreadComments();
+
+    expect(publishThreadChildren).not.toHaveBeenCalled();
+    expect(mocks.publisherFactory.getPublisher).not.toHaveBeenCalled();
+    expect(mocks.prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+        where: expect.objectContaining({ id: 'child-1' }),
+      }),
+    );
+  });
+
+  it('still sends the delayed comments of an ordinary post', async () => {
+    mocks.prisma.post.findMany.mockResolvedValue([createChild()]);
+    mocks.prisma.post.findFirst.mockResolvedValueOnce(
+      createParent({ breakoutOutputId: null }),
+    );
+
+    await createService(mocks).publishDueThreadComments();
+
+    expect(publishThreadChildren).toHaveBeenCalledOnce();
+  });
+
   it('leaves a comment scheduled for another attempt after a provider throw', async () => {
     publishThreadChildren.mockRejectedValue(new Error('provider down'));
     mocks.prisma.post.findMany.mockResolvedValue([createChild()]);

@@ -12,6 +12,7 @@ import { BrandVoiceGenerationExceptionFilter } from '@api/collections/brands/exc
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { BrandOsPreviewClaimDto } from '@api/endpoints/public/controllers/brand-os/brand-os-preview-claim.dto';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -100,6 +101,7 @@ export class BrandsAgentConfigController {
       id,
       organizationId,
       updateAgentConfigDto,
+      toWorkflowSchedulePrincipal(user),
     );
 
     if (!updatedBrand) {

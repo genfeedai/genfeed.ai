@@ -50,6 +50,7 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare thumbnailNodeId?: string | null;
   declare schedule?: string;
   declare scheduleInitiatingActor: WorkflowDocument['scheduleInitiatingActor'];
+  declare platformSeedKey: string | null;
   declare timezone?: string;
   declare isScheduleEnabled: boolean;
   declare isPublic: boolean;

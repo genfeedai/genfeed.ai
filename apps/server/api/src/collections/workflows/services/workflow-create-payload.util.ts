@@ -1,7 +1,16 @@
 import { createHash } from 'node:crypto';
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
-import type { FeaturedWorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import type {
+  FeaturedWorkflowDocument,
+  WorkflowDocument,
+} from '@api/collections/workflows/schemas/workflow.schema';
+import { buildSystemWorkflowDuplicateMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
+import {
+  resolveScheduleInitiatingActor,
+  type WorkflowSchedulePrincipal,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { WorkflowStatus } from '@genfeedai/contracts';
 
@@ -43,10 +52,19 @@ export function buildWorkflowCreatePayload(input: {
   brandId?: string;
   defaultLabel: string;
   organizationId: string;
+  /** Server-resolved configuring principal; never read from `workflowData`. */
+  scheduleInitiatingActor?: WorkflowInitiatingActor | null;
   userId: string;
   workflowData: WorkflowCreateExtras;
 }): Record<string, unknown> {
-  const { brandId, defaultLabel, organizationId, userId, workflowData } = input;
+  const {
+    brandId,
+    defaultLabel,
+    organizationId,
+    scheduleInitiatingActor,
+    userId,
+    workflowData,
+  } = input;
   const config = {
     ...(workflowData.config ?? {}),
     ...pickDefinedFields(workflowData, WORKFLOW_CONFIG_FIELDS),
@@ -73,6 +91,7 @@ export function buildWorkflowCreatePayload(input: {
       progress: workflowData.progress ?? 0,
       recurrence: workflowData.recurrence,
       schedule: workflowData.schedule,
+      scheduleInitiatingActor: scheduleInitiatingActor ?? undefined,
       startedAt: workflowData.startedAt,
       status: workflowData.status ?? WorkflowStatus.ACTIVE,
       thumbnail: workflowData.thumbnail,
@@ -82,6 +101,78 @@ export function buildWorkflowCreatePayload(input: {
       userId,
     }).filter(([, value]) => value !== undefined),
   );
+}
+
+/**
+ * Create payload for a duplicate of a visible workflow. The copy is a draft; a
+ * protected system workflow loses its schedule and locks. An enabled schedule
+ * is bound to the caller's principal, never to the source workflow's owner.
+ */
+export function buildWorkflowClonePayload(input: {
+  brandId?: string;
+  isProtectedSystemWorkflow: boolean;
+  isSourceBrandAccessible: boolean;
+  organizationId: string;
+  schedulePrincipal?: WorkflowSchedulePrincipal;
+  source: WorkflowDocument;
+  targetBrandId?: string;
+  userId: string;
+}): Record<string, unknown> {
+  const { brandId, isProtectedSystemWorkflow, source } = input;
+  const label = `${source.label ?? 'Workflow'} (Copy)`;
+  const schedule = isProtectedSystemWorkflow
+    ? undefined
+    : (source.schedule ?? undefined);
+  const isScheduleEnabled = isProtectedSystemWorkflow
+    ? false
+    : source.isScheduleEnabled;
+
+  return buildWorkflowCreatePayload({
+    brandId,
+    defaultLabel: label,
+    organizationId: input.organizationId,
+    scheduleInitiatingActor: resolveScheduleInitiatingActor({
+      isEnabled: isScheduleEnabled,
+      organizationId: input.organizationId,
+      principal: input.schedulePrincipal,
+      schedule,
+    }),
+    userId: input.userId,
+    workflowData: {
+      config: source.config,
+      defaultRecurringBrandId: isProtectedSystemWorkflow
+        ? null
+        : input.targetBrandId ||
+          (!input.isSourceBrandAccessible
+            ? brandId
+            : source.defaultRecurringBrandId) ||
+          null,
+      description: source.description ?? undefined,
+      edges: source.edges,
+      edgeStyle: source.edgeStyle,
+      executionCount: 0,
+      inputVariables: source.inputVariables,
+      isScheduleEnabled,
+      label,
+      lastExecutedAt: undefined,
+      lockedNodeIds: isProtectedSystemWorkflow
+        ? []
+        : (source.lockedNodeIds ?? []),
+      metadata: buildSystemWorkflowDuplicateMetadata(
+        source.metadata,
+        source.id,
+      ),
+      nodes: source.nodes,
+      progress: 0,
+      recurrence: undefined,
+      schedule,
+      startedAt: undefined,
+      status: WorkflowStatus.DRAFT,
+      thumbnail: source.thumbnail ?? undefined,
+      thumbnailNodeId: source.thumbnailNodeId ?? undefined,
+      timezone: source.timezone ?? undefined,
+    },
+  });
 }
 
 /**

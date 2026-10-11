@@ -563,6 +563,8 @@ export default function StudioPlaygroundCard({
           />
         ) : isFailed || isPreviewUnavailable ? (
           <div
+            data-testid={`studio-asset-media-status-${job.id}`}
+            role="status"
             className={`flex flex-col items-center gap-2 px-3 text-center ${
               isFailed ? 'text-destructive' : 'text-muted-foreground'
             }`}

@@ -36,10 +36,16 @@ export interface FirstOrderCascadeTarget {
 }
 
 export interface SecondOrderParentLink {
-  /** camelCase delegate of the first-order parent whose brand we filter by. */
+  /** camelCase delegate of the parent whose brand we filter by. */
   readonly parentDelegate: string;
   /** Brand field on the parent (matches a FIRST_ORDER_TARGETS entry). */
   readonly parentBrandField: string;
+  /**
+   * Relation on the parent that carries the brand field when the parent has no
+   * brand key of its own (`WorkflowExecution` reaches its brand through
+   * `workflow`). Absent when the parent holds `parentBrandField` directly.
+   */
+  readonly parentRelation?: string;
   /** Scalar FK on the child pointing at the parent's id. */
   readonly fkField: string;
 }
@@ -58,11 +64,11 @@ export interface SecondOrderCascadeTarget {
  * Excluded on purpose (see KNOWN_EXCLUDED): `Member` (its brand link is
  * `currentBrandId`, a per-user UI pointer — the member row belongs to its own org
  * and must NOT move), `ApiKey` (its `defaultBrandId` is the same kind of
- * per-key preference pointer, not brand-owned content), plus
- * `ContentVersionPin`, `LlmVendorCost`,
- * `MediaVendorCost`, and `PublishApproval` (records whose composite Brand foreign
- * keys cascade atomically with the Brand row instead of being rewritten by the
- * generic target loop).
+ * per-key preference pointer, not brand-owned content), plus `LlmVendorCost` and
+ * `MediaVendorCost` (records whose composite Brand foreign keys cascade atomically
+ * with the Brand row instead of being rewritten by the generic target loop).
+ * `ContentVersionPin` and `PublishApproval` are immutable by trigger, so a brand
+ * that has either is refused before the cascade runs rather than moved.
  *
  * Non-standard field names are hand-mapped: `Asset` (parentBrandId/parentOrgId),
  * `ContextBase` (sourceBrandId), `Lead` (proactiveBrandId → proactiveOrganizationId,
@@ -731,6 +737,32 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   },
 ];
 
+function secondOrderChild(
+  delegate: string,
+  table: string,
+  parent: SecondOrderParentLink,
+): SecondOrderCascadeTarget {
+  return { delegate, orgField: 'organizationId', parents: [parent], table };
+}
+
+/** An execution has no brand key; it reaches its brand through its workflow. */
+const EXECUTION_PARENT: SecondOrderParentLink = {
+  fkField: 'executionId',
+  parentBrandField: 'brandId',
+  parentDelegate: 'workflowExecution',
+  parentRelation: 'workflow',
+};
+const THREAD_PARENT: SecondOrderParentLink = {
+  fkField: 'threadId',
+  parentBrandField: 'brandId',
+  parentDelegate: 'agentThread',
+};
+const POST_PARENT: SecondOrderParentLink = {
+  fkField: 'postId',
+  parentBrandField: 'brandId',
+  parentDelegate: 'post',
+};
+
 /**
  * Org-scoped children with no brand key of their own. Their org must follow a moved
  * first-order parent, joined by scalar FK (no relation-name guessing — FK fields are
@@ -738,12 +770,18 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
  *
  * Intentionally NOT relocated here (org- or execution-level history, ambiguous
  * ownership): `SubscriptionAttribution` (revenue, keyed to the subscriber org),
- * `AgentThread` / `AgentThreadEvent` (agent conversation history — no brand key,
- * indirect ownership), `Invitation` (org-level). These stay in the source org by
- * design.
+ * `NotificationEvent` / `NotificationInboxItem` (the recipient's inbox), and
+ * `Invitation` (org-level). These stay in the source org by design; see
+ * KNOWN_EXCLUDED_MODELS.
  *
  * `WorkflowExecution` hangs off the first-order `Workflow` parent and moves
- * with the brand-owned workflow row.
+ * with the brand-owned workflow row. The executor's org-only children
+ * (`WorkflowExecutionNodeResult`, `WorkflowArtifact`, `WorkflowNodeClaim`,
+ * `WorkflowNodeContinuation`) follow their execution, `WorkflowVersion` follows
+ * its workflow (a pinned load fails on an org mismatch), `AgentThread` is
+ * first-order and its event/snapshot/context children follow it, and the
+ * publish receipt and finalization follow their post, so a retry sees the
+ * `uncertain` receipt in the post's new organization.
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
   {
@@ -770,6 +808,55 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
       },
     ],
   },
+  {
+    delegate: 'workflowVersion',
+    table: 'workflow_versions',
+    orgField: 'organizationId',
+    parents: [
+      {
+        parentDelegate: 'workflow',
+        parentBrandField: 'brandId',
+        fkField: 'workflowId',
+      },
+    ],
+  },
+  secondOrderChild(
+    'workflowExecutionNodeResult',
+    'workflow_execution_node_results',
+    EXECUTION_PARENT,
+  ),
+  secondOrderChild('workflowArtifact', 'workflow_artifacts', EXECUTION_PARENT),
+  secondOrderChild(
+    'workflowNodeClaim',
+    'workflow_node_claims',
+    EXECUTION_PARENT,
+  ),
+  secondOrderChild(
+    'workflowNodeContinuation',
+    'workflow_node_continuations',
+    EXECUTION_PARENT,
+  ),
+  secondOrderChild('agentThreadEvent', 'agent_thread_events', THREAD_PARENT),
+  secondOrderChild(
+    'agentThreadSnapshot',
+    'agent_thread_snapshots',
+    THREAD_PARENT,
+  ),
+  secondOrderChild(
+    'threadContextState',
+    'thread_context_states',
+    THREAD_PARENT,
+  ),
+  secondOrderChild(
+    'postProviderPublishReceipt',
+    'post_provider_publish_receipts',
+    POST_PARENT,
+  ),
+  secondOrderChild(
+    'postPublishFinalization',
+    'post_publish_finalizations',
+    POST_PARENT,
+  ),
   {
     delegate: 'taskComment',
     table: 'task_comments',
@@ -815,18 +902,6 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
         parentDelegate: 'socialReplyCampaign',
         parentBrandField: 'brandId',
         fkField: 'campaignId',
-      },
-    ],
-  },
-  {
-    delegate: 'transcript',
-    table: 'transcripts',
-    orgField: 'organizationId',
-    parents: [
-      {
-        parentDelegate: 'article',
-        parentBrandField: 'brandId',
-        fkField: 'articleId',
       },
     ],
   },
@@ -937,15 +1012,20 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'AgentPublishAudit',
   'AgentUntrustedContentAudit',
   'AgentTransfer',
+  // Immutable by trigger, so a composite-FK cascade would raise; relocation
+  // refuses a brand with pins or publish approvals as learning/publication
+  // history (assertNoLearningHistory) before the cascade runs.
   'ContentVersionPin',
+  'PublishApproval',
   // Immutable Knowledge history blocks relocation before the cascade; its composite Brand FK and ownership trigger also reject concurrent moves.
   'KnowledgeSource',
   'KnowledgeSpace',
+  // Composite FKs to its theme and evidence cascade organizationId with them,
+  // so it follows the brand; the generic loop has nothing to rewrite.
   'ListeningThemeEvidence',
   'LlmVendorCost',
   'MediaVendorCost',
   'Member',
-  'PublishApproval',
   // Composite brand foreign keys cascade organizationId with the brand row.
   'BreakoutBaselineReceipt',
   'BreakoutResponse',
@@ -956,7 +1036,22 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'SkillAssignment',
   'SkillGrant',
   'SkillResolution',
+  // Append-only by trigger and keyed by composite FK to the execution; a brand
+  // with execution read-scope history cannot move (assertNoWorkflowExecutionReadHistory).
   'WorkflowExecutionReadBrandDependency',
+  'WorkflowExecutionReadLineage',
+  'WorkflowExecutionReadScope',
+  // Org-keyed rows that point at a moved parent but belong to another tenant's
+  // ledger and stay put: revenue attribution is the subscriber's, and a
+  // notification is the recipient's inbox entry.
+  'NotificationEvent',
+  'NotificationInboxItem',
+  'SubscriptionAttribution',
+  // Persona grants are revoked, not moved, when their persona's brand changes
+  // organization (revokePersonaGrantsForRelocation); the audit trail keeps the
+  // owner organization that granted.
+  'PersonaAvailabilityAudit',
+  'PersonaGrant',
 ];
 
 /**
@@ -979,15 +1074,18 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'agent_publish_audits',
   'agent_untrusted_content_audits',
   'agent_transfers',
+  // Immutable pins and publish approvals cannot move: relocation rejects any
+  // brand that has them (assertNoLearningHistory).
   'content_version_pins',
+  'publish_approvals',
   // These tables cannot move: relocation rejects any live or deleted Knowledge history.
   'knowledge_sources',
   'knowledge_spaces',
+  // Follows its theme and evidence through their composite foreign keys.
   'listening_theme_evidence',
   'llm_vendor_costs',
   'media_vendor_costs',
   'members',
-  'publish_approvals',
   'breakout_baseline_receipts',
   'breakout_response_outputs',
   'breakout_responses',
@@ -998,4 +1096,11 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'skill_resolutions',
   'skills',
   'workflow_execution_read_brand_dependencies',
+  'workflow_execution_read_lineage',
+  'workflow_execution_read_scopes',
+  'notification_events',
+  'notification_inbox_items',
+  'subscription_attributions',
+  'persona_availability_audits',
+  'persona_grants',
 ];

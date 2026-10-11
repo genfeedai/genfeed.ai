@@ -4,6 +4,11 @@ import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
 } from '@api/collections/workflows/utils/cron-schedule.util';
+import {
+  resolveScheduleInitiatingActor,
+  toScheduleInitiatingActorWrite,
+  type WorkflowSchedulePrincipal,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
@@ -58,11 +63,20 @@ type EnsureDefaultRecurringContentParams = {
   includeStatus?: boolean;
   organizationId: string;
   origin: 'brand-create' | 'empty-state' | 'manual' | 'onboarding' | 'system';
+  /**
+   * The authenticated user or API key that triggered the bundle. An enabled
+   * schedule is bound to it. Leave it out for a system path with no
+   * authenticated caller: the schedules are then saved unbound, which Cloud
+   * holds until a person re-enables them.
+   */
+  principal?: WorkflowSchedulePrincipal;
   userId: string;
 };
 
 type UpdateDefaultRecurringScheduleOptions = {
   isSchedulerRequired?: boolean;
+  /** See `EnsureDefaultRecurringContentParams.principal`. */
+  principal?: WorkflowSchedulePrincipal;
 };
 
 const DEFAULT_RECURRING_SCHEDULE = '0 8 * * *';
@@ -217,6 +231,7 @@ export class DefaultRecurringContentService {
         contentType,
         organizationId: params.organizationId,
         origin: params.origin,
+        principal: params.principal,
         userId: params.userId,
       });
     }
@@ -225,7 +240,7 @@ export class DefaultRecurringContentService {
       params.organizationId,
       params.brandId,
       (brand as unknown as Record<string, unknown>).agentConfig,
-      { isSchedulerRequired: false },
+      { isSchedulerRequired: false, principal: params.principal },
     );
 
     if (params.includeStatus === false) {
@@ -278,6 +293,7 @@ export class DefaultRecurringContentService {
           scheduleConfig.cronExpression,
           scheduleConfig.timezone,
           scheduleConfig.isEnabled,
+          options.principal,
         );
       } else {
         // Degraded path: schedule columns are written without BullMQ
@@ -290,6 +306,14 @@ export class DefaultRecurringContentService {
           data: {
             isScheduleEnabled: scheduleConfig.isEnabled,
             schedule: scheduleConfig.cronExpression,
+            scheduleInitiatingActor: toScheduleInitiatingActorWrite(
+              resolveScheduleInitiatingActor({
+                isEnabled: scheduleConfig.isEnabled,
+                organizationId,
+                principal: options.principal,
+                schedule: scheduleConfig.cronExpression,
+              }),
+            ),
             timezone: scheduleConfig.timezone,
           },
           where: scopedWhere(organizationId, { id: workflow.id }),
@@ -320,6 +344,7 @@ export class DefaultRecurringContentService {
     contentType: DefaultRecurringContentType;
     organizationId: string;
     origin: EnsureDefaultRecurringContentParams['origin'];
+    principal?: WorkflowSchedulePrincipal;
     userId: string;
   }): Promise<void> {
     // Best-effort credential lookup for the post node config. Deliberately read
@@ -384,6 +409,7 @@ export class DefaultRecurringContentService {
               credentialId,
               organizationId: params.organizationId,
               origin: params.origin,
+              principal: params.principal,
               // The transaction.util cast idiom: the interactive-transaction
               // client is structurally a PrismaTransactionClient.
               tx: tx as unknown as PrismaTransactionClient,
@@ -448,6 +474,7 @@ export class DefaultRecurringContentService {
     credentialId: string | null;
     organizationId: string;
     origin: EnsureDefaultRecurringContentParams['origin'];
+    principal?: WorkflowSchedulePrincipal;
     tx: PrismaTransactionClient;
     userId: string;
   }): Promise<void> {
@@ -463,6 +490,12 @@ export class DefaultRecurringContentService {
       scheduleConfig.cronExpression,
       scheduleConfig.timezone,
     );
+    const initiatingActor = resolveScheduleInitiatingActor({
+      isEnabled: scheduleConfig.isEnabled,
+      organizationId: params.organizationId,
+      principal: params.principal,
+      schedule: scheduleConfig.cronExpression,
+    });
     const workflow = await createVersionedWorkflow(
       params.tx,
       {
@@ -491,6 +524,12 @@ export class DefaultRecurringContentService {
         organizationId: params.organizationId,
         progress: 0,
         schedule: scheduleConfig.cronExpression,
+        ...(initiatingActor
+          ? {
+              scheduleInitiatingActor:
+                toScheduleInitiatingActorWrite(initiatingActor),
+            }
+          : {}),
         status: WorkflowStatus.ACTIVE,
         timezone: scheduleConfig.timezone,
         userId: params.userId,

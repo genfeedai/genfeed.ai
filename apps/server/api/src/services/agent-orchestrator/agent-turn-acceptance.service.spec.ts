@@ -436,6 +436,35 @@ describe('AgentTurnAcceptanceService', () => {
     );
   });
 
+  it('persists the authenticated principal on the durable turn request only when the caller supplies one', async () => {
+    const initiatingPrincipal = {
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      organizationId: 'org-1',
+      scopes: ['posts:schedule'],
+      userId: 'user-1',
+    };
+    await service.accept(
+      { clientRequestId: 'with-principal', content: 'Plan my week' },
+      { initiatingPrincipal, organizationId: 'org-1', userId: 'user-1' },
+    );
+    await service.accept(
+      { clientRequestId: 'system-turn', content: 'Plan my week' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    const requests = workflowRunner.enqueueWorkflow.mock.calls.map(
+      (call: unknown[]) =>
+        (
+          call[0] as {
+            inputValues: { request: Record<string, unknown> };
+          }
+        ).inputValues.request,
+    );
+    expect(requests[0]).toMatchObject({ initiatingPrincipal });
+    expect(requests[1]).not.toHaveProperty('initiatingPrincipal');
+  });
+
   it('returns the same durable identities and idempotency key when an acknowledgement is retried', async () => {
     const request = {
       clientRequestId: '018f6f76-b821-7a51-82af-93d0ecac2101',

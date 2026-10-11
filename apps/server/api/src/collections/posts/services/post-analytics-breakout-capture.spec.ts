@@ -86,11 +86,20 @@ function harness() {
     reason: 'below_threshold',
   });
   const learningCapture = vi.fn();
+  const findResponse = vi.fn(
+    async (): Promise<{ id: string } | null> => ({
+      id: 'response-a',
+    }),
+  );
+  const findStrategies = vi.fn(async () => [{ id: 'strategy-a' }]);
+  const queueSystemWorkflow = vi.fn(async (..._args: unknown[]) => 'job-a');
   const service = new PostAnalyticsService(
     {
       $transaction: transaction,
       postAnalytics: { findFirst: vi.fn(async () => null), upsert },
       credential: { findFirst: vi.fn(async () => ({ platform: 'TWITTER' })) },
+      breakoutResponse: { findFirst: findResponse },
+      agentStrategy: { findMany: findStrategies },
     } as unknown as PrismaService,
     { log: vi.fn(), error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
     {
@@ -104,7 +113,7 @@ function harness() {
     } as unknown as PostsService,
     { authorize: vi.fn(async () => ({})) } as unknown as OutliersService,
     { capture: learningCapture } as unknown as LearningCheckpointService,
-    {} as WorkflowExecutionQueueService,
+    { queueSystemWorkflow } as unknown as WorkflowExecutionQueueService,
   );
   return {
     source,
@@ -116,6 +125,9 @@ function harness() {
     capture,
     detect,
     learningCapture,
+    findResponse,
+    findStrategies,
+    queueSystemWorkflow,
   };
 }
 
@@ -267,5 +279,118 @@ describe('PostAnalyticsService prospective capture wiring', () => {
         analyticsCollectionAuthorizationFixture,
       ),
     ).rejects.toThrow('Breakout detection held: receipt_conflict');
+  });
+  describe('breakout response execution enqueue', () => {
+    const registered = {
+      status: 'registered',
+      responseId: 'response-a',
+      triggerReceiptId: 'receipt-a',
+    } as const;
+    const collect = (h: ReturnType<typeof harness>, withActor = true) =>
+      h.service.processTwitterAnalytics(
+        h.source.postId,
+        new TwitterResponseMapper().mapAnalytics({
+          data: [{ organic_metrics: { impression_count: 1000 } }],
+        }),
+        h.context,
+        withActor ? analyticsCollectionAuthorizationFixture : undefined,
+      );
+    it('queues the detected response only after the transaction commits, as the bound actor', async () => {
+      const h = harness();
+      h.detect.mockResolvedValue(registered);
+      await collect(h);
+      expect(h.queueSystemWorkflow).toHaveBeenCalledOnce();
+      const [input, jobId, options] = h.queueSystemWorkflow.mock.calls[0] as [
+        {
+          canonicalId: string;
+          inputValues: { request: Record<string, unknown> };
+          userId: string;
+        },
+        string,
+        { attempts: number },
+      ];
+      expect(jobId).toBe('breakout-response-execute-response-a');
+      expect(input.canonicalId).toBe('breakout.response.execute');
+      expect(input.userId).toBe(
+        analyticsCollectionAuthorizationFixture.initiatingActor.userId,
+      );
+      expect(input.inputValues.request).toMatchObject({
+        brandId: 'brand-a',
+        credentialId: 'credential-a',
+        platform: Platform.TWITTER,
+        responseId: 'response-a',
+        strategyId: 'strategy-a',
+        initiatingActor: {
+          organizationId: 'org-a',
+          userId:
+            analyticsCollectionAuthorizationFixture.initiatingActor.userId,
+        },
+      });
+      expect(options.attempts).toBe(1);
+      expect(h.queueSystemWorkflow.mock.invocationCallOrder[0]).toBeGreaterThan(
+        h.transaction.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+      );
+      expect(h.findResponse).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          organizationId: 'org-a',
+          brandId: 'brand-a',
+          credentialId: 'credential-a',
+          platform: Platform.TWITTER,
+          externalId: 'tweet-a',
+          state: 'detected',
+          isDeleted: false,
+        }),
+        select: { id: true },
+      });
+    });
+    it('queues nothing for an account without a bound actor', async () => {
+      const h = harness();
+      h.detect.mockResolvedValue(registered);
+      await collect(h, false);
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(h.findResponse).not.toHaveBeenCalled();
+    });
+    it('queues nothing when no detected response awaits its plan', async () => {
+      const h = harness();
+      h.findResponse.mockResolvedValue(null);
+      await collect(h);
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+    it('re-offers a still detected response when a later collection only replays detection', async () => {
+      const h = harness();
+      h.capture.mockResolvedValue({
+        status: 'replayed',
+        observationId: 'observation-a',
+      });
+      h.detect.mockResolvedValue({ ...registered, status: 'replayed' });
+      await collect(h);
+      expect(h.queueSystemWorkflow).toHaveBeenCalledOnce();
+      expect(h.queueSystemWorkflow.mock.calls[0]?.[1]).toBe(
+        'breakout-response-execute-response-a',
+      );
+    });
+    it('queues nothing when a held capture fails the collection', async () => {
+      const h = harness();
+      h.detect.mockResolvedValue(registered);
+      h.capture.mockResolvedValue({ status: 'source_changed' });
+      await expect(collect(h)).rejects.toThrow('Exposure observation held');
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+    it('does not guess a strategy when none or several govern the account', async () => {
+      for (const strategies of [[], [{ id: 's-1' }, { id: 's-2' }]]) {
+        const h = harness();
+        h.detect.mockResolvedValue(registered);
+        h.findStrategies.mockResolvedValue(strategies);
+        await collect(h);
+        expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+      }
+    });
+    it('keeps the committed collection successful when queueing fails', async () => {
+      const h = harness();
+      h.detect.mockResolvedValue(registered);
+      h.queueSystemWorkflow.mockRejectedValue(new Error('redis down'));
+      await collect(h);
+      expect(h.upsert).toHaveBeenCalledOnce();
+    });
   });
 });

@@ -188,6 +188,28 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     expect(updateAgentConfig).toHaveBeenCalledTimes(1);
   });
 
+  it('passes the authenticated principal, never the brand creator, to the schedule save', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({
+        schedule: {
+          cronExpression: '0 9 * * *',
+          enabled: true,
+          timezone: 'UTC',
+        },
+      })
+      .expect(200);
+
+    const [, , , principal] = updateAgentConfig.mock.calls[0];
+    expect(principal).toEqual({
+      apiKeyId: undefined,
+      isApiKey: false,
+      organizationId: orgId,
+      scopes: [],
+      userId: orgId,
+    });
+  });
+
   it('accepts the brand identity defaults payload', async () => {
     await request(app.getHttpServer())
       .patch(`/brands/${brandId}/agent-config`)

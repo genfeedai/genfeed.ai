@@ -3,6 +3,7 @@ import { AnalyticsSocialCollectionService } from '@api/analytics/services/analyt
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { AnalyticsYouTubeCollectionService } from '@api/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
@@ -25,6 +26,7 @@ describe('Outlier core dependency injection', () => {
       providers: [
         AnalyticsSyncWorkflowService,
         ...[
+          BrandAccessService,
           PostsService,
           PostAnalyticsCollectionStateService,
           AnalyticsProviderCollectionService,

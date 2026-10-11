@@ -1,7 +1,9 @@
+import { assertBreakoutPublicationDispatch } from '@api/collections/outliers/services/breakout-publication-fence.util';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowSource,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   type IPublisher,
   type PublishResult,
@@ -28,10 +30,29 @@ import {
 } from '@genfeedai/contracts';
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { ForbiddenException } from '@nestjs/common';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
 import { of } from 'rxjs';
+
+// The fence reads the database and the actor; its own spec covers that. Here it only
+// has to be asked at the right moment and to stop the provider call when it holds.
+vi.mock(
+  '@api/collections/outliers/services/breakout-publication-fence.util',
+  async (original) => ({
+    ...(await original<
+      typeof import('@api/collections/outliers/services/breakout-publication-fence.util')
+    >()),
+    assertBreakoutPublicationDispatch: vi.fn(),
+  }),
+);
+
+beforeEach(() => {
+  vi.mocked(assertBreakoutPublicationDispatch)
+    .mockReset()
+    .mockResolvedValue(undefined);
+});
 
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {
   credentialId: string;
@@ -2495,6 +2516,144 @@ describe('ScheduledPostDeliveryService', () => {
       );
     },
   );
+
+  describe('breakout response dispatch fence', () => {
+    it('re-admits the stored post after the reservation and right before the provider call', async () => {
+      const publish = mockSuccessfulPublisher(mocks);
+
+      const result = await executeDelivery(
+        mocks,
+        createScheduledPost({ quoteTweetId: 'tweet-source' }),
+        'scheduled_sweep',
+      );
+
+      expect(result.success).toBe(true);
+      expect(assertBreakoutPublicationDispatch).toHaveBeenCalledOnce();
+      expect(assertBreakoutPublicationDispatch).toHaveBeenCalledWith(
+        mocks.prisma,
+        { organizationId: 'org-1', postId: 'post-1' },
+      );
+      expect(
+        mocks.prisma.postProviderPublishReceipt.create.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        vi.mocked(assertBreakoutPublicationDispatch).mock
+          .invocationCallOrder[0],
+      );
+      expect(
+        vi.mocked(assertBreakoutPublicationDispatch).mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(publish.mock.invocationCallOrder[0]);
+    });
+
+    it.each([
+      [
+        'a lost actor',
+        new ForbiddenException('Breakout execution denied'),
+        'Breakout execution denied',
+      ],
+      [
+        'faded growth',
+        new BusinessLogicException('Breakout publication held: growth_faded'),
+        'Breakout publication held: growth_faded',
+      ],
+      [
+        'a changed quote link',
+        new BusinessLogicException(
+          'Breakout publication held: quote_binding_changed',
+        ),
+        'Breakout publication held: quote_binding_changed',
+      ],
+    ])(
+      'releases the reservation and never reaches the provider after %s',
+      async (_name, hold, message) => {
+        const publish = mockSuccessfulPublisher(mocks);
+        vi.mocked(assertBreakoutPublicationDispatch).mockRejectedValue(hold);
+        const post = createScheduledPost({ quoteTweetId: 'tweet-source' });
+
+        const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+        expect(publish).not.toHaveBeenCalled();
+        expect(result).toEqual(
+          expect.objectContaining({
+            error: message,
+            executionState: TargetExecutionState.FAILED,
+            success: false,
+          }),
+        );
+        expect(
+          mocks.schedulerPublishStateService.transitionPost,
+        ).toHaveBeenNthCalledWith(
+          2,
+          post,
+          expect.objectContaining({
+            error: expect.objectContaining({
+              code: 'breakout_publication_held',
+              isRetryable: false,
+              message,
+            }),
+            executionState: TargetExecutionState.FAILED,
+          }),
+          message,
+          undefined,
+        );
+        expect(
+          mocks.prisma.postProviderPublishReceipt.updateMany,
+        ).toHaveBeenCalledWith({
+          data: { status: 'released' },
+          where: receiptWhere,
+        });
+        expect(
+          mocks.prisma.postProviderPublishReceipt.updateMany,
+        ).not.toHaveBeenCalledWith({
+          data: expect.objectContaining({ status: 'accepted' }),
+          where: receiptWhere,
+        });
+      },
+    );
+
+    it('treats an infrastructure failure as a retryable publish error, not a hold', async () => {
+      const publish = mockSuccessfulPublisher(mocks);
+      vi.mocked(assertBreakoutPublicationDispatch).mockRejectedValue(
+        new Error('connection reset'),
+      );
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(publish).not.toHaveBeenCalled();
+      expect(
+        mocks.schedulerPublishStateService.transitionPost,
+      ).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          error: expect.objectContaining({ code: 'breakout_publication_held' }),
+        }),
+        expect.anything(),
+        undefined,
+      );
+      expect(
+        mocks.prisma.postProviderPublishReceipt.updateMany,
+      ).toHaveBeenCalledWith({
+        data: { status: 'released' },
+        where: receiptWhere,
+      });
+    });
+
+    it('does not re-admit a replayed, already accepted occurrence', async () => {
+      const publish = mockSuccessfulPublisher(mocks);
+      mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+        receiptRow({ result: acceptedTweet, status: 'accepted' }),
+      );
+      vi.mocked(assertBreakoutPublicationDispatch).mockRejectedValue(
+        new ForbiddenException('Breakout execution denied'),
+      );
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(publish).not.toHaveBeenCalled();
+      expect(assertBreakoutPublicationDispatch).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('publication finalization delivery', () => {

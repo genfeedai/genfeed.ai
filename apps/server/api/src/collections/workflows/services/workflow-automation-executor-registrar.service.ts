@@ -287,32 +287,33 @@ export class WorkflowAutomationExecutorRegistrarService {
         service.discoverPosts(
           context.organizationId,
           actionInputs(node.config, inputs),
+          context,
         ),
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.FACEBOOK_COLLECT,
-      (node, inputs) =>
-        service.collectFacebook(actionInputs(node.config, inputs)),
+      (node, inputs, context) =>
+        service.collectFacebook(actionInputs(node.config, inputs), context),
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.SOCIAL_COLLECT,
-      (node, inputs) =>
-        service.collectSocial(actionInputs(node.config, inputs)),
+      (node, inputs, context) =>
+        service.collectSocial(actionInputs(node.config, inputs), context),
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.THREADS_COLLECT,
-      (node, inputs) =>
-        service.collectThreads(actionInputs(node.config, inputs)),
+      (node, inputs, context) =>
+        service.collectThreads(actionInputs(node.config, inputs), context),
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.TWITTER_COLLECT,
-      (node, inputs) =>
-        service.collectTwitter(actionInputs(node.config, inputs)),
+      (node, inputs, context) =>
+        service.collectTwitter(actionInputs(node.config, inputs), context),
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.YOUTUBE_COLLECT,
-      (node, inputs) =>
-        service.collectYouTube(actionInputs(node.config, inputs)),
+      (node, inputs, context) =>
+        service.collectYouTube(actionInputs(node.config, inputs), context),
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.FINALIZE_COLLECTION,

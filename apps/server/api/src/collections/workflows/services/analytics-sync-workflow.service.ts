@@ -3,11 +3,23 @@ import type {
   TwitterAnalyticsCollectionInput,
   YouTubeAnalyticsCollectionInput,
 } from '@api/analytics/analytics-collection-action.types';
+import {
+  ANALYTICS_ORGANIZATION_REFRESH_SOURCE,
+  ANALYTICS_POST_REFRESH_SOURCE,
+  analyticsRootActor,
+  analyticsRootActorKey,
+  denyAnalyticsCollectionActor,
+  resolveAnalyticsCollectionAuthorization,
+  resolveAnalyticsRootActor,
+} from '@api/analytics/analytics-collection-actor';
 import { AnalyticsProviderCollectionService } from '@api/analytics/services/analytics-provider-collection.service';
 import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { AnalyticsYouTubeCollectionService } from '@api/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
@@ -31,6 +43,7 @@ import {
 import type { WorkflowDefinitionInput } from '@api/collections/workflows/workflow-version-definition';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import {
   CredentialPlatform,
@@ -40,6 +53,7 @@ import {
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import type { ExecutionContext } from '@genfeedai/workflows/engine';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type AnalyticsPost = PostEntity & {
@@ -59,6 +73,8 @@ type AnalyticsDiscovery = {
     credentialId?: string;
     externalId: string;
     id: string;
+    /** Stamped only from the validated hidden root; the child re-validates it from its own record. */
+    initiatingActor?: WorkflowInitiatingActor;
     isVideo?: boolean;
     organizationId: string;
     platform: CredentialPlatform;
@@ -111,6 +127,8 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly outliers: OutliersService,
+    private readonly prisma: PrismaService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   onModuleInit(): void {
@@ -152,20 +170,22 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
   }
 
   async queueOrganizationRefresh(input: {
+    initiatingActor?: BrandAccessActor;
     organizationId: string;
     userId?: string;
   }): Promise<QueuedAnalyticsWorkflowResult> {
     const definition = this.organizationRefreshDefinition();
+    const bound = this.boundRoot(input);
     const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
-        inputValues: {},
+        inputValues: bound.inputValues,
         organizationId: input.organizationId,
-        source: 'analytics-api-refresh',
-        userId: input.userId,
+        source: ANALYTICS_ORGANIZATION_REFRESH_SOURCE,
+        userId: bound.userId,
       },
-      `analytics-refresh-${input.organizationId}-${this.windowKey(HOUR_MS)}`,
+      `analytics-refresh-${input.organizationId}-${this.windowKey(HOUR_MS)}${bound.jobSuffix}`,
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
@@ -175,23 +195,25 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
   }
 
   async queuePostRefresh(input: {
+    initiatingActor?: BrandAccessActor;
     organizationId: string;
     platform: CredentialPlatform;
     postId: string;
     userId?: string;
   }): Promise<QueuedAnalyticsWorkflowResult> {
     const canonicalId = analyticsPostRefreshWorkflowId(input.platform);
+    const bound = this.boundRoot(input);
     const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: canonicalId,
         canonicalId,
-        inputValues: { postId: input.postId },
+        inputValues: { ...bound.inputValues, postId: input.postId },
         organizationId: input.organizationId,
         postIds: [input.postId],
-        source: 'post-analytics-api-refresh',
-        userId: input.userId,
+        source: ANALYTICS_POST_REFRESH_SOURCE,
+        userId: bound.userId,
       },
-      `analytics-post-refresh-${input.postId}-${this.windowKey(HOUR_MS)}`,
+      `analytics-post-refresh-${input.postId}-${this.windowKey(HOUR_MS)}${bound.jobSuffix}`,
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
@@ -200,10 +222,43 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     return { jobId, workflowId: canonicalId };
   }
 
+  /**
+   * An actor-bound refresh persists the authenticated actor on its hidden root and runs as
+   * that user; its job id carries the actor so it is never absorbed by an actor-less run.
+   */
+  private boundRoot(input: {
+    initiatingActor?: BrandAccessActor;
+    organizationId: string;
+    userId?: string;
+  }): {
+    inputValues: Record<string, unknown>;
+    jobSuffix: string;
+    userId?: string;
+  } {
+    if (!input.initiatingActor)
+      return { inputValues: {}, jobSuffix: '', userId: input.userId };
+    const actor = analyticsRootActor(
+      input.initiatingActor,
+      input.organizationId,
+    );
+    if (input.userId !== undefined && input.userId !== actor.userId)
+      return denyAnalyticsCollectionActor();
+    return {
+      inputValues: { initiatingActor: actor },
+      jobSuffix: `-${analyticsRootActorKey(actor)}`,
+      userId: actor.userId,
+    };
+  }
+
   async discoverPosts(
     organizationId: string,
     input: Record<string, unknown>,
+    context: ExecutionContext,
   ): Promise<AnalyticsDiscovery> {
+    const initiatingActor = await resolveAnalyticsRootActor(
+      { policy: this.brandAccess, prisma: this.prisma },
+      context,
+    );
     const platforms = this.readPlatforms(input.platforms);
     const analyticsEnabledOnly = input.analyticsEnabledOnly !== false;
     const postId = this.readOptionalString(input.postId);
@@ -255,6 +310,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
             ...(credentialId ? { credentialId } : {}),
             externalId,
             id,
+            ...(initiatingActor ? { initiatingActor } : {}),
             ...(post.platform === CredentialPlatform.FACEBOOK &&
             [
               PostCategory.VIDEO,
@@ -286,38 +342,66 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     return { attemptKey, posts, requested: posts.length, skipped };
   }
 
+  /** Breakout capture runs only under an actor validated from the pinned hidden chain. */
+  private authorizeCollection(context: ExecutionContext, item: unknown) {
+    return resolveAnalyticsCollectionAuthorization(
+      { policy: this.brandAccess, prisma: this.prisma },
+      context,
+      item,
+    );
+  }
+
   async collectFacebook(
     input: Record<string, unknown>,
+    executionContext: ExecutionContext,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
+    const authorization = await this.authorizeCollection(
+      executionContext,
+      input.item,
+    );
     const { context } = await this.providerCollection.collectFacebook(
       this.socialJobData(post),
+      authorization,
     );
     return this.completeCollection(context, input);
   }
 
   async collectSocial(
     input: Record<string, unknown>,
+    executionContext: ExecutionContext,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
+    const authorization = await this.authorizeCollection(
+      executionContext,
+      input.item,
+    );
     const context = await this.socialCollection.collect(
       this.socialJobData(post),
+      authorization,
     );
     return this.completeCollection(context, input);
   }
 
   async collectThreads(
     input: Record<string, unknown>,
+    executionContext: ExecutionContext,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
+    const authorization = await this.authorizeCollection(
+      executionContext,
+      input.item,
+    );
     const { context } = await this.providerCollection.collectThreads(
       this.socialJobData(post),
+      authorization,
     );
     return this.completeCollection(context, input);
   }
 
   async collectTwitter(
     input: Record<string, unknown>,
+    executionContext: ExecutionContext,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
     if (!post.credentialId) {
@@ -328,12 +412,17 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       credentialId: post.credentialId,
       posts: [this.collectionPost(post)],
     };
-    const context = await this.twitterCollection.collect(data);
+    const authorization = await this.authorizeCollection(
+      executionContext,
+      input.item,
+    );
+    const context = await this.twitterCollection.collect(data, authorization);
     return this.completeCollection(context, input);
   }
 
   async collectYouTube(
     input: Record<string, unknown>,
+    executionContext: ExecutionContext,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
     const data: YouTubeAnalyticsCollectionInput = {
@@ -343,7 +432,11 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       organizationId: post.organizationId,
       posts: [this.collectionPost(post)],
     };
-    const context = await this.youtubeCollection.collect(data);
+    const authorization = await this.authorizeCollection(
+      executionContext,
+      input.item,
+    );
+    const context = await this.youtubeCollection.collect(data, authorization);
     return this.completeCollection(context, input);
   }
 

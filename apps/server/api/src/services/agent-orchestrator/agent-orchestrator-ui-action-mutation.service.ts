@@ -305,6 +305,7 @@ export class AgentOrchestratorUiActionMutationService {
         args,
         {
           apiKeyContext: context.apiKeyContext,
+          initiatingPrincipal: context.initiatingPrincipal,
           approvedApprovalId: approval.id,
           brandId: scope.brandId,
           hostSupportsApproval: true,

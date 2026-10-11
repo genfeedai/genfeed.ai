@@ -265,6 +265,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'brand-remix.review-handoff',
   'brand-remix.scene-step',
   'brand-remix.x.paused-draft',
+  'breakout.response.execute',
   'campaign.dispatch.active',
   'campaign.dm.execute-target',
   'campaign.dm.process-pending-targets',

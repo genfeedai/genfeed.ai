@@ -66,6 +66,7 @@ describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
       '0 9 * * 1-5',
       'Europe/Malta',
       true,
+      undefined,
     );
     expect(result).toEqual({
       creditsUsed: 0,
@@ -98,6 +99,7 @@ describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
       null,
       'UTC',
       false,
+      undefined,
     );
     expect(result.data).toEqual({
       enabled: false,
@@ -132,6 +134,7 @@ describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
       '0 9 * * 1-5',
       'America/New_York',
       false,
+      undefined,
     );
     expect(result.data).toEqual({
       enabled: false,

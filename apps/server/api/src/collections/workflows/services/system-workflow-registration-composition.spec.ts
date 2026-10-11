@@ -4,6 +4,7 @@ import { AnalyticsSocialCollectionService } from '@api/analytics/services/analyt
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { AnalyticsYouTubeCollectionService } from '@api/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
@@ -131,6 +132,7 @@ describe('system workflow registration composition', () => {
         DmCampaignExecutorService,
         ReplyBotOrchestratorService,
         ...[
+          BrandAccessService,
           PrismaService,
           LearningBaselineMaterializationService,
           LearningCheckpointService,

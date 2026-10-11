@@ -8,6 +8,7 @@ import type {
   AgentThreadUiActionRequest,
   AgentTurnAcknowledgement,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { describeThreadUiAction } from '@api/services/agent-orchestrator/utils/agent-thread-ui-action-description.util';
 import {
   getAgentUiActionSourceId,
@@ -63,6 +64,9 @@ export class AgentOrchestratorService {
               getActionOriginContext().generationEntry ??
               context.generationEntry,
             threadId: request.threadId,
+            ...(context.initiatingPrincipal
+              ? { initiatingPrincipal: context.initiatingPrincipal }
+              : {}),
             ...(request.brandId !== undefined
               ? { brandId: request.brandId }
               : {}),
@@ -115,6 +119,7 @@ export class AgentOrchestratorService {
   async resumeRecurringTaskDraftFromInput(params: {
     answer: string;
     fieldId?: string;
+    initiatingPrincipal?: AgentInitiatingPrincipal;
     organizationId: string;
     scope: ValidatedAgentScope;
     threadId: string;
@@ -128,6 +133,9 @@ export class AgentOrchestratorService {
           request: {
             answer: params.answer,
             generationEntry: getActionOriginContext().generationEntry,
+            ...(params.initiatingPrincipal
+              ? { initiatingPrincipal: params.initiatingPrincipal }
+              : {}),
             scope: params.scope,
             threadId: params.threadId,
             ...(params.fieldId ? { fieldId: params.fieldId } : {}),

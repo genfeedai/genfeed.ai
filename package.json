@@ -150,7 +150,6 @@
     "dev:app:fe": "bun run dev:app",
     "dev:website:fe": "bun run dev:website",
     "wt:sync": "bash scripts/sync-worktree-includes.sh",
-    "wt:setup": "git config alias.wt '!f(){ \"$(git rev-parse --show-toplevel)/scripts/git-wt.sh\" \"$@\"; }; f' && echo 'Installed: use `git wt <path> [branch]` to add a worktree with env files copied.'",
     "design:check": "bun run design:lint && bun run check:design-system",
     "design:lint": "bunx @google/design.md lint DESIGN.md",
     "docker:build-all": "docker compose -f docker/docker-compose.yml build",

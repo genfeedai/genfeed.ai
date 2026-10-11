@@ -144,20 +144,31 @@ type VersionedWorkflowTransaction = Pick<
   Prisma.TransactionClient,
   'workflow' | 'workflowVersion'
 >;
+/**
+ * Caller-supplied workflow identity. `platformSeedKey` is omitted on purpose: the platform
+ * authority marker is server-only and travels only through the `platformSeedKey` option below.
+ */
 export type VersionedWorkflowIdentityInput = Omit<
   Prisma.WorkflowUncheckedCreateInput,
-  'currentVersionId'
+  'currentVersionId' | 'platformSeedKey'
 >;
 
 export async function createVersionedWorkflow(
   transaction: VersionedWorkflowTransaction,
   identityData: VersionedWorkflowIdentityInput,
   definitionInput: WorkflowDefinitionInput,
+  options: { platformSeedKey?: string } = {},
 ) {
   const definition = buildWorkflowVersionDefinition(definitionInput);
   const versionId = randomUUID();
   const identity = await transaction.workflow.create({
-    data: { ...identityData, currentVersionId: versionId },
+    data: {
+      ...identityData,
+      currentVersionId: versionId,
+      ...(options.platformSeedKey
+        ? { platformSeedKey: options.platformSeedKey }
+        : {}),
+    },
   });
   await transaction.workflowVersion.create({
     data: {
@@ -175,6 +186,51 @@ export async function createVersionedWorkflow(
   return transaction.workflow.findFirstOrThrow({
     include: { currentVersion: true },
     where: scopedWhere(identity.organizationId, { id: identity.id }),
+  });
+}
+
+/**
+ * Appends the next immutable version and moves `currentVersionId` to it in one compare-and-set,
+ * together with the scalar columns of the same edit (so a platform marker cleared by the edit
+ * leaves in the same write). Throws if the workflow was edited concurrently.
+ */
+export async function appendWorkflowVersion(
+  transaction: VersionedWorkflowTransaction,
+  existing: Pick<
+    WorkflowDocument,
+    'id' | 'organizationId' | 'userId' | 'version' | 'versionId'
+  >,
+  definition: ReturnType<typeof buildWorkflowVersionDefinition>,
+  scalarPatch: Record<string, unknown>,
+) {
+  const version = await transaction.workflowVersion.create({
+    data: {
+      contentHash: definition.contentHash,
+      graph: toPrismaJson(definition.graph),
+      inputSchema: toPrismaJson(definition.inputSchema),
+      organizationId: existing.organizationId,
+      userId: existing.userId,
+      version: existing.version + 1,
+      workflowId: existing.id,
+    },
+  });
+  // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on workflow.id after the tenant-scoped load; currentVersionId is the concurrency token.
+  const changed = await transaction.workflow.updateMany({
+    data: { ...scalarPatch, currentVersionId: version.id },
+    where: {
+      currentVersionId: existing.versionId,
+      id: existing.id,
+      isDeleted: false,
+      organizationId: existing.organizationId,
+    },
+  });
+  if (changed.count !== 1) {
+    throw new Error(`Workflow ${existing.id} was edited concurrently`);
+  }
+
+  return transaction.workflow.findFirstOrThrow({
+    include: { currentVersion: true },
+    where: scopedWhere(existing.organizationId, { id: existing.id }),
   });
 }
 

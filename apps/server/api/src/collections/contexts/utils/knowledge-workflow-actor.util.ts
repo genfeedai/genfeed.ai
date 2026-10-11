@@ -1,5 +1,10 @@
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
+  type HiddenWorkflowRule,
+  hiddenExecutionRef,
+  validateHiddenExecutionChain,
+} from '@api/authorization/brand-access/hidden-execution-chain.util';
+import {
   parseWorkflowActor,
   refreshWorkflowActor,
   toWorkflowActor,
@@ -7,12 +12,8 @@ import {
 } from '@api/authorization/brand-access/workflow-actor.util';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { KNOWLEDGE_SOURCE_WORKFLOW_IDS } from '@api/collections/contexts/services/knowledge-source-ingest-workflow-definition';
-import {
-  getSystemWorkflowMetadata,
-  isHiddenSystemWorkflowMetadata,
-  SYSTEM_WORKFLOW_PRINCIPAL_ID,
-} from '@api/collections/workflows/system-workflow.contract';
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
+import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import type {
   KnowledgeSourceIngestWorkflowInput,
   KnowledgeWorkflowInitiatingActor,
@@ -42,6 +43,22 @@ export function toKnowledgeWorkflowActor(
 ): KnowledgeWorkflowInitiatingActor {
   return toWorkflowActor(actor, denyKnowledgeWork);
 }
+/**
+ * The authenticated principal that configures a Knowledge refresh schedule.
+ * Copies only the identity fields of an actor resolved from the request, so
+ * brand scope, role or workflow scope never reach the persisted binding.
+ */
+export function toKnowledgeSchedulePrincipal(
+  actor: KnowledgeActor,
+): WorkflowSchedulePrincipal {
+  return {
+    apiKeyId: actor.apiKeyId,
+    isApiKey: actor.isApiKey ?? false,
+    organizationId: actor.organizationId,
+    scopes: actor.scopes ?? [],
+    userId: actor.userId,
+  };
+}
 export function knowledgeWorkflowActorKey(
   actor: KnowledgeWorkflowInitiatingActor,
 ): string {
@@ -62,6 +79,38 @@ export function refreshKnowledgeWorkflowActor(
   );
 }
 
+const KNOWLEDGE_BACKFILL_RULE: HiddenWorkflowRule = {
+  accepts: (holder, organizationId) => holder.organizationId === organizationId,
+  holderKey: 'request',
+  matches: (canonicalId) =>
+    canonicalId === KNOWLEDGE_SOURCE_WORKFLOW_IDS.BACKFILL,
+  rootSources: ['knowledge-source-backfill'],
+};
+const KNOWLEDGE_INGEST_RULE: HiddenWorkflowRule = {
+  accepts: (holder, organizationId) =>
+    holder.organizationId === organizationId &&
+    nonempty(holder.sourceId) &&
+    nonempty(holder.versionId),
+  holderKey: 'request',
+  matches: (canonicalId) =>
+    canonicalId === KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+  parents: [
+    {
+      discovery: {
+        itemsKey: 'items',
+        matches: (item, holder) =>
+          item.organizationId === holder.organizationId &&
+          item.sourceId === holder.sourceId &&
+          item.versionId === holder.versionId,
+        nodeId: 'discover-sources',
+      },
+      nodeId: (nodeId) => nodeId === 'ingest-sources',
+      rule: KNOWLEDGE_BACKFILL_RULE,
+    },
+  ],
+  rootSources: ['knowledge-source'],
+};
+
 /** Read authority only from the server-persisted, pinned hidden execution. */
 export async function validateKnowledgeWorkflowAction(
   tx: Prisma.TransactionClient,
@@ -71,155 +120,25 @@ export async function validateKnowledgeWorkflowAction(
   incoming: unknown,
 ): Promise<KnowledgeSourceIngestWorkflowInput> {
   const { context, provenance } = action;
-  if (
-    !context.organizationId ||
-    !context.userId ||
-    provenance.executionId !== (context.executionId ?? context.runId) ||
-    provenance.workflowId !== context.workflowId
-  )
-    denyKnowledgeWork();
-  const select = {
-    id: true,
-    organizationId: true,
-    userId: true,
-    workflowId: true,
-    workflowVersionId: true,
-    result: true,
-    workflow: {
-      select: {
-        isDeleted: true,
-        organizationId: true,
-        userId: true,
-        metadata: true,
-      },
-    },
-    workflowVersion: {
-      select: { workflowId: true, organizationId: true, userId: true },
-    },
-  } as const;
-  const execution = await tx.workflowExecution.findFirst({
-    where: {
-      id: provenance.executionId,
-      organizationId: context.organizationId,
-      isDeleted: false,
-    },
-    select,
-  });
-  const hidden = (row: NonNullable<typeof execution>, expected: string) =>
-    !row.workflow.isDeleted &&
-    row.workflow.organizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
-    row.workflow.userId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
-    row.workflowVersion.organizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
-    row.workflowVersion.userId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
-    row.workflowVersion.workflowId === row.workflowId &&
-    isHiddenSystemWorkflowMetadata(row.workflow.metadata) &&
-    getSystemWorkflowMetadata(row.workflow.metadata)?.canonicalId === expected;
-  if (
-    !execution ||
-    execution.userId !== context.userId ||
-    execution.workflowId !== context.workflowId ||
-    execution.workflowVersionId !== context.workflowVersionId ||
-    !hidden(execution, canonicalId)
-  )
-    denyKnowledgeWork();
-  const result = record(execution.result);
-  const metadata = record(result.metadata);
-  const persisted = record(record(result.inputValues).request);
+  const rule =
+    canonicalId === KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST
+      ? KNOWLEDGE_INGEST_RULE
+      : canonicalId === KNOWLEDGE_SOURCE_WORKFLOW_IDS.BACKFILL
+        ? KNOWLEDGE_BACKFILL_RULE
+        : denyKnowledgeWork();
+  const { actor: captured, holder: persisted } =
+    await validateHiddenExecutionChain(
+      tx,
+      hiddenExecutionRef(context, provenance, denyKnowledgeWork),
+      rule,
+      { deny: denyKnowledgeWork },
+    );
   const supplied = record(incoming);
   if (
-    persisted.organizationId !== context.organizationId ||
     supplied.organizationId !== persisted.organizationId ||
     (canonicalId === KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST &&
-      (!nonempty(persisted.sourceId) ||
-        !nonempty(persisted.versionId) ||
-        supplied.sourceId !== persisted.sourceId ||
+      (supplied.sourceId !== persisted.sourceId ||
         supplied.versionId !== persisted.versionId))
-  )
-    denyKnowledgeWork();
-  const captured = persisted.initiatingActor;
-  if (
-    captured !== undefined &&
-    parseKnowledgeWorkflowActor(captured, context.organizationId).userId !==
-      context.userId
-  )
-    denyKnowledgeWork();
-  if (metadata.parentExecutionId !== undefined) {
-    if (
-      canonicalId !== KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST ||
-      !nonempty(metadata.parentExecutionId) ||
-      metadata.parentNodeId !== 'ingest-sources' ||
-      !Number.isInteger(metadata.workflowForEachIndex) ||
-      (metadata.workflowForEachIndex as number) < 0
-    )
-      denyKnowledgeWork();
-    const parent = await tx.workflowExecution.findFirst({
-      where: {
-        id: metadata.parentExecutionId,
-        organizationId: context.organizationId,
-        isDeleted: false,
-      },
-      select,
-    });
-    if (
-      !parent ||
-      parent.userId !== execution.userId ||
-      metadata.parentWorkflowId !== parent.workflowId ||
-      !hidden(parent, KNOWLEDGE_SOURCE_WORKFLOW_IDS.BACKFILL)
-    )
-      denyKnowledgeWork();
-    const parentResult = record(parent.result);
-    const parentMetadata = record(parentResult.metadata);
-    const parentRequest = record(record(parentResult.inputValues).request);
-    if (
-      parentMetadata.source !== 'knowledge-source-backfill' ||
-      parentMetadata.canonicalId !== KNOWLEDGE_SOURCE_WORKFLOW_IDS.BACKFILL ||
-      parentRequest.organizationId !== context.organizationId ||
-      knowledgeWorkflowActorKey(
-        parseKnowledgeWorkflowActor(
-          parentRequest.initiatingActor,
-          context.organizationId,
-        ),
-      ) !==
-        knowledgeWorkflowActorKey(
-          parseKnowledgeWorkflowActor(captured, context.organizationId),
-        )
-    )
-      denyKnowledgeWork();
-    const discovered = await tx.workflowExecutionNodeResult.findFirst({
-      where: {
-        organizationId: context.organizationId,
-        executionId: parent.id,
-        nodeId: 'discover-sources',
-      },
-      select: { output: true },
-    });
-    const items = record(discovered?.output).items;
-    const item = record(
-      Array.isArray(items)
-        ? items[metadata.workflowForEachIndex as number]
-        : undefined,
-    );
-    if (
-      item.organizationId !== persisted.organizationId ||
-      item.sourceId !== persisted.sourceId ||
-      item.versionId !== persisted.versionId ||
-      knowledgeWorkflowActorKey(
-        parseKnowledgeWorkflowActor(
-          item.initiatingActor,
-          context.organizationId,
-        ),
-      ) !==
-        knowledgeWorkflowActorKey(
-          parseKnowledgeWorkflowActor(captured, context.organizationId),
-        )
-    )
-      denyKnowledgeWork();
-  } else if (
-    metadata.canonicalId !== canonicalId ||
-    metadata.source !==
-      (canonicalId === KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST
-        ? 'knowledge-source'
-        : 'knowledge-source-backfill')
   )
     denyKnowledgeWork();
   const initiatingActor = await refreshKnowledgeWorkflowActor(

@@ -23,6 +23,7 @@ import { patchBrandWithLearningFenced } from '@api/collections/brands/services/b
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import {
+  type BrandRelocationActingUser,
   type BrandRelocationPreview,
   type BrandRelocationResult,
   BrandRelocationService,
@@ -32,6 +33,7 @@ import {
   tenantScopedBrandWhere,
 } from '@api/collections/brands/services/brand-tenant-scope.util';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import { assertValidMergedAgentSchedule } from '@api/collections/brands/utils/brand-agent-schedule-validation.util';
 import {
   bootstrapCredentialInclude,
   mapBootstrapCredentials,
@@ -53,10 +55,7 @@ import {
 } from '@api/collections/shared/slug-allocation.util';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import type { GenerateTurboIdeasDto } from '@api/collections/turbo-projects/dto/generate-turbo-ideas.dto';
-import {
-  computeNextRunAtOrThrow,
-  isSchedulableTimezone,
-} from '@api/collections/workflows/utils/cron-schedule.util';
+import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -90,6 +89,7 @@ import {
 } from '@nestjs/common';
 
 export type {
+  BrandRelocationActingUser,
   BrandRelocationMovingResource,
   BrandRelocationPreview,
   BrandRelocationResult,
@@ -623,6 +623,7 @@ export class BrandsService extends BaseService<
     brandId: string,
     orgId: string,
     agentConfig: BrandAgentConfig | UpdateBrandAgentConfigDto,
+    principal?: WorkflowSchedulePrincipal | null,
     retryCount = 0,
   ): Promise<BrandDocument | null> {
     this.logger.debug('Updating brand agent config', {
@@ -685,7 +686,7 @@ export class BrandsService extends BaseService<
       updatedConfig[key] = value;
     }
 
-    this.validateMergedAgentSchedule(updatedConfig, hasScheduleUpdate);
+    assertValidMergedAgentSchedule(updatedConfig, hasScheduleUpdate);
 
     // Scope the WRITE, not just the lookup above, and compare the exact JSON
     // snapshot that was merged. The JSON predicate prevents concurrent config
@@ -711,6 +712,7 @@ export class BrandsService extends BaseService<
           brandId,
           orgId,
           agentConfig,
+          principal,
           retryCount + 1,
         );
       }
@@ -740,48 +742,11 @@ export class BrandsService extends BaseService<
         orgId,
         brandId,
         updatedConfig,
-        { isSchedulerRequired: false },
+        { isSchedulerRequired: false, principal: principal ?? undefined },
       );
     }
 
     return updatedBrand;
-  }
-
-  private validateMergedAgentSchedule(
-    updatedConfig: Record<string, unknown>,
-    hasScheduleUpdate: boolean,
-  ): void {
-    if (!hasScheduleUpdate) {
-      return;
-    }
-
-    const mergedSchedule = isMergeableRecord(updatedConfig.schedule)
-      ? updatedConfig.schedule
-      : null;
-    const mergedCron =
-      typeof mergedSchedule?.cronExpression === 'string'
-        ? mergedSchedule.cronExpression.trim()
-        : '';
-    const mergedTimezone =
-      typeof mergedSchedule?.timezone === 'string'
-        ? mergedSchedule.timezone.trim()
-        : '';
-
-    if (mergedTimezone && !isSchedulableTimezone(mergedTimezone)) {
-      throw new BadRequestException(
-        `Invalid timezone "${mergedTimezone}". Use an IANA timezone name, for example "Europe/Berlin".`,
-      );
-    }
-
-    if (mergedCron) {
-      try {
-        computeNextRunAtOrThrow(mergedCron, mergedTimezone || 'UTC');
-      } catch {
-        throw new BadRequestException(
-          `Invalid cron expression "${mergedCron}". Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.`,
-        );
-      }
-    }
   }
 
   async crawlWebsiteBrandKitDraft(
@@ -945,7 +910,7 @@ export class BrandsService extends BaseService<
     updateBrandDto: Partial<UpdateBrandDto> & {
       organizationId?: string;
     },
-    actingUser: { userId: string; isSuperAdmin: boolean },
+    actingUser: BrandRelocationActingUser,
   ): Promise<BrandRelocationResult> {
     return this.brandRelocationService.relocateToOrganization(
       brandId,
@@ -958,7 +923,7 @@ export class BrandsService extends BaseService<
   async previewRelocation(
     brandId: string,
     destOrgId: string,
-    actingUser: { userId: string; isSuperAdmin: boolean },
+    actingUser: BrandRelocationActingUser,
   ): Promise<BrandRelocationPreview> {
     return this.brandRelocationService.previewRelocation(
       brandId,

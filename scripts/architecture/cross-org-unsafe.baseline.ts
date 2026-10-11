@@ -193,25 +193,25 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // assertCanRelocate authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 271,
+      line: 273,
     },
     // #6120: brand relocation preview across tenants; assertCanRelocate
     // authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 317,
+      line: 320,
     },
     // #6120: superadmin brand list filtered by another organization or by
     // brand only.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 392,
+      line: 396,
     },
     // #6120: list relation reads for rows already authorized, each pinned to
     // the brand's own organization.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 418,
+      line: 422,
     },
     // #6120: brand slugs are globally unique across organizations, including
     // soft-deleted rows.

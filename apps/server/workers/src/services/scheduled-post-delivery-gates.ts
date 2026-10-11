@@ -1,6 +1,10 @@
 import type { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import {
+  assertBreakoutPublicationDispatch,
+  isBreakoutPublicationHold,
+} from '@api/collections/outliers/services/breakout-publication-fence.util';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { ScheduledPostWorkflowInput } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import {
@@ -142,7 +146,10 @@ export class ScheduledPostDeliveryGates {
     );
   }
 
-  /** Content gates before a provider call: target settings and media. */
+  /**
+   * Content gates before a provider call: target settings, media and, last and closest to
+   * the call, the breakout dispatch fence.
+   */
   async checkContent(
     post: PostEntity,
     ids: PostDeliveryIds,
@@ -172,7 +179,45 @@ export class ScheduledPostDeliveryGates {
       };
     }
 
-    return this.checkMediaReady(post, ids, prepared.platform, url);
+    return (
+      (await this.checkMediaReady(post, ids, prepared.platform, url)) ??
+      (await this.checkBreakoutPublication(post, ids, prepared.platform, url))
+    );
+  }
+
+  /**
+   * Dispatch fence of a breakout response, the last gate before the provider call: the
+   * actor pinned on the generating execution must still be authorized and the evidence
+   * current. Ordinary posts pass. A hold is terminal; an infrastructure error propagates
+   * and takes the delivery's normal retry path.
+   */
+  private async checkBreakoutPublication(
+    post: PostEntity,
+    ids: PostDeliveryIds,
+    platform: Platform,
+    url: string,
+  ): Promise<DeliveryGateFailure | null> {
+    if (!ids.organizationId) return null;
+    try {
+      await assertBreakoutPublicationDispatch(this.prisma, {
+        organizationId: ids.organizationId,
+        postId: String(post.id),
+      });
+      return null;
+    } catch (error: unknown) {
+      if (!isBreakoutPublicationHold(error)) throw error;
+      const message = getErrorMessage(error);
+      this.logger.warn(`${url} breakout publication held`, {
+        error: message,
+        postId: post.id,
+      });
+      return {
+        code: 'breakout_publication_held',
+        isRetryable: false,
+        message,
+        platform,
+      };
+    }
   }
 
   prepare(

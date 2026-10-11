@@ -99,6 +99,67 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
   });
 
+  it('carries the API key identity into a thread UI action principal', async () => {
+    agentOrchestratorService.handleThreadUiAction.mockResolvedValue({
+      executionId: 'run-1',
+      status: 'queued',
+      threadId,
+    });
+
+    await controller.respondToUiAction(
+      threadId,
+      { action: 'confirm_install_official_workflow', payload: {} },
+      {
+        ...mockUser,
+        apiKeyId: 'key-1',
+        isApiKey: true,
+        scopes: ['posts:schedule'],
+      } as User,
+    );
+
+    expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        initiatingPrincipal: {
+          apiKeyId: 'key-1',
+          isApiKey: true,
+          organizationId,
+          scopes: ['posts:schedule'],
+          userId,
+        },
+      }),
+    );
+  });
+
+  it('carries the principal into a resumed recurring-task draft', async () => {
+    const resume = vi.fn().mockResolvedValue(true);
+    (
+      agentOrchestratorService as unknown as {
+        resumeRecurringTaskDraftFromInput: typeof resume;
+      }
+    ).resumeRecurringTaskDraftFromInput = resume;
+
+    await controller.respondToInputRequest(
+      threadId,
+      'recurring-workflow:schedule',
+      { answer: 'Every weekday at 9' },
+      mockUser,
+    );
+
+    expect(resume).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initiatingPrincipal: {
+          isApiKey: false,
+          organizationId,
+          scopes: [],
+          userId,
+        },
+        organizationId,
+        userId,
+      }),
+    );
+  });
+
   it('continues the kickoff domain choice as its URL rather than its button label', async () => {
     resolveInputRequest.mockResolvedValue({
       requestId: 'onboarding-url:thread_current',
@@ -113,7 +174,15 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
     expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'https://acme.com' }),
-      { organizationId, userId, generationEntry: undefined },
+      {
+        organizationId,
+        userId,
+        generationEntry: undefined,
+        initiatingPrincipal: expect.objectContaining({
+          organizationId,
+          userId,
+        }),
+      },
     );
   });
 
@@ -153,7 +222,15 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
     expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'Awareness, Sales' }),
-      { organizationId, userId, generationEntry: undefined },
+      {
+        organizationId,
+        userId,
+        generationEntry: undefined,
+        initiatingPrincipal: expect.objectContaining({
+          organizationId,
+          userId,
+        }),
+      },
     );
   });
 
@@ -174,7 +251,15 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
     expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
       expect.anything(),
-      { organizationId, userId, generationEntry },
+      {
+        organizationId,
+        userId,
+        generationEntry,
+        initiatingPrincipal: expect.objectContaining({
+          organizationId,
+          userId,
+        }),
+      },
     );
   });
 
@@ -199,7 +284,15 @@ describe('Threading AgentThreadRuntimeController', () => {
         content: 'Use hybrid',
         threadId,
       }),
-      { organizationId, userId, generationEntry: undefined },
+      {
+        organizationId,
+        userId,
+        generationEntry: undefined,
+        initiatingPrincipal: expect.objectContaining({
+          organizationId,
+          userId,
+        }),
+      },
     );
     expect(response).toEqual(
       expect.objectContaining({
@@ -240,6 +333,10 @@ describe('Threading AgentThreadRuntimeController', () => {
       }),
       {
         apiKeyContext: expect.objectContaining({
+          organizationId,
+          userId,
+        }),
+        initiatingPrincipal: expect.objectContaining({
           organizationId,
           userId,
         }),

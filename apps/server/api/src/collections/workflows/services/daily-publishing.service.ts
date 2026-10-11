@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
+import type { AnalyticsCollectionAuthorization } from '@api/analytics/analytics-collection-action.types';
+import { resolveDailyPublishingAuthorization } from '@api/analytics/analytics-collection-actor';
+import { isAnalyticsCollectionAuthorizationFailure } from '@api/analytics/analytics-collection-authorization';
 import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -33,6 +37,9 @@ import {
 } from '@genfeedai/prisma';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+/** The scheduled actor was denied mid-run: the account is held and does no further work. */
+const ACTOR_HELD_OUTCOME = 'actor-held';
 
 interface DailyAccount {
   credentialId: string;
@@ -274,30 +281,67 @@ export class DailyPublishingService implements OnModuleInit {
       post.externalId ? [{ ...post, externalId: post.externalId }] : [],
     );
     const errors: string[] = [];
+    // Collection is gated on the scheduled parent's configuring principal. An account whose
+    // schedule is genuinely unbound resolves no authorization and collects ordinary actor-less
+    // data. A bound actor that is denied (membership or key revoked, brand access lost, a chain
+    // that cannot be validated) stops the account instead of quietly degrading to actor-less
+    // work: the slot is held and nothing is selected, generated or scheduled for it.
+    let authorization: AnalyticsCollectionAuthorization | undefined;
+    if (items.length > 0) {
+      try {
+        authorization = await resolveDailyPublishingAuthorization(
+          {
+            policy: this.moduleRef.get(BrandAccessService, { strict: false }),
+            prisma: this.prisma,
+          },
+          action.context,
+          action.provenance,
+        );
+      } catch (error) {
+        return {
+          ...state,
+          analyticsRefreshError: `actor: ${error instanceof Error ? error.message : 'Actor authorization failed'}`,
+          outcome: ACTOR_HELD_OUTCOME,
+        };
+      }
+    }
     let successful = 0;
     for (const post of items.slice(0, 50)) {
       try {
         if (state.platform === CredentialPlatform.TWITTER)
           await this.moduleRef
             .get(AnalyticsTwitterCollectionService, { strict: false })
-            .collect({ credentialId: state.credentialId, posts: [post] });
+            .collect(
+              { credentialId: state.credentialId, posts: [post] },
+              authorization,
+            );
         else
           await this.moduleRef
             .get(AnalyticsSocialCollectionService, { strict: false })
-            .collect({
-              posts: [
-                {
-                  ...post,
-                  credentialId: state.credentialId,
-                  platform: CredentialPlatform.LINKEDIN,
-                },
-              ],
-            });
+            .collect(
+              {
+                posts: [
+                  {
+                    ...post,
+                    credentialId: state.credentialId,
+                    platform: CredentialPlatform.LINKEDIN,
+                  },
+                ],
+              },
+              authorization,
+            );
         successful += 1;
       } catch (error) {
         errors.push(
           `${post.id}: ${error instanceof Error ? error.message : 'Analytics refresh failed'}`,
         );
+        // A revoked actor stops every later post at the same gate, and the account with it.
+        if (isAnalyticsCollectionAuthorizationFailure(error))
+          return {
+            ...state,
+            analyticsRefreshError: errors.join('; '),
+            outcome: ACTOR_HELD_OUTCOME,
+          };
       }
     }
     if (successful > 0) {
@@ -322,6 +366,7 @@ export class DailyPublishingService implements OnModuleInit {
     action: SystemWorkflowActionRequest,
   ): Promise<DailyState> {
     const state = action.input.state as DailyState;
+    if (state.outcome === ACTOR_HELD_OUTCOME) return state;
     await this.assertAccount(action, state);
     const scope = {
       organizationId: action.context.organizationId,
@@ -466,6 +511,7 @@ export class DailyPublishingService implements OnModuleInit {
     execute: (state: DailyState) => Promise<DailyState>,
   ): Promise<DailyState> {
     const state = action.input.state as DailyState;
+    if (state.outcome === ACTOR_HELD_OUTCOME) return state;
     if (typeof state.postId !== 'string' || !state.postId.trim())
       throw new Error('Daily slot postId must be a nonempty string');
     await this.assertAccount(action, state);

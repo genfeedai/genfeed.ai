@@ -5112,6 +5112,13 @@ model Workflow {
   @@map("workflows")
   /// Server-written configuring principal; never accepted from workflow DTO metadata.
   scheduleInitiatingActor Json?
+  /// Server-only platform-authority marker: the canonical seeded template id this row was seeded
+  /// from, written only by WorkflowTemplateSeederService. A marked row whose current version still
+  /// matches that template runs its schedule without a bound actor in Cloud. Never accepted from
+  /// request input, never copied by clone or install, and cleared when a tenant edits the
+  /// definition. At most one live row per (organizationId, platformSeedKey) via the partial unique
+  /// index workflows_platform_seed_key_org_uidx (migration 20261011120000; Prisma cannot express it).
+  platformSeedKey String?
 }
 
 /// Immutable executable workflow definition. A version is append-only: edits
@@ -8438,6 +8445,7 @@ model BreakoutResponseOutput {
   state String @default("reserved")
   heldReason String?
   workflowExecutionId String?
+  publicationActor Json?
   artifact Post?
   isDeleted Boolean @default(false)
   createdAt DateTime @default(now())

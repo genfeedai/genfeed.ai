@@ -25,7 +25,17 @@ import {
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import type { ModuleRef } from '@nestjs/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// The scheduled-parent actor chain is covered by its own specs; this graph run only needs to
+// say whether the account is bound (resolves an authorization) or denied (rejects).
+const scheduledActor = vi.hoisted(() => ({ resolve: vi.fn() }));
+vi.mock('@api/analytics/analytics-collection-actor', async (original) => ({
+  ...(await original<
+    typeof import('@api/analytics/analytics-collection-actor')
+  >()),
+  resolveDailyPublishingAuthorization: scheduledActor.resolve,
+}));
 
 type Row = Record<string, unknown> & { id: string };
 type Query = { where: Record<string, unknown> };
@@ -125,6 +135,7 @@ function harness() {
       ),
     },
     postAnalytics: { findMany: vi.fn(async () => []) },
+    workflowExecution: { findFirst: vi.fn(async () => null) },
   };
   prisma.$transaction.mockImplementation(
     async (
@@ -316,6 +327,11 @@ function expectCompleted(
 }
 
 afterEach(() => vi.useRealTimers());
+beforeEach(() => {
+  // This in-memory run persists no execution rows, so an account is genuinely unbound.
+  scheduledActor.resolve.mockReset();
+  scheduledActor.resolve.mockResolvedValue(undefined);
+});
 describe('daily publishing executable graph', () => {
   it('runs two account slots once per day across retries and tomorrow’s recurrence', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -374,14 +390,53 @@ describe('daily publishing executable graph', () => {
       fixture.socialAnalytics,
     ]) {
       for (const call of collector.collect.mock.calls) {
+        // No persisted schedule binding in this in-memory run: ordinary actor-less collection.
         expect(call).toEqual([
           expect.objectContaining({
             posts: [expect.objectContaining({ organizationId: 'org' })],
           }),
+          undefined,
         ]);
       }
     }
     expect(fixture.posts.batchSchedule).toHaveBeenCalledTimes(2);
+  });
+
+  it('holds every account instead of generating actor-less when the bound principal is denied', async () => {
+    const fixture = harness();
+    for (const credentialId of ['account-x', 'account-linkedin']) {
+      fixture.rows.push({
+        id: `${credentialId}-published`,
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId,
+        platform: credentialId === 'account-x' ? 'twitter' : 'linkedin',
+        isDeleted: false,
+        isAnalyticsEnabled: true,
+        targetExecutionState: 'published',
+        externalId: 'external-1',
+        publishedAt: new Date(),
+        createdAt: new Date(),
+        description: `Historical account evidence ${credentialId}`,
+      });
+    }
+    scheduledActor.resolve.mockRejectedValue(new Error('Brand access denied'));
+
+    const result = await fixture.run('revoked');
+
+    expectCompleted(result);
+    expect(fixture.twitterAnalytics.collect).not.toHaveBeenCalled();
+    expect(fixture.socialAnalytics.collect).not.toHaveBeenCalled();
+    expect(fixture.outliers.refresh).not.toHaveBeenCalled();
+    expect(fixture.generator.generateContentWorkflow).not.toHaveBeenCalled();
+    expect(fixture.scorer.scoreContent).not.toHaveBeenCalled();
+    expect(fixture.posts.batchSchedule).not.toHaveBeenCalled();
+    // Only the two pre-existing published rows: no slot post was claimed.
+    expect(fixture.rows).toHaveLength(2);
+    const outcomes = [...result.nodeResults.values()].flatMap((node) =>
+      JSON.stringify(node.output).includes('actor-held') ? ['actor-held'] : [],
+    );
+    expect(outcomes).not.toHaveLength(0);
   });
 
   it('holds low quality output for review without scheduling it', async () => {

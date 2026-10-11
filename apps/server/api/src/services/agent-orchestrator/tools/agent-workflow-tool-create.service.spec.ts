@@ -79,6 +79,8 @@ describe('AgentWorkflowToolCreateService', () => {
           originatingTool: 'create_workflow',
         }),
       }),
+      undefined,
+      undefined,
     );
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({
@@ -113,6 +115,8 @@ describe('AgentWorkflowToolCreateService', () => {
         isScheduleEnabled: true,
         schedule: '0 9 * * 1-5',
       }),
+      undefined,
+      undefined,
     );
     const payload = workflowsService.createWorkflow.mock.calls[0]?.[2] as {
       nodes: Array<{
@@ -190,6 +194,8 @@ describe('AgentWorkflowToolCreateService', () => {
           }),
         ],
       }),
+      undefined,
+      undefined,
     );
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({

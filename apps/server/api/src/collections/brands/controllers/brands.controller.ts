@@ -7,6 +7,10 @@ import {
   verifyBrandAccess,
   verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
+import {
+  recordBrandRelocation,
+  toRelocationActor,
+} from '@api/collections/brands/controllers/brand-relocation.helpers';
 import { decorateBrandResponse } from '@api/collections/brands/controllers/brand-response.helpers';
 import { BrandFleetAccess } from '@api/collections/brands/decorators/brand-fleet-access.decorator';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
@@ -41,7 +45,6 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -264,24 +267,24 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 
-    // A relocation spans the source and destination tenants; authorization
-    // (superadmin, or owner/admin of both orgs) is the service's
-    // assertCanRelocate.
+    // Spans both tenants; the service's assertCanRelocate authorizes it
+    // (superadmin, or owner/admin of both orgs; an API key needs admin scope).
     const { brand: moved, summary } = await crossOrgUnsafe(
       async () =>
-        await this.brandsService.relocateToOrganization(id, updateDto, {
-          isSuperAdmin: getIsSuperAdmin(user, request),
-          userId: user.userId ?? user.id,
-        }),
+        await this.brandsService.relocateToOrganization(
+          id,
+          updateDto,
+          toRelocationActor(user, request),
+        ),
     );
 
-    await this.activityRecorder.record({
+    await recordBrandRelocation(this.activityRecorder, this.loggerService, {
       brandId: id,
-      key: ActivityKey.BRAND_RELOCATED,
-      organizationId: requestedOrgId,
-      source: ActivitySource.BRAND_RELOCATION,
+      brandOwnerId: existing.userId,
+      destinationOrganizationId: requestedOrgId,
+      sourceOrganizationId: existing.organizationId,
+      summary,
       userId: user.userId ?? user.id,
-      value: JSON.stringify(summary),
     });
 
     return {
@@ -315,10 +318,11 @@ export class BrandsController extends BaseCRUDController<
     // Counts resources across source and destination tenants; see patch().
     const preview = await crossOrgUnsafe(
       async () =>
-        await this.brandsService.previewRelocation(id, organizationId, {
-          isSuperAdmin: getIsSuperAdmin(user, request),
-          userId: user.userId ?? user.id,
-        }),
+        await this.brandsService.previewRelocation(
+          id,
+          organizationId,
+          toRelocationActor(user, request),
+        ),
     );
 
     return { data: preview };

@@ -1719,7 +1719,7 @@
     },
     "movedToTrash": "Moved to Trash",
     "previewUnavailable": "Preview unavailable",
-    "previewUnavailableDescription": "The asset is saved, but this preview could not be loaded.",
+    "previewUnavailableDescription": "The asset is saved, but this preview could not be loaded. Open it to retry the preview.",
     "prompt": "Prompt",
     "remove": "Remove",
     "removeDialogTitle": "Remove Generation",

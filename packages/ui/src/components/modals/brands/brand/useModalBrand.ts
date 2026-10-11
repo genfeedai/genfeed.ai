@@ -65,7 +65,12 @@ import {
   useState,
 } from 'react';
 import { useForm } from 'react-hook-form';
-import { buildMovingResourcesSummary } from './brand-relocation-summary.util';
+import {
+  buildHeldSchedulesSummary,
+  buildMovingResourcesSummary,
+  buildRelocationToastMessage,
+  buildSharedPersonasSummary,
+} from './brand-relocation-summary.util';
 import {
   type BrandEditorTab,
   type BrandFormValues,
@@ -766,6 +771,20 @@ export function useModalBrand(
         );
       }
 
+      const heldSchedulesSummary = buildHeldSchedulesSummary(
+        preview.schedulesToHold,
+      );
+      if (heldSchedulesSummary) {
+        sentences.push(heldSchedulesSummary);
+      }
+
+      const sharedPersonasSummary = buildSharedPersonasSummary(
+        preview.personasToReset,
+      );
+      if (sharedPersonasSummary) {
+        sentences.push(sharedPersonasSummary);
+      }
+
       sentences.push('This cannot be easily undone.');
 
       return sentences.join(' ');
@@ -800,31 +819,8 @@ export function useModalBrand(
         onConfirm?.(true);
         setOverlayView('overview');
 
-        const summaryParts: string[] = [];
-        if (summary.workflowsClonedActive > 0) {
-          summaryParts.push(
-            `${summary.workflowsClonedActive} copied & running`,
-          );
-        }
-        if (summary.workflowsClonedPaused > 0) {
-          summaryParts.push(
-            `${summary.workflowsClonedPaused} paused for review`,
-          );
-        }
-        if (summary.workflowsMoved > 0) {
-          summaryParts.push(`${summary.workflowsMoved} moved`);
-        }
-
-        const summaryMessage = summaryParts.length
-          ? ` — ${summaryParts.join(', ')}`
-          : '';
-        const schedulingNote =
-          summary.schedulingPending > 0
-            ? ' Scheduling is still pending for some workflows.'
-            : '';
-
         NotificationsService.getInstance().success(
-          `Moved to destination organization${summaryMessage}.${schedulingNote}`,
+          buildRelocationToastMessage(summary),
         );
       } catch (relocationError) {
         logger.error('Failed to relocate brand', relocationError);

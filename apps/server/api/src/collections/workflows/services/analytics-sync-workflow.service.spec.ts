@@ -1,3 +1,9 @@
+import {
+  CHAIN_ACTOR,
+  executionContext,
+  executionLookup,
+  hiddenExecutionRow,
+} from '@api/authorization/brand-access/hidden-execution-chain.fixture';
 import { extensionPublicationAnalyticsDiscoveryFilter } from '@api/collections/posts/services/post-publication-capture.filters';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { executeAwaitedForEach } from '@api/collections/workflows/system-workflow-for-each.util';
@@ -39,6 +45,17 @@ describe('AnalyticsSyncWorkflowService', () => {
   const workflowQueue = { queueSystemWorkflow: vi.fn() };
   const workflowRunner = { registerWorkflow: vi.fn() };
   const outliers = { refresh: vi.fn() };
+  const findExecution = vi.fn();
+  const prisma = { workflowExecution: { findFirst: findExecution } };
+  const brandAccess = { resolve: vi.fn() };
+  const context = {
+    executionId: 'run-1',
+    organizationId: 'org-1',
+    runId: 'run-1',
+    userId: 'user-1',
+    workflowId: 'workflow-1',
+    workflowVersionId: 'version-1',
+  };
   const account = {
     organizationId: 'org-1',
     brandId: 'brand-1',
@@ -49,6 +66,8 @@ describe('AnalyticsSyncWorkflowService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     twitter.collect.mockResolvedValue(account);
+    // An execution that persisted no actor: ordinary actor-less collection.
+    findExecution.mockResolvedValue({ result: { inputValues: {} } });
     outliers.refresh.mockResolvedValue([]);
     posts.findAll.mockResolvedValue({ docs: [] });
     collectionState.markPending.mockResolvedValue(undefined);
@@ -64,6 +83,8 @@ describe('AnalyticsSyncWorkflowService', () => {
       workflowQueue as never,
       workflowRunner as never,
       outliers as never,
+      prisma as never,
+      brandAccess as never,
     );
   });
 
@@ -80,29 +101,38 @@ describe('AnalyticsSyncWorkflowService', () => {
         },
       ],
     });
-    const discovered = await service.discoverPosts('org-1', {
-      platforms: ['facebook'],
-    });
+    const discovered = await service.discoverPosts(
+      'org-1',
+      {
+        platforms: ['facebook'],
+      },
+      context,
+    );
     expect(discovered.posts[0]).toMatchObject({ isVideo: true });
     providerCollection.collectFacebook.mockResolvedValue({ context: account });
-    await service.collectFacebook({ item: discovered.posts[0] });
+    await service.collectFacebook({ item: discovered.posts[0] }, context);
     expect(providerCollection.collectFacebook).toHaveBeenCalledWith(
       expect.objectContaining({
         posts: [
           expect.objectContaining({ externalId: 'video-1', isVideo: true }),
         ],
       }),
+      undefined,
     );
   });
 
   it.each([undefined, 'captured-post'])(
     'adds the capture fence before pagination while preserving the published-state predicate (postId %s)',
     async (postId) => {
-      await service.discoverPosts('org-1', {
-        analyticsEnabledOnly: false,
-        platforms: ['twitter', 'youtube'],
-        postId,
-      });
+      await service.discoverPosts(
+        'org-1',
+        {
+          analyticsEnabledOnly: false,
+          platforms: ['twitter', 'youtube'],
+          postId,
+        },
+        context,
+      );
       expect(posts.findAll).toHaveBeenCalledWith(
         {
           orderBy: [{ analyticsNextCollectAt: 'asc' }, { id: 'asc' }],
@@ -210,11 +240,15 @@ describe('AnalyticsSyncWorkflowService', () => {
         ],
       });
       for (const postId of [undefined, 'captured']) {
-        const result = await service.discoverPosts('org-1', {
-          analyticsEnabledOnly: false,
-          platforms: [platform],
-          postId,
-        });
+        const result = await service.discoverPosts(
+          'org-1',
+          {
+            analyticsEnabledOnly: false,
+            platforms: [platform],
+            postId,
+          },
+          context,
+        );
         expect(result).toMatchObject({ requested: 0, skipped: 1, posts: [] });
       }
       expect(collectionState.markPending).not.toHaveBeenCalled();
@@ -252,10 +286,14 @@ describe('AnalyticsSyncWorkflowService', () => {
           },
         ],
       });
-      const result = await service.discoverPosts('org-1', {
-        analyticsEnabledOnly: false,
-        platforms: [platform],
-      });
+      const result = await service.discoverPosts(
+        'org-1',
+        {
+          analyticsEnabledOnly: false,
+          platforms: [platform],
+        },
+        context,
+      );
       expect(posts.findAll.mock.calls[0][0].where.AND).toEqual([
         extensionPublicationAnalyticsDiscoveryFilter(),
       ]);
@@ -297,11 +335,15 @@ describe('AnalyticsSyncWorkflowService', () => {
           },
         ],
       });
-      const result = await service.discoverPosts('org-1', {
-        analyticsEnabledOnly: false,
-        platforms: ['twitter'],
-        postId: 'ordinary',
-      });
+      const result = await service.discoverPosts(
+        'org-1',
+        {
+          analyticsEnabledOnly: false,
+          platforms: ['twitter'],
+          postId: 'ordinary',
+        },
+        context,
+      );
       expect(result).toMatchObject({ requested: 1, skipped: 0 });
       expect(collectionState.markPending).toHaveBeenCalledOnce();
     },
@@ -321,10 +363,14 @@ describe('AnalyticsSyncWorkflowService', () => {
       ],
     });
 
-    const result = await service.discoverPosts('org-1', {
-      analyticsEnabledOnly: false,
-      platforms: [CredentialPlatform.TWITTER],
-    });
+    const result = await service.discoverPosts(
+      'org-1',
+      {
+        analyticsEnabledOnly: false,
+        platforms: [CredentialPlatform.TWITTER],
+      },
+      context,
+    );
 
     expect(result.posts).toHaveLength(1);
     expect(collectionState.markPending).toHaveBeenCalledWith(
@@ -350,20 +396,23 @@ describe('AnalyticsSyncWorkflowService', () => {
       platform: CredentialPlatform.TWITTER,
     };
 
-    await service.collectTwitter({ item });
+    await service.collectTwitter({ item }, context);
 
-    expect(twitter.collect).toHaveBeenCalledWith({
-      attemptKey: 'attempt-1',
-      credentialId: 'credential-1',
-      posts: [
-        {
-          brandId: 'brand-1',
-          externalId: 'tweet-1',
-          id: 'post-1',
-          organizationId: 'org-1',
-        },
-      ],
-    });
+    expect(twitter.collect).toHaveBeenCalledWith(
+      {
+        attemptKey: 'attempt-1',
+        credentialId: 'credential-1',
+        posts: [
+          {
+            brandId: 'brand-1',
+            externalId: 'tweet-1',
+            id: 'post-1',
+            organizationId: 'org-1',
+          },
+        ],
+      },
+      undefined,
+    );
   });
 
   it('refreshes each successful account once after awaited results and reports partial failure', async () => {
@@ -429,10 +478,10 @@ describe('AnalyticsSyncWorkflowService', () => {
           idempotencyKey: `key${index}`,
           nodeId: 'collect',
         },
-        result: await service.collectTwitter({
-          item,
-          deferOutlierRefresh: true,
-        }),
+        result: await service.collectTwitter(
+          { item, deferOutlierRefresh: true },
+          context,
+        ),
       }),
     });
     expect(writes).toBe(3);
@@ -480,7 +529,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       attemptKey: 'attempt',
       platform: CredentialPlatform.TWITTER,
     };
-    await service.collectTwitter({ item });
+    await service.collectTwitter({ item }, context);
     expect(outliers.refresh).toHaveBeenCalledOnce();
     outliers.refresh.mockClear();
     expect(
@@ -593,5 +642,209 @@ describe('AnalyticsSyncWorkflowService', () => {
       );
     }
     expect(ANALYTICS_GENERIC_CHILD_WORKFLOWS).toHaveLength(1);
+  });
+  describe('actor-bound refresh', () => {
+    const rootRow = () =>
+      hiddenExecutionRow({
+        canonicalId: 'analytics.organization-refresh',
+        id: 'root',
+        inputValues: { initiatingActor: CHAIN_ACTOR },
+        metadata: { source: 'analytics-api-refresh' },
+      });
+    const childRow = (item: Record<string, unknown>) =>
+      hiddenExecutionRow({
+        canonicalId: 'analytics.twitter.collect-item',
+        id: 'child',
+        inputValues: { item },
+        metadata: {
+          parentExecutionId: 'root',
+          parentNodeId: 'collect-each-twitter',
+          parentWorkflowId: 'workflow-root',
+          workflowForEachIndex: 0,
+        },
+      });
+    const twitterItem = {
+      attemptKey: 'attempt-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      externalId: 'tweet-1',
+      id: 'post-1',
+      organizationId: 'org',
+      platform: CredentialPlatform.TWITTER,
+    };
+
+    it('persists the authenticated actor on the hidden root and runs as that user', async () => {
+      await service.queueOrganizationRefresh({
+        initiatingActor: { ...CHAIN_ACTOR, scopes: ['b', 'a'] },
+        organizationId: 'org',
+        userId: CHAIN_ACTOR.userId,
+      });
+      const [job, jobId] =
+        workflowQueue.queueSystemWorkflow.mock.calls[0] ?? [];
+      expect(job).toMatchObject({
+        inputValues: {
+          initiatingActor: { ...CHAIN_ACTOR, scopes: ['a', 'b'] },
+        },
+        source: 'analytics-api-refresh',
+        userId: CHAIN_ACTOR.userId,
+      });
+      expect(jobId).toMatch(/^analytics-refresh-org-\d+-[0-9a-f]{64}$/);
+    });
+
+    it('leaves an actor-less refresh exactly as before', async () => {
+      await service.queueOrganizationRefresh({
+        organizationId: 'org',
+        userId: 'user-1',
+      });
+      const [job, jobId] =
+        workflowQueue.queueSystemWorkflow.mock.calls[0] ?? [];
+      expect(job).toMatchObject({ inputValues: {}, userId: 'user-1' });
+      expect(job.inputValues).not.toHaveProperty('initiatingActor');
+      expect(jobId).toMatch(/^analytics-refresh-org-\d+$/);
+    });
+
+    it('keeps the post id beside the persisted actor for a post refresh', async () => {
+      await service.queuePostRefresh({
+        initiatingActor: CHAIN_ACTOR,
+        organizationId: 'org',
+        platform: CredentialPlatform.TWITTER,
+        postId: 'post-1',
+      });
+      const [job, jobId] =
+        workflowQueue.queueSystemWorkflow.mock.calls[0] ?? [];
+      expect(job).toMatchObject({
+        inputValues: { initiatingActor: CHAIN_ACTOR, postId: 'post-1' },
+        postIds: ['post-1'],
+        source: 'post-analytics-api-refresh',
+        userId: CHAIN_ACTOR.userId,
+      });
+      expect(jobId).toMatch(/^analytics-post-refresh-post-1-\d+-[0-9a-f]{64}$/);
+    });
+
+    it.each([
+      ['an actor of another organization', { organizationId: 'foreign' }, {}],
+      ['an actor without a user', { userId: '' }, {}],
+      ['a user that is not the actor', {}, { userId: 'someone-else' }],
+    ])('refuses %s before queueing', async (_name, actor, extra) => {
+      await expect(
+        service.queueOrganizationRefresh({
+          initiatingActor: { ...CHAIN_ACTOR, ...actor },
+          organizationId: 'org',
+          ...extra,
+        }),
+      ).rejects.toThrow('analytics_collection_actor_denied');
+      expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('stamps the validated root actor onto discovered posts', async () => {
+      const root = rootRow();
+      findExecution.mockImplementation(executionLookup([root]));
+      posts.findAll.mockResolvedValue({
+        docs: [
+          {
+            brandId: 'brand-1',
+            credentialId: 'credential-1',
+            externalId: 'tweet-1',
+            id: 'post-1',
+            organizationId: 'org',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ],
+      });
+      const discovered = await service.discoverPosts(
+        'org',
+        { analyticsEnabledOnly: false, platforms: ['twitter'] },
+        executionContext(root),
+      );
+      expect(discovered.posts[0]).toMatchObject({
+        initiatingActor: CHAIN_ACTOR,
+      });
+    });
+
+    it('stamps nothing for an actor-less sweep', async () => {
+      posts.findAll.mockResolvedValue({
+        docs: [
+          {
+            brandId: 'brand-1',
+            externalId: 'tweet-1',
+            id: 'post-1',
+            organizationId: 'org',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ],
+      });
+      const discovered = await service.discoverPosts(
+        'org',
+        { analyticsEnabledOnly: false, platforms: ['twitter'] },
+        context,
+      );
+      expect(discovered.posts[0]).not.toHaveProperty('initiatingActor');
+    });
+
+    it('denies discovery under a forged root before reading or marking posts', async () => {
+      const forged = rootRow();
+      forged.workflow.organizationId = 'org';
+      findExecution.mockImplementation(executionLookup([forged]));
+      await expect(
+        service.discoverPosts(
+          'org',
+          { analyticsEnabledOnly: false, platforms: ['twitter'] },
+          executionContext(forged),
+        ),
+      ).rejects.toThrow('analytics_collection_actor_denied');
+      expect(posts.findAll).not.toHaveBeenCalled();
+      expect(collectionState.markPending).not.toHaveBeenCalled();
+    });
+
+    it('collects under an authorization admitted from the validated chain', async () => {
+      const item = { ...twitterItem, initiatingActor: CHAIN_ACTOR };
+      const child = childRow(item);
+      findExecution.mockImplementation(executionLookup([rootRow(), child]));
+      await service.collectTwitter({ item }, executionContext(child));
+      const authorization = twitter.collect.mock.calls[0]?.[1];
+      expect(authorization.initiatingActor).toEqual(CHAIN_ACTOR);
+      expect(brandAccess.resolve).toHaveBeenCalledOnce();
+      await authorization.admit();
+      expect(brandAccess.resolve).toHaveBeenCalledTimes(2);
+    });
+
+    it('refuses to collect when the item claims an actor its chain does not carry', async () => {
+      const child = childRow({ ...twitterItem });
+      findExecution.mockImplementation(executionLookup([rootRow(), child]));
+      await expect(
+        service.collectTwitter(
+          { item: { ...twitterItem, initiatingActor: CHAIN_ACTOR } },
+          executionContext(child),
+        ),
+      ).rejects.toThrow('analytics_collection_actor_denied');
+      expect(twitter.collect).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'collectFacebook',
+        providerCollection.collectFacebook,
+        { context: account },
+      ],
+      [
+        'collectThreads',
+        providerCollection.collectThreads,
+        { context: account },
+      ],
+      ['collectSocial', social.collect, account],
+      ['collectYouTube', youtube.collect, account],
+    ] as const)(
+      '%s forwards the same authorization',
+      async (method, collector, result) => {
+        const item = { ...twitterItem, initiatingActor: CHAIN_ACTOR };
+        const child = childRow(item);
+        findExecution.mockImplementation(executionLookup([rootRow(), child]));
+        collector.mockResolvedValue(result);
+        await service[method]({ item }, executionContext(child));
+        expect(collector.mock.calls[0]?.[1]).toMatchObject({
+          initiatingActor: CHAIN_ACTOR,
+        });
+      },
+    );
   });
 });

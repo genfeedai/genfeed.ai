@@ -16,6 +16,7 @@ import type {
   RecurringScaffoldParams,
   RecurringTaskContentType,
 } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.types';
+import { resolveToolSchedulePrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { WorkflowTrigger } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -249,6 +250,10 @@ export class AgentWorkflowToolCreateService {
         timezone: input.timezone,
         trigger: input.trigger as WorkflowTrigger,
       },
+      undefined,
+      // Binds an enabled schedule to the authenticated caller; a system turn
+      // has none and the schedule is saved unbound.
+      resolveToolSchedulePrincipal(input.ctx),
     );
 
     const workflowId = String(
@@ -380,6 +385,8 @@ export class AgentWorkflowToolCreateService {
         timezone: parsed.timezone,
         trigger: WorkflowTrigger.MANUAL,
       },
+      undefined,
+      resolveToolSchedulePrincipal(ctx),
     );
 
     const workflowId = String(workflow.id);

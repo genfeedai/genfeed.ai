@@ -23,6 +23,10 @@ import type { DefaultRecurringContentService } from '@api/collections/brands/ser
 import { buildVoiceCorpus } from '@api/collections/brands/utils/brand-voice-corpus.util';
 import type { SkillsService } from '@api/collections/skills/services/skills.service';
 import {
+  resolveScheduleInitiatingActor,
+  type WorkflowSchedulePrincipal,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
+import {
   CACHE_PATTERNS,
   CACHE_TAGS,
   SCOPED_CACHE_TAGS,
@@ -2335,6 +2339,146 @@ describe('BrandsService', () => {
         },
         { isSchedulerRequired: false },
       );
+    });
+
+    describe('schedule actor binding (#6692)', () => {
+      const principalOf = (userId: string): WorkflowSchedulePrincipal => ({
+        apiKeyId: undefined,
+        isApiKey: false,
+        organizationId: orgId,
+        scopes: [],
+        userId,
+      });
+
+      // The scheduler binds whatever the save passes; this stand-in applies the
+      // real rule (set and enabled binds the principal, otherwise cleared) so
+      // the assertions are about the actor a UI save leaves behind.
+      function recordBoundActors(): Array<unknown> {
+        const bound: Array<unknown> = [];
+        defaultRecurringContentService.updateScheduleFromAgentConfig.mockImplementation(
+          async (
+            organizationId: string,
+            _brandId: string,
+            config: {
+              schedule?: { cronExpression?: string; enabled?: boolean };
+            },
+            options: { principal?: WorkflowSchedulePrincipal },
+          ) => {
+            bound.push(
+              resolveScheduleInitiatingActor({
+                isEnabled: config.schedule?.enabled,
+                organizationId,
+                principal: options.principal,
+                schedule: config.schedule?.cronExpression,
+              }),
+            );
+          },
+        );
+        return bound;
+      }
+
+      const enable = {
+        schedule: {
+          cronExpression: '0 9 * * *',
+          enabled: true,
+          timezone: 'UTC',
+        },
+      };
+
+      it('binds the saving principal to an enabled schedule', async () => {
+        withStoredConfig({});
+        const bound = recordBoundActors();
+
+        await service.updateAgentConfig(
+          brandId,
+          orgId,
+          enable,
+          principalOf('user-a'),
+        );
+
+        expect(
+          defaultRecurringContentService.updateScheduleFromAgentConfig,
+        ).toHaveBeenCalledWith(orgId, brandId, expect.anything(), {
+          isSchedulerRequired: false,
+          principal: principalOf('user-a'),
+        });
+        expect(bound).toEqual([
+          expect.objectContaining({ organizationId: orgId, userId: 'user-a' }),
+        ]);
+      });
+
+      it('rewrites the actor when another user saves the schedule again', async () => {
+        const bound = recordBoundActors();
+
+        withStoredConfig({});
+        await service.updateAgentConfig(
+          brandId,
+          orgId,
+          enable,
+          principalOf('user-a'),
+        );
+        withStoredConfig({});
+        await service.updateAgentConfig(
+          brandId,
+          orgId,
+          enable,
+          principalOf('user-b'),
+        );
+
+        expect(bound).toEqual([
+          expect.objectContaining({ userId: 'user-a' }),
+          expect.objectContaining({ userId: 'user-b' }),
+        ]);
+      });
+
+      it('clears the actor when the schedule is disabled', async () => {
+        const bound = recordBoundActors();
+        withStoredConfig({});
+
+        await service.updateAgentConfig(
+          brandId,
+          orgId,
+          { schedule: { ...enable.schedule, enabled: false } },
+          principalOf('user-a'),
+        );
+
+        expect(bound).toEqual([null]);
+      });
+
+      it('keeps the principal across a write retry', async () => {
+        delegate.findFirst.mockResolvedValue({
+          agentConfig: {},
+          id: brandId,
+        });
+        delegate.updateMany
+          .mockResolvedValueOnce({ count: 0 })
+          .mockResolvedValueOnce({ count: 1 });
+
+        await service.updateAgentConfig(
+          brandId,
+          orgId,
+          enable,
+          principalOf('user-a'),
+        );
+
+        expect(
+          defaultRecurringContentService.updateScheduleFromAgentConfig,
+        ).toHaveBeenCalledWith(
+          orgId,
+          brandId,
+          expect.anything(),
+          expect.objectContaining({ principal: principalOf('user-a') }),
+        );
+      });
+
+      it('leaves a system write without a principal unbound', async () => {
+        withStoredConfig({});
+        const bound = recordBoundActors();
+
+        await service.updateAgentConfig(brandId, orgId, enable);
+
+        expect(bound).toEqual([null]);
+      });
     });
 
     it('rejects an invalid cron expression with an actionable BadRequestException', async () => {

@@ -266,7 +266,10 @@ describe('StudioPlaygroundCard', () => {
     expect(
       screen.queryByRole('img', { name: generatedJob.prompt }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Preview unavailable');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Open it to retry the preview.',
+    );
     expect(screen.getByTestId('studio-asset-job-1')).toHaveAttribute(
       'data-asset-media-state',
       'fallback',

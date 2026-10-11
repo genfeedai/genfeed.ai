@@ -56,6 +56,16 @@ export function describePreview(
     parts.push(translate('membersWillLose', { count: staleMembers }));
   }
 
+  const { schedulesToHold } = preview.counts;
+  if (schedulesToHold > 0) {
+    parts.push(translate('schedulesWillPause', { count: schedulesToHold }));
+  }
+
+  const { personasToReset } = preview.counts;
+  if (personasToReset > 0) {
+    parts.push(translate('personasWillReset', { count: personasToReset }));
+  }
+
   return parts.join(' ');
 }
 

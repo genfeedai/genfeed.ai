@@ -19,6 +19,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import type { CuratedActionName } from '@genfeedai/actions';
 import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
 import {
@@ -111,6 +112,11 @@ export class AgentToolsController {
         generationEntry: getActionOriginContext().generationEntry,
         ...(brandId ? { brandId } : {}),
         apiKeyContext: user,
+        initiatingPrincipal: buildAgentInitiatingPrincipal({
+          auth: user,
+          organizationId,
+          userId,
+        }),
         approvedApprovalId,
         approvalReviewerAuthorized:
           Boolean(approvedApprovalId) && getIsSuperAdmin(user, request),
