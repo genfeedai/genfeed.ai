@@ -199,6 +199,19 @@ describe('strategy scheduling admission', () => {
       expect(db.mocks.post.findMany).not.toHaveBeenCalled();
     });
 
+    it('leaves a breakout output the fence admitted without a strategy to the fence alone', async () => {
+      const db = database();
+      const { agentStrategyId: _strategy, ...unlinked } = candidate;
+      await assertStrategyCadenceAdmission(db.tx, {
+        ...unlinked,
+        breakoutOutputId: 'output',
+        targetExecutionState: TargetExecutionState.PUBLISHING,
+      });
+      expect(assertBreakoutPublicationFence).toHaveBeenCalledOnce();
+      expect(db.events).toEqual([]);
+      expect(db.mocks.agentStrategy.findFirst).not.toHaveBeenCalled();
+    });
+
     it('requires admission for a breakout output even without a strategy link', () => {
       const unlinked = {
         id: 'post',

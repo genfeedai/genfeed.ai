@@ -33,6 +33,9 @@ export async function assertStrategyCadenceAdmission(
   if (!requiresStrategyCadenceAdmission(candidate)) return;
   // A breakout response output also needs its pinned actor and live evidence before it may run.
   await assertBreakoutPublicationFence(tx, candidate);
+  // A breakout output the fence let through without a strategy (already PUBLISHING) has no
+  // cadence to enforce.
+  if (!candidate.agentStrategyId) return;
   const strategyId = String(candidate.agentStrategyId);
   const organizationId = String(candidate.organizationId ?? '');
   if (!organizationId)
