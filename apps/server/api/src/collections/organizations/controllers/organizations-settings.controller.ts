@@ -14,11 +14,9 @@ import { UpdateOrganizationSettingDto } from '@api/collections/organization-sett
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
+import type { OrganizationOnboardingFinishedEvent } from '@api/collections/organizations/organization-events.types';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
-import {
-  assertSettingsPatchAllowed,
-  onboardingSkipEvent,
-} from '@api/collections/organizations/utils/organization-settings-patch.util';
+import { assertOrganizationSettingsPatchAllowed } from '@api/collections/organizations/utils/organization-settings-patch.util';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -75,11 +73,6 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 
-/**
- * Plan-controlled settings. Stripe webhooks and billing services write them
- * directly; over HTTP only platform superadmins (Admin app, self-hosted local
- * identity) may change them, so an org owner cannot self-upgrade.
- */
 @AutoSwagger()
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -219,7 +212,7 @@ export class OrganizationsSettingsController {
     @Body() settingsDto: UpdateOrganizationSettingDto,
   ): Promise<JsonApiSingleResponse> {
     const isSuperAdmin = getIsSuperAdmin(req.user, req);
-    assertSettingsPatchAllowed(settingsDto, isSuperAdmin);
+    assertOrganizationSettingsPatchAllowed(settingsDto, isSuperAdmin);
     const resolvedOrganizationId = this.resolveOrganizationId(
       req,
       organizationId,
@@ -271,15 +264,18 @@ export class OrganizationsSettingsController {
       organizationSettings.id,
       normalizedSettingsDto,
     );
-    const skipEvent = onboardingSkipEvent(
-      settingsDto,
-      resolvedOrganizationId,
-      req.user,
-    );
-    if (skipEvent) {
+    // `isFirstLogin: false` is the classic onboarding skip (REST audit #1354);
+    // skipping still starts the free trial, so the trial credits are granted.
+    const actorUserId = req.user?.userId || req.user?.id;
+    if (settingsDto.isFirstLogin === false && actorUserId) {
+      const event: OrganizationOnboardingFinishedEvent = {
+        organizationId: resolvedOrganizationId,
+        outcome: 'skipped',
+        userId: actorUserId,
+      };
       await this.eventEmitter.emitAsync(
         ORGANIZATION_ONBOARDING_FINISHED_EVENT,
-        skipEvent,
+        event,
       );
     }
     await this.invalidateBootstrapSnapshots(resolvedOrganizationId);

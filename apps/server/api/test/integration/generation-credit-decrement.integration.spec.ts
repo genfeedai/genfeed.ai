@@ -406,15 +406,7 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
     const moduleConfig = await E2ETestModule.forRoot({
       providers: [
         CreditsUtilsService,
-        // The free-trial admission gate has its own specs
-        // (free-trial.service.spec); these paths run inside a live trial.
-        {
-          provide: FreeTrialService,
-          useValue: {
-            assertTrialActive: vi.fn(),
-            isTrialExpired: vi.fn().mockResolvedValue(false),
-          },
-        },
+        FreeTrialService,
         CreditBalanceService,
         CreditReservationService,
         CreditTransactionsService,
