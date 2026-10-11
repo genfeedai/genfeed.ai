@@ -162,9 +162,9 @@ function buildOrganizationMenuItems(
     },
     {
       group: 'Organization',
-      href: APP_ROUTES.SETTINGS.FLEET,
+      href: APP_ROUTES.SETTINGS.CUSTOM_MODELS,
       hrefScope: 'organization',
-      label: 'Fleet',
+      label: 'Custom Models',
       outline: Cpu,
       solid: Cpu,
     },

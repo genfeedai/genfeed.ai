@@ -17,8 +17,8 @@ import { useCallback, useState } from 'react';
 
 const CTA_POINT_KEYS = ['consistent', 'trained', 'managed'] as const;
 
-export default function OrganizationFleetCard() {
-  const translate = useTranslations('common.settings.organizationFleet');
+export default function OrganizationCustomModelsCard() {
+  const translate = useTranslations('common.settings.organizationCustomModels');
   const { brands, isReady } = useBrand();
   const { settings, updateSettings } = useOrganization();
   const role = useUserRole();

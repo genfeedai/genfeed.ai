@@ -893,17 +893,17 @@
       },
       "samplePrompt": "Help me explore a small {channel} example for the skill named {name}."
     },
-    "organizationFleet": {
-      "title": "Fleet",
-      "description": "Fleet is your organization's dedicated model setup for consistent, on-brand generation.",
-      "controlsHeading": "Fleet is connected",
+    "organizationCustomModels": {
+      "title": "Custom Models",
+      "description": "Your organization's dedicated models for consistent, on-brand generation.",
+      "controlsHeading": "Custom models are connected",
       "nsfw": {
-        "label": "Reveal fleet NSFW assets",
-        "description": "When enabled, sensitive fleet-generated assets can be revealed in brand library views. When off, they stay blurred.",
+        "label": "Reveal NSFW assets from custom models",
+        "description": "When enabled, sensitive assets from your custom models can be revealed in brand library views. When off, they stay blurred.",
         "adminOnly": "Only owners and admins can change this setting."
       },
       "saveFailed": "Could not save this setting. Try again.",
-      "loading": "Loading Fleet settings…",
+      "loading": "Loading custom model settings…",
       "cta": {
         "title": "A custom model, trained for you",
         "description": "Get a LoRA model trained on your own character, style or product, so every image and video comes out consistent and recognizably yours. We set it up and run it for you.",
