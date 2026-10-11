@@ -4,6 +4,7 @@ import type { ScheduledPostWorkflowInput } from '@api/collections/posts/services
 import { scopedWhere } from '@api/index';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 
 /**
@@ -15,6 +16,16 @@ import type { PrismaService } from '@libs/prisma/prisma.service';
  * wrong kind, so the category is corrected from the linked ingredients and
  * persisted before delivery reads it.
  */
+/**
+ * Post.ingredients is an implicit many-to-many with no order of its own, so a
+ * carousel's slides are ordered by their group position (then id, so the order
+ * is stable) instead of whatever order the join returns.
+ */
+const INGREDIENT_PUBLISH_ORDER = [
+  { groupIndex: 'asc' },
+  { id: 'asc' },
+] as const satisfies Prisma.IngredientOrderByWithRelationInput[];
+
 export async function loadScheduledActionPost(
   prisma: Pick<PrismaService, 'post'>,
   input: ScheduledPostWorkflowInput,
@@ -22,13 +33,16 @@ export async function loadScheduledActionPost(
   const post = await prisma.post.findFirst({
     include: {
       children: {
-        include: { credential: true, ingredients: true },
+        include: {
+          credential: true,
+          ingredients: { orderBy: [...INGREDIENT_PUBLISH_ORDER] },
+        },
         where: {
           isDeleted: false,
           ...postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
         },
       },
-      ingredients: true,
+      ingredients: { orderBy: [...INGREDIENT_PUBLISH_ORDER] },
     },
     where: scopedWhere(input.organizationId, {
       id: input.postId,
