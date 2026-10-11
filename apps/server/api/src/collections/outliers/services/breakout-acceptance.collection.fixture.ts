@@ -31,7 +31,6 @@ import { DAILY_PUBLISHING_ACCOUNT_WORKFLOW_ID } from '@api/collections/workflows
 import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 import type { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import type {
-  ServerAnalyticsCollectionState,
   ServerCredentialStore,
   ServerPostAnalytics,
   ServerTwitterAnalytics,
@@ -43,6 +42,7 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/contracts';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
 import type { PrismaClient } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';

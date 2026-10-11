@@ -50,7 +50,6 @@ export type DetectOptions = {
     db: PrismaClient<'query'>,
   ) => WorkflowInitiatingActor | Promise<WorkflowInitiatingActor>;
   candidate?: CandidateOptions;
-  harness?: Parameters<typeof buildExecutionHarness>[4];
   /** The latest, breakout measurement (default tenfold-plus). */
   impressions?: number;
   world?: WorldOptions;
@@ -74,13 +73,7 @@ export async function detectBreakout(
   const world = await seedAcceptanceWorld(db, options.world);
   await seedApprovedBrandIdentity(db, world);
   const candidate = await seedBreakoutCandidate(db, world, options.candidate);
-  const harness = buildExecutionHarness(
-    db,
-    prisma,
-    logger,
-    world,
-    options.harness,
-  );
+  const harness = buildExecutionHarness(db, prisma, logger, world);
   harness.tweets.set(candidate.target.externalId, {
     impressions: options.impressions ?? 1500,
   });
