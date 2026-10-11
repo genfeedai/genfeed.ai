@@ -64,7 +64,7 @@ describe('native apps catalog (#5502)', () => {
         NATIVE_SECONDARY_APPS[appId].organizationModuleId,
       );
     }
-    expect(NATIVE_SECONDARY_APPS.turbo.organizationModuleId).toBe('batch');
+    expect(NATIVE_SECONDARY_APPS.turbo.organizationModuleId).toBe('turbo');
   });
 
   it('marks an app founder-only exactly when its module is founder-only', () => {

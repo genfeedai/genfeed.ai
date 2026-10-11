@@ -97,7 +97,7 @@ describe('Serializer Configurations', () => {
         'Write a launch post',
       );
       expect(result.data.attributes).toHaveProperty(
-        'review-batch-id',
+        'review-turbo-run-id',
         'batch-1',
       );
       expect(result.data.attributes).toHaveProperty(

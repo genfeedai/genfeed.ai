@@ -82,7 +82,7 @@ export function toolCreditPricingFor(
   }
   if (name === 'generate_turbo_content') {
     const bounds = turboRunCreditRange();
-    return { mode: 'variable', unit: 'turbo run', ...bounds };
+    return { mode: 'variable', unit: 'Turbo run', ...bounds };
   }
   if (name === MEDIA_TRANSFORM_TOOL_NAME) {
     return {

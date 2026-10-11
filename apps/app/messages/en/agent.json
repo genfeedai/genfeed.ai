@@ -17,7 +17,7 @@
     "unsupportedCard": "This card type is not supported yet."
   },
   "fullPage": {
-    "onboardingUrlPlaceholder": "Paste a public URL\u2026",
+    "onboardingUrlPlaceholder": "Paste a public URL…",
     "outputs": "Outputs"
   },
   "activityFeed": {
@@ -152,7 +152,7 @@
       "MODEL_UNAVAILABLE": "This model is not available for your workspace.",
       "PRICING_UNRESOLVED": "This model has no confirmed price yet."
     },
-    "estimateLoading": "Calculating estimate\u2026",
+    "estimateLoading": "Calculating estimate…",
     "estimatedCredits": "~{credits} credits",
     "generateAria": "Generate image",
     "generateTooltip": "Generate",
@@ -218,7 +218,7 @@
     "identityVoiceGallery": "Voices",
     "identityDefaultAvatar": "Use saved avatar default",
     "identityDefaultVoice": "Use saved voice default",
-    "identityLoading": "Loading identities\u2026",
+    "identityLoading": "Loading identities…",
     "identityNoAvatars": "No avatar previews available. Add an avatar photo to your Library or connect HeyGen.",
     "identityNoVoices": "No voices available. Add a voice to your Library or connect HeyGen.",
     "identityVoicePreview": "Preview {label}",

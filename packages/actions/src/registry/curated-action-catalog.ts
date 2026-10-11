@@ -52,7 +52,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'inspiration',
   },
-  { name: 'review_turbo_items', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'cancel_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
@@ -195,16 +194,16 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_as_identity', surfaces: ['agent'], toolset: 'generation' },
   { name: 'generate_clips', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'generate_content', surfaces: ['agent', 'mcp'], toolset: 'content' },
-  {
-    name: 'generate_turbo_content',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'content',
-  },
   { name: 'generate_monthly_content', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'generate_onboarding_content',
     surfaces: ['agent'],
     toolset: 'onboarding',
+  },
+  {
+    name: 'generate_turbo_content',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'content',
   },
   {
     name: 'generate_visual_code',
@@ -492,6 +491,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'visual-code',
   },
+  { name: 'review_turbo_items', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'revise_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],

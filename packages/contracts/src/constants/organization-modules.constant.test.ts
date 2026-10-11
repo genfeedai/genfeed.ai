@@ -103,11 +103,11 @@ describe('founder-only release gate (#5502)', () => {
   it('hides unreleased modules from cloud navigation without preview', () => {
     const preferences = resolveOrganizationModulePreferences({
       hasOrganizationBilling: true,
-      moduleOverrides: { clips: true, automation: true, batch: true },
+      moduleOverrides: { clips: true, automation: true, turbo: true },
     });
     expect(preferences?.clips).toBe(false);
     expect(preferences?.automation).toBe(false);
-    expect(preferences?.batch).toBe(true);
+    expect(preferences?.turbo).toBe(true);
     expect(
       resolveOrganizationModulePreferences({
         hasOrganizationBilling: true,
@@ -128,14 +128,14 @@ describe('newly enabled unreleased modules (#5502)', () => {
   const base = {
     hasOrganizationBilling: true,
     isReleasePreviewEnabled: false,
-    previousOverrides: { motion: false, batch: false },
+    previousOverrides: { motion: false, turbo: false },
   };
 
   it('reports founder-only modules switched from off to on', () => {
     expect(
       findNewlyEnabledUnreleasedModules({
         ...base,
-        nextOverrides: { batch: true, clips: true, motion: true },
+        nextOverrides: { turbo: true, clips: true, motion: true },
       }),
     ).toEqual(['motion', 'clips']);
   });
@@ -266,7 +266,7 @@ describe('organization module access', () => {
   it.each([
     'motion',
     'clips',
-    'batch',
+    'turbo',
     'editor',
     'automation',
     'messages',
@@ -338,7 +338,7 @@ describe('organization module access', () => {
       null,
       [],
       'on',
-      { batch: 'true' },
+      { turbo: 'true' },
       { unknown: true },
     ]) {
       expect(
@@ -383,7 +383,7 @@ describe('organization module access', () => {
       { playground: false },
       { storyboard: false },
       { typo: true },
-      { batch: 1 },
+      { turbo: 1 },
       { clips: null },
     ]) {
       expect(
