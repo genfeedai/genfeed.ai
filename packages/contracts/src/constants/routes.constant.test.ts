@@ -128,7 +128,8 @@ describe('routes.constant', () => {
       expect(APP_ROUTES.SETTINGS).not.toHaveProperty(key);
     }
     expect(APP_ROUTES.LIBRARY).not.toHaveProperty('INGREDIENTS');
-    expect(APP_ROUTES.LIBRARY).not.toHaveProperty('OVERVIEW');
+    // #6661 brought Library Overview back as the Library home (#5502).
+    expect(APP_ROUTES.LIBRARY.OVERVIEW).toBe('/library/overview');
     expect(APP_ROUTES.OVERVIEW).not.toHaveProperty('ROOT');
     expect(APP_ROUTES.PUBLISHING).not.toHaveProperty('OUTREACH_CAMPAIGNS');
     expect(APP_ROUTES.PUBLISHING).not.toHaveProperty('OUTREACH_CAMPAIGNS_NEW');
