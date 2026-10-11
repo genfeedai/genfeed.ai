@@ -30,7 +30,6 @@ import type {
   LibraryCharacterOption,
 } from '@props/pages/library-browser.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
@@ -527,15 +526,11 @@ export default function LibraryBrowserToolbar({
   );
 }
 
+/** Ghost actions only; Refresh goes in the topbar `refresh` slot. */
 export function LibraryBrowserIconActions({
   reviewUnsortedHref,
-  isRefreshing,
-  onRefresh,
   onUpload,
-}: Pick<
-  LibraryBrowserToolbarProps,
-  'isRefreshing' | 'onRefresh' | 'onUpload' | 'reviewUnsortedHref'
->) {
+}: Pick<LibraryBrowserToolbarProps, 'onUpload' | 'reviewUnsortedHref'>) {
   const translate = useTranslations('pages.library.browser.toolbar');
   return (
     <div
@@ -560,7 +555,6 @@ export function LibraryBrowserIconActions({
         </Button>
       ) : null}
       <LibraryTagManagerDialog />
-      <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
       <Button
         ariaLabel={translate('upload')}
         className={SHELL_ICON_BUTTON_CLASS}

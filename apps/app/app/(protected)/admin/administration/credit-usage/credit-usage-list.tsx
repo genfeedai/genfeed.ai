@@ -139,7 +139,7 @@ export default function CreditUsageList() {
       label="Credit Usage"
       description="Monitor per-organization credit balance and plan allotment usage"
       icon={ChartColumn}
-      right={
+      refresh={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
     >

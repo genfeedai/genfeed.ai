@@ -26,8 +26,10 @@ const ContainerInsetContext = createContext(false);
  * Page body shell.
  *
  * **Module-local chrome** (sibling surfaces + primary tools) always renders
- * through {@link SectionTopbar}: full-bleed `border-b`, tabs left, actions
- * right — one app-wide pattern, not a Discovery-only flourish. Sources:
+ * through {@link SectionTopbar}: full-bleed `border-b`, one fixed right-cluster
+ * order — Help, `refresh`, tabs, `iconActions` (ghost), `right` (controls then
+ * the primary action last). Put Refresh in `refresh`, never inside `right`.
+ * One app-wide pattern, not a Discovery-only flourish. Sources:
  * - explicit `headerTabs` (preferred for local nav)
  * - body `tabs` promoted when `right` actions exist
  * - body `tabs` alone (former orphan strip under the title)
@@ -51,6 +53,7 @@ export default function Container({
   left,
   leading,
   right,
+  refresh,
   iconActions,
   iconActionsPlacement,
   isTopbarPinned = false,
@@ -76,7 +79,10 @@ export default function Container({
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
   const hasHeaderRight =
-    Boolean(right) || Boolean(iconActions) || Boolean(helpNode);
+    Boolean(right) ||
+    Boolean(refresh) ||
+    Boolean(iconActions) ||
+    Boolean(helpNode);
   const hasBodyTabs = Boolean(tabs && tabs.length > 0);
   // Prefer explicit headerTabs. Body tabs + primary actions used to render as
   // a right-only bar with an orphan strip underneath — always promote.
@@ -220,6 +226,7 @@ export default function Container({
         ) : undefined
       }
       help={resolvedHelp}
+      refresh={refresh}
       iconActions={iconActions}
       iconActionsPlacement={iconActionsPlacement}
       tabs={moduleTabsNode ?? undefined}
@@ -265,9 +272,10 @@ export default function Container({
             )}
             {leading}
             {helpNode}
+            {refresh}
+            {moduleTabsNode}
             {iconActions}
             {right}
-            {moduleTabsNode}
           </div>
         ) : usesModuleLocalChrome ? (
           isTopbarPinned ? (
@@ -301,6 +309,7 @@ export default function Container({
               className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
             >
               {helpNode}
+              {refresh}
               {iconActions}
               {right}
             </div>

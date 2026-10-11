@@ -231,53 +231,51 @@ function WorkspacePageContentContent({
     unreadInboxTasks.length,
   ]);
 
-  const workspaceHeaderActions = useMemo(() => {
-    if (!shouldShowComposer && isOverviewSection) {
-      return undefined;
-    }
+  // Order contract (SectionTopbar): Help, Refresh, tabs, ghost actions
+  // (Mark All Read), controls, primary action (New Task) last.
+  const workspaceRefresh = useMemo(
+    () => (
+      <ButtonRefresh
+        onClick={() => void refreshWorkspaceTasks()}
+        isRefreshing={isWorkspaceRefreshing}
+      />
+    ),
+    [isWorkspaceRefreshing, refreshWorkspaceTasks],
+  );
 
-    return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {isInboxSection ? (
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            disabled={
-              inboxRead.read.isPending ||
-              !inboxRead.state.data ||
-              !inboxRead.state.data?.unreadCount
-            }
-            onClick={() => inboxRead.read.mutate(null)}
-          >
-            {translate('inbox.markAllRead')}
-          </Button>
-        ) : null}
-        <ButtonRefresh
-          onClick={() => void refreshWorkspaceTasks()}
-          isRefreshing={isWorkspaceRefreshing}
-        />
-        {shouldShowComposer ? (
-          <Button
-            data-testid="workspace-new-task"
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => setTaskComposerOpen(true)}
-          >
-            New Task
-          </Button>
-        ) : null}
-      </div>
-    );
-  }, [
-    isOverviewSection,
-    isInboxSection,
-    inboxRead,
-    translate,
-    isWorkspaceRefreshing,
-    refreshWorkspaceTasks,
-    setTaskComposerOpen,
-    shouldShowComposer,
-  ]);
+  const workspaceGhostActions = useMemo(
+    () =>
+      isInboxSection ? (
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
+          disabled={
+            inboxRead.read.isPending ||
+            !inboxRead.state.data ||
+            !inboxRead.state.data?.unreadCount
+          }
+          onClick={() => inboxRead.read.mutate(null)}
+        >
+          {translate('inbox.markAllRead')}
+        </Button>
+      ) : undefined,
+    [isInboxSection, inboxRead, translate],
+  );
+
+  const workspaceHeaderActions = useMemo(
+    () =>
+      shouldShowComposer ? (
+        <Button
+          data-testid="workspace-new-task"
+          size={ButtonSize.SM}
+          variant={ButtonVariant.DEFAULT}
+          onClick={() => setTaskComposerOpen(true)}
+        >
+          New Task
+        </Button>
+      ) : undefined,
+    [setTaskComposerOpen, shouldShowComposer],
+  );
 
   const inboxEmptyKey =
     section === 'inbox' && defaultInboxView === 'unread'
@@ -359,6 +357,8 @@ function WorkspacePageContentContent({
       fullWidth
       titleVisibility="sr-only"
       headerTabs={inboxHeaderTabs}
+      refresh={isOverviewSection ? undefined : workspaceRefresh}
+      iconActions={isOverviewSection ? undefined : workspaceGhostActions}
       right={isOverviewSection ? undefined : workspaceHeaderActions}
     >
       {inboxRead.state.isError || inboxRead.read.isError ? (

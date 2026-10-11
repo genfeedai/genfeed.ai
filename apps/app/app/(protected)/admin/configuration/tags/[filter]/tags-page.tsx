@@ -54,8 +54,6 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
         }}
       />
 
-      <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
-
       {scope === PageScope.SUPERADMIN && (
         <Button
           variant={ButtonVariant.DEFAULT}
@@ -68,7 +66,13 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
   );
 
   return (
-    <TagsLayout scope={scope} rightActions={rightActions}>
+    <TagsLayout
+      scope={scope}
+      rightActions={rightActions}
+      refreshAction={
+        <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+      }
+    >
       <TagsList
         scope={scope}
         filter={filter}

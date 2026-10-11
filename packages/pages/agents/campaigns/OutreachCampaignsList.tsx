@@ -228,23 +228,22 @@ export default function OutreachCampaignsList() {
       label="Outreach sequences"
       description="DM and growth sequences for launches and distribution."
       icon={Rocket}
+      refresh={
+        <ButtonRefresh
+          onClick={() => loadCampaigns(true)}
+          isRefreshing={isRefreshing}
+        />
+      }
       right={
-        <>
-          <ButtonRefresh
-            onClick={() => loadCampaigns(true)}
-            isRefreshing={isRefreshing}
-          />
-
-          <Button
-            label={
-              <>
-                <Plus /> New sequence
-              </>
-            }
-            variant={ButtonVariant.DEFAULT}
-            onClick={handleCreateCampaign}
-          />
-        </>
+        <Button
+          label={
+            <>
+              <Plus /> New sequence
+            </>
+          }
+          variant={ButtonVariant.DEFAULT}
+          onClick={handleCreateCampaign}
+        />
       }
     >
       <div className="space-y-6">

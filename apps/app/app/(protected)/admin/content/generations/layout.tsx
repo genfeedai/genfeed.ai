@@ -42,7 +42,7 @@ export default function GenerationsLayout({ children }: LayoutProps) {
             },
           ],
         }}
-        right={
+        refresh={
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
         }
       >

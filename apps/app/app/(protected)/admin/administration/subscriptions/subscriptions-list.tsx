@@ -130,7 +130,7 @@ export default function SubscriptionsList() {
       label="Subscriptions"
       description="View subscription plans, billing history, and payment status"
       icon={CreditCard}
-      right={
+      refresh={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
     >

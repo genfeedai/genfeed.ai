@@ -162,7 +162,7 @@ describe('Container', () => {
         titleVisibility="sr-only"
         help={{ title: 'About Activities', body: 'Recent actions.' }}
         right={<button type="button">Filter</button>}
-        iconActions={<button type="button">Refresh</button>}
+        refresh={<button type="button">Refresh</button>}
       >
         content
       </Container>,

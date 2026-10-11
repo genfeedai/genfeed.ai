@@ -30,7 +30,7 @@ export default function PromptsLayout({ children }: LayoutProps) {
           { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
         ],
       }}
-      right={
+      refresh={
         <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
       }
     >

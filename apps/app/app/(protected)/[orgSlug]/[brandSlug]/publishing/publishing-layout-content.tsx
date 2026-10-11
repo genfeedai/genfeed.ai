@@ -206,14 +206,13 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         icon={Newspaper}
         titleVisibility="sr-only"
         leading={leadingNode}
+        refresh={
+          <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+        }
         iconActions={
           <>
             {viewToggleNode}
             {exportNode}
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
           </>
         }
         right={

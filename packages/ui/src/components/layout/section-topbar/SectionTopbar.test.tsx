@@ -225,27 +225,27 @@ describe('SectionTopbar', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
-  it('places tabs after actions at the far right when the breadcrumb owns the title', () => {
+  it('puts tabs inside the right cluster, ahead of the controls, when the breadcrumb owns the title', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
       <SectionTopbar
         title="Trending Content"
-        actions={<button type="button">Refresh</button>}
+        actions={<button type="button">Filter</button>}
         tabs={<div data-testid="tabs-strip">tabs</div>}
       />,
     );
 
     const actions = screen.getByTestId('section-topbar-actions');
     const tabs = screen.getByTestId('section-topbar-tabs');
-    const row = actions.parentElement;
+    const filter = screen.getByRole('button', { name: 'Filter' });
 
-    expect(row).toContainElement(tabs);
-    expect(row).toContainElement(actions);
+    expect(actions).toContainElement(tabs);
     expect(tabs).toHaveClass('min-w-0');
-    expect(actions).toHaveClass('shrink-0');
-    // Tabs follow actions in visual and keyboard order.
-    expect(row?.lastElementChild).toBe(tabs);
+    // Tabs precede controls in visual and keyboard order.
+    expect(
+      tabs.compareDocumentPosition(filter) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('lets the row wrap instead of collapsing tabs to 0px when leading, actions, and tabs together overflow it (#5400)', () => {
@@ -359,7 +359,7 @@ describe('SectionTopbar', () => {
         title="Activities"
         titleVisibility="sr-only"
         actions={<button type="button">Filter</button>}
-        iconActions={<button type="button">Refresh</button>}
+        refresh={<button type="button">Refresh</button>}
         help={{ title: 'About Activities', body: 'What changed.' }}
       />,
     );
@@ -436,26 +436,70 @@ describe('SectionTopbar', () => {
     );
   });
 
-  it('keeps Help immediately left of actions, with tabs after the action cluster', () => {
+  it('enforces the right-cluster order: Help, Refresh, tabs, ghost actions, controls, primary', () => {
     navigationState.hasCanonicalBreadcrumb = true;
+    // Props are passed in a deliberately scrambled order: slot position, not
+    // JSX order, decides where each control lands.
     render(
       <SectionTopbar
         title="Content"
-        actions={<button type="button">Refresh</button>}
+        actions={
+          <>
+            <button type="button">Filter</button>
+            <button type="button">New post</button>
+          </>
+        }
         tabs={<a href="/content">All content</a>}
+        iconActions={<button type="button">Mark all read</button>}
+        refresh={<button type="button">Refresh</button>}
         help={{ title: 'About Content', body: 'Content guidance.' }}
       />,
     );
 
-    const actions = screen.getByTestId('section-topbar-actions');
-    const tabs = screen.getByTestId('section-topbar-tabs');
+    const leadActions = screen.getByTestId('section-topbar-icon-actions');
     const helpSlot = screen.getByTestId('section-topbar-help');
-    expect(actions).toContainElement(helpSlot);
-    expect(
-      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
-    ).toBe(helpSlot);
-    expect(actions.nextElementSibling).toBe(tabs);
+    expect(leadActions.firstElementChild).toBe(helpSlot);
     expect(helpSlot.parentElement).toHaveClass('flex', 'items-center', 'gap-1');
+
+    const ordered = [
+      screen.getByRole('button', { name: 'About this page' }),
+      screen.getByRole('button', { name: 'Refresh' }),
+      screen.getByRole('link', { name: 'All content' }),
+      screen.getByRole('button', { name: 'Mark all read' }),
+      screen.getByRole('button', { name: 'Filter' }),
+      screen.getByRole('button', { name: 'New post' }),
+    ];
+    for (let index = 1; index < ordered.length; index++) {
+      expect(
+        ordered[index - 1].compareDocumentPosition(ordered[index]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
+  it('keeps Refresh right after Help even when the title is visible', () => {
+    render(
+      <SectionTopbar
+        title="Content"
+        titleVisibility="visible"
+        iconActions={<button type="button">Ghost</button>}
+        refresh={<button type="button">Refresh</button>}
+        help={{ title: 'About Content', body: 'Content guidance.' }}
+      />,
+    );
+
+    const leadActions = screen.getByTestId('section-topbar-icon-actions');
+    expect(leadActions.firstElementChild).toBe(
+      screen.getByTestId('section-topbar-help'),
+    );
+    expect(leadActions).toContainElement(
+      screen.getByRole('button', { name: 'Refresh' }),
+    );
+    expect(
+      leadActions.compareDocumentPosition(
+        screen.getByRole('button', { name: 'Ghost' }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('puts the sidebar opener at the end of the ghost cluster', () => {

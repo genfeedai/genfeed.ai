@@ -2384,7 +2384,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             />
           </div>
         }
-        iconActions={
+        refresh={
           <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
         }
         leading={

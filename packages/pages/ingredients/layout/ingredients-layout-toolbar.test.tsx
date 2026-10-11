@@ -39,11 +39,8 @@ describe('IngredientsLayoutToolbar', () => {
           status: '',
           type: '',
         }}
-        isRefreshing={false}
         scope={PageScope.BRAND}
         onFiltersChange={vi.fn()}
-        onRefresh={vi.fn()}
-        onUpload={vi.fn()}
       />,
     );
 

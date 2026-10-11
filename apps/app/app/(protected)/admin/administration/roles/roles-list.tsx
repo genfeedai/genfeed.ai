@@ -120,23 +120,22 @@ export default function RolesList() {
       label="Roles"
       description="Manage user roles, permissions, and access control settings"
       icon={ShieldCheck}
+      refresh={
+        <ButtonRefresh
+          onClick={() => loadRoles(true)}
+          isRefreshing={isRefreshing}
+        />
+      }
       right={
-        <>
-          <ButtonRefresh
-            onClick={() => loadRoles(true)}
-            isRefreshing={isRefreshing}
-          />
-
-          <Button
-            label={
-              <>
-                <Plus /> Role
-              </>
-            }
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => openRoleModal(ModalEnum.ROLE)}
-          />
-        </>
+        <Button
+          label={
+            <>
+              <Plus /> Role
+            </>
+          }
+          variant={ButtonVariant.DEFAULT}
+          onClick={() => openRoleModal(ModalEnum.ROLE)}
+        />
       }
     >
       <AppTable<IRole>
