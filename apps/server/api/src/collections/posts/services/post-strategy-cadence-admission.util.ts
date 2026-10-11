@@ -4,6 +4,10 @@ import {
   getCadenceWeek,
   resolveCadencePolicy,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
+import {
+  assertBreakoutPublicationFence,
+  isBreakoutPublicationCandidate,
+} from '@api/collections/outliers/services/breakout-publication-fence.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
@@ -13,7 +17,7 @@ export function requiresStrategyCadenceAdmission(
   candidate: Readonly<Record<string, unknown>>,
 ): boolean {
   return Boolean(
-    candidate.agentStrategyId &&
+    (candidate.agentStrategyId || isBreakoutPublicationCandidate(candidate)) &&
       !candidate.parentId &&
       [
         TargetExecutionState.SCHEDULED,
@@ -27,6 +31,8 @@ export async function assertStrategyCadenceAdmission(
   candidate: Readonly<Record<string, unknown>>,
 ): Promise<void> {
   if (!requiresStrategyCadenceAdmission(candidate)) return;
+  // A breakout response output also needs its pinned actor and live evidence before it may run.
+  await assertBreakoutPublicationFence(tx, candidate);
   const strategyId = String(candidate.agentStrategyId);
   const organizationId = String(candidate.organizationId ?? '');
   if (!organizationId)

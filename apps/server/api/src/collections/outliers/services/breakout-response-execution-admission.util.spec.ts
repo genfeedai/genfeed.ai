@@ -1,5 +1,6 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
+  admitBreakoutPublicationActor,
   admitBreakoutResponseExecution,
   buildBreakoutResponseExecutionRequest,
   reauthorizeBreakoutActor,
@@ -334,6 +335,86 @@ describe('breakout response execution admission', () => {
           initiatingActor: keyActor,
           scope,
         }),
+      ).rejects.toThrow('Breakout execution denied');
+    });
+  });
+
+  describe('publication actor read', () => {
+    it('returns the pinned actor and scope from the execution row alone, then refreshes live', async () => {
+      const f = fixture();
+      await expect(
+        admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'org'),
+      ).resolves.toEqual({
+        initiatingActor: actor,
+        scope,
+        workflowExecutionId: 'run',
+      });
+      expect(f.findExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'run', organizationId: 'org', isDeleted: false },
+        }),
+      );
+      expect(f.findMember).toHaveBeenCalled();
+      expect(f.findBrand).toHaveBeenCalled();
+    });
+
+    it.each([true, false])(
+      'never publishes for an execution without a bound actor (cloud: %s)',
+      async (cloud) => {
+        runtime.cloud = cloud;
+        const f = fixture();
+        const request = { ...f.stored } as Record<string, unknown>;
+        delete request.initiatingActor;
+        f.execution.result = {
+          ...f.execution.result,
+          inputValues: { request },
+        };
+        await expect(
+          admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'org'),
+        ).rejects.toThrow('Breakout execution denied');
+        expect(f.findMember).not.toHaveBeenCalled();
+      },
+    );
+
+    it('denies an execution of another tenant or workflow', async () => {
+      const f = fixture();
+      f.findExecution.mockResolvedValue(null);
+      await expect(
+        admitBreakoutPublicationActor(f.prisma, f.policy, 'run', 'foreign'),
+      ).rejects.toThrow('Breakout execution denied');
+      const g = fixture();
+      g.execution.result.metadata = {
+        source: 'knowledge-source',
+        canonicalId: 'knowledge.source.ingest',
+      };
+      await expect(
+        admitBreakoutPublicationActor(g.prisma, g.policy, 'run', 'org'),
+      ).rejects.toThrow('Breakout execution denied');
+    });
+
+    it('denies once the actor lost the brand, its membership or its key', async () => {
+      const lostBrand = fixture({ memberBrands: [] });
+      lostBrand.findBrand.mockResolvedValue(null);
+      await expect(
+        admitBreakoutPublicationActor(
+          lostBrand.prisma,
+          lostBrand.policy,
+          'run',
+          'org',
+        ),
+      ).rejects.toThrow('Brand access denied');
+      const keyed = fixture();
+      const withKey = {
+        ...keyed.stored,
+        initiatingActor: { ...actor, isApiKey: true, apiKeyId: 'key' },
+      };
+      keyed.execution.result = {
+        ...keyed.execution.result,
+        inputValues: { request: withKey },
+      };
+      keyed.findKey.mockResolvedValue(null);
+      await expect(
+        admitBreakoutPublicationActor(keyed.prisma, keyed.policy, 'run', 'org'),
       ).rejects.toThrow('Breakout execution denied');
     });
   });

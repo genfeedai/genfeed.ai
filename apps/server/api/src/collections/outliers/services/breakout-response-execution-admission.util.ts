@@ -100,28 +100,30 @@ export async function reauthorizeBreakoutActor(
   return actor;
 }
 
+type PinnedExecutionQuery = Readonly<{
+  executionId: string;
+  organizationId: string;
+  /** The running node's identity, when called from inside the action. */
+  pin?: Readonly<{
+    userId: string;
+    workflowId: string;
+    workflowVersionId: string;
+  }>;
+}>;
+
 /**
- * Reads authority only from the server-persisted, pinned hidden execution. The node's scope
- * fields must equal the persisted ones; anything else it carries, including an actor, is ignored.
+ * Loads the server-persisted request of a hidden, tenant-pinned breakout execution and
+ * validates the actor it carries. Nothing is read from node or caller input.
  */
-export async function admitBreakoutResponseExecution(
+async function readPinnedBreakoutExecution(
   tx: Prisma.TransactionClient,
-  policy: BrandAccessService,
-  action: SystemWorkflowActionRequest,
-  incoming: unknown,
+  query: PinnedExecutionQuery,
 ): Promise<BreakoutResponseExecutionAdmission> {
-  const { context, provenance } = action;
-  if (
-    !context.organizationId ||
-    !context.userId ||
-    provenance.executionId !== (context.executionId ?? context.runId) ||
-    provenance.workflowId !== context.workflowId
-  )
-    denyBreakoutExecution();
+  const { pin } = query;
   const execution = await tx.workflowExecution.findFirst({
     where: {
-      id: provenance.executionId,
-      organizationId: context.organizationId,
+      id: query.executionId,
+      organizationId: query.organizationId,
       isDeleted: false,
     },
     select: {
@@ -146,9 +148,10 @@ export async function admitBreakoutResponseExecution(
   });
   if (
     !execution ||
-    execution.userId !== context.userId ||
-    execution.workflowId !== context.workflowId ||
-    execution.workflowVersionId !== context.workflowVersionId ||
+    (pin &&
+      (execution.userId !== pin.userId ||
+        execution.workflowId !== pin.workflowId ||
+        execution.workflowVersionId !== pin.workflowVersionId)) ||
     execution.workflow.isDeleted ||
     execution.workflow.organizationId !== SYSTEM_WORKFLOW_PRINCIPAL_ID ||
     execution.workflow.userId !== SYSTEM_WORKFLOW_PRINCIPAL_ID ||
@@ -170,36 +173,86 @@ export async function admitBreakoutResponseExecution(
   )
     denyBreakoutExecution();
   const persisted = record(record(result.inputValues).request);
-  const supplied = record(incoming);
   for (const key of SCOPE_KEYS) {
-    if (!nonempty(persisted[key]) || supplied[key] !== persisted[key])
-      denyBreakoutExecution();
+    if (!nonempty(persisted[key])) denyBreakoutExecution();
   }
   if (
-    persisted.organizationId !== context.organizationId ||
+    persisted.organizationId !== query.organizationId ||
     !isPlatform(persisted.platform)
   )
     denyBreakoutExecution();
+  // A bound actor is mandatory; the self-hosted actorless allowance never applies here.
   if (persisted.initiatingActor === undefined) denyBreakoutExecution();
   const captured = parseWorkflowActor(
     persisted.initiatingActor,
-    context.organizationId,
+    query.organizationId,
     denyBreakoutExecution,
   );
-  if (captured.userId !== context.userId) denyBreakoutExecution();
-  const scope: BreakoutResponseExecutionScope = {
-    brandId: persisted.brandId as string,
-    credentialId: persisted.credentialId as string,
-    organizationId: context.organizationId,
-    platform: persisted.platform as Platform,
-    responseId: persisted.responseId as string,
-    strategyId: persisted.strategyId as string,
-  };
-  const admission = {
+  if (captured.userId !== execution.userId) denyBreakoutExecution();
+  return {
     initiatingActor: captured,
-    scope,
+    scope: {
+      brandId: persisted.brandId as string,
+      credentialId: persisted.credentialId as string,
+      organizationId: query.organizationId,
+      platform: persisted.platform as Platform,
+      responseId: persisted.responseId as string,
+      strategyId: persisted.strategyId as string,
+    },
     workflowExecutionId: execution.id,
-  } as const;
+  };
+}
+
+/**
+ * Reads authority only from the server-persisted, pinned hidden execution. The node's scope
+ * fields must equal the persisted ones; anything else it carries, including an actor, is ignored.
+ */
+export async function admitBreakoutResponseExecution(
+  tx: Prisma.TransactionClient,
+  policy: BrandAccessService,
+  action: SystemWorkflowActionRequest,
+  incoming: unknown,
+): Promise<BreakoutResponseExecutionAdmission> {
+  const { context, provenance } = action;
+  if (
+    !context.organizationId ||
+    !context.userId ||
+    provenance.executionId !== (context.executionId ?? context.runId) ||
+    provenance.workflowId !== context.workflowId
+  )
+    denyBreakoutExecution();
+  const admission = await readPinnedBreakoutExecution(tx, {
+    executionId: provenance.executionId,
+    organizationId: context.organizationId,
+    pin: {
+      userId: context.userId,
+      workflowId: context.workflowId,
+      workflowVersionId: context.workflowVersionId,
+    },
+  });
+  const supplied = record(incoming);
+  for (const key of SCOPE_KEYS) {
+    if (supplied[key] !== admission.scope[key]) denyBreakoutExecution();
+  }
+  await reauthorizeBreakoutActor(tx, policy, admission);
+  return admission;
+}
+
+/**
+ * The publication fence's read of the same pinned execution: the actor that was bound when the
+ * response was produced, re-checked live. A post whose execution carries no bound actor, or whose
+ * actor lost its authority, is denied, so a review-only account can never publish.
+ */
+export async function admitBreakoutPublicationActor(
+  tx: Prisma.TransactionClient,
+  policy: BrandAccessService,
+  executionId: string,
+  organizationId: string,
+): Promise<BreakoutResponseExecutionAdmission> {
+  const admission = await readPinnedBreakoutExecution(tx, {
+    executionId,
+    organizationId,
+  });
   await reauthorizeBreakoutActor(tx, policy, admission);
   return admission;
 }
