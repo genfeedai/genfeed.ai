@@ -21,7 +21,7 @@ interface TimelineStreamingRowProps {
 export function TimelineStreamingRow({
   entry,
 }: TimelineStreamingRowProps): ReactElement | null {
-  const { streamState, workEvents, runDurationLabel } = entry;
+  const { streamState, workEvents, runDurationLabel, isStalled } = entry;
   const progressSummary = useMemo(
     () => summarizeStreamingProgress(streamState, workEvents),
     [streamState, workEvents],
@@ -70,8 +70,10 @@ export function TimelineStreamingRow({
   }));
   const nonToolWorkEvents = workEvents.filter((event) => !event.toolCallId);
 
-  const durationFooter =
-    runDurationLabel != null && runDurationLabel.length > 0
+  // A stalled turn swaps the endless timer for the composer's notice.
+  const durationFooter = isStalled
+    ? null
+    : runDurationLabel != null && runDurationLabel.length > 0
       ? streamState.isStreaming
         ? `Working for ${runDurationLabel}`
         : `Worked for ${runDurationLabel}`

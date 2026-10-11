@@ -465,6 +465,12 @@
   "runFailureCard": {
     "getCredits": "Get credits"
   },
+  "stalledTurn": {
+    "title": "This is taking longer than expected.",
+    "description": "The agent has not responded for a while. You can keep waiting, or stop this turn and send it again.",
+    "keepWaiting": "Keep waiting",
+    "stopAndRetry": "Stop and retry"
+  },
   "onboardingChecklist": {
     "brandContext": "Brand context",
     "creditsEarned": "Credits earned",

@@ -514,9 +514,12 @@ export function AgentChatContainer({
               isReadOnly={isReadOnly}
               isRunActive={container.isRunActive}
               isSubmittingInputRequest={container.isSubmittingInputRequest}
+              isTurnStalled={container.isTurnStalled}
               latestProposedPlan={container.latestProposedPlan}
               layoutMode={promptBarLayoutMode}
               onClearError={() => container.setError(null)}
+              onKeepWaiting={container.handleKeepWaiting}
+              onStopAndRetry={container.handleStopAndRetry}
               onOverlayElement={setComposerOverlayElement}
               creditsAvailable={creditsRemaining}
               onMoveFollowUp={container.followUpQueue.move}

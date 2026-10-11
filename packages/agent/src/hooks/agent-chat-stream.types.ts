@@ -66,6 +66,13 @@ export interface UseAgentChatStreamReturn {
     options?: SendStreamMessageOptions,
   ) => Promise<void>;
   clearChat: () => void;
+  /**
+   * Stop following a stalled run: drop its watchdog, subscriptions and stream
+   * state without touching the transcript.
+   */
+  abandonRun: (threadId: string) => void;
+  /** Resume completion polling for a run the user chose to keep waiting on. */
+  resumeRunWatch: (threadId: string) => void;
   isStreaming: boolean;
 }
 
@@ -88,6 +95,8 @@ export interface AgentRunAdoptionOptions {
 
 export interface PendingStreamCompletion {
   initiatedAt: number;
+  /** Consecutive polls whose execution lookup returned 404. */
+  missingExecutionPolls?: number;
   preAssistantIds: Set<string>;
   /** See `AgentRunAdoptionOptions.requireRunId`. */
   requireRunId?: boolean;
@@ -123,6 +132,11 @@ export interface AgentStreamRuntime {
 
 export const STREAM_COMPLETION_POLL_INTERVAL_MS = 10_000;
 export const STREAM_COMPLETION_GRACE_PERIOD_MS = 90_000;
+/**
+ * Consecutive 404s from the execution lookup after which completion polling
+ * stops and the turn is treated as stalled instead of retrying forever.
+ */
+export const MAX_MISSING_EXECUTION_POLLS = 3;
 
 export interface AgentStreamEntry extends AgentStreamRuntime {
   key: string;

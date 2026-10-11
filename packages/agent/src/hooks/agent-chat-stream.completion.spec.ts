@@ -1,5 +1,9 @@
 import { resolveStreamFromMessages } from '@genfeedai/agent/hooks/agent-chat-stream.completion';
-import { STREAM_COMPLETION_GRACE_PERIOD_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
+import {
+  MAX_MISSING_EXECUTION_POLLS,
+  type PendingStreamCompletion,
+  STREAM_COMPLETION_GRACE_PERIOD_MS,
+} from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type { AgentThreadSnapshot } from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentApiDecodeError,
@@ -472,4 +476,64 @@ it('does not infer completion from a malformed thread snapshot', async () => {
   expect(deps.setError).toHaveBeenCalledWith(
     expect.stringContaining('Failed to deserialize workflow execution'),
   );
+});
+
+it('stops polling and marks the run stalled once the execution lookup 404s repeatedly', async () => {
+  const snapshot = recoverySnapshot();
+  snapshot.activeRun = { runId: 'execution-1', status: 'running' };
+  const deps = {
+    ...recoveryDeps(snapshot),
+    markRunStalled: vi.fn(),
+  };
+  deps.apiService.getWorkflowExecution.mockRejectedValue(
+    new AgentApiRequestError({
+      message: 'Execution not found',
+      status: 404,
+      source: 'api',
+    }),
+  );
+  // One pending object spans every watchdog tick, as in the stream runtime.
+  const pending: PendingStreamCompletion = recoveryPending();
+
+  for (let tick = 1; tick < MAX_MISSING_EXECUTION_POLLS; tick += 1) {
+    await resolveStreamFromMessages(pending, deps as never);
+    expect(deps.scheduleCompletionWatchdog).toHaveBeenCalledTimes(tick);
+    expect(deps.markRunStalled).not.toHaveBeenCalled();
+  }
+
+  await resolveStreamFromMessages(pending, deps as never);
+
+  expect(deps.markRunStalled).toHaveBeenCalledExactlyOnceWith(pending);
+  expect(deps.scheduleCompletionWatchdog).toHaveBeenCalledTimes(
+    MAX_MISSING_EXECUTION_POLLS - 1,
+  );
+  expect(deps.apiService.getWorkflowExecution).toHaveBeenCalledTimes(
+    MAX_MISSING_EXECUTION_POLLS,
+  );
+  expect(deps.setError).not.toHaveBeenCalled();
+});
+
+it('resets the missing-execution count when the lookup succeeds again', async () => {
+  const snapshot = recoverySnapshot();
+  snapshot.activeRun = { runId: 'execution-1', status: 'running' };
+  const deps = {
+    ...recoveryDeps(snapshot),
+    markRunStalled: vi.fn(),
+  };
+  deps.apiService.getWorkflowExecution
+    .mockRejectedValueOnce(missingExecutionError())
+    .mockRejectedValueOnce(missingExecutionError())
+    .mockResolvedValueOnce({
+      id: 'execution-1',
+      status: WorkflowExecutionStatus.RUNNING,
+    })
+    .mockRejectedValue(missingExecutionError());
+  const pending: PendingStreamCompletion = recoveryPending();
+
+  for (let tick = 0; tick < 4; tick += 1) {
+    await resolveStreamFromMessages(pending, deps as never);
+  }
+
+  expect(deps.markRunStalled).not.toHaveBeenCalled();
+  expect(pending.missingExecutionPolls).toBe(1);
 });
