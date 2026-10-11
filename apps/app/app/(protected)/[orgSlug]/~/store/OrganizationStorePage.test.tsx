@@ -166,7 +166,9 @@ describe('OrganizationStorePage (#5502)', () => {
     render(<OrganizationStorePage />);
 
     expect(appState('turbo')).toBe('organization-disabled');
-    expect(within(card('turbo')).queryByRole('button')).toBeNull();
+    expect(
+      within(card('turbo')).getByRole('button', { name: 'Install Turbo' }),
+    ).toBeDisabled();
     expect(
       within(card('turbo')).getByRole('link', {
         name: 'Organization settings',

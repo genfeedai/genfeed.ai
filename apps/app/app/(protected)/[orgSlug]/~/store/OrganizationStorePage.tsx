@@ -242,11 +242,13 @@ function StoreAppCard({
   const translate = useTranslations('common.store');
   const Icon = app.icon;
   const isOpenable = app.state === 'installed' || app.state === 'pinned';
+  const isLocked = !isOpenable && app.state !== 'not-installed';
 
   return (
     <Card
       bodyClassName="flex h-full flex-col justify-between gap-4"
-      className="h-full"
+      className={isLocked ? 'h-full opacity-60' : 'h-full'}
+      data-locked={isLocked}
       data-testid={`store-app-${app.appId}`}
     >
       <div
@@ -287,10 +289,10 @@ function StoreAppCard({
             >
               <Link href={app.openHref}>{translate('open')}</Link>
             </Button>
-          ) : app.state === 'not-installed' ? (
+          ) : app.state === 'not-installed' || isLocked ? (
             <Button
               ariaLabel={`${translate('install')} ${app.label}`}
-              isDisabled={isPending}
+              isDisabled={isPending || isLocked}
               onClick={() => onInstall(app.appId)}
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
