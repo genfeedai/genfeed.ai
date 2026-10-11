@@ -2513,89 +2513,6 @@ describe('ScheduledPostDeliveryService', () => {
       );
     },
   );
-});
-
-describe('publication finalization delivery', () => {
-  it.each([
-    PostVisibility.PUBLIC,
-    PostVisibility.PRIVATE,
-    PostVisibility.UNLISTED,
-  ])(
-    'preserves %s visibility and forwards public-only immutable finalization',
-    async (visibility) => {
-      const mocks = createDeliveryMocks();
-      createDeliveryService(mocks);
-      mocks.credentialsService.findOne.mockResolvedValue({
-        id: 'cred-1',
-        platform: CredentialPlatform.YOUTUBE,
-      });
-      const result = {
-        success: true,
-        externalId: 'provider-1',
-        executionState: TargetExecutionState.PUBLISHED,
-        platform: CredentialPlatform.YOUTUBE,
-        url: 'https://example.com/provider-1',
-      };
-      mocks.publisherFactory.getPublisher.mockReturnValue({
-        publish: vi.fn().mockResolvedValue(result),
-      });
-      await executeDelivery(
-        mocks,
-        createScheduledPost({
-          visibility,
-          platform: CredentialPlatform.YOUTUBE,
-          ingredients: [{ category: IngredientCategory.VIDEO, id: 'video-1' }],
-        }),
-        'publish_now',
-      );
-      const terminal =
-        mocks.schedulerPublishStateService.transitionPost.mock.calls.find(
-          (call) => call[1].executionState === TargetExecutionState.PUBLISHED,
-        );
-      expect(terminal?.[1].visibility).toBe(visibility);
-      expect(terminal?.[4]).toEqual(
-        visibility === PostVisibility.PUBLIC
-          ? {
-              result,
-              source: 'ScheduledPostDeliveryService.persistProviderSuccess',
-            }
-          : undefined,
-      );
-    },
-  );
-
-  it('keeps genuine provider success when the after-commit refresh queue fails', async () => {
-    const mocks = createDeliveryMocks();
-    createDeliveryService(mocks);
-    mocks.credentialsService.findOne.mockResolvedValue({
-      id: 'cred-1',
-      platform: CredentialPlatform.TWITTER,
-    });
-    const result = {
-      success: true,
-      externalId: 'provider-1',
-      executionState: TargetExecutionState.PUBLISHED,
-      platform: CredentialPlatform.TWITTER,
-      url: '',
-    };
-    mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockResolvedValue(result),
-    });
-    mocks.workflowQueue.queueSystemWorkflow.mockRejectedValue(
-      new Error('Redis unavailable'),
-    );
-    expect(
-      await executeDelivery(
-        mocks,
-        createScheduledPost({ visibility: PostVisibility.PUBLIC }),
-        'publish_now',
-      ),
-    ).toEqual(result);
-    expect(mocks.logger.warn).toHaveBeenCalledWith(
-      'Failed to queue publication learning refresh',
-      expect.anything(),
-    );
-  });
 
   describe('breakout response dispatch fence', () => {
     it('re-admits the stored post after the reservation and right before the provider call', async () => {
@@ -2733,5 +2650,88 @@ describe('publication finalization delivery', () => {
       expect(publish).not.toHaveBeenCalled();
       expect(assertBreakoutPublicationDispatch).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('publication finalization delivery', () => {
+  it.each([
+    PostVisibility.PUBLIC,
+    PostVisibility.PRIVATE,
+    PostVisibility.UNLISTED,
+  ])(
+    'preserves %s visibility and forwards public-only immutable finalization',
+    async (visibility) => {
+      const mocks = createDeliveryMocks();
+      createDeliveryService(mocks);
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        platform: CredentialPlatform.YOUTUBE,
+      });
+      const result = {
+        success: true,
+        externalId: 'provider-1',
+        executionState: TargetExecutionState.PUBLISHED,
+        platform: CredentialPlatform.YOUTUBE,
+        url: 'https://example.com/provider-1',
+      };
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish: vi.fn().mockResolvedValue(result),
+      });
+      await executeDelivery(
+        mocks,
+        createScheduledPost({
+          visibility,
+          platform: CredentialPlatform.YOUTUBE,
+          ingredients: [{ category: IngredientCategory.VIDEO, id: 'video-1' }],
+        }),
+        'publish_now',
+      );
+      const terminal =
+        mocks.schedulerPublishStateService.transitionPost.mock.calls.find(
+          (call) => call[1].executionState === TargetExecutionState.PUBLISHED,
+        );
+      expect(terminal?.[1].visibility).toBe(visibility);
+      expect(terminal?.[4]).toEqual(
+        visibility === PostVisibility.PUBLIC
+          ? {
+              result,
+              source: 'ScheduledPostDeliveryService.persistProviderSuccess',
+            }
+          : undefined,
+      );
+    },
+  );
+
+  it('keeps genuine provider success when the after-commit refresh queue fails', async () => {
+    const mocks = createDeliveryMocks();
+    createDeliveryService(mocks);
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    const result = {
+      success: true,
+      externalId: 'provider-1',
+      executionState: TargetExecutionState.PUBLISHED,
+      platform: CredentialPlatform.TWITTER,
+      url: '',
+    };
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue(result),
+    });
+    mocks.workflowQueue.queueSystemWorkflow.mockRejectedValue(
+      new Error('Redis unavailable'),
+    );
+    expect(
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ visibility: PostVisibility.PUBLIC }),
+        'publish_now',
+      ),
+    ).toEqual(result);
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      'Failed to queue publication learning refresh',
+      expect.anything(),
+    );
   });
 });
