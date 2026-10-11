@@ -1,11 +1,19 @@
 import type { BreakoutGenerationAdmission } from '@api/collections/outliers/services/breakout-generation-admission.util';
-import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
+import {
+  BreakoutReviewHandoffService,
+  breakoutReviewItemFormat,
+} from '@api/collections/outliers/services/breakout-review-handoff.service';
 import type { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Platform } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-function fixture(reviewTurboRunId: string | null = null, found = true) {
+function fixture(
+  reviewTurboRunId: string | null = null,
+  found = true,
+  format: BreakoutGenerationAdmission['scope']['format'] = 'text',
+  ingredients: Array<{ cdnUrl: string }> = [],
+) {
   const admission: BreakoutGenerationAdmission = {
     scope: {
       version: 1,
@@ -13,7 +21,7 @@ function fixture(reviewTurboRunId: string | null = null, found = true) {
       brandId: 'brand-a',
       strategyId: 'strategy-a',
       platform: Platform.TWITTER,
-      format: 'text',
+      format,
     },
     credentialId: 'account-a',
     responseId: 'response-a',
@@ -30,6 +38,7 @@ function fixture(reviewTurboRunId: string | null = null, found = true) {
           label: 'Breakout follow-up',
           promptUsed: null,
           reviewTurboRunId,
+          ingredients,
         }
       : null,
   );
@@ -101,4 +110,38 @@ describe('breakout review handoff', () => {
     ).rejects.toThrow('breakout_review_draft_unavailable');
     expect(h.createManualReviewTurboRun).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['image', 'image'],
+    ['carousel', 'carousel'],
+    ['video', 'video'],
+    ['short', 'reel'],
+    ['text', 'post'],
+    ['thread', 'post'],
+  ] as const)(
+    'queues a %s output as a %s review item with its first visual as the preview',
+    async (format, itemFormat) => {
+      const media = format !== 'text' && format !== 'thread';
+      const h = fixture(
+        null,
+        true,
+        format,
+        media ? [{ cdnUrl: 'https://cdn.test/asset-1' }] : [],
+      );
+      await h.service.queue(h.admission, {
+        postId: 'post-a',
+        generationKey: 'generation-a',
+      });
+      expect(breakoutReviewItemFormat(format)).toBe(itemFormat);
+      const [dto] = h.createManualReviewTurboRun.mock.calls[0] as unknown as [
+        { items: Array<Record<string, unknown>> },
+      ];
+      expect(dto.items[0]).toMatchObject({ format: itemFormat });
+      if (media)
+        expect(dto.items[0]).toMatchObject({
+          mediaUrl: 'https://cdn.test/asset-1',
+        });
+      else expect(dto.items[0]).not.toHaveProperty('mediaUrl');
+    },
+  );
 });

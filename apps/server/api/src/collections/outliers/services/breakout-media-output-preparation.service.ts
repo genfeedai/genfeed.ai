@@ -1,4 +1,5 @@
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { discardUnlinkedBreakoutDraft } from '@api/collections/outliers/services/breakout-draft-discard.util';
 import type { BreakoutGenerationAdmission } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import { bindBreakoutMediaPostArtifact } from '@api/collections/outliers/services/breakout-media-artifact.util';
 import {
@@ -10,6 +11,7 @@ import {
   BreakoutMediaOutputGenerationService,
 } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
+import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -69,6 +71,7 @@ export class BreakoutMediaOutputPreparationService {
     private readonly text: BreakoutTextOutputPreparationService,
     private readonly media: BreakoutMediaOutputGenerationService,
     private readonly quality: BreakoutOutputQualityService,
+    private readonly review: BreakoutReviewHandoffService,
   ) {}
 
   async generate(
@@ -93,8 +96,6 @@ export class BreakoutMediaOutputPreparationService {
       };
     const caption = await this.writeCaption(request, output.generationKey);
     if (caption.kind !== 'completed') return caption;
-    if (caption.isReviewRequired)
-      return { kind: 'completed', postId: caption.postId };
     const description = await this.readCaption(admission, caption.postId);
     const guarded: BreakoutGenerationAdmission = {
       ...admission,
@@ -125,8 +126,22 @@ export class BreakoutMediaOutputPreparationService {
       await admission.reauthorize(tx);
       return result;
     });
-    if (bound.status === 'held')
+    if (bound.status === 'held') {
+      // The caption draft is unlinked and the visuals cannot be composed onto it: no orphan.
+      await discardUnlinkedBreakoutDraft(
+        this.prisma,
+        admission,
+        caption.postId,
+      );
       return { kind: 'stopped', reasonCode: `artifact_${bound.reason}` };
+    }
+    // The approved-brand check leaves factual coverage unverified, so a caption the receipt did
+    // not clear sends the finished post to a member's review; it is still scored.
+    if (caption.isReviewRequired)
+      await this.review.queue(admission, {
+        postId: caption.postId,
+        generationKey: output.generationKey,
+      });
     const quality = await this.quality.evaluate({
       admission,
       postId: caption.postId,

@@ -8,7 +8,10 @@ import {
   type BrandedPostMaterialRecord,
   describeBrandedPostMaterialLayout,
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
-import { IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientStatus,
+  PersistedReviewDecision,
+} from '@genfeedai/contracts';
 import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BreakoutOutputRecoveryInput,
@@ -36,7 +39,13 @@ export type BreakoutMediaRecoveryContext = Readonly<{
     workflowExecutionId: string | null;
   }>;
   /** The output's bound post, when composition already attached one. */
-  post: (BrandedPostMaterialRecord & { targetExecutionState: string }) | null;
+  post:
+    | (BrandedPostMaterialRecord & {
+        targetExecutionState: string;
+        reviewDecision?: string | null;
+        reviewVersionPinId?: string | null;
+      })
+    | null;
   base: BreakoutRecoveryBase;
 }>;
 
@@ -189,13 +198,6 @@ export async function readBreakoutMediaOutputRecovery(
       reason: 'approved_brand_required',
       action: 'none',
     };
-  if (receipt.state !== 'ready' || receipt.compliance !== 'passed')
-    return {
-      ...base,
-      state: 'awaiting_review',
-      reason: 'brand_review_required',
-      action: 'none',
-    };
   const captionPostId = receipt.artifact.id;
   const visuals = await tx.ingredient.findMany({
     where: {
@@ -298,6 +300,22 @@ export async function readBreakoutMediaOutputRecovery(
       state: 'reconciliation_required',
       reason: 'artifact_binding_missing',
       action: 'reconcile',
+    };
+  // Factual coverage stays unverified, so a member's explicit approval of this exact post version
+  // (the pin is cleared when its material changes) clears a needs-review caption.
+  const isReviewCleared =
+    receipt.state === 'needs_review' &&
+    post?.reviewDecision === PersistedReviewDecision.APPROVED &&
+    Boolean(post.reviewVersionPinId);
+  if (
+    (receipt.state !== 'ready' || receipt.compliance !== 'passed') &&
+    !isReviewCleared
+  )
+    return {
+      ...base,
+      state: 'awaiting_review',
+      reason: 'brand_review_required',
+      action: 'none',
     };
   return breakoutPublicationState(base, output, post);
 }

@@ -11,6 +11,7 @@ import type {
   BreakoutPublicationSourceV1,
 } from '@genfeedai/contracts/interfaces';
 import { planBreakoutCapacity } from '@genfeedai/helpers';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -21,6 +22,11 @@ vi.mock(
   '@api/collections/outliers/services/breakout-publication-source.util',
   () => ({ loadBreakoutPublication: vi.fn() }),
 );
+const deployment = vi.hoisted(() => ({ isSelfHosted: false }));
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  isSelfHostedDeployment: () => deployment.isSelfHosted,
+}));
 
 const source: BreakoutPublicationSourceV1 = {
   version: 1,
@@ -98,6 +104,14 @@ function fixture() {
     })),
   };
   const optimizers = { estimateAnalysisCredits: vi.fn(async () => 2) };
+  const estimates = {
+    estimate: vi.fn(async () => ({
+      credits: 5,
+      isAvailable: true,
+      modelKey: 'image/model',
+    })),
+  };
+  const visualQuality = { estimateCredits: vi.fn(async () => 1) };
   const snapshots = { preview: vi.fn(async () => ({})) };
   const brandValidation = {
     preflightBrandCapabilities: vi.fn(() => ({ status: 'blocked' })),
@@ -110,6 +124,8 @@ function fixture() {
     optimizers,
     snapshots,
     brandValidation,
+    estimates,
+    visualQuality,
   ]) as BreakoutGenerationPlanService;
   return {
     request,
@@ -121,11 +137,14 @@ function fixture() {
     optimizers,
     snapshots,
     brandValidation,
+    estimates,
+    visualQuality,
     service,
   };
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  deployment.isSelfHosted = false;
   vi.mocked(loadBreakoutPublication).mockResolvedValue(source);
   vi.mocked(reserveBreakoutLiveCapacityPlan).mockImplementation(
     async (_tx, input: BreakoutLiveCapacityReservationInput) => {
@@ -161,6 +180,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
     expect(result).toMatchObject({
       status: 'prepared',
       textModelKey: 'openai/gpt-5.2',
+      mediaModelKey: null,
       segmentCharacterLimit: 280,
       reservation: {
         outputIds: ['output-1', 'output-2', 'output-3'],
@@ -206,7 +226,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
     expect(input).not.toHaveProperty('budget');
     expect(input).not.toHaveProperty('remainingPublicationSlots');
   });
-  it.each(['image', 'carousel', 'video', 'short'] as const)(
+  it.each(['short'] as const)(
     'reserves a bounded X text quote for an unsupported %s original',
     async (format) => {
       const h = fixture();
@@ -289,7 +309,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
     expect(reserveBreakoutLiveCapacityPlan).not.toHaveBeenCalled();
   });
   it.each(['image', 'carousel', 'video', 'short'] as const)(
-    'preserves the actual %s renderer hold on other platforms',
+    'holds a %s original on a platform whose brand capability is blocked',
     async (format) => {
       const h = fixture();
       const platform = Platform.INSTAGRAM;
@@ -330,4 +350,170 @@ describe('actual pricing and native-admitted breakout planning', () => {
       expect(reserveBreakoutLiveCapacityPlan).not.toHaveBeenCalled();
     },
   );
+
+  describe('every visual format the channel catalog publishes', () => {
+    function visual(
+      format: 'image' | 'carousel' | 'video' | 'short',
+      platform: Platform,
+    ) {
+      const h = fixture();
+      const request = { ...h.request, scope: { ...h.request.scope, platform } };
+      vi.mocked(loadBreakoutPublication).mockResolvedValue({
+        ...source,
+        platform,
+        format,
+      });
+      h.router.resolveModelKey
+        .mockResolvedValueOnce({ key: 'openai/gpt-5.2', source: 'registry' })
+        .mockResolvedValueOnce({ key: 'media/model', source: 'registry' });
+      h.registry.validateModelForOrg.mockResolvedValue({
+        key: 'media/model',
+        provider: 'fal',
+      });
+      h.brandValidation.preflightBrandCapabilities.mockReturnValue({
+        status: 'supported',
+      });
+      return { h, request };
+    }
+    const reserved = () =>
+      vi.mocked(reserveBreakoutLiveCapacityPlan).mock.calls[0]?.[1];
+
+    it.each([
+      ['image', Platform.INSTAGRAM, 1, 'image'],
+      ['carousel', Platform.INSTAGRAM, 3, 'image'],
+      ['video', Platform.YOUTUBE, 1, 'video'],
+      ['short', Platform.TIKTOK, 1, 'video'],
+    ] as const)(
+      'prices a %s on %s from the normal quotes and reserves its format',
+      async (format, platform, parts, mediaKind) => {
+        const { h, request } = visual(format, platform);
+        const result = await h.service.prepare(request);
+        expect(result).toMatchObject({
+          status: 'prepared',
+          textModelKey: 'openai/gpt-5.2',
+          mediaModelKey: 'media/model',
+        });
+        expect(h.estimates.estimate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            category: mediaKind,
+            modelKey: 'media/model',
+            organizationId: 'org-a',
+            outputs: 1,
+          }),
+        );
+        expect(h.visualQuality.estimateCredits).toHaveBeenCalledWith(
+          mediaKind,
+          expect.any(Function),
+        );
+        expect(reserved()).toMatchObject({
+          supportedFormats: [format],
+          costsByFormat: {
+            [format]: {
+              // The caption plus one generation quote per visual.
+              generationCredits: GENERATE_CONTENT_TEXT_CREDITS + 5 * parts,
+              // The caption score (2) plus one visual judgement (1) per visual.
+              qualityCredits: 2 + 1 * parts,
+            },
+          },
+        });
+      },
+    );
+
+    it('plans the X quote as text and the follow-ups in the original’s own visual format', async () => {
+      const { h, request } = visual('image', Platform.TWITTER);
+      expect(await h.service.prepare(request)).toMatchObject({
+        status: 'prepared',
+        reservation: {
+          estimate: {
+            slots: [
+              { ordinal: 1, kind: 'quote', format: 'text' },
+              { ordinal: 2, kind: 'follow_up', format: 'image' },
+              { ordinal: 3, kind: 'follow_up', format: 'image' },
+            ],
+          },
+        },
+      });
+      expect(reserved()?.supportedFormats).toEqual(['text', 'image']);
+    });
+
+    it('holds an unknown generation price instead of guessing one', async () => {
+      const { h, request } = visual('image', Platform.INSTAGRAM);
+      h.estimates.estimate.mockResolvedValue({
+        credits: null as unknown as number,
+        isAvailable: false,
+        modelKey: null as unknown as string,
+      });
+      const result = await h.service.prepare(request);
+      expect(result).toMatchObject({
+        status: 'prepared',
+        reservation: {
+          estimate: { slots: [] },
+        },
+      });
+      expect(
+        result.status === 'prepared' &&
+          'estimate' in result.reservation &&
+          result.reservation.estimate?.limits,
+      ).toContain('cost_unavailable');
+      expect(reserved()?.costsByFormat.image).toEqual({
+        generationCredits: null,
+        qualityCredits: 3,
+      });
+    });
+
+    it('holds an unknown quality price instead of guessing one', async () => {
+      const { h, request } = visual('image', Platform.INSTAGRAM);
+      h.visualQuality.estimateCredits.mockRejectedValue(
+        new ConflictException('breakout_visual_quality_price_unavailable'),
+      );
+      await h.service.prepare(request);
+      expect(reserved()?.costsByFormat.image).toEqual({
+        generationCredits: GENERATE_CONTENT_TEXT_CREDITS + 5,
+        qualityCredits: null,
+      });
+    });
+
+    it.each([
+      ['image', Platform.YOUTUBE, 'format_unsupported_for_platform'],
+      ['carousel', Platform.LINKEDIN, 'format_unsupported_for_platform'],
+      ['short', Platform.LINKEDIN, 'format_unsupported_for_platform'],
+      ['video', Platform.FACEBOOK, 'platform_publishing_unavailable'],
+    ] as const)(
+      'holds a %s original on %s with the precise reason %s and plans nothing',
+      async (format, platform, reason) => {
+        const { h, request } = visual(format, platform);
+        expect(await h.service.prepare(request)).toEqual({
+          status: 'held',
+          reason,
+        });
+        expect(h.estimates.estimate).not.toHaveBeenCalled();
+        expect(reserveBreakoutLiveCapacityPlan).not.toHaveBeenCalled();
+      },
+    );
+
+    it('holds a video whose frames cannot be judged on a self-hosted deployment', async () => {
+      const { h, request } = visual('video', Platform.YOUTUBE);
+      deployment.isSelfHosted = true;
+      expect(await h.service.prepare(request)).toEqual({
+        status: 'held',
+        reason: 'media_quality_capability_unavailable',
+      });
+      expect(reserveBreakoutLiveCapacityPlan).not.toHaveBeenCalled();
+    });
+
+    it('keeps the X quote when the visual model is unavailable', async () => {
+      const { h, request } = visual('image', Platform.TWITTER);
+      h.registry.listCallableGenerationModels.mockResolvedValue([]);
+      h.router.resolveModelKey.mockReset();
+      h.router.resolveModelKey
+        .mockResolvedValueOnce({ key: 'openai/gpt-5.2', source: 'registry' })
+        .mockRejectedValueOnce(new BadRequestException('no model'));
+      expect(await h.service.prepare(request)).toMatchObject({
+        status: 'prepared',
+        mediaModelKey: null,
+        reservation: { estimate: { slots: [{ kind: 'quote' }] } },
+      });
+      expect(reserved()?.supportedFormats).toEqual(['text']);
+    });
+  });
 });

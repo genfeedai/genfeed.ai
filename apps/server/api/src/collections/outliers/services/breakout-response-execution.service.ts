@@ -1,15 +1,18 @@
 import { breakoutGenerationScope } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import {
   type BreakoutGenerationPlanRequest,
+  type BreakoutGenerationPlanResult,
   BreakoutGenerationPlanService,
 } from '@api/collections/outliers/services/breakout-generation-plan.service';
+import { isBreakoutMediaFormat } from '@api/collections/outliers/services/breakout-media-format.util';
+import { BreakoutMediaOutputPreparationService } from '@api/collections/outliers/services/breakout-media-output-preparation.service';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { BreakoutOutputRecoveryResult } from '@genfeedai/contracts/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import { type BreakoutResponseOutput, Prisma } from '@genfeedai/prisma';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** Only the native pinned action producer may supply this admission, never an input JSON actor. */
@@ -22,6 +25,18 @@ export type BreakoutResponseExecutionResult = {
   responseId: string;
   reason: string | null;
   outputs: Array<{ outputId: string; recovery: BreakoutOutputRecoveryResult }>;
+};
+
+type BreakoutGenerationScopeFormat = Parameters<
+  typeof breakoutGenerationScope
+>[0]['format'];
+type OutputStep = {
+  recovery: BreakoutOutputRecoveryResult;
+  /** Set when this output must settle before any sibling may spend. */
+  stop: {
+    status: 'held' | 'processing';
+    reason: string | null;
+  } | null;
 };
 
 function awaitsBrandReview(
@@ -40,6 +55,7 @@ export class BreakoutResponseExecutionService {
     private readonly prisma: PrismaService,
     private readonly planner: BreakoutGenerationPlanService,
     private readonly text: BreakoutTextOutputPreparationService,
+    private readonly media: BreakoutMediaOutputPreparationService,
   ) {}
 
   async execute(
@@ -71,75 +87,17 @@ export class BreakoutResponseExecutionService {
     let isReviewHeld = false;
     for (const outputId of reservation.outputIds) {
       const output = await this.bindExecution(request, outputId);
-      if (output.format !== 'text' && output.format !== 'thread') {
-        await request.reauthorize(this.prisma);
+      const step = await this.runOutput(request, plan, output);
+      outputs.push({ outputId, recovery: step.recovery });
+      isReviewHeld ||= awaitsBrandReview(step.recovery);
+      // A retained ambiguous attempt is not permission to spend on a sibling before reconciliation.
+      if (step.stop)
         return {
-          ...this.held(request, 'format_capability_unavailable'),
+          status: step.stop.status,
+          responseId: request.responseId,
+          reason: step.stop.reason,
           outputs,
         };
-      }
-      if (output.state === 'reserved' && output.heldReason === null) {
-        const outcome = await this.text.generate({
-          textModelKey: plan.textModelKey,
-          admission: {
-            scope: breakoutGenerationScope({
-              organizationId: request.scope.organizationId,
-              brandId: request.scope.brandId,
-              platform: request.scope.platform,
-              strategyId: request.strategyId,
-              format: output.format,
-            }),
-            credentialId: request.scope.credentialId,
-            responseId: request.responseId,
-            outputId,
-            workflowExecutionId: request.workflowExecutionId,
-            actorUserId: request.actorUserId,
-            componentKey: `${output.generationKey}:caption`,
-            reauthorize: request.reauthorize,
-          },
-        });
-        await request.reauthorize(this.prisma);
-        outputs.push({
-          outputId,
-          recovery: await this.recovery(request, outputId),
-        });
-        // A retained ambiguous attempt is not permission to spend on a sibling before reconciliation.
-        const recovery = outputs.at(-1)?.recovery;
-        isReviewHeld ||= awaitsBrandReview(recovery);
-        if (
-          outcome.kind === 'in_progress' ||
-          recovery?.status === 'unavailable' ||
-          (recovery?.status === 'available' &&
-            ['wait', 'reconcile'].includes(recovery.action))
-        )
-          return {
-            status: 'processing',
-            responseId: request.responseId,
-            reason: 'provider_outcome_pending',
-            outputs,
-          };
-        if (outcome.kind === 'stopped')
-          return { ...this.held(request, outcome.reasonCode), outputs };
-      } else {
-        outputs.push({
-          outputId,
-          recovery: await this.recovery(request, outputId),
-        });
-        const recovery = outputs.at(-1)?.recovery;
-        isReviewHeld ||= awaitsBrandReview(recovery);
-        if (
-          output.heldReason === 'quality_evaluation_pending' ||
-          recovery?.status === 'unavailable' ||
-          (recovery?.status === 'available' &&
-            ['wait', 'reconcile'].includes(recovery.action))
-        )
-          return {
-            status: 'processing',
-            responseId: request.responseId,
-            reason: recovery?.reason ?? output.heldReason,
-            outputs,
-          };
-      }
     }
     await request.reauthorize(this.prisma);
     if (isReviewHeld)
@@ -155,6 +113,106 @@ export class BreakoutResponseExecutionService {
       reason: null,
       outputs,
     };
+  }
+
+  /**
+   * One planned output through its own paid steps. A text, thread or quote output is one approved-brand
+   * post; an image, carousel, video or short output is a caption, its visuals and their composition.
+   * Both end in the same retained recovery read, which alone decides whether a sibling may start.
+   */
+  private async runOutput(
+    request: BreakoutResponseExecutionRequest,
+    plan: Extract<BreakoutGenerationPlanResult, { status: 'prepared' }>,
+    output: BreakoutResponseOutput,
+  ): Promise<OutputStep> {
+    const isOpen = output.state === 'reserved' && output.heldReason === null;
+    const visual = isBreakoutMediaFormat(output.format);
+    if (!visual && output.format !== 'text' && output.format !== 'thread') {
+      await request.reauthorize(this.prisma);
+      return {
+        recovery: await this.recovery(request, output.id),
+        stop: { status: 'held', reason: 'format_unsupported_for_platform' },
+      };
+    }
+    // A visual output stays open until its quality gate settled, across its claim of the visuals.
+    const canGenerate =
+      isOpen ||
+      (visual && output.state === 'generating' && output.heldReason === null);
+    if (!canGenerate) {
+      const recovery = await this.recovery(request, output.id);
+      return {
+        recovery,
+        stop: this.unsettled(recovery, output.heldReason),
+      };
+    }
+    const admission = {
+      scope: breakoutGenerationScope({
+        organizationId: request.scope.organizationId,
+        brandId: request.scope.brandId,
+        platform: request.scope.platform,
+        strategyId: request.strategyId,
+        format: output.format as BreakoutGenerationScopeFormat,
+      }),
+      credentialId: request.scope.credentialId,
+      responseId: request.responseId,
+      outputId: output.id,
+      workflowExecutionId: request.workflowExecutionId,
+      actorUserId: request.actorUserId,
+      componentKey: `${output.generationKey}:caption`,
+      reauthorize: request.reauthorize,
+    };
+    if (visual && !plan.mediaModelKey) {
+      await request.reauthorize(this.prisma);
+      return {
+        recovery: await this.recovery(request, output.id),
+        stop: { status: 'held', reason: 'model_unavailable' },
+      };
+    }
+    const outcome =
+      visual && plan.mediaModelKey
+        ? await this.media.generate({
+            admission,
+            textModelKey: plan.textModelKey,
+            mediaModelKey: plan.mediaModelKey,
+          })
+        : await this.text.generate({
+            admission,
+            textModelKey: plan.textModelKey,
+          });
+    await request.reauthorize(this.prisma);
+    const recovery = await this.recovery(request, output.id);
+    if (
+      outcome.kind === 'in_progress' ||
+      recovery.status === 'unavailable' ||
+      (recovery.status === 'available' &&
+        ['wait', 'reconcile'].includes(recovery.action))
+    )
+      return {
+        recovery,
+        stop: { status: 'processing', reason: 'provider_outcome_pending' },
+      };
+    if (outcome.kind === 'stopped')
+      return {
+        recovery,
+        stop: { status: 'held', reason: outcome.reasonCode },
+      };
+    return { recovery, stop: null };
+  }
+
+  /** Whether an already retained output blocks its siblings until it is reconciled. */
+  private unsettled(
+    recovery: BreakoutOutputRecoveryResult,
+    heldReason: string | null,
+  ): OutputStep['stop'] {
+    return heldReason === 'quality_evaluation_pending' ||
+      recovery.status === 'unavailable' ||
+      (recovery.status === 'available' &&
+        ['wait', 'reconcile'].includes(recovery.action))
+      ? {
+          status: 'processing',
+          reason: recovery.reason ?? heldReason,
+        }
+      : null;
   }
 
   private held(
