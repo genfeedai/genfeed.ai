@@ -209,6 +209,17 @@ describe.skipIf(!connectionString)(
       expect(await reservationsOf(world.organizationId)).toHaveLength(holds);
     });
 
+    // Regression for #6716: the generation admission scope carried `credentialId`, which the
+    // strict budget attribution schema rejected before any provider call.
+    it('builds a generation admission scope the strict budget attribution accepts', async () => {
+      const { harness, jobId } = await detectBreakout(env, {
+        world: TWO_OUTPUTS,
+      });
+      const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
+      expect(run.result.status).toBe('completed');
+      expect(harness.openRouter.calls.length).toBeGreaterThan(0);
+    });
+
     describe('growth', () => {
       it('holds the response, with no spend, when growth has faded by execution time', async () => {
         const { authorization, candidate, harness, jobId, world } =
@@ -274,17 +285,6 @@ describe.skipIf(!connectionString)(
     });
 
     describe('known defects, pinned until fixed (TODO(#6526))', () => {
-      // Lane K fix: fix/6526-breakout-attribution-scope. Flip to `it` and drop the
-      // fixture's attribution shim when it merges.
-      it.fails('executes with the production generation admission scope (strict budget attribution rejects credentialId)', async () => {
-        const { harness, jobId } = await detectBreakout(env, {
-          harness: { shimAttributionScope: false },
-          world: TWO_OUTPUTS,
-        });
-        const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
-        expect(run.result.status).toBe('completed');
-      });
-
       // Approved-brand text always carries a hard `unknown` factual coverage check, so its
       // receipt is `needs_review` and the quality step throws after paid generation.
       it.fails('completes an approved-brand text output through quality with the production validator', async () => {

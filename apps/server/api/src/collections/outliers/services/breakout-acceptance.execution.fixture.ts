@@ -232,7 +232,6 @@ export function buildExecutionHarness(
   logger: LoggerService,
   world: AcceptanceWorld,
   options: {
-    shimAttributionScope?: boolean;
     shimFactualCoverage?: boolean;
   } = {},
 ): ExecutionHarness {
@@ -411,25 +410,10 @@ export function buildExecutionHarness(
     learning,
     textGeneration,
   );
-  // TODO(#6526): remove with the attribution-scope fix (fix/6526-breakout-attribution-scope).
-  // BreakoutResponseExecutionService passes `credentialId` inside the generation admission
-  // scope, which the strict budget-attribution schema rejects. This test-only decorator drops
-  // that one key so the rest of the chain can be exercised; the unshimmed behaviour is pinned
-  // by an `it.fails` scenario.
-  const shimmed = {
-    generate: (request: Parameters<typeof preparation.generate>[0]) => {
-      const { credentialId: _dropped, ...scope } = request.admission
-        .scope as typeof request.admission.scope & { credentialId?: string };
-      return preparation.generate({
-        ...request,
-        admission: { ...request.admission, scope },
-      });
-    },
-  } as unknown as BreakoutTextOutputPreparationService;
   const execution = new BreakoutResponseExecutionService(
     prisma,
     planner,
-    options.shimAttributionScope === false ? preparation : shimmed,
+    preparation,
   );
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const workflowService = new BreakoutResponseExecutionWorkflowService(
