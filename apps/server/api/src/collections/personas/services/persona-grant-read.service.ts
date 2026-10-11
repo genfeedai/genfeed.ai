@@ -23,6 +23,11 @@ interface OwnerCheckedGrantRow {
   persona: { organizationId: string };
 }
 
+type WithoutOwnerOrganization<T extends OwnerCheckedGrantRow> = Omit<
+  T,
+  'persona'
+> & { persona: Omit<T['persona'], 'organizationId'> };
+
 /**
  * A grant is only good while its character still belongs to the organization
  * that issued it. When a character's brand moves to another organization its
@@ -33,15 +38,13 @@ interface OwnerCheckedGrantRow {
  */
 function keepGrantsOfCurrentOwner<T extends OwnerCheckedGrantRow>(
   rows: readonly T[],
-): Array<
-  Omit<T, 'persona'> & { persona: Omit<T['persona'], 'organizationId'> }
-> {
+): Array<WithoutOwnerOrganization<T>> {
   return rows
     .filter((row) => row.ownerOrganizationId === row.persona.organizationId)
-    .map(({ persona: { organizationId: _owner, ...persona }, ...row }) => ({
-      ...row,
-      persona,
-    }));
+    .map((row) => {
+      const { organizationId: _owner, ...persona } = row.persona;
+      return { ...row, persona } as WithoutOwnerOrganization<T>;
+    });
 }
 
 /**

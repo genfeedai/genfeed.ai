@@ -270,6 +270,7 @@ export class BrandRelocationService {
     });
 
     let moveResult: RelocationTransactionResult = {
+      heldSchedules: [],
       membersSevered: 0,
       personaGrantsRevoked: 0,
       touchedWorkflowIds: [],

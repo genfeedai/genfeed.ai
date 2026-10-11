@@ -906,18 +906,6 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
     ],
   },
   {
-    delegate: 'transcript',
-    table: 'transcripts',
-    orgField: 'organizationId',
-    parents: [
-      {
-        parentDelegate: 'article',
-        parentBrandField: 'brandId',
-        fkField: 'articleId',
-      },
-    ],
-  },
-  {
     delegate: 'model',
     table: 'models',
     orgField: 'organizationId',

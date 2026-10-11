@@ -109,7 +109,6 @@ export const RELOCATION_RESOURCE_LABELS: Record<
   taskComment: { singular: 'task comment', plural: 'task comments' },
   training: { singular: 'training', plural: 'trainings' },
   trackedLink: { singular: 'tracked link', plural: 'tracked links' },
-  transcript: { singular: 'transcript', plural: 'transcripts' },
   trend: { singular: 'trend', plural: 'trends' },
   trendPreferences: {
     singular: 'trend preference',
@@ -129,5 +128,42 @@ export const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'workflow execution',
     plural: 'workflow executions',
   },
+  workflowArtifact: {
+    singular: 'workflow artifact',
+    plural: 'workflow artifacts',
+  },
+  workflowExecutionNodeResult: {
+    singular: 'node result',
+    plural: 'node results',
+  },
+  workflowNodeClaim: { singular: 'node claim', plural: 'node claims' },
+  workflowNodeContinuation: {
+    singular: 'node continuation',
+    plural: 'node continuations',
+  },
+  workflowVersion: {
+    singular: 'workflow version',
+    plural: 'workflow versions',
+  },
   workflow: { singular: 'workflow', plural: 'workflows' },
+  agentThreadEvent: {
+    singular: 'agent thread event',
+    plural: 'agent thread events',
+  },
+  agentThreadSnapshot: {
+    singular: 'agent thread snapshot',
+    plural: 'agent thread snapshots',
+  },
+  threadContextState: {
+    singular: 'thread context',
+    plural: 'thread contexts',
+  },
+  postProviderPublishReceipt: {
+    singular: 'publish receipt',
+    plural: 'publish receipts',
+  },
+  postPublishFinalization: {
+    singular: 'publish finalization',
+    plural: 'publish finalizations',
+  },
 };

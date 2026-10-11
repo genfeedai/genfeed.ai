@@ -35,6 +35,7 @@ import type { ModuleRef } from '@nestjs/core';
 type Delegate = {
   count: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  createMany: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
@@ -45,6 +46,7 @@ function makeDelegate(): Delegate {
   return {
     count: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue({ id: 'created_id' }),
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
     findFirst: vi.fn(),
     findMany: vi.fn().mockResolvedValue([]),
     update: vi.fn().mockResolvedValue({}),

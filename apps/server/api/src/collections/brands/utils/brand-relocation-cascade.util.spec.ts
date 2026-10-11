@@ -219,10 +219,24 @@ describe('org-only child orphan audit', () => {
     await expect(
       assertNoOrgOnlyChildOrphans(tx, 'brand', 'org-dest'),
     ).rejects.toThrow(InternalServerErrorException);
-    const [sql] = queryRaw.mock.calls[1];
-    expect(sql.sql).toContain('"future_children"');
-    expect(sql.sql).toContain('IS DISTINCT FROM');
-    expect(sql.values).toEqual(['brand', 'org-dest']);
+    // A tagged template: the strings first, then every interpolated value.
+    const [strings, ...values] = queryRaw.mock.calls[1];
+    expect(strings.join('?')).toContain('IS DISTINCT FROM');
+    expect(values.filter((value) => typeof value === 'string')).toEqual([
+      'brand',
+      'org-dest',
+    ]);
+    expect(
+      values
+        .filter((value) => typeof value === 'object')
+        .map((value: { sql: string }) => value.sql),
+    ).toEqual([
+      '"future_children"',
+      '"posts"',
+      '"postId"',
+      '"brandId"',
+      '"organizationId"',
+    ]);
   });
 
   it('never interpolates an identifier that is not a plain name', async () => {
