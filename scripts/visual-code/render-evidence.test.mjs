@@ -425,6 +425,11 @@ test('captures at the screenshot of a requested frame and passes calls through',
   );
   const order = calls.map((c) => c.method);
   assert.ok(
+    order.indexOf('Emulation.setScriptExecutionDisabled') <
+      order.indexOf('DOMSnapshot.captureSnapshot'),
+    'the page is frozen before it is observed',
+  );
+  assert.ok(
     order.indexOf('DOMSnapshot.captureSnapshot') <
       order.lastIndexOf('Page.captureScreenshot'),
   );
@@ -465,15 +470,123 @@ test('a failed or missing capture is a diagnostic, never an exception', async ()
     assetHashes: new Map(),
   });
   run.recordFrameRequest(setFrame(0));
-  await run.capture(async () => {
-    throw new Error('protocol closed');
-  });
+  const shots = [];
+  await run.captureAround(
+    async (method) => {
+      if (method === 'DOMSnapshot.captureSnapshot')
+        throw new Error('protocol closed');
+      return { value: {} };
+    },
+    async () => shots.push('shot'),
+  );
   const result = run.result();
+  assert.deepEqual(shots, ['shot'], 'the export is never blocked');
   assert.deepEqual(result.captures, []);
   assert.deepEqual(result.diagnostics.sort(), [
     'evidence_capture_failed',
     'evidence_frames_missing',
   ]);
+});
+
+function frozenRun() {
+  const run = new RenderEvidenceRun({
+    frames: [0],
+    frameCount: 1,
+    width: 320,
+    height: 256,
+    assetHashes: new Map(),
+  });
+  run.recordFrameRequest(setFrame(0));
+  return run;
+}
+
+test('freezes the page across the observation and the screenshot, then releases it', async () => {
+  const run = frozenRun();
+  const order = [];
+  const send = async (method, params) => {
+    order.push(
+      method === 'Emulation.setScriptExecutionDisabled'
+        ? `scripts:${params.value ? 'off' : 'on'}`
+        : method === 'Animation.setPlaybackRate'
+          ? `animations:${params.playbackRate}`
+          : method,
+    );
+    if (method === 'DOMSnapshot.captureSnapshot')
+      return { value: snapshotOf([{ text: 'Hello' }]) };
+    if (method === 'DOM.pushNodesByBackendIdsToFrontend')
+      return { value: { nodeIds: params.backendNodeIds } };
+    return { value: {} };
+  };
+  const result = await run.captureAround(send, async () => {
+    order.push('screenshot');
+    return 'pixels';
+  });
+  assert.equal(result, 'pixels');
+  const at = (entry) => order.indexOf(entry);
+  assert.ok(at('scripts:off') < at('DOMSnapshot.captureSnapshot'));
+  assert.ok(at('animations:0') < at('DOMSnapshot.captureSnapshot'));
+  assert.ok(at('DOMSnapshot.captureSnapshot') < at('screenshot'));
+  assert.ok(at('screenshot') < at('scripts:on'));
+  assert.ok(at('screenshot') < at('animations:1'));
+  assert.equal(order.at(-1), 'scripts:on');
+  assert.equal(run.result().captures.length, 1);
+});
+
+test('releases the page even when the screenshot fails', async () => {
+  const run = frozenRun();
+  const order = [];
+  await assert.rejects(
+    run.captureAround(
+      async (method, params) => {
+        if (method === 'Emulation.setScriptExecutionDisabled')
+          order.push(params.value ? 'off' : 'on');
+        if (method === 'DOMSnapshot.captureSnapshot')
+          return { value: snapshotOf([{ text: 'Hello' }]) };
+        if (method === 'DOM.pushNodesByBackendIdsToFrontend')
+          return { value: { nodeIds: params.backendNodeIds } };
+        return { value: {} };
+      },
+      async () => {
+        throw new Error('capture failed');
+      },
+    ),
+    /capture failed/,
+  );
+  assert.deepEqual(order, ['off', 'on']);
+});
+
+test('observes nothing it could not freeze, but still takes the screenshot', async () => {
+  const run = frozenRun();
+  const seen = [];
+  const result = await run.captureAround(
+    async (method) => {
+      seen.push(method);
+      if (method === 'Emulation.setScriptExecutionDisabled')
+        throw new Error('unsupported');
+      return { value: {} };
+    },
+    async () => 'pixels',
+  );
+  assert.equal(result, 'pixels');
+  assert.equal(seen.includes('DOMSnapshot.captureSnapshot'), false);
+  const evidence = run.result();
+  assert.deepEqual(evidence.captures, []);
+  assert.ok(evidence.diagnostics.includes('evidence_freeze_failed'));
+});
+
+test('does not freeze or observe a frame that was not asked for', async () => {
+  const run = frozenRun();
+  run.recordFrameRequest(setFrame(7));
+  const seen = [];
+  const result = await run.captureAround(
+    async (method) => {
+      seen.push(method);
+      return { value: {} };
+    },
+    async () => 'pixels',
+  );
+  assert.equal(result, 'pixels');
+  assert.deepEqual(seen, []);
 });
 
 test('keeps the font engine failing closed per layer', async () => {
@@ -485,14 +598,18 @@ test('keeps the font engine failing closed per layer', async () => {
     assetHashes: new Map(),
   });
   run.recordFrameRequest(setFrame(0));
-  await run.capture(async (method, params) => {
-    if (method === 'CSS.getPlatformFontsForNode') throw new Error('no layout');
-    if (method === 'DOMSnapshot.captureSnapshot')
-      return { value: snapshotOf([{ text: 'Hello' }]) };
-    if (method === 'DOM.pushNodesByBackendIdsToFrontend')
-      return { value: { nodeIds: params.backendNodeIds } };
-    return { value: {} };
-  });
+  await run.captureAround(
+    async (method, params) => {
+      if (method === 'CSS.getPlatformFontsForNode')
+        throw new Error('no layout');
+      if (method === 'DOMSnapshot.captureSnapshot')
+        return { value: snapshotOf([{ text: 'Hello' }]) };
+      if (method === 'DOM.pushNodesByBackendIdsToFrontend')
+        return { value: { nodeIds: params.backendNodeIds } };
+      return { value: {} };
+    },
+    async () => 'pixels',
+  );
   assert.equal(run.result().captures[0].textLayers[0].platformFonts, null);
 });
 

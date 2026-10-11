@@ -420,19 +420,49 @@ export class RenderEvidenceRun {
       font,
     );
   }
-  async capture(send) {
+  shouldCapture() {
     const frame = this.currentFrame;
-    if (
-      !Number.isInteger(frame) ||
-      !this.wanted.has(frame) ||
-      this.captured.has(frame)
-    )
-      return;
+    return (
+      Number.isInteger(frame) &&
+      this.wanted.has(frame) &&
+      !this.captured.has(frame)
+    );
+  }
+  /**
+   * Observes the page and then takes the screenshot with the page frozen across
+   * both, so the composition cannot show the observer one DOM and the exported
+   * pixels another. Page scripts are disabled and CSS animations stopped for the
+   * window; if that cannot be arranged nothing is observed. Images and media
+   * still finish loading, which the composition's own delayRender covers.
+   */
+  async captureAround(send, shoot) {
+    if (!this.shouldCapture()) return shoot();
+    const frame = this.currentFrame;
     this.captured.add(frame);
+    let isFrozen = false;
     try {
+      await send('Emulation.setScriptExecutionDisabled', { value: true });
+      isFrozen = true;
+      await send('Animation.enable', {});
+      await send('Animation.setPlaybackRate', { playbackRate: 0 });
       await withTimeout(this.observe(send, frame), 'evidence_capture_timeout');
     } catch {
-      this.diagnostics.add('evidence_capture_failed');
+      this.diagnostics.add(
+        isFrozen ? 'evidence_capture_failed' : 'evidence_freeze_failed',
+      );
+      this.captures = this.captures.filter((entry) => entry.frame !== frame);
+    }
+    try {
+      return await shoot();
+    } finally {
+      if (isFrozen) {
+        // Never leave the composition frozen: Remotion needs scripts for the
+        // next frame, and a failure here is loud (the render then fails).
+        await send('Animation.setPlaybackRate', { playbackRate: 1 }).catch(
+          () => {},
+        );
+        await send('Emulation.setScriptExecutionDisabled', { value: false });
+      }
     }
   }
   async observe(send, frame) {
@@ -542,7 +572,7 @@ export function attachRenderEvidence(browser, { assetHashes, width, height }) {
           )
             current.recordFrameRequest(params);
           else if (method === 'Page.captureScreenshot')
-            await current.capture(send);
+            return current.captureAround(send, () => send(method, params));
           return send(method, params);
         };
       } catch {
