@@ -20,14 +20,15 @@ describe('breakout.response.execute system action', () => {
   });
 
   it('is absent from the curated, tool, agent and MCP catalogs', () => {
-    expect(
-      CURATED_ACTION_CATALOG.some((entry) => entry.name === ACTION_ID),
-    ).toBe(false);
-    expect(ALL_TOOLS.some((tool) => tool.name === ACTION_ID)).toBe(false);
+    const curated: readonly string[] = CURATED_ACTION_CATALOG.map(
+      (entry) => entry.name,
+    );
+    const tools = (names: readonly { name: string }[]): readonly string[] =>
+      names.map((tool) => tool.name);
+    expect(curated).not.toContain(ACTION_ID);
+    expect(tools(ALL_TOOLS)).not.toContain(ACTION_ID);
     for (const surface of ['agent', 'mcp'] as const) {
-      expect(
-        getToolsForSurface(surface).some((tool) => tool.name === ACTION_ID),
-      ).toBe(false);
+      expect(tools(getToolsForSurface(surface))).not.toContain(ACTION_ID);
     }
   });
 
