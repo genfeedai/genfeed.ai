@@ -951,8 +951,14 @@ describe('DefaultRecurringContentService', () => {
       },
     };
 
+    // An enabled schedule is what carries a binding; a paused one stays unbound.
+    const enabledBrand = {
+      ...buildBrand(),
+      agentConfig: { schedule: { enabled: true, timezone: 'UTC' } },
+    };
+
     it('binds the created default workflows to the authenticated caller', async () => {
-      const { committed, prisma } = createFakePrisma({ brand: buildBrand() });
+      const { committed, prisma } = createFakePrisma({ brand: enabledBrand });
       const service = createService(prisma);
 
       await service.ensureDefaultBundle({ ...buildParams(), principal });
@@ -964,7 +970,7 @@ describe('DefaultRecurringContentService', () => {
     });
 
     it('leaves a system path with no caller unbound', async () => {
-      const { committed, prisma } = createFakePrisma({ brand: buildBrand() });
+      const { committed, prisma } = createFakePrisma({ brand: enabledBrand });
       const service = createService(prisma);
 
       await service.ensureDefaultBundle(buildParams());
@@ -976,7 +982,7 @@ describe('DefaultRecurringContentService', () => {
     });
 
     it('rejects a caller from another organization instead of relabelling it', async () => {
-      const { committed, prisma } = createFakePrisma({ brand: buildBrand() });
+      const { committed, prisma } = createFakePrisma({ brand: enabledBrand });
       const service = createService(prisma);
 
       await expect(
