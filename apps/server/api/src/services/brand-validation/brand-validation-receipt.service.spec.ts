@@ -488,6 +488,7 @@ describe('brand validation receipt completion adapter', () => {
     const f = fixture();
     await bindImage(f);
     const analysis = {
+      detectRegions: vi.fn(async () => ({ status: 'unavailable' as const })),
       extractText: vi.fn(async () => ({
         provider: { id: 'replicate', model: 'acme/ocr', version: 'v1' },
         status: 'read' as const,

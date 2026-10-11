@@ -1,6 +1,7 @@
 import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { BrandReplicateVisionProvider } from '@api/services/brand-validation/brand-replicate-vision.provider';
 import { BrandVisualAnalysisService } from '@api/services/brand-validation/brand-visual-analysis.service';
+import type { BrandDetectedRegion } from '@api/services/brand-validation/brand-visual-analysis.types';
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
   parsePlatformFeatureSettings,
@@ -16,6 +17,10 @@ const identity = { id: 'replicate', model: 'acme/ocr', version: 'v1' };
 
 function setup(isEnabled: boolean) {
   const provider = {
+    detectRegions: vi.fn(async () => ({
+      frames: [[], []] as BrandDetectedRegion[][],
+      provider: identity,
+    })),
     extractText: vi.fn(async () => ({ provider: identity, texts: ['a', 'b'] })),
   };
   const settings = {
@@ -104,5 +109,39 @@ describe('BrandVisualAnalysisService', () => {
     expect(await service.extractText(request)).toEqual({
       status: 'unavailable',
     });
+  });
+});
+
+describe('BrandVisualAnalysisService detection', () => {
+  it('calls no detector while the platform setting is off', async () => {
+    const { provider, service } = setup(false);
+    expect(await service.detectRegions({ ...request, query: 'logo' })).toEqual({
+      status: 'disabled',
+    });
+    expect(provider.detectRegions).not.toHaveBeenCalled();
+  });
+  it('detects through the provider once the setting is on', async () => {
+    const { provider, service } = setup(true);
+    expect(await service.detectRegions({ ...request, query: 'logo' })).toEqual({
+      frames: [[], []],
+      provider: identity,
+      status: 'detected',
+    });
+    expect(provider.detectRegions).toHaveBeenCalledTimes(1);
+  });
+  it('reports unavailable when the provider fails or answers for the wrong number of frames', async () => {
+    const failing = setup(true);
+    failing.provider.detectRegions.mockRejectedValueOnce(new Error('boom'));
+    expect(
+      await failing.service.detectRegions({ ...request, query: 'logo' }),
+    ).toEqual({ status: 'unavailable' });
+    const short = setup(true);
+    short.provider.detectRegions.mockResolvedValueOnce({
+      frames: [[]],
+      provider: identity,
+    });
+    expect(
+      await short.service.detectRegions({ ...request, query: 'logo' }),
+    ).toEqual({ status: 'unavailable' });
   });
 });

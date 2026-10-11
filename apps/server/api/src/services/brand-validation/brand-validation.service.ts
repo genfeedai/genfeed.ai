@@ -9,6 +9,7 @@ import {
 } from '@api/services/brand-validation/brand-validation-material.util';
 import { proveBrandLiteralChecksFromOcr } from '@api/services/brand-validation/brand-validation-ocr.util';
 import { proveBrandPaletteChecks } from '@api/services/brand-validation/brand-validation-palette.util';
+import { proveBrandPlacementChecks } from '@api/services/brand-validation/brand-validation-placement.util';
 import {
   assertBrandValidationRuleDomain,
   buildBrandValidationChecks,
@@ -276,9 +277,14 @@ export class BrandValidationService {
         text !== null &&
         artifact.parts.length === 0,
     );
-    const checks = await proveBrandLiteralChecksFromOcr(
+    const checks = await proveBrandPlacementChecks(
       validated,
-      await proveBrandPaletteChecks(validated, textChecks, visual),
+      await proveBrandLiteralChecksFromOcr(
+        validated,
+        await proveBrandPaletteChecks(validated, textChecks, visual),
+        visual,
+        options.visualAnalysis,
+      ),
       visual,
       options.visualAnalysis,
     );

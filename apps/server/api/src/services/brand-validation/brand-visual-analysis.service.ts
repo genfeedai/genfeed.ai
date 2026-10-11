@@ -1,6 +1,8 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { BrandReplicateVisionProvider } from '@api/services/brand-validation/brand-replicate-vision.provider';
 import type {
+  BrandDetectionOutcome,
+  BrandDetectionRequest,
   BrandOcrOutcome,
   BrandOcrRequest,
   BrandVisualAnalysis,
@@ -43,6 +45,29 @@ export class BrandVisualAnalysisService implements BrandVisualAnalysis {
     } catch (error: unknown) {
       this.logger.warn(
         `${this.constructorName} OCR unavailable: ${getErrorMessage(error)}`,
+        { brandId: request.scope.brandId },
+      );
+      return { status: 'unavailable' };
+    }
+  }
+
+  async detectRegions(
+    request: BrandDetectionRequest,
+  ): Promise<BrandDetectionOutcome> {
+    try {
+      const settings = await this.platformSettings.getFeatureSettings();
+      if (!settings.isBrandVisualAnalysisEnabled) return { status: 'disabled' };
+      const result = await this.provider.detectRegions(request);
+      if (result.frames.length !== request.frames.length)
+        return { status: 'unavailable' };
+      return {
+        frames: result.frames,
+        provider: result.provider,
+        status: 'detected',
+      };
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.constructorName} detection unavailable: ${getErrorMessage(error)}`,
         { brandId: request.scope.brandId },
       );
       return { status: 'unavailable' };

@@ -3,6 +3,7 @@ import { BrandValidationService } from '@api/services/brand-validation/brand-val
 import { hashBrandArtifactBytes } from '@api/services/brand-validation/brand-validation-artifact.util';
 import { isBrandVideoDecoderAvailable } from '@api/services/brand-validation/brand-validation-pixels.util';
 import type {
+  BrandDetectionOutcome,
   BrandOcrOutcome,
   BrandOcrRequest,
   BrandVisualAnalysis,
@@ -32,6 +33,9 @@ class FakeAnalysis implements BrandVisualAnalysis {
   async extractText(request: BrandOcrRequest): Promise<BrandOcrOutcome> {
     this.requests.push(request);
     return this.answer(request);
+  }
+  async detectRegions(): Promise<BrandDetectionOutcome> {
+    return { status: 'unavailable' };
   }
 }
 const reads = (...texts: string[]) =>

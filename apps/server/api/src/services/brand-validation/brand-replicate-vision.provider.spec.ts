@@ -1,13 +1,16 @@
 import {
   BRAND_VISION_DEFAULT_USD_PER_SECOND,
   BrandReplicateVisionProvider,
+  readBrandDetections,
   readBrandOcrText,
+  readBrandPngSize,
 } from '@api/services/brand-validation/brand-replicate-vision.provider';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Prediction } from 'replicate';
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const MODEL = 'acme/florence:abc123version';
@@ -40,6 +43,7 @@ function setup(config: Record<string, unknown> = {}) {
   const ledger = { record: vi.fn(async () => undefined) };
   const logger = { warn: vi.fn() };
   const values: Record<string, unknown> = {
+    BRAND_VISION_DETECT_REPLICATE_MODEL: 'acme/owl:def456version',
     BRAND_VISION_REPLICATE_MODEL: MODEL,
     ...config,
   };
@@ -246,5 +250,170 @@ describe('BrandReplicateVisionProvider', () => {
       provider.extractText({ frames: [frame], scope }),
     ).resolves.toMatchObject({ texts: ['Example Co'] });
     expect(logger.warn).toHaveBeenCalled();
+  });
+});
+
+async function png(width: number, height: number) {
+  return new Uint8Array(
+    await sharp({
+      create: { background: '#ffffff', channels: 3, height, width },
+    })
+      .png()
+      .toBuffer(),
+  );
+}
+const size = { height: 400, width: 600 };
+
+describe('readBrandPngSize', () => {
+  it('reads the dimensions from the header', async () => {
+    expect(readBrandPngSize(await png(600, 400))).toEqual(size);
+  });
+  it('refuses bytes that are not a PNG', () => {
+    expect(readBrandPngSize(new Uint8Array(40))).toBeNull();
+    expect(readBrandPngSize(new Uint8Array(3))).toBeNull();
+  });
+});
+
+describe('readBrandDetections', () => {
+  it('reads pixel corner boxes into fractions of the frame, best first', () => {
+    const regions = readBrandDetections(
+      {
+        json_data: {
+          objects: [
+            { bbox: [60, 40, 180, 120], category: 'logo', score: 0.4 },
+            { bbox: [300, 200, 600, 400], category: 'logo', score: 0.9 },
+          ],
+        },
+      },
+      size,
+    );
+    expect(regions).toEqual([
+      { box: { height: 0.5, width: 0.5, x: 0.5, y: 0.5 }, score: 0.9 },
+      {
+        box: { height: 0.2, width: 0.2, x: 0.1, y: 0.1 },
+        score: 0.4,
+      },
+    ]);
+  });
+  it('accepts fractional boxes and a JSON string', () => {
+    const regions = readBrandDetections(
+      JSON.stringify([{ box: [0.1, 0.2, 0.5, 0.6], confidence: 0.7 }]),
+      size,
+    );
+    expect(regions?.[0]?.box.x).toBeCloseTo(0.1, 6);
+    expect(regions?.[0]?.box.width).toBeCloseTo(0.4, 6);
+  });
+  it('treats an answer with no boxes as an empty list, and anything else as no answer', () => {
+    expect(readBrandDetections({ json_data: { objects: [] } }, size)).toEqual(
+      [],
+    );
+    expect(readBrandDetections('not json', size)).toBeNull();
+    expect(readBrandDetections(42, size)).toBeNull();
+    expect(readBrandDetections(null, size)).toBeNull();
+  });
+  it('drops boxes with no confidence, an empty box or a confidence outside 0..1', () => {
+    expect(
+      readBrandDetections(
+        [
+          { bbox: [1, 2, 30, 40] },
+          { bbox: [10, 10, 10, 50], score: 0.9 },
+          { bbox: [0, 0, 10, 10], score: 3 },
+        ],
+        size,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('BrandReplicateVisionProvider detection', () => {
+  const scope = { brandId: 'brand-a', organizationId: 'org-a' };
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('asks the pinned detector for the query and returns regions with the identity', async () => {
+    const { predictions, provider } = setup();
+    predictions.create.mockResolvedValueOnce(
+      prediction({
+        output: {
+          json_data: {
+            objects: [{ bbox: [0, 0, 300, 200], score: 0.8 }],
+          },
+        },
+        version: 'def456version',
+      }),
+    );
+    const frame = await png(600, 400);
+    const result = await provider.detectRegions({
+      frames: [frame],
+      query: 'logo',
+      scope,
+    });
+    expect(result).toEqual({
+      frames: [[{ box: { height: 0.5, width: 0.5, x: 0, y: 0 }, score: 0.8 }]],
+      provider: {
+        id: 'replicate',
+        model: 'acme/owl',
+        version: 'def456version',
+      },
+    });
+    expect(predictions.create).toHaveBeenCalledWith({
+      input: {
+        image: `data:image/png;base64,${Buffer.from(frame).toString('base64')}`,
+        query: 'logo',
+        show_visualisation: false,
+        threshold: 0.1,
+      },
+      version: 'def456version',
+    });
+  });
+  it('records the spend under the vision category and shares no read between queries', async () => {
+    const { ledger, predictions, provider } = setup();
+    predictions.create.mockImplementation(async () =>
+      prediction({ output: { objects: [] } }),
+    );
+    const frame = await png(600, 400);
+    await provider.detectRegions({ frames: [frame], query: 'logo', scope });
+    await provider.detectRegions({ frames: [frame], query: 'logo', scope });
+    await provider.detectRegions({ frames: [frame], query: 'product', scope });
+    expect(predictions.create).toHaveBeenCalledTimes(2);
+    expect(ledger.record).toHaveBeenCalledTimes(2);
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'brand-validation-vision',
+        model: 'acme/owl',
+        vendorCostMicros: Math.round(
+          2 * BRAND_VISION_DEFAULT_USD_PER_SECOND * 1_000_000,
+        ),
+      }),
+    );
+  });
+  it('fails closed without a detector model, on an unreadable frame or an unreadable answer', async () => {
+    const unconfigured = setup({ BRAND_VISION_DETECT_REPLICATE_MODEL: '' });
+    await expect(
+      unconfigured.provider.detectRegions({
+        frames: [await png(60, 40)],
+        query: 'logo',
+        scope,
+      }),
+    ).rejects.toThrow('brand_vision_model_unconfigured');
+    expect(unconfigured.predictions.create).not.toHaveBeenCalled();
+    const { ledger, predictions, provider } = setup();
+    await expect(
+      provider.detectRegions({
+        frames: [new Uint8Array([1, 2, 3])],
+        query: 'logo',
+        scope,
+      }),
+    ).rejects.toThrow('brand_vision_frame_unreadable');
+    expect(predictions.create).not.toHaveBeenCalled();
+    predictions.create.mockResolvedValueOnce(prediction({ output: 'oops' }));
+    await expect(
+      provider.detectRegions({
+        frames: [await png(60, 40)],
+        query: 'logo',
+        scope,
+      }),
+    ).rejects.toThrow('brand_vision_output_unrecognized');
+    expect(ledger.record).toHaveBeenCalledTimes(1);
   });
 });

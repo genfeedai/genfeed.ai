@@ -68,6 +68,8 @@ export const replicateSchema = {
   // `isBrandVisualAnalysisEnabled`; these only say which model and what it costs.
   // A pinned `owner/name:version` (for example a Florence-2 class model); unset keeps the analysis unavailable.
   BRAND_VISION_REPLICATE_MODEL: Joi.string().optional().allow(''),
+  // A pinned `owner/name:version` open-vocabulary detector (OWL-ViT class) for logo and product placement.
+  BRAND_VISION_DETECT_REPLICATE_MODEL: Joi.string().optional().allow(''),
   BRAND_VISION_USD_PER_SECOND: Joi.number().positive().default(0.000975),
 };
 

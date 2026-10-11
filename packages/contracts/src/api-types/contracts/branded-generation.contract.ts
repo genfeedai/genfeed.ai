@@ -736,7 +736,10 @@ export const brandArtifactValidationCheckV1Schema = z
         v.method !== 'deterministic_render' ||
         (v.proof.kind === 'palette'
           ? v.category !== 'palette'
-          : !['mandatory_rule', 'avoid_rule'].includes(v.category))
+          : v.proof.kind === 'placement'
+            ? v.result !== 'pass' ||
+              !['logo', 'product_identity'].includes(v.category)
+            : !['mandatory_rule', 'avoid_rule'].includes(v.category))
       )
         issue(ctx, 'Proof requires a deterministic pass/fail of its category');
     } else if (v.category === 'palette' && ['pass', 'fail'].includes(v.result))

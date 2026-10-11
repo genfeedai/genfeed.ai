@@ -911,6 +911,74 @@ describe('blocked identity and canonical rule origin', () => {
     v.validation.checks[1].category = 'fact';
     expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
   });
+  it('accepts a placement proof only on a logo or product pass', () => {
+    const base = {
+      ruleId: 'logo',
+      severity: 'hard',
+      evidenceIds: ['evidence'],
+      method: 'deterministic_render',
+    } as const;
+    const proof = {
+      kind: 'placement' as const,
+      algorithm: 'detect-then-match-v1' as const,
+      artifactHash: hash,
+      partId: 'part',
+      partVersion: 'v1',
+      partHash: hash,
+      mediaKind: 'image' as const,
+      decoder: 'sharp/libvips-8.18.7',
+      provider: { id: 'replicate', model: 'acme/owl', version: 'abc' },
+      referenceAssetId: 'logo-asset',
+      referenceHash: hash,
+      query: 'logo',
+      sampledFrames: 1,
+      minDetectionScore: 0.3,
+      minSimilarity: 0.7,
+      matches: [
+        {
+          frame: 0,
+          score: 0.8,
+          similarity: 0.9,
+          box: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+        },
+      ],
+    };
+    for (const category of ['logo', 'product_identity'] as const)
+      expect(
+        brandArtifactValidationCheckV1Schema.safeParse({
+          ...base,
+          category,
+          result: 'pass',
+          proof,
+        }).success,
+      ).toBe(true);
+    // A detector that misses proves nothing, so a placement proof is never a failure.
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        category: 'logo',
+        result: 'fail',
+        reasonCode: 'placement_not_found',
+        proof,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        category: 'mandatory_rule',
+        result: 'pass',
+        proof,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        category: 'logo',
+        result: 'pass',
+        proof: { ...proof, matches: [] },
+      }).success,
+    ).toBe(false);
+  });
   it('accepts an OCR proof only on a literal rule check', () => {
     const base = {
       ruleId: 'name',

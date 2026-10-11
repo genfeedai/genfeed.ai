@@ -111,6 +111,41 @@ part) or several visuals all leave the checks `unknown`. The complete-segmentati
 matcher `matchBrandLiteralBlocks` is not used here: it proves factual coverage of
 all visible text, which a reader that can miss text cannot establish.
 
+## Logo and product placement (images and video, behind the same switch)
+
+An approved `logo` or `product` asset is looked for in the final pixels with an
+open-vocabulary detector (an OWL-ViT class model on Replicate, the pinned
+`owner/name:version` in `BRAND_VISION_DETECT_REPLICATE_MODEL`; unset keeps it
+unavailable). It uses the same port, the same off-by-default Admin setting
+`isBrandVisualAnalysisEnabled` and the same ledger path as OCR (category
+`brand-validation-vision`, priced from the reported runtime).
+
+A detector only says something logo-like or product-like is somewhere, so it is
+never trusted for identity. The validator asks for the query `logo` or `product`,
+keeps regions at or above `minDetectionScore` 0.3 (at most five per frame), crops
+each from the frame and compares the crop with the approved reference asset's own
+bytes (the reference is hash-verified against the snapshot first) by zero-mean
+normalized correlation on a 32x32 grayscale of both. A region at or above
+`minSimilarity` 0.7 is a match. Missing a logo is not evidence it is absent, so
+placement has no fail:
+
+| Outcome | When |
+| --- | --- |
+| `pass` (`deterministic_render`) | a detected region matches the approved asset |
+| `unknown` `placement_not_found` | nothing detected at or above the minimum score |
+| `unknown` `placement_unmatched` | regions were detected and none matches the asset |
+| `unknown` `reference_unavailable` | no hash-verified reference bytes (no call is made) |
+| `unknown` `visual_analysis_disabled` / `visual_analysis_unavailable` | switch off, provider error or an answer for the wrong number of frames |
+| `unknown` `artifact_undecodable` / `visual_composite_unproven` / `visual_part_unavailable` | as for OCR |
+
+The `placement` proof records the artifact and part hashes, the model identity and
+version, the query, the approved asset and its hash, both thresholds and the
+matching regions (frame, detector score, similarity, box as fractions of the frame).
+The contract accepts it only on a logo or product pass. The check proves a region
+resembling the approved asset exists; it does not prove size, position or that the
+asset is the only mark. Redrawn or distorted logos in generated media usually stay
+`unknown`, and then the receipt stays in review as it does for every media artifact.
+
 Failures are `BadRequestException` with exactly one of:
 
 - `brand_validation_invalid_input`: malformed metadata/material, limits or stale identities.

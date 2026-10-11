@@ -256,11 +256,18 @@ describe.skipIf(!connectionString)(
       const { result } = await delivery.deliver(post.id);
       expect(result.success).toBe(true);
       const sent = delivery.published[0]?.post;
+      // The publisher receives the post's ingredients in relation order, which is the order of
+      // their generated ids and says nothing about the carousel order. The carousel order is the
+      // stored `groupIndex` asserted above; here the same set of ingredients must be published.
+      const byId = (ids: string[]) =>
+        [...ids].sort((a, b) => a.localeCompare(b));
       expect(
-        (sent?.ingredients ?? []).map((item) =>
-          typeof item === 'string' ? item : item.id,
+        byId(
+          (sent?.ingredients ?? []).map((item) =>
+            typeof item === 'string' ? item : item.id,
+          ),
         ),
-      ).toEqual(post.ingredients.map((item) => item.id));
+      ).toEqual(byId(post.ingredients.map((item) => item.id)));
     });
 
     it('generates a video follow-up, judges it from its frames and publishes it once the media gate passes', async () => {
