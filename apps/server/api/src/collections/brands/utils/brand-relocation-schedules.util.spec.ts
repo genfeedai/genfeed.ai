@@ -17,6 +17,9 @@ function client(rows: { active?: unknown[]; bound?: unknown[] }) {
       ),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    agentStrategy: {
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   };
 }
 
@@ -98,6 +101,20 @@ describe('brand relocation schedule hold (#6689)', () => {
         scheduleInitiatingActor: Prisma.DbNull,
       },
       where: { id: { in: ['wf_on', 'wf_old', 'wf_deleted'] } },
+    });
+  });
+
+  it("drops the actor bound on the brand's strategies, so moving back cannot re-arm it", async () => {
+    const tx = client({});
+
+    await holdBrandSchedules(asTx(tx), 'brand');
+
+    expect(tx.agentStrategy.updateMany).toHaveBeenCalledExactlyOnceWith({
+      data: { scheduleInitiatingActor: Prisma.DbNull },
+      where: {
+        brandId: 'brand',
+        NOT: { scheduleInitiatingActor: { equals: Prisma.DbNull } },
+      },
     });
   });
 
