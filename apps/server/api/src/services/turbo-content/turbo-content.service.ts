@@ -159,8 +159,8 @@ export class TurboContentService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): TurboContentResult {
     const plan = this.readRecord(request.input.plan, 'plan');
-    const turboRun = this.readForEachResult(request.input.turboRun);
-    const drafts = turboRun.results
+    const batch = this.readForEachResult(request.input.batch);
+    const drafts = batch.results
       .sort((left, right) => left.index - right.index)
       .map((entry) => entry.result);
     return {
@@ -172,7 +172,7 @@ export class TurboContentService implements OnModuleInit {
       summary: {
         completed: drafts.length,
         failed: 0,
-        total: turboRun.count,
+        total: batch.count,
       },
     };
   }
@@ -211,7 +211,7 @@ export class TurboContentService implements OnModuleInit {
   }
 
   private readForEachResult(value: unknown): ForEachResult {
-    const record = this.readRecord(value, 'turboRun');
+    const record = this.readRecord(value, 'batch');
     if (!Array.isArray(record.results)) {
       throw new Error('Turbo content workflow requires generated results');
     }

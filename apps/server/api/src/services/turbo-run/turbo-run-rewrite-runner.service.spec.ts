@@ -498,7 +498,7 @@ describe('TurboRunRewriteRunnerService', () => {
       2,
       expect.objectContaining({
         idempotencyKey: expect.stringMatching(
-          /^turboRun-rewrite:job-1:item-1:retry:/,
+          /^turbo-rewrite:job-1:item-1:retry:/,
         ),
       }),
     );

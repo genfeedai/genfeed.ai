@@ -19,7 +19,7 @@ vi.mock('@genfeedai/config', async (original) => ({
   hasOrganizationBilling: () => true,
 }));
 
-describe('Batch HTTP organization module admission', () => {
+describe('Turbo HTTP organization module admission', () => {
   let app: INestApplication;
   let isEnabled: boolean;
   let actorFlags: { isApiKey?: boolean; isSuperAdmin?: boolean };
@@ -40,7 +40,7 @@ describe('Batch HTTP organization module admission', () => {
         organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
         organizationSetting: {
           findUnique: vi.fn(async () => ({
-            moduleOverrides: { turboRun: isEnabled },
+            moduleOverrides: { turbo: isEnabled },
           })),
         },
       } as never,
@@ -85,7 +85,7 @@ describe('Batch HTTP organization module admission', () => {
   });
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks disabled Batch before the actual controller creates a project: %j',
+    'blocks disabled Turbo before the actual controller creates a project: %j',
     async (flags) => {
       actorFlags = flags;
       const result = await request(app.getHttpServer())
@@ -101,7 +101,7 @@ describe('Batch HTTP organization module admission', () => {
       expect(create).not.toHaveBeenCalled();
     },
   );
-  it('allows explicitly enabled Batch without an active subscription', async () => {
+  it('allows explicitly enabled Turbo without an active subscription', async () => {
     isEnabled = true;
     const result = await request(app.getHttpServer())
       .post('/turbo-projects')
@@ -112,7 +112,7 @@ describe('Batch HTTP organization module admission', () => {
       expect.objectContaining({ organizationId: 'org-1' }),
     );
   });
-  it('preserves existing project reads when Batch is disabled', async () => {
+  it('preserves existing project reads when Turbo is disabled', async () => {
     const result = await request(app.getHttpServer()).get(
       '/turbo-projects/project-1',
     );
@@ -124,7 +124,7 @@ describe('Batch HTTP organization module admission', () => {
   });
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
-    'blocks the direct skill-batch HTTP endpoint before queueing: %j',
+    'blocks the direct Turbo content HTTP endpoint before queueing: %j',
     async (flags) => {
       actorFlags = flags;
       const result = await request(app.getHttpServer())
@@ -141,7 +141,7 @@ describe('Batch HTTP organization module admission', () => {
     },
   );
 
-  it('rechecks a previously enabled skill-batch route before the next request', async () => {
+  it('rechecks a previously enabled Turbo content route before the next request', async () => {
     isEnabled = true;
     const url = '/brands/brand-1/content/turbo';
     expect(

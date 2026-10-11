@@ -293,7 +293,7 @@ describe('TurboRunProcessingService post.create credentials', () => {
       TurboRunItemStatus.FAILED,
     );
     expect(finalUpdatePayload().items?.[0]?.error).toMatch(
-      /Invalid turboRun item platform/i,
+      /Invalid Turbo run item platform/i,
     );
   });
 

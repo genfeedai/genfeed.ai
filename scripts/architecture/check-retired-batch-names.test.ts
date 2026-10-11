@@ -53,6 +53,8 @@ describe('retired Batch product name guard (#5936)', () => {
         'const id = post.reviewBatchId;',
         'await prisma.batch.findMany();',
         "readSource('src/features/workflows/pages/batch/Page.tsx');",
+        'SELECT id FROM batches WHERE id > $1',
+        'SELECT "id" FROM "turbo-runs" FOR UPDATE',
       ].join('\n'),
     ).map((violation) => violation.name);
 
@@ -63,6 +65,8 @@ describe('retired Batch product name guard (#5936)', () => {
       'reviewBatchId',
       'prisma.batch',
       'pages/batch',
+      'FROM batches',
+      'FROM "turbo-runs"',
     ]);
   });
 

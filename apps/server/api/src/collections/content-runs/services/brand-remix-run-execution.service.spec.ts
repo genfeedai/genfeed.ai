@@ -248,7 +248,7 @@ describe('BrandRemixRunExecutionService', () => {
     await expect(
       reserve?.({
         input: {
-          turboRun: {
+          batch: {
             results: [
               {
                 result: {
@@ -321,7 +321,7 @@ describe('BrandRemixRunExecutionService', () => {
     await expect(
       reserve?.({
         input: {
-          turboRun: {
+          batch: {
             results: [
               {
                 result: {

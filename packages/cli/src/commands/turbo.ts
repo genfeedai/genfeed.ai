@@ -162,7 +162,7 @@ turboCommand
         return;
       }
 
-      print(formatHeader('\nTurboRun Details:\n'));
+      print(formatHeader('\nTurbo Run Details:\n'));
       print(formatLabel('ID', turboRun.id));
       print(formatLabel('Status', turboRun.status));
       print(formatLabel('Count', String(turboRun.count)));

@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
 @OrganizationModule('turbo')
-class BatchController {
+class TurboController {
   write() {}
   list() {}
   @OrganizationModule('turbo', 'export')
@@ -53,7 +53,7 @@ describe('OrganizationModuleGuard', () => {
     } as never);
     await expect(
       guard.canActivate(
-        createContext(BatchController, 'write', {
+        createContext(TurboController, 'write', {
           ...identity,
           user: { ...identity.user, ...flags },
           method: 'POST',
@@ -62,7 +62,7 @@ describe('OrganizationModuleGuard', () => {
         }) as never,
       ),
     ).rejects.toThrow('disabled');
-    expect(assertAccess).toHaveBeenCalledWith('org-1', 'batch', 'write');
+    expect(assertAccess).toHaveBeenCalledWith('org-1', 'turbo', 'write');
   });
   it.each([
     {},
@@ -77,7 +77,7 @@ describe('OrganizationModuleGuard', () => {
       } as never);
       await expect(
         guard.canActivate(
-          createContext(BatchController, 'write', {
+          createContext(TurboController, 'write', {
             ...request,
             method: 'POST',
             headers: { 'x-genfeed-organization-id': 'org-1' },
@@ -98,14 +98,14 @@ describe('OrganizationModuleGuard', () => {
       ['mutatingGet', 'GET', 'write'],
     ]) {
       await guard.canActivate(
-        createContext(BatchController, handler, {
+        createContext(TurboController, handler, {
           ...identity,
           method,
         }) as never,
       );
       expect(assertAccess).toHaveBeenLastCalledWith(
         'org-1',
-        'batch',
+        'turbo',
         operation,
       );
     }

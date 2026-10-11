@@ -506,7 +506,7 @@ export class TurboRunProcessingService {
       : undefined;
     if (platformRaw && !platformForCredential) {
       throw new BadRequestException(
-        `Invalid run item platform "${platformRaw}"`,
+        `Invalid Turbo run item platform "${platformRaw}"`,
       );
     }
 
@@ -713,7 +713,7 @@ export class TurboRunProcessingService {
   ): Promise<{ count: number }> {
     return this.prisma.$transaction(async (transaction) => {
       await transaction.$queryRaw(
-        Prisma.sql`SELECT "id" FROM "turbo-runs" WHERE "id" = ${input.turboRunId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`,
+        Prisma.sql`SELECT "id" FROM "turbo_runs" WHERE "id" = ${input.turboRunId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`,
       );
       const turboRun = await transaction.turboRun.findFirst({
         include: turboRunItemRowsInclude(input.organizationId),

@@ -278,8 +278,8 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   },
   'content.turbo.rank': {
     inputSchema: closedObjectSchema(
-      { turboRun: JSON_DOCUMENT_SCHEMA, plan: PLAN },
-      ['turboRun', 'plan'],
+      { batch: JSON_DOCUMENT_SCHEMA, plan: PLAN },
+      ['batch', 'plan'],
     ),
     outputSchema: closedObjectSchema(
       {

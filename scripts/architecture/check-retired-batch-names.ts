@@ -59,6 +59,17 @@ export const RETIRED_BATCH_NAMES: ReadonlyArray<{
     replacement: 'createManualReviewTurboRun / getTurboRunsService',
   },
   { pattern: /\bprisma\.batch\b/gu, replacement: 'prisma.turboRun' },
+  {
+    pattern:
+      /\b(?:FROM|JOIN|UPDATE|INTO)\s+"?batch(?:es|_items|_projects|_project_items)\b/giu,
+    replacement:
+      'turbo_runs / turbo_run_items / turbo_projects / turbo_project_items',
+  },
+  {
+    // Table names use underscores; `turbo-runs` is the API path.
+    pattern: /\b(?:FROM|JOIN|UPDATE|INTO)\s+"turbo-[a-z-]+"/giu,
+    replacement: 'the underscored turbo_* table name',
+  },
 ];
 
 /**

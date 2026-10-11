@@ -35,7 +35,6 @@ export const RELOCATION_RESOURCE_LABELS: Record<
   },
   article: { singular: 'article', plural: 'articles' },
   asset: { singular: 'asset', plural: 'assets' },
-  batch: { singular: 'batch', plural: 'batches' },
   bookmark: { singular: 'bookmark', plural: 'bookmarks' },
   botActivity: { singular: 'bot activity', plural: 'bot activities' },
   bot: { singular: 'bot', plural: 'bots' },
@@ -120,6 +119,7 @@ export const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'trend remix lineage',
     plural: 'trend remix lineages',
   },
+  turboRun: { singular: 'Turbo run', plural: 'Turbo runs' },
   warmupAccount: {
     singular: 'warmup account',
     plural: 'warmup accounts',

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  normalizeBatchReviewDecisions,
   normalizePostReviewEvents,
+  normalizeTurboRunReviewDecisions,
   parseReviewDecisionNormalizationArgs,
 } from './normalize-review-decisions';
 
 describe('review decision JSON normalization', () => {
   it('normalizes known Postgres aliases and makes missing decisions explicit', () => {
-    const result = normalizeBatchReviewDecisions([
+    const result = normalizeTurboRunReviewDecisions([
       {
         id: 'item-1',
         reviewDecision: 'APPROVED',
@@ -45,7 +45,7 @@ describe('review decision JSON normalization', () => {
         reviewEvents: [{ decision: 'approved' }],
       },
     ];
-    expect(normalizeBatchReviewDecisions(value)).toEqual({
+    expect(normalizeTurboRunReviewDecisions(value)).toEqual({
       changed: false,
       stats: { explicitUnsets: 0, legacyAliases: 0, unknownCategories: {} },
       value,

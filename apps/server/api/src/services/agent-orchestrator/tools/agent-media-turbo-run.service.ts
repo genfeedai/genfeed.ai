@@ -446,7 +446,7 @@ export class AgentMediaTurboRunService {
         );
       } catch (cancelError) {
         this.loggerService.warn(
-          `${this.logContext} failed to cancel run after credit reserve failure`,
+          `${this.logContext} failed to cancel Turbo run after credit reserve failure`,
           {
             turboRunId: params.turboRunId,
             cancelError,

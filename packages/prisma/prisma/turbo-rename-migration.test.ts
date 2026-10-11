@@ -91,6 +91,9 @@ describe('Batch to Turbo rename migration (#5936)', () => {
     expect(migrationSource).toContain(
       '\'"batch_generation_result_card"\', \'"turbo_run_result_card"\'',
     );
+    expect(migrationSource).toContain(
+      "'view=approvals&batch=', 'view=approvals&run='",
+    );
     expect(migrationSource).toContain("jsonb_build_object('turbo', ");
     expect(migrationSource).toContain("jsonb_build_object('turbo_ideas', ");
     expect(migrationSource).toContain("jsonb_build_object('studio_turbo', ");

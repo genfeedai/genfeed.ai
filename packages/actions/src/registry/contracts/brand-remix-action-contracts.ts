@@ -216,14 +216,14 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   ),
   'brand-remix.generate.reconcile': contract(
     closedObjectSchema(
-      { turboRun: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
+      { batch: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
       ['state'],
     ),
     state(GENERATE_STATE, GENERATE_STATE_OPTIONAL),
   ),
   'brand-remix.generate.reserve-credits': contract(
     closedObjectSchema(
-      { turboRun: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
+      { batch: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
       ['state'],
     ),
     state(

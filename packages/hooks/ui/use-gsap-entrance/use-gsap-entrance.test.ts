@@ -22,7 +22,7 @@ const gsapMock = {
 };
 
 const scrollTriggerMock = {
-  turboRun: vi.fn(),
+  batch: vi.fn(),
 };
 
 vi.mock('gsap', () => ({
@@ -119,9 +119,9 @@ describe('useGsapEntrance batch reveals', () => {
       }),
     );
 
-    await waitFor(() => expect(scrollTriggerMock.turboRun).toHaveBeenCalled());
+    await waitFor(() => expect(scrollTriggerMock.batch).toHaveBeenCalled());
 
-    const [elements, vars] = scrollTriggerMock.turboRun.mock.calls[0];
+    const [elements, vars] = scrollTriggerMock.batch.mock.calls[0];
     expect(elements).toHaveLength(2);
     expect(gsapMock.set).toHaveBeenCalledWith(elements, { opacity: 0, y: 32 });
     expect(vars).toMatchObject({ once: true, start: 'top 88%' });
@@ -147,7 +147,7 @@ describe('useGsapEntrance batch reveals', () => {
 
     await waitFor(() => expect(gsapMock.context).toHaveBeenCalled());
     expect(gsapMock.set).not.toHaveBeenCalled();
-    expect(scrollTriggerMock.turboRun).not.toHaveBeenCalled();
+    expect(scrollTriggerMock.batch).not.toHaveBeenCalled();
     inView.mockRestore();
   });
 
@@ -172,8 +172,8 @@ describe('useGsapEntrance batch reveals', () => {
     );
     container.querySelector('.item')?.remove();
 
-    await waitFor(() => expect(scrollTriggerMock.turboRun).toHaveBeenCalled());
-    expect(scrollTriggerMock.turboRun.mock.calls[0][0]).toHaveLength(1);
+    await waitFor(() => expect(scrollTriggerMock.batch).toHaveBeenCalled());
+    expect(scrollTriggerMock.batch.mock.calls[0][0]).toHaveLength(1);
   });
 
   it('keeps shared-trigger animations on a single tween', async () => {
@@ -184,7 +184,7 @@ describe('useGsapEntrance batch reveals', () => {
     );
 
     await waitFor(() => expect(gsapMock.fromTo).toHaveBeenCalled());
-    expect(scrollTriggerMock.turboRun).not.toHaveBeenCalled();
+    expect(scrollTriggerMock.batch).not.toHaveBeenCalled();
   });
 
   it('never tweens painted content on the immediate path', async () => {
@@ -325,7 +325,7 @@ describe('useGsapTimeline', () => {
 describe('gsapPresets', () => {
   it('revealEach and scaleEach batch per element', () => {
     expect(gsapPresets.revealEach('.row').scrollTrigger).toEqual({
-      turboRun: true,
+      batch: true,
       start: 'top 88%',
     });
     expect(gsapPresets.scaleEach('.tile').from).toEqual({

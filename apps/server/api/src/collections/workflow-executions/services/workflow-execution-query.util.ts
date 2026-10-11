@@ -42,12 +42,12 @@ export function buildCustomerExecutionWhere(
   // `workflow` relation is the shared `workflow.batch.execute` system
   // workflow, so it matched neither branch above and was invisible to every
   // real customer. `BatchWorkflowExecutionService.startBatchExecution`
-  // never records a brand (`StartTurboRunWorkflowExecutionInput` has no
+  // never records a brand (`StartBatchWorkflowExecutionInput` has no
   // `brandId`, and neither its `inputValues` nor its `metadata.batchExecution`
   // payload carries one), so — unlike `proactive` — there is no brand to
   // match against; a brand-filtered query correctly excludes batch runs
   // rather than guessing one.
-  const turboRun: Prisma.WorkflowExecutionWhereInput = {
+  const batch: Prisma.WorkflowExecutionWhereInput = {
     workflow: {
       organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       isDeleted: false,
@@ -74,7 +74,7 @@ export function buildCustomerExecutionWhere(
             },
           },
           proactive,
-          turboRun,
+          batch,
         ],
       },
       ...(query.brandId

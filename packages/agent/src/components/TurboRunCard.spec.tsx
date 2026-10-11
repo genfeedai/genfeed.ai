@@ -32,7 +32,7 @@ describe('TurboRunCard', () => {
       screen.getByText(new RegExp(`Estimated cost: ${expected} credits`, 'i')),
     ).toBeInTheDocument();
     expect(screen.queryByText(/200 credits/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/flat turboRun fee/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/flat batch fee/i)).not.toBeInTheDocument();
   });
 
   it('honors an explicit creditEstimate only while inputs match the suggestion', async () => {

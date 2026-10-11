@@ -147,7 +147,7 @@ describe('TurboRunRewriteService', () => {
       },
       {
         deduplication: { id: 'turbo-rewrite-run-1' },
-        jobId: expect.stringMatching(/^turboRun-rewrite-turboRun-1-/),
+        jobId: expect.stringMatching(/^turbo-rewrite-run-1-/),
       },
     );
     expect(job).toMatchObject({

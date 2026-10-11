@@ -1520,7 +1520,7 @@ describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
     };
   }
 
-  it('returns early when batch generation is not wired', async () => {
+  it('returns early when Turbo runs are not wired', async () => {
     const { handler } = createHandler();
 
     const result = await handler.generateTurboContent(
@@ -1530,7 +1530,7 @@ describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
 
     expect(result).toEqual({
       creditsUsed: 0,
-      error: 'Batch generation service not available',
+      error: 'Turbo run service not available',
       success: false,
     });
   });
@@ -1551,7 +1551,7 @@ describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
     const { turboRunService, creditsUtilsService, handler } =
       createTurboRunHandler();
     turboRunService.createTurboRun.mockRejectedValue(
-      new Error('Invalid batch platform(s): myspace'),
+      new Error('Invalid Turbo run platform(s): myspace'),
     );
 
     const result = await handler.generateTurboContent(
@@ -1560,7 +1560,7 @@ describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Invalid turboRun platform/);
+    expect(result.error).toMatch(/Invalid Turbo run platform/);
     expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     expect(turboRunService.cancelTurboRun).not.toHaveBeenCalled();
   });
@@ -1627,7 +1627,7 @@ describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
     expect(result.error).toMatch(/Insufficient credits/);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining(
-        'failed to cancel batch after credit reserve failure',
+        'failed to cancel Turbo run after credit reserve failure',
       ),
       expect.objectContaining({ turboRunId: 'batch-1' }),
     );
@@ -1742,7 +1742,7 @@ describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
 
     expect(result).toEqual({
       creditsUsed: 0,
-      error: 'Batch credit reservation could not be recorded',
+      error: 'Turbo run credit reservation could not be recorded',
       success: false,
     });
     expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
@@ -1787,7 +1787,7 @@ describe('AgentMediaGenerationToolHandler generateTurboContent (#2696)', () => {
 
     expect(result).toEqual({
       creditsUsed: 0,
-      error: 'Batch credit reservation could not be recorded',
+      error: 'Turbo run credit reservation could not be recorded',
       success: false,
     });
     expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({

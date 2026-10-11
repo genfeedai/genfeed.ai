@@ -54,7 +54,7 @@ export function buildTurboContentWorkflowDefinition(
           id: 'generate-to-rank',
           source: 'generate-items',
           target: 'rank-drafts',
-          targetHandle: 'turboRun',
+          targetHandle: 'batch',
         },
       ],
       inputVariables: [

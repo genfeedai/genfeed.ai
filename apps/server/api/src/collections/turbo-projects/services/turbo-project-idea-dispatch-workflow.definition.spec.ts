@@ -47,7 +47,7 @@ describe('Turbo project idea dispatch workflow definitions', () => {
   it('builds single-action graphs over the registered actions', () => {
     expect(
       buildTurboProjectIdeaDispatchWorkflowDefinition().organizationModule,
-    ).toBe('turboRun');
+    ).toBe('turbo');
     // Exhausted-attempt projection and hold release must still run after a disable.
     expect(
       buildTurboProjectIdeaDispatchFailureWorkflowDefinition()

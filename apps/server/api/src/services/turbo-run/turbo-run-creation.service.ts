@@ -298,7 +298,7 @@ export class TurboRunCreationService {
     try {
       turboRun = await this.prisma.$transaction(async (tx) => {
         await tx.$queryRaw(
-          Prisma.sql`SELECT "id" FROM "turbo-runs" WHERE "id" = ${turboRunId} AND "organizationId" = ${orgId} AND "isDeleted" = false FOR UPDATE`,
+          Prisma.sql`SELECT "id" FROM "turbo_runs" WHERE "id" = ${turboRunId} AND "organizationId" = ${orgId} AND "isDeleted" = false FOR UPDATE`,
         );
         const current = await tx.turboRun.findFirst({
           include: turboRunItemRowsInclude(orgId),
@@ -657,7 +657,7 @@ export class TurboRunCreationService {
 
     if (invalid.length > 0 || normalized.length === 0) {
       throw new BadRequestException(
-        `Invalid run platform(s): ${invalid.join(', ') || '(empty)'}. Use a supported platform id.`,
+        `Invalid Turbo run platform(s): ${invalid.join(', ') || '(empty)'}. Use a supported platform id.`,
       );
     }
 

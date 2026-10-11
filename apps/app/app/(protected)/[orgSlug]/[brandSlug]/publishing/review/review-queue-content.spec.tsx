@@ -134,7 +134,7 @@ vi.mock('./components/ReviewGrid', () => ({
         Bulk Reject
       </button>
       <button type="button" onClick={() => onBulkRewrite()}>
-        Rewrite turboRun
+        Rewrite Turbo run
       </button>
     </div>
   ),
@@ -309,9 +309,9 @@ vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
     value: string;
   }) => (
     <div>
-      <div>Selected turboRun: {value}</div>
+      <div>Selected Turbo run: {value}</div>
       <button type="button" onClick={() => onChange('review-batch', 'batch-2')}>
-        Select turboRun-2
+        Select Turbo run 2
       </button>
     </div>
   ),

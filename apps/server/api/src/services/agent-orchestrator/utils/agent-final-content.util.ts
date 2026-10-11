@@ -3,7 +3,7 @@ import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 /**
  * Normalize empty/partial assistant content into a user-facing final string,
- * including batch-result card cleanup and voice-clone fallbacks.
+ * including Turbo run result card cleanup and voice-clone fallbacks.
  */
 export function normalizeFinalAssistantContent(
   content: string,
@@ -17,8 +17,8 @@ export function normalizeFinalAssistantContent(
   if (content.trim().length > 0) {
     if (hasTurboRunResultCard) {
       const normalizedTurboContent = content
-        .replace(/^\s*TurboRun Details:\s*$/gim, '')
-        .replace(/^\s*TurboRun ID:.*$/gim, '')
+        .replace(/^\s*Turbo(?: run)? Details:\s*$/gim, '')
+        .replace(/^\s*Turbo(?: run)? ID:.*$/gim, '')
         .replace(/^\s*Status:.*$/gim, '')
         .replace(/^\s*Credits used:.*$/gim, '')
         .replace(/\n{3,}/g, '\n\n')
@@ -28,7 +28,7 @@ export function normalizeFinalAssistantContent(
         content:
           normalizedTurboContent.length > 0
             ? normalizedTurboContent
-            : 'Your batch is in motion. The latest status is below.',
+            : 'Your Turbo run is in motion. The latest status is below.',
         isFallback: false,
       };
     }

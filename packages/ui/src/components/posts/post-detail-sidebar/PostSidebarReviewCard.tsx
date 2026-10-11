@@ -61,7 +61,7 @@ export default function PostSidebarReviewCard({
               </span>
             </div>
             <div className="flex items-start justify-between gap-4">
-              <span className="text-foreground/60">Review turboRun</span>
+              <span className="text-foreground/60">Turbo run</span>
               <span className="text-right">
                 {reviewSummary.reviewTurboRunId ?? 'Not linked'}
               </span>

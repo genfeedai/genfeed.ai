@@ -245,7 +245,7 @@ describe('TurboRunCreationService platform normalize (#2696)', () => {
         'user-1',
         'org-1',
       ),
-    ).rejects.toThrow(/Invalid turboRun platform/);
+    ).rejects.toThrow(/Invalid Turbo run platform/);
 
     expect(prisma.turboRun.create).not.toHaveBeenCalled();
   });

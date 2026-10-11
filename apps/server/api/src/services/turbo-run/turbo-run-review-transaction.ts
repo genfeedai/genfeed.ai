@@ -23,7 +23,7 @@ export function runLockedReviewTransaction<T>(
   return reviewLocks.run([turboRunId], orgId, () =>
     prisma.$transaction(async (transaction) => {
       await transaction.$queryRaw(
-        Prisma.sql`SELECT "id" FROM "turbo-runs" WHERE "id" = ${turboRunId} AND "organizationId" = ${orgId} AND "isDeleted" = false FOR UPDATE`,
+        Prisma.sql`SELECT "id" FROM "turbo_runs" WHERE "id" = ${turboRunId} AND "organizationId" = ${orgId} AND "isDeleted" = false FOR UPDATE`,
       );
       const turboRun = await transaction.turboRun.findFirst({
         include: turboRunItemRowsInclude(orgId),

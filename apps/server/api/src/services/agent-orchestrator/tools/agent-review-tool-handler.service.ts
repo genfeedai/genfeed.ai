@@ -202,7 +202,7 @@ export class AgentReviewToolHandler {
     const summaryText =
       readyCount === 0 && pendingCount === 0
         ? 'Nothing is waiting for review right now.'
-        : `Review inbox: ${readyCount} ready for review, ${pendingCount} still generating${hadInvalidTurboRunId ? ' (ignored an invalid turboRun id from the model and loaded the full queue).' : '.'}`;
+        : `Review inbox: ${readyCount} ready for review, ${pendingCount} still generating${hadInvalidTurboRunId ? ' (ignored an invalid Turbo run id from the model and loaded the full queue).' : '.'}`;
 
     const outcomeBullets = recentItems.slice(0, 4).map((item) => {
       const platformLabel = formatPlatformLabel(item.platform);

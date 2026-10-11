@@ -1,18 +1,18 @@
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 
 describe('agent-final-content.util', () => {
-  it('returns content when non-empty and no batch card', () => {
+  it('returns content when non-empty and no Turbo run card', () => {
     expect(normalizeFinalAssistantContent('Hello world', [], [])).toEqual({
       content: 'Hello world',
       isFallback: false,
     });
   });
 
-  it('strips batch detail lines when a result card is present', () => {
+  it('strips Turbo run detail lines when a result card is present', () => {
     const content = [
-      'Here is your batch.',
-      'Batch Details:',
-      'Batch ID: abc',
+      'Here is your Turbo run.',
+      'Turbo Run Details:',
+      'Turbo Run ID: abc',
       'Status: running',
       'Credits used: 3',
     ].join('\n');
@@ -24,7 +24,7 @@ describe('agent-final-content.util', () => {
         [{ type: 'turbo_run_result_card' } as never],
       ),
     ).toEqual({
-      content: 'Here is your batch.',
+      content: 'Here is your Turbo run.',
       isFallback: false,
     });
   });

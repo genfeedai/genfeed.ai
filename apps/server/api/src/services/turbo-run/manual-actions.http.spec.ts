@@ -197,7 +197,7 @@ describe('Manual actions HTTP routes', () => {
       itemIds: ['item-1'],
       status: 'queued',
     });
-    expect(response.body.id).toMatch(/^turboRun-rewrite-turboRun-1-/);
+    expect(response.body.id).toMatch(/^turbo-rewrite-run-1-/);
     expect(rewriteQueue.add).toHaveBeenCalledOnce();
     expect(enhanceDescription).not.toHaveBeenCalled();
     expect(approveItems).not.toHaveBeenCalled();

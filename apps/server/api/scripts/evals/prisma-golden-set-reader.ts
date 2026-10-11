@@ -2,6 +2,7 @@ import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
   HARNESS_PROFILE_TYPE,
   READER_PAGE_SIZE,
+  TURBO_RUN_ITEM_SOURCE_PREFIX,
   WINNERS_CONTEXT_PURPOSE,
 } from './golden-set.constants';
 import type {
@@ -213,8 +214,8 @@ export class PrismaGoldenSetReader implements GoldenSetReader {
       id: {
         in: unique(
           references
-            .filter((source) => source.startsWith('turbo_run_item:'))
-            .map((source) => source.slice(11)),
+            .filter((source) => source.startsWith(TURBO_RUN_ITEM_SOURCE_PREFIX))
+            .map((source) => source.slice(TURBO_RUN_ITEM_SOURCE_PREFIX.length)),
         ),
       },
     });

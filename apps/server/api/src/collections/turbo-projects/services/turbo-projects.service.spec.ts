@@ -492,7 +492,7 @@ describe('TurboProjectsService', () => {
         batchWorkflowExecutionService.startBatchExecution,
       ).toHaveBeenCalledWith({
         idempotencyKey: expect.stringMatching(
-          /^turboRun-project:project-1:start:/,
+          /^turbo-project:project-1:start:/,
         ),
         ingredientIds: ['input-1', 'input-2'],
         organizationId: 'org-1',

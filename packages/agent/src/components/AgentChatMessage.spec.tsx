@@ -699,7 +699,7 @@ describe('AgentChatMessage', () => {
 
     expect(
       screen.getByText(
-        /Created a recurring automation for your Instagram turboRun\./,
+        /Created a recurring automation for your Instagram batch\./,
       ),
     ).toBeInTheDocument();
     expect(

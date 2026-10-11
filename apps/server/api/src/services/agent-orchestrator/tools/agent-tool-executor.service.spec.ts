@@ -4984,7 +4984,7 @@ describe('AgentToolExecutorService', () => {
       type: 'completion_summary_card',
     });
     expect(result.nextActions?.[0]?.summaryText).toContain(
-      'ignored an invalid batch id',
+      'ignored an invalid Turbo run id',
     );
   });
 

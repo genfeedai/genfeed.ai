@@ -92,14 +92,14 @@ LANGUAGE sql IMMUTABLE AS $$
     '"batchItemId":', '"turboRunItemId":'),
     '"batch_generation_result_card"', '"turbo_run_result_card"'),
     '"batch_generation_card"', '"turbo_run_card"'),
-    '/publishing/review?batch=', '/publishing/review?run='),
+    'view=approvals&batch=', 'view=approvals&run='),
     '/publishing/posts?batch=', '/publishing/posts?run='),
     '/studio/batch', '/studio/turbo')::jsonb
 $$;
 
 UPDATE "agent_messages" SET "metadata" = pg_temp.turbo_tokens("metadata")
 WHERE "metadata" IS NOT NULL
-  AND "metadata"::text ~ '"(batchId|reviewBatchId|batchProjectId|batchItemId)":|batch_generation|\?batch=|/studio/batch';
+  AND "metadata"::text ~ '"(batchId|reviewBatchId|batchProjectId|batchItemId)":|batch_generation|[?&]batch=|/studio/batch';
 UPDATE "content_runs" SET "config" = pg_temp.turbo_tokens("config")
 WHERE "config"::text ~ '"(batchId|reviewBatchId|batchProjectId|batchItemId)":';
 UPDATE "posts" SET "targetSettings" = pg_temp.turbo_tokens("targetSettings")

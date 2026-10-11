@@ -1,5 +1,5 @@
 /**
- * Normalize review decisions stored in Batch.items and Post.reviewEvents.
+ * Normalize review decisions stored in TurboRun.items and Post.reviewEvents.
  *
  * Dry-run is the default. Pass --live to apply guarded updates. Known uppercase
  * database aliases become the canonical lowercase product vocabulary, missing
@@ -35,7 +35,7 @@ export type ReviewDecisionJsonNormalization = {
   value: Prisma.JsonValue;
 };
 
-type ReviewDecisionBatchRow = {
+type ReviewDecisionTurboRunRow = {
   id: string;
   items: Prisma.JsonValue;
   organizationId: string;
@@ -130,7 +130,7 @@ function normalizeEventArray(
   return { changed, value: events };
 }
 
-export function normalizeBatchReviewDecisions(
+export function normalizeTurboRunReviewDecisions(
   value: Prisma.JsonValue,
 ): ReviewDecisionJsonNormalization {
   const stats = emptyStats();
@@ -219,8 +219,8 @@ async function main(): Promise<void> {
     log: ['error'],
   });
   const totals = {
-    batchesChanged: 0,
-    batchesScanned: 0,
+    turboRunsChanged: 0,
+    turboRunsScanned: 0,
     concurrentChanges: 0,
     postsChanged: 0,
     postsScanned: 0,
@@ -232,12 +232,14 @@ async function main(): Promise<void> {
   );
 
   try {
-    let batchCursor = '';
+    let turboRunCursor = '';
     for (;;) {
-      const rows = await prisma.$queryRaw<ReviewDecisionBatchRow[]>(Prisma.sql`
+      const rows = await prisma.$queryRaw<
+        ReviewDecisionTurboRunRow[]
+      >(Prisma.sql`
         SELECT id, "organizationId", items, "updatedAt"
-        FROM batches
-        WHERE id > ${batchCursor}
+        FROM turbo_runs
+        WHERE id > ${turboRunCursor}
           AND "isDeleted" = false
         ORDER BY id ASC
         LIMIT ${batchSize}
@@ -245,25 +247,25 @@ async function main(): Promise<void> {
       if (rows.length === 0) break;
 
       for (const row of rows) {
-        totals.batchesScanned += 1;
-        const normalized = normalizeBatchReviewDecisions(row.items);
+        totals.turboRunsScanned += 1;
+        const normalized = normalizeTurboRunReviewDecisions(row.items);
         mergeStats(totals.stats, normalized.stats);
         if (Object.keys(normalized.stats.unknownCategories).length > 0) {
           process.stdout.write(
             `${JSON.stringify({
               id: row.id,
-              kind: 'batch',
+              kind: 'turbo_run',
               organizationId: row.organizationId,
               unknownCategories: normalized.stats.unknownCategories,
             })}\n`,
           );
         }
         if (!normalized.changed) continue;
-        totals.batchesChanged += 1;
+        totals.turboRunsChanged += 1;
         if (dryRun) continue;
 
         const updated = await prisma.$executeRaw(Prisma.sql`
-          UPDATE batches
+          UPDATE turbo_runs
           SET items = ${JSON.stringify(normalized.value)}::jsonb,
               "updatedAt" = CURRENT_TIMESTAMP
           WHERE id = ${row.id}
@@ -274,7 +276,7 @@ async function main(): Promise<void> {
         `);
         totals.concurrentChanges += Number(updated !== 1);
       }
-      batchCursor = rows.at(-1)?.id ?? batchCursor;
+      turboRunCursor = rows.at(-1)?.id ?? turboRunCursor;
     }
 
     let postCursor = '';

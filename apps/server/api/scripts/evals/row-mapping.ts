@@ -9,6 +9,7 @@ import {
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { CONTENT_EVAL_THRESHOLDS } from '../../../../../scripts/content-eval/contracts';
 import type { ScoreBand } from '../../../../../scripts/content-eval/rows';
+import { TURBO_RUN_ITEM_SOURCE_PREFIX } from './golden-set.constants';
 import type {
   GoldenCandidate,
   GoldenContentKind,
@@ -378,7 +379,7 @@ export function collectCandidates(snapshot: GoldenSetScopeSnapshot) {
   ) {
     const data = record(item.data);
     add(
-      `turbo_run_item:${item.id}`,
+      `${TURBO_RUN_ITEM_SOURCE_PREFIX}${item.id}`,
       resolveTurboRunItemKind(item),
       item.brandId ?? fallbackBrand,
       string(data.caption) ?? '',
@@ -475,8 +476,8 @@ export function collectCandidates(snapshot: GoldenSetScopeSnapshot) {
       const post = source.startsWith('post:')
         ? posts.get(source.slice(5))
         : undefined;
-      const item = source.startsWith('turbo_run_item:')
-        ? turboRuns.get(source.slice(11))
+      const item = source.startsWith(TURBO_RUN_ITEM_SOURCE_PREFIX)
+        ? turboRuns.get(source.slice(TURBO_RUN_ITEM_SOURCE_PREFIX.length))
         : undefined;
       const newsletter = source.startsWith('newsletter:')
         ? newsletters.get(source.slice(11))

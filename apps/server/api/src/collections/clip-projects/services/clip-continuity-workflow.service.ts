@@ -326,9 +326,9 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     const referenceAssetIds = this.readReferenceAssetIds(
       request.input.referenceAssetIds,
     );
-    const qaTurboRun = this.readRecord(request.input.qaTurboRun);
+    const qaBatch = this.readRecord(request.input.qaBatch);
     const qaReportsByIndex = (
-      Array.isArray(qaTurboRun.results) ? qaTurboRun.results : []
+      Array.isArray(qaBatch.results) ? qaBatch.results : []
     )
       .map((entry) => this.readRecord(entry).result)
       .map((value) => this.readContinuityReport(value));

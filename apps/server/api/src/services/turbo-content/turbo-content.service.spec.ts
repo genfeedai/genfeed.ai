@@ -60,7 +60,7 @@ describe('TurboContentService', () => {
         organizationId: request.organizationId,
         userId: 'user-1',
       }),
-      expect.stringMatching(/^turboRun-content-/),
+      expect.stringMatching(/^turbo-content-/),
       { attempts: 1, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
