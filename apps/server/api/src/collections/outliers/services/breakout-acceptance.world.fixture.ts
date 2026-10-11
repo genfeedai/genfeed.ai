@@ -32,6 +32,8 @@ import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import type { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.service';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
+import { Client } from 'pg';
+import { beforeAll } from 'vitest';
 
 /**
  * Real-PostgreSQL world for the connected #6526 acceptance suites. Everything here writes
@@ -92,6 +94,9 @@ export function acceptanceDatabaseUrl(): string | undefined {
   return connectionString;
 }
 
+/** Session advisory lock key the acceptance files serialize on. */
+const ACCEPTANCE_LOCK_KEY = 6_526_001;
+
 export function openAcceptanceDatabase(connectionString: string): {
   close: () => Promise<void>;
   /** Raw client with the media URL result extension, as the production client has it. */
@@ -111,8 +116,19 @@ export function openAcceptanceDatabase(connectionString: string): {
       return typeof value === 'function' ? value.bind(extended) : value;
     },
   }) as unknown as PrismaClient<'query'>;
+  // The acceptance files share one database and its global rows (roles, the learning fence,
+  // hidden system workflows). Concurrent files race on them, so each file holds one session
+  // advisory lock for its whole run and the files take turns.
+  const lock = new Client({ connectionString });
+  beforeAll(async () => {
+    await lock.connect();
+    await lock.query('SELECT pg_advisory_lock($1)', [ACCEPTANCE_LOCK_KEY]);
+  }, 900_000);
   return {
-    close: () => base.$disconnect(),
+    close: async () => {
+      await base.$disconnect();
+      await lock.end();
+    },
     db,
     prisma: db as unknown as PrismaService,
   };
