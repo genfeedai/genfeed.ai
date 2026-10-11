@@ -89,9 +89,21 @@ describe.skipIf(!connectionString)(
           userId: owner,
         },
       });
+      // Every member row requires a current brand of its own organization.
+      const homeBrand = `home-${suffix}`;
+      await prisma.brand.create({
+        data: {
+          id: homeBrand,
+          label: homeBrand,
+          organizationId,
+          slug: homeBrand,
+          userId: owner,
+        },
+      });
       for (const userId of [owner, member]) {
         await prisma.member.create({
           data: {
+            currentBrandId: homeBrand,
             organizationId,
             roleId: ownerRoleId,
             roleKey: MemberRole.OWNER,
