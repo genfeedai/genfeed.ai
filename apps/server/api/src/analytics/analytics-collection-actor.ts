@@ -128,8 +128,11 @@ async function authorize(
   if (!initiatingActor) return denyAnalyticsCollectionActor();
   return {
     initiatingActor,
-    admit: async () => {
-      await refresh();
+    admit: async (brandId?: string) => {
+      const actor = await refresh();
+      if (brandId === undefined) return;
+      if (!actor) return denyAnalyticsCollectionActor();
+      await deps.policy.assert(actor, brandId, deps.prisma);
     },
   };
 }

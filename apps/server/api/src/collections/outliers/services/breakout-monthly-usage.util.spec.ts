@@ -44,7 +44,7 @@ type Ledger = Pick<
 > & {
   reservation: Pick<
     CreditReservation,
-    'organizationId' | 'brandId' | 'metadata'
+    'organizationId' | 'brandId' | 'metadata' | 'workloadId'
   > | null;
 };
 type Hold = Pick<
@@ -56,6 +56,7 @@ type Hold = Pick<
   | 'settledAmount'
   | 'status'
   | 'metadata'
+  | 'workloadId'
 >;
 function fixture() {
   const rows: Ledger[] = [
@@ -79,6 +80,7 @@ function fixture() {
       settledAmount: null,
       status: CreditReservationStatus.RESERVED,
       metadata,
+      workloadId: null,
     },
   ];
   const findTransactions = vi.fn(
@@ -120,6 +122,40 @@ describe('common-month actual spend and active reservations', () => {
       }),
     );
   });
+  it('reports the spend and holds of the plan’s own components, and nothing from a sibling plan', async () => {
+    const h = fixture();
+    h.rows[0].reservation = {
+      organizationId: input.organizationId,
+      brandId: input.brandId,
+      metadata,
+      workloadId: 'generation-own:caption',
+    };
+    h.holds.push(
+      {
+        ...h.holds[0],
+        id: 'hold-own',
+        amount: 7,
+        workloadId: 'generation-own:quality',
+      },
+      {
+        ...h.holds[0],
+        id: 'hold-other',
+        amount: 3,
+        workloadId: 'generation-other:caption',
+      },
+    );
+    expect(
+      await readBreakoutMonthlyUsage(h.tx, {
+        ...input,
+        ownGenerationKeys: ['generation-own'],
+      }),
+    ).toMatchObject({ usedCredits: 25, ownCredits: 17 });
+    expect(await readBreakoutMonthlyUsage(h.tx, input)).toMatchObject({
+      usedCredits: 25,
+      ownCredits: 0,
+    });
+  });
+
   it('counts the ledger once and includes active holds in each monthly sub-budget', async () => {
     const h = fixture();
     expect(await readBreakoutMonthlyUsage(h.tx, input)).toEqual({
@@ -129,6 +165,7 @@ describe('common-month actual spend and active reservations', () => {
       spentCredits: 10,
       heldCredits: 5,
       usedCredits: 15,
+      ownCredits: 0,
       dimensionUsage: {
         platforms: { [Platform.TWITTER]: 15 },
         formats: { text: 15 },
@@ -203,6 +240,7 @@ describe('common-month actual spend and active reservations', () => {
         settledAmount: null,
         status: CreditReservationStatus.RESERVED,
         metadata: video,
+        workloadId: null,
       },
       {
         id: 'judge-hold',
@@ -212,6 +250,7 @@ describe('common-month actual spend and active reservations', () => {
         settledAmount: null,
         status: CreditReservationStatus.RESERVED,
         metadata: image,
+        workloadId: null,
       },
     );
     expect(
@@ -240,6 +279,7 @@ describe('common-month actual spend and active reservations', () => {
       settledAmount: null,
       status: CreditReservationStatus.RESERVED,
       metadata: {},
+      workloadId: null,
     });
     expect(await readBreakoutMonthlyUsage(h.tx, input)).toEqual({
       status: 'held',
@@ -253,6 +293,7 @@ describe('common-month actual spend and active reservations', () => {
       organizationId: input.organizationId,
       brandId: input.brandId,
       metadata,
+      workloadId: null,
     };
     h.rows.push({
       ...h.rows[0],
@@ -322,6 +363,7 @@ describe('common-month actual spend and active reservations', () => {
         metadata: {
           strategyBudgetAttribution: { ...attribution, format: 'image' },
         },
+        workloadId: null,
       };
     if (reason === 'invalid_amount') h.holds[0].amount = Number.NaN;
     if (reason === 'partial_settlement') h.holds[0].settledAmount = 2;

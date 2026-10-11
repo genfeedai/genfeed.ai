@@ -258,7 +258,7 @@
     "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
-    "actual": 1052,
+    "actual": 1046,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"

@@ -118,8 +118,24 @@ export async function readBreakoutLiveCapacity(
     b.perFormatCaps.some((row) => !formats.some((value) => value === row.key))
   )
     return { status: 'held', reason: 'policy_unreadable' };
+  // A funded response's own components are exempt from pacing: its plan was admitted by it.
+  const ownGenerationKeys = input.responseId
+    ? (
+        await tx.breakoutResponseOutput.findMany({
+          where: scopedWhere(organizationId, {
+            responseId: input.responseId,
+            brandId,
+            credentialId,
+            isDeleted: false,
+          }),
+          select: { generationKey: true },
+          take: 6,
+        })
+      ).map((row) => row.generationKey)
+    : [];
   const usage = await readBreakoutMonthlyUsage(tx, {
     ...input,
+    ownGenerationKeys,
     storedMonthlyUsed: c.monthToDateCreditsUsed,
   });
   if (usage.status === 'held') return usage;
@@ -268,7 +284,10 @@ export async function readBreakoutLiveCapacity(
           : null
         : monthly,
       remainingPacingCredits:
-        expectedSpend > 0 && usage.usedCredits > expectedSpend ? 0 : monthly,
+        expectedSpend > 0 &&
+        Math.max(0, usage.usedCredits - usage.ownCredits) > expectedSpend
+          ? 0
+          : monthly,
       remainingFormatCredits: formatCaps,
     },
   };

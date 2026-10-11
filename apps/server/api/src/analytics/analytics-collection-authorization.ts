@@ -13,6 +13,7 @@ const failures = new WeakSet<object>();
 export async function admitAnalyticsCollection(
   authorization: AnalyticsCollectionAuthorization | undefined,
   organizationId?: string,
+  brandId?: string,
 ): Promise<void> {
   if (authorization === undefined) return;
   try {
@@ -23,7 +24,7 @@ export async function admitAnalyticsCollection(
       authorization.initiatingActor.organizationId !== organizationId
     )
       throw new ForbiddenException('analytics_collection_actor_scope_changed');
-    await authorization.admit();
+    await authorization.admit(brandId);
   } catch (error: unknown) {
     const failure =
       error !== null &&

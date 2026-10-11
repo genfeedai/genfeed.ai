@@ -76,14 +76,17 @@ function harness(rows: ExecutionFixture[]) {
     .fn()
     .mockResolvedValue({ role: { key: MemberRole.ADMIN }, brands: [] });
   const findKey = vi.fn().mockResolvedValue({ scopes: ['admin'] });
+  const findBrand = vi.fn().mockResolvedValue({ id: 'brand-1' });
   const prisma = {
     apiKey: { findFirst: findKey },
+    brand: { findFirst: findBrand },
     member: { findFirst: findMember },
     workflowExecution: { findFirst: findExecution },
     workflowExecutionNodeResult: { findFirst: vi.fn() },
   } as unknown as PrismaService;
   return {
     deps: { policy: new BrandAccessService(prisma), prisma },
+    findBrand,
     findExecution,
     findKey,
     findMember,
@@ -245,6 +248,31 @@ describe('analytics collection actor from the pinned hidden chain', () => {
       ).catch((error: unknown) => error);
       expect(failure).toMatchObject({ message: 'Brand access denied' });
       expect(isAnalyticsCollectionAuthorizationFailure(failure)).toBe(true);
+    });
+
+    it('asserts access to the collected brand, not only the organization', async () => {
+      const row = child();
+      const { deps, findBrand } = harness([root(), row]);
+      const authorization = await resolveAnalyticsCollectionAuthorization(
+        deps,
+        executionContext(row),
+        { initiatingActor: CHAIN_ACTOR },
+      );
+      await expect(
+        admitAnalyticsCollection(authorization, 'org', 'brand-1'),
+      ).resolves.toBeUndefined();
+      findBrand.mockResolvedValue(null);
+      const failure = await admitAnalyticsCollection(
+        authorization,
+        'org',
+        'brand-1',
+      ).catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(Error);
+      expect(isAnalyticsCollectionAuthorizationFailure(failure)).toBe(true);
+      // Org-level admission (no brand) is unchanged.
+      await expect(
+        admitAnalyticsCollection(authorization, 'org'),
+      ).resolves.toBeUndefined();
     });
 
     it('denies a revoked membership before any collection', async () => {

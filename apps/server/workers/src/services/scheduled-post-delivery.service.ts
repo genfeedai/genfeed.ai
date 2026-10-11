@@ -116,7 +116,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     @Inject(SERVER_TOKENS.publisherFactory)
     publisherFactory: ServerPublisherFactory,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
-    private readonly publishEventWebhookService: PublishEventWebhookService,
+    publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
     replyPostWatchService: ReplyPostWatchService,
     publishingReadinessService: CredentialPublishingReadinessService,
@@ -140,6 +140,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       prisma,
       postFailureService,
       replyPostWatchService,
+      publishEventWebhookService,
     );
   }
 
@@ -180,11 +181,25 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    await this.persistPublishState(post, {
-      error: null,
-      executionState: TargetExecutionState.PUBLISHING,
-      lastAttemptAt: new Date(),
-    });
+    try {
+      await this.persistPublishState(post, {
+        error: null,
+        executionState: TargetExecutionState.PUBLISHING,
+        lastAttemptAt: new Date(),
+      });
+    } catch (error: unknown) {
+      // The breakout fence denies the entry into PUBLISHING: nothing is reserved, and the
+      // target fails for good instead of being swept again.
+      const denial = this.gates.breakoutDispatchDenial(post, error, url);
+      if (!denial) throw error;
+      return await this.failChannel(
+        post,
+        denial.platform,
+        denial.code,
+        denial.message,
+        denial.isRetryable,
+      );
+    }
 
     const ids = readDeliveryIds(post);
 
@@ -437,7 +452,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         `${this.constructorName} failTerminalValidation`,
       );
     }
-    this.emitPublishFailedWebhook(post, errorMessage);
+    this.followUps.emitPublishFailedWebhook(post, errorMessage);
 
     return createFailedPublishResult('', errorMessage);
   }
@@ -708,7 +723,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     if (!isProviderDraft) {
-      this.emitPublishPublishedWebhook(post, result, platform);
+      this.followUps.emitPublishPublishedWebhook(post, result, platform);
       this.followUps.scheduleReplyPostWatch(post, result, platform);
     }
 
@@ -810,7 +825,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         'Parent post failed',
       );
       await this.postFailureService.notifyPublishFailed(post, activity);
-      this.emitPublishFailedWebhook(post, message, platform || undefined);
+      this.followUps.emitPublishFailedWebhook(
+        post,
+        message,
+        platform || undefined,
+      );
     }
     return createFailedPublishResult(platform, message);
   }
@@ -836,7 +855,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         workflowExecutionId,
         { expectedProviderAttempt: toAttemptFence(claimed) },
       );
-      if (failed === false) this.emitPublishFailedWebhook(post, message);
+      if (failed === false)
+        this.followUps.emitPublishFailedWebhook(post, message);
       if (failed === undefined) {
         return {
           ...createFailedPublishResult('', message),
@@ -973,7 +993,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return result;
     }
 
-    this.emitPublishFailedWebhook(post, errorMessage, platform);
+    this.followUps.emitPublishFailedWebhook(post, errorMessage, platform);
     return result;
   }
 
@@ -1020,33 +1040,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return createFailedPublishResult('', errorMessage);
     }
 
-    this.emitPublishFailedWebhook(post, errorMessage);
+    this.followUps.emitPublishFailedWebhook(post, errorMessage);
     return createFailedPublishResult('', errorMessage);
-  }
-
-  private emitPublishPublishedWebhook(
-    post: PostEntity,
-    result: PublishResult,
-    platform: CredentialPlatform | string,
-  ): void {
-    void this.publishEventWebhookService.emitLegacyPostPublished({
-      externalProviderId: result.externalId ?? null,
-      externalShortcode: result.externalShortcode ?? null,
-      platform,
-      post,
-      url: result.url || null,
-    });
-  }
-
-  private emitPublishFailedWebhook(
-    post: PostEntity,
-    errorMessage: string,
-    platform?: CredentialPlatform | string,
-  ): void {
-    void this.publishEventWebhookService.emitLegacyPostFailed({
-      errorMessage,
-      platform,
-      post,
-    });
   }
 }

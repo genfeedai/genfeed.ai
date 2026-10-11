@@ -2639,6 +2639,84 @@ describe('ScheduledPostDeliveryService', () => {
       });
     });
 
+    describe('when the fence denies the entry into PUBLISHING', () => {
+      const denial = new BusinessLogicException(
+        'Breakout publication held: growth_faded',
+      );
+
+      it.each([
+        ['a hold', denial],
+        ['a lost actor', new ForbiddenException('Breakout execution denied')],
+      ])(
+        'fails the target for good after %s instead of throwing into the sweep',
+        async (_name, hold) => {
+          const publish = mockSuccessfulPublisher(mocks);
+          mocks.schedulerPublishStateService.transitionPost.mockRejectedValueOnce(
+            hold,
+          );
+          const post = createScheduledPost({
+            breakoutOutputId: 'output-1',
+          });
+
+          const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+          expect(result).toEqual(
+            expect.objectContaining({
+              error: hold.message,
+              executionState: TargetExecutionState.FAILED,
+              success: false,
+            }),
+          );
+          expect(
+            mocks.schedulerPublishStateService.transitionPost,
+          ).toHaveBeenNthCalledWith(
+            2,
+            post,
+            expect.objectContaining({
+              error: expect.objectContaining({
+                code: 'breakout_publication_held',
+                isRetryable: false,
+              }),
+              executionState: TargetExecutionState.FAILED,
+            }),
+            hold.message,
+            undefined,
+          );
+          expect(publish).not.toHaveBeenCalled();
+          expect(
+            mocks.prisma.postProviderPublishReceipt.create,
+          ).not.toHaveBeenCalled();
+        },
+      );
+
+      it('keeps the retry path for an infrastructure error', async () => {
+        const publish = mockSuccessfulPublisher(mocks);
+        mocks.schedulerPublishStateService.transitionPost.mockRejectedValueOnce(
+          new Error('connection reset'),
+        );
+
+        await expect(
+          executeDelivery(
+            mocks,
+            createScheduledPost({ breakoutOutputId: 'output-1' }),
+            'scheduled_sweep',
+          ),
+        ).rejects.toThrow('connection reset');
+        expect(publish).not.toHaveBeenCalled();
+      });
+
+      it('leaves a hold on an ordinary post to its own error path', async () => {
+        mockSuccessfulPublisher(mocks);
+        mocks.schedulerPublishStateService.transitionPost.mockRejectedValueOnce(
+          denial,
+        );
+
+        await expect(
+          executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+        ).rejects.toThrow(denial.message);
+      });
+    });
+
     it('does not re-admit a replayed, already accepted occurrence', async () => {
       const publish = mockSuccessfulPublisher(mocks);
       mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(

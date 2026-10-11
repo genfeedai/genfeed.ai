@@ -268,6 +268,7 @@ export class BreakoutOutputQualityService {
         ...admission.scope,
         credentialId: admission.credentialId,
         nowMs: Date.now(),
+        responseId: admission.responseId,
       });
       await admission.reauthorize(tx);
       return snapshot;
