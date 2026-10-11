@@ -219,4 +219,33 @@ describe('render evidence parts', () => {
       }).success,
     ).toBe(true);
   });
+
+  it('counts frames of the composition, so a still can come from a later frame', () => {
+    expect(
+      brandRenderEvidenceCoverageV1Schema.safeParse({
+        kind: 'complete',
+        capturedFrames: [12],
+        frameCount: 30,
+      }).success,
+    ).toBe(true);
+    expect(
+      brandRenderEvidenceCoverageV1Schema.safeParse({
+        kind: 'complete',
+        capturedFrames: [30],
+        frameCount: 30,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('keeps an unparsed text colour explicit instead of inventing one', () => {
+    const value = manifest();
+    value.textLayers[0].color = { css: 'color(display-p3 1 0 0)', hex: null };
+    expect(brandRenderEvidenceManifestV1Schema.safeParse(value).success).toBe(
+      true,
+    );
+    value.textLayers[0].color = { css: 'red', hex: 'red' };
+    expect(brandRenderEvidenceManifestV1Schema.safeParse(value).success).toBe(
+      false,
+    );
+  });
 });

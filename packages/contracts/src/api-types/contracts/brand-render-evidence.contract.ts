@@ -98,12 +98,17 @@ export const brandRenderEvidenceSnapshotV1Schema = z.discriminatedUnion(
 
 export const brandRenderEvidenceCoverageV1Schema = z
   .strictObject({
-    /** `complete`: the artifact is one frame and it was inspected. */
+    /**
+     * `complete`: the artifact is a still and its frame was inspected.
+     * `sampled_frames`: a video; only the listed frames were inspected.
+     */
     kind: z.enum(['complete', 'sampled_frames']),
+    /** Composition frame indexes that were inspected. */
     capturedFrames: z
       .array(count)
       .min(1)
       .max(BRAND_RENDER_EVIDENCE_LIMITS.frames),
+    /** Frames in the rendered composition. */
     frameCount: z.number().int().min(1).max(100_000),
   })
   .superRefine((value, ctx) => {
@@ -115,7 +120,7 @@ export const brandRenderEvidenceCoverageV1Schema = z
     if (value.capturedFrames.some((frame) => frame >= value.frameCount))
       ctx.addIssue({
         code: 'custom',
-        message: 'Captured frame is outside the artifact',
+        message: 'Captured frame is outside the composition',
       });
   });
 
@@ -174,9 +179,17 @@ export const brandRenderEvidenceTextLayerV1Schema = z.strictObject({
   requestedStyle: fontStyle.nullable(),
   color: z.strictObject({
     css: z.string().min(1).max(64),
-    hex: z.string().regex(/^#[0-9A-F]{8}$/),
+    /** #RRGGBBAA; null when the computed colour could not be parsed. */
+    hex: z
+      .string()
+      .regex(/^#[0-9A-F]{8}$/)
+      .nullable(),
   }),
   opacity: z.number().min(0).max(1),
+  /**
+   * Fonts that drew this layer, as reported by the font engine. Empty means the
+   * engine did not report, so the layer's font is unknown (never assumed).
+   */
   fontUsage: z.array(z.strictObject({ fontId: id, glyphCount: count })).max(16),
 });
 
