@@ -253,11 +253,9 @@ describe('WorkflowsService template creation', () => {
       schedulePrincipal,
     );
 
-    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as Record<
-      string,
-      unknown
-    >;
-    expect(createInput.scheduleInitiatingActor).toEqual(expectedScheduleActor);
+    expect(vi.mocked(service.create).mock.calls[0]?.[0]).toMatchObject({
+      scheduleInitiatingActor: expectedScheduleActor,
+    });
   });
 
   it('refuses to patch the actor through the generic update path', async () => {

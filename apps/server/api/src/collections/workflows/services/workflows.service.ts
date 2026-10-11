@@ -6,6 +6,7 @@ import { FeaturedWorkflowsService } from '@api/collections/workflows/services/fe
 import type { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import {
   buildFeaturedWorkflowCopyPayload,
+  buildWorkflowClonePayload,
   buildWorkflowCreatePayload,
   getDefaultInputValuesFromWorkflowData,
   getMissingRequiredInputKeys,
@@ -24,7 +25,6 @@ import {
   validateTemplateInstantiationKey,
 } from '@api/collections/workflows/services/workflow-template-instantiation.util';
 import {
-  buildSystemWorkflowDuplicateMetadata,
   isProtectedSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
 } from '@api/collections/workflows/system-workflow.contract';
@@ -581,8 +581,6 @@ export class WorkflowsService extends BaseService<
     const isProtectedSystemWorkflow = isProtectedSystemWorkflowMetadata(
       workflowDoc.metadata,
     );
-    const sourceWorkflowId = workflowDoc.id;
-    const sourceLabel = workflowDoc.label ?? 'Workflow';
 
     // An explicit target brand must be valid — fail loudly rather than
     // silently substituting a brand the caller didn't ask for.
@@ -605,60 +603,16 @@ export class WorkflowsService extends BaseService<
       (isSourceBrandAccessible ? sourceBrandId : fallbackBrandId);
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
-    const clonedSchedule = isProtectedSystemWorkflow
-      ? undefined
-      : (workflowDoc.schedule ?? undefined);
-    const isClonedScheduleEnabled = isProtectedSystemWorkflow
-      ? false
-      : workflowDoc.isScheduleEnabled;
-
     const clonedWorkflow = await this.create(
-      buildWorkflowCreatePayload({
+      buildWorkflowClonePayload({
         brandId,
-        defaultLabel: `${sourceLabel} (Copy)`,
+        isProtectedSystemWorkflow,
+        isSourceBrandAccessible,
         organizationId,
-        // The copy is configured by the caller, never by the source's owner.
-        scheduleInitiatingActor: resolveScheduleInitiatingActor({
-          isEnabled: isClonedScheduleEnabled,
-          organizationId,
-          principal: schedulePrincipal,
-          schedule: clonedSchedule,
-        }),
+        schedulePrincipal,
+        source: workflowDoc,
+        targetBrandId,
         userId,
-        workflowData: {
-          config: workflowDoc.config,
-          defaultRecurringBrandId: isProtectedSystemWorkflow
-            ? null
-            : targetBrandId ||
-              (!isSourceBrandAccessible
-                ? brandId
-                : workflowDoc.defaultRecurringBrandId) ||
-              null,
-          description: workflowDoc.description ?? undefined,
-          edges: workflowDoc.edges,
-          edgeStyle: workflowDoc.edgeStyle,
-          executionCount: 0,
-          inputVariables: workflowDoc.inputVariables,
-          isScheduleEnabled: isClonedScheduleEnabled,
-          label: `${sourceLabel} (Copy)`,
-          lastExecutedAt: undefined,
-          lockedNodeIds: isProtectedSystemWorkflow
-            ? []
-            : (workflowDoc.lockedNodeIds ?? []),
-          metadata: buildSystemWorkflowDuplicateMetadata(
-            workflowDoc.metadata,
-            sourceWorkflowId,
-          ),
-          nodes: workflowDoc.nodes,
-          progress: 0,
-          recurrence: undefined,
-          schedule: clonedSchedule,
-          startedAt: undefined,
-          status: WorkflowStatus.DRAFT,
-          thumbnail: workflowDoc.thumbnail ?? undefined,
-          thumbnailNodeId: workflowDoc.thumbnailNodeId ?? undefined,
-          timezone: workflowDoc.timezone ?? undefined,
-        },
       }) as unknown as CreateWorkflowDto,
     );
 
