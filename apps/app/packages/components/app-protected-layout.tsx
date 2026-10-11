@@ -311,12 +311,19 @@ function AppLayoutWithDynamicMenu({
   const activeNavPanel =
     conversationNavPanel ?? libraryNavPanel ?? messagesNavPanel;
 
+  const isStoreRoute = /\/~\/store(\/|$)/.test(sidebarPathname ?? '');
   const menuComponent = useMemo(() => {
     // Focused onboarding has no module nav. Editor/workflow canvas routes also
     // suppress the Automation/module sidebar so the surface can own the left rail
     // (nodes palette, graph chrome) instead of stacking module menu items under
     // a second logo topbar.
     if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
+      return undefined;
+    }
+
+    // The Store and a Studio app with a single page have nothing to navigate
+    // between, so they use the full width instead of a one-item menu.
+    if (isStoreRoute || (isStudioRoute && studioMenuItems.length <= 1)) {
       return undefined;
     }
 
@@ -367,6 +374,7 @@ function AppLayoutWithDynamicMenu({
     isPublishingRoute,
     isDiscoveryRoute,
     isSettingsRoute,
+    isStoreRoute,
     isStudioRoute,
     isAutomationRoute,
     libraryMenuItems,
