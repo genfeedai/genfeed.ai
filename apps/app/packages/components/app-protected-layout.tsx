@@ -40,6 +40,7 @@ import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizat
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
+import { PinnedRailAppsProvider } from '@/components/shell/pinned-rail-apps.provider';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -655,11 +656,13 @@ function AppProtectedLayoutContent({
         }
       >
         <InstalledAppsProvider>
-          <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
-            <OnboardingGuard>
-              <AssetGateGuard>{children}</AssetGateGuard>
-            </OnboardingGuard>
-          </AppLayoutWithDynamicMenu>
+          <PinnedRailAppsProvider>
+            <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
+              <OnboardingGuard>
+                <AssetGateGuard>{children}</AssetGateGuard>
+              </OnboardingGuard>
+            </AppLayoutWithDynamicMenu>
+          </PinnedRailAppsProvider>
         </InstalledAppsProvider>
       </ProtectedProviders>
     </WorkspaceNavPanelProvider>

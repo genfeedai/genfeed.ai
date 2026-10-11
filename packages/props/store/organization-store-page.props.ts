@@ -22,8 +22,10 @@ export interface StoreAppCardProps {
   /** Set after the last install or uninstall request for this app failed. */
   failedAction: 'install' | 'uninstall' | null;
   isPending: boolean;
+  isPinned: boolean;
   manageModulesHref: string;
   onInstall: (appId: NativeSecondaryAppId) => void;
+  onTogglePin: (appId: NativeSecondaryAppId) => void;
   onUninstall: (appId: NativeSecondaryAppId) => void;
   subscriptionHref: string;
 }

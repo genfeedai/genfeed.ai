@@ -20,9 +20,9 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo } from 'react';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
+import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.provider';
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
-import { usePinnedRailApps } from '@/components/shell/use-pinned-rail-apps';
 import { captureAppRailNavigation } from '@/lib/analytics/app-rail-analytics';
 import {
   appendSearchParamsToHref,
@@ -94,7 +94,7 @@ function AppProtectedRailContent({
     pathname,
     new URLSearchParams(searchParams.toString()),
   );
-  const { pinnedAppIds, togglePin } = usePinnedRailApps();
+  const { pinnedAppIds } = usePinnedRailAppsContext();
   const preservedTaskSearch = pickOperatorTaskContextSearchParams(
     new URLSearchParams(searchParams.toString()),
   ).toString();
@@ -149,7 +149,6 @@ function AppProtectedRailContent({
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
       onNavigate={onNavigate}
-      onTogglePin={togglePin}
       orgSlug={effectiveOrgSlug}
       pinnedAppIds={pinnedAppIds}
       preservedSearch={preservedTaskSearch || undefined}

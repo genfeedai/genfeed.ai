@@ -73,28 +73,12 @@ export interface AppRailProps {
    * Unknown, uninstalled and unavailable ids are ignored.
    */
   pinnedAppIds?: readonly string[];
-  /** Pins or unpins a launcher app. Absent in surfaces that cannot save a user. */
-  onTogglePin?: (appId: string) => void;
 }
 
 export interface AppRailLauncherProps {
-  activeAppId?: string;
-  badges?: AppRailProps['badges'];
-  items: readonly AppRailNavigationItem[];
-  /** Called with the opened app, or without one for the Store link. */
-  onNavigateStart: (item?: AppRailNavigationItem) => void;
-  onTogglePin?: (appId: string) => void;
-  pinnedAppIds: readonly string[];
-  storeHref?: string;
-}
-
-export interface AppRailLauncherRowProps {
-  badge?: AppRailBadge;
-  isActive: boolean;
-  isPinned: boolean;
-  item: AppRailNavigationItem;
+  badgeCount: number;
   onNavigateStart: () => void;
-  onTogglePin?: (appId: string) => void;
+  storeHref?: string;
 }
 
 export interface AppRailItemProps {

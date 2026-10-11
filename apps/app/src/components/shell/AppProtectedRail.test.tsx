@@ -9,8 +9,8 @@ const messagesUnread = vi.hoisted(() => ({
   count: 0,
   spy: vi.fn(),
 }));
-vi.mock('@/components/shell/use-pinned-rail-apps', () => ({
-  usePinnedRailApps: () => ({
+vi.mock('@/components/shell/pinned-rail-apps.provider', () => ({
+  usePinnedRailAppsContext: () => ({
     pinnedAppIds: ['playground'],
     togglePin: vi.fn(),
   }),

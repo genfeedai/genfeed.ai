@@ -38,6 +38,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
+import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.provider';
 
 const STORE_SKELETON_KEYS = [
   'store-skeleton-1',
@@ -59,6 +60,7 @@ export default function OrganizationStorePage() {
   const { flags, isConfigured } = useFeatureFlagContext();
   const { orgSlug } = useOrgUrl();
   const installedApps = useInstalledApps();
+  const { pinnedAppIds, togglePin } = usePinnedRailAppsContext();
   const [failedActions, setFailedActions] = useState<
     Partial<Record<NativeSecondaryAppId, 'install' | 'uninstall'>>
   >({});
@@ -89,7 +91,7 @@ export default function OrganizationStorePage() {
                 settings,
                 app.organizationModule,
               ),
-        pinnedAppIds: [],
+        pinnedAppIds,
       });
       return [
         {
@@ -113,6 +115,7 @@ export default function OrganizationStorePage() {
     isConfigured,
     isReleasePreview,
     orgSlug,
+    pinnedAppIds,
     settings,
     translateRail,
   ]);
@@ -169,11 +172,13 @@ export default function OrganizationStorePage() {
                   app={app}
                   failedAction={failedActions[app.appId] ?? null}
                   isPending={installedApps.pendingAppIds.includes(app.appId)}
+                  isPinned={pinnedAppIds.includes(app.appId)}
                   manageModulesHref={createOrganizationAppRoute(
                     orgSlug,
                     APP_ROUTES.SETTINGS.GENERAL,
                   )}
                   onInstall={(appId) => void runAction(appId, 'install')}
+                  onTogglePin={togglePin}
                   onUninstall={(appId) => void runAction(appId, 'uninstall')}
                   subscriptionHref={createOrganizationAppRoute(
                     orgSlug,
@@ -234,12 +239,15 @@ function StoreAppCard({
   app,
   failedAction,
   isPending,
+  isPinned,
   manageModulesHref,
   onInstall,
+  onTogglePin,
   onUninstall,
   subscriptionHref,
 }: StoreAppCardProps) {
   const translate = useTranslations('common.store');
+  const translateRail = useTranslations('common.appRail');
   const Icon = app.icon;
   const isOpenable = app.state === 'installed' || app.state === 'pinned';
   const isLocked = !isOpenable && app.state !== 'not-installed';
@@ -304,6 +312,17 @@ function StoreAppCard({
         overflow={
           app.isInstalled
             ? [
+                ...(isOpenable
+                  ? [
+                      {
+                        id: 'pin',
+                        label: translateRail(isPinned ? 'unpin' : 'pin', {
+                          app: app.label,
+                        }),
+                        onSelect: () => onTogglePin(app.appId),
+                      },
+                    ]
+                  : []),
                 {
                   id: 'uninstall',
                   isDisabled: isPending,
