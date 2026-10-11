@@ -4,6 +4,7 @@ import {
   AnalyticsMetricAvailability,
   BrandInterviewStatus,
   type IngredientCategory,
+  LibraryShelf,
   Platform,
   SubscriptionStatus,
 } from '@genfeedai/contracts';
@@ -27,6 +28,7 @@ import type {
   ICreditsBreakdown,
   IEmailPerformanceReport,
   IExpertPathStatus,
+  ILibrarySummary,
   IReferralProgram,
   ISystemNotificationOverview,
   ITrendHashtag,
@@ -113,6 +115,7 @@ interface MockBrand {
 interface MockOrganizationSettings {
   hasOrganizationBilling: boolean;
   hasPaidModuleSubscription: boolean;
+  isReleasePreviewEnabled: boolean;
   moduleOverrides: Record<string, boolean>;
   id: string;
   isFleetNsfwVisible: boolean;
@@ -255,6 +258,9 @@ export function generateMockOrganizationSettings(
     id: 'org-settings-1',
     hasOrganizationBilling: true,
     hasPaidModuleSubscription: true,
+    // #5502 the e2e organization is on release preview, so founder-only
+    // modules follow their own module switches.
+    isReleasePreviewEnabled: true,
     moduleOverrides: {
       motion: true,
       clips: true,
@@ -2417,6 +2423,33 @@ export async function setupApiMocks(
   await routeApi('/members/me/apps**', async (r) => {
     await r.fulfill({
       body: JSON.stringify({ installedAppIds: [...NATIVE_SECONDARY_APP_IDS] }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  // The Library Overview and asset browser read raw summary counts (not
+  // JSON:API); an empty library keeps every shelf at zero.
+  await routeApi('/ingredients/summary**', async (r) => {
+    const summary: ILibrarySummary = {
+      byCategory: {},
+      byShelf: {
+        [LibraryShelf.APPROVED]: 0,
+        [LibraryShelf.ARCHIVED]: 0,
+        [LibraryShelf.FAILED]: 0,
+        [LibraryShelf.GENERATING]: 0,
+        [LibraryShelf.NEEDS_REVIEW]: 0,
+        [LibraryShelf.REFERENCES]: 0,
+        [LibraryShelf.REJECTED]: 0,
+        [LibraryShelf.UNSORTED]: 0,
+      },
+      starredCount: 0,
+      storageBytes: 0,
+      total: 0,
+      trashedCount: 0,
+    };
+    await r.fulfill({
+      body: JSON.stringify(summary),
       contentType: 'application/json',
       status: 200,
     });

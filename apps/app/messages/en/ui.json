@@ -284,7 +284,7 @@
   },
   "organizationCreateModal": {
     "title": "Create Organization",
-    "description": "A new workspace with a default brand and 100 starter credits.",
+    "description": "A new workspace with a default brand.",
     "nameLabel": "Name",
     "namePlaceholder": "My Organization",
     "websiteLabel": "Website",
@@ -451,6 +451,9 @@
   "lowCreditsBanner": {
     "generationUnaffordableTitle": "Not enough credits to keep generating",
     "generationUnaffordableBody": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
+    "trialEndedTitle": "Your free trial has ended",
+    "trialEndedBadge": "Trial over",
+    "trialEndedBody": "Your 3-day free trial is over and any free credits left have expired. Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
     "buyCredits": "Buy credits",
     "seePlans": "See plans"
   }

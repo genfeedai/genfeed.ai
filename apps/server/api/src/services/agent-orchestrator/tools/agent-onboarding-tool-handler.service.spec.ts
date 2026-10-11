@@ -105,6 +105,7 @@ function createHandler(options?: {
   };
   const onboardingCreditGrantsService = {
     captureOnboardingCompletedBestEffort: vi.fn(),
+    grantTrialCreditsBestEffort: vi.fn().mockResolvedValue(true),
     completeMissions: vi
       .fn()
       .mockImplementation(
@@ -896,6 +897,10 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)',
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
     ).toHaveBeenCalledWith('user-1');
+    // Finishing onboarding starts the free trial with its 75 credits.
+    expect(
+      onboardingCreditGrantsService.grantTrialCreditsBestEffort,
+    ).toHaveBeenCalledWith(CONTEXT.organizationId, 'user-1');
   });
 
   it('does not re-capture for a user who was already onboarded (atomic claim matches 0 rows)', async () => {
@@ -914,6 +919,10 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)',
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
     ).not.toHaveBeenCalled();
+    // The grant is idempotent per user, so a repeat call retries it safely.
+    expect(
+      onboardingCreditGrantsService.grantTrialCreditsBestEffort,
+    ).toHaveBeenCalledWith(CONTEXT.organizationId, 'user-1');
   });
 
   it('emits at most one completion event when two completion calls race for the same user', async () => {

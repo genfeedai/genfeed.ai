@@ -291,6 +291,9 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
       {} as never,
       logger as never,
       prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
     );
     const data: CreditDeductionJobData = {
       type: 'record-byok-usage',

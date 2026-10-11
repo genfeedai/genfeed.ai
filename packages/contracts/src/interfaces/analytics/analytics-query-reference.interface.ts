@@ -14,6 +14,7 @@ export type AnalyticsQueryFilterKey =
   | 'platform'
   | 'postId'
   | 'query'
+  | 'show'
   | 'sort'
   | 'timeframe'
   | 'visibility';

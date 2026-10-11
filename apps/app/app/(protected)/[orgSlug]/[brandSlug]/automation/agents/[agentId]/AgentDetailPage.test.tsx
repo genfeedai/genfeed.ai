@@ -351,7 +351,10 @@ describe('AgentDetailPage', () => {
 
     expect(
       screen.getByRole('link', { name: 'Review content' }),
-    ).toHaveAttribute('href', '/org-one/brand-one/publishing/review');
+    ).toHaveAttribute(
+      'href',
+      '/org-one/brand-one/publishing/posts?view=approvals',
+    );
   });
 
   it('does not count an ordinary draft with no review lineage as awaiting review', () => {

@@ -92,6 +92,10 @@ vi.mock('@api/services/batch-generation/batch-generation.service', () => ({
   BatchGenerationService: class BatchGenerationService {},
 }));
 
+vi.mock('@api/collections/credits/services/free-trial.service', () => ({
+  FreeTrialService: class FreeTrialService {},
+}));
+
 vi.mock(
   '@api/services/router/default-generation-affordability.service',
   () => ({
@@ -132,6 +136,9 @@ describe('AuthBootstrapService', () => {
   const defaultGenerationAffordability = {
     canAffordDefaultGeneration: vi.fn(),
   };
+  const freeTrialService = {
+    getState: vi.fn(),
+  };
 
   let service: AuthBootstrapService;
 
@@ -148,6 +155,7 @@ describe('AuthBootstrapService', () => {
       streaksService as never,
       usersService as never,
       defaultGenerationAffordability as never,
+      freeTrialService as never,
     );
 
     accessBootstrapCacheService.get.mockResolvedValue(null);
@@ -182,6 +190,10 @@ describe('AuthBootstrapService', () => {
     defaultGenerationAffordability.canAffordDefaultGeneration.mockResolvedValue(
       true,
     );
+    freeTrialService.getState.mockResolvedValue({
+      isTrialExpired: false,
+      trialEndsAt: null,
+    });
 
     mockGetIsSuperAdmin.mockReturnValue(false);
     mockGetStripeSubscriptionStatus.mockReturnValue('');
@@ -430,6 +442,38 @@ describe('AuthBootstrapService', () => {
     },
   );
 
+  it.each([
+    [false, '2026-10-13T09:00:00.000Z'],
+    [true, '2026-10-01T09:00:00.000Z'],
+  ])(
+    'exposes the free-trial window (expired: %s)',
+    async (isTrialExpired, trialEndsAt) => {
+      freeTrialService.getState.mockResolvedValue({
+        isTrialExpired,
+        trialEndsAt: new Date(trialEndsAt),
+      });
+
+      const result = await service.getBootstrap({
+        context: { organizationId: 'org_1', userId: 'user_1' },
+        user: { id: 'user_1', organizationId: 'org_1', userId: 'user_1' },
+      } as never);
+
+      expect(result.access.isTrialExpired).toBe(isTrialExpired);
+      expect(result.access.trialEndsAt).toBe(trialEndsAt);
+      expect(freeTrialService.getState).toHaveBeenCalledWith('org_1');
+    },
+  );
+
+  it('reports no trial window for an organization outside the trial', async () => {
+    const result = await service.getBootstrap({
+      context: { organizationId: 'org_1', userId: 'user_1' },
+      user: { id: 'user_1', organizationId: 'org_1', userId: 'user_1' },
+    } as never);
+
+    expect(result.access.isTrialExpired).toBe(false);
+    expect(result.access.trialEndsAt).toBeNull();
+  });
+
   it('leaves affordability unknown without an organization', async () => {
     const result = await service.getBootstrap({
       context: { userId: 'user_1' },
@@ -437,6 +481,8 @@ describe('AuthBootstrapService', () => {
     } as never);
 
     expect(result.access).not.toHaveProperty('canAffordDefaultGeneration');
+    expect(result.access).not.toHaveProperty('trialEndsAt');
+    expect(freeTrialService.getState).not.toHaveBeenCalled();
     expect(
       defaultGenerationAffordability.canAffordDefaultGeneration,
     ).not.toHaveBeenCalled();
@@ -534,10 +580,12 @@ describe('AuthBootstrapService', () => {
         hasGeneratedFirstAsset: false,
         isOnboardingCompleted: true,
         isSuperAdmin: false,
+        isTrialExpired: false,
         memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.TRIALING,
         subscriptionTier: SubscriptionTier.PRO,
+        trialEndsAt: null,
         userId,
       },
       brands: [

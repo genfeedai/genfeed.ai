@@ -157,6 +157,11 @@ describe.skipIf(!connectionString)(
         { emit: vi.fn() } as never,
         { invalidateForOrganization: vi.fn() } as never,
         new TransactionUtil(prisma, logger as never),
+        // Admission's free-trial gate is covered by free-trial.service.spec.
+        {
+          assertTrialActive: vi.fn(),
+          isTrialExpired: vi.fn().mockResolvedValue(false),
+        } as never,
       );
       recorder = new ActivityRecorderService(
         prisma,

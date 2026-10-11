@@ -7,6 +7,7 @@ import type {
   IPlatformComparison,
   IQueryParams,
   IViralHooksResult,
+  IWinnerPost,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -183,6 +184,13 @@ export class AnalyticsService extends HTTPBaseService {
     return await this.instance
       .get<JsonApiResponseDocument>('top', { params: query })
       .then((res) => deserializeCollection<unknown>(res.data));
+  }
+
+  /** #5502 posts that beat their account baseline on any signal, with evidence. */
+  public async getWinners(query?: IQueryParams): Promise<IWinnerPost[]> {
+    return await this.instance
+      .get<JsonApiResponseDocument>('winners', { params: query })
+      .then((res) => deserializeCollection<IWinnerPost>(res.data));
   }
 
   public async getPlatformComparison(

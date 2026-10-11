@@ -13,10 +13,10 @@ describe('LibraryIndexPage', () => {
     vi.clearAllMocks();
   });
 
-  it('sends bare /library to the All assets browser', () => {
+  it('sends bare /library to the Library Overview', () => {
     LibraryIndexPage();
 
-    expect(redirect).toHaveBeenCalledWith(APP_ROUTES.LIBRARY.ASSETS);
-    expect(APP_ROUTES.LIBRARY.ASSETS).toBe('/library/assets');
+    expect(redirect).toHaveBeenCalledWith(APP_ROUTES.LIBRARY.OVERVIEW);
+    expect(APP_ROUTES.LIBRARY.OVERVIEW).toBe('/library/overview');
   });
 });

@@ -3,6 +3,7 @@ import { AnalyticsController } from '@api/endpoints/analytics/analytics.controll
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
 import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
+import { AnalyticsWinnersController } from '@api/endpoints/analytics/analytics-winners.controller';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('AnalyticsModule', () => {
@@ -15,6 +16,7 @@ describe('AnalyticsModule', () => {
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AnalyticsModule),
     ).toEqual([
       AccountAnalyticsController,
+      AnalyticsWinnersController,
       AnalyticsAdminController,
       AnalyticsController,
     ]);

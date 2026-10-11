@@ -184,7 +184,7 @@ export default function LibrarySidebarNav() {
       item.href ?? APP_ROUTES.LIBRARY.ASSETS
     ).split('?');
     const params = new URLSearchParams(
-      targetPath === APP_ROUTES.LIBRARY.CHARACTERS ? '' : searchParamsString,
+      targetPath === APP_ROUTES.LIBRARY.REFERENCES ? '' : searchParamsString,
     );
     for (const key of ['place', 'shelf', 'page']) params.delete(key);
     new URLSearchParams(targetSearch).forEach((value, key) => {

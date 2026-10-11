@@ -11,6 +11,7 @@ import { RecordSignupAttributionDto } from '@api/collections/users/dto/record-si
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
+import { UserOnboardingCompletionService } from '@api/collections/users/services/user-onboarding-completion.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
@@ -32,10 +33,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import {
-  captureOnboardingCompletedBestEffort,
-  ServerFunnelCaptureService,
-} from '@api/services/analytics/server-funnel-capture.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SubscriptionStatus } from '@genfeedai/contracts';
@@ -51,14 +48,12 @@ import {
   Get,
   HttpCode,
   Inject,
-  Optional,
   Param,
   Patch,
   Post,
   Query,
   Req,
   SetMetadata,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
@@ -78,12 +73,7 @@ export class UsersController {
     private readonly filesClientService: FilesClientService,
     private readonly userAccessCacheService: UserAccessCacheService,
     private readonly settingsService: SettingsService,
-    // Depends on the leaf-level ServerFunnelCaptureService rather than
-    // OnboardingCreditGrantsService: importing CreditsModule into UsersModule
-    // to reach it would risk the same circular dependency UserSetupModule
-    // was split out to avoid (see user-setup.module.ts).
-    @Optional()
-    private readonly serverFunnelCaptureService?: ServerFunnelCaptureService,
+    private readonly userOnboardingCompletionService: UserOnboardingCompletionService,
   ) {}
 
   private isActiveSubscriptionStatus(value: unknown): boolean {
@@ -348,54 +338,8 @@ export class UsersController {
       : returnNotFound(this.constructorName, user.userId ?? user.id);
   }
 
-  /**
-   * Idempotent onboarding-funnel completion. Atomically claims the false->true
-   * transition on the User row (see below), then invalidates the access
-   * caches so `OnboardingGuard` sees the new state on the next request.
-   *
-   * The `onboarding_completed` funnel event is captured here, server-side,
-   * gated on actually winning the claim (genfeedai/genfeed.ai#5311) — it is
-   * NOT captured by the client hook that calls this endpoint
-   * (`useCompleteOnboarding`), which would otherwise double-emit whenever two
-   * wizard tabs race, or the agent-first path completes first and this
-   * endpoint later finds the user already onboarded.
-   */
   private async completeOnboardingFunnel(request: Request, user: User) {
-    const canonicalUserId = (user.userId ?? user.id) || user.id;
-
-    const dbUser = await this.usersService.findOne({
-      id: canonicalUserId,
-    });
-
-    if (!dbUser?.id) {
-      throw new UnauthorizedException('User account not found');
-    }
-
-    const dbUserId = dbUser.id.toString();
-
-    // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
-    // clause, so the false->true transition itself is the concurrency fence
-    // (mirrors the agent-first completion path in
-    // AgentOnboardingToolHandler). A racing completion call — a second tab
-    // finishing this same wizard, or the agent-first path completing first —
-    // matches 0 rows and leaves the already-persisted transition untouched.
-    const { modifiedCount } = await this.usersService.patchAll(
-      { id: dbUser.id, isOnboardingCompleted: false },
-      {
-        isOnboardingCompleted: true,
-        onboardingCompletedAt: new Date(),
-        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
-      } as Partial<UpdateUserDto>,
-    );
-
-    if (modifiedCount === 1) {
-      captureOnboardingCompletedBestEffort(
-        this.serverFunnelCaptureService,
-        dbUserId,
-      );
-    }
-
-    await this.userAccessCacheService.invalidateAll(dbUserId);
+    const dbUserId = await this.userOnboardingCompletionService.complete(user);
 
     const completed = await this.usersService.findOne({
       id: dbUserId,

@@ -6,23 +6,14 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
-import { buildPostsHrefFromApprovalQueue } from '@pages/posts/library/approval-queue-links.helpers';
 import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
-import {
-  ClipboardCheck,
-  ExternalLink,
-  Trash2,
-  TriangleAlert,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReviewGrid from './ReviewGrid';
@@ -83,7 +74,6 @@ export default function ReviewQueueView({
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
   const translate = useTranslations('pages.publishing.review.approvalQueue');
-  const { href } = useOrgUrl();
   // Rows the operator tapped, as opposed to the first item the queue picks
   // for them: only a tap opens the mobile drawer, and every tap reveals it.
   const [rowTap, setRowTap] = useState<{
@@ -107,10 +97,6 @@ export default function ReviewQueueView({
         : current,
     );
   }, [activeItemId]);
-  const searchParams = useSearchParams();
-  const postsHref = href(
-    buildPostsHrefFromApprovalQueue(searchParams.toString()),
-  );
 
   const batchOptions = useMemo(
     () =>
@@ -237,17 +223,6 @@ export default function ReviewQueueView({
             {translate('description')}
           </p>
         </div>
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        >
-          <Link href={postsHref}>
-            <ExternalLink aria-hidden="true" className="size-3.5" />
-            {translate('openPosts')}
-          </Link>
-        </Button>
       </div>
       {isBatchLoading && !activeBatch ? (
         <Loading />

@@ -1,15 +1,18 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
+  isOrganizationModuleUnreleased,
   ORGANIZATION_MODULE_IDS,
   ORGANIZATION_MODULES,
   organizationModuleOverridesSchema,
   type ToggleableOrganizationModuleId,
 } from '@genfeedai/contracts/constants';
+import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
@@ -34,6 +37,8 @@ export default function OrganizationModulesCard() {
     useCallback((token: string) => OrganizationsService.getInstance(token), []),
   );
   const isBillingEnabled = settings?.hasOrganizationBilling;
+  const isReleasePreviewEnabled = settings?.isReleasePreviewEnabled === true;
+  const { isSuperAdmin } = useAccessState();
   const canManage = role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const parsed = organizationModuleOverridesSchema.safeParse(
     settings?.moduleOverrides,
@@ -45,9 +50,9 @@ export default function OrganizationModulesCard() {
       typeof isBillingEnabled === 'boolean' &&
       !isLoading,
   );
-  const [pending, setPending] = useState<ToggleableOrganizationModuleId | null>(
-    null,
-  );
+  const [pending, setPending] = useState<
+    ToggleableOrganizationModuleId | 'releasePreview' | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const scope = useRef(organizationId);
@@ -70,35 +75,44 @@ export default function OrganizationModulesCard() {
     setNotice(null);
   }, [organizationId]);
 
-  async function changeModule(
+  function changeModule(
     moduleId: ToggleableOrganizationModuleId,
     isEnabled: boolean,
   ) {
-    if (
-      !canManage ||
-      !isAvailable ||
-      !parsed.success ||
-      !organizationId ||
-      operation.current
-    )
-      return;
+    if (!canManage || !parsed.success) return;
+    return saveSettings(moduleId, {
+      moduleOverrides: { ...parsed.data, [moduleId]: isEnabled },
+    });
+  }
+
+  /** #5502 only platform admins move an organization onto release preview. */
+  function changeReleasePreview(isEnabled: boolean) {
+    if (!isSuperAdmin) return;
+    return saveSettings('releasePreview', {
+      isReleasePreviewEnabled: isEnabled,
+    });
+  }
+
+  async function saveSettings(
+    pendingKey: ToggleableOrganizationModuleId | 'releasePreview',
+    patch: Partial<IOrganizationSetting>,
+  ) {
+    if (!isAvailable || !organizationId || operation.current) return;
     const organization = organizationId;
-    const current = Symbol(moduleId);
+    const current = Symbol(pendingKey);
     const isCurrent = () =>
       mounted.current &&
       scope.current === organization &&
       operation.current === current;
     operation.current = current;
-    setPending(moduleId);
+    setPending(pendingKey);
     setError(null);
     setNotice(null);
     let isSaved = false;
     try {
       const service = await getService();
       if (!isCurrent()) return;
-      await service.patchSettings(organization, {
-        moduleOverrides: { ...parsed.data, [moduleId]: isEnabled },
-      });
+      await service.patchSettings(organization, patch);
       isSaved = true;
       clearClientProtectedBootstrapCache();
       if (!isCurrent()) return;
@@ -146,12 +160,18 @@ export default function OrganizationModulesCard() {
           const label = translate(`modules.${moduleId}.label`);
           const description = translate(`modules.${moduleId}.description`);
           const toggleable = moduleId as ToggleableOrganizationModuleId;
+          const isUnreleased = isOrganizationModuleUnreleased(
+            moduleId,
+            isBillingEnabled === true,
+            isReleasePreviewEnabled,
+          );
           const isEnabled =
-            !module.isToggleable ||
-            (parsed.success &&
-              typeof isBillingEnabled === 'boolean' &&
-              (parsed.data[toggleable] ??
-                (!isBillingEnabled || module.isDefaultEnabled)));
+            !isUnreleased &&
+            (!module.isToggleable ||
+              (parsed.success &&
+                typeof isBillingEnabled === 'boolean' &&
+                (parsed.data[toggleable] ??
+                  (!isBillingEnabled || module.isDefaultEnabled))));
           return (
             <div className="py-3 first:pt-0 last:pb-0" key={moduleId}>
               {module.isToggleable ? (
@@ -159,11 +179,18 @@ export default function OrganizationModulesCard() {
                   aria-label={label}
                   description={description}
                   isChecked={Boolean(isEnabled)}
-                  isDisabled={!canManage || !isAvailable || Boolean(pending)}
+                  isDisabled={
+                    !canManage ||
+                    !isAvailable ||
+                    isUnreleased ||
+                    Boolean(pending)
+                  }
                   label={
                     <span className="flex flex-wrap items-center gap-2">
                       {label}
-                      {isBillingEnabled && module.requiresSubscription ? (
+                      {isUnreleased ? (
+                        <Badge>{translate('notReleased')}</Badge>
+                      ) : isBillingEnabled && module.requiresSubscription ? (
                         <Badge>{translate('paidPlan')}</Badge>
                       ) : null}
                     </span>
@@ -221,6 +248,20 @@ export default function OrganizationModulesCard() {
         <p role="status" className="text-sm text-muted-foreground">
           {notice}
         </p>
+      ) : null}
+      {isSuperAdmin && isBillingEnabled ? (
+        <div className="border-t border-border pt-3">
+          <Switch
+            aria-label={translate('releasePreview.label')}
+            description={translate('releasePreview.description')}
+            isChecked={isReleasePreviewEnabled}
+            isDisabled={!isAvailable || Boolean(pending)}
+            label={translate('releasePreview.label')}
+            onCheckedChange={(enabled) => {
+              void changeReleasePreview(enabled);
+            }}
+          />
+        </div>
       ) : null}
       <p className="border-t border-border pt-3 text-xs text-muted-foreground">
         {translate('dataHelp')}

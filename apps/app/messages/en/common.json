@@ -900,6 +900,11 @@
       "description": "Choose which tools your organization can use.",
       "adminOnly": "Only owners and admins can change module settings.",
       "paidPlan": "Paid plan",
+      "notReleased": "Not released",
+      "releasePreview": {
+        "label": "Release preview",
+        "description": "Genfeed only. Lets this organization use founder-only modules before they are released."
+      },
       "alwaysOn": "Always on",
       "loading": "Loading module settings…",
       "saving": "Saving module settings…",
@@ -963,7 +968,9 @@
       "manageModules": "Organization modules",
       "subscriptionTitle": "{module} requires an active paid subscription",
       "subscriptionHelp": "Existing data remains readable and exportable. A paid plan is required to start new work.",
-      "manageSubscription": "Manage subscription"
+      "manageSubscription": "Manage subscription",
+      "unreleasedTitle": "{module} is not released yet",
+      "unreleasedHelp": "Existing projects remain readable and exportable. New work opens when the module is released."
     }
   },
   "workspaceOverlay": {
