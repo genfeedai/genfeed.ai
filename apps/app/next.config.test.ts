@@ -229,6 +229,17 @@ describe('app next.config', () => {
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);
   });
 
+  it('never redirects /v1 API paths shaped like a brand-scoped app home', async () => {
+    const redirects = await config.redirects?.();
+    const sources = redirects?.map((redirect) => redirect.source) ?? [];
+
+    // `/v1/tags/library` would otherwise match `/:orgSlug/:brandSlug/library`.
+    expect(sources).not.toContain('/:orgSlug/:brandSlug/library');
+    expect(sources).toContain(
+      '/:orgSlug((?!v1(?:/|$))[^/]+)/:brandSlug/library',
+    );
+  });
+
   it('redirects retired Analytics trends routes to Discovery', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({
