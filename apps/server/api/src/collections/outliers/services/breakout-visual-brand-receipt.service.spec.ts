@@ -73,19 +73,19 @@ function setup(
       receipt: receipt(options.created ?? 'created'),
       replayed: false,
     })),
-    recordResolution: vi.fn(async () => ({
+    recordResolution: vi.fn(async (..._args: unknown[]) => ({
       receipt: receipt('resolved', 1),
       replayed: false,
     })),
-    recordDispatch: vi.fn(async () => ({
+    recordDispatch: vi.fn(async (..._args: unknown[]) => ({
       receipt: receipt('dispatched', 2),
       replayed: false,
     })),
-    bindArtifact: vi.fn(async () => ({
+    bindArtifact: vi.fn(async (..._args: unknown[]) => ({
       receipt: receipt('checking', 3),
       replayed: false,
     })),
-    blockUnboundCompletion: vi.fn(async () => ({
+    blockUnboundCompletion: vi.fn(async (..._args: unknown[]) => ({
       receipt: receipt('blocked', 3),
       replayed: false,
     })),

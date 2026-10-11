@@ -11,7 +11,10 @@ import {
 import type { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import type { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import type { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
-import type { BreakoutVisualBrandReceiptService } from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
+import type {
+  BreakoutVisualBrandOutcome,
+  BreakoutVisualBrandReceiptService,
+} from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory, Platform } from '@genfeedai/contracts';
 import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
@@ -148,7 +151,7 @@ function fixture(
       async (
         _admission: BreakoutGenerationAdmission,
         visuals: { ingredientId: string; prompt: string }[],
-      ) => {
+      ): Promise<BreakoutVisualBrandOutcome> => {
         calls.push('brand');
         return {
           isBlocked: false,
