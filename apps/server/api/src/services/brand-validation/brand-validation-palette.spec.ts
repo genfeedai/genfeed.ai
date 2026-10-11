@@ -325,6 +325,24 @@ describe('artifact-bound palette proof for images', () => {
     });
     expect(result).not.toHaveProperty('proof');
   });
+  it('leaves a video that no decoder can read unknown, never pass or fail', async () => {
+    const input = imageInput(
+      new Uint8Array(512).map((_, i) => (i * 7) % 251),
+      [{ id: 'blue', color: '#123456' }],
+    );
+    input.artifact.mediaKind = 'video';
+    input.artifact.contentHash = hashBrandedGenerationArtifactManifestV1({
+      mediaKind: 'video',
+      textHash: null,
+      parts: input.artifact.parts,
+    });
+    const result = await check(input, 'blue');
+    expect(result).toMatchObject({
+      reasonCode: 'artifact_undecodable',
+      result: 'unknown',
+    });
+    expect(result).not.toHaveProperty('proof');
+  });
   it('leaves a too small image unknown', async () => {
     const result = await check(
       imageInput(await solid(16, 16, '#123456'), [

@@ -73,6 +73,32 @@ export async function decodeBrandImage(
   }
 }
 
+let ffmpegBinary: Promise<string | null> | null = null;
+/**
+ * The ffmpeg this process can run: the bundled `ffmpeg-static` binary (the server
+ * image points it at the system ffmpeg through `FFMPEG_BIN`), else `ffmpeg` on PATH.
+ * Resolved once; null when neither runs, which leaves video checks unknown.
+ */
+function resolveFfmpeg(): Promise<string | null> {
+  ffmpegBinary ??= (async () => {
+    for (const candidate of [ffmpegPath, 'ffmpeg']) {
+      if (!candidate) continue;
+      try {
+        await execFileAsync(candidate, ['-version'], { timeout: 5_000 });
+        return candidate;
+      } catch {
+        // Try the next candidate.
+      }
+    }
+    return null;
+  })();
+  return ffmpegBinary;
+}
+/** Whether video frames can be decoded in this process. */
+export async function isBrandVideoDecoderAvailable(): Promise<boolean> {
+  return (await resolveFfmpeg()) !== null;
+}
+
 async function readDurationSeconds(
   binary: string,
   file: string,
@@ -113,7 +139,7 @@ async function readDurationSeconds(
 export async function sampleBrandVideoFrames(
   bytes: Uint8Array,
 ): Promise<BrandDecodedVisual | null> {
-  const binary = ffmpegPath;
+  const binary = await resolveFfmpeg();
   if (!binary) return null;
   let directory: string | null = null;
   try {

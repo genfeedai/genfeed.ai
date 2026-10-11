@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { hashBrandArtifactBytes } from '@api/services/brand-validation/brand-validation-artifact.util';
+import { isBrandVideoDecoderAvailable } from '@api/services/brand-validation/brand-validation-pixels.util';
 import {
   hashBrandedGenerationArtifactManifestV1,
   hashBrandIdentitySnapshotV1,
@@ -12,6 +13,8 @@ import type {
 import { describe, expect, it } from 'vitest';
 
 const service = new BrandValidationService();
+// CI runners may have no ffmpeg; the video proof then stays unknown (covered separately).
+const hasVideoDecoder = await isBrandVideoDecoderAvailable();
 const fixture = (file: string) =>
   readFile(new URL(`./fixtures/${file}`, import.meta.url));
 function snapshot(): BrandIdentitySnapshotV1 {
@@ -251,69 +254,109 @@ describe('genuine immutable synthetic corpus through the conservative core', () 
     expect(report.checks.at(-1)?.result).toBe('unknown');
     expect(bytes).toEqual(before);
   });
-  it.each([
-    ['approved.png', 'image'],
-    ['wrong-palette.png', 'image'],
-    ['sample.mp4', 'video'],
-  ] as const)(
+  async function provePalette(
+    file: string,
+    mediaKind: 'image' | 'video',
+  ): Promise<void> {
+    const bytes = await fixture(file);
+    const descriptor: BrandArtifactValidationInputV1['artifact']['parts'][number] =
+      {
+        id: 'primary',
+        version: 'v1',
+        role: mediaKind,
+        contentHash: hashBrandArtifactBytes(bytes),
+      };
+    const value = artifactInput(
+      null,
+      [{ partId: 'primary', partVersion: 'v1', bytes }],
+      [descriptor],
+      mediaKind,
+    );
+    value.snapshot.generationRules.palette.push(
+      {
+        id: 'brand-blue',
+        color: '#123456',
+        usage: 'background',
+        required: true,
+        evidenceIds: ['fixture-source'],
+      },
+      {
+        id: 'brand-red',
+        color: '#FF0000',
+        usage: 'accent',
+        required: true,
+        evidenceIds: ['fixture-source'],
+      },
+    );
+    value.snapshot.contentHash = hashBrandIdentitySnapshotV1(value.snapshot);
+    const report = await service.validateBrandArtifact(value);
+    const blue = report.checks.find((check) => check.ruleId === 'brand-blue');
+    const red = report.checks.find((check) => check.ruleId === 'brand-red');
+    expect(blue).toMatchObject({
+      method: 'deterministic_render',
+      result: 'pass',
+      proof: {
+        algorithm: 'ciede2000-presence-v1',
+        artifactHash: value.artifact.contentHash,
+        mediaKind,
+        partHash: descriptor.contentHash,
+        target: '#123456',
+      },
+    });
+    expect(blue?.proof?.coverage).toBeGreaterThan(0.95);
+    expect(blue?.proof?.nearestSwatchDeltaE).toBeLessThan(3);
+    expect(blue?.proof?.swatches[0]?.share).toBeGreaterThan(0.95);
+    expect(red).toMatchObject({
+      reasonCode: 'palette_color_absent',
+      result: 'fail',
+      proof: { coverage: 0, target: '#FF0000' },
+    });
+    expect(report.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'brand_rule_failed' }),
+    );
+  }
+  it.each(['approved.png', 'wrong-palette.png'])(
     'proves the approved palette color is present in real %s pixels',
-    async (file, mediaKind) => {
-      const bytes = await fixture(file);
+    (file) => provePalette(file, 'image'),
+  );
+  // Needs a runnable ffmpeg to sample frames; without one the check stays unknown.
+  (hasVideoDecoder ? it : it.skip)(
+    'proves the approved palette color is present in real sample.mp4 pixels',
+    () => provePalette('sample.mp4', 'video'),
+  );
+  it.skipIf(hasVideoDecoder)(
+    'leaves a real video unknown when no ffmpeg can run',
+    async () => {
+      const bytes = await fixture('sample.mp4');
       const descriptor: BrandArtifactValidationInputV1['artifact']['parts'][number] =
         {
           id: 'primary',
           version: 'v1',
-          role: mediaKind,
+          role: 'video',
           contentHash: hashBrandArtifactBytes(bytes),
         };
       const value = artifactInput(
         null,
         [{ partId: 'primary', partVersion: 'v1', bytes }],
         [descriptor],
-        mediaKind,
+        'video',
       );
-      value.snapshot.generationRules.palette.push(
-        {
-          id: 'brand-blue',
-          color: '#123456',
-          usage: 'background',
-          required: true,
-          evidenceIds: ['fixture-source'],
-        },
-        {
-          id: 'brand-red',
-          color: '#FF0000',
-          usage: 'accent',
-          required: true,
-          evidenceIds: ['fixture-source'],
-        },
-      );
+      value.snapshot.generationRules.palette.push({
+        id: 'brand-blue',
+        color: '#123456',
+        usage: 'background',
+        required: true,
+        evidenceIds: ['fixture-source'],
+      });
       value.snapshot.contentHash = hashBrandIdentitySnapshotV1(value.snapshot);
-      const report = await service.validateBrandArtifact(value);
-      const blue = report.checks.find((check) => check.ruleId === 'brand-blue');
-      const red = report.checks.find((check) => check.ruleId === 'brand-red');
-      expect(blue).toMatchObject({
-        method: 'deterministic_render',
-        result: 'pass',
-        proof: {
-          algorithm: 'ciede2000-presence-v1',
-          artifactHash: value.artifact.contentHash,
-          mediaKind,
-          partHash: descriptor.contentHash,
-          target: '#123456',
-        },
+      expect(
+        (await service.validateBrandArtifact(value)).checks.find(
+          (check) => check.ruleId === 'brand-blue',
+        ),
+      ).toMatchObject({
+        reasonCode: 'artifact_undecodable',
+        result: 'unknown',
       });
-      expect(blue?.proof?.coverage).toBeGreaterThan(0.95);
-      expect(blue?.proof?.nearestSwatchDeltaE).toBeLessThan(3);
-      expect(blue?.proof?.swatches[0]?.share).toBeGreaterThan(0.95);
-      expect(red).toMatchObject({
-        reasonCode: 'palette_color_absent',
-        result: 'fail',
-        proof: { coverage: 0, target: '#FF0000' },
-      });
-      expect(report.diagnostics).toContainEqual(
-        expect.objectContaining({ code: 'brand_rule_failed' }),
-      );
     },
   );
   it('rejects a changed part with old digest, accepts consistent negative identity conservatively', async () => {
