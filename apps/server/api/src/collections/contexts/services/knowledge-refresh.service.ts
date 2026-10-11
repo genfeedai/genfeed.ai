@@ -8,9 +8,16 @@ import {
   extractKnowledgeRefreshSourceText,
   KnowledgeSourceUnavailableException,
 } from '@api/collections/contexts/utils/knowledge-refresh-source-error.util';
-import { toKnowledgeWorkflowActor } from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
+import {
+  toKnowledgeSchedulePrincipal,
+  toKnowledgeWorkflowActor,
+} from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import {
+  resolveScheduleInitiatingActor,
+  toScheduleInitiatingActorWrite,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -671,11 +678,24 @@ export class KnowledgeRefreshService {
         where: scopedWhere(actor.organizationId, { id: existingWorkflowId }),
       });
       if (existing) {
+        // Bind the schedule to the authenticated configuring actor on every
+        // enabled save and clear it when paused, so no earlier owner's
+        // authority survives. Resolved before the write: a foreign-org actor
+        // is rejected without persisting anything.
+        const scheduleInitiatingActor = toScheduleInitiatingActorWrite(
+          resolveScheduleInitiatingActor({
+            isEnabled,
+            organizationId: existing.organizationId,
+            principal: toKnowledgeSchedulePrincipal(actor),
+            schedule: KNOWLEDGE_REFRESH_SCHEDULE_CRON,
+          }),
+        );
         await this.prisma.workflow.updateMany({
           where: scopedWhere(actor.organizationId, { id: existing.id }),
           data: {
             isScheduleEnabled: isEnabled,
             schedule: KNOWLEDGE_REFRESH_SCHEDULE_CRON,
+            scheduleInitiatingActor,
             timezone: 'UTC',
           },
         });
@@ -718,6 +738,8 @@ export class KnowledgeRefreshService {
         templateId: 'source-maintenance',
         timezone: 'UTC',
       },
+      actor.brandId,
+      toKnowledgeSchedulePrincipal(actor),
     );
     return created.id;
   }

@@ -13,6 +13,7 @@ import {
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { KNOWLEDGE_SOURCE_WORKFLOW_IDS } from '@api/collections/contexts/services/knowledge-source-ingest-workflow-definition';
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
+import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import type {
   KnowledgeSourceIngestWorkflowInput,
   KnowledgeWorkflowInitiatingActor,
@@ -41,6 +42,22 @@ export function toKnowledgeWorkflowActor(
   actor: KnowledgeActor,
 ): KnowledgeWorkflowInitiatingActor {
   return toWorkflowActor(actor, denyKnowledgeWork);
+}
+/**
+ * The authenticated principal that configures a Knowledge refresh schedule.
+ * Copies only the identity fields of an actor resolved from the request, so
+ * brand scope, role or workflow scope never reach the persisted binding.
+ */
+export function toKnowledgeSchedulePrincipal(
+  actor: KnowledgeActor,
+): WorkflowSchedulePrincipal {
+  return {
+    apiKeyId: actor.apiKeyId,
+    isApiKey: actor.isApiKey ?? false,
+    organizationId: actor.organizationId,
+    scopes: actor.scopes ?? [],
+    userId: actor.userId,
+  };
 }
 export function knowledgeWorkflowActorKey(
   actor: KnowledgeWorkflowInitiatingActor,
