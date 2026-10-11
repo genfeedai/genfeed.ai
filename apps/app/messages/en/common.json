@@ -2334,6 +2334,21 @@
     "title": "Store",
     "description": "Install apps into your own setup. Installing never changes your organization's access or starts any work.",
     "appsTitle": "Apps",
+    "featuredTitle": "Featured",
+    "yoursTitle": "Your apps",
+    "yoursDescription": "Installed apps you can open now, pinned ones first.",
+    "pinned": "Pinned",
+    "filterAll": "All",
+    "categories": {
+      "create": "Create",
+      "publish": "Publish & grow",
+      "automate": "Automate"
+    },
+    "categoryDescriptions": {
+      "create": "Generate, plan and edit images, video and sequences.",
+      "publish": "Research what works and keep up with your audience.",
+      "automate": "Run workflows and programs on your content."
+    },
     "workflowsTitle": "Workflows",
     "workflowsDescription": "Browse the workflow library and install a workflow for this brand.",
     "openWorkflows": "Open workflow library",

@@ -17,8 +17,48 @@ export interface StoreAppEntry {
   state: NativeAppAvailabilityState;
 }
 
+/** Store shelves an app is filed under; the filter chips mirror these. */
+export type StoreCategoryId = 'create' | 'publish' | 'automate';
+
+export type StoreFilterId = 'all' | StoreCategoryId;
+
+/** Abstract mini-illustration drawn on an app's thumbnail. */
+export type StoreThumbnailArt =
+  | 'flow'
+  | 'frames'
+  | 'inbox'
+  | 'layers'
+  | 'motion'
+  | 'prompt'
+  | 'timeline'
+  | 'trend'
+  | 'trim';
+
+export type StoreThumbnailTone = 'info' | 'primary' | 'success' | 'warning';
+
+export type StoreThumbnailSize = 'compact' | 'featured' | 'standard';
+
+/** Store-only presentation data for one native app, keyed by app id. */
+export interface StoreAppCatalogEntry {
+  art: StoreThumbnailArt;
+  category: StoreCategoryId;
+  isFeatured: boolean;
+  /** Real artwork; replaces the designed tile once an image exists. */
+  thumbnailSrc?: string;
+  tone: StoreThumbnailTone;
+}
+
+export interface StoreAppThumbnailProps {
+  appId: NativeSecondaryAppId;
+  icon: IconComponent;
+  label: string;
+  size: StoreThumbnailSize;
+}
+
 export interface StoreAppCardProps {
   app: StoreAppEntry;
+  /** `featured` is the larger hero card; the testid prefix keeps both findable. */
+  variant?: 'featured' | 'standard';
   /** Set after the last install or uninstall request for this app failed. */
   failedAction: 'install' | 'uninstall' | null;
   isPending: boolean;
