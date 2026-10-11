@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import {
+  type BrandRelocationActingUser,
+  BrandRelocationService,
+} from '@api/collections/brands/services/brand-relocation.service';
 import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -883,7 +886,7 @@ async function seed(prisma: PrismaClient, options: SeedOptions = {}) {
   const billingAccount = (await prisma.billingAccount.create({ data: {} })).id;
 
   return {
-    actor: { isSuperAdmin: false, userId: owner },
+    actor: { isSuperAdmin: false, userId: owner } as BrandRelocationActingUser,
     baselineReceipt,
     billingAccount,
     brand,

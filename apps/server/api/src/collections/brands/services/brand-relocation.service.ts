@@ -229,23 +229,7 @@ export class BrandRelocationService {
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
     await this.assertHandleAvailable(brandId, updateBrandDto.slug);
 
-    // An org always keeps at least one non-deleted brand (#5219): the source org
-    // must have another brand left for its members' currentBrandId to fall back
-    // to once this one moves out.
-    const sourceFallbackBrand = await this.prisma.brand.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-      where: {
-        id: { not: brandId },
-        isDeleted: false,
-        organizationId: sourceOrgId,
-      },
-    });
-    if (!sourceFallbackBrand) {
-      throw new ConflictException(
-        "Cannot move an organization's only brand to another organization.",
-      );
-    }
+    await this.assertSourceKeepsAnotherBrand(brandId, sourceOrgId);
 
     const passthrough = this.pickRelocationPassthrough(updateBrandDto);
     this.logger.log('Relocating brand between organizations', {
@@ -340,6 +324,31 @@ export class BrandRelocationService {
         workflowsMoved: moveResult.workflowsMoved,
       },
     };
+  }
+
+  /**
+   * An org always keeps at least one non-deleted brand (#5219): the source org
+   * must have another brand left for its members' currentBrandId to fall back to
+   * once this one moves out.
+   */
+  private async assertSourceKeepsAnotherBrand(
+    brandId: string,
+    sourceOrgId: string,
+  ): Promise<void> {
+    const fallbackBrand = await this.prisma.brand.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: {
+        id: { not: brandId },
+        isDeleted: false,
+        organizationId: sourceOrgId,
+      },
+    });
+    if (!fallbackBrand) {
+      throw new ConflictException(
+        "Cannot move an organization's only brand to another organization.",
+      );
+    }
   }
 
   /**
