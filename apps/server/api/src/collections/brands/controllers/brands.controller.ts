@@ -66,6 +66,21 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+/**
+ * Fleet is provisioned by Genfeed staff for a customer, so only a superadmin
+ * may set it. Everyone else's value is dropped before the write.
+ */
+function withoutFleetUnlessSuperAdmin<T extends { isFleetEnabled?: boolean }>(
+  dto: T,
+  isSuperAdmin: boolean,
+): T {
+  if (isSuperAdmin || dto.isFleetEnabled === undefined) {
+    return dto;
+  }
+  const { isFleetEnabled: _isFleetEnabled, ...rest } = dto;
+  return rest as T;
+}
+
 @AutoSwagger()
 @Controller('brands')
 @UseGuards(RolesGuard)
@@ -174,11 +189,15 @@ export class BrandsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     // `syncOrganizationName` is an onboarding-only control flag, never persisted
     // on the brand row — strip it before any CRUD patch (REST audit #1354).
-    const { organizationLabel, syncOrganizationName, ...rest } =
+    const { organizationLabel, syncOrganizationName, ...restWithFleet } =
       updateDto as UpdateBrandDto & {
         organizationLabel?: string;
         syncOrganizationName?: boolean;
       };
+    const rest = withoutFleetUnlessSuperAdmin(
+      restWithFleet,
+      getIsSuperAdmin(user, request),
+    );
 
     if (rest.watermarkLogoId) {
       await this.brandWatermarkLogoService.validateWatermarkLogo(
@@ -332,7 +351,10 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createDto: CreateBrandDto,
   ): Promise<JsonApiSingleResponse> {
-    const enrichedDto = this.enrichCreateDto(createDto, user);
+    const enrichedDto = this.enrichCreateDto(
+      withoutFleetUnlessSuperAdmin(createDto, getIsSuperAdmin(user, request)),
+      user,
+    );
     const data: BrandDocument = await this.brandsService.create(enrichedDto);
 
     return serializeSingle(request, BrandSerializer, data);
