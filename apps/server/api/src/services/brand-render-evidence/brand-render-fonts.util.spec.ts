@@ -164,6 +164,62 @@ describe('FontRegistry', () => {
     expect(registry.diagnostics.has('font_source_ambiguous')).toBe(true);
   });
 
+  describe('a family with several weights', () => {
+    const regular = face({
+      weight: '400',
+      source: { kind: 'embedded', assetId: null, contentHash: otherHash },
+    });
+    const bold = face({ weight: '700' });
+    const boldFont = {
+      ...custom(),
+      postScriptName: 'BrandSans-Bold',
+    };
+
+    it('picks the file for the requested weight', () => {
+      const registry = new FontRegistry([regular, bold], staged);
+      registry.useFonts('layer-1', 'BrandSans', [boldFont], {
+        weight: 700,
+        style: 'normal',
+      });
+      expect(registry.fonts[0]).toMatchObject({
+        declaredFamily: 'BrandSans',
+        weight: 700,
+        source: { kind: 'asset', assetId: 'brand-font' },
+      });
+      expect(registry.fallbacks).toEqual([]);
+    });
+
+    it('accepts a variable weight range and the bold keyword', () => {
+      const range = face({ weight: '100 900' });
+      const registry = new FontRegistry(
+        [face({ weight: 'bold' }), { ...regular, weight: '100 300' }],
+        staged,
+      );
+      registry.useFonts('layer-1', 'BrandSans', [boldFont], {
+        weight: 700,
+        style: null,
+      });
+      expect(registry.fonts[0].source.kind).toBe('asset');
+      const variable = new FontRegistry([range, regular], staged);
+      variable.useFonts('layer-1', 'BrandSans', [boldFont], {
+        weight: 600,
+        style: null,
+      });
+      expect(variable.fonts[0].source.kind).toBe('asset');
+    });
+
+    it('does not call the brand font a fallback when only its file is ambiguous', () => {
+      const registry = new FontRegistry([regular, bold], staged);
+      registry.useFonts('layer-1', 'BrandSans', [boldFont]);
+      expect(registry.fonts[0]).toMatchObject({
+        declaredFamily: 'BrandSans',
+        source: { kind: 'unknown', contentHash: null },
+      });
+      expect(registry.fallbacks).toEqual([]);
+      expect(registry.diagnostics.has('font_source_ambiguous')).toBe(true);
+    });
+  });
+
   it('leaves fonts unknown when the engine did not report them', () => {
     const registry = new FontRegistry([], staged);
     expect(registry.useFonts('layer-1', 'BrandSans', null)).toEqual([]);

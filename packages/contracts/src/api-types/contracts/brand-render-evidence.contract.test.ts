@@ -153,6 +153,27 @@ describe('brandRenderEvidenceManifestV1Schema', () => {
     );
   });
 
+  it('holds the layers of every inspected frame of a video', () => {
+    const value = manifest();
+    value.coverage = {
+      kind: 'sampled_frames',
+      capturedFrames: [0, 14, 29],
+      frameCount: 30,
+    };
+    value.textLayers = [0, 14, 29].flatMap((frame) =>
+      Array.from({ length: 200 }, (_, index) => ({
+        ...manifest().textLayers[0],
+        id: `frame-${frame}-text-${index}`,
+        frame,
+      })),
+    );
+    value.fallbacks = [];
+    value.placedAssets = [];
+    expect(brandRenderEvidenceManifestV1Schema.safeParse(value).success).toBe(
+      true,
+    );
+  });
+
   it('rejects duplicate layer IDs', () => {
     const value = manifest();
     value.textLayers.push({ ...value.textLayers[0] });

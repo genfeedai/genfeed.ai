@@ -91,10 +91,12 @@ function snapshotOf(elements, { extraDocuments = 0 } = {}) {
   return { documents, strings };
 }
 
+const ORIGIN = 'http://localhost:3000';
 const view = {
   assetHashes: new Map([['logo', LOGO_HASH]]),
   width: 320,
   height: 256,
+  origin: ORIGIN,
 };
 
 test('parses computed colours into RRGGBBAA', () => {
@@ -107,33 +109,63 @@ test('parses computed colours into RRGGBBAA', () => {
 
 test('resolves staged assets, proxies, embedded data and externals', () => {
   const hashes = new Map([['logo', LOGO_HASH]]);
+  const asset = { kind: 'asset', assetId: 'logo', contentHash: LOGO_HASH };
   assert.deepEqual(
-    resolveSource('http://localhost:3000/public/assets/logo', hashes),
-    { kind: 'asset', assetId: 'logo', contentHash: LOGO_HASH },
+    resolveSource(`${ORIGIN}/public/assets/logo`, hashes, ORIGIN),
+    asset,
+  );
+  assert.deepEqual(
+    resolveSource('/public/assets/logo', hashes, ORIGIN),
+    asset,
+    'a relative URL is served by the page itself',
   );
   assert.deepEqual(
     resolveSource(
-      `http://localhost:3000/proxy?src=${encodeURIComponent('http://localhost:3000/public/assets/logo')}&time=1`,
+      `http://localhost:41234/proxy?src=${encodeURIComponent(`${ORIGIN}/public/assets/logo`)}&time=1`,
       hashes,
+      ORIGIN,
     ),
-    { kind: 'asset', assetId: 'logo', contentHash: LOGO_HASH },
+    asset,
+    'the loopback compositor proxy wraps the staged file',
   );
   assert.deepEqual(
-    resolveSource('http://localhost:3000/public/assets/missing', hashes),
+    resolveSource(`${ORIGIN}/public/assets/missing`, hashes, ORIGIN),
     { kind: 'asset', assetId: 'missing', contentHash: null },
   );
   assert.deepEqual(
     resolveSource(
       `data:image/png;base64,${SMALL_PNG.toString('base64')}`,
       hashes,
+      ORIGIN,
     ),
     { kind: 'embedded', assetId: null, contentHash: LOGO_HASH },
   );
   assert.equal(
-    resolveSource('https://example.com/a.png', hashes).kind,
+    resolveSource('https://example.com/a.png', hashes, ORIGIN).kind,
     'external',
   );
-  assert.equal(resolveSource(null, hashes).kind, 'unknown');
+  assert.equal(resolveSource(null, hashes, ORIGIN).kind, 'unknown');
+});
+
+test('a foreign URL cannot borrow a staged asset by naming its path', () => {
+  const hashes = new Map([['logo', LOGO_HASH]]);
+  for (const forged of [
+    'https://example.com/assets/logo',
+    'http://localhost:9999/public/assets/logo',
+    `https://example.com/proxy?src=${encodeURIComponent(`${ORIGIN}/public/assets/logo`)}`,
+    `${ORIGIN}/proxy?src=${encodeURIComponent('https://example.com/assets/logo')}`,
+    '//example.com/assets/logo',
+  ])
+    assert.equal(
+      resolveSource(forged, hashes, ORIGIN).kind,
+      'external',
+      forged,
+    );
+  assert.equal(
+    resolveSource(`${ORIGIN}/public/assets/logo`, hashes, null).kind,
+    'external',
+    'without a known page origin nothing absolute is trusted',
+  );
 });
 
 test('reports visible text layers and placed assets with resolved style', () => {
@@ -283,7 +315,12 @@ function fakePage(calls) {
       handlers.set(event, handler);
     },
   };
-  return { _client: () => client, handlers, client };
+  return {
+    _client: () => client,
+    url: () => `${ORIGIN}/index.html`,
+    handlers,
+    client,
+  };
 }
 
 function setFrame(frame) {
@@ -323,7 +360,7 @@ test('captures at the screenshot of a requested frame and passes calls through',
       fontFamily: 'Brand',
       fontStyle: 'normal',
       fontWeight: '400',
-      src: 'http://x/public/assets/f',
+      src: `${ORIGIN}/public/assets/f`,
       platformFontFamily: 'Brand Sans',
     },
   });

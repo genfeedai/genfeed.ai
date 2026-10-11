@@ -11,11 +11,15 @@ import type {
   BrandRenderEvidenceSnapshotV1,
   BrandRenderEvidenceVerificationV1,
 } from '@genfeedai/contracts/interfaces/content/brand-render-evidence.interface';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { LoggerService } from '@libs/logger/logger.service';
+import { ConflictException, HttpException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 /** Where the manifest sits on the stored artifact record. */
 export const RENDER_EVIDENCE_KEY = 'renderEvidence';
+
+/** Unauthorised, forbidden and not found: the caller may not see this brand. */
+const ACCESS_FAILURE_STATUSES = new Set([401, 403, 404]);
 
 const SNAPSHOT_UNAVAILABLE_CODES = new Set([
   'brand_identity_unavailable',
@@ -53,6 +57,7 @@ export class BrandRenderEvidenceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly snapshots: BrandIdentitySnapshotService,
+    private readonly logger: LoggerService,
   ) {}
 
   /**
@@ -77,12 +82,28 @@ export class BrandRenderEvidenceService {
         contentHash: snapshot.contentHash,
       };
     } catch (error) {
+      // An access failure must keep failing; the snapshot is only context.
       if (
-        error instanceof ConflictException &&
-        SNAPSHOT_UNAVAILABLE_CODES.has(error.message)
+        error instanceof HttpException &&
+        ACCESS_FAILURE_STATUSES.has(error.getStatus())
       )
-        return { binding: 'unavailable', reasonCode: error.message };
-      throw error;
+        throw error;
+      const isKnown =
+        error instanceof ConflictException &&
+        SNAPSHOT_UNAVAILABLE_CODES.has(error.message);
+      if (!isKnown)
+        this.logger.warn('Brand snapshot lookup failed for render evidence', {
+          brandId: scope.brandId,
+          organizationId: scope.organizationId,
+          reason: error instanceof Error ? error.name : 'unknown',
+        });
+      return {
+        binding: 'unavailable',
+        reasonCode:
+          isKnown && error instanceof Error
+            ? error.message
+            : 'brand_identity_lookup_failed',
+      };
     }
   }
 
@@ -120,7 +141,13 @@ export class BrandRenderEvidenceService {
           brandSnapshot: await snapshot,
           capturedAt: new Date(),
         };
-        return buildBrandRenderEvidenceManifest(input).manifest;
+        const built = buildBrandRenderEvidenceManifest(input);
+        if (built.reasonCode)
+          this.logger.warn('Render evidence omitted for an export', {
+            artifactId: output.artifactId,
+            reasonCode: built.reasonCode,
+          });
+        return built.manifest;
       },
     };
   }

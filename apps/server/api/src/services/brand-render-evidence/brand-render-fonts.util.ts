@@ -7,6 +7,10 @@ import type {
 
 type Capture = VisualRenderObservations['captures'][number];
 type FontFace = VisualRenderObservations['fontFaces'][number];
+interface RequestedFace {
+  weight: number | null;
+  style: 'normal' | 'italic' | 'oblique' | null;
+}
 type PlatformFont = NonNullable<
   Capture['textLayers'][number]['platformFonts']
 >[number];
@@ -66,6 +70,18 @@ function parseWeight(weight: string): number | null {
   return /^\d{1,4}$/.test(weight) ? Number(weight) : null;
 }
 
+/** Whether an @font-face weight descriptor ("700", "100 900", "bold") covers a weight. */
+function coversWeight(descriptor: string, weight: number): boolean {
+  const named: Record<string, number> = { normal: 400, bold: 700 };
+  const bounds = descriptor
+    .trim()
+    .split(/\s+/)
+    .map((part) => named[part] ?? Number(part));
+  if (bounds.length === 0 || bounds.length > 2 || bounds.some(Number.isNaN))
+    return false;
+  return weight >= bounds[0] && weight <= bounds[bounds.length - 1];
+}
+
 function parseStyle(style: string): 'normal' | 'italic' | 'oblique' | null {
   return style === 'normal' || style === 'italic' || style === 'oblique'
     ? style
@@ -107,10 +123,14 @@ export class FontRegistry {
   ) {}
 
   /** Returns the manifest font id for a platform font drawn by a layer. */
-  private fontId(font: PlatformFont, declaredFamilies: readonly string[]) {
-    const face = font.isCustomFont
-      ? this.faceFor(font.familyName, declaredFamilies)
-      : undefined;
+  private fontId(
+    font: PlatformFont,
+    declaredFamilies: readonly string[],
+    requestedFace: RequestedFace,
+  ) {
+    const { face, declaredFamily } = font.isCustomFont
+      ? this.faceFor(font.familyName, declaredFamilies, requestedFace)
+      : { face: undefined, declaredFamily: null };
     const source = font.isCustomFont
       ? fontSource(face, this.stagedAssets)
       : ({ kind: 'system', contentHash: null } as const);
@@ -118,7 +138,7 @@ export class FontRegistry {
       font.familyName,
       font.postScriptName,
       font.isCustomFont,
-      face?.family ?? null,
+      declaredFamily,
       source,
     ]);
     const known = this.byKey.get(key);
@@ -129,7 +149,7 @@ export class FontRegistry {
       id,
       family: font.familyName,
       postScriptName: font.postScriptName,
-      declaredFamily: face?.family ?? null,
+      declaredFamily,
       weight: face ? parseWeight(face.weight) : null,
       style: face ? parseStyle(face.style) : null,
       source,
@@ -138,22 +158,39 @@ export class FontRegistry {
     return id;
   }
 
-  /** The @font-face the engine reports for a web font, when exactly one fits. */
+  /**
+   * The @font-face behind a web font the engine reports. The declared family is
+   * decided separately from the file: a family with several weights still has a
+   * known name when the requested weight cannot pick exactly one file.
+   */
   private faceFor(
     platformFamily: string,
     declaredFamilies: readonly string[],
-  ): FontFace | undefined {
+    requestedFace: RequestedFace,
+  ): { face: FontFace | undefined; declaredFamily: string | null } {
     const candidates = this.faces.filter(
       (face) => face.platformFamily === platformFamily,
     );
     const named = candidates.filter((face) =>
       declaredFamilies.some((family) => sameFamily(family, face.family)),
     );
-    const pool = named.length > 0 ? named : candidates;
+    let pool = named.length > 0 ? named : candidates;
+    const names = new Set(pool.map((face) => face.family.toLowerCase()));
+    const declaredFamily = names.size === 1 ? pool[0].family : null;
+    if (new Set(pool.map((face) => JSON.stringify(face.source))).size > 1) {
+      const { weight, style } = requestedFace;
+      const fitting = pool.filter(
+        (face) =>
+          (weight === null || coversWeight(face.weight, weight)) &&
+          (style === null || face.style === style),
+      );
+      if (fitting.length > 0) pool = fitting;
+    }
     const sources = new Set(pool.map((face) => JSON.stringify(face.source)));
-    if (pool.length > 0 && sources.size === 1) return pool[0];
+    if (pool.length > 0 && sources.size === 1)
+      return { face: pool[0], declaredFamily };
     if (pool.length > 1) this.diagnostics.add('font_source_ambiguous');
-    return undefined;
+    return { face: undefined, declaredFamily };
   }
 
   /**
@@ -164,6 +201,7 @@ export class FontRegistry {
     layerId: string,
     declaration: string,
     platformFonts: readonly PlatformFont[] | null,
+    requestedFace: RequestedFace = { weight: null, style: null },
   ): { fontId: string; glyphCount: number }[] {
     if (platformFonts === null) {
       this.diagnostics.add('font_engine_report_unavailable');
@@ -172,7 +210,7 @@ export class FontRegistry {
     const families = parseFontFamilies(declaration);
     const requested = requestedFamily(declaration);
     const usage = platformFonts.map((font) => {
-      const fontId = this.fontId(font, families);
+      const fontId = this.fontId(font, families, requestedFace);
       const known = this.fonts.find((candidate) => candidate.id === fontId);
       if (known) known.glyphCount += font.glyphCount;
       return { font, fontId, declared: known?.declaredFamily ?? null };

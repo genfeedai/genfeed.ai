@@ -100,7 +100,11 @@ function fixture() {
     prisma as never,
     { authorizeBrand: vi.fn().mockResolvedValue(undefined) } as never,
     ingredients as never,
-    new BrandRenderEvidenceService(prisma as never, { preview } as never),
+    new BrandRenderEvidenceService(
+      prisma as never,
+      { preview } as never,
+      { warn: vi.fn() } as never,
+    ),
   );
   const media: IVisualSandboxMedia = {
     format: 'png',

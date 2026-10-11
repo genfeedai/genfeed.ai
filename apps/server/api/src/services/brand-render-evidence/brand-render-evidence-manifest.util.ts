@@ -186,7 +186,15 @@ export function buildBrandRenderEvidenceManifest(
         requestedStyle: styleOf(layer.fontStyle),
         color: layer.color,
         opacity: layer.opacity,
-        fontUsage: registry.useFonts(id, layer.fontFamily, layer.platformFonts),
+        fontUsage: registry.useFonts(
+          id,
+          layer.fontFamily,
+          layer.platformFonts,
+          {
+            weight: weightOf(layer.fontWeight),
+            style: styleOf(layer.fontStyle),
+          },
+        ),
       });
     }
     placedAssets.push(...placedAssetsOf(capture, staged));

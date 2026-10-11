@@ -46,12 +46,45 @@ function clamp(value, limit) {
     : value;
 }
 
+const RELATIVE = 'http://relative.invalid';
+function parseUrl(candidate, base) {
+  try {
+    return new URL(candidate, base);
+  } catch {
+    return null;
+  }
+}
+
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+// A URL names a staged asset only when it is relative or served by the page's own
+// origin. A composition can write any absolute URL, including one whose path looks
+// like /assets/<id>, but only the renderer's server actually serves staged files.
+function isOwnUrl(candidate, origin) {
+  const absolute = parseUrl(candidate);
+  if (absolute !== null) return absolute.origin === origin;
+  // Resolve against a sentinel so a protocol-relative URL cannot pass as relative.
+  return parseUrl(candidate, RELATIVE)?.origin === RELATIVE;
+}
+
+// Only the path may name an asset; a query string can carry any text.
+function assetPath(candidate) {
+  const pathname = parseUrl(candidate, RELATIVE)?.pathname ?? '';
+  let decoded = pathname;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    // Keep the raw path; the pattern below still has to match.
+  }
+  return /\/assets\/([a-zA-Z0-9_-]{1,200})$/.exec(decoded);
+}
+
 /**
  * Resolve a URL the composition loaded to the staged asset it came from.
- * Remotion serves staticFile("assets/<id>") under any base path, and wraps
- * OffthreadVideo sources in a `?src=` proxy URL.
+ * Remotion serves staticFile("assets/<id>") from the page origin, and wraps
+ * OffthreadVideo sources in a loopback `?src=` proxy URL.
  */
-export function resolveSource(raw, assetHashes) {
+export function resolveSource(raw, assetHashes, origin) {
   if (typeof raw !== 'string' || raw.length === 0)
     return { kind: 'unknown', assetId: null, contentHash: null };
   if (raw.startsWith('data:')) {
@@ -72,23 +105,18 @@ export function resolveSource(raw, assetHashes) {
       return { kind: 'unknown', assetId: null, contentHash: null };
     }
   }
-  const candidates = [raw];
-  try {
-    const nested = new URL(raw, 'http://localhost').searchParams.get('src');
-    if (nested) candidates.push(nested);
-  } catch {
-    // An unparseable URL can still carry an asset path.
-  }
+  const candidates = [];
+  if (isOwnUrl(raw, origin)) candidates.push(raw);
+  const outer = parseUrl(raw, RELATIVE);
+  const nested = outer?.searchParams.get('src');
+  const isProxy =
+    outer !== null &&
+    (outer.origin === RELATIVE ||
+      outer.origin === origin ||
+      LOOPBACK.has(outer.hostname));
+  if (nested && isProxy && isOwnUrl(nested, origin)) candidates.push(nested);
   for (const candidate of candidates) {
-    const match = /\/assets\/([a-zA-Z0-9_-]{1,200})(?:[?#]|$)/.exec(
-      (() => {
-        try {
-          return decodeURIComponent(candidate);
-        } catch {
-          return candidate;
-        }
-      })(),
-    );
+    const match = assetPath(candidate);
     if (match)
       return {
         kind: 'asset',
@@ -149,7 +177,10 @@ function isOnCanvas(bounds, width, height) {
  * layers (one per element that owns rendered text) and placed images, plus the
  * backend node ids needed to ask the font engine which fonts drew each layer.
  */
-export function analyzeSnapshot(snapshot, { assetHashes, width, height }) {
+export function analyzeSnapshot(
+  snapshot,
+  { assetHashes, width, height, origin },
+) {
   const diagnostics = [];
   const documents = snapshot.documents ?? [];
   if (documents.length === 0) return { diagnostics: ['snapshot_empty'] };
@@ -266,7 +297,7 @@ export function analyzeSnapshot(snapshot, { assetHashes, width, height }) {
         diagnostics.push('placed_assets_truncated');
         return;
       }
-      const resolved = resolveSource(source.raw, assetHashes);
+      const resolved = resolveSource(source.raw, assetHashes, origin);
       placedAssets.push({
         role: source.role,
         sourceKind: resolved.kind,
@@ -281,8 +312,8 @@ export function analyzeSnapshot(snapshot, { assetHashes, width, height }) {
   return { diagnostics: [...new Set(diagnostics)], textLayers, placedAssets };
 }
 
-export function normalizeFontFace(font, assetHashes) {
-  const source = resolveSource(font.src, assetHashes);
+export function normalizeFontFace(font, assetHashes, origin) {
+  const source = resolveSource(font.src, assetHashes, origin);
   return {
     family: clamp(String(font.fontFamily ?? ''), 512),
     style: clamp(String(font.fontStyle ?? 'normal'), 32),
@@ -352,8 +383,10 @@ export class RenderEvidenceRun {
     this.assetHashes = assetHashes;
     this.captured = new Set();
     this.captures = [];
-    this.fontFaces = new Map();
+    this.rawFontFaces = new Map();
     this.diagnostics = new Set();
+    this.origin = null;
+    this.pageOrigin = () => null;
     this.browser = null;
     this.currentFrame = null;
   }
@@ -362,14 +395,19 @@ export class RenderEvidenceRun {
     if (Number.isInteger(frame)) this.currentFrame = frame;
   }
   recordFontFace(font) {
-    if (this.fontFaces.size >= EVIDENCE_LIMITS.fontFaces) {
+    if (this.rawFontFaces.size >= EVIDENCE_LIMITS.fontFaces) {
       this.diagnostics.add('font_faces_truncated');
       return;
     }
-    const face = normalizeFontFace(font, this.assetHashes);
-    this.fontFaces.set(
-      `${face.family}|${face.style}|${face.weight}|${face.platformFamily}|${face.source.assetId ?? face.source.contentHash ?? face.source.kind}`,
-      face,
+    this.rawFontFaces.set(
+      JSON.stringify([
+        font.fontFamily,
+        font.fontStyle,
+        font.fontWeight,
+        font.platformFontFamily,
+        font.src,
+      ]),
+      font,
     );
   }
   async capture(send) {
@@ -399,10 +437,12 @@ export class RenderEvidenceRun {
       computedStyles: STYLE_NAMES,
       includeDOMRects: false,
     });
+    this.origin = this.pageOrigin() ?? this.origin;
     const analysis = analyzeSnapshot(snapshot.value, {
       assetHashes: this.assetHashes,
       width: this.width,
       height: this.height,
+      origin: this.origin,
     });
     for (const code of analysis.diagnostics) this.diagnostics.add(code);
     if (!analysis.textLayers) throw new Error('snapshot_empty');
@@ -423,7 +463,9 @@ export class RenderEvidenceRun {
       browser: this.browser,
       frameCount: this.frameCount,
       captures: [...this.captures].sort((a, b) => a.frame - b.frame),
-      fontFaces: [...this.fontFaces.values()],
+      fontFaces: [...this.rawFontFaces.values()].map((font) =>
+        normalizeFontFace(font, this.assetHashes, this.origin),
+      ),
       assets: [...this.assetHashes].map(([id, contentHash]) => ({
         id,
         contentHash,
@@ -454,6 +496,13 @@ export function attachRenderEvidence(browser, { assetHashes, width, height }) {
     if (current) {
       try {
         const client = page._client();
+        current.pageOrigin = () => {
+          try {
+            return new URL(page.url()).origin;
+          } catch {
+            return null;
+          }
+        };
         await client.send('DOM.enable');
         await client.send('CSS.enable');
         client.on('CSS.fontsUpdated', (event) => {

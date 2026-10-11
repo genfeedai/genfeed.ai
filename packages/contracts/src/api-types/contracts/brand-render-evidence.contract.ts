@@ -43,11 +43,19 @@ function unique<T extends z.ZodType<{ id: string }>>(schema: T, limit: number) {
 
 export const BRAND_RENDER_EVIDENCE_LIMITS = {
   fonts: 64,
+  /** Frames a manifest may inspect. */
   frames: 16,
-  placedAssets: 256,
-  textLayers: 256,
+  /** Per inspected frame; a manifest holds up to `frames` times this many. */
+  placedAssetsPerFrame: 256,
+  textLayersPerFrame: 256,
   textLength: 2000,
 } as const;
+const MAX_TEXT_LAYERS =
+  BRAND_RENDER_EVIDENCE_LIMITS.textLayersPerFrame *
+  BRAND_RENDER_EVIDENCE_LIMITS.frames;
+const MAX_PLACED_ASSETS =
+  BRAND_RENDER_EVIDENCE_LIMITS.placedAssetsPerFrame *
+  BRAND_RENDER_EVIDENCE_LIMITS.frames;
 
 export const brandRenderEvidenceBoundsV1Schema = z.strictObject({
   x: coordinate,
@@ -233,16 +241,13 @@ export const brandRenderEvidenceManifestV1Schema = z
       brandRenderEvidenceFontV1Schema,
       BRAND_RENDER_EVIDENCE_LIMITS.fonts,
     ),
-    textLayers: unique(
-      brandRenderEvidenceTextLayerV1Schema,
-      BRAND_RENDER_EVIDENCE_LIMITS.textLayers,
-    ),
+    textLayers: unique(brandRenderEvidenceTextLayerV1Schema, MAX_TEXT_LAYERS),
     fallbacks: z
       .array(brandRenderEvidenceFontFallbackV1Schema)
-      .max(BRAND_RENDER_EVIDENCE_LIMITS.textLayers * 4),
+      .max(MAX_TEXT_LAYERS * 4),
     placedAssets: unique(
       brandRenderEvidencePlacedAssetV1Schema,
-      BRAND_RENDER_EVIDENCE_LIMITS.placedAssets,
+      MAX_PLACED_ASSETS,
     ),
     diagnostics: z.array(code).max(32),
     /** sha256 over the canonical JSON of every other field. */

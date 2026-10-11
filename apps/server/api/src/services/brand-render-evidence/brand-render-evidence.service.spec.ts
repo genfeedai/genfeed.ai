@@ -3,7 +3,12 @@ import type { BrandIdentitySnapshotService } from '@api/services/branded-generat
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import realRender from '@api-test/fixtures/brand-render-evidence/visual-code-still.fixture.json';
 import type { IVisualSandboxMedia } from '@genfeedai/contracts/interfaces';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import type { LoggerService } from '@libs/logger/logger.service';
+import {
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+} from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 const bytes = Buffer.from(realRender.png, 'base64');
@@ -23,11 +28,13 @@ const snapshot = {
 function setup() {
   const preview = vi.fn().mockResolvedValue(snapshot);
   const findFirst = vi.fn();
+  const warn = vi.fn();
   const service = new BrandRenderEvidenceService(
     { ingredient: { findFirst } } as unknown as PrismaService,
     { preview } as unknown as BrandIdentitySnapshotService,
+    { warn } as unknown as LoggerService,
   );
-  return { service, preview, findFirst };
+  return { service, preview, findFirst, warn };
 }
 const media = (overrides: Partial<IVisualSandboxMedia> = {}) => ({
   format: 'png' as const,
@@ -71,16 +78,46 @@ describe('resolveSnapshot', () => {
     },
   );
 
-  it('does not swallow an access failure', async () => {
-    const { service, preview } = setup();
-    preview.mockRejectedValue(new ForbiddenException());
-    await expect(service.resolveSnapshot(revisionScope)).rejects.toThrow(
-      ForbiddenException,
+  it.each([
+    new ForbiddenException(),
+    new HttpException('missing', 404),
+    new HttpException('who', 401),
+  ])(
+    'keeps failing when the caller may not see the brand (%s)',
+    async (denial) => {
+      const { service, preview, warn } = setup();
+      preview.mockRejectedValue(denial);
+      await expect(service.resolveSnapshot(revisionScope)).rejects.toBe(denial);
+      expect(warn).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not let a failed snapshot lookup stop an export', async () => {
+    const { service, preview, warn } = setup();
+    for (const failure of [
+      new ConflictException('something_else'),
+      new Error('connection reset'),
+    ]) {
+      preview.mockRejectedValue(failure);
+      await expect(service.resolveSnapshot(revisionScope)).resolves.toEqual({
+        binding: 'unavailable',
+        reasonCode: 'brand_identity_lookup_failed',
+      });
+    }
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledWith(
+      'Brand snapshot lookup failed for render evidence',
+      expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
     );
-    preview.mockRejectedValue(new ConflictException('something_else'));
-    await expect(service.resolveSnapshot(revisionScope)).rejects.toThrow(
-      'something_else',
+  });
+
+  it('keeps recognised unavailability quiet', async () => {
+    const { service, preview, warn } = setup();
+    preview.mockRejectedValue(
+      new ConflictException('brand_identity_unavailable'),
     );
+    await service.resolveSnapshot(revisionScope);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 
@@ -107,13 +144,17 @@ describe('forRender', () => {
     expect(preview).not.toHaveBeenCalled();
   });
 
-  it('drops invalid evidence rather than failing the export', async () => {
-    const { service } = setup();
+  it('drops invalid evidence rather than failing the export, and says why', async () => {
+    const { service, warn } = setup();
     await expect(
       service
         .forRender(revisionScope)
         .manifestFor(output(media({ evidence: { schemaVersion: 1 } }))),
     ).resolves.toBeNull();
+    expect(warn).toHaveBeenCalledWith('Render evidence omitted for an export', {
+      artifactId: 'ingredient-1',
+      reasonCode: 'observations_invalid',
+    });
   });
 
   it('resolves the snapshot once per render', async () => {
