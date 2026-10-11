@@ -7,7 +7,7 @@
     "@genfeedai/utils": "workspace:*",
     "@remotion/bundler": "4.0.534",
     "@remotion/renderer": "4.0.534",
-    "bullmq": "6.3.11",
+    "bullmq": "6.3.12",
     "multer": "2.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

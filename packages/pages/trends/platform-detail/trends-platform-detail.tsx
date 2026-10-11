@@ -224,7 +224,7 @@ export default function TrendsPlatformDetail({
         title={`${label} Trends`}
         subtitle="Platform-specific trending posts and videos."
         icon={TrendingUp}
-        actions={
+        refresh={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
         }
         tabs={<SocialsNavigation active={platform} />}

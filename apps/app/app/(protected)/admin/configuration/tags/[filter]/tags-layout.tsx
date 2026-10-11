@@ -12,6 +12,7 @@ export default function TagsLayout({
   children,
   scope,
   rightActions,
+  refreshAction,
 }: ITagsLayoutProps) {
   const search = useSearchParams()?.toString() ?? '';
   const filterHref = (filter: string) =>
@@ -60,6 +61,7 @@ export default function TagsLayout({
             }
           : undefined
       }
+      refresh={refreshAction}
       right={rightActions}
     >
       {children}

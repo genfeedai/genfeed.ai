@@ -2,7 +2,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { AgentComposerStatusStack } from './AgentComposerStatusStack';
@@ -416,5 +416,46 @@ describe('AgentComposerStatusStack', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+  describe('stalled turn notice', () => {
+    it('offers keep waiting and stop and retry when the turn is stalled', () => {
+      const onKeepWaiting = vi.fn();
+      const onStopAndRetry = vi.fn();
+      render(
+        <AgentComposerStatusStack
+          {...baseProps}
+          activeWorkEvent={null}
+          isRunActive
+          isTurnStalled
+          onKeepWaiting={onKeepWaiting}
+          onStopAndRetry={onStopAndRetry}
+        />,
+      );
+
+      expect(
+        screen.getByText('This is taking longer than expected.'),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Keep waiting' }));
+      expect(onKeepWaiting).toHaveBeenCalledOnce();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Stop and retry' }));
+      expect(onStopAndRetry).toHaveBeenCalledOnce();
+    });
+
+    it('hides the notice once the run is no longer active', () => {
+      const { container } = render(
+        <AgentComposerStatusStack
+          {...baseProps}
+          activeWorkEvent={null}
+          isRunActive={false}
+          isTurnStalled
+          onKeepWaiting={vi.fn()}
+          onStopAndRetry={vi.fn()}
+        />,
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 });

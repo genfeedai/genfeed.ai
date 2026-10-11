@@ -59,7 +59,7 @@ function OrganizationConfigPageContent() {
       description="Configure organization settings and preferences"
       icon={Settings}
       moduleChrome={false}
-      right={
+      refresh={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
     >

@@ -92,7 +92,7 @@ export default function MissionControl() {
           value={searchQuery}
         />
       }
-      right={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
+      refresh={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
     >
       <div className="flex flex-col gap-6">
         {isError && executions.length > 0 ? (

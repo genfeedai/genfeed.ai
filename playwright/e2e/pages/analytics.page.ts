@@ -132,11 +132,10 @@ export class AnalyticsPage {
   }
 
   async navigateToTrends(): Promise<void> {
-    await this.page
-      .getByTestId('desktop-app-rail')
-      .getByTestId('app-rail-launcher')
-      .click();
-    await this.page.getByRole('link', { name: /^Discovery/ }).click();
+    // Discovery is a Store app: the rail's Apps icon opens the Store and only
+    // pinned apps get a rail item, so land on Discovery by route, then use its
+    // sidebar for the client-side transition to Trends.
+    await this.page.goto(brandPath(APP_ROUTES.DISCOVERY.OVERVIEW));
     await sidebarLocator(this.page)
       .getByRole('link', { name: 'Trends', exact: true })
       .click();

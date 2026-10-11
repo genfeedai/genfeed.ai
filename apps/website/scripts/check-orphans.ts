@@ -71,7 +71,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const ORPHAN_ALLOWLIST = new Set<string>([
   '/llms.txt',
   '/llms-full.txt',
-  '/fleet',
+  '/custom-models',
   '/done-for-you',
   '/founder-content',
   '/launch-content',

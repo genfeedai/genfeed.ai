@@ -5,8 +5,13 @@ import GenerationsPage from './generations-page';
 import GenerationsLayout from './layout';
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children, right }: PropsWithChildren<{ right?: ReactNode }>) => (
+  default: ({
+    children,
+    refresh,
+    right,
+  }: PropsWithChildren<{ refresh?: ReactNode; right?: ReactNode }>) => (
     <div>
+      {refresh}
       {right}
       {children}
     </div>

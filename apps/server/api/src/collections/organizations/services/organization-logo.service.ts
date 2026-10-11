@@ -1,3 +1,4 @@
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { PRISMA_ASSET_CATEGORY_BY_ROLE } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AssetParent } from '@genfeedai/contracts';
@@ -33,6 +34,11 @@ export class OrganizationLogoService {
       where: {
         category: PRISMA_ASSET_CATEGORY_BY_ROLE.logo,
         isDeleted: false,
+        // A generated logo whose image is not uploaded yet must never win.
+        OR: [
+          { origin: null },
+          { origin: { not: ASSET_ORIGIN_GENERATION_PENDING } },
+        ],
         parentOrgId: { in: ids },
         parentType:
           AssetParent.ORGANIZATION as Prisma.AssetCreateInput['parentType'],

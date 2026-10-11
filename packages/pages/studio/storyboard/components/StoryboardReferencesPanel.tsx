@@ -95,9 +95,9 @@ export default function StoryboardReferencesPanel({
             <p className="text-xs text-muted-foreground">{reference.group}</p>
           </div>
         ))}
-        {!matching.length ? (
+        {!matching.length && search.trim() ? (
           <p className="text-xs text-muted-foreground">
-            {translate(search.trim() ? 'noMatchingReferences' : 'noReferences')}
+            {translate('noMatchingReferences')}
           </p>
         ) : null}
       </div>

@@ -186,16 +186,19 @@ vi.mock('@ui/layout/container/Container', () => ({
     children,
     description,
     label,
+    refresh,
     right,
   }: {
     children: ReactNode;
     description?: ReactNode;
     label?: ReactNode;
+    refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
       <h1>{label}</h1>
       <p>{description}</p>
+      <div data-testid="container-refresh">{refresh}</div>
       <div>{right}</div>
       {children}
     </section>
@@ -363,7 +366,12 @@ describe('PresetsList', () => {
       { scroll: false },
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh presets' }));
+    const refreshSlot = screen.getByTestId('container-refresh');
+    const refreshButton = screen.getByRole('button', {
+      name: 'Refresh presets',
+    });
+    expect(refreshSlot).toContainElement(refreshButton);
+    fireEvent.click(refreshButton);
     fireEvent.click(screen.getByRole('button', { name: 'Add Preset' }));
     expect(mocks.refetch).toHaveBeenCalled();
     expect(mocks.openModal).toHaveBeenCalled();

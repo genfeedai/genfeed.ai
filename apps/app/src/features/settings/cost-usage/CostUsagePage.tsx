@@ -15,6 +15,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { CostsService } from '@services/billing/costs.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
@@ -31,7 +32,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Text } from '@ui/typography/text';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -307,16 +308,13 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
             <Download className="size-4" aria-hidden />
             {translate('actions.exportCsv')}
           </Button>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.SM}
-            onClick={refresh}
-            isDisabled={activeQuery.isFetching}
-          >
-            <RefreshCw className="size-4" aria-hidden />
-            {translate('actions.refresh')}
-          </Button>
         </>
+      }
+      refresh={
+        <ButtonRefresh
+          onClick={refresh}
+          isRefreshing={activeQuery.isFetching}
+        />
       }
     >
       <div className="space-y-6 pb-6">

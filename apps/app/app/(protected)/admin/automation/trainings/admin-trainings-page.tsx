@@ -40,7 +40,7 @@ export default function AdminTrainingsPage() {
       label="Trainings"
       description="Create and manage model trainings."
       icon={Cpu}
-      right={
+      refresh={
         <ButtonRefresh
           onClick={() => {
             void handleRefresh();

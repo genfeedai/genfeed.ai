@@ -187,13 +187,16 @@ export default function AdsResearchPageClient() {
         activeView={viewType}
         onChange={setViewType}
       />
-      <ButtonRefresh
-        isRefreshing={isLoading}
-        onClick={() => {
-          refetch();
-        }}
-      />
     </div>
+  );
+
+  const headerRefresh = (
+    <ButtonRefresh
+      isRefreshing={isLoading}
+      onClick={() => {
+        refetch();
+      }}
+    />
   );
 
   return (
@@ -214,6 +217,7 @@ export default function AdsResearchPageClient() {
           setPlatform(value as AdsResearchPlatform | 'all'),
       }}
       icon={Megaphone}
+      refresh={headerRefresh}
       right={headerRight}
     >
       {(resultsError ||

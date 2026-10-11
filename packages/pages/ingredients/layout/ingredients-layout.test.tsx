@@ -84,6 +84,10 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => ({ upload: 'Upload' })[key] ?? key,
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(() => ({
     brandSlug: 'brand-1',

@@ -280,22 +280,21 @@ function FontFamiliesListContent({
     <Container
       label="Font Families"
       description="Typography options for content creation."
+      refresh={
+        <ButtonRefresh
+          onClick={() => findAllFontFamilies(true)}
+          isRefreshing={isRefreshing}
+        />
+      }
       right={
-        <>
-          <ButtonRefresh
-            onClick={() => findAllFontFamilies(true)}
-            isRefreshing={isRefreshing}
+        scope === PageScope.SUPERADMIN ? (
+          <Button
+            label="Font Family"
+            icon={<Plus />}
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => openFontFamilyModal(ModalEnum.FONT_FAMILY)}
           />
-
-          {scope === PageScope.SUPERADMIN && (
-            <Button
-              label="Font Family"
-              icon={<Plus />}
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => openFontFamilyModal(ModalEnum.FONT_FAMILY)}
-            />
-          )}
-        </>
+        ) : undefined
       }
     >
       {scope === PageScope.SUPERADMIN && (

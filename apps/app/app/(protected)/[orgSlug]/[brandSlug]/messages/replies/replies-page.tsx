@@ -21,6 +21,7 @@ import type {
   IntentState,
   ReplyIntent,
 } from '@props/messages/replies-page.props';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import { EmptyState } from '@ui/card/EmptyState';
 import Container from '@ui/layout/container/Container';
@@ -35,7 +36,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { MessageCircleReply, RefreshCw } from 'lucide-react';
+import { MessageCircleReply } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -315,6 +316,12 @@ export default function RepliesPage() {
       className="flex flex-col gap-6"
       label="Replies"
       description={REPLIES_DESCRIPTION}
+      refresh={
+        <ButtonRefresh
+          onClick={() => void loadInbox()}
+          isRefreshing={isLoading}
+        />
+      }
     >
       <Card
         label="Inbox controls"
@@ -328,15 +335,6 @@ export default function RepliesPage() {
               variant={ButtonVariant.DEFAULT}
             >
               {isEnabling ? 'Enabling…' : 'Enable auto-replies'}
-            </Button>
-            <Button
-              isDisabled={isLoading}
-              onClick={() => void loadInbox()}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              <RefreshCw className="size-4" />
-              {translate('actions.refresh')}
             </Button>
           </div>
         }

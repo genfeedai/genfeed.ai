@@ -283,7 +283,6 @@ export default function ActivitiesList({
             </Button>
           </div>
         ) : null}
-        <ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />
         <Button
           label={bulkReadLabel}
           onClick={handleBulkMarkAsRead}
@@ -304,7 +303,6 @@ export default function ActivitiesList({
       hasUnreadActivities,
       isRefreshing,
       isMarkingRead,
-      refresh,
       selectedActivityIds.length,
       translate,
     ],
@@ -316,6 +314,7 @@ export default function ActivitiesList({
       description="Recent actions and system events."
       icon={ClipboardList}
       titleVisibility="sr-only"
+      refresh={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
       right={headerActions}
     >
       <AppTable<IActivity>

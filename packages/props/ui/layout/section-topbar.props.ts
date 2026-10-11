@@ -19,12 +19,21 @@ export interface SectionTopbarProps {
   icon?: IconComponent;
   /** Right-aligned controls: dropdowns followed by the primary action */
   actions?: ReactNode;
-  /** Ghost icon actions grouped after Help, before controls by default. */
+  /**
+   * Refresh control, rendered immediately after Help and before the tabs on
+   * every page so both always sit in the same place.
+   */
+  refresh?: ReactNode;
+  /** Ghost icon actions grouped after the tabs, before controls by default. */
   iconActions?: ReactNode;
   iconActionsPlacement?: 'before-controls' | 'after-controls';
   /** Left-aligned non-tab navigation, such as a semantic back link */
   leading?: ReactNode;
-  /** Tab strip rendered inside the bordered bar (or same row when title is chrome-only) */
+  /**
+   * Tab strip rendered inside the bordered bar. When the title is chrome-only
+   * it joins the right cluster between Refresh and the ghost actions; with a
+   * visible title it sits on its own strip under the title row.
+   */
   tabs?: ReactNode;
   /**
    * Title chrome visibility.

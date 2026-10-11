@@ -81,7 +81,7 @@ export default function AgentFailuresPage() {
     <Container
       label={translate('title')}
       description={translate('description')}
-      right={
+      refresh={
         <Button
           label={translate('refresh')}
           isDisabled={state === 'loading'}

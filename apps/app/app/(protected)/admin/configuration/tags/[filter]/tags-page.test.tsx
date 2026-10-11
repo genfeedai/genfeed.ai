@@ -7,11 +7,14 @@ vi.mock('./tags-layout', () => ({
   default: ({
     children,
     rightActions,
+    refreshAction,
   }: {
     children: React.ReactNode;
     rightActions?: React.ReactNode;
+    refreshAction?: React.ReactNode;
   }) => (
     <div data-testid="tags-layout">
+      {refreshAction}
       {rightActions}
       {children}
     </div>

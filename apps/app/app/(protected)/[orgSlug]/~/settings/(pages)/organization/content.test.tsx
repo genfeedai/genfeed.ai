@@ -12,12 +12,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: vi.fn(() => ({
-    orgHref: (path: string) => `/test-org/~${path}`,
-  })),
-}));
-
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
@@ -35,22 +29,6 @@ vi.mock('./organization-identity-card', () => ({
   default: ({ organizationId }: { organizationId: string }) => (
     <div>Organization identity for {organizationId}</div>
   ),
-}));
-
-vi.mock('./organization-identity-defaults-card', () => ({
-  default: () => <div>Organization Identity Defaults</div>,
-}));
-
-vi.mock('./organization-generation-defaults-card', () => ({
-  default: () => <div>Organization Generation Defaults</div>,
-}));
-
-vi.mock('./organization-publishing-caps-card', () => ({
-  default: () => <div>Organization Publishing Caps</div>,
-}));
-
-vi.mock('./organization-modules-card', () => ({
-  default: () => <div>Organization Modules</div>,
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -88,11 +66,6 @@ describe('SettingsOrganizationPage', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('includes organization module controls', () => {
-    render(<SettingsOrganizationPage />);
-    expect(screen.getByText('Organization Modules')).toBeInTheDocument();
-  });
-
   it('shows the organization identity instead of raw ids or the current brand', () => {
     render(<SettingsOrganizationPage />);
 
@@ -101,19 +74,6 @@ describe('SettingsOrganizationPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Organization ID')).not.toBeInTheDocument();
     expect(screen.queryByText('Current Brand')).not.toBeInTheDocument();
-  });
-
-  it('always shows Start agent CTA and hides fleet NSFW when fleet is not connected', () => {
-    render(<SettingsOrganizationPage />);
-
-    expect(screen.getByRole('link', { name: /start agent/i })).toHaveAttribute(
-      'href',
-      '/test-org/~/agent/new',
-    );
-    expect(screen.queryByText(/Reveal fleet NSFW/i)).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Fleet is not connected|Select a brand/i),
-    ).toBeInTheDocument();
   });
 
   it('offers an organization default language', () => {
@@ -127,20 +87,11 @@ describe('SettingsOrganizationPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows fleet NSFW control when the brand has fleet connected', () => {
-    vi.mocked(useBrand).mockReturnValue({
-      isReady: true,
-      organizationId: 'org-123',
-      selectedBrand: {
-        id: 'brand-1',
-        isFleetEnabled: true,
-        label: 'Default Brand',
-      },
-    } as ReturnType<typeof useBrand>);
-
+  it('leaves defaults and fleet controls to their own pages', () => {
     render(<SettingsOrganizationPage />);
 
-    expect(screen.getByText(/Reveal fleet NSFW assets/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Fleet$/i)).toBeInTheDocument();
+    expect(screen.queryByText('Organization Identity Defaults')).toBeNull();
+    expect(screen.queryByText(/start agent/i)).toBeNull();
+    expect(screen.queryByText(/Reveal fleet NSFW/i)).toBeNull();
   });
 });

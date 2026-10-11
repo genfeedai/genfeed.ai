@@ -1,3 +1,4 @@
+import { breakoutGenerationScope } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import {
   type BreakoutGenerationPlanRequest,
   BreakoutGenerationPlanService,
@@ -69,12 +70,13 @@ export class BreakoutResponseExecutionService {
         const outcome = await this.text.generate({
           textModelKey: plan.textModelKey,
           admission: {
-            scope: {
-              version: 1,
-              ...request.scope,
+            scope: breakoutGenerationScope({
+              organizationId: request.scope.organizationId,
+              brandId: request.scope.brandId,
+              platform: request.scope.platform,
               strategyId: request.strategyId,
               format: output.format,
-            },
+            }),
             credentialId: request.scope.credentialId,
             responseId: request.responseId,
             outputId,

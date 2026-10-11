@@ -174,6 +174,12 @@ const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] =
 
 interface AgentStreamState {
   acceptedReceipt?: AgentTurnAcceptedPayload;
+  /**
+   * The run's execution lookup kept returning 404 while the thread still
+   * claimed it was running, so completion polling stopped. Cleared with the
+   * rest of the stream state when the run settles.
+   */
+  isRunStalled?: boolean;
   isStreaming: boolean;
   streamingContent: string;
   streamingReasoning: string;

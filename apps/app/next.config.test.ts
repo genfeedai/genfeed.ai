@@ -18,6 +18,12 @@ import appPackage from './package.json' with { type: 'json' };
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(appDir, '../..');
 
+/**
+ * Org segment of the brand-scoped app-home redirects: `v1` is the API prefix,
+ * never an organization, so `/v1/<segment>/library` must not be redirected.
+ */
+const GUARDED_ORG_SLUG = ':orgSlug((?!v1(?:/|$))[^/]+)';
+
 /** The test redirect helper may join repeated keys; production emits both. */
 function categoryValues(target: URL): string[] {
   return target.searchParams
@@ -229,6 +235,17 @@ describe('app next.config', () => {
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);
   });
 
+  it('never redirects /v1 API paths shaped like a brand-scoped app home', async () => {
+    const redirects = await config.redirects?.();
+    const sources = redirects?.map((redirect) => redirect.source) ?? [];
+
+    // `/v1/tags/library` would otherwise match `/:orgSlug/:brandSlug/library`.
+    expect(sources).not.toContain('/:orgSlug/:brandSlug/library');
+    expect(sources).toContain(
+      '/:orgSlug((?!v1(?:/|$))[^/]+)/:brandSlug/library',
+    );
+  });
+
   it('redirects retired Analytics trends routes to Discovery', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({
@@ -334,7 +351,7 @@ describe('app next.config', () => {
           overviewPath,
         ),
         permanent: true,
-        source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+        source: createBrandAppRoute(GUARDED_ORG_SLUG, ':brandSlug', appRoot),
       });
       // Must not collapse overview back onto bare root.
       expect(
@@ -363,7 +380,7 @@ describe('app next.config', () => {
       ),
       permanent: true,
       source: createBrandAppRoute(
-        ':orgSlug',
+        GUARDED_ORG_SLUG,
         ':brandSlug',
         APP_ROUTES.LIBRARY.ROOT,
       ),

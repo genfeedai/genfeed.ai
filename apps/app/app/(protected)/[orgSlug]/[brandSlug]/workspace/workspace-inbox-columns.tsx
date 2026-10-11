@@ -1,9 +1,8 @@
 import { STATUS_PILL_CLASS } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-pills';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { Task, TaskStatus } from '@services/management/tasks.service';
 import Badge from '@ui/display/badge/Badge';
-import { Button } from '@ui/primitives/button';
 
 import {
   formatTaskStatus,
@@ -21,8 +20,6 @@ export function getWorkspaceInboxTableColumns(
   statusTranslate: WorkspaceTranslate,
   statusLabels: Record<TaskStatus, string>,
   isUnread: (task: Task) => boolean,
-  markRead: (task: Task) => void,
-  isReadPending: boolean,
 ) {
   return [
     {
@@ -78,26 +75,6 @@ export function getWorkspaceInboxTableColumns(
           )}
         </span>
       ),
-    },
-    {
-      key: 'read',
-      header: <span className="sr-only">{translate('inbox.readActions')}</span>,
-      className: 'w-28 text-right',
-      render: (task: Task) =>
-        isUnread(task) ? (
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            withWrapper={false}
-            disabled={isReadPending}
-            onClick={(event) => {
-              event.stopPropagation();
-              markRead(task);
-            }}
-          >
-            {translate('inbox.markRead')}
-          </Button>
-        ) : null,
     },
   ];
 }

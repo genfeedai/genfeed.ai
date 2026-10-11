@@ -213,12 +213,15 @@ vi.mock('@ui/display/table/Table', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    refresh,
     right,
   }: {
     children: ReactNode;
+    refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
+      <div data-testid="container-refresh">{refresh}</div>
       <div>{right}</div>
       {children}
     </section>
@@ -386,7 +389,13 @@ describe('FoldersList', () => {
       'Archive Folder',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh folders' }));
+    const refreshButton = screen.getByRole('button', {
+      name: 'Refresh folders',
+    });
+    expect(screen.getByTestId('container-refresh')).toContainElement(
+      refreshButton,
+    );
+    fireEvent.click(refreshButton);
     fireEvent.click(screen.getByRole('button', { name: 'Inactive' }));
 
     await waitFor(() => {

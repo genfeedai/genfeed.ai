@@ -3,6 +3,7 @@ import {
   readRecordedRunFailure,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import {
+  MAX_MISSING_EXECUTION_POLLS,
   type PendingStreamCompletion,
   STREAM_COMPLETION_GRACE_PERIOD_MS,
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
@@ -41,6 +42,11 @@ export type ResolveStreamFromMessagesDeps = {
    */
   isCurrentPending: (pending: PendingStreamCompletion) => boolean;
   isThreadVisible: (threadId: string) => boolean;
+  /**
+   * The execution lookup kept returning 404 while the thread still reports the
+   * run as live. Polling has stopped; the UI offers to keep waiting or retry.
+   */
+  markRunStalled?: (pending: PendingStreamCompletion) => void;
   resetStreamState: () => void;
   scheduleCompletionWatchdog: () => void;
   setActiveRun: (
@@ -91,7 +97,9 @@ async function readPersistedRun(
 ): Promise<Pick<IWorkflowExecution, 'status' | 'error'> | null> {
   if (!pending.runId) return null;
   try {
-    return await apiService.getWorkflowExecution(pending.runId);
+    const execution = await apiService.getWorkflowExecution(pending.runId);
+    pending.missingExecutionPolls = 0;
+    return execution;
   } catch (error) {
     // Interactive agent workflows are hidden from the customer execution
     // endpoint. Older servers serialize that absence as data:null; newer
@@ -101,6 +109,7 @@ async function readPersistedRun(
       (error instanceof AgentApiDecodeError &&
         error.reason === 'missing-resource');
     if (!isMissingResource) throw error;
+    pending.missingExecutionPolls = (pending.missingExecutionPolls ?? 0) + 1;
 
     // This fresh request independently authorizes access to the thread. Never
     // infer completion from another run, cached UI state or a denied snapshot.
@@ -198,6 +207,15 @@ export async function resolveStreamFromMessages(
         persistedExecution?.status === WorkflowExecutionStatus.PENDING ||
         persistedExecution?.status === WorkflowExecutionStatus.RUNNING
       ) {
+        // The lookup 404s while the snapshot keeps saying "running": the job
+        // is gone. Polling forever only repeats the 404, so stop and surface
+        // the stall to the user.
+        if (
+          (pending.missingExecutionPolls ?? 0) >= MAX_MISSING_EXECUTION_POLLS
+        ) {
+          deps.markRunStalled?.(pending);
+          return;
+        }
         deps.updateThreadSummary(pending.threadId, {
           runStatus:
             persistedExecution.status === WorkflowExecutionStatus.PENDING

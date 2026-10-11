@@ -1033,7 +1033,54 @@
     "processingSource": "Processing this source…",
     "downloadingSource": "Downloading source media…",
     "extractingSourceAudio": "Extracting source audio…",
-    "transcribingAndAnalyzingSource": "Transcribing and analyzing this source…"
+    "transcribingAndAnalyzingSource": "Transcribing and analyzing this source…",
+    "onboarding": {
+      "title": "Turn one long video into a batch of short clips",
+      "description": "Add a YouTube link or upload a file. Genfeed finds the strongest moments, cuts them and gets them ready to publish.",
+      "presetsTitle": "Start with a preset",
+      "presetsDescription": "A preset picks the clip style and how many highlights to find. You add the video next, so nothing is processed until you start."
+    },
+    "presets": {
+      "listAria": "Clip presets",
+      "use": "Use this preset",
+      "useAria": "Start a clip project with the {title} preset",
+      "appliedStatus": "{title} preset applied: up to {count} clips scoring {score} or higher. Add a video to start.",
+      "maxClips": "{count, plural, one {Up to # clip} other {Up to # clips}}",
+      "minScore": "Score {score}+",
+      "modes": {
+        "avatar": "Avatar",
+        "raw-cut": "Raw cut"
+      },
+      "shelfTitle": "Start from a preset",
+      "seeAll": "See all presets",
+      "showFewer": "Show fewer",
+      "items": {
+        "podcastHighlights": {
+          "title": "Podcast highlights",
+          "description": "Pull the most quotable moments out of a long conversation."
+        },
+        "webinarSnippets": {
+          "title": "Webinar snippets",
+          "description": "Turn a recording into short answers and key takeaways."
+        },
+        "interviewSoundbites": {
+          "title": "Interview soundbites",
+          "description": "Find the punchy one-liners and strong opinions in an interview."
+        },
+        "tutorialTips": {
+          "title": "Tutorial quick tips",
+          "description": "Cut a how-to into bite-sized tips that stand on their own."
+        },
+        "keynoteMoments": {
+          "title": "Talk and keynote moments",
+          "description": "Keep only the strongest stories and bold claims from a talk."
+        },
+        "avatarRemix": {
+          "title": "Avatar re-voice",
+          "description": "Re-tell each highlight with an AI avatar and voice. Needs avatar and voice defaults."
+        }
+      }
+    }
   },
   "studioStoryboard": {
     "animatic": {
@@ -1054,11 +1101,9 @@
       "shotStatus": "Shot {ordinal}",
       "shotStillUnavailable": "Shot {ordinal}: Still preview unavailable",
       "stillUnavailable": "Still preview unavailable",
-      "subtitle": "Stills and dialogue preview · no generation credits",
       "title": "Animatic"
     },
     "autoMerge": {
-      "description": "The finished transitions are merged into one video with these settings.",
       "label": "Auto-merge"
     },
     "conflict": {
@@ -1081,7 +1126,6 @@
       "chooseOwnedVideo": "Choose an owned video up to 60 seconds and 100 MiB.",
       "chooseStartingImage": "Choose a starting image",
       "clearVideo": "Clear video",
-      "description": "Save your brief or video, then review a credit quote before generating.",
       "format": "Format",
       "formatAria": "Storyboard format",
       "fromBrief": "From a brief",
@@ -1092,20 +1136,16 @@
       "retrySaving": "Retry saving storyboard",
       "runtimeBudget": "Runtime budget (seconds)",
       "secondsUnit": "s",
-      "runtimeBudgetHelp": "Choose up to 60 seconds.",
       "save": "Save storyboard",
       "saving": "Saving…",
       "sourceAria": "Storyboard source",
       "startingImage": "Starting image",
-      "startingImageHelp": "A starting image can replace the brief. It is saved as a reference and requires generated stills before approval.",
       "title": "Create a storyboard",
       "uploadVideo": "Upload a video",
-      "uploadedVideo": "Uploaded video",
-      "videoHelp": "Uploading or selecting a video does not create a run. Its ownership, duration, and size are validated when you continue."
+      "uploadedVideo": "Uploaded video"
     },
     "draft": {
       "brief": "Brief",
-      "briefDescription": "Source changes mark existing stills stale and require a new review.",
       "loading": "Loading storyboard…",
       "regenerateBeforeEditor": "Storyboard changed. Regenerate stale shots before opening Editor.",
       "saveBeforeLeave": "Your edits could not be saved. Retry saving before leaving.",
@@ -1125,7 +1165,6 @@
       "beforeApproving": "Before approving:",
       "capabilitiesUnavailable": "Video model capabilities are unavailable.",
       "cast": "Cast",
-      "castDescription": "Each speaker keeps one voice across their dialogue.",
       "changeAvatar": "Change avatar image",
       "chooseAvatar": "Choose avatar image",
       "chooseFormat": "Choose format",
@@ -1152,7 +1191,6 @@
       "noSupportedDuration": "No supported duration fits the remaining runtime.",
       "noVoices": "No usable saved voices. Save a usable voice in Voices Library before assigning it.",
       "notes": "Notes",
-      "notesHelp": "Notes are saved with the plan and excluded from generation.",
       "referenceFallback": "Reference {ordinal}",
       "reloadCapabilities": "Reload model capabilities",
       "removeReference": "Remove {label}",
@@ -1233,16 +1271,74 @@
       "needsTwoFrames": "Select at least two frames",
       "summary": "{frames, plural, one {# frame} other {# frames}} / {transitions, plural, one {# transition} other {# transitions}}"
     },
+    "onboarding": {
+      "description": "From a one-line idea or an existing video.",
+      "otherWaysTitle": "Or start another way",
+      "presetsTitle": "Start with a preset",
+      "remixAction": "Choose a video",
+      "remixDescription": "Rebuild a post, ad or your own video.",
+      "remixTitle": "Remix a video",
+      "scratchAction": "New storyboard",
+      "scratchDescription": "Write your own brief.",
+      "scratchTitle": "Start from scratch",
+      "title": "Turn an idea into a storyboard"
+    },
+    "presets": {
+      "chipsAria": "Storyboard presets",
+      "create": "Try this",
+      "createAria": "Create a storyboard from {title}",
+      "creating": "Creating…",
+      "items": {
+        "beforeAfter": {
+          "description": "Show the starting point and the finished result side by side.",
+          "title": "Before and after"
+        },
+        "behindTheScenes": {
+          "description": "Show how the work really gets made.",
+          "title": "Behind the scenes"
+        },
+        "customerStory": {
+          "description": "A casual, user-generated style testimonial with candid B-roll.",
+          "title": "Customer story"
+        },
+        "founderStory": {
+          "description": "The problem, the early days, the turning point and the mission.",
+          "title": "Founder story"
+        },
+        "howTo": {
+          "description": "Teach one skill step by step and end on a clear result.",
+          "title": "How-to tutorial"
+        },
+        "productLaunch": {
+          "description": "Tease a product with fast cuts, then reveal it with a bold promise.",
+          "title": "Product launch teaser"
+        },
+        "seasonRecap": {
+          "description": "Relive the biggest moments of an event or season.",
+          "title": "Event or season recap"
+        },
+        "threeStepExplainer": {
+          "description": "A problem, three clear steps and the outcome.",
+          "title": "3-step explainer"
+        }
+      },
+      "listAria": "Storyboard presets",
+      "prefillAria": "Use the {title} preset",
+      "runtime": "{seconds}s",
+      "seeAll": "See all presets",
+      "selectBrand": "Choose a brand to start a storyboard from a preset.",
+      "shelfTitle": "Start from a preset",
+      "shots": "{count, plural, one {# shot} other {# shots}}",
+      "showFewer": "Show fewer"
+    },
     "recipe": {
       "addReferences": "Add references",
       "aspectRatio": "Aspect ratio",
-      "description": "Saved to this run when you generate.",
       "duration": "Duration (seconds)",
       "generate": "Generate",
       "objective": "Objective",
       "outputCount": "{count}x",
       "outputs": "Outputs",
-      "referencesHelp": "Library references guide the look. Brand defaults are added automatically.",
       "referenceLabel": "Reference {ordinal}",
       "referenceUnavailable": "Reference {ordinal} unavailable",
       "regionLabel": "Run recipe",
@@ -1262,7 +1358,6 @@
       "outputAssetLabel": "Output {ordinal} · Asset {asset}",
       "outputAssetUnavailable": "Output {ordinal} · Asset {asset} unavailable",
       "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
-      "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
       "preparePaidDraft": "Prepare paused Meta draft",
       "readinessTitle": "{state} run",
       "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
@@ -1288,8 +1383,6 @@
     },
     "runs": {
       "all": "All storyboards",
-      "description": "Every storyboard run for this brand. Open one to continue where you left off.",
-      "empty": "No storyboards yet. Remix a video from Discovery or build one from your images.",
       "lastEdited": "Edited {time}",
       "more": "Load more",
       "needsYou": "Needs you",
@@ -1319,7 +1412,7 @@
     },
     "scenes": {
       "title": "Original ad scenes",
-      "limits": "2–6 scenes, English, 3–15 planned seconds per scene. Speech determines actual timing. Guided identity likeness is not guaranteed.",
+      "limits": "2–6 scenes, English, 3–15 seconds each.",
       "provenance": "The imported URL remains source provenance. Analysis uses the selected Library video; source pixels and audio are never generation inputs.",
       "attach": "Attach Library video for analysis",
       "remove": "Remove analysis attachment",
@@ -1384,10 +1477,7 @@
       "references": "Session references",
       "searchReferences": "Find a reference…",
       "removeReference": "Remove {title}",
-      "noReferences": "Add a starting image or style references from your Library.",
       "noMatchingReferences": "No references match your search.",
-      "emptyTitle": "Tell your story",
-      "emptyDescription": "Describe your video, choose its format and add references. Your saved storyboard will contain editable shots, timing and a preview.",
       "shots": "Shots",
       "styles": "Style references",
       "characters": "Characters",
@@ -1401,10 +1491,8 @@
       "format": "Format",
       "generateScenes": "Generate scenes",
       "generatingScene": "Generating scene {current} of {total}",
-      "intro": "Build multi-frame video: interpolate stills, script scenes from your generated images, or merge finished clips.",
       "merge": "Merge",
       "mergeClips": "Merge clips",
-      "mergeDescription": "Pick two or more finished videos and stitch them into one timeline.",
       "mergeEmpty": "No videos selected yet.",
       "mergeTitle": "Merge videos",
       "modes": {
@@ -5200,7 +5288,55 @@
     "scheduleResult": "{scheduled} scheduled; {failed} failed.",
     "retryLoad": "Retry loading",
     "workflowSubscriptionRequired": "An active paid subscription is required to use saved workflows. You can still generate ideas with credits.",
-    "workflowUnavailable": "Workflow access could not be verified. Refresh module settings before using a saved workflow."
+    "workflowUnavailable": "Workflow access could not be verified. Refresh module settings before using a saved workflow.",
+    "onboarding": {
+      "title": "Turn your brand into a week of content",
+      "description": "Turbo drafts content ideas from your brand, generates them in bulk and lines up the keepers to publish. Pick a preset and review every idea before anything is generated.",
+      "presetsTitle": "Start with a preset",
+      "presetsDescription": "One click saves an editable draft. You review a credit quote before anything is generated.",
+      "otherWaysTitle": "Or start another way",
+      "workflowTitle": "Run a saved workflow",
+      "workflowDescription": "Apply one of your workflows to every image or video you add, then review and schedule the results.",
+      "workflowAction": "Start from a workflow"
+    },
+    "presets": {
+      "listAria": "Turbo presets",
+      "create": "Try this",
+      "createAria": "Create a Turbo project from {title}",
+      "creating": "Creating…",
+      "createFailed": "Could not create the project. Try again.",
+      "selectBrand": "Choose a brand to start a project from a preset.",
+      "ideas": "{count, plural, one {# idea} other {# ideas}}",
+      "shelfTitle": "Start from a preset",
+      "seeAll": "See all presets",
+      "showFewer": "Show fewer",
+      "items": {
+        "weeklyMix": {
+          "title": "Weekly content mix",
+          "description": "A balanced week: a product highlight, a tip, a behind-the-scenes moment and a customer story."
+        },
+        "videoShorts": {
+          "title": "Short-form video burst",
+          "description": "Scroll-stopping videos, each built around one strong hook and a single takeaway."
+        },
+        "avatarExplainers": {
+          "title": "Avatar explainers",
+          "description": "A presenter answers the questions customers ask most, in plain language."
+        },
+        "imageBatch": {
+          "title": "Image post batch",
+          "description": "Clean on-brand stills with a bold headline and one clear idea each."
+        },
+        "launchCountdown": {
+          "title": "Launch countdown",
+          "description": "Tease, reveal, social proof and last call, each with its own hook."
+        },
+        "mythBusting": {
+          "title": "Myth busting",
+          "description": "Name a common misconception in your niche and correct it with proof."
+        }
+      }
+    }
   },
   "studioMotion": {
     "title": "Motion",
@@ -5268,7 +5404,50 @@
     "loadProps": "Load props for editing",
     "exportOutputs": "Separate export settings",
     "inheritedOutputs": "Prompt, source and props revisions keep these outputs:",
-    "rendererProvenance": "· {model} · Remotion {version}"
+    "rendererProvenance": "· {model} · Remotion {version}",
+    "onboarding": {
+      "title": "Describe it, preview it, export it",
+      "description": "Motion turns a prompt into an animated video or still frames you can drop into your Library. Pick a preset to fill in the form, then edit it your way.",
+      "presetsTitle": "Start with a preset",
+      "presetsDescription": "A preset only fills in the form. You review a credit quote and confirm it before anything is rendered."
+    },
+    "presets": {
+      "listAria": "Motion presets",
+      "use": "Use this preset",
+      "applied": "Applied",
+      "useAria": "Fill the form with the {title} preset",
+      "appliedStatus": "Preset applied. Review the prompt below, then get a quote.",
+      "seconds": "{seconds}s",
+      "shelfTitle": "Start from a preset",
+      "seeAll": "See all presets",
+      "showFewer": "Show fewer",
+      "items": {
+        "kineticQuote": {
+          "title": "Kinetic quote card",
+          "description": "A punchy quote that lands word by word on a bold background."
+        },
+        "statCounter": {
+          "title": "Animated stat counter",
+          "description": "A headline number that counts up with a label and progress bar."
+        },
+        "lowerThird": {
+          "title": "Lower-third title",
+          "description": "A name and title that slide over a video and back out."
+        },
+        "featureCallouts": {
+          "title": "Feature callout reel",
+          "description": "Three feature cards that take turns, ending on a call to action."
+        },
+        "logoReveal": {
+          "title": "Logo reveal sting",
+          "description": "A short, crisp reveal that settles into a wordmark and tagline."
+        },
+        "barChart": {
+          "title": "Animated bar chart",
+          "description": "Five bars that grow in sequence, with the leader highlighted."
+        }
+      }
+    }
   },
   "adminModelPricing": {
     "catalog": "Catalog",

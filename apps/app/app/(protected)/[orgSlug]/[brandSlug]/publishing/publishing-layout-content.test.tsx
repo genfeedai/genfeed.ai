@@ -117,7 +117,7 @@ describe('PublishingLayoutContent', () => {
     );
   });
 
-  it('puts existing search left and Help, queue, refresh, filters, New post on the right', () => {
+  it('puts existing search left and Help, refresh, queue, filters, New post on the right', () => {
     render(
       <PageHelpProvider help={{ title: 'Publishing', body: 'Publishing help' }}>
         <PublishingLayoutContent>
@@ -132,8 +132,8 @@ describe('PublishingLayoutContent', () => {
     const controls = [
       search,
       screen.getByRole('button', { name: 'About this page' }),
-      screen.getByRole('link', { name: 'Approval queue' }),
       screen.getByRole('button', { name: /refresh/i }),
+      screen.getByRole('link', { name: 'Approval queue' }),
       screen.getByRole('button', { name: 'Filter posts' }),
       screen.getByRole('button', { name: /new post/i }),
     ];

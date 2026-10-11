@@ -23,6 +23,12 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     orgHref: (path: string) => `/acme/~${path}`,
   }),
 }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
+  useFeatureFlag: () => true,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
@@ -112,9 +118,7 @@ describe('TurboProjectsPage load recovery', () => {
         ).toBeEnabled(),
       );
       fireEvent.click(screen.getByRole('button', { name: 'Retry loading' }));
-      await screen.findByText(
-        'Create a saved project from ideas or a workflow.',
-      );
+      await screen.findByText('Turn your brand into a week of content');
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       expect(mocks.list).toHaveBeenCalledTimes(2);
       expect(mocks.list).toHaveBeenLastCalledWith(

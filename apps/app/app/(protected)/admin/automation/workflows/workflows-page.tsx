@@ -315,7 +315,7 @@ export default function WorkflowsPage() {
       label={translate('title')}
       description={translate('description')}
       icon={ClipboardList}
-      right={
+      refresh={
         <ButtonRefresh
           onClick={() => void loadWorkflows(true)}
           isRefreshing={isRefreshing}

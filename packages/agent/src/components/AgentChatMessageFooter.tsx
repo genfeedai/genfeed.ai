@@ -44,7 +44,7 @@ export function AgentChatMessageFooter({
   const actionButtons = (
     <div
       className={cn(
-        'flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+        'flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100',
         // Touch has no hover affordance, so actions remain discoverable there.
         '[@media(hover:none)]:opacity-100',
       )}

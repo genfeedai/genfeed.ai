@@ -409,6 +409,13 @@ export function createAgentStreamController(
         entry.ownerGeneration === generation &&
         streamRuntime.pendingCompletionRef.current === current,
       isThreadVisible,
+      markRunStalled: (current) => {
+        if (streamRuntime.pendingCompletionRef.current !== current) return;
+        clearCompletionWatchdog();
+        presentationStore.setState((state) => ({
+          stream: { ...state.stream, isRunStalled: true },
+        }));
+      },
       resetStreamState,
       scheduleCompletionWatchdog,
       setActiveRun,
@@ -971,6 +978,24 @@ export function createAgentStreamController(
     clearMessages();
   };
 
+  const abandonRun = () => {
+    abortRef.current?.abort();
+    streamRuntime.pendingCompletionRef.current = null;
+    clearCompletionWatchdog();
+    resetStreamState();
+    releaseCompletedSubscriptions();
+  };
+
+  const resumeRunWatch = () => {
+    const pending = streamRuntime.pendingCompletionRef.current;
+    presentationStore.setState((state) => ({
+      stream: { ...state.stream, isRunStalled: false },
+    }));
+    if (!pending) return;
+    pending.missingExecutionPolls = 0;
+    scheduleCompletionWatchdog();
+  };
+
   entry.recover = () => {
     const pending = entry.pendingCompletionRef.current;
     if (!pending) return;
@@ -1082,11 +1107,13 @@ export function createAgentStreamController(
     scheduleCompletionWatchdog();
   }
   return {
+    abandonRun,
     adoptRun,
     beginRunHandoff,
     cancelRunHandoff,
     clearChat,
     isStreaming,
+    resumeRunWatch,
     sendMessage,
   };
 }

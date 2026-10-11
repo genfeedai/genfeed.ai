@@ -78,8 +78,17 @@ interface ContainerBaseProps {
   left?: ReactNode;
   /** Left-aligned module-bar tools such as search. Maps to SectionTopbar `leading`. */
   leading?: ReactNode;
+  /**
+   * Module-bar controls, then the primary action last. Ghost actions that are
+   * not Refresh belong in `iconActions`; Refresh belongs in `refresh`.
+   */
   right?: ReactNode;
-  /** Module toolbar ghost actions, placed beside Help and the inspector. */
+  /**
+   * Refresh control. SectionTopbar renders it right after Help and before the
+   * tabs, so it sits in the same place on every page.
+   */
+  refresh?: ReactNode;
+  /** Module toolbar ghost actions, placed after the tabs and before controls. */
   iconActions?: ReactNode;
   iconActionsPlacement?: 'before-controls' | 'after-controls';
   /**

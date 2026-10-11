@@ -213,16 +213,13 @@ export default function OutreachCampaignDetail() {
       label={campaign?.label ?? translate('fallbackTitle')}
       description={campaign?.description || translate('fallbackDescription')}
       icon={Rocket}
-      right={
-        <>
-          <ButtonRefresh
-            onClick={() => loadCampaign(true)}
-            isRefreshing={isRefreshing}
-          />
-
-          <CollectionItemActions overflow={overflow} primary={primary} />
-        </>
+      refresh={
+        <ButtonRefresh
+          onClick={() => loadCampaign(true)}
+          isRefreshing={isRefreshing}
+        />
       }
+      right={<CollectionItemActions overflow={overflow} primary={primary} />}
     >
       <div className="space-y-6">
         {campaign && !isPairExecutable && pairEvaluation ? (

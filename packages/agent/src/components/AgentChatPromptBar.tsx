@@ -45,6 +45,9 @@ type AgentChatPromptBarProps = {
   isComposerUnavailable?: boolean;
   isReadOnly: boolean;
   isRunActive: boolean;
+  isTurnStalled?: boolean;
+  onKeepWaiting?: () => void;
+  onStopAndRetry?: () => void | Promise<void>;
   placeholder?: string;
   showSuggestedActionsWhenNotEmpty: boolean;
   promptBarSuggestions: ReactNode;
@@ -98,6 +101,9 @@ export function AgentChatPromptBar({
   isComposerUnavailable = false,
   isReadOnly,
   isRunActive,
+  isTurnStalled = false,
+  onKeepWaiting,
+  onStopAndRetry,
   placeholder,
   showSuggestedActionsWhenNotEmpty,
   promptBarSuggestions,
@@ -137,8 +143,11 @@ export function AgentChatPromptBar({
       error={error}
       isRunActive={isRunActive}
       isSubmittingInputRequest={isSubmittingInputRequest}
+      isTurnStalled={isTurnStalled}
       latestProposedPlan={latestProposedPlan}
       onClearError={onClearError}
+      onKeepWaiting={onKeepWaiting}
+      onStopAndRetry={onStopAndRetry}
       onSubmitInputRequest={onSubmitInputRequest}
       pendingInputRequest={pendingInputRequest}
       socketConnectionState={socketConnectionState}
@@ -156,6 +165,7 @@ export function AgentChatPromptBar({
   const hasComposerStatusPanel =
     hasRunningTasks ||
     latestProposedPlan?.status === 'awaiting_approval' ||
+    (isTurnStalled && isRunActive) ||
     Boolean(pendingInputRequest);
   const hasFollowUpChips =
     showSuggestedActionsWhenNotEmpty &&

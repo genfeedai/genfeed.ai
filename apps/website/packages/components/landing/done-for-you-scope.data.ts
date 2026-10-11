@@ -39,7 +39,7 @@ export const DONE_FOR_YOU_FOCUS_LINKS: readonly DoneForYouFocusLink[] = [
   { href: '/founder-content', label: 'Founder content' },
   { href: '/podcast-to-content', label: 'Podcast to content' },
   { href: '/launch-content', label: 'Launch content' },
-  { href: '/fleet', label: 'Model fleet and AI influencers' },
+  { href: '/custom-models', label: 'Custom models and AI influencers' },
   { href: '/x', label: 'X growth' },
   { href: '/linkedin', label: 'LinkedIn growth' },
   { href: '/instagram', label: 'Instagram growth' },

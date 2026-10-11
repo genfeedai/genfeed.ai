@@ -43,9 +43,15 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children, right }: { children: ReactNode; right: ReactNode }) => (
+  default: ({
+    children,
+    refresh,
+  }: {
+    children: ReactNode;
+    refresh?: ReactNode;
+  }) => (
     <div>
-      {right}
+      {refresh}
       {children}
     </div>
   ),

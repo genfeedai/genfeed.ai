@@ -18,7 +18,7 @@ import { resolvePairedRunIdentity } from '@pages/studio/storyboard/utils/storybo
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
-import { Copy, GitBranch, Megaphone, Send, Sparkles } from 'lucide-react';
+import { Copy, GitBranch, Megaphone, Send } from 'lucide-react';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -417,13 +417,6 @@ export default function StoryboardRunPanel({
             campaignId: run.paidDraft.campaignId,
           })}
         </Alert>
-      ) : null}
-
-      {!run.execution ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Sparkles className="size-4" />
-          {translate('run.prefillHelp')}
-        </div>
       ) : null}
     </section>
   );

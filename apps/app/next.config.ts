@@ -136,7 +136,13 @@ function appHomeRedirects(
     {
       destination: createBrandAppRoute(':orgSlug', ':brandSlug', homePath),
       permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+      // `v1` is the API prefix, never an organization: without the guard this
+      // rule also matches `/v1/<segment>/library` and redirects the API call.
+      source: createBrandAppRoute(
+        ':orgSlug((?!v1(?:/|$))[^/]+)',
+        ':brandSlug',
+        appRoot,
+      ),
     },
     {
       destination: createOrganizationAppRoute(':orgSlug', homePath),

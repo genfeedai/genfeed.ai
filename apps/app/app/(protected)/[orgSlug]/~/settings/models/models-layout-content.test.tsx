@@ -1,10 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModelsLayoutContent from './models-layout-content';
 
 const mockPush = vi.fn();
+const mockSearchParams = vi.hoisted(() => ({ value: '' }));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({ title: 'Custom Models' })[key] ?? key,
+}));
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand', orgSlug: 'acme' }),
@@ -17,7 +23,7 @@ vi.mock('next/navigation', () => ({
     refresh: vi.fn(),
     replace: vi.fn(),
   }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mockSearchParams.value),
 }));
 
 vi.mock('@contexts/models/models-context/models-context', () => ({
@@ -52,6 +58,10 @@ beforeAll(() => {
 });
 
 describe('ModelsLayoutContent', () => {
+  beforeEach(() => {
+    mockSearchParams.value = '';
+  });
+
   it('should render without crashing', () => {
     const { container } = render(
       <ModelsLayoutContent>
@@ -116,7 +126,7 @@ describe('ModelsLayoutContent', () => {
     );
   });
 
-  it('keeps the type filter and refresh on one non-wrapping row', () => {
+  it('keeps the type filter on one non-wrapping row and refresh in the refresh slot', () => {
     render(
       <ModelsLayoutContent>
         <div>children</div>
@@ -130,8 +140,26 @@ describe('ModelsLayoutContent', () => {
     expect(row.className).toMatch(/items-center/);
     expect(row.className).not.toMatch(/flex-wrap/);
     expect(row).toContainElement(filter);
-    expect(row).toContainElement(refresh);
+    // Refresh lives in the Container `refresh` slot, not the actions row.
+    expect(row).not.toContainElement(refresh);
     expect(filter.className).toMatch(/\bw-36\b/);
     expect(filter.className).not.toMatch(/\bw-full\b/);
+  });
+
+  it('hides refresh on the Custom Models tab', () => {
+    mockSearchParams.value = 'type=custom-models';
+
+    render(
+      <ModelsLayoutContent>
+        <div>children</div>
+      </ModelsLayoutContent>,
+    );
+
+    expect(
+      screen.getByRole('combobox', { name: 'Model type' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Refresh' }),
+    ).not.toBeInTheDocument();
   });
 });

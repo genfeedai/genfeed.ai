@@ -23,6 +23,8 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useEffect, useState } from 'react';
+import TurboPresetShelf from './TurboPresetShelf';
+import TurboProjectsOnboarding from './TurboProjectsOnboarding';
 import { createTurboProjectsApi } from './turbo-projects-api';
 
 export default function TurboProjectsPage() {
@@ -170,7 +172,8 @@ export default function TurboProjectsPage() {
     >
       <div className="flex flex-col gap-8">
         {error && <p role="alert">{error}</p>}
-        {!loading && !projects.length && !error && <p>{t('empty')}</p>}
+        {!loading && !projects.length && !error && <TurboProjectsOnboarding />}
+        {projects.length > 0 && <TurboPresetShelf />}
         <CollectionSection title={t('recent')} itemCount={recent.length}>
           <CollectionList>
             {recent.map((project) => (

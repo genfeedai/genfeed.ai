@@ -101,10 +101,11 @@ import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/Prom
 import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp, WandSparkles } from 'lucide-react';
+import { WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useState } from 'react';
@@ -1132,20 +1133,18 @@ export default function StudioPlaygroundComposer({
                   isDisabled={isGenerating}
                   label={translate('generate')}
                 >
-                  <Button
+                  <PromptBarSendButton
                     ariaLabel={translate('generate')}
-                    className={cn(
-                      'size-8 shrink-0 min-h-0 min-w-0 p-0',
-                      isSubmitBlocked && 'cursor-not-allowed opacity-50',
-                    )}
-                    aria-disabled={isSubmitBlocked || undefined}
-                    icon={<ArrowUp className={SHELL_ICON_CLASS} />}
+                    className={
+                      isSubmitBlocked
+                        ? 'cursor-not-allowed opacity-50'
+                        : undefined
+                    }
+                    density="compact"
+                    isAriaDisabled={Boolean(isSubmitBlocked)}
                     isDisabled={isGenerating}
                     isLoading={isGenerating}
                     onClick={guardedSubmit}
-                    size={ButtonSize.ICON}
-                    variant={ButtonVariant.DEFAULT}
-                    withWrapper={false}
                   />
                 </StudioGenerationSummary>
               }

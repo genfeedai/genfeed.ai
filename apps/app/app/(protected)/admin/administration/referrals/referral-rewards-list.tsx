@@ -105,7 +105,7 @@ export default function ReferralRewardsList() {
       label="Referral Rewards"
       description="Audit referral attribution, pending settlements, grants, and reversals"
       icon={Gift}
-      right={
+      refresh={
         <ButtonRefresh
           onClick={() => refetch()}
           isRefreshing={isFetching && !isLoading}

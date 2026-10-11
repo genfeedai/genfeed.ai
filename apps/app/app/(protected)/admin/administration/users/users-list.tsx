@@ -155,7 +155,7 @@ export default function UsersList() {
       label={translate('title')}
       description={translate('description')}
       icon={Users}
-      right={
+      refresh={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
     >

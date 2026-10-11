@@ -15,6 +15,6 @@ export function getMasonryActionsBarClassName(isRevealed: boolean): string {
     'focus-within:pointer-events-auto focus-within:opacity-100',
     isRevealed
       ? 'pointer-events-auto opacity-100'
-      : 'pointer-events-none opacity-0',
+      : 'pointer-events-none opacity-0 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100',
   );
 }

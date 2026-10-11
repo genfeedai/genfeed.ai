@@ -88,10 +88,12 @@ export default function BotsPage() {
       label="Bots"
       description="Manage automation bots for X/Twitter, Twitch, and YouTube"
       icon={Cpu}
-      right=<ButtonRefresh
-        onClick={() => loadBots(true)}
-        isRefreshing={isRefreshing}
-      />
+      refresh={
+        <ButtonRefresh
+          onClick={() => loadBots(true)}
+          isRefreshing={isRefreshing}
+        />
+      }
     >
       <WorkspaceSurface
         title="Automation Bots"

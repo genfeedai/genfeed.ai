@@ -225,14 +225,13 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
             : undefined
         }
         leading={leadingNode}
+        refresh={
+          <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+        }
         iconActions={
           <>
             {viewToggleNode}
             {exportNode}
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
           </>
         }
         right={listActions}

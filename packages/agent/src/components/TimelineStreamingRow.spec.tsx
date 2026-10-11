@@ -185,4 +185,20 @@ describe('TimelineStreamingRow', () => {
     expect(screen.getAllByText('Check Onboarding')).toHaveLength(1);
     expect(screen.queryByText('Running check_onboarding_status')).toBeNull();
   });
+
+  it('drops the live timer when the turn is stalled', () => {
+    const { rerender } = render(
+      <TimelineStreamingRow
+        entry={buildEntry({ runDurationLabel: '1m 25s' })}
+      />,
+    );
+    expect(screen.getByText('Working for 1m 25s')).toBeInTheDocument();
+
+    rerender(
+      <TimelineStreamingRow
+        entry={buildEntry({ isStalled: true, runDurationLabel: '1m 25s' })}
+      />,
+    );
+    expect(screen.queryByText(/Working for/)).not.toBeInTheDocument();
+  });
 });

@@ -18,6 +18,8 @@ import { useTranslations } from 'next-intl';
 import ClipModeSelector from './components/ClipModeSelector';
 import ClipReferenceFrameSelector from './components/ClipReferenceFrameSelector';
 import ClipsInputForm from './components/ClipsInputForm';
+import ClipsOnboarding from './components/ClipsOnboarding';
+import ClipsPresetShelf from './components/ClipsPresetShelf';
 import ClipsProgressView from './components/ClipsProgressView';
 import ClipsProjectList from './components/ClipsProjectList';
 import ClipsSourcePreview from './components/ClipsSourcePreview';
@@ -99,35 +101,17 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
               </div>
             ) : null}
             {!isListLoading && !hasProjects && !listError ? (
-              <div
-                className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-16 text-center"
-                data-testid="clips-empty-state"
-              >
-                <p className="text-sm font-medium text-foreground">
-                  {t('noProjectsYet')}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t('noProjectsDescription')}
-                </p>
-                <Button
-                  asChild
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.DEFAULT}
-                  label={t('newProject')}
-                >
-                  <Link href={newProjectHref}>
-                    <Plus className="size-3.5" />
-                    {t('newProject')}
-                  </Link>
-                </Button>
-              </div>
+              <ClipsOnboarding />
             ) : (
-              <ClipsProjectList
-                isLoading={isListLoading}
-                projects={projects}
-                onRename={renameProject}
-                onDelete={deleteProject}
-              />
+              <>
+                {hasProjects ? <ClipsPresetShelf /> : null}
+                <ClipsProjectList
+                  isLoading={isListLoading}
+                  projects={projects}
+                  onRename={renameProject}
+                  onDelete={deleteProject}
+                />
+              </>
             )}
           </>
         )}

@@ -43,7 +43,7 @@ export default function BrandDetailOverview({
         />
         <div
           className={
-            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100' /* design-system-allow-content-color */
+            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100' /* design-system-allow-content-color */
           }
         >
           <div className="flex gap-1.5">

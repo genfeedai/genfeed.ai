@@ -414,6 +414,9 @@ export default function DiscoveryDesk() {
             />
           </div>
         }
+        refresh={
+          <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
+        }
         right={
           <>
             <Badge variant="ghost">
@@ -435,10 +438,6 @@ export default function DiscoveryDesk() {
               brandId={brandId}
               onSourcesChanged={refresh}
               sources={sources}
-            />
-            <ButtonRefresh
-              isRefreshing={isRefreshing}
-              onClick={handleRefresh}
             />
           </>
         }

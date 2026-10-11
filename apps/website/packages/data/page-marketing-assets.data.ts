@@ -144,7 +144,7 @@ export const PAGE_MARKETING_ASSETS = {
       '/assets/branding/website/editorial/page-launch-content-v1.webp',
     ),
   },
-  '/fleet': {
+  '/custom-models': {
     alt: 'A disciplined array of graphite inference modules each holding a distinctive optical lens, connected by precise silver rails around a single amber creative job',
     src: cdnAsset('/assets/branding/website/editorial/page-fleet-v1.webp'),
   },

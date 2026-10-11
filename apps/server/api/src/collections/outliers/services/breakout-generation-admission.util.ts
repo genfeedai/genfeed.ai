@@ -1,6 +1,7 @@
 import {
   runWithStrategyBudgetAttribution,
   type StrategyBudgetAttribution,
+  strategyBudgetAttributionSchema,
 } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import { readBreakoutGrowth } from '@api/collections/outliers/services/breakout-growth.util';
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
@@ -23,6 +24,30 @@ export type BreakoutGenerationAdmission = {
   /** Native closure verifies immutable execution proof and original/current actor constraints. */
   reauthorize: (tx: Prisma.TransactionClient) => Promise<void>;
 };
+
+/**
+ * The server attribution of one output's spend. Built from exactly the attribution schema's
+ * keys (a strict object): the account (`credentialId`) is carried by the admission itself, never
+ * by this scope, so spreading a wider request scope into it would reject every real generation.
+ */
+export function breakoutGenerationScope(
+  input: Readonly<{
+    organizationId: string;
+    brandId: string;
+    platform: StrategyBudgetAttribution['platform'];
+    strategyId: string;
+    format: StrategyBudgetAttribution['format'];
+  }>,
+): StrategyBudgetAttribution {
+  return strategyBudgetAttributionSchema.parse({
+    version: 1,
+    organizationId: input.organizationId,
+    brandId: input.brandId,
+    strategyId: input.strategyId,
+    platform: input.platform,
+    format: input.format,
+  });
+}
 
 function deny(reason: string): never {
   throw new BusinessLogicException(`Breakout generation held: ${reason}`);
