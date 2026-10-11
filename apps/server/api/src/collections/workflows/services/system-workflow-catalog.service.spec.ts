@@ -243,6 +243,50 @@ describe('SystemWorkflowCatalogService', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
+  it('binds an installed enabled schedule to the installing principal', async () => {
+    workflow.findFirst.mockResolvedValueOnce(null);
+    workflowsService.create.mockResolvedValueOnce({ id: 'new-wf' });
+
+    await service.install({
+      canonicalId: 'daily-trends-digest',
+      organizationId: 'org-1',
+      schedulePrincipal: {
+        isApiKey: false,
+        organizationId: 'org-1',
+        scopes: [],
+        userId: 'user-1',
+      },
+      userId: 'user-1',
+    });
+
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isScheduleEnabled: true,
+        scheduleInitiatingActor: {
+          isApiKey: false,
+          organizationId: 'org-1',
+          scopes: [],
+          userId: 'user-1',
+        },
+      }),
+    );
+  });
+
+  it('leaves an install unbound when no principal is supplied', async () => {
+    workflow.findFirst.mockResolvedValueOnce(null);
+    workflowsService.create.mockResolvedValueOnce({ id: 'new-wf' });
+
+    await service.install({
+      canonicalId: 'daily-trends-digest',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    expect(workflowsService.create.mock.calls[0]?.[0]).not.toHaveProperty(
+      'scheduleInitiatingActor',
+    );
+  });
+
   it('rejects install of non-installable catalog entries', async () => {
     await expect(
       service.install({

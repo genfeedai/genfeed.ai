@@ -3,7 +3,8 @@ import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { getOrganizationModuleExecutionContext } from '@api/common/organization-modules/organization-module-execution.context';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
-import { HttpException } from '@nestjs/common';
+import { Prisma } from '@genfeedai/prisma';
+import { ForbiddenException, HttpException } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -445,7 +446,10 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     await service.executeScheduledWorkflow('wf-1');
 
     expect(prisma.workflow.update).toHaveBeenCalledWith({
-      data: { isScheduleEnabled: false },
+      data: {
+        isScheduleEnabled: false,
+        scheduleInitiatingActor: Prisma.DbNull,
+      },
       where: {
         id: 'wf-1',
         isDeleted: false,
@@ -662,5 +666,129 @@ describe('scheduled Automation admission', () => {
       expect.any(HttpException),
       'WorkflowSchedulerService',
     );
+  });
+});
+
+describe('WorkflowSchedulerService — schedule initiating actor capture', () => {
+  const principal = {
+    apiKeyId: 'key-1',
+    isApiKey: true,
+    organizationId: 'org-1',
+    scopes: ['workflows:write', 'brands:read', 'brands:read'],
+    userId: 'user-1',
+  };
+
+  function savedWorkflow() {
+    return versionedWorkflow({
+      id: 'wf-1',
+      isScheduleEnabled: true,
+      schedule: '0 7 * * *',
+      timezone: 'UTC',
+    });
+  }
+
+  function writtenData(prisma: ReturnType<typeof createMockPrisma>) {
+    const [args] = prisma.workflow.update.mock.calls[0] as [
+      { data: Record<string, unknown> },
+    ];
+    return args.data;
+  }
+
+  it('binds an enabled schedule to the authenticated principal, normalised', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue(savedWorkflow());
+    const { service } = createService({ prisma });
+
+    await service.updateSchedule(
+      'wf-1',
+      'org-1',
+      '0 7 * * *',
+      'UTC',
+      true,
+      principal,
+    );
+
+    expect(writtenData(prisma).scheduleInitiatingActor).toEqual({
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      organizationId: 'org-1',
+      scopes: ['brands:read', 'workflows:write'],
+      userId: 'user-1',
+    });
+  });
+
+  it('rewrites the binding to the new configuring principal on every enabled save', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue(savedWorkflow());
+    const { service } = createService({ prisma });
+
+    await service.updateSchedule('wf-1', 'org-1', '0 7 * * *', 'UTC', true, {
+      organizationId: 'org-1',
+      userId: 'user-2',
+    });
+
+    expect(writtenData(prisma).scheduleInitiatingActor).toEqual({
+      isApiKey: false,
+      organizationId: 'org-1',
+      scopes: [],
+      userId: 'user-2',
+    });
+  });
+
+  it('clears the binding when the schedule is paused', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue(savedWorkflow());
+    const { service } = createService({ prisma });
+
+    await service.updateSchedule(
+      'wf-1',
+      'org-1',
+      '0 7 * * *',
+      'UTC',
+      false,
+      principal,
+    );
+
+    expect(writtenData(prisma).scheduleInitiatingActor).toBe(Prisma.DbNull);
+  });
+
+  it('clears the binding when the schedule is removed', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue(savedWorkflow());
+    const { service } = createService({ prisma });
+
+    await service.updateSchedule('wf-1', 'org-1', null, 'UTC', true, principal);
+
+    expect(writtenData(prisma).scheduleInitiatingActor).toBe(Prisma.DbNull);
+  });
+
+  it('leaves an enabled schedule unbound when the caller supplies no principal', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue(savedWorkflow());
+    const { service } = createService({ prisma });
+
+    await service.updateSchedule('wf-1', 'org-1', '0 7 * * *', 'UTC', true);
+
+    expect(writtenData(prisma).scheduleInitiatingActor).toBe(Prisma.DbNull);
+  });
+
+  it('rejects a principal from another organization before persisting', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    const { queueService, service } = createService({ prisma });
+
+    await expect(
+      service.updateSchedule('wf-1', 'org-1', '0 7 * * *', 'UTC', true, {
+        ...principal,
+        organizationId: 'org-2',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
   });
 });

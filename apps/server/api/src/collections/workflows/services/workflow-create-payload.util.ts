@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import type { FeaturedWorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
@@ -43,10 +44,19 @@ export function buildWorkflowCreatePayload(input: {
   brandId?: string;
   defaultLabel: string;
   organizationId: string;
+  /** Server-resolved configuring principal; never read from `workflowData`. */
+  scheduleInitiatingActor?: WorkflowInitiatingActor | null;
   userId: string;
   workflowData: WorkflowCreateExtras;
 }): Record<string, unknown> {
-  const { brandId, defaultLabel, organizationId, userId, workflowData } = input;
+  const {
+    brandId,
+    defaultLabel,
+    organizationId,
+    scheduleInitiatingActor,
+    userId,
+    workflowData,
+  } = input;
   const config = {
     ...(workflowData.config ?? {}),
     ...pickDefinedFields(workflowData, WORKFLOW_CONFIG_FIELDS),
@@ -73,6 +83,7 @@ export function buildWorkflowCreatePayload(input: {
       progress: workflowData.progress ?? 0,
       recurrence: workflowData.recurrence,
       schedule: workflowData.schedule,
+      scheduleInitiatingActor: scheduleInitiatingActor ?? undefined,
       startedAt: workflowData.startedAt,
       status: workflowData.status ?? WorkflowStatus.ACTIVE,
       thumbnail: workflowData.thumbnail,

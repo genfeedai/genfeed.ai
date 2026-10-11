@@ -7,6 +7,7 @@ import { SystemWorkflowCatalogService } from '@api/collections/workflows/service
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
+import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -124,6 +125,7 @@ describe('WorkflowCrudController', () => {
         mockUser.organizationId,
         createDto,
         mockUser.brandId,
+        toWorkflowSchedulePrincipal(mockUser),
       );
       expect(result).toBeDefined();
     });
@@ -305,6 +307,7 @@ describe('WorkflowCrudController', () => {
         mockUser.organizationId,
         { sourceWorkflowId: id },
         mockUser.brandId,
+        toWorkflowSchedulePrincipal(mockUser),
       );
       expect(result).toBeDefined();
     });
@@ -371,6 +374,7 @@ describe('WorkflowCrudController', () => {
         '0 9 * * *',
         'UTC',
         true,
+        toWorkflowSchedulePrincipal(mockUser),
       );
       expect(mockWorkflowsService.patch).not.toHaveBeenCalled();
       expect(result).toBeDefined();
@@ -404,7 +408,43 @@ describe('WorkflowCrudController', () => {
         '0 8 * * *',
         'UTC',
         false,
+        toWorkflowSchedulePrincipal(mockUser),
       );
+    });
+
+    it('binds the schedule to the authenticated API key and ignores request-supplied actors', async () => {
+      const id = workflowId;
+      const apiKeyUser = {
+        ...mockUser,
+        apiKeyId: 'key-1',
+        isApiKey: true,
+        scopes: ['workflows:write'],
+      } as User;
+      const updateDto = {
+        isScheduleEnabled: true,
+        schedule: '0 9 * * *',
+        scheduleInitiatingActor: { isApiKey: false, userId: 'attacker' },
+        timezone: 'UTC',
+      } as unknown as UpdateWorkflowDto;
+
+      mockWorkflowsService.findVisibleOrThrow.mockResolvedValue({
+        ...mockWorkflow,
+        isScheduleEnabled: true,
+        schedule: '0 9 * * *',
+      });
+
+      await controller.update(mockRequest, id, updateDto, apiKeyUser);
+
+      const call = mockWorkflowSchedulerService.updateSchedule.mock
+        .calls[0] as unknown[];
+      expect(call[5]).toEqual({
+        apiKeyId: 'key-1',
+        isApiKey: true,
+        organizationId: mockUser.organizationId,
+        scopes: ['workflows:write'],
+        userId: mockUser.userId,
+      });
+      expect(JSON.stringify(call)).not.toContain('attacker');
     });
 
     it('should call publishToMarketplace when isPublic and isTemplate are both true', async () => {

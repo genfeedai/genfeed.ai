@@ -31,6 +31,10 @@ import {
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import {
+  resolveScheduleInitiatingActor,
+  type WorkflowSchedulePrincipal,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
+import {
   buildWorkflowVersionDefinition,
   createVersionedWorkflow,
   hydrateWorkflowDefinition,
@@ -223,6 +227,11 @@ export class WorkflowsService extends BaseService<
         'Template instantiation identity is immutable',
       );
     }
+    if ('scheduleInitiatingActor' in workflowPatch) {
+      throw new BadRequestException(
+        'The schedule initiating actor is server-owned',
+      );
+    }
     const configPatch = pickDefinedFields(
       workflowPatch,
       WORKFLOW_CONFIG_FIELDS,
@@ -365,6 +374,7 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
+    schedulePrincipal?: WorkflowSchedulePrincipal,
   ): Promise<WorkflowEntity> {
     const key = validateTemplateInstantiationKey(workflowData);
 
@@ -395,6 +405,7 @@ export class WorkflowsService extends BaseService<
         organizationId,
         resolveWorkflowBrandId((workflowData as WorkflowCreateExtras).brandId),
         defaultBrandId,
+        schedulePrincipal,
       );
     }
 
@@ -427,6 +438,7 @@ export class WorkflowsService extends BaseService<
         brandId,
         canonicalId,
         organizationId,
+        schedulePrincipal,
         userId,
       });
 
@@ -444,6 +456,12 @@ export class WorkflowsService extends BaseService<
       brandId,
       defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
       organizationId,
+      scheduleInitiatingActor: resolveScheduleInitiatingActor({
+        isEnabled: workflowData.isScheduleEnabled,
+        organizationId,
+        principal: schedulePrincipal,
+        schedule: workflowData.schedule,
+      }),
       userId,
       workflowData: {
         ...(workflowData as WorkflowCreateExtras),
@@ -554,6 +572,7 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
     targetBrandId?: string,
     fallbackBrandId?: string,
+    schedulePrincipal?: WorkflowSchedulePrincipal,
   ): Promise<WorkflowEntity> {
     const workflowDoc = await this.findVisibleOrThrow(workflowId, {
       organizationId,
@@ -586,11 +605,25 @@ export class WorkflowsService extends BaseService<
       (isSourceBrandAccessible ? sourceBrandId : fallbackBrandId);
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
+    const clonedSchedule = isProtectedSystemWorkflow
+      ? undefined
+      : (workflowDoc.schedule ?? undefined);
+    const isClonedScheduleEnabled = isProtectedSystemWorkflow
+      ? false
+      : workflowDoc.isScheduleEnabled;
+
     const clonedWorkflow = await this.create(
       buildWorkflowCreatePayload({
         brandId,
         defaultLabel: `${sourceLabel} (Copy)`,
         organizationId,
+        // The copy is configured by the caller, never by the source's owner.
+        scheduleInitiatingActor: resolveScheduleInitiatingActor({
+          isEnabled: isClonedScheduleEnabled,
+          organizationId,
+          principal: schedulePrincipal,
+          schedule: clonedSchedule,
+        }),
         userId,
         workflowData: {
           config: workflowDoc.config,
@@ -606,9 +639,7 @@ export class WorkflowsService extends BaseService<
           edgeStyle: workflowDoc.edgeStyle,
           executionCount: 0,
           inputVariables: workflowDoc.inputVariables,
-          isScheduleEnabled: isProtectedSystemWorkflow
-            ? false
-            : workflowDoc.isScheduleEnabled,
+          isScheduleEnabled: isClonedScheduleEnabled,
           label: `${sourceLabel} (Copy)`,
           lastExecutedAt: undefined,
           lockedNodeIds: isProtectedSystemWorkflow
@@ -621,9 +652,7 @@ export class WorkflowsService extends BaseService<
           nodes: workflowDoc.nodes,
           progress: 0,
           recurrence: undefined,
-          schedule: isProtectedSystemWorkflow
-            ? undefined
-            : (workflowDoc.schedule ?? undefined),
+          schedule: clonedSchedule,
           startedAt: undefined,
           status: WorkflowStatus.DRAFT,
           thumbnail: workflowDoc.thumbnail ?? undefined,

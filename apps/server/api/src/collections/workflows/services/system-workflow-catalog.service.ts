@@ -12,6 +12,10 @@ import {
   listSystemWorkflowCatalog,
   type SystemWorkflowCatalogEntry,
 } from '@api/collections/workflows/system-workflow-catalog';
+import {
+  resolveScheduleInitiatingActor,
+  type WorkflowSchedulePrincipal,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -69,6 +73,8 @@ export class SystemWorkflowCatalogService {
     brandId?: string;
     canonicalId: string;
     organizationId: string;
+    /** Authenticated principal that installs (and thereby configures) the schedule. */
+    schedulePrincipal?: WorkflowSchedulePrincipal;
     userId: string;
   }): Promise<WorkflowDocument> {
     const entry = getSystemWorkflowCatalogEntry(input.canonicalId);
@@ -233,6 +239,7 @@ export class SystemWorkflowCatalogService {
     input: {
       brandId?: string;
       organizationId: string;
+      schedulePrincipal?: WorkflowSchedulePrincipal;
       userId: string;
     },
     entry: SystemWorkflowCatalogEntry,
@@ -259,6 +266,13 @@ export class SystemWorkflowCatalogService {
       catalogSourceId,
     );
 
+    const scheduleInitiatingActor = resolveScheduleInitiatingActor({
+      isEnabled: entry.isScheduleEnabled,
+      organizationId: input.organizationId,
+      principal: input.schedulePrincipal,
+      schedule: entry.schedule,
+    });
+
     return {
       ...(input.brandId ? { brandId: input.brandId } : {}),
       description: entry.description,
@@ -281,6 +295,7 @@ export class SystemWorkflowCatalogService {
       organizationId: input.organizationId,
       progress: 0,
       schedule: entry.schedule,
+      ...(scheduleInitiatingActor ? { scheduleInitiatingActor } : {}),
       status: WorkflowStatus.ACTIVE,
       timezone: entry.timezone,
       userId: input.userId,

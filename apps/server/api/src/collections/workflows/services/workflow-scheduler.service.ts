@@ -8,12 +8,18 @@ import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
 } from '@api/collections/workflows/utils/cron-schedule.util';
+import {
+  resolveScheduleInitiatingActor,
+  toScheduleInitiatingActorWrite,
+  type WorkflowSchedulePrincipal,
+} from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { hydrateWorkflowDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { runWithOrganizationModule } from '@api/common/organization-modules/organization-module-execution.context';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
+import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -236,7 +242,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
 
       if (missingRequiredInputs.length > 0) {
         await this.prisma.workflow.update({
-          data: { isScheduleEnabled: false },
+          data: {
+            isScheduleEnabled: false,
+            scheduleInitiatingActor: Prisma.DbNull,
+          },
           where: scopedWhere(wOrgId, { id: workflowId }),
         });
         await this.unscheduleWorkflow(workflowId);
@@ -343,6 +352,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
    * brand publishing defaults all converge here): the cadence and timezone are
    * validated before persistence and scheduler registration failures surface
    * to the caller instead of logging silently.
+   *
+   * `principal` is the authenticated user or API key that is configuring the
+   * schedule. It is persisted server-side as `scheduleInitiatingActor` while the
+   * schedule is set and enabled, and rewritten on every such save. A cleared or
+   * paused schedule, or a caller that supplies no principal, clears the binding
+   * so no previous owner's authority survives a reconfiguration.
    */
   async updateSchedule(
     workflowId: string,
@@ -350,6 +365,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
     schedule: string | null,
     timezone: string = 'UTC',
     isEnabled: boolean = true,
+    principal?: WorkflowSchedulePrincipal | null,
   ): Promise<WorkflowDocument | null> {
     const existing = await this.prisma.workflow.findFirst({
       select: { id: true },
@@ -379,10 +395,19 @@ export class WorkflowSchedulerService implements OnModuleInit {
       }
     }
 
+    const initiatingActor = resolveScheduleInitiatingActor({
+      isEnabled,
+      organizationId,
+      principal,
+      schedule,
+    });
+
     const workflow = await this.prisma.workflow.update({
       data: {
         isScheduleEnabled: isEnabled && !!schedule,
         schedule,
+        scheduleInitiatingActor:
+          toScheduleInitiatingActorWrite(initiatingActor),
         timezone,
       },
       include: { currentVersion: true },
