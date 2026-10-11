@@ -16,6 +16,7 @@ import {
   type PublishedPost,
   publishOwnPost,
   resolveExposureSource,
+  type SourceMediaFormat,
   seedComparableHistory,
   silentLogger,
 } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
@@ -368,6 +369,8 @@ export type CandidateOptions = {
   /** Earlier measurements of the target, as [age since publication, impressions]. */
   earlier?: Array<{ ageMs: number; impressions: number }>;
   history?: number[];
+  /** The visual format of the target and its comparable history; text when absent. */
+  media?: SourceMediaFormat;
   /** The target's age when the collector next measures it (and the baseline age). */
   targetAgeMs?: number;
 };
@@ -388,10 +391,12 @@ export async function seedBreakoutCandidate(
     nowMs,
     observedAtAgeMs: targetAgeMs,
     values: options.history,
+    ...(options.media ? { media: options.media } : {}),
   });
   const target = await publishOwnPost(db, world, {
     publishedAt: new Date(nowMs - targetAgeMs),
     text: 'The post that is about to break out',
+    ...(options.media ? { media: options.media } : {}),
   });
   const source = await resolveExposureSource(db, world, target);
   for (const earlier of options.earlier ?? [

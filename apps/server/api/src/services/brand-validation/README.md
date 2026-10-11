@@ -27,8 +27,13 @@ registration.
 
 Every report includes hard `system:factual_coverage` unknown and `quality: null`.
 No reference byte hash proves asset placement, actual font use or visual
-compliance. Required unavailable capabilities block preflight; optional ones warn.
-Image/video admission is blocked. Unsupported reasons are
+compliance. For text, required unavailable capabilities block preflight and optional
+ones warn. Image and video are admitted for review only (#6727): the preflight warns
+with `artifact_media_unsupported` and every unprovable visual or text-coverage rule
+(required or not) warns instead of blocking, because the report keeps those checks
+`unknown`/`unsupported` and the hard `system:factual_coverage` unknown, so a media
+receipt can only resolve to `needs_review`/`unverified`, never `ready`/`passed`. A
+member approves the visuals in the review queue. Unsupported reasons are
 `fact_grounding_unavailable`, `semantic_validation_unavailable`,
 `empty_literal_rule`, `text_coverage_incomplete`, `exact_palette_unavailable`,
 `exact_font_unavailable`, `exact_logo_unavailable`, `exact_product_unavailable`

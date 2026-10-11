@@ -15,6 +15,7 @@ import { ensureHiddenSystemWorkflowMirror } from '@api/collections/workflows/sys
 import type { PublishContext, PublishResult } from '@api/index';
 import { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import { PublishApprovalsService } from '@api/publish-approvals/publish-approvals.service';
+import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -22,6 +23,10 @@ import {
   TargetExecutionState,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import type {
+  MediaProbe,
+  MediaReadinessKind,
+} from '@genfeedai/contracts/api-types/contracts';
 import type { PrismaClient } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.service';
@@ -83,6 +88,13 @@ export type DeliveryHarness = {
   }>;
   /** What the fake X publisher was asked to publish. */
   published: PublishContext[];
+  /**
+   * The files service probe behind the real media readiness gate. By default every asset probes
+   * as a clean, platform-ready file; a scenario can make the probe fail until the asset is ready.
+   */
+  files: {
+    probe: (url: string, kind: MediaReadinessKind) => Promise<MediaProbe>;
+  };
   /** How the fake X publisher answers the next publish; defaults to an accepted publication. */
   publisher: {
     answer: (context: PublishContext) => Promise<PublishResult>;
@@ -109,6 +121,20 @@ export function buildDeliveryHarness(
       platform: Platform.TWITTER,
       success: true,
       url: 'https://x.example/status',
+    }),
+  };
+  const files: DeliveryHarness['files'] = {
+    probe: async (_url, kind) => ({
+      audioCodec: kind === 'video' ? 'aac' : null,
+      container: kind === 'video' ? 'mp4' : 'png',
+      durationSeconds: kind === 'video' ? 10 : null,
+      frameRate: kind === 'video' ? 30 : null,
+      height: kind === 'video' ? 720 : 1024,
+      kind,
+      probedAt: new Date().toISOString(),
+      sizeBytes: 1_000_000,
+      videoCodec: kind === 'video' ? 'h264' : null,
+      width: kind === 'video' ? 1280 : 1024,
     }),
   };
   const libsPrisma = db as unknown as LibsPrismaService;
@@ -184,7 +210,14 @@ export function buildDeliveryHarness(
         ),
     } as unknown as Deps[10],
     libsPrisma,
-    { evaluatePublishReadiness: async () => [] } as unknown as Deps[12],
+    new MediaReadinessService(
+      libsPrisma,
+      {
+        probeMediaFromUrl: (url: string, kind: MediaReadinessKind) =>
+          files.probe(url, kind),
+      } as unknown as ConstructorParameters<typeof MediaReadinessService>[1],
+      logger,
+    ) as unknown as Deps[12],
     anything as Deps[13],
   );
   service.onModuleInit();
@@ -277,6 +310,7 @@ export function buildDeliveryHarness(
         });
       return { executionId: execution.id, result };
     },
+    files,
     published,
     publisher,
   };

@@ -22,6 +22,8 @@ const ALLOWED_FILES = new Set([
   'breakout-output-quality.service.ts',
   'breakout-text-output-generation.service.ts',
   'breakout-visual-quality.service.ts',
+  // Acceptance fixture standing in for the media endpoints, which settle their own holds.
+  'breakout-acceptance.media.fixture.ts',
   'credits.utils.service.ts',
   'evaluations.service.ts',
   'expert-first-system.service.ts',

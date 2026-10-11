@@ -32,7 +32,7 @@ import { BadRequestException } from '@nestjs/common';
 const factualMessage =
   'Complete factual coverage is unavailable; review the actual output against approved sources.';
 const mediaMessage =
-  'This validator has no qualified image or video render evidence; use a qualified export path or review the output.';
+  'Image and video output has no machine-verified visual evidence; it is held for member review and never marked ready.';
 const actions: Record<string, string> = {
   fact_grounding_unavailable:
     'Complete approved factual claims are unavailable; use the approved-claim path or review the output.',
@@ -111,10 +111,14 @@ export class BrandValidationService {
         message: factualMessage,
       },
     ];
-    if (mediaKind !== 'text')
+    // Image and video are admitted for review only: whatever the validator cannot prove about the
+    // artifact stays unknown in the report, which can never reach ready/passed, so a missing
+    // visual capability warns instead of blocking generation.
+    const isReviewOnlyMedia = mediaKind !== 'text';
+    if (isReviewOnlyMedia)
       diagnostics.push({
         code: 'artifact_media_unsupported',
-        severity: 'error',
+        severity: 'warning',
         message: mediaMessage,
       });
     const checks = buildBrandValidationChecks(
@@ -131,7 +135,8 @@ export class BrandValidationService {
         !check.reasonCode
       )
         continue;
-      const severity = check.severity === 'hard' ? 'error' : 'warning';
+      const severity =
+        check.severity === 'hard' && !isReviewOnlyMedia ? 'error' : 'warning';
       const prior = diagnostics.find(
         (diagnostic) => diagnostic.code === check.reasonCode,
       );
