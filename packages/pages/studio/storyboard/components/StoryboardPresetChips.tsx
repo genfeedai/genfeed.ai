@@ -17,7 +17,7 @@ export default function StoryboardPresetChips({
   return (
     <div
       aria-label={translate('chipsAria')}
-      className="mb-2 flex flex-col gap-1.5"
+      className="flex flex-col gap-1.5"
       role="group"
     >
       <div className="flex gap-2 overflow-x-auto pb-1">

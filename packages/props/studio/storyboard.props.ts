@@ -129,14 +129,6 @@ export interface StoryboardSelectProps {
   readonly value: string | undefined;
 }
 
-export interface StoryboardComposerSelectProps {
-  readonly ariaLabel: string;
-  readonly isDisabled?: boolean;
-  readonly onChange: (value: string) => void;
-  readonly options: ReadonlyArray<StoryboardSelectOption>;
-  readonly value: string;
-}
-
 export interface StoryboardRunPageProps {
   readonly runId: string;
 }

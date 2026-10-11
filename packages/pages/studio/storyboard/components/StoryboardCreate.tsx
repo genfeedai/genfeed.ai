@@ -13,7 +13,6 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StoryboardComposerSelect from '@pages/studio/storyboard/components/StoryboardComposerSelect';
 import StoryboardPresetChips from '@pages/studio/storyboard/components/StoryboardPresetChips';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
@@ -21,9 +20,11 @@ import { storyboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp, Paperclip } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -162,7 +163,7 @@ export default function StoryboardCreate() {
     }
   }
   return (
-    <div className="grid min-h-[calc(100dvh-12rem)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
         <div
           role="group"
@@ -188,117 +189,105 @@ export default function StoryboardCreate() {
             onClick={() => setMode('video')}
           />
         </div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
-          {mode === 'video' ? (
-            <p role="status" className="text-sm">
-              {video?.title || translate('chooseOwnedVideo')}
-            </p>
-          ) : null}
-        </div>
-        <div className="sticky bottom-4 z-10 mt-auto">
-          <PromptBarContainer
-            layoutMode="inflow"
-            maxWidth="full"
-            topContent={
-              mode === 'brief' ? (
-                <StoryboardPresetChips
-                  isDisabled={isCreating}
-                  onSelect={applyPreset}
-                />
+        <PromptBarContainer layoutMode="inflow" maxWidth="full">
+          <PromptBarComposer
+            data-testid="storyboard-composer"
+            density="compact"
+            banner={
+              error ? (
+                <p role="alert" className="p-3 text-sm text-destructive">
+                  {error}
+                </p>
               ) : undefined
             }
           >
-            <PromptBarComposer
-              data-testid="storyboard-composer"
-              density="compact"
-              banner={
-                error ? (
-                  <p role="alert" className="p-3 text-sm text-destructive">
-                    {error}
-                  </p>
-                ) : undefined
-              }
-            >
-              {mode === 'brief' ? (
-                <PromptEditor
-                  ariaLabel={translate('brief')}
-                  value={brief}
-                  isDisabled={isCreating}
-                  placeholder={translate('briefPlaceholder')}
-                  onValueChange={setBrief}
-                  onSubmit={() => void submit()}
-                  className="min-h-16"
-                />
-              ) : null}
-              <PromptBarToolbar
-                density="compact"
-                leading={
-                  mode === 'brief' ? (
-                    <>
-                      <Button
-                        ariaLabel={translateWorkspace('references')}
-                        icon={<Paperclip className="size-4" />}
-                        isDisabled={isCreating}
-                        onClick={chooseStartingImage}
-                        size={ButtonSize.ICON}
-                        tooltip={translateWorkspace('references')}
-                        tooltipPosition="top"
-                        variant={ButtonVariant.GHOST}
-                        withWrapper={false}
-                      />
-                      <StoryboardComposerSelect
-                        ariaLabel={translate('formatAria')}
-                        isDisabled={isCreating}
-                        options={FORMAT_OPTIONS}
-                        value={format}
-                        onChange={(value) => {
-                          if (
-                            value === '9:16' ||
-                            value === '16:9' ||
-                            value === '1:1'
-                          )
-                            setFormat(value);
-                        }}
-                      />
-                      <StoryboardComposerSelect
-                        ariaLabel={translate('runtimeBudget')}
-                        isDisabled={isCreating}
-                        options={budgetOptions}
-                        value={budget}
-                        onChange={setBudget}
-                      />
-                    </>
-                  ) : null
-                }
-                trailing={
-                  <Button
-                    ariaLabel={saveLabel}
-                    icon={<ArrowUp className="size-4" />}
-                    isDisabled={isCreating || !valid}
-                    isLoading={isCreating}
-                    onClick={() => void submit()}
-                    size={ButtonSize.ICON}
-                    tooltip={saveLabel}
-                    tooltipPosition="top"
-                    variant={ButtonVariant.DEFAULT}
-                    withWrapper={false}
-                  />
-                }
+            {mode === 'brief' ? (
+              <PromptEditor
+                ariaLabel={translate('brief')}
+                value={brief}
+                isDisabled={isCreating}
+                placeholder={translate('briefPlaceholder')}
+                onValueChange={setBrief}
+                onSubmit={() => void submit()}
+                className="min-h-16"
               />
-              {mode === 'brief' && brief.length >= CHARACTER_COUNT_THRESHOLD ? (
-                <p
-                  className={
-                    brief.length > MAX_BRIEF_LENGTH
-                      ? 'mt-2 text-xs text-destructive'
-                      : 'mt-2 text-xs text-muted-foreground'
-                  }
-                >
-                  {translate('characterCount', { count: brief.length })}
-                </p>
-              ) : null}
-            </PromptBarComposer>
-          </PromptBarContainer>
-        </div>
+            ) : null}
+            <PromptBarToolbar
+              density="compact"
+              leading={
+                mode === 'brief' ? (
+                  <>
+                    <Button
+                      ariaLabel={translateWorkspace('references')}
+                      icon={<Paperclip className="size-4" />}
+                      isDisabled={isCreating}
+                      onClick={chooseStartingImage}
+                      size={ButtonSize.ICON}
+                      tooltip={translateWorkspace('references')}
+                      tooltipPosition="top"
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                    <PromptBarCompactSelect
+                      ariaLabel={translate('formatAria')}
+                      density="compact"
+                      isDisabled={isCreating}
+                      options={FORMAT_OPTIONS}
+                      value={format}
+                      onChange={(value) => {
+                        if (
+                          value === '9:16' ||
+                          value === '16:9' ||
+                          value === '1:1'
+                        )
+                          setFormat(value);
+                      }}
+                    />
+                    <PromptBarCompactSelect
+                      ariaLabel={translate('runtimeBudget')}
+                      density="compact"
+                      isDisabled={isCreating}
+                      options={budgetOptions}
+                      value={budget}
+                      onChange={setBudget}
+                    />
+                  </>
+                ) : null
+              }
+              trailing={
+                <PromptBarSendButton
+                  ariaLabel={saveLabel}
+                  density="compact"
+                  isDisabled={isCreating || !valid}
+                  isLoading={isCreating}
+                  onClick={() => void submit()}
+                  tooltip={saveLabel}
+                />
+              }
+            />
+            {mode === 'brief' && brief.length >= CHARACTER_COUNT_THRESHOLD ? (
+              <p
+                className={
+                  brief.length > MAX_BRIEF_LENGTH
+                    ? 'mt-2 text-xs text-destructive'
+                    : 'mt-2 text-xs text-muted-foreground'
+                }
+              >
+                {translate('characterCount', { count: brief.length })}
+              </p>
+            ) : null}
+          </PromptBarComposer>
+        </PromptBarContainer>
+        {mode === 'video' ? (
+          <p role="status" className="text-sm">
+            {video?.title || translate('chooseOwnedVideo')}
+          </p>
+        ) : (
+          <StoryboardPresetChips
+            isDisabled={isCreating}
+            onSelect={applyPreset}
+          />
+        )}
       </div>
       <StoryboardReferencesPanel
         references={[

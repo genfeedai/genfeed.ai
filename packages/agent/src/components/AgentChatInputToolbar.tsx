@@ -3,17 +3,13 @@ import type { ConversationComposerGenerationMode } from '@genfeedai/agent/models
 import {
   AgentGenerationMode,
   type AgentThreadMode,
-  ButtonSize,
-  ButtonVariant,
   inferAgentMediaGenerationModeFromPrompt,
 } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
-import { Button } from '@ui/primitives/button';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
-import { ArrowUp } from 'lucide-react';
 import { memo, type ReactElement, useEffect } from 'react';
 
 export interface AgentChatInputToolbarProps {
@@ -83,7 +79,7 @@ function AgentChatInputToolbarInner({
   const controlSize = isCompact ? 'size-8' : 'size-9';
   const send =
     showStop && !canSendMessage ? null : (
-      <Button
+      <PromptBarSendButton
         ariaLabel={
           willQueueFollowUp
             ? 'Queue follow-up'
@@ -93,14 +89,10 @@ function AgentChatInputToolbarInner({
                 ? 'Generate video'
                 : 'Send message'
         }
-        className={cn('shrink-0 min-h-0 min-w-0 p-0', controlSize)}
-        icon={<ArrowUp className="size-4" />}
+        density={density}
         isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
         onClick={onSend}
-        size={ButtonSize.ICON}
         tooltip={willQueueFollowUp ? 'Queue follow-up (Enter)' : 'Send (Enter)'}
-        variant={ButtonVariant.DEFAULT}
-        withWrapper={false}
       />
     );
 

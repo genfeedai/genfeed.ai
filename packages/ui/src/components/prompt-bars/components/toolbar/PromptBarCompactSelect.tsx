@@ -1,6 +1,7 @@
 'use client';
 
-import type { StoryboardComposerSelectProps } from '@genfeedai/props/studio/storyboard.props';
+import type { PromptBarCompactSelectProps } from '@genfeedai/props/prompt-bars/prompt-bar-send-button.props';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import {
   Select,
@@ -11,19 +12,23 @@ import {
 } from '@ui/primitives/select';
 import type { ReactElement } from 'react';
 
-/** Compact ghost dropdown for the prompt-bar toolbar, like Studio's controls. */
-export default function StoryboardComposerSelect({
+/** Compact ghost dropdown for prompt-bar toolbars, weighted like the other ghost controls. */
+export default function PromptBarCompactSelect({
   ariaLabel,
+  density = 'compact',
   isDisabled = false,
   onChange,
   options,
   value,
-}: StoryboardComposerSelectProps): ReactElement {
+}: PromptBarCompactSelectProps): ReactElement {
   return (
     <Select disabled={isDisabled} onValueChange={onChange} value={value}>
       <SelectTrigger
         aria-label={ariaLabel}
-        className={ghostSelectTriggerClassName}
+        className={cn(
+          ghostSelectTriggerClassName,
+          density === 'default' && 'h-9',
+        )}
       >
         <SelectValue />
       </SelectTrigger>
