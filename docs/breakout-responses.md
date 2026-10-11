@@ -288,11 +288,6 @@ for reconciliation; a retained hold means a paid attempt already ran and is neve
 A video on a self-hosted deployment is held as `media_quality_capability_unavailable`
 because its frames cannot be judged there.
 
-Visual outputs are admitted for review only (#6727): the brand validator cannot yet prove
-visual rules, so the preflight warns (`artifact_media_unsupported`) instead of blocking, the
-receipt can only resolve to `needs_review`, and each visual follow-up lands as
-`brand_review_required` in the review queue until a member approves it. Nothing auto-publishes.
-
 Publication of a visual post runs the same admission at schedule time and at dispatch as text
 (re-reading the channel catalog, the composed material and every per-visual score). The
 YouTube direct upload runs it before the PUBLISHING write and before the upload job.
