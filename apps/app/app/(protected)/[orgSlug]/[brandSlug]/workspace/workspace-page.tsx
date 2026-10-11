@@ -18,7 +18,7 @@ import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Inbox, LayoutGrid } from 'lucide-react';
+import { Check, Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -308,15 +308,8 @@ function WorkspacePageContentContent({
   );
   const workspaceInboxTableColumns = useMemo(
     () =>
-      getWorkspaceInboxTableColumns(
-        translate,
-        statusTranslate,
-        statusLabels,
-        inboxRead.isUnread,
-        (task) => inboxRead.read.mutate([task]),
-        inboxRead.read.isPending || !inboxRead.state.data,
-      ),
-    [translate, statusTranslate, statusLabels, inboxRead],
+      getWorkspaceInboxTableColumns(translate, statusTranslate, statusLabels),
+    [translate, statusTranslate, statusLabels],
   );
   const inboxTableColumns = hasInboxPaths
     ? workspaceInboxTableColumns
@@ -326,6 +319,15 @@ function WorkspacePageContentContent({
 
   const inboxTable = (
     <AppTable<Task>
+      actions={[
+        {
+          icon: <Check className="size-4" />,
+          isDisabled: () => inboxRead.read.isPending || !inboxRead.state.data,
+          isVisible: (task) => inboxRead.isUnread(task),
+          onClick: (task) => inboxRead.read.mutate([task]),
+          tooltip: translate('inbox.markRead'),
+        },
+      ]}
       items={inboxTableItems}
       isLoading={isWorkspaceTasksLoading || inboxRead.state.isLoading}
       emptyLabel={inboxEmpty.label}
