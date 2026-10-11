@@ -5,6 +5,7 @@ import {
   runWithBreakoutGenerationAdmission,
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   AGENT_GENERATION_GATEWAY,
   type IAgentGenerationGateway,
@@ -17,6 +18,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
 } from '@nestjs/common';
@@ -52,6 +54,7 @@ export type BreakoutMediaOutputGenerationResult = {
   state: 'ready' | 'processing' | 'reconciliation_required';
   ingredientIds: string[];
 };
+export type BreakoutMediaBrandPreflight = 'supported' | 'blocked';
 
 /** Uses the normal media endpoints, prices, provider identities and completion recovery. Never publishes. */
 @Injectable()
@@ -81,6 +84,56 @@ export class BreakoutMediaOutputGenerationService {
       prompts.length > (scope.format === 'carousel' ? 8 : 1)
     )
       throw new BadRequestException('breakout_media_request_invalid');
+    if ((await this.preflight(admission, provider, model)) === 'blocked')
+      throw new ConflictException(
+        'breakout_media_brand_capability_unavailable',
+      );
+    const category = image
+      ? IngredientCategory.IMAGE
+      : IngredientCategory.VIDEO;
+    const claim = await this.claimOutput(admission);
+    if (claim.won) {
+      try {
+        await this.dispatchComponents(request, model, claim.generationKey);
+      } catch (error: unknown) {
+        // An admission denial or a revoked actor is the precise outcome and propagates. Any
+        // other failure after a provider placeholder exists (a wait that timed out, a provider
+        // error) is an unknown outcome: it is read back from the retained assets and never
+        // dispatched again. Before any placeholder nothing was dispatched, so it propagates.
+        if (
+          error instanceof BusinessLogicException ||
+          error instanceof ForbiddenException
+        )
+          throw error;
+        const retained = await this.readRetained(
+          admission,
+          category,
+          claim.generationKey,
+          prompts.length,
+        );
+        if (retained.ingredientIds.length === 0) throw error;
+      }
+    }
+    return this.readRetained(
+      admission,
+      category,
+      claim.generationKey,
+      prompts.length,
+    );
+  }
+
+  /**
+   * The free brand-capability check of the output's model. A blocked outcome is recorded on the
+   * output as its held reason (never replacing an already dispatched attempt) so the product can
+   * show why; it spends nothing and is safe to repeat.
+   */
+  async preflight(
+    admission: Readonly<BreakoutGenerationAdmission>,
+    provider: string,
+    model: string,
+  ): Promise<BreakoutMediaBrandPreflight> {
+    const { scope } = admission;
+    const image = scope.format === 'image' || scope.format === 'carousel';
     await admission.reauthorize(this.prisma);
     const snapshot = await this.snapshots.preview({
       organizationId: scope.organizationId,
@@ -94,42 +147,26 @@ export class BreakoutMediaOutputGenerationService {
       model,
       mediaKind: image ? 'image' : 'video',
     });
-    if (preflight.status === 'blocked') {
-      // Record the actual preflight outcome without replacing an already dispatched attempt.
-      await this.prisma.$transaction(async (tx) => {
-        await admission.reauthorize(tx);
-        await tx.breakoutResponseOutput.updateMany({
-          where: {
-            id: admission.outputId,
-            organizationId: scope.organizationId,
-            brandId: scope.brandId,
-            credentialId: admission.credentialId,
-            responseId: admission.responseId,
-            workflowExecutionId: admission.workflowExecutionId,
-            format: scope.format,
-            isDeleted: false,
-            state: 'reserved',
-          },
-          data: { heldReason: 'media_brand_capability_unavailable' },
-        });
-        await admission.reauthorize(tx);
+    if (preflight.status !== 'blocked') return 'supported';
+    await this.prisma.$transaction(async (tx) => {
+      await admission.reauthorize(tx);
+      await tx.breakoutResponseOutput.updateMany({
+        where: {
+          id: admission.outputId,
+          organizationId: scope.organizationId,
+          brandId: scope.brandId,
+          credentialId: admission.credentialId,
+          responseId: admission.responseId,
+          workflowExecutionId: admission.workflowExecutionId,
+          format: scope.format,
+          isDeleted: false,
+          state: 'reserved',
+        },
+        data: { heldReason: 'media_brand_capability_unavailable' },
       });
-      throw new ConflictException(
-        'breakout_media_brand_capability_unavailable',
-      );
-    }
-    const category = image
-      ? IngredientCategory.IMAGE
-      : IngredientCategory.VIDEO;
-    const claim = await this.claimOutput(admission);
-    if (claim.won)
-      await this.dispatchComponents(request, model, claim.generationKey);
-    return this.readRetained(
-      admission,
-      category,
-      claim.generationKey,
-      prompts.length,
-    );
+      await admission.reauthorize(tx);
+    });
+    return 'blocked';
   }
 
   private async claimOutput(admission: Readonly<BreakoutGenerationAdmission>) {
@@ -230,6 +267,9 @@ export class BreakoutMediaOutputGenerationService {
               : {
                   duration:
                     'duration' in settings ? settings.duration : undefined,
+                  // Same bounded wait the product's own video endpoint offers; a timeout is
+                  // an unknown outcome read back from the retained asset, never redispatched.
+                  waitForCompletion: true,
                 }),
             text: prompt,
             sourceActionId: component.componentKey,

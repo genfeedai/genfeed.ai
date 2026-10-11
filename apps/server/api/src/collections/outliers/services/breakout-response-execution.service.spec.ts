@@ -1,5 +1,6 @@
 import { strategyBudgetAttributionSchema } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import type { BreakoutGenerationPlanResult } from '@api/collections/outliers/services/breakout-generation-plan.service';
+import type { BreakoutMediaOutputPreparationRequest } from '@api/collections/outliers/services/breakout-media-output-preparation.service';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import {
   type BreakoutResponseExecutionRequest,
@@ -14,12 +15,15 @@ vi.mock(
   '@api/collections/outliers/services/breakout-output-recovery.util',
   () => ({ readBreakoutOutputRecovery: vi.fn() }),
 );
-function fixture() {
+function fixture(
+  formats: string[] = ['text', 'text', 'text', 'text', 'text'],
+  platform: Platform = Platform.TWITTER,
+) {
   const scope = {
     organizationId: 'org-a',
     brandId: 'brand-a',
     credentialId: 'credential-a',
-    platform: Platform.TWITTER,
+    platform,
   };
   const request: BreakoutResponseExecutionRequest = {
     scope,
@@ -29,11 +33,11 @@ function fixture() {
     workflowExecutionId: 'execution-a',
     reauthorize: vi.fn(async () => undefined),
   };
-  const rows = Array.from({ length: 5 }, (_, index) => ({
+  const rows = formats.map((format, index) => ({
     id: `output-${index + 1}`,
     generationKey: `generation-${index + 1}`,
     ordinal: index + 1,
-    format: 'text',
+    format,
     state: 'reserved',
     heldReason: null as string | null,
     workflowExecutionId: null as string | null,
@@ -92,6 +96,9 @@ function fixture() {
           isResponse: false,
         },
         textModelKey: 'openai/gpt-5.2',
+        mediaModelKey: formats.some((format) => format !== 'text')
+          ? 'media/model'
+          : null,
         segmentCharacterLimit: 280,
         totalCharacterLimit: 280,
         reservation: {
@@ -113,12 +120,24 @@ function fixture() {
       };
     }),
   };
+  const media = {
+    generate: vi.fn(async (input: BreakoutMediaOutputPreparationRequest) => {
+      const row = rows.find((value) => value.id === input.admission.outputId);
+      if (row) row.state = 'generating';
+      return {
+        kind: 'completed' as 'completed' | 'stopped' | 'in_progress',
+        reasonCode: 'artifact_source_changed',
+        postId: 'composed-a',
+      };
+    }),
+  };
   const service = Reflect.construct(BreakoutResponseExecutionService, [
     prisma,
     planner,
     text,
+    media,
   ]) as BreakoutResponseExecutionService;
-  return { request, rows, first, prisma, planner, text, service };
+  return { request, rows, first, prisma, planner, text, media, service };
 }
 beforeEach(() => {
   vi.clearAllMocks();
@@ -309,5 +328,174 @@ describe('bounded actual breakout response execution', () => {
     });
     expect(h.prisma.$transaction).not.toHaveBeenCalled();
     expect(h.text.generate).not.toHaveBeenCalled();
+  });
+
+  describe('visual outputs', () => {
+    it('runs an image output through the caption, visual and composition pipeline under the output’s own scope', async () => {
+      const h = fixture(['image', 'image'], Platform.INSTAGRAM);
+      h.rows[0].format = 'image';
+      expect(await h.service.execute(h.request)).toMatchObject({
+        status: 'completed',
+        outputs: [{ outputId: 'output-1' }, { outputId: 'output-2' }],
+      });
+      expect(h.text.generate).not.toHaveBeenCalled();
+      expect(h.media.generate).toHaveBeenCalledTimes(2);
+      expect(h.media.generate).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          textModelKey: 'openai/gpt-5.2',
+          mediaModelKey: 'media/model',
+          admission: expect.objectContaining({
+            outputId: 'output-1',
+            credentialId: 'credential-a',
+            actorUserId: 'configuring-user',
+            workflowExecutionId: 'execution-a',
+            componentKey: 'generation-1:caption',
+            reauthorize: h.request.reauthorize,
+          }),
+        }),
+      );
+      for (const [call] of h.media.generate.mock.calls) {
+        expect(
+          strategyBudgetAttributionSchema.safeParse(call.admission.scope),
+        ).toMatchObject({ success: true });
+        expect(call.admission.scope).toMatchObject({
+          platform: 'instagram',
+          format: 'image',
+          strategyId: 'strategy-a',
+        });
+      }
+    });
+
+    it('answers an X original with a text quote and visual follow-ups', async () => {
+      const h = fixture(['text', 'image', 'image']);
+      await h.service.execute(h.request);
+      expect(h.text.generate).toHaveBeenCalledOnce();
+      expect(h.media.generate).toHaveBeenCalledTimes(2);
+    });
+
+    it.each(['image', 'carousel', 'video', 'short'])(
+      'covers a %s output with a fake-provider run to composition and recovery',
+      async (format) => {
+        const h = fixture([format], Platform.INSTAGRAM);
+        expect(await h.service.execute(h.request)).toMatchObject({
+          status: 'completed',
+          outputs: [
+            {
+              outputId: 'output-1',
+              recovery: { state: 'draft', mayRepeatPaidRequest: false },
+            },
+          ],
+        });
+        expect(
+          h.media.generate.mock.calls[0]?.[0].admission.scope,
+        ).toMatchObject({ format });
+      },
+    );
+
+    it.each(['in_progress', 'stopped'] as const)(
+      'stops siblings after a visual output is %s',
+      async (kind) => {
+        const h = fixture(['image', 'image', 'image'], Platform.INSTAGRAM);
+        h.media.generate.mockResolvedValueOnce({
+          kind,
+          reasonCode: 'media_brand_capability_unavailable',
+          postId: null as unknown as string,
+        });
+        expect(await h.service.execute(h.request)).toMatchObject({
+          status: kind === 'stopped' ? 'held' : 'processing',
+          reason:
+            kind === 'stopped'
+              ? 'media_brand_capability_unavailable'
+              : 'provider_outcome_pending',
+          outputs: [{ outputId: 'output-1' }],
+        });
+        expect(h.media.generate).toHaveBeenCalledOnce();
+        expect(h.rows[1]?.workflowExecutionId).toBeNull();
+      },
+    );
+
+    it('blocks siblings on a retained ambiguous visual attempt instead of spending again', async () => {
+      const h = fixture(['video', 'video'], Platform.INSTAGRAM);
+      for (const row of h.rows) row.format = 'video';
+      vi.mocked(readBreakoutOutputRecovery).mockResolvedValueOnce({
+        status: 'available',
+        responseId: 'response-a',
+        outputId: 'output-1',
+        state: 'reconciliation_required',
+        reason: 'media_generation_incomplete',
+        action: 'reconcile',
+        mayRepeatPaidRequest: false,
+        postId: 'caption-a',
+        externalId: null,
+      });
+      expect(await h.service.execute(h.request)).toMatchObject({
+        status: 'processing',
+        reason: 'provider_outcome_pending',
+        outputs: [{ outputId: 'output-1' }],
+      });
+      expect(h.media.generate).toHaveBeenCalledOnce();
+      expect(h.rows[1]?.workflowExecutionId).toBeNull();
+    });
+
+    it('resumes a claimed visual output on the same execution without a second claim', async () => {
+      const h = fixture(['image'], Platform.INSTAGRAM);
+      h.first.state = 'generating';
+      h.first.workflowExecutionId = 'execution-a';
+      await h.service.execute(h.request);
+      expect(h.media.generate).toHaveBeenCalledOnce();
+      expect(h.prisma.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('resumes a visual output whose quality gate is pending through the replay-safe pipeline', async () => {
+      const h = fixture(['image'], Platform.INSTAGRAM);
+      h.first.state = 'generating';
+      h.first.workflowExecutionId = 'execution-a';
+      h.first.heldReason = 'quality_evaluation_pending';
+      await h.service.execute(h.request);
+      expect(h.media.generate).toHaveBeenCalledOnce();
+      expect(h.prisma.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does not run a visual output a hold already settled', async () => {
+      const h = fixture(['image'], Platform.INSTAGRAM);
+      h.first.state = 'awaiting_review';
+      h.first.workflowExecutionId = 'execution-a';
+      h.first.heldReason = 'platform_quality_blocked';
+      await h.service.execute(h.request);
+      expect(h.media.generate).not.toHaveBeenCalled();
+    });
+
+    it('holds a visual output the plan has no visual model for, spending nothing', async () => {
+      const h = fixture(['image'], Platform.INSTAGRAM);
+      const plan = await h.planner.prepare();
+      if (plan.status !== 'prepared') throw new Error('prepared plan expected');
+      h.planner.prepare.mockResolvedValueOnce({ ...plan, mediaModelKey: null });
+      const result = await h.service.execute(h.request);
+      expect(result).toMatchObject({ status: 'held' });
+      expect(h.media.generate).not.toHaveBeenCalled();
+    });
+
+    it('reports a visual draft held for brand review as a settled hold', async () => {
+      const h = fixture(['image', 'image'], Platform.INSTAGRAM);
+      vi.mocked(readBreakoutOutputRecovery).mockImplementation(
+        async (_tx, input) => ({
+          status: 'available',
+          responseId: input.responseId,
+          outputId: input.outputId,
+          state: 'awaiting_review',
+          reason: 'brand_review_required',
+          action: 'none',
+          mayRepeatPaidRequest: false,
+          postId: 'composed-a',
+          externalId: null,
+        }),
+      );
+      expect(await h.service.execute(h.request)).toMatchObject({
+        status: 'held',
+        reason: 'brand_review_required',
+      });
+      expect(h.media.generate).toHaveBeenCalledTimes(2);
+    });
   });
 });

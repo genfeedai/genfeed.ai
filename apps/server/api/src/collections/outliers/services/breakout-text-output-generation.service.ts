@@ -1,9 +1,11 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { discardUnlinkedBreakoutDraft } from '@api/collections/outliers/services/breakout-draft-discard.util';
 import {
   admitBreakoutGenerationContinuation,
   type BreakoutGenerationAdmission,
   runWithBreakoutGenerationAdmission,
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
+import { isBreakoutMediaFormat } from '@api/collections/outliers/services/breakout-media-format.util';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { bindBreakoutPostArtifact } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
@@ -19,7 +21,6 @@ import type {
 import { textDispatchApiKey } from '@api/services/byok/text-dispatch-byok.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivitySource,
   CreditReservationStatus,
@@ -45,6 +46,12 @@ export type BreakoutTextOutputGenerationRequest = {
   privateLearning: BrandedTextGenerationRequestV1['privateLearning'];
   label: string;
   acceptSegment: (text: string) => boolean;
+  /**
+   * The text is the caption of a visual output (image, carousel, video, short). Its draft is a
+   * plain text post that the output's composition later turns into the visual post, so it is
+   * neither bound to the output nor quality-scored here: both happen on the composed material.
+   */
+  isVisualCaption?: boolean;
 };
 
 function segments(text: string, thread: boolean): string[] {
@@ -74,9 +81,12 @@ export class BreakoutTextOutputGenerationService {
   ): Promise<BrandedTextGenerationOutcomeV1> {
     const { admission, input } = request;
     const { scope } = admission;
+    const isCaption = request.isVisualCaption === true;
     if (
-      (scope.format !== 'text' && scope.format !== 'thread') ||
-      input.format !== scope.format ||
+      (isCaption
+        ? !isBreakoutMediaFormat(scope.format) || input.format !== 'text'
+        : (scope.format !== 'text' && scope.format !== 'thread') ||
+          input.format !== scope.format) ||
       input.mode !== 'approved_brand' ||
       input.organizationId !== scope.organizationId ||
       input.brandId !== scope.brandId ||
@@ -153,9 +163,9 @@ export class BreakoutTextOutputGenerationService {
             reservationId = hold.id;
           },
           acceptText: (text) => {
-            const parts = segments(text, scope.format === 'thread');
+            const parts = segments(text, input.format === 'thread');
             return (
-              parts.length >= (scope.format === 'thread' ? 2 : 1) &&
+              parts.length >= (input.format === 'thread' ? 2 : 1) &&
               parts.length <= 9 &&
               parts.every(request.acceptSegment)
             );
@@ -163,7 +173,7 @@ export class BreakoutTextOutputGenerationService {
           persistText: (text) => this.persistDraft(request, text),
         };
         const outcome =
-          scope.format === 'thread'
+          input.format === 'thread'
             ? await this.generation.generateThread(normal)
             : await this.generation.generate(normal);
         // A retained accepted attempt is billable even if its output failed a channel/quality gate.
@@ -194,7 +204,9 @@ export class BreakoutTextOutputGenerationService {
         const settled =
           outcome.kind === 'in_progress'
             ? outcome
-            : await this.keepDraft(request, outcome);
+            : isCaption
+              ? await this.keepCaption(request, outcome)
+              : await this.keepDraft(request, outcome);
         await admission.reauthorize(this.prisma);
         return settled;
       },
@@ -225,7 +237,7 @@ export class BreakoutTextOutputGenerationService {
       });
     });
     if (bound.status === 'held') {
-      await this.discardUnlinkedDraft(admission, postId);
+      await discardUnlinkedBreakoutDraft(this.prisma, admission, postId);
       return {
         kind: 'stopped',
         receipt: outcome.receipt,
@@ -249,25 +261,23 @@ export class BreakoutTextOutputGenerationService {
     return outcome;
   }
 
-  private async discardUnlinkedDraft(
-    admission: Readonly<BreakoutGenerationAdmission>,
-    postId: string,
-  ): Promise<void> {
-    const { scope } = admission;
-    await this.prisma.$transaction(async (tx) => {
-      await admission.reauthorize(tx);
-      await tx.post.updateMany({
-        where: scopedWhere(scope.organizationId, {
-          brandId: scope.brandId,
-          credentialId: admission.credentialId,
-          breakoutOutputId: null,
-          targetExecutionState: TargetExecutionState.DRAFT,
-          OR: [{ id: postId }, { parentId: postId }],
-        }),
-        data: { isDeleted: true },
-      });
-    });
+  /**
+   * A visual output's caption is only a draft until composition links the finished visual post.
+   * A caption the receipt stopped has nothing to compose, so it is discarded.
+   */
+  private async keepCaption(
+    request: Readonly<BreakoutTextOutputGenerationRequest>,
+    outcome: Exclude<BrandedTextGenerationOutcomeV1, { kind: 'in_progress' }>,
+  ): Promise<BrandedTextGenerationOutcomeV1> {
+    if (outcome.kind === 'stopped' && outcome.postId)
+      await discardUnlinkedBreakoutDraft(
+        this.prisma,
+        request.admission,
+        outcome.postId,
+      );
+    return outcome;
   }
+
   private async persistDraft(
     request: Readonly<BreakoutTextOutputGenerationRequest>,
     text: string,
@@ -275,7 +285,7 @@ export class BreakoutTextOutputGenerationService {
     const { admission, input } = request;
     const { scope } = admission;
     await admission.reauthorize(this.prisma);
-    const parts = segments(text, scope.format === 'thread');
+    const parts = segments(text, input.format === 'thread');
     const drafts: PostCreateInput[] = parts.map((description, order) => ({
       organizationId: scope.organizationId,
       brandId: scope.brandId,
@@ -290,7 +300,7 @@ export class BreakoutTextOutputGenerationService {
       ingredients: [],
       category: PostCategory.TEXT,
       format:
-        scope.format === 'thread' ? PostFormat.THREAD : PostFormat.STANDARD,
+        input.format === 'thread' ? PostFormat.THREAD : PostFormat.STANDARD,
       targetExecutionState: TargetExecutionState.DRAFT,
     }));
     // Recheck before each canonical child write instead of creating a whole thread under stale authority.
@@ -310,7 +320,7 @@ export class BreakoutTextOutputGenerationService {
       // The receipt fails without a draft id when a segment write fails, so a partly written
       // thread would be a paid draft nothing refers to. Discard it before reporting the failure.
       // A revoked actor may not write at all; the original failure is the one reported.
-      await this.discardUnlinkedDraft(admission, root.id).catch(
+      await discardUnlinkedBreakoutDraft(this.prisma, admission, root.id).catch(
         () => undefined,
       );
       throw error;

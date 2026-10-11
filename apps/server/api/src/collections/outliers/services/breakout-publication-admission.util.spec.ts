@@ -6,9 +6,13 @@ import {
   type BreakoutPublicationAdmission,
 } from '@api/collections/outliers/services/breakout-publication-admission.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
+import { breakoutQualityMaterialHash } from '@api/collections/outliers/services/breakout-quality-material.util';
+import { BREAKOUT_VISUAL_QUALITY_KEY } from '@api/collections/outliers/services/breakout-visual-quality.util';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedPostMaterialRecord } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
+import { describeBrandedPostMaterialLayout } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import {
+  IngredientCategory,
   Platform,
   PostCategory,
   PostFormat,
@@ -94,6 +98,7 @@ function fixture() {
   };
   const output = {
     kind: 'follow_up',
+    format: 'text',
     ordinal: 1,
     heldReason: null as string | null,
     state: 'generating',
@@ -113,6 +118,8 @@ function fixture() {
     policies: { publishPolicy: { minPostScore: 70 } },
   };
   let content = post.description;
+  let materialHash = (): string => hashBrandedGenerationTextV1(content);
+  const visualRows: Array<{ id: string; data: Record<string, unknown> }> = [];
   const score = {
     id: 'score-a',
     data: { content, overallScore: 85, metadata: { hasCallToAction: true } },
@@ -126,7 +133,7 @@ function fixture() {
       postId: 'post-a',
       strategyId: 'strategy-a',
       workflowExecutionId: 'execution-a',
-      materialHash: hashBrandedGenerationTextV1(content),
+      materialHash: materialHash(),
     };
     return JSON.stringify(filter.equals) === JSON.stringify(expected)
       ? score
@@ -148,7 +155,21 @@ function fixture() {
       }),
     },
     agentStrategy: { findFirst: vi.fn(async () => strategy) },
-    contentScore: { findFirst: scoreQuery },
+    contentScore: {
+      findFirst: scoreQuery,
+      findMany: vi.fn(async (args: Prisma.ContentScoreFindManyArgs) => {
+        const wanted = (args.where?.OR ?? []).map((clause) =>
+          JSON.stringify(
+            (clause.data as { equals?: unknown } | undefined)?.equals,
+          ),
+        );
+        return visualRows.filter((row) =>
+          wanted.includes(
+            JSON.stringify(row.data[BREAKOUT_VISUAL_QUALITY_KEY]),
+          ),
+        );
+      }),
+    },
   };
   return {
     admission,
@@ -161,6 +182,10 @@ function fixture() {
     scoreQuery,
     raw: tx,
     tx: tx as unknown as Prisma.TransactionClient,
+    visualRows,
+    setMaterialHash(next: () => string) {
+      materialHash = next;
+    },
     setScoredContent(value: string) {
       content = value;
       score.data.content = value;
@@ -341,6 +366,7 @@ describe('fresh business evidence before native breakout publication', () => {
   });
   it('requires a whole-thread score, including root and ordered child material', async () => {
     const h = fixture();
+    h.output.format = 'thread';
     h.post.format = PostFormat.THREAD;
     const { children: _children, ...segment } = h.post;
     h.post.children = [
@@ -478,5 +504,168 @@ describe('fresh business evidence before native breakout publication', () => {
           : 'quota_exhausted',
       );
     }
+  });
+
+  describe('visual outputs', () => {
+    function visual(
+      format: 'image' | 'carousel' | 'video' | 'short',
+      platform: Platform = Platform.INSTAGRAM,
+    ) {
+      const h = fixture();
+      const video = format === 'video' || format === 'short';
+      const ids =
+        format === 'carousel' ? ['asset-1', 'asset-2', 'asset-3'] : ['asset-1'];
+      h.admission = {
+        ...h.admission,
+        scope: { ...h.admission.scope, platform },
+      } as never;
+      h.output.format = format;
+      Object.assign(h.post, {
+        platform,
+        category:
+          format === 'short'
+            ? PostCategory.REEL
+            : video
+              ? PostCategory.VIDEO
+              : PostCategory.IMAGE,
+        ingredients: ids.map((id) => ({
+          id,
+          organizationId: 'org-a',
+          brandId: 'brand-a',
+          isDeleted: false,
+          category: video ? IngredientCategory.VIDEO : IngredientCategory.IMAGE,
+          s3Key: `media/${id}`,
+          version: 1,
+          fileSize: 5,
+          mimeType: video ? 'video/mp4' : 'image/png',
+          cdnUrl: `https://cdn.test/${id}`,
+        })),
+      });
+      h.strategy.policies.publishPolicy = {
+        minPostScore: 70,
+        minImageScore: 75,
+      } as never;
+      const hashNow = () =>
+        breakoutQualityMaterialHash(
+          describeBrandedPostMaterialLayout(
+            { organizationId: 'org-a', brandId: 'brand-a' },
+            h.post as never,
+          ),
+          h.post.description,
+        );
+      h.setMaterialHash(hashNow);
+      const retainVisuals = (scores: number[]) => {
+        h.visualRows.length = 0;
+        for (const [partIndex, overallScore] of scores.entries())
+          h.visualRows.push({
+            id: `visual-${partIndex}`,
+            data: {
+              [BREAKOUT_VISUAL_QUALITY_KEY]: {
+                responseId: 'response-a',
+                outputId: 'output-a',
+                postId: 'post-a',
+                strategyId: 'strategy-a',
+                workflowExecutionId: 'execution-a',
+                materialHash: hashNow(),
+                partIndex,
+              },
+              overallScore,
+            },
+          });
+      };
+      retainVisuals(ids.map(() => 88));
+      return { h, ids, retainVisuals };
+    }
+
+    it.each([
+      ['image', Platform.INSTAGRAM],
+      ['carousel', Platform.INSTAGRAM],
+      ['video', Platform.YOUTUBE],
+      ['short', Platform.TIKTOK],
+    ] as const)(
+      'admits a %s on %s with current caption and per-visual evidence',
+      async (format, platform) => {
+        const { h } = visual(format, platform);
+        expect(
+          await admitBreakoutPublication(h.tx, h.admission, nowMs),
+        ).toEqual({
+          scoreId: 'score-a',
+        });
+      },
+    );
+
+    it('holds when a visual’s retained evidence is missing or was earned on other material', async () => {
+      const { h, retainVisuals } = visual('carousel');
+      retainVisuals([88, 88]);
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('quality_evidence_unavailable');
+      retainVisuals([88, 88, 88]);
+      h.post.ingredients[0].version = 2;
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('quality_evidence_unavailable');
+    });
+
+    it('holds when any visual misses the strategy’s visual bar', async () => {
+      const { h, retainVisuals } = visual('carousel');
+      retainVisuals([90, 74, 90]);
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('platform_quality_blocked');
+      h.strategy.policies.publishPolicy = {
+        minPostScore: 70,
+        minImageScore: 70,
+      } as never;
+      expect(await admitBreakoutPublication(h.tx, h.admission, nowMs)).toEqual({
+        scoreId: 'score-a',
+      });
+    });
+
+    it.each([
+      ['image', Platform.YOUTUBE, 'format_unsupported_for_platform'],
+      ['video', Platform.FACEBOOK, 'platform_publishing_unavailable'],
+      ['short', Platform.LINKEDIN, 'format_unsupported_for_platform'],
+    ] as const)(
+      're-reads the channel catalog: a %s on %s is held as %s',
+      async (format, platform, reason) => {
+        const { h } = visual(format, platform);
+        await expect(
+          admitBreakoutPublication(h.tx, h.admission, nowMs),
+        ).rejects.toThrow(reason);
+      },
+    );
+
+    it('holds material that is not exactly the planned visuals or lost a visual', async () => {
+      const { h } = visual('carousel');
+      h.post.ingredients = h.post.ingredients.slice(0, 2);
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('format_capability_unavailable');
+    });
+
+    it('holds a text output whose post gained media', async () => {
+      const h = fixture();
+      Object.assign(h.post, {
+        category: PostCategory.IMAGE,
+        ingredients: [
+          {
+            id: 'asset-1',
+            organizationId: 'org-a',
+            brandId: 'brand-a',
+            isDeleted: false,
+            category: IngredientCategory.IMAGE,
+            s3Key: 'media/asset-1',
+            version: 1,
+            fileSize: 5,
+            mimeType: 'image/png',
+            cdnUrl: 'https://cdn.test/asset-1',
+          },
+        ],
+      });
+      await expect(
+        admitBreakoutPublication(h.tx, h.admission, nowMs),
+      ).rejects.toThrow('format_capability_unavailable');
+    });
   });
 });
