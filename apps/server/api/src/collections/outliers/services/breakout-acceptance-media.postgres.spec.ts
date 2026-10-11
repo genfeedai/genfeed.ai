@@ -28,6 +28,7 @@ import {
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
+import { Prisma } from '@genfeedai/prisma';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
@@ -272,10 +273,16 @@ describe.skipIf(!connectionString)(
       const post = await postOf(world, video.id);
 
       const delivery = buildDeliveryHarness(db, prisma, logger, world);
-      // The files service cannot probe the asset yet: the gate holds the publish.
-      delivery.files.probe = async () => {
-        throw new Error('asset not stored yet');
-      };
+      const conforming = delivery.files.probe;
+      // The stored asset does not yet meet X's video limits (an unconverted master file).
+      delivery.files.probe = async (url, kind) => ({
+        ...(await conforming(url, kind)),
+        audioCodec: 'opus',
+        container: 'mov',
+        height: 2160,
+        videoCodec: 'hevc',
+        width: 3840,
+      });
       await approveAndSchedule(
         harness,
         world,
@@ -294,13 +301,14 @@ describe.skipIf(!connectionString)(
         ).targetExecutionState,
       ).toBe(TargetExecutionState.FAILED);
 
-      // Once the asset probes clean, scheduling it again publishes it.
-      delivery.files.probe = buildDeliveryHarness(
-        db,
-        prisma,
-        logger,
-        world,
-      ).files.probe;
+      // The asset is replaced by a conforming file; scheduling again publishes it.
+      delivery.files.probe = conforming;
+      await db.ingredient.updateMany({
+        data: { mediaProbe: Prisma.DbNull, mediaProbedAt: null },
+        where: scopedWhere(world.organizationId, {
+          id: { in: post.ingredients.map((item) => item.id) },
+        }),
+      });
       await scheduleDirectly(
         harness,
         world,
