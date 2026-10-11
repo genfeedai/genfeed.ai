@@ -14,12 +14,14 @@ import {
 import {
   APP_ROUTES,
   MESSAGES_CONVERSATION_QUERY_PARAM,
+  MESSAGES_TYPE_QUERY_PARAM,
 } from '@genfeedai/contracts/constants';
 import type {
   SocialAutomationState,
   SocialConversationStatus,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
+import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
@@ -65,6 +67,7 @@ import {
   AUTOMATION_OPTIONS,
   formatMessageTime,
   getMessageProvenanceItems,
+  parseMessagesSurface,
   STATUS_LABELS,
   STATUS_STYLES,
 } from './messages-page.helpers';
@@ -261,6 +264,9 @@ export default function MessagesPage() {
 
   const filters = useMessagesInboxFilters({
     brandSlug,
+    initialConversationType: parseMessagesSurface(
+      searchParams.get(MESSAGES_TYPE_QUERY_PARAM),
+    ),
     routeBrandId,
   });
 
@@ -308,13 +314,20 @@ export default function MessagesPage() {
         (brandOptions.length === 1 ? brandOptions[0]?.id : undefined));
 
   const updateSelectedConversationParam = useCallback(
-    (conversationId: string | null) => {
+    (conversationId: string | null, conversationType?: MessagesSurface) => {
       const nextSearchParams = new URLSearchParams(searchParamsString);
 
       if (conversationId) {
         nextSearchParams.set(MESSAGES_CONVERSATION_QUERY_PARAM, conversationId);
       } else {
         nextSearchParams.delete(MESSAGES_CONVERSATION_QUERY_PARAM);
+      }
+
+      // The type filter is shareable, so `?type=` follows the selection.
+      if (conversationType === 'all') {
+        nextSearchParams.delete(MESSAGES_TYPE_QUERY_PARAM);
+      } else if (conversationType) {
+        nextSearchParams.set(MESSAGES_TYPE_QUERY_PARAM, conversationType);
       }
 
       const queryString = nextSearchParams.toString();
@@ -544,7 +557,7 @@ export default function MessagesPage() {
       onConversationTypeChange={(value) => {
         filters.setConversationType(value);
         setSelectedId(null);
-        updateSelectedConversationParam(null);
+        updateSelectedConversationParam(null, value);
       }}
       onNextPage={() => filters.stepConversationPage(1)}
       onPlatformChange={(value) => {

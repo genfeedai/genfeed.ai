@@ -1,9 +1,11 @@
+import { SocialConversationType } from '@genfeedai/contracts';
 import type {
   IPaginatedResponse,
   SocialActionProvenance,
   SocialAutomationState,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
+import type { MessagesSurface } from '@genfeedai/props/messages/messages-conversation-sidebar.props';
 import type {
   MessagesSyncFeedback,
   MessagesSyncJob,
@@ -42,6 +44,21 @@ export const EMPTY_MESSAGES_PAGINATION: MessagesPaginationState = {
 };
 
 export const ALL_BRANDS_FILTER = 'all' as const;
+
+const MESSAGES_SURFACE_VALUES: ReadonlySet<string> = new Set([
+  SocialConversationType.COMMENT,
+  SocialConversationType.DM,
+  SocialConversationType.REPLY,
+]);
+
+/** #5502 read the `?type=` inbox filter; anything else means All. */
+export function parseMessagesSurface(
+  value: string | null | undefined,
+): MessagesSurface {
+  return value && MESSAGES_SURFACE_VALUES.has(value)
+    ? (value as MessagesSurface)
+    : 'all';
+}
 
 export const AUTOMATION_OPTIONS: Array<{
   label: string;

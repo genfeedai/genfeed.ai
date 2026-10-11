@@ -1,6 +1,5 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
-import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
@@ -18,6 +17,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
 import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
+import { CronCreditsModule } from '@workers/crons/credits/cron.credits.module';
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
 import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.module';
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
@@ -62,7 +62,6 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     WorkflowsModule,
     WorkflowExecutionsModule,
     IngredientsModule,
-    ReferralsModule,
     VideoCompletionCoreModule,
     WebhooksCoreModule,
     WorkspaceTaskRollupModule,
@@ -80,6 +79,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     ),
     CronBatchGenerationModule,
     CronCredentialsModule,
+    CronCreditsModule,
     CronEngagementModule,
     CronFalModelWatcherModule,
     CronIngredientsModule,

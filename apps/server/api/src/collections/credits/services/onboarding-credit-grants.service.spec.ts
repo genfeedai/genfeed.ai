@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
@@ -6,10 +7,14 @@ import {
   TransactionUtil,
 } from '@api/helpers/utils/transaction/transaction.util';
 import * as deployment from '@genfeedai/config';
+import type { IFreeTrialState } from '@genfeedai/contracts/interfaces/billing';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
+  ONBOARDING_SIGNUP_GIFT_CREDITS,
+  ONBOARDING_TRIAL_CREDITS,
 } from '@genfeedai/contracts/types';
+import { LoggerService } from '@libs/logger/logger.service';
 
 // A transactional snapshot model exercises lost-update retries and rollback without
 // letting mock writes leak out of an aborted transaction.
@@ -27,6 +32,8 @@ describe('OnboardingCreditGrantsService', () => {
   const historicalGift = vi.fn();
   const findOrganization = vi.fn();
   const effects = vi.fn();
+  const trialState = vi.fn<() => Promise<IFreeTrialState>>();
+  const logger = { warn: vi.fn() };
   const grants = vi.fn(
     async (
       input: { creditsToAdd: number; options: { idempotencyKey: string } },
@@ -89,6 +96,8 @@ describe('OnboardingCreditGrantsService', () => {
       addPromotionalCreditsInTransaction: grants,
       publishCreditAddition: effects,
     } as unknown as CreditsUtilsService,
+    { getState: trialState } as unknown as FreeTrialService,
+    logger as unknown as LoggerService,
   );
   beforeEach(() => {
     vi.clearAllMocks();
@@ -101,6 +110,10 @@ describe('OnboardingCreditGrantsService', () => {
     failUpdate = false;
     historicalGift.mockResolvedValue(null);
     findOrganization.mockResolvedValue(organization);
+    trialState.mockResolvedValue({
+      isTrialExpired: false,
+      trialEndsAt: new Date('2026-10-13T00:00:00.000Z'),
+    });
   });
   afterEach(() => vi.restoreAllMocks());
   it('grants each mission once across concurrent retries and retains provenance', async () => {
@@ -309,6 +322,133 @@ describe('OnboardingCreditGrantsService', () => {
     await service.grantSignupGift('org', 'user');
     expect(balance).toBe(25);
   });
+  describe('free-trial credits (finish or skip)', () => {
+    it('grants 75 credits once per user across a finish, a skip and concurrent retries', async () => {
+      const results = await Promise.all([
+        service.grantTrialCredits('org', 'user'),
+        service.grantTrialCredits('org', 'user'),
+      ]);
+      const retry = await service.grantTrialCredits('org', 'user');
+
+      expect(ONBOARDING_TRIAL_CREDITS).toBe(75);
+      expect(results.filter(Boolean)).toHaveLength(1);
+      expect(retry).toBe(false);
+      expect(balance).toBe(75);
+      expect(ledger).toEqual(['onboarding:trial:user']);
+      expect(grants).toHaveBeenCalledWith(
+        expect.objectContaining({
+          creditsToAdd: 75,
+          source: 'onboarding-trial',
+          options: expect.objectContaining({
+            actorUserId: 'user',
+            billingAccountId: 'billing',
+            idempotencyKey: 'onboarding:trial:user',
+            metadata: { kind: 'promotional', campaign: 'onboarding-trial' },
+          }),
+        }),
+        expect.anything(),
+      );
+      expect(effects).toHaveBeenCalledTimes(1);
+      expect(effects).toHaveBeenCalledWith(
+        'org',
+        75,
+        expect.objectContaining({ wasApplied: true }),
+      );
+    });
+
+    it('stacks on the 25-credit signup gift and the per-answer rewards', async () => {
+      await service.grantSignupGift('org', 'user');
+      await service.grantOnboardingAnswerCredits('org', 'brand-1', ['goals']);
+      await service.grantTrialCredits('org', 'user');
+
+      expect(balance).toBe(ONBOARDING_SIGNUP_GIFT_CREDITS + 5 + 75);
+      expect(ledger).toEqual([
+        'onboarding:welcome:user',
+        'onboarding:answer:brand-1:goals',
+        'onboarding:trial:user',
+      ]);
+    });
+
+    it('is suppressed by a historical trial grant on any organization the user owns', async () => {
+      historicalGift.mockResolvedValue({ id: 'earlier', amount: 75 });
+
+      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
+        false,
+      );
+      expect(grants).not.toHaveBeenCalled();
+      expect(historicalGift).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            source: 'onboarding-trial',
+            OR: expect.arrayContaining([
+              { idempotencyKey: 'onboarding:trial:user' },
+              { organization: { userId: 'user' } },
+            ]),
+          }),
+        }),
+      );
+    });
+
+    it('skips proactive, warm-up and non-owner workspaces like the signup gift', async () => {
+      findOrganization.mockResolvedValue(null);
+
+      await expect(service.grantTrialCredits('org', 'invited')).resolves.toBe(
+        false,
+      );
+      expect(grants).not.toHaveBeenCalled();
+      expect(findOrganization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'invited',
+            isProactiveOnboarding: false,
+            warmupAccounts: { none: { isDeleted: false } },
+          }),
+        }),
+      );
+    });
+
+    it('never grants when billing is off or the deployment is self-hosted', async () => {
+      vi.mocked(deployment.usesMeteredCredits).mockReturnValue(false);
+      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
+        false,
+      );
+      vi.mocked(deployment.usesMeteredCredits).mockReturnValue(true);
+      vi.mocked(deployment.isSelfHostedDeployment).mockReturnValue(true);
+      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
+        false,
+      );
+      expect(transaction).not.toHaveBeenCalled();
+      expect(grants).not.toHaveBeenCalled();
+    });
+
+    it('grants nothing once the trial is already over', async () => {
+      trialState.mockResolvedValue({
+        isTrialExpired: true,
+        trialEndsAt: new Date('2026-10-01T00:00:00.000Z'),
+      });
+
+      await expect(service.grantTrialCredits('org', 'user')).resolves.toBe(
+        false,
+      );
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it('logs and swallows a failed grant on the best-effort path', async () => {
+      transaction.mockRejectedValueOnce(new Error('ledger down'));
+
+      await expect(
+        service.grantTrialCreditsBestEffort('org', 'user'),
+      ).resolves.toBe(false);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Could not grant free-trial credits',
+        expect.objectContaining({
+          error: 'ledger down',
+          organizationId: 'org',
+        }),
+      );
+    });
+  });
+
   it('pays +5 once per brand per answered card across retries and concurrent saves', async () => {
     const [first, concurrent] = await Promise.all([
       service.grantOnboardingAnswerCredits(
@@ -384,6 +524,8 @@ describe('OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort (ge
       {} as unknown as TransactionUtil,
       {} as unknown as OrganizationSettingsService,
       {} as unknown as CreditsUtilsService,
+      {} as unknown as FreeTrialService,
+      {} as unknown as LoggerService,
       funnelCaptureService as never,
     );
 
@@ -401,6 +543,8 @@ describe('OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort (ge
       {} as unknown as TransactionUtil,
       {} as unknown as OrganizationSettingsService,
       {} as unknown as CreditsUtilsService,
+      {} as unknown as FreeTrialService,
+      {} as unknown as LoggerService,
     );
 
     expect(() =>

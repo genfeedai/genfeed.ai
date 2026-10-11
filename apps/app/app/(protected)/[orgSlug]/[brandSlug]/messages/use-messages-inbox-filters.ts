@@ -18,16 +18,20 @@ import { ALL_BRANDS_FILTER } from './messages-page.helpers';
 
 export type { UseMessagesInboxFiltersParams } from '@genfeedai/props/messages/messages-inbox-filters.props';
 
-function createInitialFiltersState(
-  brandSlug: string | undefined,
-): MessagesInboxFiltersState {
+function createInitialFiltersState({
+  brandSlug,
+  initialConversationType = 'all',
+}: Pick<
+  UseMessagesInboxFiltersParams,
+  'brandSlug' | 'initialConversationType'
+>): MessagesInboxFiltersState {
   return {
     assignedOwnerId: '',
     automationState: 'all',
     brandFilterOverride: null,
     brandFilterRouteKey: brandSlug,
     conversationPage: 1,
-    conversationType: 'all',
+    conversationType: initialConversationType,
     credentialId: '',
     needsReviewOnly: false,
     platform: 'all',
@@ -169,11 +173,12 @@ function deriveInboxView(state: MessagesInboxFiltersState): MessagesInboxView {
 
 export function useMessagesInboxFilters({
   brandSlug,
+  initialConversationType,
   routeBrandId,
 }: UseMessagesInboxFiltersParams) {
   const [state, dispatch] = useReducer(
     messagesInboxFiltersReducer,
-    brandSlug,
+    { brandSlug, initialConversationType },
     createInitialFiltersState,
   );
 

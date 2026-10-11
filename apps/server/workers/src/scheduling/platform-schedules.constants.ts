@@ -1,3 +1,4 @@
+import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
@@ -32,6 +33,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   EDITOR_RENDER_RECONCILE: 'editor-render-reconcile',
   ENGAGEMENT_TRIGGERS: 'engagement-triggers',
   FAL_MODEL_DISCOVERY: 'fal-model-discovery',
+  FREE_TRIAL_EXPIRY: 'free-trial-expiry',
   GLOBAL_TRENDS_REFRESH: 'global-trends-refresh',
   INGREDIENT_METADATA_REFRESH: 'ingredient-metadata-refresh',
   INGREDIENT_PROCESSING_RECONCILE: 'ingredient-processing-reconcile',
@@ -130,6 +132,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: {
     pattern: '0 7 * * *',
+    timezone: 'UTC',
+  },
+  // Admission already refuses an expired trial; this only removes the
+  // leftover free credits, so a 15-minute cadence is enough.
+  [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY]: {
+    pattern: FREE_TRIAL_EXPIRY_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH]: {

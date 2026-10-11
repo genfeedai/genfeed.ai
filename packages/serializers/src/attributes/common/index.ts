@@ -13,4 +13,5 @@ export * from '@serializers/attributes/common/analytics-timeseries.attributes';
 export * from '@serializers/attributes/common/analytics-top-content.attributes';
 export * from '@serializers/attributes/common/analytics-top-post.attributes';
 export * from '@serializers/attributes/common/analytics-trend.attributes';
+export * from '@serializers/attributes/common/analytics-winner-post.attributes';
 export * from '@serializers/attributes/common/api-key.attributes';

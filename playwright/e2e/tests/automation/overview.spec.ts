@@ -176,32 +176,22 @@ test.describe('Automation & Messages surfaces', () => {
       );
     });
 
-    test('messages outreach nav links to Outreach sequences', async ({
+    test('messages nav is Overview and Inbox, without Outreach (#5502)', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(`${ORG_BRAND}${APP_ROUTES.MESSAGES.ROOT}`, {
         waitUntil: 'domcontentloaded',
       });
 
-      // At the Inbox root, the conversation list owns the nav column body
-      // while the module's primary destinations stay listed above it.
-      const outreachLink = authenticatedPage.getByRole('link', {
-        name: 'Outreach sequences',
-      });
-      await expect(outreachLink).toBeVisible();
-      await expect(outreachLink).toHaveAttribute(
-        'href',
-        new RegExp(`${APP_ROUTES.MESSAGES.OUTREACH}$`),
-      );
-      await outreachLink.click();
-
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}$`),
-      );
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        APP_ROUTES.MESSAGES.OUTREACH,
-      );
+      // Outreach left the Messages menu; its route still opens directly.
+      await expect(
+        authenticatedPage
+          .locator(`a[href$="${APP_ROUTES.MESSAGES.OVERVIEW}"]`)
+          .first(),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('link', { name: 'Outreach sequences' }),
+      ).toHaveCount(0);
     });
   });
 

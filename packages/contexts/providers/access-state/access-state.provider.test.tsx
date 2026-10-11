@@ -395,6 +395,35 @@ describe('AccessStateProvider', () => {
       expect(screen.getByTestId('trial-used-up')).toHaveTextContent('false');
     });
 
+    it('is true once the 3-day free trial is over, even with credits left', () => {
+      renderTrial({
+        ...usedUpAccessState,
+        canAffordDefaultGeneration: true,
+        creditsBalance: 60,
+        isTrialExpired: true,
+        trialEndsAt: '2026-10-04T09:00:00.000Z',
+      });
+
+      expect(screen.getByTestId('trial-used-up')).toHaveTextContent('true');
+    });
+
+    it.each([
+      [
+        'a subscribed organization',
+        { subscriptionStatus: SubscriptionStatus.TRIALING },
+      ],
+      ['a user still onboarding', { isOnboardingCompleted: false }],
+    ])('ignores an expired trial for %s', (_label, overrides) => {
+      renderTrial({
+        ...usedUpAccessState,
+        canAffordDefaultGeneration: true,
+        isTrialExpired: true,
+        ...overrides,
+      });
+
+      expect(screen.getByTestId('trial-used-up')).toHaveTextContent('false');
+    });
+
     it('is false on deployments without organization billing', () => {
       vi.mocked(hasOrganizationBillingHint).mockReturnValue(false);
 

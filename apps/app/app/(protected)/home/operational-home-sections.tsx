@@ -13,6 +13,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
+  createPublishingApprovalsRoute,
 } from '@genfeedai/contracts/constants';
 import type {
   IActivity,
@@ -145,14 +146,6 @@ function SurfaceTitleLink({
   );
 }
 
-function reviewItemHref(baseHref: string, item: ReviewInboxItem): string {
-  const search = new URLSearchParams({
-    batch: item.batchId,
-    item: item.id,
-  });
-  return `${baseHref}?${search.toString()}`;
-}
-
 function isAwaitingReview(item: ReviewInboxItem): boolean {
   return normalizeReviewDecision(item.reviewDecision) === ReviewDecision.UNSET;
 }
@@ -238,6 +231,17 @@ function NeedsYouSurface({
   const reviewHref = brandSlug
     ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.REVIEW)
     : brandSetupHref;
+  const reviewItemHref = (item: ReviewInboxItem) =>
+    brandSlug
+      ? createBrandAppRoute(
+          orgSlug,
+          brandSlug,
+          createPublishingApprovalsRoute({
+            batch: item.batchId,
+            item: item.id,
+          }),
+        )
+      : brandSetupHref;
   const runHref = (executionId: string) =>
     brandSlug
       ? createBrandAppRoute(
@@ -373,7 +377,7 @@ function NeedsYouSurface({
                       <Link
                         aria-label={`Open ${item.summary}`}
                         className="block truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        href={reviewItemHref(reviewHref, item)}
+                        href={reviewItemHref(item)}
                       >
                         {item.summary}
                       </Link>

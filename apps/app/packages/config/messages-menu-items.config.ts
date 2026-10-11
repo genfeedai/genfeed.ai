@@ -1,23 +1,30 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Inbox, MessageCircleReply, MessageSquare, Send } from 'lucide-react';
+import { Inbox, LayoutDashboard } from 'lucide-react';
 
 /**
- * Messages module nav — engagement inbox + send-side sequences.
+ * Messages module nav (#5502): Overview and a conversation-first Inbox.
  *
- * - Inbox: comments + DMs (conversation list fills the nav panel body)
- * - Outreach sequences: growth / launch DM pipelines
- * - Replies: author replies on your own posts
- * - Reply drip: throttled outbound reply sequences
+ * - Overview: waiting conversations per kind, each opening a filtered Inbox
+ * - Inbox: DMs, Replies and Comments in one stream, filtered by type
  *
- * `isPrimary` keeps these destinations visible above the inbox panel body.
- * Org-level routes (`/:org/~/messages`) only ship Inbox. Items with
- * `hrefScope: 'brand'` stay off organization navigation or they 404.
- * Inbox leaves hrefScope unset to preserve the current brand or org scope.
+ * Outreach sequences, the author-reply bot and Reply drip left this menu;
+ * their routes stay until their destination is decided. Both items exist at
+ * brand and organization scope, so neither sets hrefScope.
  *
  * Icons: one unique lucide glyph per row.
  */
 export const MESSAGES_MENU_ITEMS: MenuItemConfig[] = [
+  {
+    group: '',
+    href: APP_ROUTES.MESSAGES.OVERVIEW,
+    isExactMatch: true,
+    isPrimary: true,
+    label: 'Overview',
+    matchPaths: [APP_ROUTES.MESSAGES.OVERVIEW],
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
+  },
   {
     group: '',
     href: APP_ROUTES.MESSAGES.ROOT,
@@ -27,39 +34,6 @@ export const MESSAGES_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.MESSAGES.ROOT],
     outline: Inbox,
     solid: Inbox,
-  },
-  {
-    group: 'Engage',
-    href: APP_ROUTES.MESSAGES.OUTREACH,
-    hrefScope: 'brand',
-    isPrimary: true,
-    label: 'Outreach sequences',
-    matchPaths: [
-      APP_ROUTES.MESSAGES.OUTREACH,
-      APP_ROUTES.MESSAGES.OUTREACH_NEW,
-    ],
-    outline: Send,
-    solid: Send,
-  },
-  {
-    group: 'Engage',
-    href: APP_ROUTES.MESSAGES.REPLIES,
-    hrefScope: 'brand',
-    isPrimary: true,
-    label: 'Replies',
-    matchPaths: [APP_ROUTES.MESSAGES.REPLIES],
-    outline: MessageCircleReply,
-    solid: MessageCircleReply,
-  },
-  {
-    group: 'Engage',
-    href: APP_ROUTES.MESSAGES.REPLY_DRIP,
-    hrefScope: 'brand',
-    isPrimary: true,
-    label: 'Reply drip',
-    matchPaths: [APP_ROUTES.MESSAGES.REPLY_DRIP],
-    outline: MessageSquare,
-    solid: MessageSquare,
   },
 ];
 

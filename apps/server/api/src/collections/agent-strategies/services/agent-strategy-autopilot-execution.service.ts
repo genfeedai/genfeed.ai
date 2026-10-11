@@ -58,6 +58,7 @@ import {
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { createPublishingApprovalsRoute } from '@genfeedai/contracts/constants';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -800,9 +801,10 @@ export class AgentStrategyAutopilotExecutionService {
     topic: string;
     userId: string;
   }): Promise<void> {
-    const href = `/publishing/review?batch=${input.batchId}${
-      input.reviewItemId ? `&item=${input.reviewItemId}` : ''
-    }`;
+    const href = createPublishingApprovalsRoute({
+      batch: input.batchId,
+      item: input.reviewItemId,
+    });
     const label = `Autopilot ${input.format} ready for review`;
     const description = `${input.topic} is ready in the publishing inbox.`;
 

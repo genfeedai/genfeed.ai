@@ -6,12 +6,15 @@ import type { NotificationPreferenceService } from '@api/services/notifications/
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
 import { describe, expect, it, vi } from 'vitest';
+import type { FreeTrialEmailsService } from './free-trial-emails.service';
 import {
   completedEmailPeriod,
   LifecycleEmailMaintenanceService,
 } from './lifecycle-email-maintenance.service';
 import type { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.service';
 import type { SystemEmailEligibilityService } from './system-email-eligibility.service';
+
+const sendDueTrialNotices = vi.fn().mockResolvedValue(null);
 
 const request = {
   organizationId: 'org-1',
@@ -61,6 +64,7 @@ function fixture(count: number, isConnected = true) {
     } as unknown as SystemEmailEligibilityService,
     { findForUser } as unknown as NotificationPreferenceService,
     {} as WorkflowExecutionQueueService,
+    { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
   );
   return { service, prisma, queueEmail, findForUser };
 }
@@ -260,6 +264,7 @@ function creditsFixture(overrides: {
       findForUser: vi.fn().mockResolvedValue({ isEnabled: true }),
     } as unknown as NotificationPreferenceService,
     {} as WorkflowExecutionQueueService,
+    { sendDueTrialNotices } as unknown as FreeTrialEmailsService,
   );
   return { service, prisma, queueEmail };
 }
@@ -331,10 +336,21 @@ describe('credit balance alerts', () => {
   });
   it('evaluates balances once an hour, not on every five-minute tick', async () => {
     const { service, prisma } = creditsFixture({ spendable: 400 });
+    sendDueTrialNotices.mockClear();
     await service.credits({
       organizationId: 'org-1',
       referenceDate: '2026-09-14T08:20:00.000Z',
     });
     expect(prisma.creditBalance.findFirst).not.toHaveBeenCalled();
+    expect(sendDueTrialNotices).not.toHaveBeenCalled();
+  });
+  it('evaluates the free-trial notices on the hourly tick at the reference time', async () => {
+    const { service } = creditsFixture({ spendable: 400 });
+    sendDueTrialNotices.mockClear();
+    await service.credits(request);
+    expect(sendDueTrialNotices).toHaveBeenCalledWith(
+      'org-1',
+      new Date(request.referenceDate),
+    );
   });
 });

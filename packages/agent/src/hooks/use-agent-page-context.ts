@@ -651,18 +651,18 @@ function normalizeAgentContextPathname(rawPathname: string): string {
 export function useAgentPageContext(role?: MemberRole): PageContextConfig {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isCalendarView =
-    searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW) === 'calendar';
+  const postsView = searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW);
   const { selectedBrand } = useBrand();
   const setPageContext = useAgentChatStore((s) => s.setPageContext);
   const contextPathname = useMemo(() => {
     const normalized = normalizeAgentContextPathname(pathname);
-    // The calendar is the Posts desk's calendar view, so its context keys on
-    // the view query rather than a path of its own.
-    return normalized === APP_ROUTES.PUBLISHING.POSTS && isCalendarView
-      ? APP_ROUTES.PUBLISHING.CALENDAR
-      : normalized;
-  }, [isCalendarView, pathname]);
+    // Calendar and approvals are Posts views, so their context keys on the
+    // view query rather than a path of their own.
+    if (normalized !== APP_ROUTES.PUBLISHING.POSTS) return normalized;
+    if (postsView === 'calendar') return APP_ROUTES.PUBLISHING.CALENDAR;
+    if (postsView === 'approvals') return APP_ROUTES.PUBLISHING.REVIEW;
+    return normalized;
+  }, [pathname, postsView]);
 
   const config = useMemo(() => {
     const base = getContextForRoute(contextPathname);

@@ -42,5 +42,7 @@ export type MessagesInboxFiltersAction =
 
 export interface UseMessagesInboxFiltersParams {
   readonly brandSlug: string | undefined;
+  /** Type filter seeded from the `?type=` deep link. */
+  readonly initialConversationType?: MessagesSurface;
   readonly routeBrandId: string | undefined;
 }

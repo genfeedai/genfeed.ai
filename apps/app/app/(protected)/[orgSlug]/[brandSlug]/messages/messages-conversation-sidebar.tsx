@@ -62,10 +62,11 @@ const VIEW_FILTERS = [
 
 const SURFACE_FILTERS = [
   { messageKey: 'all', value: 'all' },
-  { messageKey: 'comments', value: SocialConversationType.COMMENT },
   { messageKey: 'dms', value: SocialConversationType.DM },
+  { messageKey: 'replies', value: SocialConversationType.REPLY },
+  { messageKey: 'comments', value: SocialConversationType.COMMENT },
 ] as const satisfies ReadonlyArray<{
-  messageKey: 'all' | 'comments' | 'dms';
+  messageKey: 'all' | 'comments' | 'dms' | 'replies';
   value: MessagesSurface;
 }>;
 

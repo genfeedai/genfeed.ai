@@ -84,6 +84,12 @@ vi.mock('@pages/ingredients/list/ingredients-list', () => ({
   ),
 }));
 
+vi.mock('@pages/library/overview/library-overview', () => ({
+  default: ({ scope }: { scope?: string }) => (
+    <div data-scope={scope} data-testid="library-overview" />
+  ),
+}));
+
 vi.mock('@pages/library/browser/library-browser', () => ({
   default: ({
     children,
@@ -130,6 +136,12 @@ vi.mock('../../../[brandSlug]/messages/outreach/page', () => ({
 
 vi.mock('../../../[brandSlug]/messages/outreach/new/page', () => ({
   default: () => <div data-testid="outreach-sequence-new-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/messages/overview/messages-overview', () => ({
+  default: ({ scope }: { scope?: string }) => (
+    <div data-scope={scope} data-testid="messages-overview" />
+  ),
 }));
 
 vi.mock('../../../[brandSlug]/messages/replies/page', () => ({
@@ -190,8 +202,8 @@ vi.mock('../../../[brandSlug]/publishing/content/page', () => ({
   },
 }));
 
-vi.mock('../../../[brandSlug]/publishing/review/page', () => ({
-  default: () => <div data-testid="publishing-review-page" />,
+vi.mock('../../../[brandSlug]/publishing/review/review-queue-content', () => ({
+  default: () => <div data-testid="publishing-review-queue" />,
 }));
 
 vi.mock('../../../[brandSlug]/publishing/posts/[id]/page', () => ({
@@ -350,7 +362,7 @@ describe('OrgRootAppPage', () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it('redirects the org Library root to the canonical All assets browser', async () => {
+  it('redirects the org Library root to the Library Overview (#5502)', async () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
@@ -358,14 +370,32 @@ describe('OrgRootAppPage', () => {
           orgSlug: 'acme',
         }),
       }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/library/assets');
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/library/overview');
 
-    expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/assets');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/overview');
+  });
+
+  it('renders the organization Library Overview without brand-only References', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'library',
+        orgSlug: 'acme',
+        segments: ['overview'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('library-overview')).toHaveAttribute(
+      'data-scope',
+      PageScope.ORGANIZATION,
+    );
   });
 
   it.each([
     [['outreach'], 'outreach-sequences-page'],
     [['outreach', 'new'], 'outreach-sequence-new-page'],
+    [['overview'], 'messages-overview'],
     [['replies'], 'replies-page'],
     [['reply-drip'], 'reply-drip-page'],
   ])('renders the organization Messages route %j', async (segments, testId) => {
@@ -542,25 +572,29 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
     expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
     expect(renderPostsListPageMock).toHaveBeenCalledWith({
+      approvals: expect.anything(),
       scope: PageScope.ORGANIZATION,
       searchParams,
     });
   });
 
-  it('returns not found for the retired org publishing calendar route', async () => {
-    // The calendar is the Posts desk's calendar view
-    // (`/publishing/posts?view=calendar`); the old route is hard-cut.
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-          segments: ['calendar'],
+  it.each(['calendar', 'review'])(
+    'returns not found for the retired org publishing %s route',
+    async (segment) => {
+      // Calendar and approvals are Posts views (`/publishing/posts?view=…`);
+      // the old routes are hard-cut.
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'publishing',
+            orgSlug: 'acme',
+            segments: [segment],
+          }),
         }),
-      }),
-    ).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(redirectMock).not.toHaveBeenCalled();
-  });
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(redirectMock).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([['content', '/acme/~/publishing/posts?']])(
     'redirects the org publishing %s route into the posts list',
@@ -575,24 +609,6 @@ describe('OrgRootAppPage', () => {
         }),
       ).rejects.toThrow();
       expect(redirectMock).toHaveBeenCalledWith(destination);
-    },
-  );
-
-  it.each([['review', 'publishing-review-page']])(
-    'renders the canonical org publishing %s page',
-    async (segment, testId) => {
-      const element = await OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-          segments: [segment],
-        }),
-      });
-
-      render(element);
-
-      expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-      expect(screen.getByTestId(testId)).toBeInTheDocument();
     },
   );
 
@@ -703,7 +719,6 @@ describe('OrgRootAppPage', () => {
     ['overview', 'extra'],
     ['posts', 'content-1', 'extra'],
     ['content', 'extra'],
-    ['review', 'extra'],
     ['campaigns', 'compare', 'extra'],
     ['campaigns', 'new', 'extra'],
     ['campaigns', 'cmp-1', 'content', 'extra'],

@@ -6,50 +6,27 @@ import {
 } from './messages-menu-items.config';
 
 describe('MESSAGES_MENU_ITEMS', () => {
-  it('is non-empty', () => {
-    expect(MESSAGES_MENU_ITEMS.length).toBeGreaterThan(0);
-  });
-
-  it('leads with Inbox, then Engage destinations', () => {
+  it('is Overview and Inbox only (#5502)', () => {
     expect(MESSAGES_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'Overview',
       'Inbox',
-      'Outreach sequences',
-      'Replies',
-      'Reply drip',
+    ]);
+    expect(MESSAGES_MENU_ITEMS.map((item) => item.href)).toEqual([
+      '/messages/overview',
+      '/messages',
     ]);
   });
 
-  it('has no duplicate hrefs', () => {
-    const hrefs = MESSAGES_MENU_ITEMS.flatMap((item) =>
-      item.href ? [item.href] : [],
-    );
-    expect(hrefs.length).toBe(new Set(hrefs).size);
-  });
-
-  it('all hrefs stay on the messages surface', () => {
-    for (const item of MESSAGES_MENU_ITEMS) {
-      expect(item.href).toMatch(/^\/messages(?:\/|$)/);
+  it('keeps Outreach, the reply bot and Reply drip out of the menu', () => {
+    for (const href of [
+      '/messages/outreach',
+      '/messages/replies',
+      '/messages/reply-drip',
+    ]) {
+      expect(MESSAGES_MENU_ITEMS.some((item) => item.href === href)).toBe(
+        false,
+      );
     }
-  });
-
-  it.each([
-    ['Inbox', '/messages'],
-    ['Outreach sequences', '/messages/outreach'],
-    ['Replies', '/messages/replies'],
-    ['Reply drip', '/messages/reply-drip'],
-  ])('uses the canonical messages route for %s', (label, canonicalHref) => {
-    const item = MESSAGES_MENU_ITEMS.find(
-      (menuItem) => menuItem.label === label,
-    );
-    expect(item).toMatchObject({ href: canonicalHref });
-  });
-
-  it('does not use the word Campaigns in Messages nav', () => {
-    expect(
-      MESSAGES_MENU_ITEMS.some((item) =>
-        item.label.toLowerCase().includes('campaign'),
-      ),
-    ).toBe(false);
   });
 
   it('marks every destination as primary so the inbox panel keeps them visible', () => {
@@ -64,21 +41,13 @@ describe('MESSAGES_MENU_ITEMS', () => {
     expect(isOrgMessagesRouteScope('default')).toBe(false);
   });
 
-  it('hides brand-only Messages destinations on org scope', () => {
-    const orgItems = getMessagesMenuItemsForScope('~');
-    expect(orgItems.map((item) => item.label)).toEqual(['Inbox']);
-    expect(orgItems.some((item) => item.href === '/messages/outreach')).toBe(
-      false,
-    );
-    expect(orgItems.every((item) => item.group === undefined)).toBe(true);
-
-    const brandItems = getMessagesMenuItemsForScope('default');
-    expect(brandItems.length).toBe(MESSAGES_MENU_ITEMS.length);
-    expect(brandItems.map((item) => item.href)).toEqual([
+  it('offers the same Overview and Inbox at organization and brand scope', () => {
+    expect(getMessagesMenuItemsForScope('~').map((item) => item.href)).toEqual([
+      '/messages/overview',
       '/messages',
-      '/messages/outreach',
-      '/messages/replies',
-      '/messages/reply-drip',
     ]);
+    expect(
+      getMessagesMenuItemsForScope('default').map((item) => item.href),
+    ).toEqual(['/messages/overview', '/messages']);
   });
 });

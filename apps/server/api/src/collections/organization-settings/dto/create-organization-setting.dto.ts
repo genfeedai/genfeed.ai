@@ -193,6 +193,15 @@ export class CreateOrganizationSettingDto {
   })
   readonly moduleOverrides?: OrganizationModuleOverrides;
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    required: false,
+    description:
+      'Founder release preview (#5502). Only platform admins may change it; on cloud it lets founder-only modules admit new work.',
+  })
+  readonly isReleasePreviewEnabled?: boolean;
+
   @ValidateNested({ each: true })
   @Type(() => OnboardingJourneyMissionStateDto)
   @IsOptional()

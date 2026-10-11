@@ -38,6 +38,8 @@ export enum ActivitySource {
   EXPERT_FIRST_SYSTEM = 'expert-first-system',
   BRAND_RELOCATION = 'brand-relocation',
   REFERRAL = 'credits-referral',
+  /** Free credits left when a never-paid organization's trial ends. */
+  TRIAL_EXPIRED = 'credits-trial-expired',
   /** Media moderation classifier (#4880). */
   MEDIA_MODERATION = 'media-moderate',
   /** Agent chat LLM rounds, settled at exact provider cost × margin. */

@@ -302,7 +302,7 @@ describe('AppProtectedRail', () => {
         isFounderOperator: false,
         moduleAccess: expect.objectContaining({
           playground: { isAllowed: true, reason: null },
-          clips: { isAllowed: false, reason: 'disabled' },
+          clips: { isAllowed: false, reason: 'unreleased' },
         }),
         storeHref: '/acme/~/store',
       }),

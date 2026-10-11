@@ -316,13 +316,26 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // is cross-organization.
     {
       file: 'apps/server/api/src/collections/credits/services/credits.utils.service.ts',
-      line: 652,
+      line: 672,
+    },
+    // The free-trial expiry sweep discovers never-paid organizations past the
+    // window across tenants; each one is then expired in its own
+    // organization-scoped serializable transaction.
+    {
+      file: 'apps/server/api/src/collections/credits/services/free-trial.service.ts',
+      line: 113,
     },
     // #6120: the signup welcome entitlement is user-scoped across the user's
     // owned organizations.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 72,
+      line: 79,
+    },
+    // The free-trial entitlement is user-scoped across the user's owned
+    // organizations, exactly like the signup gift above.
+    {
+      file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
+      line: 161,
     },
     // #6120: superadmin reads another organization's blacklist entry.
     {

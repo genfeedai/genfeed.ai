@@ -11,7 +11,10 @@ import {
   type PageScope,
   PostRepurposeMode,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createPublishingApprovalsRoute,
+} from '@genfeedai/contracts/constants';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
@@ -185,9 +188,10 @@ export default function PostDetail({
             );
             router.push(
               href(
-                draft.reviewBatchId
-                  ? `/publishing/review?batch=${draft.reviewBatchId}&filter=ready`
-                  : '/publishing/review',
+                createPublishingApprovalsRoute({
+                  batch: draft.reviewBatchId,
+                  filter: draft.reviewBatchId ? 'ready' : undefined,
+                }),
               ),
             );
           } else {

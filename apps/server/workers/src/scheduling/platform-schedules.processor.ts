@@ -1,10 +1,10 @@
-import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
+import { CronCreditsService } from '@workers/crons/credits/cron.credits.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
@@ -66,7 +66,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly patternExtraction: CronPatternExtractionService,
     private readonly posts: CronPostsService,
     private readonly queueMetrics: QueueMetricsService,
-    private readonly referrals: ReferralsService,
+    private readonly credits: CronCreditsService,
     private readonly reviewGate: CronReviewGateTimeoutService,
     private readonly rss: CronRssAutopostService,
     private readonly socialSourceResync: CronSocialSourceResyncService,
@@ -126,6 +126,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.engagementTriggers.processArmedRules(),
       [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: () =>
         this.falModelWatcher.discoverNewModels(),
+      [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY]: () =>
+        this.credits.expireFreeTrials(),
       [PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH]: () =>
         this.trends.refreshGlobalTrends(),
       [PLATFORM_SCHEDULED_TASKS.INGREDIENT_METADATA_REFRESH]: () =>
@@ -155,7 +157,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       [PLATFORM_SCHEDULED_TASKS.RAW_CUT_CLIP_RECONCILE]: () =>
         this.mediaSchedules.reconcileRawCutClips(),
       [PLATFORM_SCHEDULED_TASKS.REFERRAL_REWARD_SETTLEMENT]: () =>
-        this.referrals.settleDueRewards(),
+        this.credits.settleReferralRewards(),
       [PLATFORM_SCHEDULED_TASKS.REPLICATE_MODEL_DISCOVERY]: () =>
         this.modelWatcher.discoverNewModels(),
       [PLATFORM_SCHEDULED_TASKS.REVIEW_GATE_TIMEOUT]: () =>

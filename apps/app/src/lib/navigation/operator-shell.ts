@@ -233,7 +233,7 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   '/settings/agent/context',
   '/settings/brand-kit/content-rules',
   '/settings/brand-kit',
-  '/library/elements/characters',
+  '/library/references',
 ] as const;
 
 /**

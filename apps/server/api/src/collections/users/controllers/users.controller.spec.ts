@@ -1,9 +1,11 @@
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
+import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
+import { UserOnboardingCompletionService } from '@api/collections/users/services/user-onboarding-completion.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
@@ -38,6 +40,7 @@ describe('UsersController', () => {
   let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let notificationPreferenceService: Record<string, ReturnType<typeof vi.fn>>;
   let serverFunnelCaptureService: Record<string, ReturnType<typeof vi.fn>>;
+  let eventEmitter: { emitAsync: ReturnType<typeof vi.fn> };
 
   const userId = testId('user');
   const orgId = userId;
@@ -132,6 +135,7 @@ describe('UsersController', () => {
     serverFunnelCaptureService = {
       capture: vi.fn().mockResolvedValue(undefined),
     };
+    eventEmitter = { emitAsync: vi.fn().mockResolvedValue([]) };
     // The real fan-out over mocked caches, so the assertions below still prove
     // each individual cache is busted rather than just that the facade was hit.
     const userAccessCacheService = new UserAccessCacheService(
@@ -146,7 +150,12 @@ describe('UsersController', () => {
       filesClientService as unknown as FilesClientService,
       userAccessCacheService,
       settingsService as unknown as SettingsService,
-      serverFunnelCaptureService as never,
+      new UserOnboardingCompletionService(
+        usersService as unknown as UsersService,
+        userAccessCacheService,
+        eventEmitter as never,
+        serverFunnelCaptureService as never,
+      ),
     );
     relationshipsController = new UsersRelationshipsController(
       brandsService as unknown as BrandsService,
@@ -1029,6 +1038,31 @@ describe('UsersController', () => {
         distinctId: 'user_canonical_1',
         event: 'onboarding_completed',
       });
+      // Finishing onboarding starts the free trial: the CreditsModule listener
+      // grants the trial credits (idempotently) off this event.
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        ORGANIZATION_ONBOARDING_FINISHED_EVENT,
+        {
+          organizationId: orgId,
+          outcome: 'completed',
+          userId: 'user_canonical_1',
+        },
+      );
+    });
+
+    it('re-announces a repeated completion so a failed trial grant is retried', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: 'user_canonical_1',
+        isOnboardingCompleted: true,
+      });
+      usersService.patchAll.mockResolvedValue({ modifiedCount: 0 });
+
+      await controller.updateMe(mockRequest, mockUser, {
+        isOnboardingCompleted: true,
+      } as never);
+
+      expect(serverFunnelCaptureService.capture).not.toHaveBeenCalled();
+      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
     });
 
     it('rejects onboarding completion when the canonical user is missing', async () => {
