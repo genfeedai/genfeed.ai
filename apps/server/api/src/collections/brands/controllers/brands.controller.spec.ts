@@ -157,7 +157,12 @@ describe('BrandsController', () => {
         },
         {
           provide: ActivityRecorderService,
-          useValue: { record: vi.fn(), findAll: vi.fn(), findOne: vi.fn() },
+          useValue: {
+            findAll: vi.fn(),
+            findOne: vi.fn(),
+            record: vi.fn(),
+            recordMany: vi.fn(),
+          },
         },
         {
           provide: VideosService,
@@ -473,16 +478,17 @@ describe('BrandsController', () => {
   it('routes an explicit organization change through the relocation operation', async () => {
     const brandId = testId('brand');
     const destinationOrganizationId = testId('org', 2);
+    const sourceOrganizationId = testId('brand');
     const summary = {
       membersSevered: 0,
+      personaGrantsRevoked: 0,
+      schedulesHeld: 2,
       schedulingPending: 0,
-      workflowsClonedActive: 0,
-      workflowsClonedPaused: 0,
       workflowsMoved: 0,
     };
     brandsService.findOne.mockResolvedValue({
       ...mockBrand,
-      organizationId: testId('brand'),
+      organizationId: sourceOrganizationId,
     } as never);
     brandsService.relocateToOrganization.mockResolvedValue({
       brand: {
@@ -508,12 +514,101 @@ describe('BrandsController', () => {
       brandId,
       updateDto,
       {
+        isApiKey: undefined,
         isSuperAdmin: false,
+        scopes: undefined,
         userId: mockUser.userId,
       },
     );
-    expect(activitiesService.record).toHaveBeenCalledOnce();
     expect(result.meta).toEqual(summary);
+
+    // Recorded once in each organization, so the brand owner and both
+    // organization owners hear about the move; the source record cannot name
+    // the brand, which no longer lives there.
+    expect(activitiesService.recordMany).toHaveBeenCalledOnce();
+    const [recorded] = activitiesService.recordMany.mock.calls[0];
+    expect(recorded).toEqual([
+      expect.objectContaining({
+        brandId,
+        key: 'brand-relocated',
+        organizationId: destinationOrganizationId,
+        userId: mockBrand.userId,
+        value: JSON.stringify(summary),
+      }),
+      expect.objectContaining({
+        brandId: null,
+        data: expect.objectContaining({ brandId }),
+        key: 'brand-relocated',
+        organizationId: sourceOrganizationId,
+        userId: mockBrand.userId,
+      }),
+    ]);
+  });
+
+  it('hands the key scopes to the relocation so an unscoped key cannot move a brand', async () => {
+    const keyUser = {
+      ...mockUser,
+      isApiKey: true,
+      scopes: ['read'],
+    } as unknown as User;
+    brandsService.findOne.mockResolvedValue({
+      ...mockBrand,
+      organizationId: testId('brand'),
+    } as never);
+    brandsService.relocateToOrganization.mockResolvedValue({
+      brand: { ...mockBrand, organizationId: mockUser.organizationId },
+      summary: {},
+    } as never);
+
+    await controller.patch(mockRequest, keyUser, mockBrand.id, {
+      organizationId: mockUser.organizationId,
+    });
+    await controller.previewRelocation(
+      mockRequest,
+      keyUser,
+      mockBrand.id,
+      mockUser.organizationId,
+    );
+
+    const actor = {
+      isApiKey: true,
+      isSuperAdmin: false,
+      scopes: ['read'],
+      userId: mockUser.userId,
+    };
+    expect(brandsService.relocateToOrganization).toHaveBeenCalledWith(
+      mockBrand.id,
+      expect.anything(),
+      actor,
+    );
+    expect(brandsService.previewRelocation).toHaveBeenCalledWith(
+      mockBrand.id,
+      mockUser.organizationId,
+      actor,
+    );
+  });
+
+  it('answers a committed move even when recording its activity fails', async () => {
+    brandsService.findOne.mockResolvedValue({
+      ...mockBrand,
+      organizationId: testId('brand'),
+    } as never);
+    brandsService.relocateToOrganization.mockResolvedValue({
+      brand: { ...mockBrand, organizationId: mockUser.organizationId },
+      summary: { schedulesHeld: 1 },
+    } as never);
+    activitiesService.recordMany.mockRejectedValue(new Error('db down'));
+
+    const result = await controller.patch(mockRequest, mockUser, mockBrand.id, {
+      organizationId: mockUser.organizationId,
+    });
+
+    expect(result.meta).toEqual({ schedulesHeld: 1 });
+    expect(_loggerService.error).toHaveBeenCalledWith(
+      'Failed to record brand relocation activity',
+      expect.any(Error),
+      { brandId: mockBrand.id },
+    );
   });
 
   describe('findAll', () => {

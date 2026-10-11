@@ -7,6 +7,15 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+// The service resolves the scheduler lazily through ModuleRef; the real class
+// drags in the whole workflow module graph, so a token class stands in for it.
+vi.mock(
+  '@api/collections/workflows/services/workflow-scheduler.service',
+  () => ({
+    WorkflowSchedulerService: class WorkflowSchedulerService {},
+  }),
+);
+
 import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
@@ -16,7 +25,12 @@ import type { CacheInvalidationService } from '@api/common/services/cache-invali
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import type { ModuleRef } from '@nestjs/core';
 
 type Delegate = {
   count: ReturnType<typeof vi.fn>;
@@ -48,9 +62,9 @@ const SOURCE_FALLBACK_BRAND_ID = 'brand_fallback';
 
 const EMPTY_RELOCATION_SUMMARY = {
   membersSevered: 0,
+  personaGrantsRevoked: 0,
+  schedulesHeld: 0,
   schedulingPending: 0,
-  workflowsClonedActive: 0,
-  workflowsClonedPaused: 0,
   workflowsMoved: 0,
 };
 
@@ -64,6 +78,14 @@ describe('BrandRelocationService', () => {
   };
   let prismaProxy: unknown;
   let service: BrandRelocationService;
+  let logger: {
+    debug: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
+  let unscheduleWorkflow: ReturnType<typeof vi.fn>;
+  let moduleRef: { get: ReturnType<typeof vi.fn> };
 
   const getDelegate = (name: string): Delegate => {
     const existing = delegates.get(name);
@@ -83,6 +105,7 @@ describe('BrandRelocationService', () => {
         ? statement.join('')
         : (statement as Prisma.Sql).sql;
       if (text.includes('AS retained')) return [{ retained: false }];
+      if (text.includes('hasOpenHold')) return [{ hasOpenHold: false }];
       if (/FOR (NO KEY )?UPDATE/.test(text)) return [{ id: 'locked' }];
       return [];
     });
@@ -111,15 +134,22 @@ describe('BrandRelocationService', () => {
       },
     );
 
+    logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+    unscheduleWorkflow = vi.fn().mockResolvedValue(undefined);
+    moduleRef = {
+      get: vi.fn(() => ({ unscheduleWorkflow })),
+    };
+
     service = new BrandRelocationService(
       prismaProxy as unknown as PrismaService,
-      {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as unknown as LoggerService,
+      logger as unknown as LoggerService,
       cacheInvalidationService as unknown as CacheInvalidationService,
+      moduleRef as unknown as ModuleRef,
     );
   });
 
@@ -192,6 +222,7 @@ describe('BrandRelocationService', () => {
 
     expect(preview).toEqual({
       counts: {
+        schedulesToHold: 0,
         soleBrandWorkflows: 1,
         staleMembers: 1,
       },
@@ -204,6 +235,7 @@ describe('BrandRelocationService', () => {
           resource: 'workflowExecution',
         },
       ],
+      schedulesToHold: [],
     });
   });
 
@@ -243,9 +275,10 @@ describe('BrandRelocationService', () => {
         });
         expect(getDelegate(model).updateMany).not.toHaveBeenCalled();
       }
-      expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), {
-        isolationLevel: 'Serializable',
-      });
+      expect(transactionSpy).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ isolationLevel: 'Serializable' }),
+      );
       expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
       expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
     },
@@ -314,9 +347,10 @@ describe('BrandRelocationService', () => {
             },
             select: { id: true },
           });
-          expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), {
-            isolationLevel: 'Serializable',
-          });
+          expect(transactionSpy).toHaveBeenCalledWith(
+            expect.any(Function),
+            expect.objectContaining({ isolationLevel: 'Serializable' }),
+          );
           for (const name of [
             'creditBalance',
             'creditReservation',
@@ -502,9 +536,10 @@ describe('BrandRelocationService', () => {
         where: { organizationId: SOURCE_ORG, brandId: BRAND_ID },
         select: { id: true },
       });
-      expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), {
-        isolationLevel: 'Serializable',
-      });
+      expect(transactionSpy).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ isolationLevel: 'Serializable' }),
+      );
       expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
       expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
     },
@@ -826,8 +861,8 @@ describe('BrandRelocationService', () => {
     expect(getDelegate('taskComment').updateMany).toHaveBeenCalledWith({
       data: { organizationId: DEST_ORG },
       where: {
-        OR: [{ taskId: { in: ['task_1'] } }],
         organizationId: { not: DEST_ORG },
+        taskId: { in: ['task_1'] },
       },
     });
     expect(
@@ -835,7 +870,7 @@ describe('BrandRelocationService', () => {
     ).toHaveBeenCalledWith({
       data: { organizationId: DEST_ORG },
       where: {
-        OR: [{ campaignId: { in: ['social_reply_campaign_1'] } }],
+        campaignId: { in: ['social_reply_campaign_1'] },
         organizationId: { not: DEST_ORG },
       },
     });
@@ -1072,6 +1107,9 @@ describe('BrandRelocationService', () => {
           : (statement as Prisma.Sql).sql;
         if (sql.includes('AS retained'))
           return Promise.resolve([{ retained: false }]);
+        if (sql.includes('hasOpenHold'))
+          return Promise.resolve([{ hasOpenHold: false }]);
+        if (sql.includes('pg_constraint')) return Promise.resolve([]);
         if (/FOR (NO KEY )?UPDATE/.test(sql))
           return Promise.resolve([{ id: 'locked' }]);
         if (sql.includes('information_schema')) {
@@ -1168,5 +1206,657 @@ describe('BrandRelocationService', () => {
       }),
     );
     expect(getDelegate('publishApproval').findFirst).not.toHaveBeenCalled();
+  });
+  describe('in-flight work (#6689)', () => {
+    const actor = { isSuperAdmin: true, userId: USER_ID };
+
+    const blockers: Array<{
+      name: string;
+      arrange: () => void;
+      message: RegExp;
+    }> = [
+      {
+        name: 'a running or pending execution',
+        arrange: () =>
+          getDelegate('workflowExecution').findFirst.mockResolvedValue({
+            id: 'execution_1',
+          }),
+        message: /running or pending workflow executions/,
+      },
+      {
+        name: 'an unfinished node continuation',
+        arrange: () =>
+          getDelegate('workflowNodeContinuation').findFirst.mockResolvedValue({
+            id: 'continuation_1',
+          }),
+        message: /running or pending workflow executions/,
+      },
+      {
+        name: 'an open credit hold',
+        arrange: () =>
+          queryRaw.mockImplementation(
+            async (statement: TemplateStringsArray | Prisma.Sql) => {
+              const text = Array.isArray(statement)
+                ? statement.join('')
+                : (statement as Prisma.Sql).sql;
+              if (text.includes('AS retained')) return [{ retained: false }];
+              if (text.includes('hasOpenHold')) return [{ hasOpenHold: true }];
+              return [{ id: 'locked' }];
+            },
+          ),
+        message: /open credit holds/,
+      },
+      {
+        name: 'an unresolved provider publish receipt',
+        arrange: () =>
+          getDelegate('postProviderPublishReceipt').findFirst.mockResolvedValue(
+            { id: 'receipt_1' },
+          ),
+        message: /provider publish/,
+      },
+      {
+        name: 'an in-flight Turbo run',
+        arrange: () =>
+          getDelegate('turboRun').findFirst.mockResolvedValue({ id: 'run_1' }),
+        message: /Turbo run in progress/,
+      },
+      {
+        name: 'a planned breakout response',
+        arrange: () =>
+          getDelegate('breakoutResponse').findFirst.mockResolvedValue({
+            id: 'response_1',
+          }),
+        message: /breakout responses in progress/,
+      },
+      {
+        name: 'a reserved breakout output',
+        arrange: () =>
+          getDelegate('breakoutResponseOutput').findFirst.mockResolvedValue({
+            id: 'output_1',
+          }),
+        message: /breakout responses in progress/,
+      },
+      {
+        name: 'execution read-scope history',
+        arrange: () =>
+          getDelegate('workflowExecutionReadScope').findFirst.mockResolvedValue(
+            { executionId: 'execution_1' },
+          ),
+        message: /execution authorization history/,
+      },
+      {
+        name: 'a read-scope brand dependency',
+        arrange: () =>
+          getDelegate(
+            'workflowExecutionReadBrandDependency',
+          ).findFirst.mockResolvedValue({ executionId: 'execution_1' }),
+        message: /execution authorization history/,
+      },
+    ];
+
+    it.each(blockers)(
+      'answers 409 with no partial move while the brand has $name',
+      async ({ arrange, message }) => {
+        primeRelocatableBrand();
+        getDelegate('workflow').findMany.mockResolvedValue([
+          {
+            id: 'wf_1',
+            isScheduleEnabled: true,
+            scheduleInitiatingActor: { userId: 'someone' },
+          },
+        ]);
+        arrange();
+
+        await expect(
+          service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+        ).rejects.toThrow(message);
+        await expect(
+          service.relocateToOrganization(
+            BRAND_ID,
+            { organizationId: DEST_ORG },
+            actor,
+          ),
+        ).rejects.toBeInstanceOf(ConflictException);
+
+        // The guards run first: no schedule paused, no grant revoked, nothing
+        // rewritten, nothing unscheduled, no cache touched.
+        for (const delegate of delegates.values()) {
+          expect(delegate.update).not.toHaveBeenCalled();
+          expect(delegate.updateMany).not.toHaveBeenCalled();
+          expect(delegate.create).not.toHaveBeenCalled();
+        }
+        expect(unscheduleWorkflow).not.toHaveBeenCalled();
+        expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+      },
+    );
+
+    it('scopes each guard to the source organization and the brand', async () => {
+      primeRelocatableBrand();
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(getDelegate('workflowExecution').findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          isDeleted: false,
+          organizationId: SOURCE_ORG,
+          status: { in: ['PENDING', 'RUNNING'] },
+          workflow: { brandId: BRAND_ID },
+        },
+      });
+      expect(
+        getDelegate('postProviderPublishReceipt').findFirst,
+      ).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          isDeleted: false,
+          organizationId: SOURCE_ORG,
+          post: { brandId: BRAND_ID },
+          status: { in: ['attempting', 'uncertain'] },
+        },
+      });
+      expect(getDelegate('turboRun').findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          brandId: BRAND_ID,
+          isDeleted: false,
+          organizationId: SOURCE_ORG,
+          status: { in: ['PENDING', 'PROCESSING'] },
+        },
+      });
+    });
+  });
+
+  describe('schedules and actors on relocation (#6689)', () => {
+    const actor = { isSuperAdmin: true, userId: USER_ID };
+    const BOUND = { organizationId: SOURCE_ORG, userId: 'saved-by' };
+
+    function mockScheduledWorkflows(): void {
+      getDelegate('workflow').findMany.mockImplementation(
+        async (args: { select?: Record<string, boolean> }) => {
+          if (args.select?.schedule) {
+            return [
+              {
+                id: 'wf_a',
+                label: 'Daily post',
+                schedule: '0 9 * * *',
+                timezone: 'Europe/Berlin',
+              },
+            ];
+          }
+          if (args.select?.scheduleInitiatingActor) {
+            return [
+              {
+                id: 'wf_a',
+                isScheduleEnabled: true,
+                scheduleInitiatingActor: BOUND,
+              },
+              // Paused earlier but still carrying its old binding.
+              {
+                id: 'wf_b',
+                isScheduleEnabled: false,
+                scheduleInitiatingActor: BOUND,
+              },
+              {
+                id: 'wf_c',
+                isScheduleEnabled: false,
+                scheduleInitiatingActor: null,
+              },
+            ];
+          }
+          return [{ id: 'wf_a' }];
+        },
+      );
+    }
+
+    it('clears the actor and pauses the schedule in the same transaction, keeping cron and timezone', async () => {
+      primeRelocatableBrand();
+      mockScheduledWorkflows();
+
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      const holdCall = getDelegate('workflow').updateMany.mock.calls.findIndex(
+        ([args]) => 'scheduleInitiatingActor' in (args.data ?? {}),
+      );
+      expect(holdCall).toBeGreaterThanOrEqual(0);
+      const [hold] = getDelegate('workflow').updateMany.mock.calls[holdCall];
+      expect(hold).toEqual({
+        data: {
+          isScheduleEnabled: false,
+          scheduleInitiatingActor: Prisma.DbNull,
+        },
+        where: { id: { in: ['wf_a', 'wf_b'] } },
+      });
+      // Only the binding and the flag change.
+      expect(Object.keys(hold.data).sort()).toEqual([
+        'isScheduleEnabled',
+        'scheduleInitiatingActor',
+      ]);
+      // The org-keyed cascade has not run yet: the actor belongs to the source.
+      expect(
+        getDelegate('workflow').updateMany.mock.invocationCallOrder[holdCall],
+      ).toBeLessThan(
+        getDelegate('brand').updateMany.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('removes each queued scheduler job only after the transaction commits', async () => {
+      primeRelocatableBrand();
+      mockScheduledWorkflows();
+      const order: string[] = [];
+      transactionSpy.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          const result = await fn(prismaProxy);
+          order.push('committed');
+          return result;
+        },
+      );
+      unscheduleWorkflow.mockImplementation(async (workflowId: string) => {
+        order.push(`unschedule:${workflowId}`);
+      });
+
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(order).toEqual([
+        'committed',
+        'unschedule:wf_a',
+        'unschedule:wf_b',
+      ]);
+    });
+
+    it('reports real counts in the summary', async () => {
+      primeRelocatableBrand();
+      mockScheduledWorkflows();
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(summary).toEqual({
+        ...EMPTY_RELOCATION_SUMMARY,
+        schedulesHeld: 1,
+        workflowsMoved: 1,
+      });
+    });
+
+    it('lists in the preview exactly the schedules the move pauses', async () => {
+      primeRelocatableBrand();
+      mockScheduledWorkflows();
+
+      const preview = await service.previewRelocation(
+        BRAND_ID,
+        DEST_ORG,
+        actor,
+      );
+      // Reading the preview pauses and unschedules nothing.
+      expect(unscheduleWorkflow).not.toHaveBeenCalled();
+      expect(
+        getDelegate('workflow').updateMany.mock.calls.filter(
+          ([args]) => 'scheduleInitiatingActor' in (args.data ?? {}),
+        ),
+      ).toHaveLength(0);
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(preview.schedulesToHold).toEqual([
+        {
+          id: 'wf_a',
+          label: 'Daily post',
+          schedule: '0 9 * * *',
+          timezone: 'Europe/Berlin',
+        },
+      ]);
+      expect(preview.counts.schedulesToHold).toBe(summary.schedulesHeld);
+    });
+
+    it('counts jobs it cannot confirm removed instead of failing the committed move', async () => {
+      primeRelocatableBrand();
+      mockScheduledWorkflows();
+      unscheduleWorkflow.mockRejectedValue(new Error('redis down'));
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(summary.schedulesHeld).toBe(1);
+      expect(summary.schedulingPending).toBe(2);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Failed to unschedule a workflow after relocation',
+        expect.objectContaining({ workflowId: 'wf_a' }),
+      );
+    });
+
+    it('reports every held job as pending when the scheduler cannot be resolved', async () => {
+      primeRelocatableBrand();
+      mockScheduledWorkflows();
+      moduleRef.get.mockImplementation(() => {
+        throw new Error('not registered');
+      });
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(summary.schedulingPending).toBe(2);
+    });
+
+    it('never fails a committed move because the cache cannot be invalidated', async () => {
+      primeRelocatableBrand();
+      cacheInvalidationService.invalidate.mockRejectedValue(
+        new Error('redis down'),
+      );
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          actor,
+        ),
+      ).resolves.toMatchObject({ brand: { organizationId: DEST_ORG } });
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Brand relocation cache invalidation failed',
+        expect.objectContaining({ brandId: BRAND_ID }),
+      );
+    });
+  });
+
+  describe('persona grants on relocation (#6689)', () => {
+    it('revokes active grants on the moved brand personas before the cascade rewrites their organization', async () => {
+      primeRelocatableBrand();
+      getDelegate('persona').findMany.mockResolvedValue([{ id: 'persona_1' }]);
+      getDelegate('personaGrant').findMany.mockResolvedValue([
+        {
+          availabilityMode: 'ALL_BRANDS',
+          availableBrandIds: [],
+          id: 'grant_1',
+          personaId: 'persona_1',
+          recipientOrganizationId: 'org_recipient',
+        },
+      ]);
+      getDelegate('personaGrant').updateMany.mockResolvedValue({ count: 1 });
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      );
+
+      expect(getDelegate('personaGrant').updateMany).toHaveBeenCalledWith({
+        data: { revokedAt: expect.any(Date), revokedByUserId: USER_ID },
+        where: {
+          id: { in: ['grant_1'] },
+          ownerOrganizationId: SOURCE_ORG,
+          revokedAt: null,
+        },
+      });
+      expect(getDelegate('personaGrantAudit').createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            action: 'revoked',
+            actorUserId: USER_ID,
+            grantId: 'grant_1',
+            ownerOrganizationId: SOURCE_ORG,
+            personaId: 'persona_1',
+            recipientOrganizationId: 'org_recipient',
+          }),
+        ],
+      });
+      expect(summary.personaGrantsRevoked).toBe(1);
+      expect(
+        getDelegate('personaGrant').updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        getDelegate('persona').updateMany.mock.invocationCallOrder[0],
+      );
+    });
+  });
+
+  describe('API key authority (#6689)', () => {
+    const owner = { role: { key: 'owner' }, roleKey: 'owner' };
+
+    it.each([
+      ['no scopes', undefined],
+      ['read scope only', ['read']],
+    ])(
+      'denies a key with %s before anything is read or moved',
+      async (_name, scopes) => {
+        primeRelocatableBrand();
+        getDelegate('member').findFirst.mockResolvedValue(owner);
+        const keyActor = {
+          isApiKey: true,
+          isSuperAdmin: false,
+          scopes,
+          userId: USER_ID,
+        };
+
+        await expect(
+          service.relocateToOrganization(
+            BRAND_ID,
+            { organizationId: DEST_ORG },
+            keyActor,
+          ),
+        ).rejects.toBeInstanceOf(ForbiddenException);
+        await expect(
+          service.previewRelocation(BRAND_ID, DEST_ORG, keyActor),
+        ).rejects.toBeInstanceOf(ForbiddenException);
+        expect(transactionSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    it('denies a superadmin issuer whose key lacks the admin scope', async () => {
+      primeRelocatableBrand();
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          { isApiKey: true, isSuperAdmin: true, scopes: [], userId: USER_ID },
+        ),
+      ).rejects.toThrow(/requires the admin scope/);
+      expect(transactionSpy).not.toHaveBeenCalled();
+    });
+
+    it('lets a key with the explicit admin scope relocate as its issuer would', async () => {
+      primeRelocatableBrand();
+      getDelegate('member').findFirst.mockResolvedValue(owner);
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          {
+            isApiKey: true,
+            isSuperAdmin: false,
+            scopes: ['admin'],
+            userId: USER_ID,
+          },
+        ),
+      ).resolves.toMatchObject({ brand: { organizationId: DEST_ORG } });
+    });
+
+    it('leaves a session login, which carries no key scopes, unchanged', async () => {
+      primeRelocatableBrand();
+      getDelegate('member').findFirst.mockResolvedValue(owner);
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          { isSuperAdmin: false, userId: USER_ID },
+        ),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  describe('org-only children of a moved parent (#6689)', () => {
+    it('moves versions, executor rows, thread rows and publish receipts with their parent', async () => {
+      primeRelocatableBrand();
+      getDelegate('workflow').findMany.mockResolvedValue([{ id: 'wf_1' }]);
+      getDelegate('workflowExecution').findMany.mockResolvedValue([
+        { id: 'execution_1' },
+      ]);
+      getDelegate('agentThread').findMany.mockResolvedValue([
+        { id: 'thread_1' },
+      ]);
+      getDelegate('post').findMany.mockResolvedValue([{ id: 'post_1' }]);
+
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      );
+
+      const expectations: Array<[string, string, string]> = [
+        ['workflowVersion', 'workflowId', 'wf_1'],
+        ['workflowExecutionNodeResult', 'executionId', 'execution_1'],
+        ['workflowArtifact', 'executionId', 'execution_1'],
+        ['workflowNodeClaim', 'executionId', 'execution_1'],
+        ['workflowNodeContinuation', 'executionId', 'execution_1'],
+        ['agentThreadEvent', 'threadId', 'thread_1'],
+        ['agentThreadSnapshot', 'threadId', 'thread_1'],
+        ['threadContextState', 'threadId', 'thread_1'],
+        ['postProviderPublishReceipt', 'postId', 'post_1'],
+        ['postPublishFinalization', 'postId', 'post_1'],
+      ];
+      for (const [delegate, foreignKey, parentId] of expectations) {
+        expect(getDelegate(delegate).updateMany).toHaveBeenCalledWith({
+          data: { organizationId: DEST_ORG },
+          where: {
+            [foreignKey]: { in: [parentId] },
+            organizationId: { not: DEST_ORG },
+          },
+        });
+      }
+      // An execution has no brand key: it is found through its workflow.
+      expect(getDelegate('workflowExecution').findMany).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { workflow: { brandId: BRAND_ID } },
+      });
+    });
+
+    it('rolls the move back when a configured org-only child keeps the source organization', async () => {
+      primeRelocatableBrand();
+      getDelegate('workflowExecution').findMany.mockResolvedValue([
+        { id: 'execution_1' },
+      ]);
+      getDelegate('workflowNodeClaim').count.mockResolvedValue(2);
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          { isSuperAdmin: true, userId: USER_ID },
+        ),
+      ).rejects.toThrow(/stale organization id on workflowNodeClaim \(2\)/);
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    });
+
+    it('rolls the move back when the catalog shows an unconfigured org-only child', async () => {
+      primeRelocatableBrand();
+      queryRaw.mockImplementation(
+        async (statement: TemplateStringsArray | Prisma.Sql) => {
+          const text = Array.isArray(statement)
+            ? statement.join('')
+            : (statement as Prisma.Sql).sql;
+          if (text.includes('AS retained')) return [{ retained: false }];
+          if (text.includes('hasOpenHold')) return [{ hasOpenHold: false }];
+          if (text.includes('pg_constraint'))
+            return [
+              {
+                child_table: 'future_children',
+                fk_column: 'postId',
+                org_column: 'organizationId',
+                parent_table: 'posts',
+              },
+            ];
+          if (text.includes('information_schema')) return [];
+          if (text.includes('COUNT(*)')) return [{ n: 3 }];
+          return [{ id: 'locked' }];
+        },
+      );
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          { isSuperAdmin: true, userId: USER_ID },
+        ),
+      ).rejects.toThrow(
+        /unhandled org-only child table\(s\).*future_children\.postId -> posts \(3\)/,
+      );
+    });
+  });
+
+  describe('transaction limits (#6689)', () => {
+    it('gives a large brand time to finish', async () => {
+      primeRelocatableBrand();
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      );
+
+      const [, options] = transactionSpy.mock.calls[0];
+      expect(options).toMatchObject({ isolationLevel: 'Serializable' });
+      expect(options.timeout).toBeGreaterThanOrEqual(60_000);
+      expect(options.maxWait).toBeGreaterThan(0);
+    });
+
+    it('maps an expired transaction (P2028) to a clear retryable error, without retrying', async () => {
+      primeRelocatableBrand();
+      transactionSpy.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Transaction already closed', {
+          clientVersion: 'test',
+          code: 'P2028',
+        }),
+      );
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          { isSuperAdmin: true, userId: USER_ID },
+        ),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(transactionSpy).toHaveBeenCalledTimes(1);
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'content version pins are immutable',
+      'Execution read scope cannot be rebound or widened',
+      'Execution read dependencies and lineage are append-only',
+    ])('maps the trigger refusal "%s" to a 409', async (message) => {
+      primeRelocatableBrand();
+      transactionSpy.mockRejectedValue(new Error(message));
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          { isSuperAdmin: true, userId: USER_ID },
+        ),
+      ).rejects.toThrow(/immutable or append-only/);
+    });
   });
 });

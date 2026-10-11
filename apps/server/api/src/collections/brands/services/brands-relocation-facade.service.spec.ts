@@ -6,9 +6,9 @@ describe('BrandsService relocation facade', () => {
   const brand = { id: 'brand-1' } as BrandDocument;
   const summary = {
     membersSevered: 0,
+    personaGrantsRevoked: 0,
+    schedulesHeld: 0,
     schedulingPending: 0,
-    workflowsClonedActive: 0,
-    workflowsClonedPaused: 0,
     workflowsMoved: 0,
   };
   let patch: ReturnType<typeof vi.fn>;
@@ -62,10 +62,12 @@ describe('BrandsService relocation facade', () => {
   it('delegates relocation preview unchanged', async () => {
     const preview = {
       counts: {
+        schedulesToHold: 0,
         soleBrandWorkflows: 1,
         staleMembers: 0,
       },
       movingResources: [],
+      schedulesToHold: [],
     };
     relocationService.previewRelocation.mockResolvedValue(preview);
 
@@ -76,6 +78,32 @@ describe('BrandsService relocation facade', () => {
       }),
     ).resolves.toBe(preview);
   });
+  it('hands the acting key scopes to the relocation unchanged', async () => {
+    relocationService.relocateToOrganization.mockResolvedValue({
+      brand,
+      summary,
+    });
+    const actingUser = {
+      isApiKey: true,
+      isSuperAdmin: false,
+      scopes: ['admin'],
+      userId: 'user-1',
+    };
+
+    await service.relocateToOrganization(
+      'brand-1',
+      { organizationId: 'org-1' },
+      actingUser,
+    );
+
+    expect(relocationService.relocateToOrganization).toHaveBeenCalledWith(
+      'brand-1',
+      { organizationId: 'org-1' },
+      actingUser,
+      expect.any(Function),
+    );
+  });
+
   it('same-org source fields remain on the existing facade patch callback without forwarding a tenant retarget', async () => {
     relocationService.relocateToOrganization.mockImplementation(
       async (_id, _dto, _user, patchSameOrganization) => ({

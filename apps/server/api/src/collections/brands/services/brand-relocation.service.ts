@@ -131,8 +131,6 @@ export interface BrandRelocationSummary {
 export interface BrandRelocationResult {
   brand: BrandDocument;
   summary: BrandRelocationSummary;
-  /** Workflow schedules paused by the move, for the owner notifications. */
-  heldSchedules: BrandRelocationHeldSchedule[];
 }
 
 /** Counts returned by the read-only relocation preview endpoint. */
@@ -272,7 +270,6 @@ export class BrandRelocationService {
     });
 
     let moveResult: RelocationTransactionResult = {
-      heldSchedules: [],
       membersSevered: 0,
       personaGrantsRevoked: 0,
       touchedWorkflowIds: [],
@@ -400,7 +397,6 @@ export class BrandRelocationService {
 
     return {
       brand: moved,
-      heldSchedules: moveResult.heldSchedules,
       summary: {
         membersSevered: moveResult.membersSevered,
         personaGrantsRevoked: moveResult.personaGrantsRevoked,
@@ -603,7 +599,6 @@ export class BrandRelocationService {
     if (patchSameOrganization)
       return {
         brand: await patchSameOrganization(updates),
-        heldSchedules: [],
         summary: { ...EMPTY_RELOCATION_SUMMARY },
       };
     const sourceBearing =
@@ -620,7 +615,6 @@ export class BrandRelocationService {
         });
     return {
       brand: brand as unknown as BrandDocument,
-      heldSchedules: [],
       summary: { ...EMPTY_RELOCATION_SUMMARY },
     };
   }

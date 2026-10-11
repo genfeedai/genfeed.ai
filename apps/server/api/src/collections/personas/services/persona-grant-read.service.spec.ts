@@ -8,6 +8,7 @@ const persona = {
   handle: 'anna',
   id: 'persona-1',
   label: 'Anna',
+  organizationId: 'org-owner',
   status: 'ACTIVE',
 };
 const row = (overrides: Record<string, unknown> = {}) => ({
@@ -15,6 +16,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   availableBrandIds: [] as string[],
   id: 'grant-1',
   ownerOrganization: { label: 'Vincent' },
+  ownerOrganizationId: 'org-owner',
   persona,
   ...overrides,
 });
@@ -111,5 +113,58 @@ describe('PersonaGrantReadService (#6037)', () => {
         personaId: 'persona-1',
       }),
     ).resolves.toBeNull();
+  });
+
+  describe('owner organization check (#6689)', () => {
+    // A brand moved to another organization after the grant was made: the
+    // grant still names the previous owner, the character no longer does.
+    const staleRow = () =>
+      row({
+        ownerOrganizationId: 'org-previous-owner',
+        persona: { ...persona, organizationId: 'org-new-owner' },
+      });
+
+    it('refuses a grant that names an organization that no longer owns the character', async () => {
+      const { prisma, service } = setup();
+      prisma.personaGrant.findMany.mockResolvedValue([row(), staleRow()]);
+      prisma.personaGrant.findFirst.mockResolvedValue(staleRow());
+
+      await expect(
+        service.findReferenceGrants({
+          ingredientIds: ['avatar-1'],
+          organizationId: 'org-2',
+        }),
+      ).resolves.toHaveLength(1);
+      await expect(
+        service.findHandleGrants({
+          brandId: 'brand-x',
+          handles: ['anna'],
+          organizationId: 'org-2',
+        }),
+      ).resolves.toHaveLength(1);
+      await expect(
+        service.listForBrand({ brandId: 'brand-x', organizationId: 'org-2' }),
+      ).resolves.toHaveLength(1);
+      await expect(
+        service.findForBrand({
+          brandId: 'brand-x',
+          organizationId: 'org-2',
+          personaId: 'persona-1',
+        }),
+      ).resolves.toBeNull();
+    });
+
+    it('does not reveal the owner organization id in what it hands back', async () => {
+      const { prisma, service } = setup();
+      prisma.personaGrant.findMany.mockResolvedValue([row()]);
+
+      const [granted] = await service.listForBrand({
+        brandId: 'brand-x',
+        organizationId: 'org-2',
+      });
+
+      expect(granted.persona).not.toHaveProperty('organizationId');
+      expect(granted.persona.handle).toBe('anna');
+    });
   });
 });
