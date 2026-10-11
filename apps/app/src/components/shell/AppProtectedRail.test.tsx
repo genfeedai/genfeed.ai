@@ -222,9 +222,10 @@ describe('AppProtectedRail', () => {
         surface: 'desktop',
       }),
     );
-    expect(appRailSpy.mock.lastCall?.[0].onTogglePin).toEqual(
-      expect.any(Function),
-    );
+    // Pins are changed from Store cards; the rail only reads them and links
+    // the Apps icon to the Store.
+    expect(appRailSpy.mock.lastCall?.[0].storeHref).toBe('/acme/~/store');
+    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('onTogglePin');
   });
 
   it('puts Help and the account avatar in the rail footer', () => {
