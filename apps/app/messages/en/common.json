@@ -401,20 +401,18 @@
       "columnMember": "Member"
     },
     "organizationIdentity": {
-      "name": "Organization name",
-      "handle": "Handle",
+      "editHandle": "Edit organization handle",
+      "editName": "Edit organization name",
+      "generateLogo": "Generate logo",
+      "generateLogoFailed": "Could not generate a logo. Try again.",
       "handleHint": "Used in your organization URL. Changing it updates the URL for everyone in this organization.",
-      "nameRequired": "Enter an organization name.",
       "handleInvalid": "Use 2–48 lowercase letters, numbers or hyphens. Start and end with a letter or number.",
-      "save": "Save changes",
-      "cancel": "Cancel",
+      "logoAlt": "{label} logo",
+      "nameRequired": "Enter an organization name.",
+      "ownerOnly": "Only the organization owner can edit its name and handle.",
+      "saveFailed": "Could not save the organization. Try again.",
       "saved": "Organization updated.",
       "savedRefreshFailed": "Organization saved. Reload the page to refresh the organization switcher.",
-      "saveFailed": "Could not save the organization. Try again.",
-      "ownerOnly": "Only the organization owner can edit its name and handle.",
-      "logoAlt": "{label} logo",
-      "logoHint": "Square PNG, JPG or WebP. Shown in the organization switcher.",
-      "replaceLogo": "Replace logo",
       "title": "Organization",
       "uploadLogo": "Upload logo"
     },
@@ -894,6 +892,28 @@
         "stage": "Stage"
       },
       "samplePrompt": "Help me explore a small {channel} example for the skill named {name}."
+    },
+    "organizationFleet": {
+      "title": "Fleet",
+      "description": "Fleet is your organization's dedicated model setup for consistent, on-brand generation.",
+      "controlsHeading": "Fleet is connected",
+      "nsfw": {
+        "label": "Reveal fleet NSFW assets",
+        "description": "When enabled, sensitive fleet-generated assets can be revealed in brand library views. When off, they stay blurred.",
+        "adminOnly": "Only owners and admins can change this setting."
+      },
+      "saveFailed": "Could not save this setting. Try again.",
+      "loading": "Loading Fleet settings…",
+      "cta": {
+        "title": "A custom model, trained for you",
+        "description": "Get a LoRA model trained on your own character, style or product, so every image and video comes out consistent and recognizably yours. We set it up and run it for you.",
+        "points": {
+          "consistent": "One character, style or product that stays the same across every asset.",
+          "trained": "Trained by our team on your reference material.",
+          "managed": "Hosted and managed for you. Nothing to install or maintain."
+        },
+        "action": "Book a call"
+      }
     },
     "organizationModules": {
       "title": "Modules",
