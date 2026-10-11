@@ -1,3 +1,5 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { refreshWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
@@ -18,12 +20,14 @@ import { OrganizationModuleAccessService } from '@api/common/organization-module
 import { runWithOrganizationModule } from '@api/common/organization-modules/organization-module-execution.context';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ForbiddenException,
   HttpException,
   Inject,
   Injectable,
@@ -38,6 +42,21 @@ type SchedulableWorkflow = Pick<
   WorkflowDocument,
   'id' | 'isScheduleEnabled' | 'schedule' | 'timezone'
 >;
+
+/**
+ * Who a scheduled fire runs as. In Cloud it is the actor bound when the schedule was
+ * saved, re-checked live; a schedule without one, or whose actor lost authority, is held.
+ */
+type ScheduledRunAuthority =
+  | { isHeld: false; userId: string }
+  | { isHeld: true; reason: 'actor-denied' | 'actor-missing' };
+
+type ScheduledRunWorkflow = {
+  brandId: string | null;
+  organizationId: string;
+  scheduleInitiatingActor: Prisma.JsonValue | null;
+  userId: string;
+};
 
 /**
  * Owns the producer side of workflow cron scheduling.
@@ -60,6 +79,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
     private readonly moduleAccess: OrganizationModuleAccessService,
+    private readonly brandAccess: BrandAccessService,
   ) {}
 
   async onModuleInit() {
@@ -186,7 +206,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
   ): Promise<void> {
     try {
       const workflow = await this.prisma.workflow.findFirst({
-        select: EXECUTABLE_WORKFLOW_SELECT,
+        select: {
+          ...EXECUTABLE_WORKFLOW_SELECT,
+          scheduleInitiatingActor: true,
+        },
         where: {
           id: workflowId,
           isDeleted: false,
@@ -233,6 +256,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
         throw error;
       }
 
+      const authority = await this.resolveScheduledRunAuthority(workflow);
+      if (authority.isHeld) {
+        await this.holdScheduledWorkflow(workflowId, wOrgId, authority.reason);
+        return;
+      }
+
       const workflowDocument = toWorkflowDocument(workflow);
       const defaultInputValues = this.getDefaultInputValues(workflowDocument);
       const missingRequiredInputs = this.getMissingRequiredInputKeys(
@@ -271,7 +300,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         () =>
           this.workflowExecutorService.executeManualWorkflowDocument(
             workflowDocument,
-            wUserId,
+            authority.userId,
             wOrgId,
             defaultInputValues,
             {
@@ -301,6 +330,71 @@ export class WorkflowSchedulerService implements OnModuleInit {
         'WorkflowSchedulerService',
       );
     }
+  }
+
+  /**
+   * Cloud runs a scheduled workflow only as the actor bound when its schedule was saved, after
+   * re-reading that actor's live authority (membership, API key validity, brand access). The
+   * workflow creator is never substituted. Self-hosted single-tenant keeps running as the
+   * workflow owner. Anything other than a plain denial (a database outage) is rethrown to the
+   * caller's handler, which logs it and leaves the schedule untouched for the next tick.
+   */
+  private async resolveScheduledRunAuthority(
+    workflow: ScheduledRunWorkflow,
+  ): Promise<ScheduledRunAuthority> {
+    if (!isCloudDeployment()) {
+      return { isHeld: false, userId: workflow.userId };
+    }
+    const persisted = workflow.scheduleInitiatingActor ?? undefined;
+    if (persisted === undefined) {
+      return { isHeld: true, reason: 'actor-missing' };
+    }
+    try {
+      const actor = await refreshWorkflowActor(
+        this.prisma,
+        this.brandAccess,
+        persisted,
+        workflow.organizationId,
+      );
+      if (!actor) {
+        return { isHeld: true, reason: 'actor-missing' };
+      }
+      if (workflow.brandId) {
+        await this.brandAccess.assert(actor, workflow.brandId, this.prisma);
+      }
+      return { isHeld: false, userId: actor.userId };
+    } catch (error: unknown) {
+      if (error instanceof ForbiddenException) {
+        return { isHeld: true, reason: 'actor-denied' };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Pauses a schedule whose actor is missing or no longer authorized, keeping the cron and
+   * timezone so a person can re-enable it (which binds them), and drops the queued job.
+   */
+  private async holdScheduledWorkflow(
+    workflowId: string,
+    organizationId: string,
+    reason: 'actor-denied' | 'actor-missing',
+  ): Promise<void> {
+    await this.prisma.workflow.update({
+      data: {
+        isScheduleEnabled: false,
+        scheduleInitiatingActor: Prisma.DbNull,
+      },
+      where: scopedWhere(organizationId, { id: workflowId }),
+    });
+    await this.unscheduleWorkflow(workflowId);
+
+    this.logger.warn(
+      reason === 'actor-missing'
+        ? `Scheduled workflow ${workflowId} held: no authenticated actor is bound to its schedule. Re-enable the schedule to bind it.`
+        : `Scheduled workflow ${workflowId} held: the actor bound to its schedule no longer has access. Re-enable the schedule to bind it.`,
+      'WorkflowSchedulerService',
+    );
   }
 
   private isMissingInputValue(value: unknown): boolean {

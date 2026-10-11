@@ -1,11 +1,22 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { getOrganizationModuleExecutionContext } from '@api/common/organization-modules/organization-module-execution.context';
-import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
+import {
+  MemberRole,
+  WorkflowExecutionTrigger,
+  WorkflowStatus,
+} from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { ForbiddenException, HttpException } from '@nestjs/common';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const runtime = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => runtime.cloud,
+}));
 
 function createMockLogger() {
   return {
@@ -18,6 +29,13 @@ function createMockLogger() {
 
 function createMockPrisma() {
   return {
+    apiKey: { findFirst: vi.fn().mockResolvedValue(null) },
+    brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
+    member: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ brands: [], role: { key: MemberRole.ADMIN } }),
+    },
     workflow: {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -76,6 +94,7 @@ function createService(
   };
   const queueService = overrides.queueService ?? createMockQueueService();
   const moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
+  const brandAccess = new BrandAccessService(prisma as never);
 
   const service = new (
     WorkflowSchedulerService as unknown as new (
@@ -88,9 +107,11 @@ function createService(
     workflowExecutorService,
     queueService,
     moduleAccess,
+    brandAccess,
   );
 
   return {
+    brandAccess,
     moduleAccess,
     logger,
     prisma,
@@ -99,6 +120,10 @@ function createService(
     workflowExecutorService,
   };
 }
+
+beforeEach(() => {
+  runtime.cloud = false;
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -392,7 +417,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     await service.executeScheduledWorkflow('wf-1', 'fire-1');
 
     expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
-      select: EXECUTABLE_WORKFLOW_SELECT,
+      select: { ...EXECUTABLE_WORKFLOW_SELECT, scheduleInitiatingActor: true },
       where: {
         id: 'wf-1',
         isDeleted: false,
@@ -790,5 +815,256 @@ describe('WorkflowSchedulerService — schedule initiating actor capture', () =>
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(prisma.workflow.update).not.toHaveBeenCalled();
     expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+});
+
+describe('WorkflowSchedulerService — scheduled run actor', () => {
+  const actor = {
+    isApiKey: false,
+    organizationId: 'org-1',
+    scopes: [],
+    userId: 'actor-1',
+  };
+
+  function fixture(
+    workflow: Record<string, unknown> = {},
+    options: { cloud?: boolean } = {},
+  ) {
+    runtime.cloud = options.cloud ?? true;
+    const created = createService();
+    created.prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow({
+        brandId: null,
+        id: 'wf-1',
+        organizationId: 'org-1',
+        scheduleInitiatingActor: actor,
+        userId: 'creator-1',
+        ...workflow,
+      }),
+    );
+    return created;
+  }
+
+  function expectHeld(created: ReturnType<typeof fixture>, message: string) {
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).not.toHaveBeenCalled();
+    // Paused and unbound, keeping the cron and timezone, and the job removed.
+    expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+    expect(created.prisma.workflow.update).toHaveBeenCalledWith({
+      data: {
+        isScheduleEnabled: false,
+        scheduleInitiatingActor: Prisma.DbNull,
+      },
+      where: { id: 'wf-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(created.queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-1',
+    );
+    expect(created.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(message),
+      'WorkflowSchedulerService',
+    );
+  }
+
+  it('runs as the bound actor after a live refresh, not as the workflow creator', async () => {
+    const created = fixture();
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(created.prisma.member.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          userId: 'actor-1',
+        }),
+      }),
+    );
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'wf-1' }),
+      'actor-1',
+      'org-1',
+      {},
+      { scheduledFireJobId: 'fire-1', triggeredBy: 'schedule' },
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    // Only the execution counter write: the schedule is not paused.
+    expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+    expect(created.prisma.workflow.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isScheduleEnabled: false }),
+      }),
+    );
+  });
+
+  it.each([
+    ['no bound actor', null],
+    ['an unset actor', undefined],
+  ])('holds a Cloud schedule with %s', async (_label, bound) => {
+    const created = fixture({ scheduleInitiatingActor: bound });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expectHeld(created, 'no authenticated actor');
+    expect(created.prisma.member.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('holds a schedule bound to an actor from another organization', async () => {
+    const created = fixture({
+      scheduleInitiatingActor: { ...actor, organizationId: 'org-2' },
+    });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expectHeld(created, 'no longer has access');
+  });
+
+  it.each([
+    ['a malformed actor', { userId: 'actor-1' }],
+    ['a non-object actor', 'actor-1'],
+  ])('holds a schedule with %s', async (_label, bound) => {
+    const created = fixture({ scheduleInitiatingActor: bound });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expectHeld(created, 'no longer has access');
+  });
+
+  it('holds a schedule whose actor is no longer an active member', async () => {
+    const created = fixture();
+    created.prisma.member.findFirst.mockResolvedValue(null);
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expectHeld(created, 'no longer has access');
+  });
+
+  it('holds a schedule whose API key was revoked or expired', async () => {
+    const created = fixture({
+      scheduleInitiatingActor: {
+        ...actor,
+        apiKeyId: 'key-1',
+        isApiKey: true,
+        scopes: ['workflows:write'],
+      },
+    });
+    created.prisma.apiKey.findFirst.mockResolvedValue(null);
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expectHeld(created, 'no longer has access');
+  });
+
+  it('runs an API key actor as its owning user while the key is valid', async () => {
+    const created = fixture({
+      scheduleInitiatingActor: {
+        ...actor,
+        apiKeyId: 'key-1',
+        isApiKey: true,
+        scopes: ['workflows:write'],
+      },
+    });
+    created.prisma.apiKey.findFirst.mockResolvedValue({
+      scopes: ['workflows:write'],
+    });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      'actor-1',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+  });
+
+  it('holds a brand workflow when the actor lost access to that brand', async () => {
+    const created = fixture({ brandId: 'brand-1' });
+    created.prisma.brand.findFirst.mockResolvedValue(null);
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expectHeld(created, 'no longer has access');
+    expect(created.prisma.brand.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ organizationId: 'org-1' }),
+      }),
+    );
+  });
+
+  it('runs a brand workflow while the actor can still reach the brand', async () => {
+    const created = fixture({ brandId: 'brand-1' });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('neither runs nor holds when the authority check itself fails', async () => {
+    const created = fixture();
+    created.prisma.member.findFirst.mockRejectedValue(new Error('db down'));
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).not.toHaveBeenCalled();
+    expect(created.prisma.workflow.update).not.toHaveBeenCalled();
+    expect(created.queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+    expect(created.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to execute'),
+      expect.any(Error),
+      'WorkflowSchedulerService',
+    );
+  });
+
+  describe('self-hosted single tenant', () => {
+    it('keeps running an unbound schedule as the workflow owner', async () => {
+      const created = fixture(
+        { scheduleInitiatingActor: null },
+        { cloud: false },
+      );
+
+      await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+      expect(
+        created.workflowExecutorService.executeManualWorkflowDocument,
+      ).toHaveBeenCalledWith(
+        expect.anything(),
+        'creator-1',
+        'org-1',
+        expect.anything(),
+        expect.anything(),
+        WorkflowExecutionTrigger.SCHEDULED,
+      );
+      expect(created.prisma.member.findFirst).not.toHaveBeenCalled();
+      expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not check a bound actor either', async () => {
+      const created = fixture({}, { cloud: false });
+      created.prisma.member.findFirst.mockResolvedValue(null);
+
+      await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+      expect(
+        created.workflowExecutorService.executeManualWorkflowDocument,
+      ).toHaveBeenCalledWith(
+        expect.anything(),
+        'creator-1',
+        'org-1',
+        expect.anything(),
+        expect.anything(),
+        WorkflowExecutionTrigger.SCHEDULED,
+      );
+    });
   });
 });
