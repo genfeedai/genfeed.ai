@@ -220,6 +220,33 @@ export class ScheduledPostDeliveryGates {
     }
   }
 
+  /**
+   * A breakout fence denial raised while entering PUBLISHING. Only a hold on a breakout post is
+   * terminal; anything else (infrastructure, an ordinary post's error) keeps its retry path.
+   */
+  breakoutDispatchDenial(
+    post: PostEntity,
+    error: unknown,
+    url: string,
+  ): DeliveryGateFailure | null {
+    if (
+      !isBreakoutPublicationHold(error) ||
+      !readPostString(post, ['breakoutOutputId'])
+    )
+      return null;
+    const message = getErrorMessage(error);
+    this.logger.warn(`${url} breakout publication held`, {
+      error: message,
+      postId: post.id,
+    });
+    return {
+      code: 'breakout_publication_held',
+      isRetryable: false,
+      message,
+      platform: '',
+    };
+  }
+
   prepare(
     post: PostEntity,
     source: ScheduledPostWorkflowInput['source'],

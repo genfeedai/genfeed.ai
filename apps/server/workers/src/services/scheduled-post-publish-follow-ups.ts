@@ -2,6 +2,7 @@ import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { type PublishResult, scopedWhere } from '@api/index';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import { CredentialPlatform, Platform } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
@@ -32,6 +33,7 @@ export class ScheduledPostPublishFollowUps {
     private readonly prisma: PrismaService,
     private readonly postFailureService: ScheduledPostFailureService,
     private readonly replyPostWatchService: ReplyPostWatchService,
+    private readonly publishEventWebhookService: PublishEventWebhookService,
   ) {}
 
   /**
@@ -219,5 +221,31 @@ export class ScheduledPostPublishFollowUps {
           },
         );
       });
+  }
+
+  emitPublishPublishedWebhook(
+    post: PostEntity,
+    result: PublishResult,
+    platform: CredentialPlatform | string,
+  ): void {
+    void this.publishEventWebhookService.emitLegacyPostPublished({
+      externalProviderId: result.externalId ?? null,
+      externalShortcode: result.externalShortcode ?? null,
+      platform,
+      post,
+      url: result.url || null,
+    });
+  }
+
+  emitPublishFailedWebhook(
+    post: PostEntity,
+    errorMessage: string,
+    platform?: CredentialPlatform | string,
+  ): void {
+    void this.publishEventWebhookService.emitLegacyPostFailed({
+      errorMessage,
+      platform,
+      post,
+    });
   }
 }
