@@ -347,24 +347,18 @@ describe.skipIf(!connectionString)(
       expect(scene.result.outputIds).toHaveLength(1);
     });
 
-    it('holds every visual follow-up while the shipped brand validator has no qualified media evidence, spending nothing on it', async () => {
-      const detected = await detectBreakout(env, {
-        candidate: { media: 'image' },
-        harness: { isShippedMediaValidator: true },
-        world: TWO_OUTPUTS,
+    it('admits a visual follow-up for review only: the real validator never grades it ready', async () => {
+      const scene = await generate('image');
+      const [, visual] = await outputsOf(scene);
+      const output = must(visual, 'the visual follow-up');
+      expect(output.format).toBe('image');
+      expect(await recoveryOf(scene, output.id)).toMatchObject({
+        reason: 'brand_review_required',
+        state: 'awaiting_review',
       });
-      const run = await runQueuedBreakoutExecution(
-        detected.harness,
-        prisma,
-        detected.jobId,
-      );
-      // The validator blocks image and video admission, so X keeps only its text quote.
-      expect(run.result.outputIds).toHaveLength(1);
-      expect(
-        (await outputsOf(detected)).map((output) => output.format),
-      ).toEqual(['text']);
-      expect(detected.harness.mediaGateway.calls).toHaveLength(0);
-      expect(detected.harness.visualJudge.calls).toHaveLength(0);
+      const post = await postOf(scene.world, output.id);
+      expect(post.targetExecutionState).toBe('draft');
+      expect(post.reviewTurboRunId).toBeTruthy();
     });
 
     it('counts a media output and the X quote inside the same five-output ceiling and budgets', async () => {
