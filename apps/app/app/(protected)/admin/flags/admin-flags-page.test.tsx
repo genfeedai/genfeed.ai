@@ -187,13 +187,7 @@ describe('AdminFlagsPage (#5468)', () => {
   it('lists every Studio surface as its own switch', async () => {
     render(<AdminFlagsPage />);
 
-    for (const name of [
-      'Motion',
-      'Storyboard',
-      'Clips',
-      'Turbo',
-      'Editor',
-    ]) {
+    for (const name of ['Motion', 'Storyboard', 'Clips', 'Turbo', 'Editor']) {
       expect(await screen.findByRole('switch', { name })).toBeInTheDocument();
     }
   });

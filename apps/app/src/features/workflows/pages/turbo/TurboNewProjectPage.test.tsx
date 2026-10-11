@@ -125,9 +125,10 @@ describe('TurboNewProjectPage', () => {
 
   it('starts with ideas and does not load unrelated workflows', () => {
     render(<TurboNewProjectPage />);
-    expect(
-      screen.getByRole('button', { name: 'From ideas' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'From ideas' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(
       screen.getByText(
         'Describe a topic, generate ideas, then turn them into content.',
@@ -254,7 +255,9 @@ describe('TurboNewProjectPage', () => {
     );
     expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'From ideas' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'From a workflow' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'From a workflow' }),
+    ).toBeNull();
     expect(
       screen.getByRole('link', { name: 'Manage subscription' }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');

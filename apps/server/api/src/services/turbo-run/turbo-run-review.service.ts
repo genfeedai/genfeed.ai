@@ -38,7 +38,6 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
 import { UpdateTurboRunDto } from '@api/services/turbo-run/dto/update-turbo-run.dto';
 import {
-  type ReviewInboxItemSummary,
   type ReviewInboxSummary,
   resolveTurboRunItems,
   type TurboRunItemFull,

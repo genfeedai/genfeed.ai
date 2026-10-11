@@ -126,9 +126,9 @@ test.describe('Persisted Turbo projects', () => {
       .getByRole('button', { name: 'Create project', exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${base}/persisted-project`));
-    await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue(
-      'Launch collection',
-    );
+    await expect(
+      page.getByRole('textbox', { name: 'Project name' }),
+    ).toHaveValue('Launch collection');
     expect(state.getProject().name).toBe('Launch collection');
     await page.screenshot({
       path: testInfo.outputPath('project-detail-mobile.png'),
@@ -151,9 +151,9 @@ test.describe('Persisted Turbo projects', () => {
     );
     expect(overflow).toBe(false);
     await page.getByRole('link', { name: 'Open', exact: true }).first().click();
-    await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue(
-      'Launch collection',
-    );
+    await expect(
+      page.getByRole('textbox', { name: 'Project name' }),
+    ).toHaveValue('Launch collection');
   });
 
   test('invalid files and permanent upload errors do not block later valid uploads or saves', async ({

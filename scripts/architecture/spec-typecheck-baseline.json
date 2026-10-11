@@ -1828,8 +1828,8 @@
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/posts/services/posts.service.spec.ts",
-      "fingerprint": "544582bb66bba8751168",
-      "message": "Object literal may only specify known properties, and 'reviewBatchId' does not exist in type 'PostCreateInput'.",
+      "fingerprint": "50ac6813080e0cdb847b",
+      "message": "Object literal may only specify known properties, and 'reviewTurboRunId' does not exist in type 'PostCreateInput'.",
       "workspace": "api"
     },
     {
