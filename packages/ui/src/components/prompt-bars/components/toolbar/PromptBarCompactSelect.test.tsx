@@ -1,12 +1,13 @@
 import type { PromptBarCompactSelectProps } from '@genfeedai/props/prompt-bars/prompt-bar-send-button.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
-import { createContext, type ReactNode, useContext } from 'react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Radix Select needs pointer APIs jsdom lacks; a context stub keeps the
 // spec on this component's own wiring (labels, value, onChange, disabled).
-vi.mock('@ui/primitives/select', () => {
+vi.mock('@ui/primitives/select', async () => {
+  const { createContext, useContext } = await import('react');
   const SelectContext = createContext<{
     onValueChange: (value: string) => void;
     value: string;
