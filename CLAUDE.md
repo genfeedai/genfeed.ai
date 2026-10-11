@@ -14,9 +14,9 @@ account routing, host-resource restrictions, or required delivery gates.
 - **Never push directly to `master`** — PR only, always
 - **Never merge until required CI is green**
 - `feat/xxx` / `hotfix/xxx` off `master`
-- **Worktrees live at `<repo>/.worktrees/<name>`** (gitignored) — create with `git wt <name>`;
-  never `/tmp`, sibling dirs, `$HOME`, or inside another worktree. Keep them after merge for
-  follow-ups.
+- **Worktrees live outside the repository** — never inside the checkout, `/tmp`, or another
+  worktree. After any worktree is created, `bun run wt:sync <path>` copies the `.worktreeinclude`
+  env files. Remove a worktree once its PR merges.
 - Releases are cut from `master` (semver tag + GitHub release via `/release`); `staging` and
   `production` are deploy environments driven by CI/tags, not branches
 - `bun.lock` is `merge=binary` — on conflict: `rm bun.lock && bun install`
