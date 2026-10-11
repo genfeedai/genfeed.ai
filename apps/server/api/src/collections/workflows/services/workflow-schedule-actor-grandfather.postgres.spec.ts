@@ -49,18 +49,7 @@ const migrationSql = readFileSync(
 );
 
 const SCHEDULE = '0 9 * * *';
-const TABLES = [
-  'agent_strategies',
-  'knowledge_sources',
-  'members',
-  'organizations',
-  'platform_settings',
-  'roles',
-  'settings',
-  'social_reply_campaigns',
-  'turbo_projects',
-  'workflows',
-] as const;
+const TABLES = ['members', 'organizations', 'roles', 'workflows'] as const;
 // Every table except `workflows` is only a fixture for the migration's lookups, so its other
 // required columns are relaxed. `workflows` keeps its real constraints.
 const RELAXED = TABLES.filter((table) => table !== 'workflows');
@@ -259,216 +248,58 @@ describe.skipIf(!connectionString)(
       await pool?.end();
     });
 
-    describe('duplicate seeded rows', () => {
-      it('keeps the oldest row per org and template and soft-deletes and disables the rest', async () => {
-        const metadata = seededMetadata('daily-trends-digest');
-        await insertWorkflow({
-          createdAt: '2026-03-01T00:00:00Z',
-          id: 'dup-newest',
-          metadata,
-          scheduleInitiatingActor: productionActor('owner-live', 'org-live'),
-        });
-        await insertWorkflow({
-          createdAt: '2026-01-01T00:00:00Z',
-          id: 'dup-oldest',
-          metadata,
-        });
-        await insertWorkflow({
-          createdAt: '2026-02-01T00:00:00Z',
-          id: 'dup-middle',
-          metadata,
-        });
-
-        await migrate();
-
-        const oldest = await workflow('dup-oldest');
-        expect(oldest.isDeleted).toBe(false);
-        expect(oldest.isScheduleEnabled).toBe(true);
-        for (const id of ['dup-middle', 'dup-newest']) {
-          const row = await workflow(id);
-          expect(row.isDeleted, id).toBe(true);
-          expect(row.isScheduleEnabled, id).toBe(false);
-          // Even though the owner is an active member, a removed duplicate is never bound.
-          expect(row.scheduleInitiatingActor, id).toBeNull();
-        }
-      });
-
-      it('breaks a createdAt tie by id', async () => {
-        const metadata = seededMetadata('tie-template');
-        for (const id of ['tie-c', 'tie-a', 'tie-b']) {
-          await insertWorkflow({ id, metadata });
-        }
-
-        await migrate();
-
-        expect((await workflow('tie-a')).isDeleted).toBe(false);
-        expect((await workflow('tie-b')).isDeleted).toBe(true);
-        expect((await workflow('tie-c')).isDeleted).toBe(true);
-      });
-
-      it('leaves other organizations, templates, brand scopes, source types and deleted rows alone', async () => {
-        const metadata = seededMetadata('shared-template');
-        await insertWorkflow({ id: 'base', metadata });
-        await insertWorkflow({
-          id: 'other-org',
-          metadata,
-          organizationId: 'org-other',
-        });
-        await insertWorkflow({
-          id: 'other-template',
-          metadata: seededMetadata('different-template'),
-        });
-        await insertWorkflow({ brandId: 'brand-a', id: 'brand-a', metadata });
-        await insertWorkflow({ brandId: 'brand-b', id: 'brand-b', metadata });
-        await insertWorkflow({
-          id: 'catalog-source',
-          metadata: seededMetadata('shared-template', 'system-catalog'),
-        });
-        await insertWorkflow({
-          id: 'already-deleted',
-          isDeleted: true,
-          metadata,
-        });
-        await insertWorkflow({ id: 'no-metadata', metadata: null });
-        await insertWorkflow({
-          id: 'blank-template',
-          metadata: { sourceTemplateId: '', sourceType: 'seeded-template' },
-        });
-        await insertWorkflow({
-          id: 'blank-template-2',
-          metadata: { sourceTemplateId: '', sourceType: 'seeded-template' },
-        });
-
-        await migrate();
-
-        for (const id of [
-          'base',
-          'other-org',
-          'other-template',
-          'brand-a',
-          'brand-b',
-          'catalog-source',
-          'no-metadata',
-          'blank-template',
-          'blank-template-2',
+    describe('rows from the same template', () => {
+      // Template instantiation is intentionally not unique when no key is set, so these are a
+      // customer's own workflows. The migration never deletes or disables any workflow.
+      it('leaves two live rows of one template in one organization untouched', async () => {
+        const metadata = seededMetadata('youtube-thumbnail-script');
+        for (const [id, createdAt] of [
+          ['template-a', '2026-01-01T00:00:00Z'],
+          ['template-b', '2026-02-01T00:00:00Z'],
         ]) {
+          await insertWorkflow({
+            createdAt,
+            id,
+            isScheduleEnabled: false,
+            metadata,
+            schedule: null,
+          });
+        }
+        const before = await snapshot();
+
+        await migrate();
+
+        expect(await snapshot()).toBe(before);
+        for (const id of ['template-a', 'template-b']) {
           expect((await workflow(id)).isDeleted, id).toBe(false);
         }
-        expect((await workflow('already-deleted')).isDeleted).toBe(true);
       });
 
-      it.each([
-        [
-          'a platform marker',
-          { platformSeedKey: 'ref-template' } satisfies Partial<WorkflowSeed>,
-          async () => undefined,
-        ],
-        [
-          'the default recurring slot',
-          {
-            defaultRecurringBrandId: 'brand-x',
-          } satisfies Partial<WorkflowSeed>,
-          async () => undefined,
-        ],
-        [
-          'an agent strategy',
-          {},
-          (c: PoolClient) =>
-            c.query(
-              `INSERT INTO "agent_strategies" ("id","preferredWorkflowId") VALUES ('s1','referenced')`,
-            ),
-        ],
-        [
-          'a social reply campaign',
-          {},
-          (c: PoolClient) =>
-            c.query(
-              `INSERT INTO "social_reply_campaigns" ("id","workflowId") VALUES ('c1','referenced')`,
-            ),
-        ],
-        [
-          'a knowledge source refresh',
-          {},
-          (c: PoolClient) =>
-            c.query(
-              `INSERT INTO "knowledge_sources" ("id","refreshWorkflowId") VALUES ('k1','referenced')`,
-            ),
-        ],
-        [
-          'a turbo project',
-          {},
-          (c: PoolClient) =>
-            c.query(
-              `INSERT INTO "turbo_projects" ("id","workflowId") VALUES ('t1','referenced')`,
-            ),
-        ],
-        [
-          'a user favorite',
-          {},
-          (c: PoolClient) =>
-            c.query(
-              `INSERT INTO "settings" ("id","favoriteWorkflowIds") VALUES ('f1',ARRAY['x','referenced'])`,
-            ),
-        ],
-        [
-          'a platform featured pin',
-          {},
-          (c: PoolClient) =>
-            c.query(
-              `INSERT INTO "platform_settings" ("id","featuredWorkflowIds") VALUES ('p1',ARRAY['referenced'])`,
-            ),
-        ],
-      ])(
-        'keeps a duplicate that is pinned by %s instead of the oldest',
-        async (_label, pin, reference) => {
-          const metadata = seededMetadata('ref-template');
-          await insertWorkflow({
-            createdAt: '2026-01-01T00:00:00Z',
-            id: 'oldest',
-            metadata,
-          });
-          await insertWorkflow({
-            ...pin,
-            createdAt: '2026-02-01T00:00:00Z',
-            id: 'referenced',
-            metadata,
-            // A platform-marked row never carries a person.
-            scheduleInitiatingActor: undefined,
-          });
-          await reference(client);
-
-          await migrate();
-
-          expect((await workflow('referenced')).isDeleted).toBe(false);
-          expect((await workflow('oldest')).isDeleted).toBe(true);
-        },
-      );
-
-      it('never deletes a second pinned duplicate', async () => {
-        const metadata = seededMetadata('ref-template');
+      it('keeps every scheduled row of one template live and enabled, binding each to its owner', async () => {
+        const metadata = seededMetadata('daily-trends-digest');
+        for (const [id, createdAt] of [
+          ['sched-c', '2026-03-01T00:00:00Z'],
+          ['sched-a', '2026-01-01T00:00:00Z'],
+          ['sched-b', '2026-02-01T00:00:00Z'],
+        ]) {
+          await insertWorkflow({ createdAt, id, metadata });
+        }
         await insertWorkflow({
-          createdAt: '2026-01-01T00:00:00Z',
-          defaultRecurringBrandId: 'brand-1',
-          id: 'pinned-old',
-          metadata,
-        });
-        await insertWorkflow({
-          createdAt: '2026-02-01T00:00:00Z',
-          defaultRecurringBrandId: 'brand-2',
-          id: 'pinned-new',
-          metadata,
-        });
-        await insertWorkflow({
-          createdAt: '2026-03-01T00:00:00Z',
-          id: 'plain',
+          brandId: 'brand-a',
+          id: 'sched-brand',
           metadata,
         });
 
         await migrate();
 
-        expect((await workflow('pinned-old')).isDeleted).toBe(false);
-        expect((await workflow('pinned-new')).isDeleted).toBe(false);
-        expect((await workflow('plain')).isDeleted).toBe(true);
+        for (const id of ['sched-a', 'sched-b', 'sched-c', 'sched-brand']) {
+          const row = await workflow(id);
+          expect(row.isDeleted, id).toBe(false);
+          expect(row.isScheduleEnabled, id).toBe(true);
+          expect(row.scheduleInitiatingActor, id).toEqual(
+            productionActor('owner-live', 'org-live'),
+          );
+        }
       });
     });
 
@@ -634,7 +465,7 @@ describe.skipIf(!connectionString)(
         expect(await workflow('untouched')).toEqual(before);
       });
 
-      it('grandfathers a surviving seeded row that is not platform-marked', async () => {
+      it('grandfathers a seeded-template row that is not platform-marked', async () => {
         await insertWorkflow({
           id: 'seeded-survivor',
           metadata: seededMetadata('daily-trends-digest'),
@@ -651,7 +482,7 @@ describe.skipIf(!connectionString)(
     describe('whole-migration properties', () => {
       it('runs on an empty database', async () => {
         await expect(migrate()).resolves.toBe(
-          'workflow schedule actor grandfather (#6706): duplicates soft-deleted=0, actors bound=0',
+          'workflow schedule actor grandfather (#6706): actors bound=0',
         );
         const { rows } = await client.query('SELECT 1 FROM "workflows"');
         expect(rows).toHaveLength(0);
@@ -668,7 +499,7 @@ describe.skipIf(!connectionString)(
         await insertWorkflow({ id: 'plain', metadata: null });
 
         await expect(migrate()).resolves.toBe(
-          'workflow schedule actor grandfather (#6706): duplicates soft-deleted=1, actors bound=2',
+          'workflow schedule actor grandfather (#6706): actors bound=3',
         );
       });
 
@@ -686,7 +517,7 @@ describe.skipIf(!connectionString)(
         const afterFirst = await snapshot();
 
         await expect(migrate()).resolves.toBe(
-          'workflow schedule actor grandfather (#6706): duplicates soft-deleted=0, actors bound=0',
+          'workflow schedule actor grandfather (#6706): actors bound=0',
         );
         expect(await snapshot()).toBe(afterFirst);
       });
@@ -699,7 +530,7 @@ describe.skipIf(!connectionString)(
         await insertWorkflow({ id: 'unbound' });
 
         await expect(migrate()).resolves.toBe(
-          'workflow schedule actor grandfather (#6706): duplicates soft-deleted=0, actors bound=1',
+          'workflow schedule actor grandfather (#6706): actors bound=1',
         );
       });
     });

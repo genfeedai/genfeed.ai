@@ -31,23 +31,16 @@ describe('workflow schedule actor grandfather migration (#6706)', () => {
     expect(statements).not.toMatch(/\bEXECUTE\b/i);
   });
 
-  it('soft-deletes older duplicate seeds before grandfathering actors', () => {
-    const dedupe = statements.indexOf('"isDeleted" = true');
-    const grandfather = statements.indexOf('jsonb_build_object');
-    expect(dedupe).toBeGreaterThan(-1);
-    expect(grandfather).toBeGreaterThan(dedupe);
-    expect(statements).toContain(
-      `w."metadata"->>'sourceType' = 'seeded-template'`,
-    );
-    expect(statements).toContain(
-      'PARTITION BY s."organizationId", s."templateId", s."brandScope"',
-    );
-    expect(statements).toContain(
-      'ORDER BY s."isPinned" DESC, s."createdAt" ASC, s."id" ASC',
-    );
-    expect(statements).toMatch(
-      /"isScheduleEnabled" = false,\s+"scheduleInitiatingActor" = NULL/,
-    );
+  it('never deletes, disables or otherwise changes a workflow beyond its actor', () => {
+    expect(statements.match(/\bUPDATE\b/gi)).toHaveLength(1);
+    expect(statements).not.toMatch(/\bDELETE\b/i);
+    const setClause = statements.match(/\bSET\b([\s\S]*?)\bWHERE\b/i)?.[1];
+    expect(setClause).toBeDefined();
+    expect(setClause).not.toContain('isDeleted');
+    expect(setClause).not.toContain('isScheduleEnabled');
+    expect(setClause).not.toContain('platformSeedKey');
+    // No duplicate cleanup of any kind: no ranking and no seeded-template grouping.
+    expect(statements).not.toMatch(/ROW_NUMBER|PARTITION BY|seeded-template/i);
   });
 
   it('never marks a row as a platform seed or touches an existing actor', () => {
