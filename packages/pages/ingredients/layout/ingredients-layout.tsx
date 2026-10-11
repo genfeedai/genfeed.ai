@@ -19,6 +19,7 @@ import {
 } from '@ui-constants/shell-chrome.constant';
 import { Image, Upload } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import IngredientsLayoutToolbar from './ingredients-layout-toolbar';
@@ -30,6 +31,7 @@ export default function IngredientsLayout({
   defaultType,
   hideTypeTabs,
 }: IngredientsLayoutProps) {
+  const translateUpload = useTranslations('library.browser.toolbar');
   const search = useSearchParams()?.toString() ?? '';
   const typeHref = (type: string) =>
     createFilterHref(
@@ -126,12 +128,12 @@ export default function IngredientsLayout({
           iconActions={
             scope !== PageScope.SUPERADMIN && config.showUpload ? (
               <Button
-                ariaLabel="Upload"
+                ariaLabel={translateUpload('upload')}
                 className={SHELL_ICON_BUTTON_CLASS}
                 icon={<Upload className={SHELL_ICON_CLASS} />}
                 onClick={handleUpload}
                 size={ButtonSize.ICON}
-                tooltip="Upload"
+                tooltip={translateUpload('upload')}
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
               />

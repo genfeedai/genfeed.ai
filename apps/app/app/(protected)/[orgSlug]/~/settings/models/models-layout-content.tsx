@@ -20,6 +20,7 @@ import {
 } from '@ui/primitives/select';
 import { Cpu, Plus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback } from 'react';
 
@@ -29,7 +30,7 @@ import { useCallback } from 'react';
 const MODEL_TYPE_OPTIONS = [
   { value: 'all', label: 'Catalog' },
   { value: 'trainings', label: 'Trainings' },
-  { value: 'custom-models', label: 'Custom Models' },
+  { value: 'custom-models', label: null },
 ] as const;
 
 type ModelTypeValue = (typeof MODEL_TYPE_OPTIONS)[number]['value'];
@@ -39,6 +40,9 @@ export default function ModelsLayoutContent({
 }: {
   children: ReactNode;
 }) {
+  const translateCustomModels = useTranslations(
+    'common.settings.organizationCustomModels',
+  );
   const searchParams = useSearchParams();
   const search = searchParams?.toString() ?? '';
   const router = useRouter();
@@ -113,7 +117,7 @@ export default function ModelsLayoutContent({
             <SelectContent>
               {MODEL_TYPE_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {option.label ?? translateCustomModels('title')}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -133,7 +133,7 @@ export class OrganizationLogoGenerationService {
 
     await this.prisma.asset.updateMany({
       data: { isDeleted: true },
-      where: { ...pendingWhere, createdAt: { lt: cutoff } },
+      where: { ...pendingWhere, createdAt: { lt: cutoff }, isDeleted: false },
     });
 
     const pending = await this.prisma.asset.findFirst({
