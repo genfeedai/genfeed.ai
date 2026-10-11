@@ -1,4 +1,5 @@
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
+import type { SystemWorkflowCatalogListItem } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type {
   AgentBrandsServiceLike,
@@ -23,6 +24,25 @@ export async function resolveWorkflowBrand(
     organizationId: ctx.organizationId,
     userId: ctx.userId,
   });
+}
+
+/** The agent-facing projection of one system workflow catalog entry. */
+export function mapSystemCatalogEntryForTool(
+  entry: SystemWorkflowCatalogListItem,
+): Record<string, unknown> {
+  return {
+    canonicalId: entry.canonicalId,
+    description: entry.description,
+    family: entry.family,
+    installable: entry.installable,
+    installed: entry.installed,
+    installedWorkflowId: entry.installedWorkflowId,
+    isScheduleEnabled: entry.isScheduleEnabled,
+    label: entry.label,
+    schedule: entry.schedule,
+    timezone: entry.timezone,
+    version: entry.version,
+  };
 }
 
 export function tokenizeWorkflowBootstrapText(

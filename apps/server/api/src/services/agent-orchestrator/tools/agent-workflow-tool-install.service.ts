@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { SystemWorkflowCatalogListItem } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -12,7 +11,10 @@ import {
   persistPendingToolConfirmation,
   verifyPendingToolConfirmation,
 } from '@api/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
-import { resolveWorkflowBrand } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.helpers';
+import {
+  mapSystemCatalogEntryForTool,
+  resolveWorkflowBrand,
+} from '@api/services/agent-orchestrator/tools/agent-workflow-tool.helpers';
 import type {
   AgentBrandsServiceLike,
   AgentMembersServiceLike,
@@ -82,7 +84,7 @@ export class AgentWorkflowToolInstallService {
       .filter((entry) => includeNonInstallable || entry.installable)
       .filter((entry) => !family || entry.family === family)
       .filter((entry) => !installedOnly || entry.installed)
-      .map((entry) => this.mapSystemCatalogEntryForTool(entry));
+      .map((entry) => mapSystemCatalogEntryForTool(entry));
 
     return {
       creditsUsed: 0,
@@ -807,23 +809,5 @@ export class AgentWorkflowToolInstallService {
     const appUrl =
       this.configService.get('GENFEEDAI_APP_URL') || 'https://app.genfeed.ai';
     return `${appUrl.replace('app.', 'marketplace.')}/${slug}`;
-  }
-
-  private mapSystemCatalogEntryForTool(
-    entry: SystemWorkflowCatalogListItem,
-  ): Record<string, unknown> {
-    return {
-      canonicalId: entry.canonicalId,
-      description: entry.description,
-      family: entry.family,
-      installable: entry.installable,
-      installed: entry.installed,
-      installedWorkflowId: entry.installedWorkflowId,
-      isScheduleEnabled: entry.isScheduleEnabled,
-      label: entry.label,
-      schedule: entry.schedule,
-      timezone: entry.timezone,
-      version: entry.version,
-    };
   }
 }
