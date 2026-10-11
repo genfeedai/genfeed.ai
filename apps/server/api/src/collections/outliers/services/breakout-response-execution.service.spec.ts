@@ -1,3 +1,4 @@
+import { strategyBudgetAttributionSchema } from '@api/collections/credits/services/strategy-budget-attribution.context';
 import type { BreakoutGenerationPlanResult } from '@api/collections/outliers/services/breakout-generation-plan.service';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import {
@@ -176,6 +177,17 @@ describe('bounded actual breakout response execution', () => {
         }),
       }),
     );
+  });
+  it('hands the real strict attribution parser exactly its keys and the account separately', async () => {
+    const h = fixture();
+    await h.service.execute(h.request);
+    for (const [call] of h.text.generate.mock.calls) {
+      expect(
+        strategyBudgetAttributionSchema.safeParse(call.admission.scope),
+      ).toMatchObject({ success: true });
+      expect(call.admission.scope).not.toHaveProperty('credentialId');
+      expect(call.admission.credentialId).toBe('credential-a');
+    }
   });
   it('returns retained artifacts on the same execution without another generator call', async () => {
     const h = fixture();
