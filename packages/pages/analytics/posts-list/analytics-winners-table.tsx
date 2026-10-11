@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 function formatSignalValue(evidence: WinnerSignalEvidence, value: number) {
   return evidence.signal === 'engagementRate'
     ? `${value.toFixed(2)}%`
-    : Math.round(value).toLocaleString('en-US');
+    : Math.round(value).toLocaleString();
 }
 
 function matchesSearch(winner: IWinnerPost, search: string): boolean {
