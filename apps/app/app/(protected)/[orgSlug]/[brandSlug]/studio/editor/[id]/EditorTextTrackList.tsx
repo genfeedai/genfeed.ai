@@ -48,7 +48,7 @@ function EditorTextTrackList({
               size={ButtonSize.XS}
               onClick={() => onDeleteTrack(track.id)}
               isDisabled={isReadOnly}
-              className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-destructive"
+              className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 text-destructive"
             >
               Delete
             </Button>

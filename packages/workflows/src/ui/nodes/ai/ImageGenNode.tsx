@@ -195,7 +195,7 @@ function ImageGenNodeComponent(props: NodeProps) {
 
                   <div
                     className={
-                      'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center' /* design-system-allow-content-color */
+                      'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition flex items-center justify-center' /* design-system-allow-content-color */
                     }
                   >
                     <Button

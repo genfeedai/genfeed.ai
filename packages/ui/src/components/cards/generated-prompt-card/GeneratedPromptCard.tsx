@@ -78,6 +78,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           'bg-foreground/[0.04] hover:bg-foreground/[0.1]',
           'transition-[color,background-color,opacity] duration-200',
           'opacity-0 group-hover:opacity-100',
+          '[@media(hover:none)]:opacity-100',
         )}
         ariaLabel="Dismiss prompt"
         icon={<X className="size-4" />}

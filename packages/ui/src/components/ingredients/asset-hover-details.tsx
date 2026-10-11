@@ -24,7 +24,7 @@ export default function AssetHoverDetails({
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-background/90 px-3 py-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100',
+        'pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-background/90 px-3 py-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100',
         className,
       )}
       data-asset-hover-details

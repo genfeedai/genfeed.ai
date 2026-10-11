@@ -130,7 +130,7 @@ export default function ModalVideo({
                         preload: 'metadata',
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity flex items-end p-3">
                       <span
                         className={
                           'text-xs font-medium text-white' /* design-system-allow-content-color -- media overlay */

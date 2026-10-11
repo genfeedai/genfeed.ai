@@ -156,7 +156,7 @@ function ActivityAssetPreview({
             onViewIngredient?.(ingredient);
           }}
           className={
-            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary' /* design-system-allow-content-color */
+            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary [@media(hover:none)]:opacity-100' /* design-system-allow-content-color */
           }
         >
           <Eye

@@ -32,7 +32,9 @@ export default function MasonrySelectionToggle<T extends IIngredient>({
     <div
       className={cn(
         'quick-actions-wrapper absolute top-2 left-2 z-50 transition-opacity duration-200 focus-within:opacity-100',
-        isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+        isSelected
+          ? 'opacity-100'
+          : 'opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
       )}
       role="presentation"
       onClick={(event) => event.stopPropagation()}
