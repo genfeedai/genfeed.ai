@@ -22,8 +22,9 @@ describe('workflow platform seed key (#6689)', () => {
   });
 
   it('does not backfill the marker from forgeable metadata', () => {
-    expect(migration).not.toMatch(/UPDATE\s+"workflows"/i);
-    expect(migration).not.toMatch(/sourceTemplateId|metadata/);
+    const statements = migration.replace(/^--.*$/gm, '');
+    expect(statements).not.toMatch(/UPDATE\s+"workflows"/i);
+    expect(statements).not.toMatch(/sourceTemplateId|metadata/);
   });
 
   it('allows at most one live marked row per organization and template', () => {
