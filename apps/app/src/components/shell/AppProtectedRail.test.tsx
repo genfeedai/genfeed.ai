@@ -222,9 +222,9 @@ describe('AppProtectedRail', () => {
         surface: 'desktop',
       }),
     );
-    // Pins are changed from Store cards; the rail only reads them and links
-    // the Apps icon to the Store.
-    expect(appRailSpy.mock.lastCall?.[0].storeHref).toBe('/acme/~/store');
+    // Pins are changed from Store cards; the rail only reads them. The Apps
+    // link to the Store lives in the topbar.
+    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('storeHref');
     expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('onTogglePin');
   });
 
@@ -295,7 +295,7 @@ describe('AppProtectedRail', () => {
     );
   });
 
-  it('feeds the launcher confirmed installs, module access and the Store (#5502)', () => {
+  it('feeds the rail confirmed installs and module access (#5502)', () => {
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -305,7 +305,6 @@ describe('AppProtectedRail', () => {
           playground: { isAllowed: true, reason: null },
           clips: { isAllowed: false, reason: 'unreleased' },
         }),
-        storeHref: '/acme/~/store',
       }),
     );
   });

@@ -6,7 +6,12 @@ vi.mock('@/components/shell/GenerationToasts', () => ({
 }));
 
 import { render, screen } from '@testing-library/react';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import {
+  type ButtonHTMLAttributes,
+  cloneElement,
+  isValidElement,
+  type ReactNode,
+} from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
@@ -79,6 +84,9 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
       PUBLISHING: '/settings/publishing',
     },
     SIGN_UP: '/signup',
+    STORE: {
+      ROOT: '/store',
+    },
     WORKSPACE: {
       ACTIVITY: '/workspace/activity',
       OVERVIEW: '/workspace/overview',
@@ -131,6 +139,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    asChild,
     children,
     onClick,
     ariaLabel,
@@ -138,23 +147,42 @@ vi.mock('@ui/primitives/button', () => ({
     isDisabled,
     ...props
   }: {
+    asChild?: boolean;
     children: ReactNode;
     onClick?: () => void;
     ariaLabel?: string;
     className?: string;
     isDisabled?: boolean;
-  } & ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      className={className}
-      disabled={isDisabled}
-      {...props}
-    >
-      {children}
-    </button>
-  ),
+  } & ButtonHTMLAttributes<HTMLButtonElement>) => {
+    if (asChild && isValidElement<{ className?: string }>(children)) {
+      const {
+        size: _size,
+        tooltip: _tooltip,
+        variant: _variant,
+        withWrapper: _withWrapper,
+        ...slotProps
+      } = props as Record<string, unknown>;
+      return cloneElement(children, {
+        ...slotProps,
+        className: [className, children.props.className]
+          .filter(Boolean)
+          .join(' '),
+      });
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        className={className}
+        disabled={isDisabled}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  },
 }));
 
 vi.mock('@contexts/ui/agent-dock-context', async (importOriginal) => {
@@ -174,6 +202,9 @@ vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string) =>
     (
       ({
+        'common.appRail': {
+          launcher: 'Apps',
+        },
         'common.agentDock': {
           close: 'Close agent',
           open: 'Open agent',
@@ -346,6 +377,31 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
+  it('links Apps to the Store, right before the credits balance', () => {
+    render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
+
+    const apps = screen.getByRole('link', { name: 'Apps' });
+    const credits = screen.getByTestId('topbar-credits-bar');
+
+    expect(apps).toHaveAttribute('href', '/acme/~/store');
+    expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
+    expect(apps).not.toHaveAttribute('aria-current');
+    expect(
+      apps.compareDocumentPosition(credits) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('marks the Apps link as current on the Store', () => {
+    mockPathname.value = '/acme/~/store';
+
+    render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
+
+    expect(screen.getByRole('link', { name: 'Apps' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
   it('leaves app navigation to the rail', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="playground" />);
 
@@ -375,6 +431,7 @@ describe('AppProtectedTopbar', () => {
       screen.queryByTestId('cloud-sync-indicator'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-apps-link')).not.toBeInTheDocument();
   });
 
   it('places credits first in the right-side control cluster', () => {

@@ -24,6 +24,7 @@ import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndic
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
+import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
@@ -181,6 +182,8 @@ function AppProtectedTopbarContent({
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
+          {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
+
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
           {!isAdminChrome ? <NotificationInboxMenu /> : null}

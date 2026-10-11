@@ -4,8 +4,6 @@ import { useAccessState } from '@genfeedai/contexts/providers/access-state/acces
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import {
-  APP_ROUTES,
-  createOrganizationAppRoute,
   isReleasePreviewActive,
   ORGANIZATION_MODULE_IDS,
   resolveOrganizationModulePreferences,
@@ -157,10 +155,6 @@ function AppProtectedRailContent({
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
       showAdmin={isAdminChrome || isSuperAdmin}
-      storeHref={createOrganizationAppRoute(
-        effectiveOrgSlug,
-        APP_ROUTES.STORE.ROOT,
-      )}
     />
   );
 }

@@ -291,7 +291,7 @@ test.describe('Studio Editor', () => {
   });
 
   test.describe('Studio Editor Navigation', () => {
-    test('should open the Store from the Apps launcher', async ({
+    test('should open the Store from the topbar Apps link', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage);
@@ -299,10 +299,9 @@ test.describe('Studio Editor', () => {
 
       await assertRouteRenders(authenticatedPage, studioPage.url);
 
-      // Studio tools are separate apps (#5502): the rail's Apps icon opens the
-      // Store, where members install and pin them.
-      const rail = authenticatedPage.getByTestId('desktop-app-rail');
-      await rail.getByTestId('app-rail-launcher').click();
+      // Studio tools are separate apps (#5502): the topbar's Apps icon opens
+      // the Store, where members install and pin them.
+      await authenticatedPage.getByTestId('topbar-apps-link').click();
 
       await expect(authenticatedPage).toHaveURL(/\/store(?:[/?#]|$)/);
       await expectNoErrorOverlay(authenticatedPage);

@@ -39,8 +39,6 @@ export interface AppRailProps {
   installedAppIds?: readonly string[];
   /** Existing operator authorization; opens founder-only apps. */
   isFounderOperator?: boolean;
-  /** Where the launcher sends members to find and install more apps. */
-  storeHref?: string;
   surface?: AppRailSurface;
   onNavigationEvent?: (event: AppRailNavigationEvent) => void;
   /** Count pills keyed by app id; a missing or zero count renders nothing. */
@@ -75,10 +73,9 @@ export interface AppRailProps {
   pinnedAppIds?: readonly string[];
 }
 
-export interface AppRailLauncherProps {
-  badgeCount: number;
-  onNavigateStart: () => void;
-  storeHref?: string;
+export interface TopbarAppsLinkProps {
+  /** Falls back to the organization resolved from the URL. */
+  orgSlug?: string;
 }
 
 export interface AppRailItemProps {

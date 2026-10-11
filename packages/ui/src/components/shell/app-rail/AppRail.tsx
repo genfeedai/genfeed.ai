@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   isNativeAppLaunchable,
   isNativeSecondaryAppId,
@@ -18,11 +17,9 @@ import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
   AppRailItemProps,
-  AppRailLauncherProps,
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
-import { Button } from '@ui/primitives/button';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -30,7 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
-import { LayoutGrid, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -150,53 +147,6 @@ function AppRailItem({
 }
 
 /**
- * The Apps entry: goes straight to the Store, the full-page home for every
- * app. Badges from apps that are not pinned to the rail surface here.
- */
-function AppRailLauncher({
-  badgeCount,
-  onNavigateStart,
-  storeHref,
-}: AppRailLauncherProps) {
-  const t = useTranslations('common.appRail');
-
-  if (!storeHref) return null;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Link
-          href={storeHref}
-          prefetch={false}
-          aria-label={t('launcher')}
-          data-testid="app-rail-launcher"
-          onClick={onNavigateStart}
-          className={cn(
-            'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
-            'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
-          )}
-        >
-          <LayoutGrid aria-hidden="true" className="size-4" />
-          {badgeCount > 0 ? (
-            <span
-              aria-hidden="true"
-              data-testid="app-rail-launcher-badge"
-              className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
-            >
-              {badgeCount > 99 ? '99+' : badgeCount}
-            </span>
-          ) : null}
-        </Link>
-      </TooltipTrigger>
-      <TooltipContent side="right" sideOffset={10} collisionPadding={12}>
-        <span className="font-semibold">{t('launcher')}</span>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-/**
  * A launcher app shows only while its platform switches are on and the member
  * has it installed with organization, subscription and release access. An
  * absent `installedAppIds` or `moduleAccess` is a neutral surface with no
@@ -247,7 +197,6 @@ export function AppRail({
   preservedSearch,
   resolveNavigation,
   showAdmin = false,
-  storeHref,
   surface = 'desktop',
 }: AppRailProps) {
   const { flags, isConfigured } = useFeatureFlagContext();
@@ -326,11 +275,6 @@ export function AppRail({
   ]);
   const dailyItems = items.filter((item) => item.app.group === 'daily');
   const launcherItems = items.filter((item) => item.app.group === 'app');
-  const unpinnedBadgeCount = launcherItems.reduce((sum, item) => {
-    if (pinnedAppIds.includes(item.app.id)) return sum;
-    const badge = badges?.[item.app.id];
-    return sum + (!item.isLocked && badge && badge.count > 0 ? badge.count : 0);
-  }, 0);
   const pinnedItems = pinnedAppIds.flatMap((appId) => {
     const item = launcherItems.find((candidate) => candidate.app.id === appId);
     return item ? [item] : [];
@@ -391,11 +335,6 @@ export function AppRail({
         ) : null}
         <div className="flex flex-col items-center gap-1">
           {dailyItems.map(renderItem)}
-          <AppRailLauncher
-            badgeCount={unpinnedBadgeCount}
-            onNavigateStart={() => onNavigate?.()}
-            storeHref={storeHref}
-          />
           {pinnedItems.length > 0 ? (
             <Separator
               className="my-1 w-5"
