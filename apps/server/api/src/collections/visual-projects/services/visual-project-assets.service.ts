@@ -6,6 +6,10 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { stampIngredientGenerationEntry } from '@api/collections/ingredients/utils/ingredient-generation-entry.util';
 import { VisualProjectAuthorizationService } from '@api/collections/visual-projects/services/visual-project-authorization.service';
+import {
+  BrandRenderEvidenceService,
+  RENDER_EVIDENCE_KEY,
+} from '@api/services/brand-render-evidence/brand-render-evidence.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
@@ -19,6 +23,7 @@ import type {
   IVisualSandboxAsset,
   IVisualSandboxMedia,
 } from '@genfeedai/contracts/interfaces';
+import type { BrandRenderEvidenceManifestV1 } from '@genfeedai/contracts/interfaces/content/brand-render-evidence.interface';
 import { toPrismaJson, type VisualRevision } from '@genfeedai/prisma';
 import { createStorageProvider } from '@genfeedai/storage';
 import {
@@ -67,6 +72,7 @@ export class VisualProjectAssetsService {
     private readonly prisma: PrismaService,
     private readonly authorization: VisualProjectAuthorizationService,
     private readonly ingredients: IngredientsService,
+    private readonly renderEvidence: BrandRenderEvidenceService,
   ) {}
   async authorize(user: AuthenticatedUser, brandId: string, ids: string[]) {
     await this.authorization.authorizeBrand(user, brandId);
@@ -169,6 +175,7 @@ export class VisualProjectAssetsService {
     item: IVisualSandboxMedia,
     index: number,
     bytes: Buffer,
+    manifest: BrandRenderEvidenceManifestV1 | null,
   ) {
     return {
       id: visualOutputId('ingredient', revision, index),
@@ -197,6 +204,7 @@ export class VisualProjectAssetsService {
           outputHash: createHash('sha256').update(bytes).digest('hex'),
           authoringModel: revision.prompt ? revision.modelKey : null,
           inspectionModel: revision.modelKey,
+          ...(manifest ? { [RENDER_EVIDENCE_KEY]: manifest } : {}),
         }),
       ),
       metadata: {
@@ -242,6 +250,7 @@ export class VisualProjectAssetsService {
     );
     const storage = createStorageProvider();
     const outputs: IVisualCodeMedia[] = [];
+    const evidence = this.renderEvidence.forRender(revision);
     for (const [index, item] of media.entries()) {
       const bytes = Buffer.from(item.bytes, 'base64');
       if (bytes.length > VISUAL_CODE_LIMITS.resultBytes)
@@ -281,6 +290,12 @@ export class VisualProjectAssetsService {
       await assertOwnership();
       await this.authorization.authorizeBrand(user, revision.brandId);
       await assertOwnership();
+      const manifest = await evidence.manifestFor({
+        artifactId: id,
+        storageKey: key,
+        bytes,
+        media: item,
+      });
       const admitted = await this.prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM visual_revisions WHERE id=${revision.id} AND "organizationId"=${revision.organizationId} AND "brandId"=${revision.brandId} AND "isDeleted"=false FOR UPDATE`;
         const current = await tx.visualRevision.findFirstOrThrow({
@@ -303,7 +318,7 @@ export class VisualProjectAssetsService {
         }
         return tx.ingredient.create({
           include: { metadata: true },
-          data: this.outputRecord(revision, item, index, bytes),
+          data: this.outputRecord(revision, item, index, bytes, manifest),
         });
       });
       verify(admitted);

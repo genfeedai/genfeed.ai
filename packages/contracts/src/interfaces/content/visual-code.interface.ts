@@ -209,6 +209,8 @@ export interface IVisualSandboxMedia {
   height: number;
   frame?: number;
   bytes: string;
+  /** Renderer observations for an export. Opaque here; the API parses it strictly. */
+  evidence?: unknown;
 }
 export interface IVisualSandboxInput {
   id: string;

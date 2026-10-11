@@ -11,6 +11,7 @@ import { VisualProjectsService } from '@api/collections/visual-projects/services
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { OrganizationModuleAccessModule } from '@api/common/organization-modules/organization-module-access.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
+import { BrandRenderEvidenceModule } from '@api/services/brand-render-evidence/brand-render-evidence.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -23,6 +24,7 @@ import { Module } from '@nestjs/common';
     WorkflowsCoreModule,
     OrganizationModuleAccessModule,
     AgentChatModelRegistryModule,
+    BrandRenderEvidenceModule,
     ByokModule,
     LlmDispatcherModule,
     SharedModule,

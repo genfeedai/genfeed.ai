@@ -61,3 +61,16 @@ inspection. Linux isolation separately records image/runtime/container facts and
 network, host-file, credential, install and deadline denials. Inspect saved MP4/stills
 and record their paths/hashes and honest results alongside exact-head CI. Synthetic
 provider evidence cannot close all Studio/agent/auth entrypoint acceptance.
+
+## Render evidence
+
+Every export carries `evidence` per output: what Chromium really rendered, read through the DevTools protocol (the font engine and layout tree), never through page JavaScript. At the screenshot of an inspected frame the runner records each visible text layer (text, bounds, computed style, and `CSS.getPlatformFontsForNode`, which names the fonts that drew the glyphs, including fallbacks), `@font-face` loads (`CSS.fontsUpdated`, tied to the staged asset by id and sha256), and placed images and videos. A still inspects its frame; a video inspects its first, middle and last frames. Previews carry none.
+
+The API binds these observations to the sha256 of the exact exported bytes and stores the manifest with the output (`BrandRenderEvidenceManifestV1`). A renderer failure to observe yields no evidence, never a guess. `render-evidence.browser.test.mjs` runs the real renderer against a host Chromium:
+
+```sh
+cd scripts/visual-code && bun install --frozen-lockfile
+VISUAL_CODE_EVIDENCE_BROWSER=/path/to/chrome node --test render-evidence.browser.test.mjs
+```
+
+`isolation-acceptance.mjs` asserts the same cases inside the runsc image, where the installed DejaVu fonts are the fallback.

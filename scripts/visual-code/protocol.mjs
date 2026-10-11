@@ -204,8 +204,184 @@ function jpegDimensions(bytes) {
   }
   throw new Error('missing_jpeg_dimensions');
 }
+const MAX_EVIDENCE_BYTES = 2 * 1024 * 1024;
+function boundedText(value, limit, code) {
+  invariant(typeof value === 'string' && value.length <= limit, code);
+}
+function validateBounds(bounds) {
+  closed(bounds, ['x', 'y', 'width', 'height']);
+  for (const key of ['x', 'y', 'width', 'height'])
+    invariant(Number.isFinite(bounds[key]), 'invalid_evidence');
+}
+function validateEvidenceSource(source) {
+  closed(source, ['kind', 'assetId', 'contentHash']);
+  invariant(
+    ['asset', 'embedded', 'external', 'unknown'].includes(source.kind),
+    'invalid_evidence',
+  );
+  invariant(
+    source.assetId === null || namePattern.test(source.assetId),
+    'invalid_evidence',
+  );
+  invariant(
+    source.contentHash === null ||
+      /^sha256:[a-f0-9]{64}$/.test(source.contentHash),
+    'invalid_evidence',
+  );
+}
+// Evidence is observation data from the trusted runner entrypoint; its text and
+// font names still come from the untrusted composition, so keep every field closed.
+export function validateEvidence(evidence) {
+  closed(evidence, [
+    'schemaVersion',
+    'browser',
+    'frameCount',
+    'captures',
+    'fontFaces',
+    'assets',
+    'diagnostics',
+  ]);
+  invariant(evidence.schemaVersion === 1, 'invalid_evidence');
+  invariant(
+    Buffer.byteLength(JSON.stringify(evidence)) <= MAX_EVIDENCE_BYTES,
+    'evidence_too_large',
+  );
+  if (evidence.browser !== null) {
+    closed(evidence.browser, ['product', 'revision']);
+    for (const key of ['product', 'revision'])
+      invariant(
+        evidence.browser[key] === null ||
+          typeof evidence.browser[key] === 'string',
+        'invalid_evidence',
+      );
+  }
+  invariant(
+    Number.isInteger(evidence.frameCount) && evidence.frameCount >= 1,
+    'invalid_evidence',
+  );
+  invariant(
+    Array.isArray(evidence.captures) && evidence.captures.length <= 16,
+    'invalid_evidence',
+  );
+  for (const capture of evidence.captures) {
+    closed(capture, ['frame', 'textLayers', 'placedAssets']);
+    invariant(Number.isInteger(capture.frame), 'invalid_evidence');
+    invariant(
+      Array.isArray(capture.textLayers) && capture.textLayers.length <= 256,
+      'invalid_evidence',
+    );
+    for (const layer of capture.textLayers) {
+      closed(layer, [
+        'text',
+        'isTextTruncated',
+        'bounds',
+        'fontFamily',
+        'fontSizePx',
+        'fontWeight',
+        'fontStyle',
+        'color',
+        'opacity',
+        'platformFonts',
+      ]);
+      boundedText(layer.text, 2000, 'invalid_evidence');
+      boundedText(layer.fontFamily, 1024, 'invalid_evidence');
+      invariant(typeof layer.isTextTruncated === 'boolean', 'invalid_evidence');
+      validateBounds(layer.bounds);
+      invariant(Number.isFinite(layer.fontSizePx), 'invalid_evidence');
+      invariant(Number.isFinite(layer.opacity), 'invalid_evidence');
+      closed(layer.color, ['css', 'hex']);
+      boundedText(layer.color.css, 64, 'invalid_evidence');
+      invariant(
+        layer.color.hex === null || typeof layer.color.hex === 'string',
+        'invalid_evidence',
+      );
+      invariant(
+        layer.platformFonts === null ||
+          (Array.isArray(layer.platformFonts) &&
+            layer.platformFonts.length <= 16),
+        'invalid_evidence',
+      );
+      for (const font of layer.platformFonts ?? []) {
+        closed(font, [
+          'familyName',
+          'postScriptName',
+          'isCustomFont',
+          'glyphCount',
+        ]);
+        boundedText(font.familyName, 512, 'invalid_evidence');
+        invariant(
+          typeof font.isCustomFont === 'boolean' &&
+            Number.isInteger(font.glyphCount),
+          'invalid_evidence',
+        );
+      }
+    }
+    invariant(
+      Array.isArray(capture.placedAssets) && capture.placedAssets.length <= 256,
+      'invalid_evidence',
+    );
+    for (const placed of capture.placedAssets) {
+      closed(placed, [
+        'role',
+        'sourceKind',
+        'assetId',
+        'contentHash',
+        'bounds',
+        'transform',
+        'opacity',
+      ]);
+      invariant(
+        ['image', 'video', 'background_image'].includes(placed.role),
+        'invalid_evidence',
+      );
+      validateEvidenceSource({
+        kind: placed.sourceKind,
+        assetId: placed.assetId,
+        contentHash: placed.contentHash,
+      });
+      validateBounds(placed.bounds);
+      boundedText(placed.transform, 256, 'invalid_evidence');
+      invariant(Number.isFinite(placed.opacity), 'invalid_evidence');
+    }
+  }
+  invariant(
+    Array.isArray(evidence.fontFaces) && evidence.fontFaces.length <= 64,
+    'invalid_evidence',
+  );
+  for (const face of evidence.fontFaces) {
+    closed(face, ['family', 'style', 'weight', 'platformFamily', 'source']);
+    boundedText(face.family, 512, 'invalid_evidence');
+    boundedText(face.style, 32, 'invalid_evidence');
+    boundedText(face.weight, 32, 'invalid_evidence');
+    invariant(
+      face.platformFamily === null || typeof face.platformFamily === 'string',
+      'invalid_evidence',
+    );
+    validateEvidenceSource(face.source);
+  }
+  invariant(
+    Array.isArray(evidence.assets) && evidence.assets.length <= 12,
+    'invalid_evidence',
+  );
+  for (const asset of evidence.assets) {
+    closed(asset, ['id', 'contentHash']);
+    invariant(
+      namePattern.test(asset.id) &&
+        /^sha256:[a-f0-9]{64}$/.test(asset.contentHash),
+      'invalid_evidence',
+    );
+  }
+  invariant(
+    Array.isArray(evidence.diagnostics) &&
+      evidence.diagnostics.length <= 32 &&
+      evidence.diagnostics.every((code) => /^[a-z][a-z0-9_]{0,95}$/.test(code)),
+    'invalid_evidence',
+  );
+  return evidence;
+}
 export function validateMedia(media, settings) {
-  closed(media, ['format', 'width', 'height', 'frame', 'bytes']);
+  closed(media, ['format', 'width', 'height', 'frame', 'bytes', 'evidence']);
+  if (media.evidence !== undefined) validateEvidence(media.evidence);
   invariant(
     ['mp4', 'png', 'jpeg'].includes(media.format),
     'invalid_media_format',

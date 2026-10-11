@@ -1,6 +1,9 @@
 import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { VisualProjectAssetsService } from '@api/collections/visual-projects/services/visual-project-assets.service';
+import { BrandRenderEvidenceService } from '@api/services/brand-render-evidence/brand-render-evidence.service';
+import { verifyBrandRenderEvidenceManifest } from '@api/services/brand-render-evidence/brand-render-evidence-manifest.util';
+import realRender from '@api-test/fixtures/brand-render-evidence/visual-code-still.fixture.json';
 import { ActionOrigin } from '@genfeedai/contracts';
 import type { IVisualSandboxMedia } from '@genfeedai/contracts/interfaces';
 import {
@@ -88,10 +91,16 @@ function fixture() {
     }),
   };
   const ingredients = { patch: vi.fn().mockResolvedValue({}) };
+  const preview = vi.fn().mockResolvedValue({
+    revisionId: 'brand-revision',
+    revisionVersion: 3,
+    contentHash: `sha256:${'d'.repeat(64)}`,
+  });
   const service = new VisualProjectAssetsService(
     prisma as never,
     { authorizeBrand: vi.fn().mockResolvedValue(undefined) } as never,
     ingredients as never,
+    new BrandRenderEvidenceService(prisma as never, { preview } as never),
   );
   const media: IVisualSandboxMedia = {
     format: 'png',
@@ -108,6 +117,7 @@ function fixture() {
   return {
     commit,
     media,
+    preview,
     ingredients,
     ingredient,
     revision,
@@ -206,5 +216,99 @@ describe('canonical visual output admission', () => {
     });
     await expect(commit()).rejects.toThrow('visual_cancelled');
     expect(ingredients.patch).not.toHaveBeenCalled();
+  });
+});
+
+describe('render evidence persistence', () => {
+  const png = Buffer.from(realRender.png, 'base64');
+  const rendered: IVisualSandboxMedia = {
+    format: 'png',
+    width: realRender.width,
+    height: realRender.height,
+    frame: realRender.frame,
+    bytes: realRender.png,
+    evidence: realRender.evidence,
+  };
+  const storedManifest = (create: { mock: { calls: unknown[][] } }) =>
+    (
+      create.mock.calls[0][0] as {
+        data: { providerData: { renderEvidence?: unknown } };
+      }
+    ).data.providerData.renderEvidence;
+
+  it('stores the manifest with the artifact in the same admission', async () => {
+    const { commit, ingredient, preview } = fixture();
+    await commit(rendered);
+    const manifest = storedManifest(ingredient.create);
+    expect(manifest).toMatchObject({
+      organizationId: 'org',
+      brandId: 'brand',
+      artifact: {
+        id: expect.any(String),
+        format: 'png',
+        byteLength: png.byteLength,
+        storageKey: 'visual-code/org/brand/revision/outputs/0.png',
+      },
+      brandSnapshot: {
+        binding: 'approved_at_render',
+        revisionId: 'brand-revision',
+      },
+    });
+    expect(preview).toHaveBeenCalledWith({
+      actorId: 'user',
+      organizationId: 'org',
+      brandId: 'brand',
+    });
+    const created = ingredient.create.mock.calls[0][0].data;
+    expect(
+      verifyBrandRenderEvidenceManifest(manifest, {
+        organizationId: 'org',
+        brandId: 'brand',
+        artifactId: created.id,
+        bytes: png,
+      }).status,
+    ).toBe('verified');
+  });
+
+  it('does not let the stored manifest vouch for different bytes', async () => {
+    const { commit, ingredient } = fixture();
+    await commit(rendered);
+    const created = ingredient.create.mock.calls[0][0].data;
+    const stale = Buffer.from(png);
+    stale[stale.length - 1] ^= 1;
+    expect(
+      verifyBrandRenderEvidenceManifest(storedManifest(ingredient.create), {
+        organizationId: 'org',
+        brandId: 'brand',
+        artifactId: created.id,
+        bytes: stale,
+      }),
+    ).toMatchObject({
+      status: 'rejected',
+      reasonCode: 'artifact_hash_mismatch',
+    });
+  });
+
+  it('stores no manifest for output the renderer did not observe', async () => {
+    const { commit, ingredient, preview } = fixture();
+    await commit();
+    expect(storedManifest(ingredient.create)).toBeUndefined();
+    expect(preview).not.toHaveBeenCalled();
+  });
+
+  it('still admits the output when its observations are unusable', async () => {
+    const { commit, ingredient } = fixture();
+    await commit({ ...rendered, evidence: { schemaVersion: 1 } });
+    expect(ingredient.create).toHaveBeenCalledOnce();
+    expect(storedManifest(ingredient.create)).toBeUndefined();
+  });
+
+  it('keeps the first manifest when the commit is replayed', async () => {
+    const { commit, ingredient } = fixture();
+    await commit(rendered);
+    const first = storedManifest(ingredient.create);
+    await commit(rendered);
+    expect(ingredient.create).toHaveBeenCalledOnce();
+    expect(storedManifest(ingredient.create)).toBe(first);
   });
 });

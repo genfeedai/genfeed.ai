@@ -33,6 +33,8 @@ const resultSchema = z.strictObject({
         height: z.number().int(),
         frame: z.number().int().optional(),
         bytes: z.string(),
+        /** Parsed strictly where it is used; invalid evidence must not fail a render. */
+        evidence: z.unknown().optional(),
       }),
     )
     .max(8),
