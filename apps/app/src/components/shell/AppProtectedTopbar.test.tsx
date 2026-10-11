@@ -377,7 +377,7 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('links Apps to the Store, right before the credits balance', () => {
+  it('links Apps to the Store, right after the credits balance', () => {
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
     const apps = screen.getByRole('link', { name: 'Apps' });
@@ -387,7 +387,7 @@ describe('AppProtectedTopbar', () => {
     expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
     expect(apps).not.toHaveAttribute('aria-current');
     expect(
-      apps.compareDocumentPosition(credits) & Node.DOCUMENT_POSITION_FOLLOWING,
+      credits.compareDocumentPosition(apps) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

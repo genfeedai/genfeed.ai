@@ -182,9 +182,9 @@ function AppProtectedTopbarContent({
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
-          {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
-
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
+
+          {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
 
           {!isAdminChrome ? <NotificationInboxMenu /> : null}
           {!isAdminChrome ? <GenerationToasts /> : null}

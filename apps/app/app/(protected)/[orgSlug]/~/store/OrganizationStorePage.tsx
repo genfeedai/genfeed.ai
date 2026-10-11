@@ -239,7 +239,7 @@ export default function OrganizationStorePage() {
           </CollectionGrid>
         </CollectionSection>
       ) : (
-        <>
+        <div className="flex flex-col gap-8">
           {filterIds.length > 1 ? (
             <div className="flex flex-wrap gap-2" data-testid="store-filters">
               {filterIds.map((filterId) => (
@@ -337,7 +337,7 @@ export default function OrganizationStorePage() {
               );
             })}
           </div>
-        </>
+        </div>
       )}
 
       {isWorkflowLibraryShown ? (

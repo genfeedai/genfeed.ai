@@ -39,7 +39,7 @@ export default function TopbarAppsLink({ orgSlug }: TopbarAppsLinkProps) {
       asChild
       variant={ButtonVariant.GHOST}
       size={ButtonSize.ICON}
-      className={cn('relative size-8', isActive && 'bg-hover text-foreground')}
+      className={cn('relative size-8', isActive && 'text-foreground')}
       data-active={isActive ? 'true' : 'false'}
       data-testid="topbar-apps-link"
       tooltip={translate('launcher')}
