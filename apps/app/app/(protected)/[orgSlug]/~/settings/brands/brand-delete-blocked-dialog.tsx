@@ -68,7 +68,7 @@ export default function BrandDeleteBlockedDialog({
               href={createBrandAppRoute(
                 orgSlug,
                 brandSlug,
-                APP_ROUTES.LIBRARY.CHARACTERS,
+                APP_ROUTES.LIBRARY.REFERENCES,
               )}
             >
               {translate('manage')}

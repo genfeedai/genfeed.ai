@@ -3,7 +3,7 @@
 import { useCompleteOnboarding } from '@app/(onboarding)/onboarding/(wizard)/_expert/use-complete-onboarding.hook';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
+import { ONBOARDING_STARTER_CREDITS } from '@genfeedai/contracts/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
@@ -130,10 +130,8 @@ export default function SuccessContent() {
             Starter Credits Ready
           </p>
           <p className="text-sm text-foreground">
-            <span className="tabular-nums">
-              {ONBOARDING_SIGNUP_GIFT_CREDITS}
-            </span>{' '}
-            credits are waiting in your workspace.
+            <span className="tabular-nums">{ONBOARDING_STARTER_CREDITS}</span>{' '}
+            free credits to use in your first 3 days.
           </p>
         </div>
       </div>

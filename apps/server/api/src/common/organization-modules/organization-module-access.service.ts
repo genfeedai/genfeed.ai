@@ -49,7 +49,7 @@ export class OrganizationModuleAccessService {
       if (!organization) this.reject(moduleId, 'unavailable');
       const settings = await this.prisma.organizationSetting.findUnique({
         where: { organizationId },
-        select: { moduleOverrides: true },
+        select: { isReleasePreviewEnabled: true, moduleOverrides: true },
       });
       const isBilling = hasOrganizationBilling();
       const input: OrganizationModuleAccessInput = {
@@ -57,6 +57,7 @@ export class OrganizationModuleAccessService {
         operation,
         hasOrganizationBilling: isBilling,
         hasPaidSubscription: null,
+        isReleasePreviewEnabled: settings?.isReleasePreviewEnabled === true,
         isSettingsLoaded: Boolean(settings),
         moduleOverrides: settings?.moduleOverrides,
       };
@@ -96,20 +97,26 @@ export class OrganizationModuleAccessService {
             ? 'ORGANIZATION_MODULE_DISABLED'
             : reason === 'subscription-required'
               ? 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED'
-              : 'ORGANIZATION_MODULE_UNAVAILABLE',
+              : reason === 'unreleased'
+                ? 'ORGANIZATION_MODULE_UNRELEASED'
+                : 'ORGANIZATION_MODULE_UNAVAILABLE',
         moduleId,
         title:
           reason === 'subscription-required'
             ? 'Active subscription required'
             : reason === 'disabled'
               ? 'Module disabled'
-              : 'Module access unavailable',
+              : reason === 'unreleased'
+                ? 'Module not released'
+                : 'Module access unavailable',
         detail:
           reason === 'disabled'
             ? `${label} is disabled for this organization. An owner or admin can enable it in organization settings.`
             : reason === 'subscription-required'
               ? `${label} requires an active paid subscription. Existing data remains readable and exportable.`
-              : 'Module access could not be verified. Try again before starting new work.',
+              : reason === 'unreleased'
+                ? `${label} is not released yet. Existing data remains readable and exportable.`
+                : 'Module access could not be verified. Try again before starting new work.',
       },
       reason === 'unavailable'
         ? HttpStatus.SERVICE_UNAVAILABLE

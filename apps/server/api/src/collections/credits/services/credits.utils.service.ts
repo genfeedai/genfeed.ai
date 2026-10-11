@@ -10,6 +10,7 @@ import {
 } from '@api/collections/credits/services/credit-reservation.service';
 import { creditTransactionOptions } from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import {
@@ -91,6 +92,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     private readonly websocketService: NotificationsPublisherService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly transactionUtil: TransactionUtil,
+    private readonly freeTrialService: FreeTrialService,
   ) {}
 
   /**
@@ -151,6 +153,16 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       if (!organization) {
         throw new BusinessLogicException('Organization not found');
+      }
+
+      // A charge for an already-admitted hold (late media settlement) or one
+      // allowed to overdraw still lands after the trial ends, exactly as it
+      // would once the expiry sweep has emptied the wallet.
+      const isSettlingAdmittedWork =
+        options?.referenceType === 'credit_reservation' ||
+        (options?.maxOverdraftCredits ?? 0) > 0;
+      if (!isSettlingAdmittedWork) {
+        await this.freeTrialService.assertTrialActive(organizationId);
       }
 
       const { newBalance, wasApplied } =
@@ -382,6 +394,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     organizationId: string,
     requiredCredits: number,
   ): Promise<boolean> {
+    if (
+      requiredCredits > 0 &&
+      (await this.freeTrialService.isTrialExpired(organizationId))
+    ) {
+      return false;
+    }
+
     const currentBalance =
       await this.getOrganizationCreditsBalance(organizationId);
 
@@ -429,6 +448,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     input: IReserveCreditsInput,
     admission?: CreditReservationAdmission,
   ): Promise<ICreditReservation> {
+    await this.freeTrialService.assertTrialActive(input.organizationId);
     const account = await this.billingAccountsService.resolveForOrganization(
       input.organizationId,
     );

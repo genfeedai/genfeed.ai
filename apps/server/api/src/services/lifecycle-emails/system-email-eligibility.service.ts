@@ -1,3 +1,4 @@
+import { readFreeTrialState } from '@api/collections/credits/services/free-trial-state.util';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -92,6 +93,27 @@ export class SystemEmailEligibilityService {
           ? spendable <= 0
           : spendable > 0 && spendable < 1000;
       }
+      // A trial notice is stale once the organization pays (it leaves the
+      // trial). "Ends soon" and "running low" are also stale once it ended.
+      case 'trial-ending':
+      case 'trial-credits-low': {
+        const trial = await readFreeTrialState(
+          this.prisma,
+          input.organizationId,
+          new Date(),
+        );
+        return trial.trialEndsAt !== null && !trial.isTrialExpired;
+      }
+      case 'trial-ended':
+        return (
+          (
+            await readFreeTrialState(
+              this.prisma,
+              input.organizationId,
+              new Date(),
+            )
+          ).trialEndsAt !== null
+        );
       case 'checkout-recovery': {
         const deliveryId =
           typeof data.lifecycleDeliveryId === 'string'

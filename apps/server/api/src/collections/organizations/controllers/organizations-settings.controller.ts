@@ -12,8 +12,11 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ORGANIZATION_ONBOARDING_FINISHED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
+import type { OrganizationOnboardingFinishedEvent } from '@api/collections/organizations/organization-events.types';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
+import { assertOrganizationSettingsPatchAllowed } from '@api/collections/organizations/utils/organization-settings-patch.util';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -26,7 +29,12 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
+import { hasOrganizationBilling } from '@genfeedai/config';
 import { ByokProvider, MemberRole } from '@genfeedai/contracts';
+import {
+  findNewlyEnabledUnreleasedModules,
+  ORGANIZATION_MODULES,
+} from '@genfeedai/contracts/constants';
 import type {
   IByokProviderStatus,
   IWebhookDeliveryStatus,
@@ -62,18 +70,8 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
-
-/**
- * Plan-controlled settings. Stripe webhooks and billing services write them
- * directly; over HTTP only platform superadmins (Admin app, self-hosted local
- * identity) may change them, so an org owner cannot self-upgrade.
- */
-const BILLING_CONTROLLED_SETTINGS = [
-  'subscriptionTier',
-  'seatsLimit',
-  'brandsLimit',
-] as const;
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -91,6 +89,7 @@ export class OrganizationsSettingsController {
     private readonly byokService: ByokService,
     private readonly webhookDispatchService: WebhookDispatchService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly eventEmitter: EventEmitter2,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -212,24 +211,8 @@ export class OrganizationsSettingsController {
     @Param('organizationId') organizationId: string,
     @Body() settingsDto: UpdateOrganizationSettingDto,
   ): Promise<JsonApiSingleResponse> {
-    if (
-      Object.hasOwn(settingsDto, 'onboardingJourneyMissions') ||
-      Object.hasOwn(settingsDto, 'onboardingJourneyCompletedAt')
-    ) {
-      throw new BadRequestException(
-        'Onboarding journey state is managed by the server',
-      );
-    }
-    if (
-      !getIsSuperAdmin(req.user, req) &&
-      BILLING_CONTROLLED_SETTINGS.some((field) =>
-        Object.hasOwn(settingsDto, field),
-      )
-    ) {
-      throw new BadRequestException(
-        'Plan limits and subscription tier are managed by billing',
-      );
-    }
+    const isSuperAdmin = getIsSuperAdmin(req.user, req);
+    assertOrganizationSettingsPatchAllowed(settingsDto, isSuperAdmin);
     const resolvedOrganizationId = this.resolveOrganizationId(
       req,
       organizationId,
@@ -254,6 +237,21 @@ export class OrganizationsSettingsController {
         resolvedOrganizationId,
       );
 
+    const unreleased = isSuperAdmin
+      ? []
+      : findNewlyEnabledUnreleasedModules({
+          hasOrganizationBilling: hasOrganizationBilling(),
+          isReleasePreviewEnabled:
+            organizationSettings.isReleasePreviewEnabled === true,
+          nextOverrides: settingsDto.moduleOverrides,
+          previousOverrides: organizationSettings.moduleOverrides,
+        });
+    if (unreleased.length > 0) {
+      throw new ForbiddenException(
+        `${unreleased.map((id) => ORGANIZATION_MODULES[id].label).join(', ')} not released yet`,
+      );
+    }
+
     const normalizedSettingsDto =
       this.agentPolicyOverridesService.normalizeOverrides(settingsDto);
 
@@ -266,6 +264,20 @@ export class OrganizationsSettingsController {
       organizationSettings.id,
       normalizedSettingsDto,
     );
+    // `isFirstLogin: false` is the classic onboarding skip (REST audit #1354);
+    // skipping still starts the free trial, so the trial credits are granted.
+    const actorUserId = req.user?.userId || req.user?.id;
+    if (settingsDto.isFirstLogin === false && actorUserId) {
+      const event: OrganizationOnboardingFinishedEvent = {
+        organizationId: resolvedOrganizationId,
+        outcome: 'skipped',
+        userId: actorUserId,
+      };
+      await this.eventEmitter.emitAsync(
+        ORGANIZATION_ONBOARDING_FINISHED_EVENT,
+        event,
+      );
+    }
     await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
 
     return serializeSingle(req, OrganizationSettingSerializer, data);

@@ -32,6 +32,17 @@ export interface AccessBootstrapStatePayload {
    * organization billing; absent when no organization is in scope.
    */
   canAffordDefaultGeneration?: boolean;
+  /**
+   * When a never-paid organization's 3-day free trial ends (ISO 8601). Null
+   * when the trial does not apply (`FreeTrialService.getState`); absent when
+   * no organization is in scope.
+   */
+  trialEndsAt?: string | null;
+  /**
+   * The trial is over and the organization never paid: every credit
+   * admission is refused server-side and the app shows the paywall.
+   */
+  isTrialExpired?: boolean;
   // First-asset unlock gate flags surfaced to the client without an extra request.
   hasGeneratedFirstAsset: boolean;
   hasDismissedAssetGate: boolean;

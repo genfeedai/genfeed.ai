@@ -7,6 +7,7 @@ import {
   normalizeReviewDecision,
   ReviewDecision,
 } from '@genfeedai/contracts';
+import { createPublishingApprovalsRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -160,7 +161,10 @@ export class AgentReviewToolHandler {
           id: `review-queue-${String(batch.id)}`,
           outcomeBullets,
           primaryCta: {
-            href: `/publishing/review?batch=${String(batch.id)}&filter=ready`,
+            href: createPublishingApprovalsRoute({
+              batch: String(batch.id),
+              filter: 'ready',
+            }),
             label: 'Open reviews',
           },
           status: 'completed',
@@ -242,7 +246,7 @@ export class AgentReviewToolHandler {
                 ? ['Queue is empty']
                 : [`${readyCount} ready for review`],
           primaryCta: {
-            href: '/publishing/review?filter=ready',
+            href: createPublishingApprovalsRoute({ filter: 'ready' }),
             label: 'Open reviews',
           },
           status: 'completed',
@@ -288,7 +292,10 @@ export class AgentReviewToolHandler {
           {
             id: `review-queue-approval-${batchId}`,
             primaryCta: {
-              href: `/publishing/review?batch=${batchId}&filter=ready`,
+              href: createPublishingApprovalsRoute({
+                batch: batchId,
+                filter: 'ready',
+              }),
               label: 'Review exact versions',
             },
             status: 'pending',

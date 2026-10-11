@@ -54,7 +54,13 @@ import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import { CalendarDays, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
+import {
+  CalendarDays,
+  ClipboardCheck,
+  Kanban,
+  LayoutGrid,
+  Rows3,
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -76,6 +82,8 @@ type ReleaseListPagination = {
 };
 
 export interface ReleasePostsListProps extends ContentProps {
+  /** #5502 approval queue, rendered as the `?view=approvals` Posts view. */
+  approvals?: React.ReactNode;
   calendar?: React.ReactNode;
   campaignId?: string;
   contentTypes?: PostCategory[];
@@ -103,6 +111,7 @@ const VIEW_TYPE_TO_MODE: Partial<Record<ViewType, PublishingPostsViewMode>> = {
 };
 
 export default function ReleasePostsList({
+  approvals,
   campaignId,
   calendar,
   contentTypes,
@@ -126,6 +135,9 @@ export default function ReleasePostsList({
   const searchParamsString = searchParams?.toString() ?? '';
   const isCalendar =
     Boolean(calendar) && searchParams?.get('view') === 'calendar';
+  const isApprovals =
+    Boolean(approvals) && searchParams?.get('view') === 'approvals';
+  const isEmbeddedView = isCalendar || isApprovals;
   const currentPage = Math.max(
     1,
     Number(new URLSearchParams(searchParamsString).get('page')) || 1,
@@ -352,6 +364,10 @@ export default function ReleasePostsList({
     (nextMode: PublishingPostsViewMode) => {
       storeView(nextMode);
       replaceSearchParams((params) => {
+        // Approval queue state does not apply to the other Posts views.
+        params.delete('batch');
+        params.delete('filter');
+        params.delete('item');
         if (nextMode === 'list') {
           params.delete(PUBLISHING_POSTS_QUERY_KEYS.VIEW);
         } else {
@@ -394,6 +410,8 @@ export default function ReleasePostsList({
   );
 
   useEffect(() => {
+    // The approval queue owns the toolbar while its view is open.
+    if (isApprovals) return;
     setLeadingNode(
       isCalendar ? null : (
         <PostsListSearch
@@ -429,6 +447,7 @@ export default function ReleasePostsList({
     };
   }, [
     handleSearchChange,
+    isApprovals,
     isCalendar,
     replaceSearchParams,
     search,
@@ -441,12 +460,21 @@ export default function ReleasePostsList({
     setViewToggleNode(
       <ViewToggle
         activeView={
-          isCalendar ? ViewType.CALENDAR : VIEW_MODE_TO_VIEW_TYPE[viewMode]
+          isCalendar
+            ? ViewType.CALENDAR
+            : isApprovals
+              ? ViewType.APPROVALS
+              : VIEW_MODE_TO_VIEW_TYPE[viewMode]
         }
         onChange={(nextView) =>
           nextView === ViewType.CALENDAR
             ? replaceSearchParams((params) => params.set('view', 'calendar'))
-            : handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
+            : nextView === ViewType.APPROVALS
+              ? replaceSearchParams((params) => {
+                  params.delete('page');
+                  params.set('view', 'approvals');
+                })
+              : handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
         }
         options={[
           {
@@ -469,20 +497,32 @@ export default function ReleasePostsList({
             label: translate('viewToggle.grid'),
             type: ViewType.GRID,
           },
+          ...(approvals
+            ? [
+                {
+                  icon: <ClipboardCheck className="size-3.5 shrink-0" />,
+                  label: translate('viewToggle.approvals'),
+                  type: ViewType.APPROVALS,
+                },
+              ]
+            : []),
         ]}
       />,
     );
-    if (!isCalendar)
+    if (!isEmbeddedView)
       setRefresh(() => () => {
         void refetch();
       });
     return () => {
-      if (!isCalendar) setRefresh(() => () => {});
+      if (!isEmbeddedView) setRefresh(() => () => {});
       setViewToggleNode(null);
     };
   }, [
+    approvals,
     handleViewModeChange,
+    isApprovals,
     isCalendar,
+    isEmbeddedView,
     replaceSearchParams,
     refetch,
     setRefresh,
@@ -515,7 +555,7 @@ export default function ReleasePostsList({
   }, [error]);
 
   const { activeIndex, registerItem, setActiveIndex } = useRailKeys({
-    enabled: !isCalendar,
+    enabled: !isEmbeddedView,
     itemCount: data.releases.length,
     onOpen: (index) => {
       const release = data.releases[index];
@@ -527,6 +567,7 @@ export default function ReleasePostsList({
   });
 
   if (isCalendar) return <>{calendar}</>;
+  if (isApprovals) return <>{approvals}</>;
 
   return (
     <div>

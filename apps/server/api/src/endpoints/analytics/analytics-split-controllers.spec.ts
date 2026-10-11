@@ -3,6 +3,7 @@ import { AccountAnalyticsController } from '@api/endpoints/analytics/account-ana
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
+import { AnalyticsWinnersController } from '@api/endpoints/analytics/analytics-winners.controller';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MemberRole } from '@genfeedai/contracts';
@@ -255,6 +256,7 @@ describe('Analytics split-controller HTTP contract', () => {
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AnalyticsModule),
     ).toEqual([
       AccountAnalyticsController,
+      AnalyticsWinnersController,
       AnalyticsAdminController,
       AnalyticsController,
     ]);

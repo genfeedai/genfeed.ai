@@ -58,6 +58,7 @@ import {
   ONBOARDING_ANSWER_TOTAL_CREDITS,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
+  ONBOARDING_TRIAL_CREDITS,
   type OnboardingJourneyMissionId,
   resolveMissionCtaHref,
 } from '@genfeedai/contracts/types';
@@ -568,8 +569,10 @@ export class AgentOnboardingToolHandler {
         0,
       ),
       signupGiftCredits,
+      // The trial credits land when onboarding is finished or skipped.
       totalOnboardingCreditsVisible:
         signupGiftCredits +
+        ONBOARDING_TRIAL_CREDITS +
         ONBOARDING_ANSWER_TOTAL_CREDITS +
         ONBOARDING_JOURNEY_TOTAL_CREDITS,
     };

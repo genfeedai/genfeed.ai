@@ -107,6 +107,11 @@ function fixture() {
     {
       canAffordDefaultGeneration: vi.fn().mockResolvedValue(true),
     } as unknown as Dependencies[8],
+    {
+      getState: vi
+        .fn()
+        .mockResolvedValue({ isTrialExpired: false, trialEndsAt: null }),
+    } as unknown as Dependencies[9],
   );
   return {
     member,

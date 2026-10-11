@@ -133,6 +133,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   onboardingJourneyCompletedAt?: string | Date | null;
   agentPolicy?: IAgentPolicy;
   moduleOverrides?: OrganizationModuleOverrides;
+  /** Founder release preview; only platform admins change it (#5502). */
+  isReleasePreviewEnabled?: boolean;
   /** Read-only server runtime hint for presentation; admission always rechecks. */
   readonly hasOrganizationBilling?: boolean;
   /** Read-only fresh paid eligibility; null means the grant could not be verified. */

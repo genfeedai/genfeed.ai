@@ -11,6 +11,10 @@ vi.mock('next-intl', async () => {
             'Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.',
           generationUnaffordableTitle: 'Not enough credits to keep generating',
           seePlans: 'See plans',
+          trialEndedBadge: 'Trial over',
+          trialEndedBody:
+            'Your 3-day free trial is over and any free credits left have expired.',
+          trialEndedTitle: 'Your free trial has ended',
         },
       },
     }),
@@ -32,12 +36,18 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseSubscription = vi.fn();
 const mockGetTopbarBalances = vi.fn();
-const accessState = vi.hoisted(() => ({ isTrialUsedUp: false }));
+const accessState = vi.hoisted(() => ({
+  isTrialExpired: false,
+  isTrialUsedUp: false,
+}));
 
 vi.mock(
   '@genfeedai/contexts/providers/access-state/access-state.provider',
   () => ({
-    useAccessState: () => ({ isTrialUsedUp: accessState.isTrialUsedUp }),
+    useAccessState: () => ({
+      accessState: { isTrialExpired: accessState.isTrialExpired },
+      isTrialUsedUp: accessState.isTrialUsedUp,
+    }),
   }),
 );
 
@@ -150,6 +160,7 @@ describe('LowCreditsBanner', () => {
       defaultOptions: { queries: { gcTime: 0, retry: false } },
     });
     accessState.isTrialUsedUp = false;
+    accessState.isTrialExpired = false;
     mockUseSubscription.mockReset();
     mockGetTopbarBalances.mockReset();
     mockGetTopbarBalances.mockResolvedValue({ segments: [] });
@@ -265,6 +276,28 @@ describe('LowCreditsBanner', () => {
       'href',
       '/test-org/~/settings/credits',
     );
+    expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
+      'href',
+      '/test-org/~/settings/subscription',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Dismiss low credits banner' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('explains an ended free trial without counting the expired credits', () => {
+    accessState.isTrialUsedUp = true;
+    accessState.isTrialExpired = true;
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 60 },
+    });
+
+    renderBanner(<LowCreditsBanner />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Your free trial has ended');
+    expect(alert).toHaveTextContent('Trial over');
+    expect(alert).not.toHaveTextContent('60 left');
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
       'href',
       '/test-org/~/settings/subscription',

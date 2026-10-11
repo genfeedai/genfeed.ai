@@ -3,6 +3,7 @@ import { BreakoutResponseReadsService } from '@api/collections/outliers/services
 import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import { OutlierInputsService } from '@api/collections/outliers/services/outlier-inputs.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import { WinnerClassificationService } from '@api/collections/outliers/services/winner-classification.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { Module } from '@nestjs/common';
@@ -14,12 +15,14 @@ import { Module } from '@nestjs/common';
     OutlierConfigurationService,
     OutlierInputsService,
     OutliersService,
+    WinnerClassificationService,
   ],
   exports: [
     OutlierConfigurationService,
     OutlierInputsService,
     OutliersService,
     BreakoutResponseReadsService,
+    WinnerClassificationService,
   ],
 })
 export class OutliersCoreModule {}

@@ -11,5 +11,6 @@ export * from './onboarding-journey';
 export * from './prompts';
 export * from './queue';
 export * from './streak';
+export * from './winner-signal';
 export * from './workflow';
 export * from './workflow-executions';

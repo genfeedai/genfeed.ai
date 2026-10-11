@@ -33,22 +33,32 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('is a flat Overview → Posts → Approval queue → Campaigns bar', () => {
+  it('is a flat Overview → Posts → Campaigns bar', () => {
+    // #5502: calendar and approvals are Posts views, not nav items.
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Posts',
-      'Approval queue',
       'Campaigns',
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).toEqual([
       APP_ROUTES.PUBLISHING.OVERVIEW,
       APP_ROUTES.PUBLISHING.POSTS,
-      APP_ROUTES.PUBLISHING.REVIEW,
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).not.toContain(
       '/publishing',
     );
+  });
+
+  it('keeps Campaigns founder-only and Overview and Posts for customers (#5502)', () => {
+    expect(
+      PUBLISHING_MENU_ITEMS.filter((item) => !item.isFounderOnly).map(
+        (item) => item.label,
+      ),
+    ).not.toContain('Campaigns');
+    expect(
+      PUBLISHING_MENU_ITEMS.find((item) => item.label === 'Campaigns'),
+    ).toEqual(expect.objectContaining({ isFounderOnly: true }));
   });
 
   it('has no groups, collapsible sections, or search-param shortcuts', () => {

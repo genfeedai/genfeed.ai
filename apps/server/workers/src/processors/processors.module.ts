@@ -54,6 +54,7 @@ import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
+import { RouterModule } from '@api/services/router/router.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
 import { TaskOrchestrationModule } from '@api/services/task-orchestration/task-orchestration.module';
@@ -142,6 +143,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => NotificationsModule),
     forwardRef(() => OnboardingModule),
     forwardRef(() => ReplyBotModule),
+    RouterModule,
     forwardRef(() => SignupPrefillModule),
     forwardRef(() => SkillWorkflowModule),
     forwardRef(() => TaskOrchestrationModule),

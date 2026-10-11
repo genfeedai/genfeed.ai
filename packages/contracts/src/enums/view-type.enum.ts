@@ -6,4 +6,6 @@ export enum ViewType {
   MASONRY = 'masonry',
   CANVAS = 'canvas',
   TABLE = 'table',
+  /** #5502 the Posts approval queue view. */
+  APPROVALS = 'approvals',
 }

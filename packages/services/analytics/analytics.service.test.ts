@@ -121,6 +121,19 @@ describe('AnalyticsService', () => {
       expect(result).toEqual([{ id: 'c_1', views: 9 }]);
     });
 
+    it('getWinners GETs winners and deserializes the collection', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(collectionDocument([{ id: 'w_1', postId: 'post-1' }])),
+      );
+
+      const result = await service.getWinners({ limit: 50 });
+
+      expect(http.get).toHaveBeenCalledWith('winners', {
+        params: { limit: 50 },
+      });
+      expect(result).toEqual([{ id: 'w_1', postId: 'post-1' }]);
+    });
+
     it('getViralHooks GETs hooks and deserializes the resource', async () => {
       http.get.mockResolvedValue(
         axiosResponse(

@@ -3,16 +3,19 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import {
   BusinessLogicException,
   CreditGrantBillingAccountMismatchException,
+  FreeTrialExpiredException,
 } from '@api/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditsUtilsService', () => {
@@ -49,6 +52,10 @@ describe('CreditsUtilsService', () => {
   };
   const websocketService = { emit: vi.fn() };
   const accessBootstrapCacheService = { invalidateForOrganization: vi.fn() };
+  const freeTrialService = {
+    assertTrialActive: vi.fn(),
+    isTrialExpired: vi.fn(),
+  };
 
   const txCreditTransactionFindFirst = vi.fn();
   const txClient = {
@@ -73,11 +80,14 @@ describe('CreditsUtilsService', () => {
       websocketService as unknown as NotificationsPublisherService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       transactionUtil as unknown as TransactionUtil,
+      freeTrialService as unknown as FreeTrialService,
     );
   }
 
   beforeEach(() => {
     vi.clearAllMocks();
+    freeTrialService.assertTrialActive.mockResolvedValue(undefined);
+    freeTrialService.isTrialExpired.mockResolvedValue(false);
     prisma.organization.findFirst.mockResolvedValue({ id: 'org_1' });
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.brand.findFirst.mockResolvedValue(null);
@@ -755,6 +765,99 @@ describe('CreditsUtilsService', () => {
           referenceType: 'stripe-invoice:subscription-grant',
         },
       );
+    });
+  });
+
+  describe('free-trial admission', () => {
+    const trialEndsAt = new Date('2026-10-01T00:00:00.000Z');
+
+    it('refuses a direct deduction once the trial is over, before any ledger write', async () => {
+      const service = buildService();
+      freeTrialService.assertTrialActive.mockRejectedValueOnce(
+        new FreeTrialExpiredException(trialEndsAt),
+      );
+
+      await expect(
+        service.deductCreditsFromOrganization('org_1', 'user_1', 5, 'Image'),
+      ).rejects.toMatchObject({ errorCode: 'INSUFFICIENT_CREDITS' });
+      expect(freeTrialService.assertTrialActive).toHaveBeenCalledWith('org_1');
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'a late media settlement',
+        { referenceId: 'res_1', referenceType: 'credit_reservation' },
+      ],
+      ['an overdraft settlement', { maxOverdraftCredits: 10 }],
+    ])(
+      'still settles %s for already-admitted work',
+      async (_label, options) => {
+        const service = buildService();
+        transactionUtil.runInTransaction.mockResolvedValueOnce({
+          newBalance: 0,
+          wasApplied: false,
+        });
+
+        await service.deductCreditsFromOrganization(
+          'org_1',
+          'user_1',
+          5,
+          'Image',
+          undefined,
+          options,
+        );
+
+        expect(freeTrialService.assertTrialActive).not.toHaveBeenCalled();
+      },
+    );
+
+    it('refuses a reservation once the trial is over', async () => {
+      const service = buildService();
+      freeTrialService.assertTrialActive.mockRejectedValueOnce(
+        new FreeTrialExpiredException(trialEndsAt),
+      );
+
+      await expect(
+        service.reserveCredits({
+          actorUserId: 'user_1',
+          amount: 5,
+          description: 'Image',
+          idempotencyKey: 'reserve-1',
+          organizationId: 'org_1',
+          source: ActivitySource.IMAGE_GENERATION,
+          workloadId: 'ingredient_1',
+          workloadType: 'media-generation',
+        }),
+      ).rejects.toBeInstanceOf(FreeTrialExpiredException);
+      expect(creditReservationService.reserve).not.toHaveBeenCalled();
+    });
+
+    it('reports credits unavailable for an expired trial even with a balance', async () => {
+      const service = buildService();
+      freeTrialService.isTrialExpired.mockResolvedValueOnce(true);
+
+      await expect(
+        service.checkOrganizationCreditsAvailable('org_1', 5),
+      ).resolves.toBe(false);
+      expect(creditBalanceService.getOrCreateBalance).not.toHaveBeenCalled();
+    });
+
+    it('never refuses a zero-cost check', async () => {
+      const service = buildService();
+      billingAccountsService.resolveForOrganization.mockResolvedValueOnce({
+        id: 'ba_1',
+      });
+      creditBalanceService.getOrCreateBalance.mockResolvedValueOnce({});
+      creditBalanceService.toSnapshot.mockReturnValueOnce({ available: 0 });
+
+      await expect(
+        service.checkOrganizationCreditsAvailable('org_1', 0),
+      ).resolves.toBe(true);
+      expect(freeTrialService.isTrialExpired).not.toHaveBeenCalled();
     });
   });
 
