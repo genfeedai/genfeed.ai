@@ -10,8 +10,24 @@ import {
   runWithBreakoutGenerationAdmission,
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
+import {
+  isBreakoutMediaFormat,
+  resolveBreakoutMediaFormat,
+} from '@api/collections/outliers/services/breakout-media-format.util';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
-import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import {
+  breakoutLayoutText,
+  breakoutQualityMaterialHash,
+} from '@api/collections/outliers/services/breakout-quality-material.util';
+import {
+  type BreakoutVisualPart,
+  BreakoutVisualQualityService,
+} from '@api/collections/outliers/services/breakout-visual-quality.service';
+import {
+  breakoutVisualEvidenceMeetsPolicy,
+  DEFAULT_BREAKOUT_MIN_VISUAL_SCORE,
+  readBreakoutVisualEvidence,
+} from '@api/collections/outliers/services/breakout-visual-quality.util';
 import {
   brandedPostMaterialSelect,
   describeBrandedPostMaterialLayout,
@@ -44,6 +60,7 @@ export class BreakoutOutputQualityService {
     private readonly strategies: AgentStrategiesService,
     private readonly optimizers: OptimizersService,
     private readonly credits: CreditsUtilsService,
+    private readonly visual: BreakoutVisualQualityService,
   ) {}
 
   async evaluate(
@@ -52,7 +69,23 @@ export class BreakoutOutputQualityService {
     const { admission } = request;
     const prepared = await this.prepare(request);
     const existing = await this.readScore(request, prepared.binding);
-    if (existing) return this.applyGate(request, existing);
+    if (existing) {
+      // A visual output's caption score is not enough: an interrupted visual evaluation is an
+      // unknown paid outcome and is reconciled, never repeated.
+      if (
+        prepared.parts.length > 0 &&
+        !(
+          await readBreakoutVisualEvidence(
+            this.prisma,
+            admission.scope.organizationId,
+            prepared.binding,
+            prepared.parts.length,
+          )
+        ).isComplete
+      )
+        return { state: 'reconciliation_required', scoreId: null };
+      return this.applyGate(request, existing, prepared);
+    }
     const claim = await this.prisma.$transaction(async (tx) => {
       await admitBreakoutGenerationContinuation(tx, admission);
       const output = await tx.breakoutResponseOutput.findFirst({
@@ -183,9 +216,18 @@ export class BreakoutOutputQualityService {
         );
       },
     );
+    if (prepared.parts.length > 0)
+      await this.visual.evaluate({
+        admission,
+        binding: prepared.binding,
+        generationKey: claim.generationKey,
+        caption: prepared.content,
+        parts: prepared.parts,
+        maximumCredits: budget,
+      });
     const score = await this.readScore(request, prepared.binding);
     if (!score) return { state: 'reconciliation_required', scoreId: null };
-    return this.applyGate(request, score);
+    return this.applyGate(request, score, prepared);
   }
 
   private outputWhere(admission: Readonly<BreakoutGenerationAdmission>) {
@@ -207,7 +249,14 @@ export class BreakoutOutputQualityService {
   ) {
     const { admission, postId } = request;
     const { scope } = admission;
-    if (scope.format !== 'text' && scope.format !== 'thread')
+    const media = isBreakoutMediaFormat(scope.format)
+      ? resolveBreakoutMediaFormat(scope.platform, scope.format)
+      : null;
+    if (
+      media
+        ? media.status !== 'supported'
+        : scope.format !== 'text' && scope.format !== 'thread'
+    )
       throw new ConflictException('breakout_quality_format_unavailable');
     const read = async (tx: Prisma.TransactionClient) => {
       await admission.reauthorize(tx);
@@ -248,31 +297,47 @@ export class BreakoutOutputQualityService {
       if (!post)
         throw new ConflictException('breakout_quality_artifact_unavailable');
       const layout = describeBrandedPostMaterialLayout(scope, post);
+      const mediaEntries = layout.entries.filter(
+        (entry) => entry.kind === 'media',
+      );
+      const plan = media?.status === 'supported' ? media.plan : null;
       if (
         layout.format !== scope.format ||
-        layout.entries.some((entry) => entry.kind !== 'text')
+        (plan
+          ? mediaEntries.length !== plan.parts ||
+            layout.entries.length !== mediaEntries.length ||
+            mediaEntries.some((entry) => entry.role !== plan.mediaKind)
+          : mediaEntries.length > 0 ||
+            layout.entries.some((entry) => entry.kind !== 'text'))
       )
         throw new ConflictException('breakout_quality_material_changed');
-      const content = [
-        layout.textBytes,
-        ...layout.entries.map((entry) =>
-          entry.kind === 'text' ? entry.bytes : null,
-        ),
-      ]
-        .filter((bytes): bytes is Uint8Array => bytes !== null)
-        .map((bytes) => Buffer.from(bytes).toString('utf8'))
-        .join('\n\n');
+      const content = breakoutLayoutText(layout);
       if (!content.trim())
         throw new ConflictException('breakout_quality_material_unavailable');
+      // Each attached visual's judged address, in the post's own attachment order.
+      const parts: BreakoutVisualPart[] = mediaEntries.map((entry) => {
+        const url = Reflect.get(
+          post.ingredients.find((item) => item.s3Key === entry.id) ?? {},
+          'cdnUrl',
+        );
+        if (typeof url !== 'string' || !url)
+          throw new ConflictException('breakout_quality_material_unavailable');
+        return {
+          url,
+          mediaKind: plan?.mediaKind ?? 'image',
+          durationSeconds: plan?.durationSeconds ?? null,
+        };
+      });
       return {
         content,
+        parts,
         binding: {
           responseId: admission.responseId,
           outputId: admission.outputId,
           postId,
           strategyId: scope.strategyId,
           workflowExecutionId: admission.workflowExecutionId,
-          materialHash: hashBrandedGenerationTextV1(content),
+          materialHash: breakoutQualityMaterialHash(layout, content),
         },
       };
     };
@@ -299,6 +364,7 @@ export class BreakoutOutputQualityService {
   private async applyGate(
     request: BreakoutOutputQualityRequest,
     score: { id: string; data: Prisma.JsonValue },
+    prepared: Awaited<ReturnType<BreakoutOutputQualityService['prepare']>>,
   ): Promise<BreakoutOutputQualityResult> {
     const { admission } = request;
     await admission.reauthorize(this.prisma);
@@ -327,7 +393,7 @@ export class BreakoutOutputQualityService {
       String(analysis.content ?? ''),
       analysis as OptimizerAnalysisResult,
     );
-    await this.prisma.$transaction(async (tx) => {
+    const isApproved = await this.prisma.$transaction(async (tx) => {
       await admission.reauthorize(tx);
       const key = `agent-strategy-config:${admission.scope.strategyId}`;
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
@@ -353,6 +419,9 @@ export class BreakoutOutputQualityService {
       if (
         policy.isEnabled === false ||
         (publishPolicy.minPostScore ?? 70) !== threshold ||
+        (publishPolicy.minImageScore ?? DEFAULT_BREAKOUT_MIN_VISUAL_SCORE) !==
+          (strategy.publishPolicy?.minImageScore ??
+            DEFAULT_BREAKOUT_MIN_VISUAL_SCORE) ||
         policy.goalProfile !== strategy.goalProfile
       )
         throw new ConflictException('breakout_quality_policy_changed');
@@ -367,6 +436,19 @@ export class BreakoutOutputQualityService {
           Object.keys(material.binding).length
       )
         throw new ConflictException('breakout_quality_material_changed');
+      // Every attached visual must also reach the configured bar, on evidence read fresh here.
+      const approved =
+        gate.decision === 'approved' &&
+        (prepared.parts.length === 0 ||
+          breakoutVisualEvidenceMeetsPolicy(
+            await readBreakoutVisualEvidence(
+              tx,
+              admission.scope.organizationId,
+              material.binding,
+              prepared.parts.length,
+            ),
+            strategy.publishPolicy?.minImageScore,
+          ));
       const changed = await tx.breakoutResponseOutput.updateMany({
         where: scopedWhere(admission.scope.organizationId, {
           ...this.outputWhere(admission),
@@ -381,18 +463,17 @@ export class BreakoutOutputQualityService {
           ],
         }),
         data: {
-          state:
-            gate.decision === 'approved' ? 'generating' : 'awaiting_review',
-          heldReason:
-            gate.decision === 'approved' ? null : 'platform_quality_blocked',
+          state: approved ? 'generating' : 'awaiting_review',
+          heldReason: approved ? null : 'platform_quality_blocked',
         },
       });
       if (changed.count !== 1)
         throw new ConflictException('breakout_quality_output_changed');
       await admission.reauthorize(tx);
+      return approved;
     });
     return {
-      state: gate.decision === 'approved' ? 'approved' : 'held',
+      state: isApproved ? 'approved' : 'held',
       scoreId: score.id,
     };
   }
