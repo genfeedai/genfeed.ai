@@ -1,6 +1,7 @@
 import { AgentArtifactReferenceService } from '@api/agent-artifacts/agent-artifact-reference.service';
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { runWithRequestPrincipal } from '@api/authorization/brand-access/request-principal.context';
+import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { hiddenFixtureDefinition } from '@api/collections/outliers/services/breakout-acceptance.collection.fixture';
 import type { ExecutionHarness } from '@api/collections/outliers/services/breakout-acceptance.execution.fixture';
 import {
@@ -32,8 +33,8 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
 export function principalOf(
   world: Pick<AcceptanceWorld, 'organizationId'>,
   user: Pick<AcceptanceUser, 'id'>,
-  key?: { actor: BrandAccessActor },
-): BrandAccessActor {
+  key?: { actor: WorkflowInitiatingActor },
+): WorkflowInitiatingActor {
   return (
     key?.actor ?? {
       isApiKey: false,
