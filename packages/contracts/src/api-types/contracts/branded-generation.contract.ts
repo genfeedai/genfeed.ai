@@ -1,6 +1,7 @@
 /** Shape validation never establishes authority, real evidence or provider eligibility. */
 import { z } from 'zod';
 import { ContentLearningArm } from '../../enums/content-learning.enum';
+import { brandArtifactProofV1Schema } from './brand-artifact-proof.contract';
 import {
   learningContractHashSchema as hash,
   learningContractIdSchema as id,
@@ -725,8 +726,19 @@ export const brandArtifactValidationCheckV1Schema = z
     evaluatorId: id.optional(),
     evaluatorVersion: version.optional(),
     reasonCode: code.optional(),
+    /** Measurements on the exact artifact bytes behind a deterministic pass/fail. */
+    proof: brandArtifactProofV1Schema.optional(),
   })
   .superRefine((v, ctx) => {
+    if (v.proof) {
+      if (
+        !['pass', 'fail'].includes(v.result) ||
+        v.method !== 'deterministic_render' ||
+        v.category !== v.proof.kind
+      )
+        issue(ctx, 'Proof requires a deterministic pass/fail of its category');
+    } else if (v.category === 'palette' && ['pass', 'fail'].includes(v.result))
+      issue(ctx, 'Palette pass/fail requires artifact-bound proof');
     if (v.result === 'pass') {
       if (!v.evidenceIds.length) issue(ctx, 'Pass requires evidence');
       if (
@@ -750,33 +762,42 @@ export const brandArtifactValidationCheckV1Schema = z
     } else if (v.result !== 'not_applicable' && !v.reasonCode)
       issue(ctx, 'Non-pass requires reason');
   });
-export const brandArtifactValidationReportV1Schema = z.strictObject({
-  schemaVersion: z.literal(1),
-  id,
-  rubricVersion: version,
-  snapshotHash: hash,
-  artifactHash: hash,
-  artifactId: id,
-  artifactVersion: id,
-  checkedAt: date,
-  checks: z
-    .array(brandArtifactValidationCheckV1Schema)
-    .max(256)
-    .refine(
-      (v) => new Set(v.map((x) => x.ruleId)).size === v.length,
-      'Duplicate check IDs',
-    ),
-  quality: z
-    .strictObject({
-      score: z.number().min(0).max(1),
-      confidence: z.number().min(0).max(1).nullable(),
-      evaluatorId: id,
-      evaluatorVersion: version,
-      calibrationStatus: z.enum(['verified', 'unverified', 'unavailable']),
-    })
-    .nullable(),
-  diagnostics,
-});
+export const brandArtifactValidationReportV1Schema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    id,
+    rubricVersion: version,
+    snapshotHash: hash,
+    artifactHash: hash,
+    artifactId: id,
+    artifactVersion: id,
+    checkedAt: date,
+    checks: z
+      .array(brandArtifactValidationCheckV1Schema)
+      .max(256)
+      .refine(
+        (v) => new Set(v.map((x) => x.ruleId)).size === v.length,
+        'Duplicate check IDs',
+      ),
+    quality: z
+      .strictObject({
+        score: z.number().min(0).max(1),
+        confidence: z.number().min(0).max(1).nullable(),
+        evaluatorId: id,
+        evaluatorVersion: version,
+        calibrationStatus: z.enum(['verified', 'unverified', 'unavailable']),
+      })
+      .nullable(),
+    diagnostics,
+  })
+  .superRefine((v, ctx) => {
+    if (
+      v.checks.some(
+        (check) => check.proof && check.proof.artifactHash !== v.artifactHash,
+      )
+    )
+      issue(ctx, 'Proof must bind the validated artifact hash');
+  });
 export const brandPromptReferenceV1Schema = z
   .strictObject({
     contentHash: hash,

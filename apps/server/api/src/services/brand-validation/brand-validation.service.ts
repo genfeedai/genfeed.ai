@@ -7,6 +7,7 @@ import {
   assertBrandValidationMetadata,
   copyBrandValidationMaterial,
 } from '@api/services/brand-validation/brand-validation-material.util';
+import { proveBrandPaletteChecks } from '@api/services/brand-validation/brand-validation-palette.util';
 import {
   assertBrandValidationRuleDomain,
   buildBrandValidationChecks,
@@ -131,6 +132,7 @@ export class BrandValidationService {
       if (
         check.ruleId === 'system:factual_coverage' ||
         check.result === 'not_applicable' ||
+        (isReviewOnlyMedia && check.category === 'palette') ||
         check.method === 'exact_text' ||
         !check.reasonCode
       )
@@ -255,13 +257,16 @@ export class BrandValidationService {
         throw new BadRequestException('brand_validation_reference_mismatch');
       referenceIds.add(reference.assetReferenceId);
     }
-    const checks = buildBrandValidationChecks(
-      snapshot,
-      artifact.mediaKind,
-      text,
-      artifact.mediaKind === 'text' &&
-        text !== null &&
-        artifact.parts.length === 0,
+    const checks = await proveBrandPaletteChecks(
+      { snapshot, artifact, material },
+      buildBrandValidationChecks(
+        snapshot,
+        artifact.mediaKind,
+        text,
+        artifact.mediaKind === 'text' &&
+          text !== null &&
+          artifact.parts.length === 0,
+      ),
     );
     const diagnostics: BrandArtifactValidationReportV1['diagnostics'] = [
       {
@@ -285,7 +290,7 @@ export class BrandValidationService {
         code: 'brand_rule_failed',
         severity: 'error',
         message:
-          'A required literal rule failed; correct the output and request validation again.',
+          'A required brand rule failed; correct the output and request validation again.',
       });
     return brandArtifactValidationReportV1Schema.parse({
       schemaVersion: 1,

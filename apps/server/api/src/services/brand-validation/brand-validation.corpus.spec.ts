@@ -242,13 +242,80 @@ describe('genuine immutable synthetic corpus through the conservative core', () 
     });
     value.snapshot.contentHash = hashBrandIdentitySnapshotV1(value.snapshot);
     const report = await service.validateBrandArtifact(value);
+    // Only the deterministic palette proof may pass; no other visual or video rule does.
     expect(
-      report.checks.find((check) => check.ruleId === 'palette')?.result,
-    ).toBe('unsupported');
-    expect(report.checks.some((check) => check.result === 'pass')).toBe(false);
+      report.checks
+        .filter((check) => check.ruleId !== 'palette')
+        .some((check) => check.result === 'pass'),
+    ).toBe(false);
     expect(report.checks.at(-1)?.result).toBe('unknown');
     expect(bytes).toEqual(before);
   });
+  it.each([
+    ['approved.png', 'image'],
+    ['wrong-palette.png', 'image'],
+    ['sample.mp4', 'video'],
+  ] as const)(
+    'proves the approved palette color is present in real %s pixels',
+    async (file, mediaKind) => {
+      const bytes = await fixture(file);
+      const descriptor: BrandArtifactValidationInputV1['artifact']['parts'][number] =
+        {
+          id: 'primary',
+          version: 'v1',
+          role: mediaKind,
+          contentHash: hashBrandArtifactBytes(bytes),
+        };
+      const value = artifactInput(
+        null,
+        [{ partId: 'primary', partVersion: 'v1', bytes }],
+        [descriptor],
+        mediaKind,
+      );
+      value.snapshot.generationRules.palette.push(
+        {
+          id: 'brand-blue',
+          color: '#123456',
+          usage: 'background',
+          required: true,
+          evidenceIds: ['fixture-source'],
+        },
+        {
+          id: 'brand-red',
+          color: '#FF0000',
+          usage: 'accent',
+          required: true,
+          evidenceIds: ['fixture-source'],
+        },
+      );
+      value.snapshot.contentHash = hashBrandIdentitySnapshotV1(value.snapshot);
+      const report = await service.validateBrandArtifact(value);
+      const blue = report.checks.find((check) => check.ruleId === 'brand-blue');
+      const red = report.checks.find((check) => check.ruleId === 'brand-red');
+      expect(blue).toMatchObject({
+        method: 'deterministic_render',
+        result: 'pass',
+        proof: {
+          algorithm: 'ciede2000-presence-v1',
+          artifactHash: value.artifact.contentHash,
+          mediaKind,
+          partHash: descriptor.contentHash,
+          target: '#123456',
+        },
+      });
+      expect(blue?.proof?.coverage).toBeGreaterThan(0.99);
+      expect(blue?.proof?.nearestSwatchDeltaE).toBeLessThan(3);
+      expect(blue?.proof?.swatches[0]?.share).toBeGreaterThan(0.99);
+      expect(red).toMatchObject({
+        reasonCode: 'palette_color_absent',
+        result: 'fail',
+        proof: { coverage: 0, target: '#FF0000' },
+      });
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({ code: 'brand_rule_failed' }),
+      );
+    },
+  );
   it('rejects a changed part with old digest, accepts consistent negative identity conservatively', async () => {
     const approved = await fixture('approved.png');
     const negative = await fixture('wrong-palette.png');

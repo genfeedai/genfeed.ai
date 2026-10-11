@@ -869,6 +869,24 @@ describe('blocked identity and canonical rule origin', () => {
         evidenceIds: ['evidence'],
       },
     ];
+    const proof = {
+      kind: 'palette' as const,
+      algorithm: 'ciede2000-presence-v1' as const,
+      artifactHash: v.validation.artifactHash,
+      partId: 'part',
+      partVersion: 'v1',
+      partHash: hash,
+      mediaKind: 'image' as const,
+      decoder: 'sharp/libvips-8.18.7',
+      sampledFrames: 1,
+      analyzedPixels: 4096,
+      target: '#AABBCC',
+      maxDeltaE: 8,
+      minCoverage: 0.01,
+      coverage: 0.5,
+      nearestSwatchDeltaE: 0,
+      swatches: [{ color: '#AABBCC', share: 0.5 }],
+    };
     v.validation.checks.push({
       ruleId: 'palette',
       category: 'palette',
@@ -876,10 +894,83 @@ describe('blocked identity and canonical rule origin', () => {
       result: 'pass',
       method: 'deterministic_render',
       evidenceIds: ['render'],
+      proof,
     });
     expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    // A proof for another artifact cannot be carried by this report.
+    v.validation.checks[1].proof = {
+      ...proof,
+      artifactHash: `sha256:${'9'.repeat(64)}`,
+    };
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    // A pass or fail without measurements is not palette evidence.
+    v.validation.checks[1].proof = undefined;
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    v.validation.checks[1].proof = proof;
     v.validation.checks[1].category = 'fact';
     expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
+  it('accepts a proof only on a deterministic pass or fail', () => {
+    const base = {
+      ruleId: 'palette',
+      category: 'palette',
+      severity: 'hard',
+      evidenceIds: ['render'],
+    } as const;
+    const proof = {
+      kind: 'palette' as const,
+      algorithm: 'ciede2000-presence-v1' as const,
+      artifactHash: hash,
+      partId: 'part',
+      partVersion: 'v1',
+      partHash: hash,
+      mediaKind: 'video' as const,
+      decoder: 'ffmpeg+sharp/libvips-8.18.7',
+      sampledFrames: 4,
+      analyzedPixels: 4096,
+      target: '#AABBCC',
+      maxDeltaE: 8,
+      minCoverage: 0.01,
+      coverage: 0,
+      nearestSwatchDeltaE: 30,
+      swatches: [],
+    };
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        result: 'fail',
+        method: 'deterministic_render',
+        reasonCode: 'palette_color_absent',
+        proof,
+      }).success,
+    ).toBe(true);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        result: 'unknown',
+        method: 'capability',
+        reasonCode: 'artifact_undecodable',
+        proof,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        result: 'fail',
+        method: 'capability',
+        reasonCode: 'palette_color_absent',
+        proof,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        result: 'fail',
+        method: 'deterministic_render',
+        reasonCode: 'palette_color_absent',
+        proof: { ...proof, coverage: 2 },
+      }).success,
+    ).toBe(false);
   });
   it.each([
     ['logo', 'logo'],

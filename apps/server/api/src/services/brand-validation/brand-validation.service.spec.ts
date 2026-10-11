@@ -908,7 +908,6 @@ describe('preflight capability admission', () => {
       expect(report.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
         'factual_coverage_unverified',
         'artifact_media_unsupported',
-        'exact_palette_unavailable',
         'exact_font_unavailable',
         'text_coverage_incomplete',
         'exact_logo_unavailable',
@@ -919,6 +918,7 @@ describe('preflight capability admission', () => {
           (diagnostic) => diagnostic.severity === 'warning',
         ),
       ).toBe(true);
+      // The palette is checked on the artifact bytes, so it raises no capability warning.
       // The same snapshot still blocks text, which can prove its rules.
       expect(
         service.preflightBrandCapabilities({

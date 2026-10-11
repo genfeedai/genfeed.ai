@@ -12,8 +12,8 @@ improvement evidence.
 capability admission and actionable diagnostics before generation. It does not
 verify provider/model availability, quote a request, or dispatch work.
 `validateBrandArtifact(input)` returns a canonical report asynchronously; capture,
-hashing and conservative evaluation complete synchronously before its promise is
-returned. The module exports the dependency-free service without application
+hashing and the text evaluation complete synchronously before its promise is
+returned, and the pixel proof for media runs on the already captured bytes. The module exports the dependency-free service without application
 registration.
 
 | Input or rule | Current behavior |
@@ -22,7 +22,8 @@ registration.
 | Semantic or empty literal | Unknown with explicit capability reason |
 | Multipart text or image/video text | Unknown text coverage |
 | Facts and complete factual coverage | Always unknown |
-| Palette/font/logo/product/other visual asset | Unsupported without qualified artifact-bound evidence |
+| Palette color on a single final image or video (#6727) | Pixel proof: pass or fail, else unknown (see below) |
+| Font/logo/product/other visual asset | Unsupported without qualified artifact-bound evidence |
 | Owner-excluded medium | Not applicable; absent applicability is universal |
 
 Every report includes hard `system:factual_coverage` unknown and `quality: null`.
@@ -40,6 +41,39 @@ member approves the visuals in the review queue. Unsupported reasons are
 and `exact_asset_unavailable`. Reports also disclose
 `factual_coverage_unverified`, `artifact_media_unsupported`, and required literal
 failures through `brand_rule_failed`.
+
+## Palette pixel proof (images and video)
+
+For an `image` or `video` artifact, each applicable palette rule is decided from the
+final bytes, after the part hashes are verified, with no provider or network call.
+`sharp` decodes a still (raster formats only; SVG and documents are rejected) to at
+most 256 px on the long edge in sRGB RGBA. A video is sampled at four evenly spaced
+times with the platform `ffmpeg` (`ffmpeg-static`, which honors `FFMPEG_BIN`); every
+sampled frame must decode.
+
+Opaque pixels (alpha 128 or more) are compared with the approved color by CIEDE2000.
+A pixel within `maxDeltaE` 8 counts as that color. The color is present when it
+covers at least `minCoverage` 1% of opaque pixels across all analyzed frames
+(`ciede2000-presence-v1`, constants in `brand-validation-palette.util.ts`).
+
+| Outcome | When |
+| --- | --- |
+| `pass` (`deterministic_render`) | coverage at or above the minimum |
+| `fail` (`palette_color_absent`) | decoded, at least 1024 opaque pixels, coverage below the minimum |
+| `unknown` `artifact_undecodable` | no decoder, unreadable or unsupported bytes, or a missing video frame |
+| `unknown` `visual_too_small` | fewer than 1024 opaque pixels |
+| `unknown` `visual_part_unavailable` | zero or several `primary`/`image`/`video` parts |
+| `unknown` `visual_composite_unproven` | an `overlay` part changes the final pixels |
+| `unknown` `palette_color_translucent` | the approved color carries alpha |
+
+A `pass` or `fail` carries a `proof` on the check: the artifact manifest hash, the
+decoded part ID, version and hash, the decoder, frames and pixels analyzed, the
+tolerance, the measured coverage, the dominant swatches and the distance of the
+nearest swatch. The contract rejects a pass or fail without it, a proof for another
+artifact hash, and any proof on a non-deterministic result. A hard `fail` blocks the
+receipt; a soft one does not. The proof says the color is present, not where it is
+placed or in what usage; that stays unproven. The factual coverage check still keeps
+every media receipt at `needs_review`.
 
 Failures are `BadRequestException` with exactly one of:
 
@@ -59,7 +93,7 @@ The authorized caller must acquire scoped nondeleted assets, snapshot and artifa
 versions, verify stored hashes, retain approval authority, and atomically persist
 against unchanged identities using CAS and durable scoped idempotency. This leaf
 cannot establish tenant authority from mathematically consistent self-authored
-metadata. It performs no networking, provider calls, retries, billing or storage.
+metadata. It performs no networking, provider calls, retries, billing or durable storage; a video is written to a private temporary file for `ffmpeg` and removed.
 
 Complete feature delivery still requires trusted qualified render/font/region
 proof, approved complete factual claim and asset-text authority, authenticated
