@@ -284,15 +284,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           useValue: runtimeSettingsMock(),
         },
         CreditsUtilsService,
-        // Credit grants are never gated by the free trial; admission's trial
-        // gate has its own specs (free-trial.service.spec).
-        {
-          provide: FreeTrialService,
-          useValue: {
-            assertTrialActive: vi.fn(),
-            isTrialExpired: vi.fn().mockResolvedValue(false),
-          },
-        },
+        FreeTrialService,
         CreditBalanceService,
         CreditTransactionsService,
         TransactionUtil,
