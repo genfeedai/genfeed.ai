@@ -3,7 +3,7 @@ import {
   type BreakoutRecoveryBase,
   breakoutPublicationState,
 } from '@api/collections/outliers/services/breakout-output-publication-state.util';
-import { breakoutVisualBrandRequestKey } from '@api/collections/outliers/services/breakout-visual-brand-receipt.service';
+import { breakoutVisualBrandRequestKey } from '@api/collections/outliers/services/breakout-visual-brand-key.util';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import {
   type BrandedPostMaterialRecord,

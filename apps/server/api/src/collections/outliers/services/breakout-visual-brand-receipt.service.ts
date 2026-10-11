@@ -1,4 +1,5 @@
 import type { BreakoutGenerationAdmission } from '@api/collections/outliers/services/breakout-generation-admission.util';
+import { breakoutVisualBrandRequestKey } from '@api/collections/outliers/services/breakout-visual-brand-key.util';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
@@ -57,11 +58,6 @@ function receiptErrorCode(error: unknown): string {
     }
   }
   return error instanceof Error ? error.message : String(error);
-}
-
-/** The key of the approved-brand validation receipt of one generated visual. */
-export function breakoutVisualBrandRequestKey(ingredientId: string): string {
-  return `${ingredientId}:brand-validation`;
 }
 
 /**
