@@ -3,6 +3,11 @@ import type {
   StoreAppCatalogEntry,
   StoreCategoryId,
 } from '@genfeedai/props/store/organization-store-page.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+
+/** The marketing site's editorial card for a page, served from the asset CDN. */
+const marketingCard = (name: string) =>
+  `${EnvironmentService.assetsEndpoint}/branding/website/editorial/${name}-v1.webp`;
 
 /** Shelves in display order. */
 export const STORE_CATEGORY_IDS = [
@@ -21,6 +26,7 @@ export const STORE_APP_CATALOG: Record<
   StoreAppCatalogEntry
 > = {
   automation: {
+    thumbnailSrc: marketingCard('workflow'),
     art: 'flow',
     category: 'automate',
     isFeatured: false,
@@ -33,6 +39,7 @@ export const STORE_APP_CATALOG: Record<
     tone: 'warning',
   },
   discovery: {
+    thumbnailSrc: marketingCard('research'),
     art: 'trend',
     category: 'publish',
     isFeatured: false,
@@ -57,6 +64,7 @@ export const STORE_APP_CATALOG: Record<
     tone: 'warning',
   },
   playground: {
+    thumbnailSrc: marketingCard('page-studio'),
     art: 'prompt',
     category: 'create',
     isFeatured: true,
