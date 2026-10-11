@@ -7,6 +7,11 @@ import ModelsLayoutContent from './models-layout-content';
 const mockPush = vi.fn();
 const mockSearchParams = vi.hoisted(() => ({ value: '' }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({ title: 'Custom Models' })[key] ?? key,
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand', orgSlug: 'acme' }),
   usePathname: () => '/acme/~/settings/models/all',
