@@ -213,7 +213,6 @@ describe('visual breakout output pipeline', () => {
       'preflight',
       'caption:generation-a:caption',
       'media:generation-a:media:1',
-      'brand',
       'compose',
     ]);
     expect(h.review.queue).not.toHaveBeenCalled();
@@ -318,6 +317,7 @@ describe('visual breakout output pipeline', () => {
       'preflight',
       'caption:generation-a:caption',
       'media:generation-a:media:1',
+      'brand',
       'compose',
       'review',
       'quality',
