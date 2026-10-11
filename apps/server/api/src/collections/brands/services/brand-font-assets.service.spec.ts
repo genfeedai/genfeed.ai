@@ -15,6 +15,12 @@ import type { BoundedStorageProvider } from '@genfeedai/storage';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const runtime = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => runtime.cloud,
+}));
+
 const storage = vi.hoisted(() => ({
   upload: vi.fn<BoundedStorageProvider['upload']>(),
   readBytes: vi.fn<BoundedStorageProvider['readBytes']>(),
@@ -106,8 +112,30 @@ async function harness() {
       active ? { id: actor.organizationId } : null,
     ),
   };
+  const matchesBrand = (where: Prisma.BrandWhereInput): boolean => {
+    const id = where.id;
+    const conjunction =
+      where.AND === undefined
+        ? []
+        : Array.isArray(where.AND)
+          ? where.AND
+          : [where.AND];
+    return (
+      where.isDeleted !== true &&
+      (where.organizationId === undefined ||
+        where.organizationId === actor.organizationId) &&
+      (id === undefined ||
+        id === actor.brandId ||
+        (typeof id === 'object' &&
+          Array.isArray(id.in) &&
+          id.in.includes(actor.brandId))) &&
+      conjunction.every(matchesBrand)
+    );
+  };
   const brand = {
-    findFirst: vi.fn(async () => (active ? { id: actor.brandId } : null)),
+    findFirst: vi.fn(async ({ where }: Prisma.BrandFindFirstArgs) =>
+      active && where && matchesBrand(where) ? { id: actor.brandId } : null,
+    ),
   };
   const member = {
     findFirst: vi.fn(async () =>
@@ -181,6 +209,7 @@ async function harness() {
   };
 }
 beforeEach(() => {
+  runtime.cloud = false;
   vi.clearAllMocks();
   storage.upload.mockResolvedValue('ignored-public-url');
   storage.delete.mockResolvedValue();
@@ -391,6 +420,29 @@ describe('Dedicated immutable brand font service', () => {
     expect(result.hasMore).toBe(true);
     expect(result.nextCursor).not.toBeNull();
   });
+  it('denies an ordinary Cloud member immediately after assignments become empty', async () => {
+    runtime.cloud = true;
+    const h = await harness();
+    h.setRole('user', [actor.brandId]);
+    await h.service.list(actor, { limit: 1 });
+    const admittedQueries = h.assets.findMany.mock.calls.length;
+    expect(admittedQueries).toBeGreaterThan(0);
+    h.setRole('user');
+    await expect(h.service.list(actor, { limit: 1 })).rejects.toThrow(
+      'font_asset_access_denied',
+    );
+    expect(h.assets.findMany).toHaveBeenCalledTimes(admittedQueries);
+  });
+
+  it('caps a Cloud owner API key before font access', async () => {
+    runtime.cloud = true;
+    const h = await harness();
+    await expect(
+      h.service.list({ ...actor, isApiKey: true, scopes: [] }, { limit: 1 }),
+    ).rejects.toThrow('font_asset_access_denied');
+    expect(h.assets.findMany).not.toHaveBeenCalled();
+  });
+
   it('lists only scoped active rows and enforces membership assignment semantics', async () => {
     const h = await harness();
     h.setRole('member', ['other']);
