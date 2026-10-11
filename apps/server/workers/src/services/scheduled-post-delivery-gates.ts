@@ -146,7 +146,10 @@ export class ScheduledPostDeliveryGates {
     );
   }
 
-  /** Content gates before a provider call: target settings and media. */
+  /**
+   * Content gates before a provider call: target settings, media and, last and closest to
+   * the call, the breakout dispatch fence.
+   */
   async checkContent(
     post: PostEntity,
     ids: PostDeliveryIds,
@@ -176,7 +179,10 @@ export class ScheduledPostDeliveryGates {
       };
     }
 
-    return this.checkMediaReady(post, ids, prepared.platform, url);
+    return (
+      (await this.checkMediaReady(post, ids, prepared.platform, url)) ??
+      (await this.checkBreakoutPublication(post, ids, prepared.platform, url))
+    );
   }
 
   /**
@@ -185,7 +191,7 @@ export class ScheduledPostDeliveryGates {
    * current. Ordinary posts pass. A hold is terminal; an infrastructure error propagates
    * and takes the delivery's normal retry path.
    */
-  async checkBreakoutPublication(
+  private async checkBreakoutPublication(
     post: PostEntity,
     ids: PostDeliveryIds,
     platform: Platform,

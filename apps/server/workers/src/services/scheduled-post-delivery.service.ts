@@ -344,15 +344,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       if (!providerAttempt) {
         throw new Error('Provider publish requires a reserved attempt.');
       }
-      // A breakout response may have lost its actor, its evidence or its quote link since
-      // scheduling: re-admit it right before the provider call, or never call it.
-      const breakoutHold = await this.gates.checkBreakoutPublication(
-        post,
-        ids,
-        prepared.value.platform,
-        url,
-      );
-      if (breakoutHold) return await fail(breakoutHold);
       // A holder that stalled past its lease may have been taken over by
       // another delivery: confirm the attempt is still ours right before the
       // provider call, or never call it.
