@@ -561,12 +561,14 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Operator backfill: marks the rows an earlier seed run left in one organization as platform
-   * workflows, without creating anything. `userId` is the seeding user the operator names; a
-   * row is marked only if it belongs to that user and still matches its catalog template
-   * exactly (see {@link reconcilePlatformSeedMarker}). Never infer the marker from metadata:
-   * tenants can forge it. Run `syncOrganizationWorkflowSchedulers` afterwards if rows were
-   * re-enabled by hand.
+   * Marks the rows an earlier seed run left in one organization as platform workflows, without
+   * creating anything. Cloud does this by itself: the scheduler marks a qualifying row right
+   * before it fires (`reconcileSeededWorkflowBeforeScheduledRun`), so this is only an
+   * eager, whole-organization pass for an operator who wants paused rows marked too. `userId` is
+   * the seeding user the caller names (the organization owner); a row is marked only if it
+   * belongs to that user and still matches its catalog template exactly (see
+   * {@link reconcilePlatformSeedMarker}). Never infer the marker from metadata: tenants can forge
+   * it. It never re-enables a paused schedule.
    */
   async reconcilePlatformSeedMarkers(
     userId: string,

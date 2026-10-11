@@ -1,4 +1,5 @@
 import {
+  findPlatformSeedTemplate,
   getPlatformSeedContentHash,
   isPlatformScheduledTemplate,
   type SeedableWorkflowTemplate,
@@ -29,22 +30,28 @@ export function isUniqueConstraintViolation(error: unknown): boolean {
  *
  * Seeded-template metadata is tenant-writable, so it proves nothing. A row is marked only when
  * all of these hold, each read server-side from the row and the code-owned template:
- * - it belongs to the organization and to the seeding user the operator named;
- * - it is organization-wide (no brand) and was written as a seeded template;
+ * - it belongs to the organization and to the seeding user the caller named;
+ * - it is organization-wide (no brand) and was written as a seeded template, not by a tenant
+ *   install (see {@link isSeederWrittenRow});
  * - its current immutable version has exactly the template's content hash.
- * The oldest such row wins, so a later tenant duplicate never becomes the platform row. A row
- * left paused is never re-enabled here: the scheduler does not record why a schedule was
- * paused, so a user's pause cannot be told apart from a hold.
+ * The oldest such row wins, so a later tenant duplicate never becomes the platform row. The
+ * write is a compare-and-set on the validated version and `updatedAt`, so a concurrent edit,
+ * schedule save or pause turns it into a no-op, and the partial unique index settles two
+ * concurrent reconciles (the loser sees a unique violation). A row left paused is never
+ * re-enabled here: the scheduler does not record why a schedule was paused, so a user's pause
+ * cannot be told apart from a hold. `onlyWorkflowId` narrows the call to one row (the scheduler
+ * marking the row it is about to fire); every other row stays untouched.
  */
 export async function reconcilePlatformSeedMarker(
   deps: { logger: LoggerService; prisma: PrismaService },
   input: {
+    onlyWorkflowId?: string;
     organizationId: string;
     template: SeedableWorkflowTemplate;
     userId: string;
   },
 ): Promise<PlatformSeedReconcileOutcome> {
-  const { organizationId, template, userId } = input;
+  const { onlyWorkflowId, organizationId, template, userId } = input;
   if (!isPlatformScheduledTemplate(template)) {
     return 'not-scheduled';
   }
@@ -59,6 +66,8 @@ export async function reconcilePlatformSeedMarker(
       isScheduleEnabled: true,
       metadata: true,
       platformSeedKey: true,
+      templateInstantiationKey: true,
+      updatedAt: true,
       userId: true,
     },
     where: scopedWhere(organizationId, {
@@ -80,11 +89,12 @@ export async function reconcilePlatformSeedMarker(
       !candidate.brandId &&
       !candidate.platformSeedKey &&
       candidate.currentVersion.contentHash === canonicalHash &&
-      readSourceType(candidate.metadata) === 'seeded-template',
+      isSeederWrittenRow(candidate),
   );
 
   if (!seeded) {
-    if (candidates.length > 0) {
+    // A scoped call runs on every fire of a row the scheduler already pre-checked; stay quiet.
+    if (onlyWorkflowId === undefined && candidates.length > 0) {
       deps.logger.warn(
         'Seeded workflow does not match its canonical template and stays a tenant workflow (held in Cloud until a person re-enables it)',
         {
@@ -94,6 +104,11 @@ export async function reconcilePlatformSeedMarker(
         },
       );
     }
+    return 'no-canonical-row';
+  }
+
+  if (onlyWorkflowId !== undefined && seeded.id !== onlyWorkflowId) {
+    // The oldest eligible row is another one; it is marked when it is reconciled itself.
     return 'no-canonical-row';
   }
 
@@ -108,6 +123,8 @@ export async function reconcilePlatformSeedMarker(
         currentVersionId: seeded.currentVersionId,
         id: seeded.id,
         platformSeedKey: null,
+        templateInstantiationKey: null,
+        updatedAt: seeded.updatedAt,
         userId,
       }),
     });
@@ -131,8 +148,155 @@ export async function reconcilePlatformSeedMarker(
   return 'marked';
 }
 
-function readSourceType(metadata: unknown): unknown {
+export type ScheduledSeedReconcileRow = {
+  brandId: string | null;
+  currentVersion?: { contentHash?: string | null } | null;
+  id: string;
+  metadata: unknown;
+  organizationId: string;
+  platformSeedKey: string | null;
+  scheduleInitiatingActor: Prisma.JsonValue | null;
+  templateInstantiationKey: string | null;
+  userId: string;
+};
+
+/**
+ * Marks, right before the Cloud scheduler would run it, an unmarked row that is provably the
+ * seeding flow's own canonical workflow, so no operator step is needed. Returns the platform
+ * seed key only when this call marked that row, and the caller then runs it as a platform
+ * workflow; `null` leaves the row to the scheduler's existing actor rules.
+ *
+ * The seeding user is the organization owner (`Organization.userId`): the seeders were always
+ * called with it (`migrate:workflows` seeded each organization under its owner), so a row owned
+ * by any other member is never marked. The owner must also still be an active member, which is
+ * the rule the schedule-actor grandfather migration applied, so a row whose owner left stays
+ * unbound and is held like any other.
+ *
+ * It runs only for a row about to fire, so a paused row is never touched and never re-enabled.
+ * A row bound to someone else's actor (another member or an API key) is a tenant's explicit
+ * choice and is left alone; an actor that is the owner themself (what the grandfather migration
+ * wrote) is replaced by the platform marker. Every cheap in-memory check runs first, so a
+ * tenant workflow costs no query. Reconcile is best effort: a failure here leaves the row
+ * unmarked and the scheduler continues with its existing actor rules.
+ */
+export async function reconcileSeededWorkflowBeforeScheduledRun(
+  deps: { logger: LoggerService; prisma: PrismaService },
+  workflow: ScheduledSeedReconcileRow,
+): Promise<string | null> {
+  const template = findCanonicalSeedTemplateForUnmarkedRow(workflow);
+  if (!template) {
+    return null;
+  }
+
+  try {
+    const owner = await deps.prisma.member.findFirst({
+      select: { userId: true },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organization: { isDeleted: false, userId: workflow.userId },
+        organizationId: workflow.organizationId,
+        userId: workflow.userId,
+      },
+    });
+    if (!owner) {
+      return null;
+    }
+
+    const outcome = await reconcilePlatformSeedMarker(deps, {
+      onlyWorkflowId: workflow.id,
+      organizationId: workflow.organizationId,
+      template,
+      userId: workflow.userId,
+    });
+    if (outcome === 'marked') {
+      deps.logger.log(
+        'Marked a canonical seeded workflow as a platform workflow before its scheduled run',
+        {
+          organizationId: workflow.organizationId,
+          templateId: template.id,
+          workflowId: workflow.id,
+        },
+      );
+    }
+    return outcome === 'marked' ? template.id : null;
+  } catch (error: unknown) {
+    deps.logger.warn(
+      'Could not reconcile a seeded workflow before its scheduled run; it keeps its existing authority rules',
+      {
+        error: error instanceof Error ? error.message : String(error),
+        organizationId: workflow.organizationId,
+        workflowId: workflow.id,
+      },
+    );
+    return null;
+  }
+}
+
+function findCanonicalSeedTemplateForUnmarkedRow(
+  workflow: ScheduledSeedReconcileRow,
+): SeedableWorkflowTemplate | undefined {
+  if (workflow.platformSeedKey || workflow.brandId) {
+    return undefined;
+  }
+  const templateId = readMetadataField(workflow.metadata, 'sourceTemplateId');
+  if (typeof templateId !== 'string' || !isSeederWrittenRow(workflow)) {
+    return undefined;
+  }
+  const template = findPlatformSeedTemplate(templateId);
+  if (!template) {
+    return undefined;
+  }
+  const canonicalHash = getPlatformSeedContentHash(template);
+  if (
+    canonicalHash === undefined ||
+    workflow.currentVersion?.contentHash !== canonicalHash ||
+    !isUnboundOrOwnerBoundActor(workflow)
+  ) {
+    return undefined;
+  }
+  return template;
+}
+
+/** No actor, or the owner's own session actor (what the grandfather migration bound). */
+function isUnboundOrOwnerBoundActor(
+  workflow: Pick<
+    ScheduledSeedReconcileRow,
+    'scheduleInitiatingActor' | 'userId'
+  >,
+): boolean {
+  const actor = workflow.scheduleInitiatingActor;
+  if (actor === null || actor === undefined) {
+    return true;
+  }
+  return (
+    typeof actor === 'object' &&
+    !Array.isArray(actor) &&
+    actor.userId === workflow.userId &&
+    actor.isApiKey === false
+  );
+}
+
+function readMetadataField(metadata: unknown, field: string): unknown {
   return metadata && typeof metadata === 'object' && !Array.isArray(metadata)
-    ? (metadata as Record<string, unknown>).sourceType
+    ? (metadata as Record<string, unknown>)[field]
     : undefined;
+}
+
+/**
+ * Whether a row looks like the seeder wrote it rather than a tenant installing the template.
+ * The seeder writes `sourceType: 'seeded-template'` and never a template-instantiation key or a
+ * `createdFrom` origin; the app's "use template" and the agent install both write one. A tenant
+ * can omit either, so this only keeps honest installs out. The owner, the exact hash and the
+ * unique index are what make a mark safe.
+ */
+function isSeederWrittenRow(row: {
+  metadata: unknown;
+  templateInstantiationKey: string | null;
+}): boolean {
+  return (
+    readMetadataField(row.metadata, 'sourceType') === 'seeded-template' &&
+    readMetadataField(row.metadata, 'createdFrom') === undefined &&
+    row.templateInstantiationKey === null
+  );
 }
