@@ -92,6 +92,11 @@ export default function ModelsLayoutContent({
       label="Models"
       description="Manage available AI models."
       icon={Cpu}
+      refresh={
+        isCustomModelsTab ? undefined : (
+          <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+        )
+      }
       right={
         <div
           data-testid="models-layout-actions"
@@ -113,13 +118,6 @@ export default function ModelsLayoutContent({
               ))}
             </SelectContent>
           </Select>
-
-          {isCustomModelsTab ? null : (
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
-          )}
 
           {isTrainingsTab && canTrain ? (
             <Button
