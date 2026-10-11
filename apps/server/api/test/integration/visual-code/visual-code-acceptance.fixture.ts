@@ -65,6 +65,8 @@ import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
+import { BrandRenderEvidenceService } from '@api/services/brand-render-evidence/brand-render-evidence.service';
+import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import type { ILlmCompletionRoute } from '@api/services/integrations/llm/dto/llm-completion-route.dto';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type {
@@ -120,6 +122,7 @@ import type { Model } from '@genfeedai/prisma';
 import { LocalStorageProvider } from '@genfeedai/storage';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { getQueueToken } from '@nestjs/bullmq';
+import { ConflictException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 import { type Job, type JobsOptions, Queue, Worker } from 'bullmq';
@@ -1113,6 +1116,15 @@ export async function createVisualCodeAcceptanceFixture(
         VisualProjectDispatchService,
         VisualProjectWorkflowService,
         VisualProjectAssetsService,
+        BrandRenderEvidenceService,
+        {
+          provide: BrandIdentitySnapshotService,
+          useValue: {
+            preview: async () => {
+              throw new ConflictException('brand_identity_unavailable');
+            },
+          },
+        },
         VisualProjectAuthoringService,
         VisualProjectRendererClientService,
         AgentChatModelRegistryService,
