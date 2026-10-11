@@ -1,3 +1,4 @@
+import { AgentStrategyScheduleAuthorityService } from '@api/services/agent-orchestrator/tools/agent-strategy-schedule-authority.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
@@ -14,6 +15,10 @@ import { Injectable } from '@nestjs/common';
  * - AgentWorkflowToolExecuteService — list/inspect/duplicate/schedule/run/execute
  *
  * This class stays a router so AgentToolExecutorService keeps the same surface.
+ *
+ * It is also the one seam where a schedule-saving tool gets its authority: a
+ * strategy turn (no live request) runs with the strategy's live-refreshed actor,
+ * so the schedule it saves is bound instead of paused by Cloud.
  */
 @Injectable()
 export class AgentWorkflowToolHandler {
@@ -21,6 +26,7 @@ export class AgentWorkflowToolHandler {
     private readonly installService: AgentWorkflowToolInstallService,
     private readonly createService: AgentWorkflowToolCreateService,
     private readonly executeService: AgentWorkflowToolExecuteService,
+    private readonly scheduleAuthority: AgentStrategyScheduleAuthorityService,
   ) {}
 
   async listSystemWorkflowCatalog(
@@ -34,21 +40,30 @@ export class AgentWorkflowToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.installService.installSystemWorkflow(params, ctx);
+    return this.installService.installSystemWorkflow(
+      params,
+      await this.scheduleAuthority.withScheduleAuthority(ctx),
+    );
   }
 
   async installOfficialWorkflow(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.installService.installOfficialWorkflow(params, ctx);
+    return this.installService.installOfficialWorkflow(
+      params,
+      await this.scheduleAuthority.withScheduleAuthority(ctx),
+    );
   }
 
   async createWorkflow(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.createService.createWorkflow(params, ctx);
+    return this.createService.createWorkflow(
+      params,
+      await this.scheduleAuthority.withScheduleAuthority(ctx),
+    );
   }
 
   async listWorkflows(
@@ -69,14 +84,20 @@ export class AgentWorkflowToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.executeService.duplicateWorkflow(params, ctx);
+    return this.executeService.duplicateWorkflow(
+      params,
+      await this.scheduleAuthority.withScheduleAuthority(ctx),
+    );
   }
 
   async setWorkflowSchedule(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.executeService.setWorkflowSchedule(params, ctx);
+    return this.executeService.setWorkflowSchedule(
+      params,
+      await this.scheduleAuthority.withScheduleAuthority(ctx),
+    );
   }
 
   async listWorkflowRuns(

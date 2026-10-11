@@ -8,6 +8,7 @@ import { AgentStrategiesService } from '@api/collections/agent-strategies/servic
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
+import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -107,6 +108,43 @@ export class AgentStrategiesController extends BaseCRUDController<
     };
   }
 
+  /**
+   * The saver's authenticated principal becomes the strategy's schedule actor
+   * (while it is active and enabled). Any actor or principal the client sent is
+   * discarded first: the only source is the guard-authenticated user or API key.
+   */
+  public override enrichCreateDto(
+    createDto: Partial<CreateAgentStrategyDto>,
+    user: User,
+  ): CreateAgentStrategyDto {
+    return this.withSchedulePrincipal(
+      super.enrichCreateDto(createDto, user),
+      user,
+    );
+  }
+
+  public override async enrichUpdateDto(
+    updateDto: Partial<UpdateAgentStrategyDto>,
+    user: User,
+  ): Promise<UpdateAgentStrategyDto> {
+    return this.withSchedulePrincipal(
+      await super.enrichUpdateDto(updateDto, user),
+      user,
+    );
+  }
+
+  private withSchedulePrincipal<T extends object>(dto: T, user: User): T {
+    const {
+      schedulePrincipal: _clientPrincipal,
+      scheduleInitiatingActor: _clientActor,
+      ...rest
+    } = dto as Record<string, unknown>;
+    return {
+      ...rest,
+      schedulePrincipal: toWorkflowSchedulePrincipal(user),
+    } as T;
+  }
+
   public canUserModifyEntity(
     user: User,
     entity: AgentStrategyDocument,
@@ -160,6 +198,7 @@ export class AgentStrategiesController extends BaseCRUDController<
       id,
       user.organizationId,
       isActive,
+      toWorkflowSchedulePrincipal(user),
     );
 
     if (!strategy) {

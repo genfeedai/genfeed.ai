@@ -502,6 +502,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'policies',
       'preferredWorkflowId',
       'preferredWorkflowTemplateId',
+      'scheduleInitiatingActor',
       'thread',
       'updatedAt',
       'user',

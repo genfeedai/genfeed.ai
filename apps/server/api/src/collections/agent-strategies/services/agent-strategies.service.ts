@@ -6,6 +6,8 @@ import {
   resolveCadencePolicy,
   type StrategyCadenceConfiguration,
 } from '@api/collections/agent-strategies/services/agent-strategy-cadence.util';
+import { resolveStrategyScheduleActorWrite } from '@api/collections/agent-strategies/services/agent-strategy-schedule-actor.util';
+import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
@@ -41,11 +43,19 @@ type AgentStrategyWriteDto = Partial<
   requiresManualReactivation?: boolean;
   reserveTrendBudgetRemaining?: number;
   runHistory?: unknown;
+  /**
+   * Server-only: the authenticated user or API key saving the strategy. Set by
+   * the controller from the guard-authenticated request (after stripping any
+   * client value) or by an authenticated service entry point such as campaign
+   * start. It is the only source of `scheduleInitiatingActor`.
+   */
+  schedulePrincipal?: WorkflowSchedulePrincipal | null;
   userId?: string;
 };
 
 export type AgentStrategyCreateInput = CreateAgentStrategyDto & {
   organizationId: string;
+  schedulePrincipal?: WorkflowSchedulePrincipal | null;
   userId: string;
 };
 
@@ -223,7 +233,19 @@ export class AgentStrategiesService extends BaseService<
       runHistory: [],
     };
 
-    return this.toPrismaWriteData(payload, 'create');
+    const data = this.toPrismaWriteData(payload, 'create');
+    const actorWrite = resolveStrategyScheduleActorWrite({
+      config: this.readRecord(data.config),
+      // The column defaults to active when the DTO leaves it out.
+      isActive: typeof data.isActive === 'boolean' ? data.isActive : true,
+      organizationId: createDto.organizationId,
+      principal: createDto.schedulePrincipal,
+    });
+    // A new row starts unbound; only an authenticated save of an active, enabled
+    // strategy writes an actor, so there is nothing to clear here.
+    return actorWrite === undefined || actorWrite === Prisma.DbNull
+      ? data
+      : { ...data, scheduleInitiatingActor: actorWrite };
   }
 
   override async patch(
@@ -260,6 +282,20 @@ export class AgentStrategiesService extends BaseService<
         existingConfig,
         existingPolicies,
       );
+      // Bind or clear the schedule actor from the resulting enabled state and the
+      // authenticated saver, never from anything on the payload.
+      const actorWrite = resolveStrategyScheduleActorWrite({
+        config: this.readRecord(data.config) ?? existingConfig,
+        isActive:
+          typeof data.isActive === 'boolean'
+            ? data.isActive
+            : existing.isActive,
+        organizationId: existing.organizationId,
+        principal: (updateDto as AgentStrategyWriteDto).schedulePrincipal,
+      });
+      if (actorWrite !== undefined) {
+        data.scheduleInitiatingActor = actorWrite;
+      }
       const include = this.populateToInclude(populate);
       return this.normalizeDocument(
         await transaction.agentStrategy.update({
@@ -300,18 +336,26 @@ export class AgentStrategiesService extends BaseService<
    * on transition: activation queues the next run and clears failure state;
    * deactivation clears the schedule. Returns null when the strategy is missing.
    * Backs the `isActive` field on `PATCH /agent-strategies/:id`.
+   *
+   * `schedulePrincipal` is the authenticated user or API key doing this. An
+   * activation binds it as the strategy's schedule actor; a deactivation clears
+   * the actor whatever the caller supplies.
    */
   async setActive(
     id: string,
     organizationId: string,
     isActive: boolean,
+    schedulePrincipal?: WorkflowSchedulePrincipal | null,
   ): Promise<AgentStrategyDocument | null> {
     const strategy = await this.findOneById(id, organizationId);
     if (!strategy) {
       return null;
     }
 
-    const updateData: AgentStrategyWriteDto = { isActive };
+    const updateData: AgentStrategyWriteDto = {
+      isActive,
+      ...(schedulePrincipal ? { schedulePrincipal } : {}),
+    };
 
     if (isActive && !strategy.isActive) {
       updateData.nextRunAt = new Date();
@@ -370,7 +414,9 @@ export class AgentStrategiesService extends BaseService<
       await transaction.agentStrategy.update({
         where: { id, organizationId, isDeleted: false },
         data: {
-          ...(failures >= 3 ? { isActive: false } : {}),
+          ...(failures >= 3
+            ? { isActive: false, scheduleInitiatingActor: Prisma.DbNull }
+            : {}),
           config: toPrismaJson({
             ...config,
             consecutiveFailures: failures,
@@ -505,7 +551,14 @@ export class AgentStrategiesService extends BaseService<
       const data = mutate(this.readRecord(current.config) ?? {});
       await transaction.agentStrategy.update({
         where: { id, organizationId: current.organizationId, isDeleted: false },
-        data: { ...data, config: toPrismaJson(data.config) },
+        data: {
+          ...data,
+          config: toPrismaJson(data.config),
+          // A strategy taken out of service keeps no actor.
+          ...(data.isActive === false
+            ? { scheduleInitiatingActor: Prisma.DbNull }
+            : {}),
+        },
       });
       return data.config;
     });
@@ -593,7 +646,13 @@ export class AgentStrategiesService extends BaseService<
       suppliedConfig ||
       CONFIG_BACKED_KEYS.some((key) => Object.hasOwn(dto, key))
     ) {
-      data.config = suppliedConfig ? { ...config, ...suppliedConfig } : config;
+      const mergedConfig = suppliedConfig
+        ? { ...config, ...suppliedConfig }
+        : config;
+      // The schedule actor is a column written only from an authenticated
+      // principal. A copy smuggled through the config JSON is never persisted.
+      delete mergedConfig.scheduleInitiatingActor;
+      data.config = mergedConfig;
     }
 
     if (

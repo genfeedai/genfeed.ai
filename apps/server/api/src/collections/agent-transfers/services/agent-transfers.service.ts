@@ -8,6 +8,7 @@ import {
   buildAgentTurnIdempotencyKey,
 } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
@@ -59,6 +60,12 @@ const MAX_TRANSFER_DEPTH = 3;
 const MAX_SELECTED_CONTEXT_BYTES = 16_000;
 
 type TransferActor = {
+  /**
+   * The authenticated principal of the user or API key accepting the transfer
+   * into a run (the create-and-run and retry endpoints). The queued destination
+   * turn binds the schedules it saves to them. Absent for read-only callers.
+   */
+  initiatingPrincipal?: AgentInitiatingPrincipal;
   organizationId: string;
   userId: string;
 };
@@ -400,6 +407,9 @@ export class AgentTransfersService {
           transferId,
         },
         {
+          ...(actor.initiatingPrincipal
+            ? { initiatingPrincipal: actor.initiatingPrincipal }
+            : {}),
           organizationId: actor.organizationId,
           userId: actor.userId,
         } satisfies AgentChatContext,

@@ -10,7 +10,10 @@ import { readRecord } from '@genfeedai/utils/data/extract.util';
  * derived from a workflow, brand or strategy owner.
  *
  * A turn that did not start from an authenticated request (a proactive,
- * campaign or cadence run) carries none, and what it schedules stays unbound.
+ * campaign or cadence run) carries none. What it schedules is bound only to the
+ * actor its strategy persisted when an authenticated user or API key saved or
+ * enabled it, after that actor is read live again
+ * (`AgentStrategyScheduleAuthorityService`); otherwise it stays unbound.
  */
 export type AgentInitiatingPrincipal = WorkflowSchedulePrincipal;
 
@@ -73,17 +76,44 @@ export function projectAgentInitiatingPrincipal(
 }
 
 /**
+ * Reads the principal of a schedule authority that is not the turn's own user
+ * (an approving reviewer, a strategy's persisted actor). It must belong to the
+ * organization the tool runs in; its user is whoever authorized the action.
+ */
+export function projectScheduleAuthorityPrincipal(
+  value: unknown,
+  organizationId: string,
+): AgentInitiatingPrincipal | undefined {
+  const { userId } = readRecord(value);
+  if (typeof userId !== 'string' || userId.trim().length === 0) {
+    return undefined;
+  }
+  return projectAgentInitiatingPrincipal(value, { organizationId, userId });
+}
+
+/**
  * The principal a tool call may bind a schedule to, or undefined for a system
- * turn. The captured principal must still describe the user and organization the
- * tool runs as: approval redemption or a workflow hop that swaps the executing
- * user leaves the schedule unbound instead of attributing it to the wrong actor.
+ * turn.
+ *
+ * A server-set `scheduleAuthorityPrincipal` wins: it is the member who approved
+ * the action when a reviewer redeemed it (the tool then runs as the requester),
+ * or a strategy's persisted actor after a live refresh. Otherwise the captured
+ * principal must still describe the user and organization the tool runs as:
+ * a workflow hop that swaps the executing user leaves the schedule unbound
+ * instead of attributing it to the wrong actor.
  */
 export function resolveToolSchedulePrincipal(context: {
   initiatingPrincipal?: AgentInitiatingPrincipal;
   isProactive?: boolean;
   organizationId: string;
+  scheduleAuthorityPrincipal?: AgentInitiatingPrincipal;
   userId: string;
 }): AgentInitiatingPrincipal | undefined {
+  const authority = projectScheduleAuthorityPrincipal(
+    context.scheduleAuthorityPrincipal,
+    context.organizationId,
+  );
+  if (authority) return authority;
   if (context.isProactive) return undefined;
   return projectAgentInitiatingPrincipal(context.initiatingPrincipal, context);
 }

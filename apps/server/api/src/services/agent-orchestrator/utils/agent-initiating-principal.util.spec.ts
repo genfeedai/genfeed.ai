@@ -118,5 +118,55 @@ describe('agent initiating principal', () => {
         }),
       ).toBeUndefined();
     });
+
+    describe('a schedule authority that is not the executing user', () => {
+      const approver = { ...principal, userId: 'approver-1' };
+
+      it('binds the approving member while the tool runs as the requester', () => {
+        expect(
+          resolveToolSchedulePrincipal({
+            initiatingPrincipal: approver,
+            organizationId: 'org-1',
+            scheduleAuthorityPrincipal: approver,
+            userId: 'requester-1',
+          }),
+        ).toEqual(approver);
+      });
+
+      it('binds a strategy actor for a proactive turn, which has no principal of its own', () => {
+        expect(
+          resolveToolSchedulePrincipal({
+            ...identity,
+            isProactive: true,
+            scheduleAuthorityPrincipal: approver,
+          }),
+        ).toEqual(approver);
+      });
+
+      it('wins over the executing user principal', () => {
+        expect(
+          resolveToolSchedulePrincipal({
+            ...identity,
+            initiatingPrincipal: principal,
+            scheduleAuthorityPrincipal: approver,
+          }),
+        ).toEqual(approver);
+      });
+
+      it.each([
+        ['another organization', { ...approver, organizationId: 'org-2' }],
+        ['a blank user', { ...approver, userId: ' ' }],
+        ['non-boolean key flag', { ...approver, isApiKey: 'no' }],
+        ['non-string scopes', { ...approver, scopes: [1] }],
+        ['a non-object', 'approver-1'],
+      ])('is ignored when it is %s', (_label, value) => {
+        expect(
+          resolveToolSchedulePrincipal({
+            ...identity,
+            scheduleAuthorityPrincipal: value as never,
+          }),
+        ).toBeUndefined();
+      });
+    });
   });
 });
