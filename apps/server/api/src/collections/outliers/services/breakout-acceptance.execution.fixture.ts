@@ -229,11 +229,21 @@ type Stub = never;
  * code. Faked: the OpenRouter and Replicate providers, the model catalog and router, the
  * account constraint lookup and the BullMQ transport.
  */
+export type ExecutionHarnessOptions = {
+  /**
+   * The shipped brand validator has no qualified image or video evidence and blocks every
+   * visual admission (`artifact_media_unsupported`). By default the visual admission is
+   * qualified so the pipeline behind it can be exercised; set this to run the shipped one.
+   */
+  isShippedMediaValidator?: boolean;
+};
+
 export function buildExecutionHarness(
   db: PrismaClient<'query'>,
   prisma: PrismaService,
   logger: LoggerService,
   world: AcceptanceWorld,
+  options: ExecutionHarnessOptions = {},
 ): ExecutionHarness {
   const brandAccess = new BrandAccessService(prisma);
   const balances = new CreditBalanceService(prisma, logger);
@@ -464,6 +474,15 @@ export function buildExecutionHarness(
       },
     }),
   };
+  // Only the visual admission is swapped; the text artifacts are validated by the real one.
+  const mediaValidator = options.isShippedMediaValidator
+    ? validator
+    : ({
+        preflightBrandCapabilities: () => ({
+          diagnostics: [],
+          status: 'supported',
+        }),
+      } as Stub);
   const planner = new BreakoutGenerationPlanService(
     prisma,
     registry as Stub,
@@ -475,7 +494,7 @@ export function buildExecutionHarness(
     accountConstraints as Stub,
     optimizers,
     snapshots,
-    validator,
+    mediaValidator,
     {
       estimate: async () => ({
         credits: VISUAL_GENERATION_CREDITS,
@@ -500,7 +519,7 @@ export function buildExecutionHarness(
       prisma,
       mediaGateway as Stub,
       snapshots,
-      validator,
+      mediaValidator,
     ),
     quality,
     reviewHandoff,
