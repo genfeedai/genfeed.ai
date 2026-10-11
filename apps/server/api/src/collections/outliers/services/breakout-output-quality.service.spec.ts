@@ -232,6 +232,28 @@ function fixture(thread = false) {
 
 describe('breakout normal strategy quality consumer', () => {
   beforeEach(() => vi.clearAllMocks());
+  it('scores a draft held for brand review so a member can publish it once approved', async () => {
+    const h = fixture();
+    // Every material re-read of this evaluation sees the same held-for-review output.
+    for (let read = 0; read < 12; read += 1)
+      vi.mocked(readBreakoutOutputRecovery).mockResolvedValueOnce({
+        status: 'available',
+        responseId: 'response-a',
+        outputId: 'output-a',
+        state: 'awaiting_review',
+        reason: 'brand_review_required',
+        action: 'none',
+        mayRepeatPaidRequest: false,
+        postId: 'post-a',
+        externalId: null,
+      });
+    expect(await h.service.evaluate(h.request)).toEqual({
+      state: 'approved',
+      scoreId: 'score-a',
+    });
+    expect(h.credits.settleReservation).toHaveBeenCalledOnce();
+    expect(h.state()).toEqual({ heldReason: null, state: 'generating' });
+  });
   it.each([false, true])(
     'scores complete canonical content, settles the actual cost and replays without another paid call (thread=%s)',
     async (thread) => {

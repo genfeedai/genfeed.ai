@@ -238,6 +238,28 @@ describe('bounded actual breakout response execution', () => {
       expect(h.rows[1]?.workflowExecutionId).toBeNull();
     },
   );
+  it('reports a draft held for brand review as a settled hold and still drafts the siblings', async () => {
+    const h = fixture();
+    vi.mocked(readBreakoutOutputRecovery).mockImplementation(
+      async (_tx, input) => ({
+        status: 'available',
+        responseId: input.responseId,
+        outputId: input.outputId,
+        state: 'awaiting_review',
+        reason: 'brand_review_required',
+        action: 'none',
+        mayRepeatPaidRequest: false,
+        postId: 'draft-a',
+        externalId: null,
+      }),
+    );
+    expect(await h.service.execute(h.request)).toMatchObject({
+      status: 'held',
+      reason: 'brand_review_required',
+      outputs: h.rows.map((row) => ({ outputId: row.id })),
+    });
+    expect(h.text.generate).toHaveBeenCalledTimes(5);
+  });
   it('retains an unresolved quality/provider hold without paid replay or sibling work', async () => {
     const h = fixture();
     h.first.state = 'generating';
