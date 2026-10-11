@@ -759,8 +759,9 @@ export function useAgentChatContainer({
   // composer instead.
   const handleStopAndRetry = useCallback(async (): Promise<void> => {
     const threadId = activeThreadId;
-    const lastUserPrompt = messages
-      .findLast((message) => message.role === 'user')
+    const lastUserPrompt = [...messages]
+      .reverse()
+      .find((message) => message.role === 'user')
       ?.content.trim();
     const isStopped = await handleStopRun();
     if (!isStopped) {
