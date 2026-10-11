@@ -208,8 +208,8 @@ describe.skipIf(!connectionString)(
       pool = new Pool({ connectionString, max: 1 });
       client = await pool.connect();
       schema = `actor_grandfather_${randomUUID().replaceAll('-', '')}`;
-      client.on('notice', (notice) => notices.push(notice.message));
       notices = [];
+      client.on('notice', (notice) => notices.push(notice.message ?? ''));
       await client.query(`CREATE SCHEMA "${schema}"`);
       for (const table of TABLES) {
         await client.query(
