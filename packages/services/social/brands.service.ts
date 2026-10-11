@@ -711,7 +711,7 @@ export class BrandsService extends BaseService<Brand> {
    * top-level `meta`), this reads the raw response so callers get both
    * the updated brand AND the relocation summary
    * (`workflowsMoved`, `membersSevered`, `schedulesHeld`, `schedulingPending`,
-   * `personaGrantsRevoked`).
+   * `personaGrantsRevoked`, `personasSharingReset`).
    */
   public async relocateBrand(
     id: string,

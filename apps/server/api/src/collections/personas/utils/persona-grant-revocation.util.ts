@@ -1,7 +1,7 @@
 import type { Prisma } from '@genfeedai/prisma';
 
 /** Recorded as the revoking actor when the move came from a platform operator without a user id. */
-const RELOCATION_SYSTEM_ACTOR = 'system:brand-relocation';
+export const RELOCATION_SYSTEM_ACTOR = 'system:brand-relocation';
 
 /**
  * Revoke every active grant on the personas an organization's brand owns. A

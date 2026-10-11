@@ -298,6 +298,7 @@ describe.skipIf(!connectionString)(
       expect(await orgOf(s)).toEqual(everythingIn(s.destination));
       expect(summary).toMatchObject({
         personaGrantsRevoked: 1,
+        personasSharingReset: 1,
         schedulesHeld: 1,
         schedulingPending: 0,
         workflowsMoved: 1,
@@ -392,6 +393,126 @@ describe.skipIf(!connectionString)(
       ).resolves.toBeNull();
     });
 
+    it('resets a shared character to its owning brand in the move, and leaves an owning-only one alone', async () => {
+      const s = await seed(prisma);
+      // A second character that lists brands, the other kind of sharing.
+      const listed = (
+        await prisma.persona.create({
+          data: {
+            availabilityMode: 'SELECTED_BRANDS',
+            availableBrandIds: [s.recipientBrand],
+            brandId: s.brand,
+            handle: `kai-${randomUUID()}`,
+            label: 'Kai',
+            organizationId: s.source,
+            userId: s.owner,
+          },
+        })
+      ).id;
+
+      const preview = await service.previewRelocation(
+        s.brand,
+        s.destination,
+        s.actor,
+      );
+      expect(preview.personasToReset.map((item) => item.id).sort()).toEqual(
+        [s.sharedPersona, listed].sort(),
+      );
+
+      const { summary } = await move(s, s.destination);
+
+      expect(summary.personasSharingReset).toBe(2);
+      expect(summary.personasSharingReset).toBe(preview.counts.personasToReset);
+      for (const personaId of [s.sharedPersona, listed]) {
+        await expect(
+          prisma.persona.findUniqueOrThrow({ where: { id: personaId } }),
+        ).resolves.toMatchObject({
+          availabilityMode: 'OWNING_BRAND',
+          availableBrandIds: [],
+          brandId: s.brand,
+          organizationId: s.destination,
+        });
+      }
+      await expect(
+        prisma.persona.findUniqueOrThrow({ where: { id: s.persona } }),
+      ).resolves.toMatchObject({
+        availabilityMode: 'OWNING_BRAND',
+        availableBrandIds: [],
+        organizationId: s.destination,
+      });
+      const audits = await prisma.personaAvailabilityAudit.findMany({
+        orderBy: { previousMode: 'asc' },
+        where: { personaId: { in: [s.persona, s.sharedPersona, listed] } },
+      });
+      expect(audits).toEqual([
+        expect.objectContaining({
+          actorUserId: s.owner,
+          newBrandIds: [],
+          newMode: 'OWNING_BRAND',
+          organizationId: s.source,
+          personaId: s.sharedPersona,
+          previousBrandIds: [],
+          previousMode: 'ALL_BRANDS',
+        }),
+        expect.objectContaining({
+          newMode: 'OWNING_BRAND',
+          personaId: listed,
+          previousBrandIds: [s.recipientBrand],
+          previousMode: 'SELECTED_BRANDS',
+        }),
+      ]);
+    });
+
+    it('rolls the sharing reset back with the rest of the move when the transaction aborts', async () => {
+      const s = await seed(prisma);
+      const abortingPrisma = new Proxy(prisma, {
+        get(target, property) {
+          if (property === '$transaction') {
+            return (
+              work: (tx: Prisma.TransactionClient) => Promise<unknown>,
+              options: Parameters<typeof prisma.$transaction>[1],
+            ) =>
+              prisma.$transaction(async (tx) => {
+                await work(tx);
+                throw new Error('abort after the whole move ran');
+              }, options);
+          }
+          const value = Reflect.get(target, property, target);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      });
+      const aborting = new BrandRelocationService(
+        abortingPrisma as unknown as PrismaService,
+        logger as never,
+        {
+          invalidate: vi.fn().mockResolvedValue(undefined),
+          invalidateByTags: vi.fn().mockResolvedValue(undefined),
+        } as never,
+        { get: () => ({ unscheduleWorkflow }) } as never,
+      );
+
+      await expect(
+        aborting.relocateToOrganization(
+          s.brand,
+          { organizationId: s.destination },
+          s.actor,
+        ),
+      ).rejects.toThrow('abort after the whole move ran');
+
+      await expect(
+        prisma.persona.findUniqueOrThrow({ where: { id: s.sharedPersona } }),
+      ).resolves.toMatchObject({
+        availabilityMode: 'ALL_BRANDS',
+        organizationId: s.source,
+      });
+      await expect(
+        prisma.personaAvailabilityAudit.count({
+          where: { personaId: s.sharedPersona },
+        }),
+      ).resolves.toBe(0);
+      expect(await orgOf(s)).toEqual(everythingIn(s.source, 'llmVendorCost'));
+    });
+
     it('moving A to B and back brings back no actor and no grant', async () => {
       const s = await seed(prisma);
       await move(s, s.destination);
@@ -439,6 +560,9 @@ describe.skipIf(!connectionString)(
         await expect(
           prisma.personaGrant.findUniqueOrThrow({ where: { id: s.grant } }),
         ).resolves.toMatchObject({ revokedAt: null });
+        await expect(
+          prisma.persona.findUniqueOrThrow({ where: { id: s.sharedPersona } }),
+        ).resolves.toMatchObject({ availabilityMode: 'ALL_BRANDS' });
         expect(unscheduleWorkflow).not.toHaveBeenCalled();
       }
 
@@ -739,6 +863,20 @@ async function seed(prisma: PrismaClient, options: SeedOptions = {}) {
       },
     })
   ).id;
+  // A character the brand shares with every brand of its organization: the
+  // move limits it to the owning brand.
+  const sharedPersona = (
+    await prisma.persona.create({
+      data: {
+        availabilityMode: 'ALL_BRANDS',
+        brandId: brand,
+        handle: id('mira'),
+        label: 'Mira',
+        organizationId: source,
+        userId: owner,
+      },
+    })
+  ).id;
   const grant = (
     await prisma.personaGrant.create({
       data: {
@@ -904,6 +1042,7 @@ async function seed(prisma: PrismaClient, options: SeedOptions = {}) {
     recipient,
     recipientBrand,
     response,
+    sharedPersona,
     source,
     thread,
     vendorCost,

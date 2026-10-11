@@ -501,6 +501,7 @@
       "moveOne": "Move 1 brand",
       "moveSelected": "Move {count} selected",
       "onlyBrand": "An organization keeps at least one brand, so its last brand can't be moved.",
+      "personasWillReset": "{count, plural, one {# shared character will be limited to this brand only.} other {# shared characters will be limited to this brand only.}}",
       "rowAction": "Move to organization",
       "schedulesWillPause": "{count, plural, one {# schedule will pause until someone saves it again.} other {# schedules will pause until someone saves them again.}}",
       "setupFailed": "Couldn't start the move. Please try again.",

@@ -41,6 +41,11 @@ import {
 import { invalidateLearningDependencySource } from '@api/collections/content-learning/services/learning-dependency.service';
 import { revokePersonaGrantsForRelocation } from '@api/collections/personas/utils/persona-grant-revocation.util';
 import {
+  type BrandRelocationSharedPersona,
+  findSharedBrandPersonas,
+  resetPersonaSharingForRelocation,
+} from '@api/collections/personas/utils/persona-relocation-sharing.util';
+import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
@@ -88,6 +93,7 @@ interface RelocationReconcileResult {
 interface RelocationTransactionResult extends RelocationReconcileResult {
   heldSchedules: BrandRelocationHeldSchedule[];
   personaGrantsRevoked: number;
+  personasSharingReset: number;
   touchedWorkflowIds: string[];
 }
 
@@ -112,6 +118,8 @@ export interface BrandRelocationSummary {
   schedulingPending: number;
   /** Persona grants revoked because their character changed owner. */
   personaGrantsRevoked: number;
+  /** Characters reset to their owning brand only because they were shared beyond it. */
+  personasSharingReset: number;
 }
 
 /** Result of `relocateToOrganization`: the moved brand plus a summary for the client. */
@@ -126,8 +134,11 @@ export interface BrandRelocationPreview {
     soleBrandWorkflows: number;
     staleMembers: number;
     schedulesToHold: number;
+    personasToReset: number;
   };
   movingResources: BrandRelocationMovingResource[];
+  /** The characters whose sharing will be reset to the owning brand only. */
+  personasToReset: BrandRelocationSharedPersona[];
   /** The enabled schedules that will be paused. */
   schedulesToHold: BrandRelocationHeldSchedule[];
 }
@@ -135,6 +146,7 @@ export interface BrandRelocationPreview {
 const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
   membersSevered: 0,
   personaGrantsRevoked: 0,
+  personasSharingReset: 0,
   schedulesHeld: 0,
   schedulingPending: 0,
   workflowsMoved: 0,
@@ -244,6 +256,7 @@ export class BrandRelocationService {
       heldSchedules: [],
       membersSevered: 0,
       personaGrantsRevoked: 0,
+      personasSharingReset: 0,
       touchedWorkflowIds: [],
       workflowsMoved: 0,
     };
@@ -319,6 +332,7 @@ export class BrandRelocationService {
       summary: {
         membersSevered: moveResult.membersSevered,
         personaGrantsRevoked: moveResult.personaGrantsRevoked,
+        personasSharingReset: moveResult.personasSharingReset,
         schedulesHeld: moveResult.heldSchedules.length,
         schedulingPending,
         workflowsMoved: moveResult.workflowsMoved,
@@ -353,7 +367,7 @@ export class BrandRelocationService {
 
   /**
    * Everything a relocation does inside its one Serializable transaction: the
-   * guards, then the schedule and grant changes, then the organization cascade,
+   * guards, then the schedule, grant and character-sharing changes, then the organization cascade,
    * then the orphan audit. Anything that throws rolls the whole move back.
    */
   private async moveBrandInTransaction(
@@ -382,9 +396,14 @@ export class BrandRelocationService {
       move.slug,
     );
     // Before the cascade rewrites any organization id: the schedule actors and
-    // the persona grants both belong to the source tenant.
+    // persona grants and the character sharing all belong to the source tenant.
     const { held, touchedWorkflowIds } = await holdBrandSchedules(tx, brandId);
     const personaGrantsRevoked = await revokePersonaGrantsForRelocation(tx, {
+      actorUserId: actingUser.userId,
+      brandId,
+      organizationId: sourceOrgId,
+    });
+    const sharedPersonas = await resetPersonaSharingForRelocation(tx, {
       actorUserId: actingUser.userId,
       brandId,
       organizationId: sourceOrgId,
@@ -401,6 +420,7 @@ export class BrandRelocationService {
       ...result,
       heldSchedules: held,
       personaGrantsRevoked,
+      personasSharingReset: sharedPersonas.length,
       touchedWorkflowIds,
     };
   }
@@ -459,13 +479,20 @@ export class BrandRelocationService {
       brandId,
     );
 
+    const personasToReset = await findSharedBrandPersonas(
+      this.prisma as unknown as Prisma.TransactionClient,
+      { brandId, organizationId: sourceOrgId },
+    );
+
     return {
       counts: {
+        personasToReset: personasToReset.length,
         schedulesToHold: schedulesToHold.length,
         soleBrandWorkflows: impact.soleBrandWorkflowIds.length,
         staleMembers: impact.staleMemberIds.length,
       },
       movingResources,
+      personasToReset,
       schedulesToHold,
     };
   }

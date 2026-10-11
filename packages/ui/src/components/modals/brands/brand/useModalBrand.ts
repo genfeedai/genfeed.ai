@@ -69,6 +69,7 @@ import {
   buildHeldSchedulesSummary,
   buildMovingResourcesSummary,
   buildRelocationToastMessage,
+  buildSharedPersonasSummary,
 } from './brand-relocation-summary.util';
 import {
   type BrandEditorTab,
@@ -775,6 +776,13 @@ export function useModalBrand(
       );
       if (heldSchedulesSummary) {
         sentences.push(heldSchedulesSummary);
+      }
+
+      const sharedPersonasSummary = buildSharedPersonasSummary(
+        preview.personasToReset,
+      );
+      if (sharedPersonasSummary) {
+        sentences.push(sharedPersonasSummary);
       }
 
       sentences.push('This cannot be easily undone.');

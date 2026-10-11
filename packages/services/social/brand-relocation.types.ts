@@ -7,6 +7,7 @@ export interface IBrandRelocationCounts {
   soleBrandWorkflows: number;
   staleMembers: number;
   schedulesToHold: number;
+  personasToReset: number;
 }
 
 /**
@@ -19,6 +20,21 @@ export interface IBrandRelocationHeldSchedule {
   label: string | null;
   schedule: string;
   timezone: string | null;
+}
+
+/**
+ * A character the moving brand owns that is shared beyond that brand. The move
+ * resets it to the owning brand only and clears its brand list, because the
+ * sharing was decided in the organization it leaves.
+ */
+export interface IBrandRelocationSharedPersona {
+  id: string;
+  label: string;
+  handle: string | null;
+  /** `ALL_BRANDS` or `SELECTED_BRANDS` (a leftover brand list on an owning-brand character is also reset). */
+  availabilityMode: string;
+  /** How many brands the character listed (zero for an every-brand character). */
+  availableBrandCount: number;
 }
 
 export interface IBrandRelocationMovingResource {
@@ -36,6 +52,8 @@ export interface IBrandRelocationMovingResource {
 export interface IBrandRelocationPreview {
   counts: IBrandRelocationCounts;
   movingResources: IBrandRelocationMovingResource[];
+  /** The characters that will be limited to this brand only. */
+  personasToReset: IBrandRelocationSharedPersona[];
   /** The enabled schedules that will be paused by the move. */
   schedulesToHold: IBrandRelocationHeldSchedule[];
 }
@@ -62,6 +80,8 @@ export interface IBrandRelocationSummary {
   schedulingPending: number;
   /** Character grants revoked because their character changed organization. */
   personaGrantsRevoked: number;
+  /** Shared characters reset to their owning brand only. */
+  personasSharingReset: number;
 }
 
 /**

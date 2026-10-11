@@ -57,11 +57,13 @@ describe('describePreview', () => {
       describePreview(
         {
           counts: {
+            personasToReset: 0,
             schedulesToHold: 0,
             soleBrandWorkflows: 0,
             staleMembers: 2,
           },
           movingResources: [{ count: 3, label: 'posts', resource: 'post' }],
+          personasToReset: [],
           schedulesToHold: [],
         },
         translate,
@@ -74,11 +76,13 @@ describe('describePreview', () => {
       describePreview(
         {
           counts: {
+            personasToReset: 0,
             schedulesToHold: 0,
             soleBrandWorkflows: 1,
             staleMembers: 1,
           },
           movingResources: [],
+          personasToReset: [],
           schedulesToHold: [],
         },
         translate,
@@ -91,11 +95,13 @@ describe('describePreview', () => {
       describePreview(
         {
           counts: {
+            personasToReset: 0,
             schedulesToHold: 2,
             soleBrandWorkflows: 0,
             staleMembers: 0,
           },
           movingResources: [],
+          personasToReset: [],
           schedulesToHold: [
             { id: 'a', label: 'Daily', schedule: '0 9 * * *', timezone: null },
             { id: 'b', label: null, schedule: '0 10 * * *', timezone: 'UTC' },
@@ -106,16 +112,52 @@ describe('describePreview', () => {
     ).toBe('2 schedules will pause until someone saves them again.');
   });
 
-  it('is empty when nothing else moves', () => {
+  it('warns that shared characters are limited to the brand', () => {
     expect(
       describePreview(
         {
           counts: {
+            personasToReset: 2,
             schedulesToHold: 0,
             soleBrandWorkflows: 0,
             staleMembers: 0,
           },
           movingResources: [],
+          personasToReset: [
+            {
+              availabilityMode: 'ALL_BRANDS',
+              availableBrandCount: 0,
+              handle: null,
+              id: 'p1',
+              label: 'Mira',
+            },
+            {
+              availabilityMode: 'SELECTED_BRANDS',
+              availableBrandCount: 2,
+              handle: 'kai',
+              id: 'p2',
+              label: 'Kai',
+            },
+          ],
+          schedulesToHold: [],
+        },
+        translate,
+      ),
+    ).toBe('2 shared characters will be limited to this brand only.');
+  });
+
+  it('is empty when nothing else moves', () => {
+    expect(
+      describePreview(
+        {
+          counts: {
+            personasToReset: 0,
+            schedulesToHold: 0,
+            soleBrandWorkflows: 0,
+            staleMembers: 0,
+          },
+          movingResources: [],
+          personasToReset: [],
           schedulesToHold: [],
         },
         translate,

@@ -65,6 +65,7 @@ const SOURCE_FALLBACK_BRAND_ID = 'brand_fallback';
 const EMPTY_RELOCATION_SUMMARY = {
   membersSevered: 0,
   personaGrantsRevoked: 0,
+  personasSharingReset: 0,
   schedulesHeld: 0,
   schedulingPending: 0,
   workflowsMoved: 0,
@@ -229,6 +230,7 @@ describe('BrandRelocationService', () => {
 
     expect(preview).toEqual({
       counts: {
+        personasToReset: 0,
         schedulesToHold: 0,
         soleBrandWorkflows: 1,
         staleMembers: 1,
@@ -242,6 +244,7 @@ describe('BrandRelocationService', () => {
           resource: 'workflowExecution',
         },
       ],
+      personasToReset: [],
       schedulesToHold: [],
     });
   });
@@ -1590,7 +1593,9 @@ describe('BrandRelocationService', () => {
   describe('persona grants on relocation (#6689)', () => {
     it('revokes active grants on the moved brand personas before the cascade rewrites their organization', async () => {
       primeRelocatableBrand();
-      getDelegate('persona').findMany.mockResolvedValue([{ id: 'persona_1' }]);
+      getDelegate('persona').findMany.mockResolvedValueOnce([
+        { id: 'persona_1' },
+      ]);
       getDelegate('personaGrant').findMany.mockResolvedValue([
         {
           availabilityMode: 'ALL_BRANDS',
@@ -1634,6 +1639,229 @@ describe('BrandRelocationService', () => {
       ).toBeLessThan(
         getDelegate('persona').updateMany.mock.invocationCallOrder[0],
       );
+    });
+  });
+
+  describe('persona sharing on relocation (#6689)', () => {
+    const actor = { isSuperAdmin: true, userId: USER_ID };
+    const sharedPersonas = [
+      {
+        availabilityMode: 'ALL_BRANDS',
+        availableBrandIds: [],
+        handle: 'mira',
+        id: 'persona_all',
+        label: 'Mira',
+      },
+      {
+        availabilityMode: 'SELECTED_BRANDS',
+        availableBrandIds: ['brand_x', 'brand_y'],
+        handle: null,
+        id: 'persona_list',
+        label: 'Kai',
+      },
+    ];
+
+    // The grant revocation reads the brand's personas by id; the sharing read
+    // is the one that filters on availability.
+    function mockSharedPersonas(rows: unknown[] = sharedPersonas): void {
+      getDelegate('persona').findMany.mockImplementation(
+        async (args?: { where?: { OR?: unknown } }) =>
+          args?.where?.OR ? rows : [],
+      );
+    }
+
+    function sharingResets() {
+      return getDelegate('persona').updateMany.mock.calls.filter(
+        ([args]) => 'availabilityMode' in (args.data ?? {}),
+      );
+    }
+
+    it('resets an all-brands character and a listed character to the owning brand with the list cleared', async () => {
+      primeRelocatableBrand();
+      mockSharedPersonas();
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(sharingResets()).toEqual([
+        [
+          {
+            data: { availabilityMode: 'OWNING_BRAND', availableBrandIds: [] },
+            where: {
+              brandId: BRAND_ID,
+              id: { in: ['persona_all', 'persona_list'] },
+              isDeleted: false,
+              organizationId: SOURCE_ORG,
+            },
+          },
+        ],
+      ]);
+      expect(getDelegate('persona').findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            brandId: BRAND_ID,
+            isDeleted: false,
+            OR: [
+              { availabilityMode: { not: 'OWNING_BRAND' } },
+              { availableBrandIds: { isEmpty: false } },
+            ],
+            organizationId: SOURCE_ORG,
+          },
+        }),
+      );
+      expect(summary.personasSharingReset).toBe(2);
+    });
+
+    it('audits each change under the source organization with the previous sharing', async () => {
+      primeRelocatableBrand();
+      mockSharedPersonas();
+
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(
+        getDelegate('personaAvailabilityAudit').createMany,
+      ).toHaveBeenCalledWith({
+        data: [
+          {
+            actorUserId: USER_ID,
+            newBrandIds: [],
+            newMode: 'OWNING_BRAND',
+            organizationId: SOURCE_ORG,
+            personaId: 'persona_all',
+            previousBrandIds: [],
+            previousMode: 'ALL_BRANDS',
+          },
+          {
+            actorUserId: USER_ID,
+            newBrandIds: [],
+            newMode: 'OWNING_BRAND',
+            organizationId: SOURCE_ORG,
+            personaId: 'persona_list',
+            previousBrandIds: ['brand_x', 'brand_y'],
+            previousMode: 'SELECTED_BRANDS',
+          },
+        ],
+      });
+    });
+
+    it('resets the sharing before the cascade rewrites the organization', async () => {
+      primeRelocatableBrand();
+      mockSharedPersonas();
+
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      const calls = getDelegate('persona').updateMany.mock.calls;
+      const resetCall = calls.findIndex(
+        ([args]) => 'availabilityMode' in (args.data ?? {}),
+      );
+      const cascadeCall = calls.findIndex(
+        ([args]) => args.data?.organizationId === DEST_ORG,
+      );
+      expect(resetCall).toBeGreaterThanOrEqual(0);
+      expect(cascadeCall).toBeGreaterThan(resetCall);
+    });
+
+    it('leaves the characters untouched when none is shared beyond the brand', async () => {
+      primeRelocatableBrand();
+      mockSharedPersonas([]);
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(sharingResets()).toHaveLength(0);
+      expect(
+        getDelegate('personaAvailabilityAudit').createMany,
+      ).not.toHaveBeenCalled();
+      expect(summary.personasSharingReset).toBe(0);
+    });
+
+    it('records the system actor when the move has no user id', async () => {
+      primeRelocatableBrand();
+      mockSharedPersonas([sharedPersonas[0]]);
+
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: '' },
+      );
+
+      expect(
+        getDelegate('personaAvailabilityAudit').createMany,
+      ).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({ actorUserId: 'system:brand-relocation' }),
+        ],
+      });
+    });
+
+    it('aborts the move before the cascade when the reset fails', async () => {
+      primeRelocatableBrand();
+      mockSharedPersonas();
+      getDelegate('persona').updateMany.mockRejectedValueOnce(
+        new Error('write failed'),
+      );
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          actor,
+        ),
+      ).rejects.toThrow('write failed');
+      expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+    });
+
+    it('lists in the preview exactly the characters the move resets, without changing anything', async () => {
+      primeRelocatableBrand();
+      mockSharedPersonas();
+
+      const preview = await service.previewRelocation(
+        BRAND_ID,
+        DEST_ORG,
+        actor,
+      );
+      expect(sharingResets()).toHaveLength(0);
+      expect(
+        getDelegate('personaAvailabilityAudit').createMany,
+      ).not.toHaveBeenCalled();
+
+      const { summary } = await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      );
+
+      expect(preview.personasToReset).toEqual([
+        {
+          availabilityMode: 'ALL_BRANDS',
+          availableBrandCount: 0,
+          handle: 'mira',
+          id: 'persona_all',
+          label: 'Mira',
+        },
+        {
+          availabilityMode: 'SELECTED_BRANDS',
+          availableBrandCount: 2,
+          handle: null,
+          id: 'persona_list',
+          label: 'Kai',
+        },
+      ]);
+      expect(preview.counts.personasToReset).toBe(summary.personasSharingReset);
     });
   });
 

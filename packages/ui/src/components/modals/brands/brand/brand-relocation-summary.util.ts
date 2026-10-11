@@ -1,10 +1,11 @@
 import type {
   IBrandRelocationHeldSchedule,
   IBrandRelocationMovingResource,
+  IBrandRelocationSharedPersona,
   IBrandRelocationSummary,
 } from '@genfeedai/services/social/brand-relocation.types';
 
-const MAX_LISTED_SCHEDULES = 5;
+const MAX_LISTED_ITEMS = 5;
 
 function joinRelocationSummaryItems(items: string[]): string {
   if (items.length === 0) {
@@ -52,9 +53,7 @@ export function buildHeldSchedulesSummary(
     return null;
   }
 
-  const listed = schedules
-    .slice(0, MAX_LISTED_SCHEDULES)
-    .map(describeHeldSchedule);
+  const listed = schedules.slice(0, MAX_LISTED_ITEMS).map(describeHeldSchedule);
   const remaining = schedules.length - listed.length;
   const names = joinRelocationSummaryItems(
     remaining > 0 ? [...listed, `${remaining} more`] : listed,
@@ -63,6 +62,32 @@ export function buildHeldSchedulesSummary(
   const pronoun = schedules.length === 1 ? 'it' : 'them';
 
   return `${schedules.length} ${noun} will pause until someone saves ${pronoun} again in the new organization: ${names}.`;
+}
+
+function describeSharedPersona(persona: IBrandRelocationSharedPersona): string {
+  return persona.label.trim() || persona.handle || 'Untitled character';
+}
+
+/**
+ * The relocation warning for characters the brand shares beyond itself: the
+ * sharing was decided in the organization it leaves, so the move limits each
+ * one to this brand and clears its brand list.
+ */
+export function buildSharedPersonasSummary(
+  personas: readonly IBrandRelocationSharedPersona[] | undefined,
+): string | null {
+  if (!personas || personas.length === 0) {
+    return null;
+  }
+
+  const listed = personas.slice(0, MAX_LISTED_ITEMS).map(describeSharedPersona);
+  const remaining = personas.length - listed.length;
+  const names = joinRelocationSummaryItems(
+    remaining > 0 ? [...listed, `${remaining} more`] : listed,
+  );
+  const noun = personas.length === 1 ? 'character is' : 'characters are';
+
+  return `${personas.length} shared ${noun} limited to this brand only after the move: ${names}.`;
 }
 
 /** The toast shown once a move has committed, from the server's summary. */
@@ -76,6 +101,11 @@ export function buildRelocationToastMessage(
   if (summary.schedulesHeld > 0) {
     parts.push(
       `${summary.schedulesHeld} ${summary.schedulesHeld === 1 ? 'schedule' : 'schedules'} paused until saved again`,
+    );
+  }
+  if (summary.personasSharingReset > 0) {
+    parts.push(
+      `${summary.personasSharingReset} shared ${summary.personasSharingReset === 1 ? 'character' : 'characters'} limited to this brand only`,
     );
   }
   if (summary.personaGrantsRevoked > 0) {
