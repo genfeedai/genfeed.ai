@@ -1,3 +1,7 @@
+import {
+  ASSET_ORIGIN_GENERATED,
+  ASSET_ORIGIN_GENERATION_PENDING,
+} from '@api/collections/assets/constants/asset-origin.constant';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -15,6 +19,8 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
+  AssetCategory,
+  AssetParent,
   categoryToMediaType,
   categoryToPlural,
   FileInputType,
@@ -643,6 +649,8 @@ export class WebhooksService {
         { type: FileInputType.URL, url },
       );
 
+      await this.finalizeGeneratedAsset(asset);
+
       const userId = asset.userId ?? undefined;
 
       if (userId) {
@@ -679,6 +687,44 @@ export class WebhooksService {
     } catch (error: unknown) {
       this.loggerService.error(`${logContext} failed`, error);
       throw error;
+    }
+  }
+
+  /**
+   * A generated asset becomes visible only once its output is uploaded: clear
+   * the pending marker, then (for an organization logo) retire the previous
+   * logos and refresh the organizations cache so refetches see the new one.
+   */
+  private async finalizeGeneratedAsset(asset: {
+    category: string;
+    id: string;
+    origin?: string | null;
+    parentOrgId?: string | null;
+    parentType: string;
+  }): Promise<void> {
+    if (asset.origin !== ASSET_ORIGIN_GENERATION_PENDING) {
+      return;
+    }
+
+    await this.assetsService.patch(asset.id, {
+      origin: ASSET_ORIGIN_GENERATED,
+    });
+
+    if (
+      asset.parentType === AssetParent.ORGANIZATION &&
+      asset.category === AssetCategory.LOGO &&
+      asset.parentOrgId
+    ) {
+      await this.assetsService.patchAll(
+        {
+          category: AssetCategory.LOGO,
+          id: { not: asset.id },
+          parentOrgId: asset.parentOrgId,
+          parentType: AssetParent.ORGANIZATION,
+        },
+        { isDeleted: true },
+      );
+      await this.cacheService.invalidateByTags(['organizations']);
     }
   }
 }
