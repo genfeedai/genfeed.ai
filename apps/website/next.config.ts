@@ -83,11 +83,6 @@ const config = createAppNextConfig({
   }),
   redirects: async () => [
     {
-      destination: '/custom-models',
-      permanent: true,
-      source: '/fleet',
-    },
-    {
       destination: 'https://api.genfeed.ai/v1/openapi.json',
       permanent: false,
       source: '/openapi.json',
