@@ -168,7 +168,9 @@ describe('strategy scheduling admission', () => {
   });
 
   describe('breakout response outputs', () => {
-    beforeEach(() => vi.mocked(assertBreakoutPublicationFence).mockReset());
+    beforeEach(() => {
+      vi.mocked(assertBreakoutPublicationFence).mockReset();
+    });
 
     it('runs the breakout publication fence before the strategy capacity read', async () => {
       const db = database();
