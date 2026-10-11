@@ -22,6 +22,7 @@ export function summarizeBrandProof(
         coverage: percent(proof.coverage),
         distance: proof.nearestSwatchDeltaE,
         frames: proof.sampledFrames,
+        pixels: proof.analyzedPixels,
         target: proof.target,
       });
     case 'ocr':
@@ -31,12 +32,12 @@ export function summarizeBrandProof(
         model: proof.provider.model,
       });
     case 'placement': {
-      const best = proof.matches[0];
+      const best = Math.max(0, ...proof.matches.map((m) => m.similarity));
       return t('proof.placement', {
         count: proof.matches.length,
         model: proof.provider.model,
         query: proof.query,
-        similarity: best ? percent(best.similarity) : '0%',
+        similarity: percent(best),
       });
     }
     case 'font':

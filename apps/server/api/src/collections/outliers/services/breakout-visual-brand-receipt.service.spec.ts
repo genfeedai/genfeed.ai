@@ -226,6 +226,32 @@ describe('BreakoutVisualBrandReceiptService', () => {
     expect(h.validation.validateReceipt).not.toHaveBeenCalled();
     expect(h.logger.warn).toHaveBeenCalled();
   });
+  it('defers, never aborts, when the bytes changed while binding or validating', async () => {
+    const binding = setup();
+    binding.material.describeIngredientArtifact.mockRejectedValueOnce(
+      new ConflictException('receipt_artifact_version_mismatch'),
+    );
+    expect(await binding.service.validate(admission, visuals)).toEqual({
+      isBlocked: false,
+      states: ['unavailable'],
+    });
+    expect(binding.receipts.blockUnboundCompletion).not.toHaveBeenCalled();
+    const validating = setup();
+    validating.validation.validateReceipt.mockRejectedValueOnce(
+      new ConflictException('receipt_artifact_version_mismatch'),
+    );
+    expect(await validating.service.validate(admission, visuals)).toEqual({
+      isBlocked: false,
+      states: ['unavailable'],
+    });
+    const failing = setup();
+    failing.validation.validateReceipt.mockRejectedValueOnce(
+      new ForbiddenException(),
+    );
+    await expect(failing.service.validate(admission, visuals)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
   it('writes nothing when the approved identity cannot be read, and surfaces access failures', async () => {
     const unavailable = setup();
     unavailable.snapshots.preview.mockRejectedValueOnce(

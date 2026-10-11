@@ -5526,7 +5526,7 @@
   },
   "generationReceipts": {
     "proof": {
-      "palette": "Palette {target} covers {coverage} of the final pixels (nearest swatch distance {distance}, {frames, plural, one {# frame} other {# frames}} checked).",
+      "palette": "Palette {target} covers {coverage} of the {pixels, number} opaque pixels analyzed (nearest swatch distance {distance}, {frames, plural, one {# frame} other {# frames}} checked).",
       "ocr": "Read in {matched} of {frames, plural, one {# frame} other {# frames}} by {model}.",
       "placement": "{count, plural, one {# region} other {# regions}} matched the approved {query}, best similarity {similarity}, found by {model}.",
       "font": "{layers, plural, one {# text layer} other {# text layers}} drawn only in approved fonts ({fonts}), reported by {renderer}."

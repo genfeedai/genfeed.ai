@@ -33,7 +33,7 @@ describe('summarizeBrandProof', () => {
       target: '#123456',
     };
     expect(summarizeBrandProof(proof, t)).toBe(
-      'proof.palette|coverage=75.3%,distance=1.2,frames=1,target=#123456',
+      'proof.palette|coverage=75.3%,distance=1.2,frames=1,pixels=4096,target=#123456',
     );
   });
   it('summarizes an OCR read', () => {
@@ -52,7 +52,7 @@ describe('summarizeBrandProof', () => {
       'proof.ocr|frames=4,matched=2,model=acme/ocr',
     );
   });
-  it('summarizes a placement match by its best region', () => {
+  it('summarizes placement matches by the best similarity, whatever their order', () => {
     const proof: BrandArtifactProofV1 = {
       ...base,
       algorithm: 'detect-then-match-v1',
@@ -63,6 +63,12 @@ describe('summarizeBrandProof', () => {
           box: { height: 0.2, width: 0.2, x: 0.1, y: 0.1 },
           frame: 0,
           score: 0.8,
+          similarity: 0.75,
+        },
+        {
+          box: { height: 0.2, width: 0.2, x: 0.5, y: 0.5 },
+          frame: 1,
+          score: 0.6,
           similarity: 0.91,
         },
       ],
@@ -76,7 +82,7 @@ describe('summarizeBrandProof', () => {
       sampledFrames: 1,
     };
     expect(summarizeBrandProof(proof, t)).toBe(
-      'proof.placement|count=1,model=acme/owl,query=logo,similarity=91%',
+      'proof.placement|count=2,model=acme/owl,query=logo,similarity=91%',
     );
   });
   it('summarizes the fonts a manifest proved', () => {
