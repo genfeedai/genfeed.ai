@@ -3,7 +3,7 @@
     "next": "16.4.0",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
-    "posthog-js": "1.438.2",
+    "posthog-js": "1.438.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "swagger-ui-react": "5.33.1"
@@ -12,7 +12,7 @@
   "devDependencies": {
     "@types/node": "24.13.3",
     "@types/react": "19.3.0",
-    "prettier": "3.9.9",
+    "prettier": "3.9.10",
     "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "6.0.3"
   },
