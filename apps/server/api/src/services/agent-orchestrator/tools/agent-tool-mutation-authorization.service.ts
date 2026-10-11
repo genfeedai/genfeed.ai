@@ -492,7 +492,13 @@ export class AgentToolMutationAuthorizationService {
         existing,
       );
       return reviewer.executeAsUserId && claimed.kind === 'execute'
-        ? { ...claimed, executeAsUserId: reviewer.executeAsUserId }
+        ? {
+            ...claimed,
+            executeAsUserId: reviewer.executeAsUserId,
+            ...(reviewer.approvedByUserId
+              ? { approvedByUserId: reviewer.approvedByUserId }
+              : {}),
+          }
         : claimed;
     }
 
@@ -538,11 +544,20 @@ export class AgentToolMutationAuthorizationService {
    * decided here from membership, never from client input. A reviewer's
    * redemption executes as the recorded requester, who must still be an active
    * member. Threaded or scoped approvals are never reviewer-redeemable.
+   *
+   * The reviewer is the authorizing party, so `approvedByUserId` names them for
+   * schedule binding, but only when they are verified live as an active member:
+   * a platform super admin who is not a member of the organization authorizes
+   * the action without ever becoming a schedule actor.
    */
   private async resolveApprovalReviewer(
     context: ToolExecutionContext,
     approval: McpApprovalDocument | null,
-  ): Promise<{ context: ToolExecutionContext; executeAsUserId?: string }> {
+  ): Promise<{
+    approvedByUserId?: string;
+    context: ToolExecutionContext;
+    executeAsUserId?: string;
+  }> {
     if (!context.approvedApprovalId || !approval) return { context };
     if (approval.userId === context.userId) return { context };
     if (context.threadId || context.validatedScope) return { context };
@@ -562,7 +577,15 @@ export class AgentToolMutationAuthorizationService {
         'Approval requester is no longer an active member of this organization',
       );
     }
+    const isReviewerMember =
+      context.approvalReviewerAuthorized === true
+        ? await this.isActiveOrganizationMember(
+            context.userId,
+            context.organizationId,
+          )
+        : true;
     return {
+      ...(isReviewerMember ? { approvedByUserId: context.userId } : {}),
       context: { ...context, approvalReviewerAuthorized: true },
       executeAsUserId: approval.userId,
     };

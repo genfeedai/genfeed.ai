@@ -33,7 +33,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   type AgentThread,
-  type Prisma,
+  Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
   toPrismaJson,
 } from '@genfeedai/prisma';
@@ -484,7 +484,8 @@ export class AgentAutopilotWorkflowService {
     if (orgBalance < minCreditThreshold) {
       await ownership?.verifyOwned();
       await this.prisma.agentStrategy.update({
-        data: { isActive: false },
+        // A strategy taken out of service keeps no schedule actor.
+        data: { isActive: false, scheduleInitiatingActor: Prisma.DbNull },
         where: scopedWhere(organizationId, { id: strategyId }),
       });
       return null;
@@ -541,7 +542,7 @@ export class AgentAutopilotWorkflowService {
         where: scopedWhere(strategy.organizationId, { id: strategy.id }),
         data: {
           ...(newFailureCount >= FAILURES_BEFORE_PAUSE
-            ? { isActive: false }
+            ? { isActive: false, scheduleInitiatingActor: Prisma.DbNull }
             : {}),
           config: toPrismaJson({
             ...latest,

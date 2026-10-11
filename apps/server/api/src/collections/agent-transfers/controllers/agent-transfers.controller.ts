@@ -9,6 +9,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   AgentThreadSerializer,
@@ -125,9 +126,10 @@ export class AgentTransfersController {
     @CurrentUser() user: User,
   ) {
     try {
-      const transfer = await this.agentTransfersService.create(body, {
-        ...this.actor(user),
-      });
+      const transfer = await this.agentTransfersService.create(
+        body,
+        this.accepter(user),
+      );
       return serializeSingle(
         req,
         AgentTransferSerializer,
@@ -151,9 +153,10 @@ export class AgentTransfersController {
     @Param('id') id: string,
   ) {
     try {
-      const transfer = await this.agentTransfersService.retry(id, {
-        ...this.actor(user),
-      });
+      const transfer = await this.agentTransfersService.retry(
+        id,
+        this.accepter(user),
+      );
       return serializeSingle(
         req,
         AgentTransferSerializer,
@@ -177,6 +180,24 @@ export class AgentTransfersController {
     return {
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
+    };
+  }
+
+  /**
+   * The actor of an endpoint that accepts a transfer into a run. It carries the
+   * authenticated principal of the accepting user or API key, so the turn it
+   * queues binds schedules to them. It comes from the guard-authenticated user
+   * only; the request body has no field that can supply or override it.
+   */
+  private accepter(user: User) {
+    const actor = this.actor(user);
+    return {
+      ...actor,
+      initiatingPrincipal: buildAgentInitiatingPrincipal({
+        auth: user,
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+      }),
     };
   }
 

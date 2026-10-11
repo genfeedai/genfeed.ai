@@ -7,6 +7,7 @@ import {
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
+import { resolveToolSchedulePrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { ApiKeyScope } from '@genfeedai/contracts';
@@ -802,6 +803,105 @@ describe('AgentToolExecutorService mutation policy', () => {
         });
       },
     );
+
+    describe('schedule authority of a reviewer redemption (#6689)', () => {
+      const principalOf = (userId: string) => ({
+        isApiKey: false,
+        organizationId: testId('org'),
+        scopes: [] as string[],
+        userId,
+      });
+      const dispatchedContext = () =>
+        publishHandler.createPost.mock.calls[0][1] as ToolExecutionContext;
+
+      it('binds schedules to the approving admin, not the requester the tool runs as', async () => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        const result = await redeem({
+          initiatingPrincipal: principalOf(testId('org-admin')),
+        });
+        expect(result.success).toBe(true);
+        expect(dispatchedContext().userId).toBe(testId('requester'));
+        expect(dispatchedContext().scheduleAuthorityPrincipal).toEqual(
+          principalOf(testId('org-admin')),
+        );
+        expect(resolveToolSchedulePrincipal(dispatchedContext())).toEqual(
+          principalOf(testId('org-admin')),
+        );
+      });
+
+      it('binds a super admin reviewer only while they are an active member', async () => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        const result = await redeem({
+          approvalReviewerAuthorized: true,
+          initiatingPrincipal: principalOf(testId('member')),
+          userId: testId('member'),
+        });
+        expect(result.success).toBe(true);
+        expect(dispatchedContext().scheduleAuthorityPrincipal).toEqual(
+          principalOf(testId('member')),
+        );
+      });
+
+      it('leaves schedules unbound when a super admin who is not a member redeems', async () => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        const result = await redeem({
+          approvalReviewerAuthorized: true,
+          initiatingPrincipal: principalOf(testId('outsider')),
+          userId: testId('outsider'),
+        });
+        expect(result.success).toBe(true);
+        expect(dispatchedContext().userId).toBe(testId('requester'));
+        expect(dispatchedContext().scheduleAuthorityPrincipal).toBeUndefined();
+        expect(
+          resolveToolSchedulePrincipal(dispatchedContext()),
+        ).toBeUndefined();
+      });
+
+      it('never falls back to the requester when the reviewer has no captured principal', async () => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        await redeem({});
+        expect(dispatchedContext().scheduleAuthorityPrincipal).toBeUndefined();
+        expect(
+          resolveToolSchedulePrincipal(dispatchedContext()),
+        ).toBeUndefined();
+      });
+
+      it('ignores a principal captured for somebody other than the approving reviewer', async () => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        await redeem({
+          initiatingPrincipal: principalOf(testId('requester')),
+        });
+        expect(dispatchedContext().scheduleAuthorityPrincipal).toBeUndefined();
+        expect(
+          resolveToolSchedulePrincipal(dispatchedContext()),
+        ).toBeUndefined();
+      });
+
+      it('keeps the requester as the actor when they redeem their own approval', async () => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        await redeem({
+          initiatingPrincipal: principalOf(testId('requester')),
+          userId: testId('requester'),
+        });
+        expect(dispatchedContext().scheduleAuthorityPrincipal).toBeUndefined();
+        expect(resolveToolSchedulePrincipal(dispatchedContext())).toEqual(
+          principalOf(testId('requester')),
+        );
+      });
+
+      it('discards a schedule authority injected by the caller', async () => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        await redeem({
+          initiatingPrincipal: principalOf(testId('org-admin')),
+          scheduleAuthorityPrincipal: principalOf(testId('attacker')),
+          userId: testId('requester'),
+        });
+        expect(dispatchedContext().scheduleAuthorityPrincipal).toBeUndefined();
+        expect(JSON.stringify(dispatchedContext())).not.toContain(
+          testId('attacker'),
+        );
+      });
+    });
 
     it('lets the requesting member redeem their own approval as themselves', async () => {
       mcpApprovals.findOwned.mockResolvedValue(queued());

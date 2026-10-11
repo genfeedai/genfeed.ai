@@ -123,6 +123,7 @@ import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
+import { AgentStrategyScheduleAuthorityService } from '@api/services/agent-orchestrator/tools/agent-strategy-schedule-authority.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -267,6 +268,7 @@ import { Module } from '@nestjs/common';
     AgentOnboardingBrandSetupToolHandler,
     AgentOnboardingToolHandler,
     AgentTransferToolHandler,
+    AgentStrategyScheduleAuthorityService,
     AgentWorkflowToolCreateService,
     AgentWorkflowToolExecuteService,
     AgentWorkflowToolHandler,

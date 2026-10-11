@@ -1,6 +1,7 @@
 import { type AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import type { WorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
@@ -30,12 +31,19 @@ export class AgentCampaignExecutionService {
   ) {}
 
   /**
-   * Execute a campaign: validate, set status=active, trigger each agent strategy
+   * Execute a campaign: validate, set status=active, trigger each agent strategy.
+   *
+   * Campaigns hold no actor of their own: their turns run through the agent
+   * strategies, which carry the schedule actor. `schedulePrincipal` is the
+   * authenticated user or API key starting the campaign; it becomes the actor of
+   * every strategy this start activates. A strategy that was already active keeps
+   * the actor it has, so starting a campaign never re-labels someone else's.
    */
   async execute(
     campaignId: string,
     organizationId: string,
     userId: string,
+    schedulePrincipal?: WorkflowSchedulePrincipal | null,
   ): Promise<AgentCampaignDocument> {
     const campaign = await this.agentCampaignsService.findOneById(
       campaignId,
@@ -94,6 +102,7 @@ export class AgentCampaignExecutionService {
             strategyId,
             organizationId,
             true,
+            schedulePrincipal,
           );
         }
 

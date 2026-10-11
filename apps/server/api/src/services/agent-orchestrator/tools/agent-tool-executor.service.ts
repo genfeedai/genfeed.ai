@@ -63,7 +63,10 @@ import {
   shouldUseKnowledgeWorkflowEntry,
   toWorkflowToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/knowledge-workflow-execution.util';
-import type { AgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
+import {
+  type AgentInitiatingPrincipal,
+  projectAgentInitiatingPrincipal,
+} from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import type {
   AgentThreadModeValue,
   CuratedActionName,
@@ -146,6 +149,14 @@ export interface ToolExecutionContext {
    * or brand owner. Absent for system turns.
    */
   initiatingPrincipal?: AgentInitiatingPrincipal;
+  /**
+   * Transient server-only schedule authority that is not this turn's own user;
+   * stripped from incoming contexts. Set by the executor to the approving
+   * member when a reviewer redeems an approval (the tool then runs as the
+   * requester), and by the workflow tool handler to a strategy's live-refreshed
+   * actor. It takes precedence over `initiatingPrincipal` when a schedule is saved.
+   */
+  scheduleAuthorityPrincipal?: AgentInitiatingPrincipal;
   /** URLs of user-attached images from the chat message */
   attachmentUrls?: string[];
   userId: string;
@@ -513,6 +524,7 @@ export class AgentToolExecutorService implements OnModuleInit {
     context = { ...context };
     delete context.proactiveTextDraftOnly;
     delete context.approvedGenerationQuote;
+    delete context.scheduleAuthorityPrincipal;
     const startTime = Date.now();
     let executionApprovalId: string | undefined;
     let executionResult: AgentToolResult;
@@ -565,7 +577,21 @@ export class AgentToolExecutorService implements OnModuleInit {
         };
       }
       if (policyResult.executeAsUserId) {
-        context = { ...context, userId: policyResult.executeAsUserId };
+        // The approving member authorized this exact action, so a schedule it
+        // saves is bound to them (only when they were verified as an active
+        // member and the captured principal is theirs), never to the requester
+        // whose id is only recorded on the approval.
+        const approver = policyResult.approvedByUserId
+          ? projectAgentInitiatingPrincipal(context.initiatingPrincipal, {
+              organizationId: context.organizationId,
+              userId: policyResult.approvedByUserId,
+            })
+          : undefined;
+        context = {
+          ...context,
+          ...(approver ? { scheduleAuthorityPrincipal: approver } : {}),
+          userId: policyResult.executeAsUserId,
+        };
       }
       if (policyResult.constraint) {
         if (toolName !== 'create_post') {
