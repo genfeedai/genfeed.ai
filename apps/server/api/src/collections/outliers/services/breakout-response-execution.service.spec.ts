@@ -447,6 +447,16 @@ describe('bounded actual breakout response execution', () => {
       expect(h.prisma.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
     });
 
+    it('resumes a visual output whose quality gate is pending through the replay-safe pipeline', async () => {
+      const h = fixture(['image'], Platform.INSTAGRAM);
+      h.first.state = 'generating';
+      h.first.workflowExecutionId = 'execution-a';
+      h.first.heldReason = 'quality_evaluation_pending';
+      await h.service.execute(h.request);
+      expect(h.media.generate).toHaveBeenCalledOnce();
+      expect(h.prisma.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
+    });
+
     it('does not run a visual output a hold already settled', async () => {
       const h = fixture(['image'], Platform.INSTAGRAM);
       h.first.state = 'awaiting_review';

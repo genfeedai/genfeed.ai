@@ -266,15 +266,31 @@ describe('composing a visual output', () => {
     });
   });
 
+  it('composes a caption the approved-brand receipt left needing review, which stays unpublishable until a member clears it', async () => {
+    const h = fixture('image');
+    const projection = {
+      ...h.projection,
+      state: 'needs_review' as const,
+      compliance: 'unverified' as const,
+    };
+    h.state.row = {
+      ...h.row,
+      state: 'needs_review' as never,
+      projection,
+    };
+    expect(await run(h)).toEqual({
+      status: 'bound',
+      outputId: 'output-a',
+      postId: 'post-output-a',
+    });
+    expect(h.updateMany).toHaveBeenCalledOnce();
+  });
+
   it.each([
     [
-      'a caption the approved-brand receipt did not clear',
+      'a receipt row that disagrees with its projection',
       (h: ReturnType<typeof fixture>) => {
-        h.state.row = {
-          ...h.row,
-          state: 'needs_review' as never,
-          projection: { ...h.projection, state: 'needs_review' },
-        };
+        h.state.row = { ...h.row, state: 'needs_review' as never };
       },
       'receipt_invalid',
     ],

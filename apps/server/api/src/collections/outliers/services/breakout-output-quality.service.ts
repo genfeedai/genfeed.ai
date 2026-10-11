@@ -70,18 +70,12 @@ export class BreakoutOutputQualityService {
     const prepared = await this.prepare(request);
     const existing = await this.readScore(request, prepared.binding);
     if (existing) {
-      // A visual output's caption score is not enough: an interrupted visual evaluation is an
-      // unknown paid outcome and is reconciled, never repeated.
+      // A visual output's caption score is not enough on its own: visuals that no paid attempt
+      // ever touched are evaluated now; one with a retained hold is an unknown paid outcome and
+      // is reconciled, never repeated.
       if (
         prepared.parts.length > 0 &&
-        !(
-          await readBreakoutVisualEvidence(
-            this.prisma,
-            admission.scope.organizationId,
-            prepared.binding,
-            prepared.parts.length,
-          )
-        ).isComplete
+        !(await this.resumeVisuals(request, prepared))
       )
         return { state: 'reconciliation_required', scoreId: null };
       return this.applyGate(request, existing, prepared);
@@ -180,6 +174,59 @@ export class BreakoutOutputQualityService {
     const score = await this.readScore(request, prepared.binding);
     if (!score) return { state: 'reconciliation_required', scoreId: null };
     return this.applyGate(request, score, prepared);
+  }
+
+  /** Whether every visual has evidence, after evaluating only those no paid attempt ever touched. */
+  private async resumeVisuals(
+    request: BreakoutOutputQualityRequest,
+    prepared: Awaited<ReturnType<BreakoutOutputQualityService['prepare']>>,
+  ): Promise<boolean> {
+    const { admission } = request;
+    const read = () =>
+      readBreakoutVisualEvidence(
+        this.prisma,
+        admission.scope.organizationId,
+        prepared.binding,
+        prepared.parts.length,
+      );
+    if ((await read()).isComplete) return true;
+    const generationKey = await this.readGenerationKey(admission);
+    const maximumCredits = await this.readBudget(admission);
+    try {
+      await this.visual.evaluate({
+        admission,
+        binding: prepared.binding,
+        generationKey,
+        caption: prepared.content,
+        parts: prepared.parts,
+        maximumCredits,
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof ConflictException &&
+        error.message === 'breakout_quality_paid_retry_held'
+      )
+        return false;
+      throw error;
+    }
+    return (await read()).isComplete;
+  }
+
+  private async readGenerationKey(
+    admission: Readonly<BreakoutGenerationAdmission>,
+  ): Promise<string> {
+    await admission.reauthorize(this.prisma);
+    const output = await this.prisma.breakoutResponseOutput.findFirst({
+      where: scopedWhere(
+        admission.scope.organizationId,
+        this.outputWhere(admission),
+      ),
+      select: { generationKey: true },
+    });
+    await admission.reauthorize(this.prisma);
+    if (!output)
+      throw new ConflictException('breakout_quality_output_unavailable');
+    return output.generationKey;
   }
 
   /** One claim per output: a held reason marks the single paid quality attempt as taken. */

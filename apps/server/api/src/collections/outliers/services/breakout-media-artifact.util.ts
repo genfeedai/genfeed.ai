@@ -195,8 +195,12 @@ export async function bindBreakoutMediaPostArtifact(
     receipt.execution.providerAttemptRef !== row.providerAttemptRef ||
     receipt.format !== 'text' ||
     (receipt.platform !== undefined && receipt.platform !== platform) ||
-    receipt.state !== 'ready' ||
-    receipt.compliance !== 'passed'
+    // A needs-review caption is composed and queued for a member's review; recovery and
+    // publication admission keep it unpublishable until that review clears this version.
+    !(
+      (receipt.state === 'ready' && receipt.compliance === 'passed') ||
+      (receipt.state === 'needs_review' && receipt.compliance === 'unverified')
+    )
   )
     return held('receipt_invalid');
   const artifact = receipt.artifact;

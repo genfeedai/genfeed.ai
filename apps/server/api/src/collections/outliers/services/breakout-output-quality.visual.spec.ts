@@ -19,6 +19,7 @@ import {
   PostFormat,
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -334,16 +335,53 @@ describe('visual breakout output quality gate', () => {
     });
   });
 
-  it('reconciles a caption score whose visual evaluation never completed instead of repeating a paid call', async () => {
+  it('evaluates only the visuals an interrupted first pass never reached, without scoring the caption again', async () => {
     const h = fixture('carousel');
     await h.service.evaluate(h.request);
     h.visualRows.length = 1;
     expect(await h.service.evaluate(h.request)).toEqual({
+      state: 'approved',
+      scoreId: 'score-caption',
+    });
+    expect(h.visual.evaluate).toHaveBeenCalledTimes(2);
+    expect(h.optimizers.analyzeContent).toHaveBeenCalledOnce();
+  });
+
+  it('reconciles a visual that already has a retained paid attempt instead of repeating it', async () => {
+    const h = fixture('carousel');
+    await h.service.evaluate(h.request);
+    h.visualRows.length = 1;
+    h.visual.evaluate.mockRejectedValueOnce(
+      new ConflictException('breakout_quality_paid_retry_held'),
+    );
+    expect(await h.service.evaluate(h.request)).toEqual({
       state: 'reconciliation_required',
       scoreId: null,
     });
-    expect(h.visual.evaluate).toHaveBeenCalledOnce();
     expect(h.optimizers.analyzeContent).toHaveBeenCalledOnce();
+  });
+
+  it('reconciles a visual evaluation that finished without leaving evidence', async () => {
+    const h = fixture('carousel');
+    await h.service.evaluate(h.request);
+    h.visualRows.length = 1;
+    h.visual.evaluate.mockResolvedValueOnce(undefined);
+    expect(await h.service.evaluate(h.request)).toEqual({
+      state: 'reconciliation_required',
+      scoreId: null,
+    });
+  });
+
+  it('surfaces any other failure of the resumed visual evaluation', async () => {
+    const h = fixture('carousel');
+    await h.service.evaluate(h.request);
+    h.visualRows.length = 1;
+    h.visual.evaluate.mockRejectedValueOnce(
+      new ConflictException('breakout_quality_budget_unavailable'),
+    );
+    await expect(h.service.evaluate(h.request)).rejects.toThrow(
+      'breakout_quality_budget_unavailable',
+    );
   });
 
   it('refuses material that is not exactly the planned visuals', async () => {

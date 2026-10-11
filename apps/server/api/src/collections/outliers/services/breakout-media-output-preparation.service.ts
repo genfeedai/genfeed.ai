@@ -186,8 +186,8 @@ export class BreakoutMediaOutputPreparationService {
       return { kind: 'in_progress', reasonCode: 'provider_outcome_pending' };
     if (outcome.kind === 'stopped')
       return { kind: 'stopped', reasonCode: outcome.reasonCode };
-    // A caption still checking or needing brand review is not approved material: no visual is
-    // paid for until it is. The output reads as awaiting review.
+    // A caption needing brand review is still composed with its visuals and queued for a member's
+    // review: the visuals are paid for, and publication stays blocked until that review clears.
     return {
       kind: 'completed',
       postId: outcome.postId,

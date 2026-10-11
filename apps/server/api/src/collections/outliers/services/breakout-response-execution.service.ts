@@ -135,9 +135,14 @@ export class BreakoutResponseExecutionService {
       };
     }
     // A visual output stays open until its quality gate settled, across its claim of the visuals.
+    // Its pending quality hold resumes through the same replay-safe steps: a paid attempt is never
+    // repeated, and only visuals no attempt touched are evaluated.
     const canGenerate =
       isOpen ||
-      (visual && output.state === 'generating' && output.heldReason === null);
+      (visual &&
+        output.state === 'generating' &&
+        (output.heldReason === null ||
+          output.heldReason === 'quality_evaluation_pending'));
     if (!canGenerate) {
       const recovery = await this.recovery(request, output.id);
       return {
