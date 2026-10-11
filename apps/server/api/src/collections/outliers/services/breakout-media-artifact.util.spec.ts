@@ -135,7 +135,7 @@ function fixture(format: 'image' | 'carousel' = 'image') {
     id: 'output-a',
     generationKey: 'generation-a',
     kind: 'follow_up',
-    format,
+    format: format as string,
     state: 'generating',
     workflowExecutionId: 'execution-a',
   };

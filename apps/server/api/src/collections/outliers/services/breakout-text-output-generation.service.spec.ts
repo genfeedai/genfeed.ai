@@ -304,7 +304,7 @@ describe('breakout text provider consumer', () => {
       format: 'image' | 'carousel' | 'video' | 'short' = 'image',
     ) {
       const h = fixture();
-      h.request.admission.scope.format = format as never;
+      Object.assign(h.request.admission.scope, { format });
       h.request.isVisualCaption = true;
       h.request.input.format = 'text';
       return h;

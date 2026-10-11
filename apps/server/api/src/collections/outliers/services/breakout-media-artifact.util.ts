@@ -1,4 +1,7 @@
-import { resolveBreakoutMediaFormat } from '@api/collections/outliers/services/breakout-media-format.util';
+import {
+  isBreakoutMediaFormat,
+  resolveBreakoutMediaFormat,
+} from '@api/collections/outliers/services/breakout-media-format.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import {
@@ -107,8 +110,10 @@ export async function bindBreakoutMediaPostArtifact(
   });
   if (!response || !output || response.outputPlanFingerprint === null)
     return held('missing_output');
-  const support = resolveBreakoutMediaFormat(platform, output.format as never);
-  if (output.kind !== 'follow_up' || support.status !== 'supported')
+  const support = isBreakoutMediaFormat(output.format)
+    ? resolveBreakoutMediaFormat(platform, output.format)
+    : null;
+  if (output.kind !== 'follow_up' || support?.status !== 'supported')
     return held('unsupported_format');
   const { plan } = support;
   const source = await loadBreakoutPublication(tx, {
