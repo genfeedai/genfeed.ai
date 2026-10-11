@@ -5,22 +5,39 @@ import {
   useGalleryModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StoryboardPresetCards from '@pages/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
-import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
+import { STORYBOARD_PRESETS } from '@pages/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
 import { storyboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-plan';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+
+const FORMAT_OPTIONS = ['9:16', '16:9', '1:1'].map((value) => ({
+  label: value,
+  value,
+}));
+const RUNTIME_BUDGET_SECONDS = [15, 30, 45, 60];
+const MAX_BRIEF_LENGTH = 2000;
+// The counter only appears once the brief is close to the limit.
+const CHARACTER_COUNT_THRESHOLD = MAX_BRIEF_LENGTH * 0.8;
 
 /** Selection/upload saves media only; creating a draft never dispatches paid work. */
 export default function StoryboardCreate() {
@@ -62,11 +79,29 @@ export default function StoryboardCreate() {
     Number.isFinite(Number(budget)) &&
     Number(budget) > 0 &&
     Number(budget) <= 60;
+  // Presets may carry a runtime outside the quick picks; keep it selectable.
+  const budgetSeconds = Number(budget);
+  const budgetOptions = [
+    ...new Set([
+      ...RUNTIME_BUDGET_SECONDS,
+      ...(validBudget ? [budgetSeconds] : []),
+    ]),
+  ]
+    .sort((a, b) => a - b)
+    .map((seconds) => ({
+      label: `${seconds}${translate('secondsUnit')}`,
+      value: String(seconds),
+    }));
+  const saveLabel = isCreating
+    ? translate('saving')
+    : error
+      ? translate('retrySaving')
+      : translate('save');
   const video = selected?.brandId === brandId ? selected : undefined;
   const valid =
     mode === 'brief'
       ? (brief.trim().length > 0 || Boolean(image)) &&
-        brief.trim().length <= 2000 &&
+        brief.trim().length <= MAX_BRIEF_LENGTH &&
         validBudget
       : Boolean(video);
   function chooseStartingImage() {
@@ -88,6 +123,11 @@ export default function StoryboardCreate() {
           });
       },
     });
+  }
+  function applyPreset(preset: StoryboardPreset) {
+    setBrief(preset.brief);
+    setFormat(preset.format);
+    setBudget(String(preset.runtimeBudgetSeconds));
   }
   async function submit() {
     if (!valid || isCreating) return;
@@ -124,7 +164,7 @@ export default function StoryboardCreate() {
     }
   }
   return (
-    <div className="grid min-h-[calc(100dvh-12rem)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
         <div
           role="group"
@@ -150,20 +190,7 @@ export default function StoryboardCreate() {
             onClick={() => setMode('video')}
           />
         </div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
-          <h2 className="text-xl font-medium">
-            {translateWorkspace('emptyTitle')}
-          </h2>
-          <p className="max-w-md text-sm text-muted-foreground">
-            {translateWorkspace('emptyDescription')}
-          </p>
-          {mode === 'video' ? (
-            <p role="status" className="text-sm">
-              {video?.title || translate('chooseOwnedVideo')}
-            </p>
-          ) : null}
-        </div>
-        <div className="sticky bottom-4 z-10 mt-auto">
+        <PromptBarContainer layoutMode="inflow" maxWidth="full">
           <PromptBarComposer
             data-testid="storyboard-composer"
             density="compact"
@@ -185,87 +212,86 @@ export default function StoryboardCreate() {
                 onSubmit={() => void submit()}
                 className="min-h-16"
               />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {translate('videoHelp')}
-              </p>
-            )}
+            ) : null}
             <PromptBarToolbar
+              density="compact"
               leading={
                 mode === 'brief' ? (
                   <>
                     <Button
                       ariaLabel={translateWorkspace('references')}
                       icon={<Paperclip className="size-4" />}
-                      variant={ButtonVariant.GHOST}
+                      isDisabled={isCreating}
                       onClick={chooseStartingImage}
-                      disabled={isCreating}
+                      size={ButtonSize.ICON}
+                      tooltip={translateWorkspace('references')}
+                      tooltipPosition="top"
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
                     />
-                    <div className="w-28">
-                      <StoryboardSelect
-                        ariaLabel={translate('formatAria')}
-                        value={format}
-                        placeholder={translate('chooseFormat')}
-                        isDisabled={isCreating}
-                        options={['9:16', '16:9', '1:1'].map((value) => ({
-                          value,
-                          label: value,
-                        }))}
-                        onChange={(value) => {
-                          if (
-                            value === '9:16' ||
-                            value === '16:9' ||
-                            value === '1:1'
-                          )
-                            setFormat(value);
-                        }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        aria-label={translate('runtimeBudget')}
-                        className="w-20"
-                        type="number"
-                        min={1}
-                        max={60}
-                        value={budget}
-                        disabled={isCreating}
-                        onChange={(event) => setBudget(event.target.value)}
-                      />
-                      <span
-                        aria-hidden
-                        className="text-xs text-muted-foreground"
-                      >
-                        {translate('secondsUnit')}
-                      </span>
-                    </div>
+                    <PromptBarCompactSelect
+                      ariaLabel={translate('formatAria')}
+                      density="compact"
+                      isDisabled={isCreating}
+                      options={FORMAT_OPTIONS}
+                      value={format}
+                      onChange={(value) => {
+                        if (
+                          value === '9:16' ||
+                          value === '16:9' ||
+                          value === '1:1'
+                        )
+                          setFormat(value);
+                      }}
+                    />
+                    <PromptBarCompactSelect
+                      ariaLabel={translate('runtimeBudget')}
+                      density="compact"
+                      isDisabled={isCreating}
+                      options={budgetOptions}
+                      value={budget}
+                      onChange={setBudget}
+                    />
                   </>
                 ) : null
               }
               trailing={
-                <Button
-                  label={
-                    isCreating
-                      ? translate('saving')
-                      : error
-                        ? translate('retrySaving')
-                        : translate('save')
-                  }
-                  disabled={isCreating || !valid}
+                <PromptBarSendButton
+                  ariaLabel={saveLabel}
+                  density="compact"
+                  isDisabled={isCreating || !valid}
+                  isLoading={isCreating}
                   onClick={() => void submit()}
+                  tooltip={saveLabel}
                 />
               }
             />
-            {mode === 'brief' ? (
-              <p className="mt-2 text-xs text-muted-foreground">
+            {mode === 'brief' && brief.length >= CHARACTER_COUNT_THRESHOLD ? (
+              <p
+                className={
+                  brief.length > MAX_BRIEF_LENGTH
+                    ? 'mt-2 text-xs text-destructive'
+                    : 'mt-2 text-xs text-muted-foreground'
+                }
+              >
                 {translate('characterCount', { count: brief.length })}
               </p>
             ) : null}
           </PromptBarComposer>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {translate('description')}
+        </PromptBarContainer>
+        {mode === 'video' ? (
+          <p role="status" className="text-sm">
+            {video?.title || translate('chooseOwnedVideo')}
           </p>
-        </div>
+        ) : (
+          <StoryboardPresetCards
+            activePresetId={
+              STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
+            }
+            isDisabled={isCreating}
+            onSelect={applyPreset}
+          />
+        )}
       </div>
       <StoryboardReferencesPanel
         references={[

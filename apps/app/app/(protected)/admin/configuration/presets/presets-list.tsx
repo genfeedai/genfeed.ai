@@ -265,22 +265,21 @@ function PresetsListContent({
     <Container
       label="Presets"
       description="Reusable generation settings and defaults."
+      refresh={
+        <ButtonRefresh
+          onClick={() => refreshPresets()}
+          isRefreshing={isRefreshing}
+        />
+      }
       right={
-        <>
-          <ButtonRefresh
-            onClick={() => refreshPresets()}
-            isRefreshing={isRefreshing}
+        scope === PageScope.SUPERADMIN ? (
+          <Button
+            label="Preset"
+            icon={<Plus />}
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => openPresetModal(ModalEnum.PRESET)}
           />
-
-          {scope === PageScope.SUPERADMIN && (
-            <Button
-              label="Preset"
-              icon={<Plus />}
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => openPresetModal(ModalEnum.PRESET)}
-            />
-          )}
-        </>
+        ) : undefined
       }
     >
       {scope === PageScope.SUPERADMIN && (

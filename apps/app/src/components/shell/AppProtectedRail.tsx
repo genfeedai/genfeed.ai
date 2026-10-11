@@ -4,8 +4,6 @@ import { useAccessState } from '@genfeedai/contexts/providers/access-state/acces
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import {
-  APP_ROUTES,
-  createOrganizationAppRoute,
   isReleasePreviewActive,
   ORGANIZATION_MODULE_IDS,
   resolveOrganizationModulePreferences,
@@ -20,9 +18,9 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo } from 'react';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
+import { usePinnedRailAppsContext } from '@/components/shell/pinned-rail-apps.provider';
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
-import { usePinnedRailApps } from '@/components/shell/use-pinned-rail-apps';
 import { captureAppRailNavigation } from '@/lib/analytics/app-rail-analytics';
 import {
   appendSearchParamsToHref,
@@ -94,7 +92,7 @@ function AppProtectedRailContent({
     pathname,
     new URLSearchParams(searchParams.toString()),
   );
-  const { pinnedAppIds, togglePin } = usePinnedRailApps();
+  const { pinnedAppIds } = usePinnedRailAppsContext();
   const preservedTaskSearch = pickOperatorTaskContextSearchParams(
     new URLSearchParams(searchParams.toString()),
   ).toString();
@@ -106,9 +104,12 @@ function AppProtectedRailContent({
         threadId: searchParams.get('thread'),
       });
 
+      // A destination the shell registry does not know (an org-level app
+      // entry such as `~/studio/storyboard`, resolved by its own route) must
+      // keep its own link, not fall back to the current page.
       return {
         announcement: launch.announcement,
-        href: launch.href,
+        href: launch.registryKey === null ? destinationHref : launch.href,
       };
     },
     [currentHref, searchParams],
@@ -149,16 +150,11 @@ function AppProtectedRailContent({
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
       onNavigate={onNavigate}
-      onTogglePin={togglePin}
       orgSlug={effectiveOrgSlug}
       pinnedAppIds={pinnedAppIds}
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
       showAdmin={isAdminChrome || isSuperAdmin}
-      storeHref={createOrganizationAppRoute(
-        effectiveOrgSlug,
-        APP_ROUTES.STORE.ROOT,
-      )}
     />
   );
 }

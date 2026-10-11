@@ -39,8 +39,6 @@ export interface AppRailProps {
   installedAppIds?: readonly string[];
   /** Existing operator authorization; opens founder-only apps. */
   isFounderOperator?: boolean;
-  /** Where the launcher sends members to find and install more apps. */
-  storeHref?: string;
   surface?: AppRailSurface;
   onNavigationEvent?: (event: AppRailNavigationEvent) => void;
   /** Count pills keyed by app id; a missing or zero count renders nothing. */
@@ -73,28 +71,11 @@ export interface AppRailProps {
    * Unknown, uninstalled and unavailable ids are ignored.
    */
   pinnedAppIds?: readonly string[];
-  /** Pins or unpins a launcher app. Absent in surfaces that cannot save a user. */
-  onTogglePin?: (appId: string) => void;
 }
 
-export interface AppRailLauncherProps {
-  activeAppId?: string;
-  badges?: AppRailProps['badges'];
-  items: readonly AppRailNavigationItem[];
-  /** Called with the opened app, or without one for the Store link. */
-  onNavigateStart: (item?: AppRailNavigationItem) => void;
-  onTogglePin?: (appId: string) => void;
-  pinnedAppIds: readonly string[];
-  storeHref?: string;
-}
-
-export interface AppRailLauncherRowProps {
-  badge?: AppRailBadge;
-  isActive: boolean;
-  isPinned: boolean;
-  item: AppRailNavigationItem;
-  onNavigateStart: () => void;
-  onTogglePin?: (appId: string) => void;
+export interface TopbarAppsLinkProps {
+  /** Falls back to the organization resolved from the URL. */
+  orgSlug?: string;
 }
 
 export interface AppRailItemProps {

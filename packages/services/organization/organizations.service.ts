@@ -541,6 +541,17 @@ export class OrganizationsService extends BaseService<Organization> {
       .then((res) => res.data);
   }
 
+  /**
+   * Generate the organization logo from the fixed preset (organization label +
+   * description; no prompt). Charges the organization's credits. Generation is
+   * asynchronous: this resolves once it has started, and the logo appears on
+   * the organization (`logoUrl`) after the asset-completed event/refetch.
+   */
+  public async generateLogo(organizationId: string): Promise<void> {
+    await this.instance.post(`/${organizationId}/logo/generate`);
+    this.dispatchTopbarBalanceRefresh();
+  }
+
   public async getByokAllProviders(
     orgId: string,
   ): Promise<IByokProviderStatus[]> {

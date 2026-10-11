@@ -229,6 +229,12 @@ export default function UnitEconomicsReport() {
         drillDown ? translate('descriptionDrillDown') : translate('description')
       }
       icon={Scale}
+      refresh={
+        <ButtonRefresh
+          onClick={() => refetch()}
+          isRefreshing={isFetching && !isLoading}
+        />
+      }
       right={
         <div className="flex items-center gap-2">
           {drillDown ? (
@@ -256,10 +262,6 @@ export default function UnitEconomicsReport() {
               ))}
             </SelectContent>
           </Select>
-          <ButtonRefresh
-            onClick={() => refetch()}
-            isRefreshing={isFetching && !isLoading}
-          />
         </div>
       }
     >

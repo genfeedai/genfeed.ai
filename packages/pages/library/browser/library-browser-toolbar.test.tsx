@@ -488,13 +488,7 @@ describe('LibraryBrowserToolbar', () => {
     });
 
     it('offers tag management in the ghost action cluster', () => {
-      render(
-        <LibraryBrowserIconActions
-          isRefreshing={false}
-          onRefresh={vi.fn()}
-          onUpload={vi.fn()}
-        />,
-      );
+      render(<LibraryBrowserIconActions onUpload={vi.fn()} />);
 
       expect(
         screen.getByRole('button', { name: 'Manage tags' }),
@@ -531,17 +525,11 @@ describe('LibraryBrowserToolbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('groups Refresh and Upload for the shared ghost action slot', () => {
+  it('groups Upload in the shared ghost action slot, leaving Refresh to the topbar refresh slot', () => {
     const onUpload = vi.fn();
-    render(
-      <LibraryBrowserIconActions
-        isRefreshing={false}
-        onRefresh={vi.fn()}
-        onUpload={onUpload}
-      />,
-    );
+    render(<LibraryBrowserIconActions onUpload={onUpload} />);
     const iconActions = screen.getByTestId('library-toolbar-icon-actions');
-    expect(iconActions).toContainElement(screen.getByTestId('refresh-button'));
+    expect(screen.queryByTestId('refresh-button')).toBeNull();
     expect(iconActions).toContainElement(
       screen.getByRole('button', { name: 'Upload' }),
     );
@@ -590,8 +578,6 @@ describe('LibraryBrowserToolbar', () => {
 it('starts an Agent review request from Unsorted', () => {
   render(
     <LibraryBrowserIconActions
-      isRefreshing={false}
-      onRefresh={vi.fn()}
       onUpload={vi.fn()}
       reviewUnsortedHref="/org/brand/agent/new?prompt=review-unsorted"
     />,

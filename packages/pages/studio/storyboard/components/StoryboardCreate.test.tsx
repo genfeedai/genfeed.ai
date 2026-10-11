@@ -91,10 +91,25 @@ describe('Storyboard shared composer', () => {
     mocks.openUpload.mockReset();
     mocks.push.mockReset();
   });
+  it('prefills the brief, format and runtime from a preset without submitting', () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
+    );
+    expect(
+      (screen.getByLabelText('Brief') as HTMLTextAreaElement).value,
+    ).toContain('how-to tutorial');
+    expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
+      '40s',
+    );
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
   it('saves the brief with a usable default duration, then navigates to its scoped project', async () => {
     render(<StoryboardCreate />);
     expect(screen.getByTestId('storyboard-composer')).toBeInTheDocument();
-    expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveValue(30);
+    expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
+      '30s',
+    );
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A founder launches a product.' },
     });

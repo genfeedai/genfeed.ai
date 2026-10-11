@@ -17,6 +17,7 @@ import {
 } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
 import { getStoryboardEditorSeed } from '@pages/studio/storyboard/utils/storyboard-editor-seed';
 import Container from '@ui/layout/container/Container';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
@@ -25,6 +26,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
+
+// The brief counter only appears once the brief is close to its 2,000 limit.
+const CHARACTER_COUNT_THRESHOLD = 1600;
 
 /** Neutral detail page stays separate until existing-run migration is integrated. */
 export default function StoryboardDraftPage({
@@ -203,48 +207,50 @@ export default function StoryboardDraftPage({
         sourceAutosave.value.kind === 'brief' &&
         !run.config.scenePipeline ? (
           <div className="sticky bottom-4 z-10 mx-auto w-full max-w-4xl">
-            <PromptBarComposer
-              data-testid="storyboard-source-composer"
-              density="compact"
-            >
-              <PromptEditor
-                ariaLabel={translate('draft.brief')}
-                value={sourceAutosave.value.brief}
-                isDisabled={leaving || !draft.queue}
-                onValueChange={(brief) =>
-                  sourceAutosave.edit((source) =>
-                    source.kind === 'brief'
-                      ? { ...source, brief: brief.slice(0, 2000) }
-                      : source,
-                  )
-                }
-                onSubmit={() =>
-                  void sourceAutosave.flush().catch(() => undefined)
-                }
-                className="min-h-12"
-              />
-              <PromptBarToolbar
-                leading={
-                  <StoryboardSaveIndicator
-                    status={sourceAutosave.status}
-                    error={sourceAutosave.error}
-                    onRetry={() =>
-                      void sourceAutosave.flush().catch(() => undefined)
-                    }
-                  />
-                }
-                trailing={
-                  <p className="text-xs text-muted-foreground">
-                    {translate('create.characterCount', {
-                      count: sourceAutosave.value.brief.length,
-                    })}
-                  </p>
-                }
-              />
-            </PromptBarComposer>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {translate('draft.briefDescription')}
-            </p>
+            <PromptBarContainer layoutMode="inflow" maxWidth="full">
+              <PromptBarComposer
+                data-testid="storyboard-source-composer"
+                density="compact"
+              >
+                <PromptEditor
+                  ariaLabel={translate('draft.brief')}
+                  value={sourceAutosave.value.brief}
+                  isDisabled={leaving || !draft.queue}
+                  onValueChange={(brief) =>
+                    sourceAutosave.edit((source) =>
+                      source.kind === 'brief'
+                        ? { ...source, brief: brief.slice(0, 2000) }
+                        : source,
+                    )
+                  }
+                  onSubmit={() =>
+                    void sourceAutosave.flush().catch(() => undefined)
+                  }
+                  className="min-h-12"
+                />
+                <PromptBarToolbar
+                  leading={
+                    <StoryboardSaveIndicator
+                      status={sourceAutosave.status}
+                      error={sourceAutosave.error}
+                      onRetry={() =>
+                        void sourceAutosave.flush().catch(() => undefined)
+                      }
+                    />
+                  }
+                  trailing={
+                    sourceAutosave.value.brief.length >=
+                    CHARACTER_COUNT_THRESHOLD ? (
+                      <p className="text-xs text-muted-foreground">
+                        {translate('create.characterCount', {
+                          count: sourceAutosave.value.brief.length,
+                        })}
+                      </p>
+                    ) : undefined
+                  }
+                />
+              </PromptBarComposer>
+            </PromptBarContainer>
           </div>
         ) : null}
       </div>

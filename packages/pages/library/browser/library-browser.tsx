@@ -14,6 +14,7 @@ import { useLibrarySummary } from '@hooks/data/library/use-library-summary';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
@@ -229,11 +230,15 @@ export default function LibraryBrowser({
             </div>
           }
           iconActionsPlacement="before-controls"
+          refresh={
+            <ButtonRefresh
+              isRefreshing={isRefreshing}
+              onClick={handleRefresh}
+            />
+          }
           iconActions={
             <LibraryBrowserIconActions
               reviewUnsortedHref={reviewUnsortedHref}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefresh}
               onUpload={handleUpload}
             />
           }

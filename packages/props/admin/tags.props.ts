@@ -6,6 +6,7 @@ export interface ITagsLayoutProps {
   children: ReactNode;
   scope: ContentProps['scope'];
   rightActions?: ReactNode;
+  refreshAction?: ReactNode;
 }
 
 export interface TagCellProps {

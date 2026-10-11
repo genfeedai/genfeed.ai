@@ -64,9 +64,7 @@ export default function ListPageLayout<T extends { id: string }>({
         filterOptions={filterOptions}
       />
 
-      {onRefresh && (
-        <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
-      )}
+      {bulkActions}
 
       {onCreate && createLabel && (
         <Button
@@ -79,8 +77,6 @@ export default function ListPageLayout<T extends { id: string }>({
           onClick={onCreate}
         />
       )}
-
-      {bulkActions}
     </>
   );
 
@@ -89,6 +85,11 @@ export default function ListPageLayout<T extends { id: string }>({
       label={title}
       description={description}
       icon={icon}
+      refresh={
+        onRefresh ? (
+          <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
+        ) : undefined
+      }
       right={rightActions}
       className={className}
     >

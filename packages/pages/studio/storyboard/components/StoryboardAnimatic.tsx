@@ -182,9 +182,6 @@ export default function StoryboardAnimatic({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold">{translate('title')}</h2>
-          <p className="text-xs text-muted-foreground">
-            {translate('subtitle')}
-          </p>
         </div>
         <span className="font-mono text-xs text-muted-foreground">
           {timecode(elapsed)} / {timecode(total)}

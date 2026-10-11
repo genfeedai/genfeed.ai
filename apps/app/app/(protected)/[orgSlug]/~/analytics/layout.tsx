@@ -23,6 +23,9 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
       label={translate('organization.title')}
       description={translate('organization.description')}
       icon={ChartColumn}
+      refresh={
+        <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
+      }
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {toolbarNode}
@@ -32,7 +35,6 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
             defaultPreset={Timeframe.D7}
             value={dateRange}
           />
-          <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
         </div>
       }
     >

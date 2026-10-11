@@ -40,7 +40,7 @@ export function AgentGeneratedTextCard({
             {title || 'Generated Content'}
           </p>
           {hasActions && (
-            <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+            <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
               {onCopy && (
                 <Button
                   variant={ButtonVariant.GHOST}

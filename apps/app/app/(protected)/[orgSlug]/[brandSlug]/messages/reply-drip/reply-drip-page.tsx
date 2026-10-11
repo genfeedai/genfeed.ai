@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/props/social/reply-campaigns-panel.props';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { SocialReplyCampaignTransition } from '@services/social/reply-campaigns.service';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import type { BadgeProps } from '@ui/primitives/badge';
@@ -24,7 +25,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useReplyCampaigns } from './use-reply-campaigns';
 
@@ -179,7 +179,6 @@ function ReplyCampaignsContent({
   isCreating,
   isLoading,
   onCreate,
-  onRefresh,
   onTransition,
 }: ReplyCampaignsPageProps) {
   const { pageScope } = useCollectionScope();
@@ -380,22 +379,7 @@ function ReplyCampaignsContent({
         </div>
       </Card>
 
-      <Card
-        label="Reply drips"
-        bodyClassName="gap-3 p-4"
-        headerAction={
-          <Button
-            icon={<RefreshCw className="size-4" />}
-            isDisabled={isLoading}
-            isLoading={isLoading}
-            onClick={onRefresh}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-          >
-            Refresh
-          </Button>
-        }
-      >
+      <Card label="Reply drips" bodyClassName="gap-3 p-4">
         {campaigns.length === 0 && !isLoading ? (
           <p className="text-xs text-gray-800">
             No reply drips yet. Sync messages so open conversations are
@@ -423,6 +407,12 @@ export default function ReplyCampaignsPage() {
     <Container
       label="Reply drip"
       description="Create and monitor throttled reply campaigns across open conversations."
+      refresh={
+        <ButtonRefresh
+          onClick={replyCampaigns.refresh}
+          isRefreshing={replyCampaigns.isLoading}
+        />
+      }
     >
       <ReplyCampaignsContent
         busyCampaignId={replyCampaigns.busyCampaignId}
@@ -432,7 +422,6 @@ export default function ReplyCampaignsPage() {
         isCreating={replyCampaigns.isCreating}
         isLoading={replyCampaigns.isLoading}
         onCreate={replyCampaigns.createCampaign}
-        onRefresh={replyCampaigns.refresh}
         onTransition={replyCampaigns.transitionCampaign}
       />
     </Container>

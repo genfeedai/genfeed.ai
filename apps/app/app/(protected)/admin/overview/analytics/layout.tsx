@@ -36,6 +36,9 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
           },
         ],
       }}
+      refresh={
+        <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
+      }
       right={
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {toolbarNode}
@@ -43,7 +46,6 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}
           />
-          <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
         </div>
       }
     >

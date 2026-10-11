@@ -167,6 +167,14 @@ export function useAgentChatStream(
       if (handoff.owner)
         controller(handoff.owner).cancelRunHandoff(handoff, failedRequest);
     },
+    abandonRun: (threadId) => {
+      const entry = findAgentStreamEntry(threadId);
+      if (entry) controller(entry).abandonRun(threadId);
+    },
+    resumeRunWatch: (threadId) => {
+      const entry = findAgentStreamEntry(threadId);
+      if (entry) controller(entry).resumeRunWatch(threadId);
+    },
     clearChat: () => {
       const entry = findAgentStreamEntry(
         useAgentChatStore.getState().activeThreadId,

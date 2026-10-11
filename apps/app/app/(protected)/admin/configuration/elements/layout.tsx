@@ -144,6 +144,14 @@ function ElementsLayoutContent({ children }: LayoutProps) {
           return tabs;
         }, []),
       }}
+      refresh={
+        <ButtonRefresh
+          onClick={() => {
+            void refetch();
+          }}
+          isRefreshing={isRefreshing}
+        />
+      }
       right={
         <div className="flex items-center gap-2">
           <FiltersButton
@@ -162,13 +170,6 @@ function ElementsLayoutContent({ children }: LayoutProps) {
                 );
               }
             }}
-          />
-
-          <ButtonRefresh
-            onClick={() => {
-              void refetch();
-            }}
-            isRefreshing={isRefreshing}
           />
 
           {filterConfig.addButtonLabel && filterConfig.modalId && (

@@ -24,6 +24,9 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       label={translate('brand.title')}
       description={translate('brand.description')}
       icon={ChartColumn}
+      refresh={
+        <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
+      }
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {toolbarNode}
@@ -33,7 +36,6 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
             defaultPreset={Timeframe.D7}
             value={dateRange}
           />
-          <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
         </div>
       }
     >

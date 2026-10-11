@@ -1,5 +1,6 @@
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
+import { OrganizationsLogoController } from '@api/collections/organizations/controllers/organizations-logo.controller';
 import { OrganizationsMembersController } from '@api/collections/organizations/controllers/organizations-members.controller';
 import { OrganizationsOperationsController } from '@api/collections/organizations/controllers/organizations-operations.controller';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
@@ -76,6 +77,7 @@ describe('Organizations split controllers', () => {
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, OrganizationsModule),
     ).toEqual([
       OrganizationsIntegrationsController,
+      OrganizationsLogoController,
       OrganizationsMembersController,
       OrganizationsOperationsController,
       OrganizationsRelationshipsController,

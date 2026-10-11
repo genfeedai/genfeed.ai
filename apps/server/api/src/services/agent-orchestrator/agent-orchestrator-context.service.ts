@@ -42,7 +42,6 @@ import {
   buildAgentSystemPrompt,
 } from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
 import {
-  fenceUntrustedContent,
   sanitizeAgentUntrustedInput,
   UNTRUSTED_USER_DATA_FRAMING,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
@@ -444,7 +443,7 @@ export class AgentOrchestratorContextService {
           history.push({
             content: [
               {
-                text: fenceUntrustedContent(msg.content || ''),
+                text: sanitizeAgentUntrustedInput(msg.content || ''),
                 type: 'text',
               },
               ...attachments.map((a) => ({
@@ -455,9 +454,12 @@ export class AgentOrchestratorContextService {
             role: 'user',
           });
         } else {
+          // The signed-in user's own turns are the principal's instructions:
+          // sanitized (length cap, control chars, injection markers) but not
+          // framed as quoted data. Third-party content stays fenced below.
           const content =
             msg.role === AgentMessageRole.USER
-              ? fenceUntrustedContent(msg.content || '')
+              ? sanitizeAgentUntrustedInput(msg.content || '')
               : msg.content || '';
           history.push({
             content,

@@ -17,6 +17,7 @@ vi.mock('next-intl', async () => {
 });
 
 const boundary = vi.hoisted(() => ({
+  generateLogo: vi.fn(),
   patch: vi.fn(),
   getService: vi.fn(),
   replace: vi.fn(),
@@ -59,10 +60,21 @@ vi.mock('next/image', () => ({
   ),
 }));
 
+function commitEdit(label: string, value: string) {
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  const input = screen.getByRole('textbox', { name: label });
+  fireEvent.change(input, { target: { value } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+}
+
 describe('OrganizationIdentityCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    boundary.getService.mockResolvedValue({ patch: boundary.patch });
+    boundary.getService.mockResolvedValue({
+      generateLogo: boundary.generateLogo,
+      patch: boundary.patch,
+    });
+    boundary.generateLogo.mockResolvedValue(undefined);
     boundary.patch.mockResolvedValue({ label: 'New name', slug: 'genfeed' });
     refreshOrganizations.mockResolvedValue(undefined);
     routedOrganization.mockReturnValue({
@@ -113,15 +125,12 @@ describe('OrganizationIdentityCard', () => {
       'data-src',
       'https://cdn.test/logos/a1',
     );
-    expect(
-      screen.getByRole('button', { name: /replace logo/i }),
-    ).toBeInTheDocument();
   });
 
   it('uploads an organization-parented logo and refreshes the switcher list', () => {
     render(<OrganizationIdentityCard organizationId="org-1" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /upload logo/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Upload logo' }));
 
     expect(openUpload).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -137,13 +146,38 @@ describe('OrganizationIdentityCard', () => {
     expect(refreshOrganizations).toHaveBeenCalledOnce();
   });
 
-  it('saves trimmed identity to the displayed organization and refreshes the switcher', async () => {
+  it('generates a logo for the organization and refreshes the switcher list', async () => {
     render(<OrganizationIdentityCard organizationId="org-1" />);
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Organization name'), {
-      target: { value: ' New name ' },
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate logo' }));
+
+    await waitFor(() =>
+      expect(boundary.generateLogo).toHaveBeenCalledExactlyOnceWith('org-1'),
+    );
+    // The first poll runs after the 4s interval; the logo URL never changes in
+    // this mock, so it keeps polling.
+    await waitFor(() => expect(refreshOrganizations).toHaveBeenCalled(), {
+      timeout: 6000,
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  }, 10000);
+
+  it('shows the server message when logo generation fails', async () => {
+    boundary.generateLogo.mockRejectedValue({
+      errors: [{ detail: 'No credits left.' }],
+    });
+    render(<OrganizationIdentityCard organizationId="org-1" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate logo' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No credits left.',
+    );
+    expect(refreshOrganizations).not.toHaveBeenCalled();
+  });
+
+  it('saves a trimmed name on commit and refreshes the switcher', async () => {
+    render(<OrganizationIdentityCard organizationId="org-1" />);
+    commitEdit('Edit organization name', ' New name ');
     await screen.findByRole('status');
     expect(boundary.patch).toHaveBeenCalledExactlyOnceWith('org-1', {
       label: 'New name',
@@ -152,7 +186,6 @@ describe('OrganizationIdentityCard', () => {
     expect(refreshOrganizations).toHaveBeenCalledOnce();
     expect(boundary.clearCache).toHaveBeenCalledOnce();
     expect(boundary.replace).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   });
 
   it('navigates to the saved handle on the same settings surface', async () => {
@@ -161,10 +194,7 @@ describe('OrganizationIdentityCard', () => {
       slug: 'new-handle',
     });
     render(<OrganizationIdentityCard organizationId="org-1" />);
-    fireEvent.change(screen.getByLabelText('Handle'), {
-      target: { value: 'new-handle' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    commitEdit('Edit organization handle', '@New-Handle');
     await waitFor(() =>
       expect(boundary.replace).toHaveBeenCalledWith(
         '/new-handle/~/settings/general',
@@ -177,56 +207,32 @@ describe('OrganizationIdentityCard', () => {
     expect(refreshOrganizations).not.toHaveBeenCalled();
   });
 
-  it('preserves the draft and shows the server rejection for a taken handle', async () => {
+  it('shows the server rejection for a taken handle and keeps the old one', async () => {
     boundary.patch.mockRejectedValue({
       errors: [{ detail: 'This handle is already taken.' }],
     });
     render(<OrganizationIdentityCard organizationId="org-1" />);
-    fireEvent.change(screen.getByLabelText('Handle'), {
-      target: { value: 'taken-handle' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    commitEdit('Edit organization handle', 'taken-handle');
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'This handle is already taken.',
     );
-    expect(screen.getByLabelText('Handle')).toHaveValue('taken-handle');
+    expect(screen.getByText('@genfeed')).toBeInTheDocument();
     expect(boundary.replace).not.toHaveBeenCalled();
     expect(refreshOrganizations).not.toHaveBeenCalled();
     expect(boundary.clearCache).not.toHaveBeenCalled();
   });
 
-  it.each([
-    'a',
-    'a'.repeat(49),
-    'UPPERCASE',
-    '-leading',
-    'trailing-',
-    'with space',
-  ])('rejects an invalid handle %s before sending a request', (slug) => {
-    render(<OrganizationIdentityCard organizationId="org-1" />);
-    fireEvent.change(screen.getByLabelText('Handle'), {
-      target: { value: slug },
-    });
-    expect(screen.getByLabelText('Handle')).toHaveAttribute(
-      'aria-invalid',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
-    expect(boundary.patch).not.toHaveBeenCalled();
-  });
-
-  it('rejects a blank name and cancels edits without saving', () => {
-    render(<OrganizationIdentityCard organizationId="org-1" />);
-    fireEvent.change(screen.getByLabelText('Organization name'), {
-      target: { value: '  ' },
-    });
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.getByLabelText('Organization name')).toHaveValue(
-      'Genfeed.ai',
-    );
-    expect(boundary.patch).not.toHaveBeenCalled();
-  });
+  it.each(['a', 'a'.repeat(49), 'with space', '-leading', 'trailing-'])(
+    'rejects an invalid handle %s before sending a request',
+    async (slug) => {
+      render(<OrganizationIdentityCard organizationId="org-1" />);
+      commitEdit('Edit organization handle', slug);
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        /lowercase letters, numbers or hyphens/i,
+      );
+      expect(boundary.patch).not.toHaveBeenCalled();
+    },
+  );
 
   it('keeps identity read-only for a non-owner', () => {
     const context = routedOrganization();
@@ -238,29 +244,27 @@ describe('OrganizationIdentityCard', () => {
       })),
     });
     render(<OrganizationIdentityCard organizationId="org-1" />);
-    expect(screen.getByLabelText('Organization name')).toHaveAttribute(
-      'readonly',
-    );
-    expect(screen.getByLabelText('Handle')).toHaveAttribute('readonly');
     expect(
-      screen.queryByRole('button', { name: 'Save changes' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Edit organization name' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Edit organization handle' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Generate logo' }),
+    ).toBeDisabled();
   });
 
   it('does not report an accepted patch as failed if refreshing the switcher fails', async () => {
     refreshOrganizations.mockRejectedValueOnce(new Error('Offline'));
     render(<OrganizationIdentityCard organizationId="org-1" />);
-    fireEvent.change(screen.getByLabelText('Organization name'), {
-      target: { value: 'New name' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    commitEdit('Edit organization name', 'New name');
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(
         'Organization saved. Reload',
       ),
     );
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   });
 
   it('does not write after the organization changes while obtaining authentication', async () => {
@@ -274,10 +278,7 @@ describe('OrganizationIdentityCard', () => {
     const { rerender } = render(
       <OrganizationIdentityCard organizationId="org-1" />,
     );
-    fireEvent.change(screen.getByLabelText('Handle'), {
-      target: { value: 'new-handle' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    commitEdit('Edit organization handle', 'new-handle');
     routedOrganization.mockReturnValue({
       organizations: [
         { id: 'org-2', label: 'Other org', slug: 'other', isOwner: true },
@@ -288,7 +289,7 @@ describe('OrganizationIdentityCard', () => {
     await act(async () => resolveService({ patch: boundary.patch }));
     expect(boundary.patch).not.toHaveBeenCalled();
     expect(boundary.replace).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Handle')).toHaveValue('other');
+    expect(screen.getByText('@other')).toBeInTheDocument();
   });
 
   it('does not navigate away from a new organization when an earlier save completes', async () => {
@@ -302,10 +303,7 @@ describe('OrganizationIdentityCard', () => {
     const { rerender } = render(
       <OrganizationIdentityCard organizationId="org-1" />,
     );
-    fireEvent.change(screen.getByLabelText('Handle'), {
-      target: { value: 'new-handle' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    commitEdit('Edit organization handle', 'new-handle');
     await waitFor(() => expect(boundary.patch).toHaveBeenCalledOnce());
     routedOrganization.mockReturnValue({
       organizations: [
@@ -319,6 +317,6 @@ describe('OrganizationIdentityCard', () => {
     );
     expect(boundary.replace).not.toHaveBeenCalled();
     expect(refreshOrganizations).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Handle')).toHaveValue('other');
+    expect(screen.getByText('@other')).toBeInTheDocument();
   });
 });

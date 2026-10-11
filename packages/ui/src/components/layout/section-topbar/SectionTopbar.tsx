@@ -16,10 +16,15 @@ import HelpPopover from '@ui/layout/help-popover/HelpPopover';
  * **App contract for local navigation + primary actions** (Discovery Socials,
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
- * - Help leads the right cluster, then ghost actions, controls and primary actions
+ * - the right cluster has ONE fixed order, enforced here by slot so a page
+ *   cannot get it wrong: Help, Refresh (`refresh`), tabs (`tabs`), ghost
+ *   actions (`iconActions`, then the details toggle), controls, primary action
+ *   last (`actions`). With `iconActionsPlacement="after-controls"` the ghost
+ *   group moves to the end instead.
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
- * - when title is visible: title row, then optional tab strip under it
+ * - when title is visible: title row (Help, Refresh, ghost actions, controls),
+ *   then the tab strip under it
  *
  * Prefer this over hand-rolled toolbars. Pages may render it directly, or let
  * {@link Container} emit it from `headerTabs` / promoted body `tabs` / `right`.
@@ -29,6 +34,7 @@ export default function SectionTopbar({
   subtitle,
   icon: Icon,
   actions,
+  refresh,
   iconActions,
   iconActionsPlacement = 'before-controls',
   leading,
@@ -51,13 +57,17 @@ export default function SectionTopbar({
   const resolvedHelp = help === undefined ? routeHelp : help;
   const helpTrigger = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
   const hasActions =
-    Boolean(actions) || Boolean(iconActions) || Boolean(helpTrigger);
+    Boolean(actions) ||
+    Boolean(iconActions) ||
+    Boolean(refresh) ||
+    Boolean(helpTrigger);
   const isBarVisible =
     forceVisible || hasVisibleTitle || hasLeading || hasTabs || hasActions;
   const { markPlaced, renderToggle } = useSectionInspectorToggle(isBarVisible);
   const inspectorToggle = renderToggle ? <ContextInspectorToggle /> : null;
 
-  const iconActionsNode = (
+  // Help, then Refresh: always the first two controls of the right cluster.
+  const leadActionsNode = (
     <div
       className="flex shrink-0 items-center gap-1 empty:hidden"
       data-testid="section-topbar-icon-actions"
@@ -70,6 +80,16 @@ export default function SectionTopbar({
           {helpTrigger}
         </div>
       ) : null}
+      {refresh}
+    </div>
+  );
+
+  // Remaining ghost actions; the details toggle ends this group.
+  const ghostActionsNode = (
+    <div
+      className="flex shrink-0 items-center gap-1 empty:hidden"
+      data-testid="section-topbar-ghost-actions"
+    >
       {iconActions}
       {inspectorToggle}
     </div>
@@ -117,36 +137,35 @@ export default function SectionTopbar({
                 {leading}
               </div>
             ) : null}
-            {hasActions || inspectorToggle ? (
+            {hasActions || hasTabs || inspectorToggle ? (
               <div
                 data-testid="section-topbar-actions"
                 className={cn(
                   'flex items-center gap-2',
-                  hasTabs
-                    ? 'shrink-0 flex-wrap justify-end'
-                    : actions
-                      ? cn(
-                          'min-w-0 flex-wrap justify-end',
-                          hasLeading ? 'flex-auto' : 'flex-1',
-                        )
-                      : 'shrink-0',
+                  actions || hasTabs
+                    ? cn(
+                        'min-w-0 flex-wrap justify-end',
+                        hasLeading ? 'flex-auto' : 'flex-1',
+                      )
+                    : 'shrink-0',
                 )}
               >
+                {leadActionsNode}
+                {hasTabs ? (
+                  <div
+                    data-testid="section-topbar-tabs"
+                    className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
+                  >
+                    {tabs}
+                  </div>
+                ) : null}
                 {iconActionsPlacement === 'before-controls'
-                  ? iconActionsNode
+                  ? ghostActionsNode
                   : null}
                 {actions}
                 {iconActionsPlacement === 'after-controls'
-                  ? iconActionsNode
+                  ? ghostActionsNode
                   : null}
-              </div>
-            ) : null}
-            {hasTabs ? (
-              <div
-                data-testid="section-topbar-tabs"
-                className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
-              >
-                {tabs}
               </div>
             ) : null}
           </div>
@@ -198,12 +217,13 @@ export default function SectionTopbar({
               data-testid="section-topbar-actions"
               className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
             >
+              {leadActionsNode}
               {iconActionsPlacement === 'before-controls'
-                ? iconActionsNode
+                ? ghostActionsNode
                 : null}
               {actions}
               {iconActionsPlacement === 'after-controls'
-                ? iconActionsNode
+                ? ghostActionsNode
                 : null}
             </div>
           ) : null}

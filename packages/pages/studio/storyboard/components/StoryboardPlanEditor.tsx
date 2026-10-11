@@ -661,10 +661,7 @@ export default function StoryboardPlanEditor({
                         }
                       />
                     </Field>
-                    <Field
-                      label={translate('notes')}
-                      helpText={translate('notesHelp')}
-                    >
+                    <Field label={translate('notes')}>
                       <Textarea
                         value={shot.notes ?? ''}
                         maxLength={1000}
@@ -848,10 +845,7 @@ export default function StoryboardPlanEditor({
             />
           }
         />
-        <Card
-          label={translate('cast')}
-          description={translate('castDescription')}
-        >
+        <Card label={translate('cast')}>
           <div className="space-y-3">
             {voiceStatus === 'loading' ? (
               <p role="status">{translate('loadingVoices')}</p>

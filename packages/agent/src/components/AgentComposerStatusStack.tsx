@@ -12,6 +12,7 @@ import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import {
@@ -41,12 +42,16 @@ interface AgentComposerStatusStackProps {
   error: string | null;
   isRunActive: boolean;
   isSubmittingInputRequest: boolean;
+  /** The active turn went quiet; show the keep-waiting / stop-and-retry notice. */
+  isTurnStalled?: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   onClearError: () => void;
+  onKeepWaiting?: () => void;
   onSubmitInputRequest: (
     answer: string,
     optionIds?: string[],
   ) => void | Promise<void>;
+  onStopAndRetry?: () => void | Promise<void>;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   workEvents: readonly AgentWorkEvent[];
@@ -353,14 +358,20 @@ export function AgentComposerStatusStack({
   error,
   isRunActive,
   isSubmittingInputRequest,
+  isTurnStalled = false,
   latestProposedPlan,
   onClearError,
+  onKeepWaiting,
+  onStopAndRetry,
   onSubmitInputRequest,
   pendingInputRequest,
   socketConnectionState,
   workEvents,
 }: AgentComposerStatusStackProps): ReactElement | null {
   const translate = useTranslations('agent.workObjects');
+  const translateStalled = useTranslations('agent.stalledTurn');
+  const hasStalledNotice =
+    isTurnStalled && isRunActive && Boolean(onKeepWaiting && onStopAndRetry);
   const composerError = error ? splitComposerError(error) : null;
   const isApprovalExpired = composerError?.title === 'Approval expired';
   const [isErrorCopied, setIsErrorCopied] = useState(false);
@@ -420,6 +431,7 @@ export function AgentComposerStatusStack({
     !error &&
     !hasConnectionWarning &&
     !hasPlanReview &&
+    !hasStalledNotice &&
     !pendingInputRequest
   ) {
     return null;
@@ -519,6 +531,36 @@ export function AgentComposerStatusStack({
             />
           </div>
         </div>
+      ) : null}
+
+      {hasStalledNotice ? (
+        <Alert className="gap-y-1" variant="warning">
+          <TriangleAlert aria-hidden />
+          <AlertTitle>{translateStalled('title')}</AlertTitle>
+          <AlertDescription>
+            <p className="text-xs leading-5 text-foreground">
+              {translateStalled('description')}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <Button
+                label={translateStalled('keepWaiting')}
+                onClick={onKeepWaiting}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              />
+              <Button
+                label={translateStalled('stopAndRetry')}
+                onClick={() => {
+                  void onStopAndRetry?.();
+                }}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              />
+            </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {hasConnectionWarning ? (

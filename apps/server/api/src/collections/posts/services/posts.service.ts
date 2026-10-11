@@ -1,8 +1,5 @@
-import process from 'node:process';
 import { withLearningFenceEscalation } from '@api/collections/content-learning/services/learning-dependency.service';
-import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -37,6 +34,7 @@ import {
   assertStrategyCadenceAdmission,
   requiresStrategyCadenceAdmission,
 } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
+import { queueYoutubePostUpload } from '@api/collections/posts/services/post-youtube-upload.util';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -56,7 +54,6 @@ import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   CredentialPlatform,
-  fromPrismaCredentialPlatform,
   type PersistedReviewDecision,
   PostFormat,
   PostVisibility,
@@ -87,7 +84,6 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/publication-insights.interface';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
@@ -558,70 +554,15 @@ export class PostsService extends BaseService<
    */
   @HandleErrors('handle YouTube post', 'posts')
   async handleYoutubePost(post: PostDocument): Promise<void> {
-    const ingredients = Array.isArray(post.ingredients) ? post.ingredients : [];
-
-    if (!post.credential || ingredients.length === 0) {
-      throw new Error('Post must have credential and at least one ingredient');
-    }
-
-    const credential = post.credential as unknown as CredentialEntity;
-    const ingredient = ingredients[0] as unknown as IngredientEntity;
-
-    if (
-      fromPrismaCredentialPlatform(String(credential.platform ?? '')) !==
-      CredentialPlatform.YOUTUBE
-    ) {
-      this.logger.warn(
-        `handleYoutubePost called for non-YouTube platform: ${credential.platform}`,
-      );
-      return;
-    }
-
-    const originalVisibility = resolvePostVisibility(post.visibility);
-    const postId = String(post.id);
-
-    await this.patch(postId, {
-      targetExecutionState: TargetExecutionState.PUBLISHING,
-    });
-
-    try {
-      const brandId = post.brandId;
-      const organizationId = post.organizationId;
-      const userId = post.userId;
-
-      await this.fileQueueService?.uploadYoutube({
-        brandId,
-        credentialId: credential.id.toString(),
-        description: post.description || '',
-        ingredientId: ingredient.id.toString(),
-        organizationId,
-        postId,
-        room: userId ? getUserRoomName(userId) : undefined,
-        scheduledDate: post.scheduledDate ?? undefined,
-        visibility: originalVisibility,
-        tags:
-          (post.tags as unknown as ({ name?: string } | string)[])?.map(
-            (tag) =>
-              typeof tag === 'object' && tag?.name ? tag.name : String(tag),
-          ) || [],
-        title: post.label || 'Untitled',
-        userId,
-        websocketUrl: process.env.WEBSOCKET_URL,
-      });
-
-      this.logger.log(`YouTube upload job enqueued for post ${postId}`);
-    } catch (error: unknown) {
-      this.logger.error(
-        `Failed to enqueue YouTube upload for post ${postId}: ${(error as Error)?.message}`,
-        (error as Error)?.stack,
-      );
-
-      await this.patch(postId, {
-        targetExecutionState: TargetExecutionState.FAILED,
-      });
-
-      throw error;
-    }
+    await queueYoutubePostUpload(
+      {
+        fileQueueService: this.fileQueueService,
+        logger: this.logger,
+        patch: (id, dto) => this.patch(id, dto),
+        prisma: this.prisma,
+      },
+      post,
+    );
   }
 
   /**

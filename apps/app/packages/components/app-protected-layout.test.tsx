@@ -63,6 +63,11 @@ const {
 }));
 
 const mockFeatureFlags = vi.hoisted(() => ({ isEnabled: true }));
+// Every real Studio app is a single page, and a one-item nav is dropped, so a
+// test opts an app into a second page here to exercise the Studio nav column.
+const mockStudioNav = vi.hoisted(() => ({
+  appsWithSecondPage: new Set<string>(),
+}));
 const mockPathname = vi.hoisted(() => ({
   value: '/workspace',
 }));
@@ -258,6 +263,37 @@ vi.mock('@app-config/menu-items.config', () => ({
       : [{ href: '/workspace/activity', label: 'Activity' }],
   PUBLISHING_INSERT_AFTER_LABEL: 'Posts',
 }));
+
+vi.mock('@app-config/studio-menu-items.config', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@app-config/studio-menu-items.config')
+    >();
+  const menuItems = {} as Record<
+    string,
+    typeof actual.STUDIO_APP_MENU_ITEMS.storyboard
+  >;
+  for (const appId of actual.STUDIO_APP_IDS) {
+    Object.defineProperty(menuItems, appId, {
+      enumerable: true,
+      get: () => {
+        const [firstPage] = actual.STUDIO_APP_MENU_ITEMS[appId];
+        return mockStudioNav.appsWithSecondPage.has(appId)
+          ? [
+              firstPage,
+              {
+                ...firstPage,
+                href: `${firstPage.href}/archive`,
+                label: 'Archive',
+                matchPaths: [`${firstPage.href}/archive`],
+              },
+            ]
+          : actual.STUDIO_APP_MENU_ITEMS[appId];
+      },
+    });
+  }
+  return { ...actual, STUDIO_APP_MENU_ITEMS: menuItems };
+});
 
 vi.mock('@app-config/discovery-menu-items.config', () => ({
   DISCOVERY_MENU_ITEMS: [
@@ -542,6 +578,7 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockFeatureFlags.isEnabled = true;
+    mockStudioNav.appsWithSecondPage.clear();
     vi.mocked(useUserRole).mockReturnValue(MemberRole.USER);
     vi.mocked(useAgentPageContext).mockClear();
     mockPathname.value = '/workspace';
@@ -949,12 +986,9 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ isWorkspaceShell: true }),
     );
-    expect(appSidebarSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        currentApp: 'storyboard',
-        sectionLabel: 'Storyboard',
-      }),
-    );
+    // Storyboard is a single-page app: no nav column, the rail stays.
+    expect(appSidebarSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
   });
 
   it('keeps render failures inside the protected shell error boundary', () => {
@@ -1399,7 +1433,8 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
   });
 
-  it('gives each Studio app its own nav column (#5502)', () => {
+  it('gives a Studio app with several pages its own nav column (#5502)', () => {
+    mockStudioNav.appsWithSecondPage.add('storyboard');
     mockPathname.value = '/org-123/brand-123/studio/storyboard';
 
     render(
@@ -1414,6 +1449,11 @@ describe('AppProtectedLayout', () => {
         sectionLabel: 'Storyboard',
       }),
     );
+    expect(
+      appSidebarSpy.mock.calls
+        .at(-1)?.[0]
+        .items.map((item: MenuItemConfig) => item.href),
+    ).toEqual(['/studio/storyboard', '/studio/storyboard/archive']);
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
       'backLabel',
@@ -1421,9 +1461,64 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
+  it('gives a single-page Studio app no nav column, only the rail (#5502)', () => {
+    mockPathname.value = '/org-123/brand-123/studio/storyboard';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByText('Protected content')).toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ railComponent: expect.anything() }),
+    );
+  });
+
+  it('gives the Store no module nav column', () => {
+    mockPathname.value = '/org-123/~/store';
+
+    render(
+      <AppProtectedLayout>
+        <div>Store content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByText('Store content')).toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ railComponent: expect.anything() }),
+    );
+  });
+
   it.each([
-    ['/org-123/brand-123/studio/storyboard', 'storyboard', 'Storyboard'],
-    ['/org-123/brand-123/studio/turbo/new', 'turbo', 'Turbo'],
+    '/org-123/brand-123/studio/storyboard',
+    '/org-123/brand-123/studio/turbo/new',
+  ])(
+    'keeps the %s rail app surface without a module nav column',
+    (pathname) => {
+      mockPathname.value = pathname;
+
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
+
+      expect(appSidebarSpy).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByText('Protected content')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Back to Workspace' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
     ['/org-123/brand-123/automation/workflows', 'automation', 'Automation'],
@@ -1658,6 +1753,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('lists only the current Studio app in its nav (#5502)', () => {
+    mockStudioNav.appsWithSecondPage.add('storyboard');
     mockPathname.value = '/studio/storyboard';
     mockBrandState.settings.hasOrganizationBilling = true;
     render(
@@ -1669,11 +1765,12 @@ describe('AppProtectedLayout', () => {
       appSidebarSpy.mock.lastCall?.[0].items.map(
         (item: MenuItemConfig) => item.href,
       ),
-    ).toEqual(['/studio/storyboard']);
+    ).toEqual(['/studio/storyboard', '/studio/storyboard/archive']);
     expect(screen.getByText('Existing storyboard')).toBeInTheDocument();
   });
 
   it('updates an app nav without discarding existing project content', () => {
+    mockStudioNav.appsWithSecondPage.add('clips');
     mockPathname.value = '/studio/clips/project-123';
     mockBrandState.settings.hasOrganizationBilling = true;
     // Release preview isolates the module switch from the #5502 release gate.
@@ -1691,7 +1788,7 @@ describe('AppProtectedLayout', () => {
       appSidebarSpy.mock.lastCall?.[0].items.map(
         (item: MenuItemConfig) => item.href,
       ),
-    ).toEqual(['/studio/clips']);
+    ).toEqual(['/studio/clips', '/studio/clips/archive']);
     mockBrandState.settings = {
       ...mockBrandState.settings,
       moduleOverrides: { clips: false },
@@ -1701,13 +1798,16 @@ describe('AppProtectedLayout', () => {
         <div>Existing clips</div>
       </AppProtectedLayout>,
     );
-    expect(appSidebarSpy.mock.lastCall?.[0].items).toEqual([]);
+    // Switching the module off empties the nav, so the column goes away while
+    // the project content stays mounted.
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(screen.getByText('Existing clips')).toBeInTheDocument();
   });
 
   it.each([true, false])(
     'keeps a credit-only Studio app nav while preferences are unknown (loading=%s)',
     (settingsLoading) => {
+      mockStudioNav.appsWithSecondPage.add('storyboard');
       mockPathname.value = '/studio/storyboard';
       mockBrandState.settingsLoading = settingsLoading;
       mockBrandState.settings = { subscriptionTier: 'scale' };
@@ -1720,11 +1820,12 @@ describe('AppProtectedLayout', () => {
         appSidebarSpy.mock.lastCall?.[0].items.map(
           (item: MenuItemConfig) => item.href,
         ),
-      ).toEqual(['/studio/storyboard']);
+      ).toEqual(['/studio/storyboard', '/studio/storyboard/archive']);
     },
   );
 
   it('never lists another Studio app or a retired surface in an app nav', () => {
+    mockStudioNav.appsWithSecondPage.add('storyboard');
     mockPathname.value = '/studio/storyboard';
 
     render(
@@ -1732,6 +1833,8 @@ describe('AppProtectedLayout', () => {
         <div>Protected content</div>
       </AppProtectedLayout>,
     );
+
+    expect(appSidebarSpy).toHaveBeenCalled();
 
     for (const otherHref of [
       '/studio/playground',

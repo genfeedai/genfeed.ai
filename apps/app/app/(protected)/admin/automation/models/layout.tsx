@@ -70,6 +70,12 @@ function ModelsLayoutContent({ children }: LayoutProps) {
       label="Models"
       description="Manage AI models, their configurations, and availability settings"
       icon={Cpu}
+      refresh={
+        <ButtonRefresh
+          onClick={() => refreshModels?.()}
+          isRefreshing={isRefreshing}
+        />
+      }
       right={
         <>
           <AdminOrgBrandFilter
@@ -77,10 +83,6 @@ function ModelsLayoutContent({ children }: LayoutProps) {
             brand={adminBrand}
             onOrganizationChange={handleAdminOrgChange}
             onBrandChange={handleAdminBrandChange}
-          />
-          <ButtonRefresh
-            onClick={() => refreshModels?.()}
-            isRefreshing={isRefreshing}
           />
           <Button
             variant={ButtonVariant.DEFAULT}

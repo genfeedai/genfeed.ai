@@ -9,8 +9,8 @@ const messagesUnread = vi.hoisted(() => ({
   count: 0,
   spy: vi.fn(),
 }));
-vi.mock('@/components/shell/use-pinned-rail-apps', () => ({
-  usePinnedRailApps: () => ({
+vi.mock('@/components/shell/pinned-rail-apps.provider', () => ({
+  usePinnedRailAppsContext: () => ({
     pinnedAppIds: ['playground'],
     togglePin: vi.fn(),
   }),
@@ -222,9 +222,10 @@ describe('AppProtectedRail', () => {
         surface: 'desktop',
       }),
     );
-    expect(appRailSpy.mock.lastCall?.[0].onTogglePin).toEqual(
-      expect.any(Function),
-    );
+    // Pins are changed from Store cards; the rail only reads them. The Apps
+    // link to the Store lives in the topbar.
+    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('storeHref');
+    expect(appRailSpy.mock.lastCall?.[0]).not.toHaveProperty('onTogglePin');
   });
 
   it('puts Help and the account avatar in the rail footer', () => {
@@ -294,7 +295,7 @@ describe('AppProtectedRail', () => {
     );
   });
 
-  it('feeds the launcher confirmed installs, module access and the Store (#5502)', () => {
+  it('feeds the rail confirmed installs and module access (#5502)', () => {
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -304,7 +305,6 @@ describe('AppProtectedRail', () => {
           playground: { isAllowed: true, reason: null },
           clips: { isAllowed: false, reason: 'unreleased' },
         }),
-        storeHref: '/acme/~/store',
       }),
     );
   });

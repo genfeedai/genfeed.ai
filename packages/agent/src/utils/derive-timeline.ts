@@ -51,6 +51,8 @@ export interface TimelineStreaming {
   };
   workEvents: AgentWorkEvent[];
   runDurationLabel: string | null;
+  /** The turn went quiet; the composer owns the notice, so no live timer. */
+  isStalled?: boolean;
   createdAt: string;
 }
 
@@ -785,6 +787,7 @@ export function composeTimelineWithStream(
   historical: HistoricalTimeline,
   streamState: TimelineStreaming['streamState'],
   runDurationLabel: string | null,
+  isStalled = false,
 ): TimelineEntry[] {
   const { entries, activeEvents } = historical;
 
@@ -803,6 +806,7 @@ export function composeTimelineWithStream(
     {
       createdAt: new Date().toISOString(),
       id: 'streaming-current',
+      ...(isStalled ? { isStalled } : {}),
       kind: 'streaming',
       runDurationLabel,
       streamState,

@@ -114,7 +114,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       lastModified: new Date(),
       priority: 0.6,
-      url: 'https://genfeed.ai/fleet',
+      url: 'https://genfeed.ai/custom-models',
     },
     {
       changeFrequency: 'weekly',

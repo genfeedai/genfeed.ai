@@ -112,6 +112,63 @@ describe('OrganizationStorePage (#5502)', () => {
     ]);
   });
 
+  it('shows featured apps, your installed apps and category shelves', () => {
+    // Turbo ships switched off, and a turned-off app is not headlined, so the
+    // organization turns it on to see all three featured apps.
+    mocks.brand.settings = {
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: true,
+      moduleOverrides: { turbo: true },
+    };
+    render(<OrganizationStorePage />);
+
+    expect(
+      within(screen.getByTestId('store-featured'))
+        .getAllByTestId(/^store-featured-/)
+        .map((element) => element.dataset.testid),
+    ).toEqual([
+      'store-featured-playground',
+      'store-featured-storyboard',
+      'store-featured-turbo',
+    ]);
+    // Every card, featured or not, leads with its app thumbnail.
+    for (const appId of ['playground', 'storyboard', 'turbo']) {
+      expect(
+        within(screen.getByTestId(`store-featured-${appId}`)).getByTestId(
+          `store-thumbnail-${appId}`,
+        ),
+      ).toBeInTheDocument();
+    }
+    expect(
+      within(card('discovery')).getByTestId('store-thumbnail-discovery'),
+    ).toBeInTheDocument();
+    // Only the installed, openable app is listed under Your apps; no usage
+    // counts exist, so nothing claims to be "most used".
+    expect(
+      within(screen.getByTestId('store-yours'))
+        .getAllByTestId(/^store-yours-/)
+        .map((element) => element.dataset.testid),
+    ).toEqual(['store-yours-playground']);
+    expect(screen.getByTestId('store-category-create')).toBeInTheDocument();
+    expect(screen.getByTestId('store-category-publish')).toBeInTheDocument();
+    expect(screen.queryByTestId('store-category-automate')).toBeNull();
+  });
+
+  it('filters the shelves with the category chips', async () => {
+    const user = userEvent.setup();
+    render(<OrganizationStorePage />);
+
+    await user.click(screen.getByRole('button', { name: 'Publish & grow' }));
+
+    expect(screen.queryByTestId('store-featured')).toBeNull();
+    expect(screen.queryByTestId('store-category-create')).toBeNull();
+    expect(
+      screen
+        .getAllByTestId(/^store-app-/)
+        .map((element) => element.dataset.testid),
+    ).toEqual(['store-app-discovery']);
+  });
+
   it('lists every native app for an organization on release preview', () => {
     mocks.brand.settings = {
       hasOrganizationBilling: true,
@@ -166,12 +223,16 @@ describe('OrganizationStorePage (#5502)', () => {
     render(<OrganizationStorePage />);
 
     expect(appState('turbo')).toBe('organization-disabled');
-    expect(within(card('turbo')).queryByRole('button')).toBeNull();
+    // A turned-off app is not headlined in Featured; it stays on its shelf.
+    expect(screen.queryByTestId('store-featured-turbo')).toBeNull();
+    expect(
+      within(card('turbo')).getByRole('button', { name: 'Install Turbo' }),
+    ).toBeDisabled();
     expect(
       within(card('turbo')).getByRole('link', {
         name: 'Organization settings',
       }),
-    ).toHaveAttribute('href', '/acme/~/settings/organization');
+    ).toHaveAttribute('href', '/acme/~/settings/modules');
     expect(appState('discovery')).toBe('subscription-required');
     expect(
       within(card('discovery')).getByRole('link', { name: 'View plans' }),

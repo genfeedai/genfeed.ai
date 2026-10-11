@@ -37,7 +37,6 @@ export interface ReplyCampaignsPageProps {
   isCreating: boolean;
   isLoading: boolean;
   onCreate: (input: SocialReplyCampaignInput) => Promise<void> | void;
-  onRefresh: () => void;
   onTransition: (
     campaignId: string,
     transition: SocialReplyCampaignTransition,

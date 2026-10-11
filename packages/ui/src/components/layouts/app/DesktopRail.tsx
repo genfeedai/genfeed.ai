@@ -1,5 +1,6 @@
 'use client';
 
+import SidebarLogoMark from '@ui/menus/sidebar-logo-toggle/SidebarLogoMark';
 import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
@@ -11,6 +12,8 @@ type DesktopRailSidebarToggle = {
 
 type DesktopRailProps = {
   children: ReactNode;
+  /** Show the plain mark (no hover or click) when there is no sidebar to toggle. */
+  hasStaticMark?: boolean;
   sidebarToggle?: DesktopRailSidebarToggle | null;
 };
 
@@ -19,10 +22,11 @@ type DesktopRailProps = {
  * chrome colour with the topbar (`gray-100`) and has no divider of its own.
  * The rounded block to its right holds the menu and the page.
  * The top band matches the topbar (48px) and holds the Genfeed mark, which
- * collapses the module sidebar.
+ * collapses the module sidebar, or stays a plain mark on pages without one.
  */
 export default function DesktopRail({
   children,
+  hasStaticMark = false,
   sidebarToggle = null,
 }: DesktopRailProps) {
   const translateRail = useTranslations('common.appRail');
@@ -54,6 +58,8 @@ export default function DesktopRail({
             direction={sidebarToggle.isCollapsed ? 'expand' : 'collapse'}
             onClick={sidebarToggle.onToggle}
           />
+        ) : hasStaticMark ? (
+          <SidebarLogoMark />
         ) : null}
       </div>
       {children}

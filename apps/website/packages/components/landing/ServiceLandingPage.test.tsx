@@ -46,7 +46,7 @@ const AGENT_LANDING_SLUGS = [
   'facebook',
   'pinterest',
 ];
-const LANDING_SLUGS = [...serviceLandingSlugs, 'fleet'];
+const LANDING_SLUGS = [...serviceLandingSlugs, 'custom-models'];
 
 vi.mock('@ui/topbars/logo/TopbarLogo', () => ({
   default: () => <span>Logo</span>,
@@ -124,7 +124,12 @@ describe('ServiceLandingPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Content strategy' }),
     ).toBeInTheDocument();
-    for (const href of ['/founder-content', '/fleet', '/x', '/pinterest']) {
+    for (const href of [
+      '/founder-content',
+      '/custom-models',
+      '/x',
+      '/pinterest',
+    ]) {
       expect(
         screen
           .getAllByRole('link')

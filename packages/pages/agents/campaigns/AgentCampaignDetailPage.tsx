@@ -289,16 +289,13 @@ export default function AgentCampaignDetailPage() {
       label={campaign.label}
       description={campaign.brief || 'Program details and execution status'}
       icon={LayoutDashboard}
-      right={
-        <>
-          <ButtonRefresh
-            onClick={() => loadCampaign(true)}
-            isRefreshing={isRefreshing}
-          />
-
-          <CollectionItemActions overflow={overflow} primary={primary} />
-        </>
+      refresh={
+        <ButtonRefresh
+          onClick={() => loadCampaign(true)}
+          isRefreshing={isRefreshing}
+        />
       }
+      right={<CollectionItemActions overflow={overflow} primary={primary} />}
     >
       <div className="space-y-6">
         <AgentCampaignDetailHeader

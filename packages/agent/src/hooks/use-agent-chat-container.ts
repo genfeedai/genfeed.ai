@@ -13,6 +13,7 @@ import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream
 import { useAgentModePersistence } from '@genfeedai/agent/hooks/use-agent-mode-persistence';
 import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-follow-up-queue';
 import { useDesktopCliAgentChat } from '@genfeedai/agent/hooks/use-desktop-cli-agent-chat';
+import { useStalledTurn } from '@genfeedai/agent/hooks/use-stalled-turn';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentWorkEvent,
@@ -214,9 +215,11 @@ export function useAgentChatContainer({
     onOnboardingCompleted,
   });
   const {
+    abandonRun,
     adoptRun,
     beginRunHandoff,
     cancelRunHandoff,
+    resumeRunWatch,
     sendMessage: sendStreaming,
     isStreaming: isStreamingActive,
   } = useAgentChatStream({
@@ -312,6 +315,29 @@ export function useAgentChatContainer({
     setActiveUiActionState(action);
   }, []);
   const isBusy = isTransportBusy || Boolean(activeUiAction);
+  // A stalled turn is quiet, not finished: anything the turn produces (a
+  // token, a tool update, a message, a work event) restarts the stall clock.
+  const stallProgressKey = [
+    activeRunId,
+    messages.length,
+    messages.at(-1)?.id,
+    streamState.streamingContent.length,
+    streamState.streamingReasoning.length,
+    streamState.acceptedReceipt?.runId,
+    streamState.activeToolCalls
+      .map((call) => `${call.id}:${call.status}:${call.progress ?? ''}`)
+      .join(','),
+    workEvents.length,
+    workEvents.at(-1)?.id,
+    workEvents.at(-1)?.status,
+    workEvents.at(-1)?.progress,
+  ].join('|');
+  const { isStalled: isTurnStalled, keepWaiting: restartStallClock } =
+    useStalledTurn({
+      isActive: activeRunStatus === 'running' && !pendingInputRequest,
+      isForcedStalled: streamState.isRunStalled === true,
+      progressKey: stallProgressKey,
+    });
   const [isCreatingFollowUpTasks, setIsCreatingFollowUpTasks] = useState(false);
   const [followUpTaskMessage, setFollowUpTaskMessage] = useState<string | null>(
     null,
@@ -397,12 +423,14 @@ export function useAgentChatContainer({
         },
         streamState,
         runDurationLabel,
+        isTurnStalled,
       ),
     [
       historicalTimeline.activeEvents,
       stableHistoricalEntries,
       streamState,
       runDurationLabel,
+      isTurnStalled,
     ],
   );
 
@@ -688,6 +716,79 @@ export function useAgentChatContainer({
     },
     [followLatestTurn, handleSend, isBusy, messages, onRegenerate, setError],
   );
+
+  const clearRunStalledFlag = useCallback(() => {
+    useAgentChatStore.setState((state) =>
+      state.stream.isRunStalled
+        ? { stream: { ...state.stream, isRunStalled: false } }
+        : state,
+    );
+  }, []);
+
+  // "Keep waiting": restart the stall clock and, when the runtime had stopped
+  // polling because the execution lookup 404'd, resume that polling.
+  const handleKeepWaiting = useCallback(() => {
+    clearRunStalledFlag();
+    if (activeThreadId) {
+      resumeRunWatch(activeThreadId);
+    }
+    restartStallClock();
+  }, [activeThreadId, clearRunStalledFlag, restartStallClock, resumeRunWatch]);
+
+  // Output on a run the runtime marked stalled means it is alive after all.
+  const stalledProgressKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!streamState.isRunStalled) {
+      stalledProgressKeyRef.current = null;
+      return;
+    }
+    if (stalledProgressKeyRef.current === null) {
+      stalledProgressKeyRef.current = stallProgressKey;
+      return;
+    }
+    if (stalledProgressKeyRef.current !== stallProgressKey) {
+      stalledProgressKeyRef.current = null;
+      handleKeepWaiting();
+    }
+  }, [handleKeepWaiting, stallProgressKey, streamState.isRunStalled]);
+
+  // "Stop and retry": cancel through the composer's stop path, settle the
+  // thread locally (the unresponsive run will not confirm the cancel, and the
+  // sidebar must stop listing the thread as working), then resend the last
+  // user message. If the send is refused, the message is restored to the
+  // composer instead.
+  const handleStopAndRetry = useCallback(async (): Promise<void> => {
+    const threadId = activeThreadId;
+    const lastUserPrompt = [...messages]
+      .reverse()
+      .find((message) => message.role === 'user')
+      ?.content.trim();
+    const isStopped = await handleStopRun();
+    if (!isStopped) {
+      return;
+    }
+    if (threadId) {
+      abandonRun(threadId);
+    }
+    clearStaleActiveRun();
+    clearRunStalledFlag();
+    if (!lastUserPrompt) {
+      return;
+    }
+    followLatestTurn('smooth');
+    if (!handleSend(lastUserPrompt)) {
+      useAgentChatStore.getState().seedComposer(lastUserPrompt, threadId);
+    }
+  }, [
+    abandonRun,
+    activeThreadId,
+    clearRunStalledFlag,
+    clearStaleActiveRun,
+    followLatestTurn,
+    handleSend,
+    handleStopRun,
+    messages,
+  ]);
 
   const sendFollowUpNow = followUpQueue.sendNow;
 
@@ -1222,6 +1323,7 @@ export function useAgentChatContainer({
     isBusy,
     isPlanReviewPending,
     isRunActive,
+    isTurnStalled,
     isStreamingActive,
     isEmpty,
     activeThreadTitle,
@@ -1255,6 +1357,8 @@ export function useAgentChatContainer({
     handleCopy,
     handleRetry,
     handleStopRun,
+    handleKeepWaiting,
+    handleStopAndRetry,
     sendFollowUpNow,
     followUpQueue,
     promoteQueuedFollowUp: followUpQueue.promoteOldest,

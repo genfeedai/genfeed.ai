@@ -276,6 +276,12 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
       label="Folders"
       description="Organize content into folders."
       icon={FolderOpen}
+      refresh={
+        <ButtonRefresh
+          onClick={() => refreshFolders()}
+          isRefreshing={isRefreshing}
+        />
+      }
       right={
         <>
           <FiltersButton
@@ -297,11 +303,6 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
             filterOptions={{
               sort: FOLDER_SORT_OPTIONS,
             }}
-          />
-
-          <ButtonRefresh
-            onClick={() => refreshFolders()}
-            isRefreshing={isRefreshing}
           />
 
           {scope !== PageScope.SUPERADMIN && (

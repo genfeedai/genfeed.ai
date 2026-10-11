@@ -13,8 +13,16 @@ import Spinner from '@ui/primitives/spinner';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import ClipsInputForm from '../components/ClipsInputForm';
+import { findClipsPreset } from '../data/clips-presets';
 import { ClipsApiService } from '../services/clips-api.service';
 import { useStudioClipsPage } from '../useStudioClipsPage';
 
@@ -152,6 +160,22 @@ function IngredientClipProjectPageContent() {
 function ClipSourceImport() {
   const t = useTranslations('pages.studioClips');
   const clips = useStudioClipsPage();
+  const preset = findClipsPreset(useSearchParams().get('preset'));
+  const { setGenerationMode, setMaxClips, setMinViralityScore } = clips;
+  const hasAppliedPreset = useRef(false);
+
+  // A preset only chooses settings; the creator still adds the source.
+  useEffect(() => {
+    if (!preset || hasAppliedPreset.current) {
+      return;
+    }
+
+    hasAppliedPreset.current = true;
+    setGenerationMode(preset.mode);
+    setMaxClips(preset.maxClips);
+    setMinViralityScore(preset.minViralityScore);
+  }, [preset, setGenerationMode, setMaxClips, setMinViralityScore]);
+
   return (
     <Container label={t('newProject')} titleVisibility="sr-only">
       <div className="mx-auto w-full max-w-2xl space-y-4">
@@ -159,6 +183,15 @@ function ClipSourceImport() {
         <p className="text-sm text-muted-foreground">
           {t('importSourceDescription')}
         </p>
+        {preset ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {t('presets.appliedStatus', {
+              count: preset.maxClips,
+              score: preset.minViralityScore,
+              title: t(`presets.items.${preset.id}.title`),
+            })}
+          </p>
+        ) : null}
         <ClipsInputForm
           sourceOnly
           draftSaveState={clips.draftSaveState}

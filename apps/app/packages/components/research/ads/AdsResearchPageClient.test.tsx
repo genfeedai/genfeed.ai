@@ -266,6 +266,7 @@ vi.mock('@ui/layout/container/Container', () => ({
     description,
     headerTabs,
     label,
+    refresh,
     right,
   }: {
     children: ReactNode;
@@ -276,13 +277,14 @@ vi.mock('@ui/layout/container/Container', () => ({
       onTabChange?: (tabId: string) => void;
     };
     label?: string;
+    refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
       <header>
         <h1>{label}</h1>
         {description ? <p>{description}</p> : null}
-        {right}
+        <div data-testid="container-refresh">{refresh}</div>
         {headerTabs?.items ? (
           <nav>
             {headerTabs.items.map((tab) => (
@@ -297,6 +299,7 @@ vi.mock('@ui/layout/container/Container', () => ({
             ))}
           </nav>
         ) : null}
+        {right}
       </header>
       <div>{children}</div>
     </section>
@@ -666,9 +669,18 @@ describe('AdsResearchPageClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'CTR (High → Low)' }));
     expect(screen.getByText('2.40')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    const refreshButton = screen.getByRole('button', { name: 'Refresh' });
+    // Refresh is passed through the Container `refresh` slot, ahead of the tabs.
+    expect(screen.getByTestId('container-refresh')).toContainElement(
+      refreshButton,
+    );
+    expect(
+      refreshButton.compareDocumentPosition(
+        screen.getByRole('button', { name: 'Overview' }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    fireEvent.click(refreshButton);
     expect(useQueryStates[0].refetch).toHaveBeenCalled();
-    // Refresh lives in the Container header next to view toggle.
 
     fireEvent.click(screen.getByText('Google lead gen winner'));
     fireEvent.click(screen.getByRole('button', { name: /create workflow/i }));
@@ -1162,7 +1174,9 @@ describe('AdsResearchPageClient', () => {
     render(<AdsResearchPageClient />);
 
     expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
+    expect(screen.getByTestId('container-refresh')).toContainElement(
+      screen.getByRole('button', { name: 'Refresh' }),
+    );
     expect(
       screen.getByRole('button', { name: 'Meta', exact: true }),
     ).toBeInTheDocument();
