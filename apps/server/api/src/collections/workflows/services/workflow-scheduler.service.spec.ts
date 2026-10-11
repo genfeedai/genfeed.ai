@@ -431,6 +431,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
         },
         platformSeedKey: true,
         scheduleInitiatingActor: true,
+        templateInstantiationKey: true,
       },
       where: {
         id: 'wf-1',
