@@ -222,3 +222,92 @@ export async function assertNoOrgOnlyChildOrphans(
     );
   }
 }
+
+/**
+ * Safety net: after the cascade, assert no brand-owned row still points at a stale
+ * org. Part A verifies every configured table (correct field pairing). Part B
+ * discovers ANY other dual-keyed table via information_schema and blocks the move
+ * if it would orphan rows — so a forgotten/future table rolls back loudly instead
+ * of silently splitting tenancy. Part C does the same for org-only children, which
+ * carry an organization column and a foreign key to a moved parent but no brand
+ * column: the configured ones are re-counted, and any other is found in the
+ * catalog.
+ */
+export async function assertNoBrandOrgOrphans(
+  tx: Prisma.TransactionClient,
+  brandId: string,
+  destOrgId: string,
+): Promise<void> {
+  const client = tx as unknown as Record<string, CascadeDelegate>;
+
+  const stale: string[] = [];
+  for (const target of FIRST_ORDER_TARGETS) {
+    const remaining = await client[target.delegate].count({
+      where: {
+        [target.brandField]: brandId,
+        [target.orgField]: { not: destOrgId },
+      },
+    });
+    if (remaining > 0) {
+      stale.push(`${target.delegate} (${remaining})`);
+    }
+  }
+  if (stale.length > 0) {
+    throw new InternalServerErrorException(
+      `Brand relocation aborted: cascade left stale organization id on ${stale.join(', ')}.`,
+    );
+  }
+
+  const knownTables = new Set<string>([
+    ...FIRST_ORDER_TARGETS.map((target) => target.table),
+    ...SECOND_ORDER_TARGETS.map((target) => target.table),
+    ...AUDITOR_IGNORED_TABLES,
+  ]);
+
+  // sql-risk-audit: ignore raw-sql-review -- static information_schema introspection, no caller input interpolated.
+  const candidates = await tx.$queryRaw<
+    { table_name: string; brand_col: string; org_col: string }[]
+  >`SELECT c1.table_name AS table_name, c1.column_name AS brand_col, c2.column_name AS org_col
+     FROM information_schema.columns c1
+     JOIN information_schema.columns c2
+       ON c1.table_name = c2.table_name AND c1.table_schema = c2.table_schema
+     WHERE c1.table_schema = 'public'
+       AND c1.column_name ~* 'brand_?id$'
+       AND c2.column_name ~* '(organization|org)_?id$'`;
+
+  // Columns are camelCase (`brandId`, `organizationId`), so the identifiers are
+  // quoted below and may carry capitals.
+  const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+  const unhandled: string[] = [];
+  for (const candidate of candidates) {
+    if (knownTables.has(candidate.table_name)) {
+      continue;
+    }
+    if (
+      !IDENTIFIER.test(candidate.table_name) ||
+      !IDENTIFIER.test(candidate.brand_col) ||
+      !IDENTIFIER.test(candidate.org_col)
+    ) {
+      continue;
+    }
+    // sql-risk-audit: ignore raw-sql-review -- table/column identifiers are regex-validated to /^[A-Za-z_][A-Za-z0-9_]*$/ above and injected via Prisma.raw; brandId/destOrgId are bound as parameters.
+    const rows = await tx.$queryRaw<
+      { n: number }[]
+    >`SELECT COUNT(*)::int AS n FROM ${Prisma.raw(`"${candidate.table_name}"`)} WHERE ${Prisma.raw(`"${candidate.brand_col}"`)} = ${brandId} AND ${Prisma.raw(`"${candidate.org_col}"`)} IS DISTINCT FROM ${destOrgId}`;
+    const count = rows[0]?.n ?? 0;
+    if (count > 0) {
+      unhandled.push(
+        `${candidate.table_name}.${candidate.brand_col}/${candidate.org_col} (${count})`,
+      );
+    }
+  }
+  if (unhandled.length > 0) {
+    throw new InternalServerErrorException(
+      `Brand relocation aborted: unhandled dual-keyed table(s) would be orphaned in the source org: ${unhandled.join(', ')}. Add them to FIRST_ORDER_TARGETS in brand-org-cascade.constants.ts.`,
+    );
+  }
+
+  // Part C: org-only children (an organization column and a foreign key to a
+  // moved parent, no brand column) must follow their parent too.
+  await assertNoOrgOnlyChildOrphans(tx, brandId, destOrgId);
+}

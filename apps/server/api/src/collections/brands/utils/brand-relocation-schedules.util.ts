@@ -1,4 +1,7 @@
+import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { Prisma } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { ModuleRef } from '@nestjs/core';
 
 /** A workflow schedule that a relocation pauses, as shown in the preview. */
 export interface BrandRelocationHeldSchedule {
@@ -91,4 +94,60 @@ export async function holdBrandSchedules(
     });
   }
   return { held, touchedWorkflowIds };
+}
+
+async function resolveWorkflowSchedulerService(
+  moduleRef: ModuleRef | undefined,
+): Promise<WorkflowSchedulerService | null> {
+  if (!moduleRef) {
+    return null;
+  }
+  try {
+    // Deferred import: a top-level value import of the scheduler closes the
+    // brands -> workflows -> brands module cycle and crashes API bootstrap
+    // (the same reason DefaultRecurringContentService resolves it lazily).
+    const { WorkflowSchedulerService: schedulerServiceClass } = await import(
+      '@api/collections/workflows/services/workflow-scheduler.service'
+    );
+    return moduleRef.get(schedulerServiceClass, { strict: false });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remove the queued scheduler job for every workflow the move paused. Runs after
+ * commit and never fails the move: a job that outlives the pause is dropped when
+ * it fires, because the workflow no longer has an enabled schedule. Returns how
+ * many jobs could not be confirmed removed.
+ */
+export async function unscheduleHeldWorkflows(
+  moduleRef: ModuleRef | undefined,
+  logger: Pick<LoggerService, 'warn'>,
+  workflowIds: readonly string[],
+): Promise<number> {
+  if (workflowIds.length === 0) {
+    return 0;
+  }
+  const scheduler = await resolveWorkflowSchedulerService(moduleRef);
+  if (!scheduler) {
+    logger.warn(
+      'Workflow scheduler unavailable; queued jobs of paused schedules will be dropped when they fire',
+      { workflowCount: workflowIds.length },
+    );
+    return workflowIds.length;
+  }
+  let pending = 0;
+  for (const workflowId of workflowIds) {
+    try {
+      await scheduler.unscheduleWorkflow(workflowId);
+    } catch (error: unknown) {
+      pending += 1;
+      logger.warn('Failed to unschedule a workflow after relocation', {
+        error: error instanceof Error ? error.message : String(error),
+        workflowId,
+      });
+    }
+  }
+  return pending;
 }
