@@ -205,6 +205,8 @@ describe('OrganizationStorePage (#5502)', () => {
     render(<OrganizationStorePage />);
 
     expect(appState('turbo')).toBe('organization-disabled');
+    // A turned-off app is not headlined in Featured; it stays on its shelf.
+    expect(screen.queryByTestId('store-featured-turbo')).toBeNull();
     expect(
       within(card('turbo')).getByRole('button', { name: 'Install Turbo' }),
     ).toBeDisabled();
