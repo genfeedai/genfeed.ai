@@ -445,18 +445,16 @@ describe('font checks from a verified render manifest', () => {
     });
   });
   it('requires the exact weight, style and owned font file', async () => {
+    // The font file is approved by the asset rule, but the heading rule asks for weight 700.
     const lighter = { ...displayFont, weight: 400 as const };
     const { report: weight } = await run((hash) =>
-      verified(
-        manifest(hash, {
-          fonts: [lighter, interFont],
-        }),
-      ),
+      verified(manifest(hash, { fonts: [lighter, interFont] })),
     );
     expect(byId(weight, 'heading')).toMatchObject({
-      reasonCode: 'font_not_approved',
+      reasonCode: 'font_not_used',
       result: 'unknown',
     });
+    expect(byId(weight, 'font-asset')).toMatchObject({ result: 'pass' });
     const swapped = {
       ...displayFont,
       source: {
@@ -472,6 +470,7 @@ describe('font checks from a verified render manifest', () => {
       reasonCode: 'font_not_approved',
       result: 'unknown',
     });
+    expect(byId(file, 'font-asset')).toMatchObject({ result: 'unknown' });
   });
   it('cannot recognize a font whose availability is unknown', async () => {
     const unproven: FontRule = { ...body, availability: 'unknown', id: 'body' };

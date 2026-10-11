@@ -557,7 +557,7 @@ describe('brand validation receipt completion adapter', () => {
       organizationId: actor.organizationId,
     });
     expect(read.mock.calls[0][1]).toBe(f.ingredient.id);
-    expect(read.mock.calls[0][2]).toEqual(new Uint8Array(f.bytes));
+    expect(Buffer.from(read.mock.calls[0][2]).equals(f.bytes)).toBe(true);
     expect(result.receipt).toMatchObject({
       compliance: 'unverified',
       state: 'needs_review',
