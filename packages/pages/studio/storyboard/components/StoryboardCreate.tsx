@@ -13,8 +13,9 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardPreset } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StoryboardPresetChips from '@pages/studio/storyboard/components/StoryboardPresetChips';
+import StoryboardPresetCards from '@pages/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@pages/studio/storyboard/components/StoryboardReferencesPanel';
+import { STORYBOARD_PRESETS } from '@pages/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
 import { storyboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-plan';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
@@ -283,7 +284,10 @@ export default function StoryboardCreate() {
             {video?.title || translate('chooseOwnedVideo')}
           </p>
         ) : (
-          <StoryboardPresetChips
+          <StoryboardPresetCards
+            activePresetId={
+              STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
+            }
             isDisabled={isCreating}
             onSelect={applyPreset}
           />

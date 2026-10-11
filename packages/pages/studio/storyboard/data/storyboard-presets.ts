@@ -25,6 +25,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'productLaunch',
     runtimeBudgetSeconds: 15,
     shotCount: 5,
+    thumbnailSrc: '/storyboard-presets/productLaunch.webp',
   },
   {
     brief:
@@ -34,6 +35,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'founderStory',
     runtimeBudgetSeconds: 30,
     shotCount: 5,
+    thumbnailSrc: '/storyboard-presets/founderStory.webp',
   },
   {
     brief:
@@ -43,6 +45,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'beforeAfter',
     runtimeBudgetSeconds: 20,
     shotCount: 3,
+    thumbnailSrc: '/storyboard-presets/beforeAfter.webp',
   },
   {
     brief:
@@ -52,6 +55,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'threeStepExplainer',
     runtimeBudgetSeconds: 30,
     shotCount: 5,
+    thumbnailSrc: '/storyboard-presets/threeStepExplainer.webp',
   },
   {
     brief:
@@ -61,6 +65,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'customerStory',
     runtimeBudgetSeconds: 25,
     shotCount: 4,
+    thumbnailSrc: '/storyboard-presets/customerStory.webp',
   },
   {
     brief:
@@ -70,6 +75,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'seasonRecap',
     runtimeBudgetSeconds: 45,
     shotCount: 6,
+    thumbnailSrc: '/storyboard-presets/seasonRecap.webp',
   },
   {
     brief:
@@ -79,6 +85,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'behindTheScenes',
     runtimeBudgetSeconds: 30,
     shotCount: 5,
+    thumbnailSrc: '/storyboard-presets/behindTheScenes.webp',
   },
   {
     brief:
@@ -88,6 +95,7 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     id: 'howTo',
     runtimeBudgetSeconds: 40,
     shotCount: 6,
+    thumbnailSrc: '/storyboard-presets/howTo.webp',
   },
 ];
 

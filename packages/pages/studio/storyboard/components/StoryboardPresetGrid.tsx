@@ -9,7 +9,7 @@ import type {
   StoryboardPresetGridProps,
 } from '@genfeedai/props/studio/storyboard-presets.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StoryboardShotStrip from '@pages/studio/storyboard/components/StoryboardShotStrip';
+import StoryboardPresetThumbnail from '@pages/studio/storyboard/components/StoryboardPresetThumbnail';
 import { buildStoryboardPresetInput } from '@pages/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@pages/studio/storyboard/hooks/use-create-storyboard';
 import Card from '@ui/card/Card';
@@ -95,36 +95,42 @@ export default function StoryboardPresetGrid({
                 title={translate(`items.${preset.id}.description`)}
               >
                 <Card
-                  actions={
-                    <Button
-                      ariaLabel={translate('createAria', { title })}
-                      className="w-full"
-                      isDisabled={!hasBrand || (isBusy && !isLaunching)}
-                      isLoading={isLaunching}
-                      label={translate(isLaunching ? 'creating' : 'create')}
-                      onClick={() => void launch(preset)}
-                      variant={ButtonVariant.DEFAULT}
-                    />
-                  }
-                  bodyClassName="h-full"
-                  className="flex w-full flex-col"
-                  icon={<preset.icon className="size-4" />}
-                  label={title}
+                  bodyClassName="h-full gap-0 p-0"
+                  className="flex w-full flex-col overflow-hidden"
                 >
-                  <StoryboardShotStrip
-                    format={preset.format}
-                    shotCount={preset.shotCount}
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    <Badge variant="secondary">{preset.format}</Badge>
-                    <Badge variant="secondary">
-                      {translate('runtime', {
-                        seconds: preset.runtimeBudgetSeconds,
-                      })}
-                    </Badge>
-                    <Badge variant="secondary">
-                      {translate('shots', { count: preset.shotCount })}
-                    </Badge>
+                  <StoryboardPresetThumbnail src={preset.thumbnailSrc} />
+                  <div className="flex flex-1 flex-col gap-3 p-4">
+                    <div className="flex items-center gap-2">
+                      <preset.icon
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-muted-foreground"
+                      />
+                      <h3 className="min-w-0 truncate text-sm font-semibold tracking-[-0.01em]">
+                        {title}
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="secondary">{preset.format}</Badge>
+                      <Badge variant="secondary">
+                        {translate('runtime', {
+                          seconds: preset.runtimeBudgetSeconds,
+                        })}
+                      </Badge>
+                      <Badge variant="secondary">
+                        {translate('shots', { count: preset.shotCount })}
+                      </Badge>
+                    </div>
+                    <div className="mt-auto border-t border-border pt-3">
+                      <Button
+                        ariaLabel={translate('createAria', { title })}
+                        className="w-full"
+                        isDisabled={!hasBrand || (isBusy && !isLaunching)}
+                        isLoading={isLaunching}
+                        label={translate(isLaunching ? 'creating' : 'create')}
+                        onClick={() => void launch(preset)}
+                        variant={ButtonVariant.DEFAULT}
+                      />
+                    </div>
                   </div>
                 </Card>
               </li>

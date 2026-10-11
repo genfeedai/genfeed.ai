@@ -20,9 +20,11 @@ export interface StoryboardPreset {
   format: StoryboardPresetFormat;
   /** Runtime budget in seconds (max 60). */
   runtimeBudgetSeconds: number;
-  /** Rough shot count the brief is written around; drives the shot strip. */
+  /** Rough shot count the brief is written around. */
   shotCount: number;
   icon: LucideIcon;
+  /** 16:9 storyboard-sheet thumbnail served from the app's public folder. */
+  thumbnailSrc: string;
 }
 
 export interface StoryboardPresetGridProps {
@@ -31,7 +33,9 @@ export interface StoryboardPresetGridProps {
   layout?: 'grid' | 'row';
 }
 
-export interface StoryboardPresetChipsProps {
+export interface StoryboardPresetCardsProps {
+  /** Preset whose brief is currently in the composer, highlighted as selected. */
+  activePresetId?: StoryboardPresetId;
   isDisabled?: boolean;
   onSelect: (preset: StoryboardPreset) => void;
 }
@@ -39,4 +43,9 @@ export interface StoryboardPresetChipsProps {
 export interface StoryboardShotStripProps {
   format: StoryboardPresetFormat;
   shotCount: number;
+}
+
+export interface StoryboardPresetThumbnailProps {
+  src: string;
+  className?: string;
 }
