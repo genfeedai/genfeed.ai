@@ -4925,7 +4925,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -7099,8 +7099,8 @@
     {
       "code": 2550,
       "count": 1,
-      "file": "packages/serializers/src/helpers/batch-item-assignee.helper.test.ts",
-      "fingerprint": "cfdc80e4a2062672e45f",
+      "file": "packages/serializers/src/helpers/turbo-run-item-assignee.helper.test.ts",
+      "fingerprint": "fc927e9650d98357b03e",
       "message": "Property 'toSorted' does not exist on type 'string[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
       "workspace": "serializers"
     },
