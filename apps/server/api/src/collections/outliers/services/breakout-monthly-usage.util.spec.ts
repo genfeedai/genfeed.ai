@@ -200,6 +200,7 @@ describe('common-month actual spend and active reservations', () => {
       organizationId: input.organizationId,
       brandId: input.brandId,
       metadata,
+      workloadId: null,
     };
     h.rows.push({
       ...h.rows[0],
@@ -269,6 +270,7 @@ describe('common-month actual spend and active reservations', () => {
         metadata: {
           strategyBudgetAttribution: { ...attribution, format: 'image' },
         },
+        workloadId: null,
       };
     if (reason === 'invalid_amount') h.holds[0].amount = Number.NaN;
     if (reason === 'partial_settlement') h.holds[0].settledAmount = 2;
