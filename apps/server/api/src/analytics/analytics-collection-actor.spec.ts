@@ -279,9 +279,7 @@ describe('analytics collection actor from the pinned hidden chain', () => {
       );
       expect(authorization?.initiatingActor.scopes).toEqual(['admin']);
       findKey.mockResolvedValue(null);
-      await expect(authorization?.admit()).rejects.toThrow(
-        'Brand access denied',
-      );
+      await expect(authorization?.admit()).rejects.toThrow(deniedMessage);
     });
 
     it.each([
