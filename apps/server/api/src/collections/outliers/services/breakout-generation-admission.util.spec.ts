@@ -387,6 +387,53 @@ describe('actual breakout credit admission before the provider', () => {
       admitBreakoutGenerationCredits(h.tx, h.admission, h.credits, nowMs),
     ).rejects.toThrow('budget_exhausted');
   });
+  it.each(['image', 'carousel', 'video', 'short'] as const)(
+    'holds a %s component whose own format sub-budget or platform cap cannot cover it, from the media component key',
+    async (format) => {
+      const h = fixture(format, Platform.INSTAGRAM);
+      h.admission.componentKey = 'generation-a:media:1';
+      const credits = {
+        ...h.credits,
+        workloadId: h.admission.componentKey,
+        idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:${h.admission.componentKey}`,
+      };
+      await admitBreakoutGenerationCredits(h.tx, h.admission, credits, nowMs);
+      const capacity = await readBreakoutLiveCapacity(h.tx, {
+        ...h.admission.scope,
+        credentialId: 'account-a',
+        nowMs,
+      });
+      if (capacity.status !== 'available') throw new Error('fixture');
+      capacity.budget.remainingFormatCredits[format] = 4;
+      await expect(
+        admitBreakoutGenerationCredits(h.tx, h.admission, credits, nowMs),
+      ).rejects.toThrow('budget_exhausted');
+      // Another format's cap never constrains this one.
+      delete capacity.budget.remainingFormatCredits[format];
+      capacity.budget.remainingFormatCredits.text = 0;
+      await admitBreakoutGenerationCredits(h.tx, h.admission, credits, nowMs);
+      capacity.budget.remainingPlatformCredits = null;
+      await expect(
+        admitBreakoutGenerationCredits(h.tx, h.admission, credits, nowMs),
+      ).rejects.toThrow('budget_unavailable');
+    },
+  );
+  it('refuses a retried paid component after a released hold, for a visual as for text', async () => {
+    const h = fixture('image', Platform.INSTAGRAM);
+    h.admission.componentKey = 'generation-a:media:1';
+    await expect(
+      admitBreakoutGenerationCredits(
+        h.tx,
+        h.admission,
+        {
+          ...h.credits,
+          workloadId: h.admission.componentKey,
+          idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:${h.admission.componentKey}:retry:fresh`,
+        },
+        nowMs,
+      ),
+    ).rejects.toThrow('credit_scope_changed');
+  });
   it('holds unreadable format capacity and exhausted publication quota', async () => {
     const h = fixture('video');
     const capacity = await readBreakoutLiveCapacity(h.tx, {

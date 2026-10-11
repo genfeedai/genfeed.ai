@@ -299,6 +299,78 @@ describe('breakout text provider consumer', () => {
     expect(h.review.queue).not.toHaveBeenCalled();
     expect(h.quality.evaluate).not.toHaveBeenCalled();
   });
+  describe('caption of a visual output', () => {
+    function caption(
+      format: 'image' | 'carousel' | 'video' | 'short' = 'image',
+    ) {
+      const h = fixture();
+      Object.assign(h.request.admission.scope, { format });
+      h.request.isVisualCaption = true;
+      h.request.input.format = 'text';
+      return h;
+    }
+    it('writes a plain text draft but neither binds, queues nor scores it: composition does', async () => {
+      const h = caption('carousel');
+      expect(await h.service.generate(h.request)).toMatchObject({
+        kind: 'completed',
+        postId: 'post-a',
+      });
+      expect(h.posts.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'TEXT',
+          format: PostFormat.STANDARD,
+          targetExecutionState: TargetExecutionState.DRAFT,
+          ingredients: [],
+        }),
+        [],
+      );
+      expect(bindBreakoutPostArtifact).not.toHaveBeenCalled();
+      expect(h.review.queue).not.toHaveBeenCalled();
+      expect(h.quality.evaluate).not.toHaveBeenCalled();
+      expect(h.credits.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ workloadId: 'generation-a:caption' }),
+      );
+    });
+    it('discards a caption the receipt stopped, since nothing will compose it', async () => {
+      const h = caption();
+      h.generation.generate.mockImplementation(async (normal) => {
+        await normal.resolveApiKey(normal.input.model);
+        await normal.admitDispatch?.();
+        const { postId } = await normal.persistText('One useful follow-up');
+        return {
+          kind: 'stopped',
+          receipt: h.receipt,
+          postId,
+          reasonCode: 'brand_validation_blocked',
+          hasNewDispatch: true,
+        };
+      });
+      expect(await h.service.generate(h.request)).toMatchObject({
+        kind: 'stopped',
+      });
+      expect(h.tx.post.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          OR: [{ id: 'post-a' }, { parentId: 'post-a' }],
+          breakoutOutputId: null,
+        }),
+        data: { isDeleted: true },
+      });
+      expect(bindBreakoutPostArtifact).not.toHaveBeenCalled();
+    });
+    it('refuses a caption request that is not a text post of a visual output', async () => {
+      const h = fixture();
+      h.request.isVisualCaption = true;
+      await expect(h.service.generate(h.request)).rejects.toThrow(
+        'request_scope_changed',
+      );
+      const thread = caption();
+      thread.request.input.format = 'thread';
+      await expect(thread.service.generate(thread.request)).rejects.toThrow(
+        'request_scope_changed',
+      );
+      expect(thread.posts.create).not.toHaveBeenCalled();
+    });
+  });
   it('saves every accepted thread segment with the canonical root relationship', async () => {
     const h = fixture(true);
     await h.service.generate(h.request);

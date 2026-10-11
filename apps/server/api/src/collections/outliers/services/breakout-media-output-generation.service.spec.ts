@@ -3,6 +3,7 @@ import {
   type BreakoutMediaOutputGenerationRequest,
   BreakoutMediaOutputGenerationService,
 } from '@api/collections/outliers/services/breakout-media-output-generation.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type {
   AgentGenerationInput,
   IAgentGenerationGateway,
@@ -12,6 +13,7 @@ import type { BrandIdentitySnapshotService } from '@api/services/branded-generat
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Platform } from '@genfeedai/contracts';
 import { IngredientStatus, type Prisma } from '@genfeedai/prisma';
+import { HttpException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -327,5 +329,91 @@ describe('breakout normal media provider consumer', () => {
       brandId: 'brand-a',
       sourceActionId: 'generation-a:media:1',
     });
+  });
+  it('reports a blocked brand capability from the free preflight without throwing and records why', async () => {
+    const h = fixture();
+    expect(
+      await h.service.preflight(h.request.admission, 'fixture-provider', 'm'),
+    ).toBe('supported');
+    expect(h.tx.breakoutResponseOutput.updateMany).not.toHaveBeenCalled();
+    h.brandValidation.preflightBrandCapabilities.mockReturnValue({
+      status: 'blocked',
+      diagnostics: [],
+    });
+    expect(
+      await h.service.preflight(h.request.admission, 'fixture-provider', 'm'),
+    ).toBe('blocked');
+    expect(h.tx.breakoutResponseOutput.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { heldReason: 'media_brand_capability_unavailable' },
+      }),
+    );
+    expect(h.gateway.generateImage).not.toHaveBeenCalled();
+  });
+  it.each(['image', 'video'] as const)(
+    'asks the %s endpoint for the bounded wait the product offers',
+    async (format) => {
+      const h = fixture(format);
+      await h.service.generate(h.request);
+      const method =
+        format === 'image' ? h.gateway.generateImage : h.gateway.generateVideo;
+      expect(method.mock.calls[0]?.[0].body).toMatchObject({
+        waitForCompletion: true,
+      });
+    },
+  );
+  it('reads a wait that timed out after the provider accepted back as processing, never redispatching', async () => {
+    const h = fixture('video');
+    h.gateway.generateVideo.mockImplementationOnce(async (input) => {
+      await input.onPlaceholderCreated?.('asset-0');
+      h.assets.push({
+        id: 'asset-0',
+        groupIndex: 0,
+        sourceActionId: 'generation-a:media:1',
+        status: IngredientStatus.PROCESSING,
+        s3Key: null,
+        version: 1,
+      });
+      throw new HttpException('Generation timeout', 504);
+    });
+    expect(await h.service.generate(h.request)).toEqual({
+      state: 'processing',
+      ingredientIds: ['asset-0'],
+    });
+    expect(await h.service.generate(h.request)).toMatchObject({
+      state: 'processing',
+    });
+    expect(h.gateway.generateVideo).toHaveBeenCalledOnce();
+  });
+  it('propagates a failure before any placeholder existed, and any admission denial after one', async () => {
+    const early = fixture('image');
+    early.gateway.generateImage.mockRejectedValueOnce(
+      new Error('provider down'),
+    );
+    await expect(early.service.generate(early.request)).rejects.toThrow(
+      'provider down',
+    );
+    const denied = fixture('carousel');
+    denied.gateway.generateImage
+      .mockImplementationOnce(async (input) => {
+        await input.onPlaceholderCreated?.('asset-0');
+        denied.assets.push({
+          id: 'asset-0',
+          groupIndex: 0,
+          sourceActionId: 'generation-a:media:1',
+          status: IngredientStatus.GENERATED,
+          s3Key: 'generated/asset-0',
+          version: 1,
+        });
+        return { data: { id: 'asset-0', type: 'ingredients', attributes: {} } };
+      })
+      .mockRejectedValueOnce(
+        new BusinessLogicException(
+          'Breakout generation held: budget_exhausted',
+        ),
+      );
+    await expect(denied.service.generate(denied.request)).rejects.toThrow(
+      'budget_exhausted',
+    );
   });
 });

@@ -1,3 +1,6 @@
+import { isBreakoutMediaFormat } from '@api/collections/outliers/services/breakout-media-format.util';
+import { readBreakoutMediaOutputRecovery } from '@api/collections/outliers/services/breakout-media-output-recovery.util';
+import { breakoutPublicationState } from '@api/collections/outliers/services/breakout-output-publication-state.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import {
@@ -114,6 +117,8 @@ async function bindPostArtifact(
   if (!response || !output || response.outputPlanFingerprint === null)
     return { status: 'held', reason: 'missing_output' };
   if (
+    // A visual output is composed from its caption and generated visuals by its own binder.
+    isBreakoutMediaFormat(output.format) ||
     (textOnly && output.format !== 'text') ||
     (output.kind !== 'follow_up' && output.kind !== 'quote') ||
     (output.kind === 'quote' &&
@@ -376,6 +381,14 @@ export async function readBreakoutOutputRecovery(
       reason: 'output_expired',
       action: 'none',
     };
+  if (isBreakoutMediaFormat(output.format))
+    return readBreakoutMediaOutputRecovery(tx, {
+      input,
+      response,
+      output,
+      post,
+      base,
+    });
   const row = await tx.brandedGenerationReceipt.findFirst({
     where: {
       organizationId,
@@ -542,69 +555,5 @@ export async function readBreakoutOutputRecovery(
       reason: 'artifact_binding_missing',
       action: 'reconcile',
     };
-  if (output.heldReason === 'quality_evaluation_pending')
-    return {
-      ...base,
-      state: 'reconciliation_required',
-      reason: 'quality_evaluation_pending',
-      action: 'reconcile',
-    };
-  if (output.heldReason === 'platform_quality_blocked')
-    return {
-      ...base,
-      state: 'awaiting_review',
-      reason: 'platform_quality_blocked',
-      action: 'none',
-    };
-  if (output.state === 'awaiting_review')
-    return {
-      ...base,
-      state: 'awaiting_review',
-      reason: 'brand_review_required',
-      action: 'none',
-    };
-  if (post.targetExecutionState === TargetExecutionState.PAUSED)
-    return {
-      ...base,
-      state: 'paused',
-      reason: 'publication_paused',
-      action: 'none',
-    };
-  if (
-    post.targetExecutionState === TargetExecutionState.CANCELLED ||
-    post.targetExecutionState === TargetExecutionState.SKIPPED
-  )
-    return {
-      ...base,
-      state: 'suppressed',
-      reason: 'publication_cancelled',
-      action: 'none',
-    };
-  if (post.targetExecutionState === TargetExecutionState.PUBLISHING)
-    return {
-      ...base,
-      state: 'publishing',
-      reason: 'publication_in_flight',
-      action: 'wait',
-    };
-  if (post.targetExecutionState === TargetExecutionState.SCHEDULED)
-    return {
-      ...base,
-      state: 'scheduled',
-      reason: 'publication_admission_required',
-      action: 'none',
-    };
-  if (post.targetExecutionState === TargetExecutionState.FAILED)
-    return {
-      ...base,
-      state: 'failed',
-      reason: 'publication_failed',
-      action: 'use_existing_artifact',
-    };
-  return {
-    ...base,
-    state: 'draft',
-    reason: 'publication_admission_required',
-    action: 'requires_admission',
-  };
+  return breakoutPublicationState(base, output, post);
 }

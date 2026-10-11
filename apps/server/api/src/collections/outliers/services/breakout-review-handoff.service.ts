@@ -4,6 +4,7 @@ import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ContentFormat } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export const BREAKOUT_REVIEW_WORKFLOW_NAME = 'Breakout response';
@@ -61,11 +62,20 @@ export class BreakoutReviewHandoffService {
         label: true,
         reviewTurboRunId: true,
         promptUsed: true,
+        // The first visual is the review preview; the extension is signed on read.
+        ingredients: {
+          select: { cdnUrl: true } as Prisma.IngredientSelect,
+          take: 1,
+        },
       },
     });
     await admission.reauthorize(this.prisma);
     if (!post) throw new ConflictException('breakout_review_draft_unavailable');
     if (post.reviewTurboRunId) return null;
+    const previewUrl: unknown = Reflect.get(
+      post.ingredients[0] ?? {},
+      'cdnUrl',
+    );
     const run = await this.turboRuns.createManualReviewTurboRun(
       {
         agentStrategyId: scope.strategyId,
@@ -75,6 +85,9 @@ export class BreakoutReviewHandoffService {
             caption: post.description,
             format: breakoutReviewItemFormat(scope.format),
             label: post.label ?? 'Breakout response',
+            ...(typeof previewUrl === 'string' && previewUrl
+              ? { mediaUrl: previewUrl }
+              : {}),
             platform: scope.platform,
             postId: input.postId,
             prompt: post.promptUsed ?? post.description,

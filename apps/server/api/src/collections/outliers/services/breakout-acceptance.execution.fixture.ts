@@ -357,11 +357,13 @@ export function buildExecutionHarness(
     openRouter as Stub,
     brandAccess,
   );
+  // The text scenarios never reach the visual judge; the media fixture wires the real one.
   const quality = new BreakoutOutputQualityService(
     prisma,
     strategies,
     optimizers,
     credits,
+    {} as Stub,
   );
   const textGeneration = new BreakoutTextOutputGenerationService(
     prisma,
@@ -431,6 +433,8 @@ export function buildExecutionHarness(
     optimizers,
     snapshots,
     validator,
+    {} as Stub,
+    {} as Stub,
   );
   const preparation = new BreakoutTextOutputPreparationService(
     prisma,
@@ -443,6 +447,7 @@ export function buildExecutionHarness(
     prisma,
     planner,
     preparation,
+    {} as Stub,
   );
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const workflowService = new BreakoutResponseExecutionWorkflowService(
