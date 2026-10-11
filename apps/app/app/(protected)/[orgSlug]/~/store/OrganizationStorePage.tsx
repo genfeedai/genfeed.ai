@@ -171,7 +171,7 @@ export default function OrganizationStorePage() {
                   isPending={installedApps.pendingAppIds.includes(app.appId)}
                   manageModulesHref={createOrganizationAppRoute(
                     orgSlug,
-                    APP_ROUTES.SETTINGS.ORGANIZATION,
+                    APP_ROUTES.SETTINGS.GENERAL,
                   )}
                   onInstall={(appId) => void runAction(appId, 'install')}
                   onUninstall={(appId) => void runAction(appId, 'uninstall')}
