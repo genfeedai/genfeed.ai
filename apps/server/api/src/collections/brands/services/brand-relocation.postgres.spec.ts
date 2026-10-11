@@ -179,12 +179,6 @@ describe.skipIf(!connectionString)(
         post: await pick(
           prisma.post.findUnique({ select, where: { id: s.post } }),
         ),
-        postFinalization: await pick(
-          prisma.postPublishFinalization.findFirst({
-            select,
-            where: { postId: s.post },
-          }),
-        ),
         postReceipt: await pick(
           prisma.postProviderPublishReceipt.findFirst({
             select,
@@ -230,7 +224,6 @@ describe.skipIf(!connectionString)(
             'nodeResult',
             'persona',
             'post',
-            'postFinalization',
             'postReceipt',
             'threadContext',
             'workflow',
@@ -240,6 +233,27 @@ describe.skipIf(!connectionString)(
             .map((name) => [name, organizationId]),
         ),
       });
+
+    it('keeps every cascading composite organization key deferrable, so a move can commit', async () => {
+      const notDeferrable = await prisma.$queryRaw<
+        Array<{ constraint: string; table: string }>
+      >`
+        SELECT c.relname AS "table", con.conname AS "constraint"
+        FROM pg_constraint con
+        JOIN pg_class c ON c.oid = con.conrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE con.contype = 'f' AND n.nspname = current_schema()
+          AND con.confupdtype = 'c' AND NOT con.condeferrable
+          AND array_length(con.conkey, 1) > 1
+          AND EXISTS (
+            SELECT 1 FROM unnest(con.conkey) AS k(attnum)
+            JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.attnum
+            WHERE a.attname ~* '(organization|org)id$'
+          )
+        ORDER BY 1, 2`;
+
+      expect(notDeferrable).toEqual([]);
+    });
 
     it('moves every org-only child with its parent and commits with the breakout and exposure foreign keys in place', async () => {
       const s = await seed(prisma);
@@ -271,7 +285,6 @@ describe.skipIf(!connectionString)(
         'agentThreadSnapshot',
         'threadContextState',
         'postProviderPublishReceipt',
-        'postPublishFinalization',
       ]) {
         expect(previewed.get(resource), resource).toBe(1);
       }
@@ -482,6 +495,15 @@ describe.skipIf(!connectionString)(
         await assertNothingMoved(s);
       });
 
+      it('answers 409 for a brand with a finalized publication, which is retained history', async () => {
+        const s = await seed(prisma, { hasFinalization: true });
+
+        await expect(move(s, s.destination)).rejects.toThrow(
+          /learning or publication history/,
+        );
+        await assertNothingMoved(s);
+      });
+
       it('answers 409 for a brand with an immutable content version pin', async () => {
         const s = await seed(prisma);
         await prisma.contentVersionPin.create({
@@ -527,6 +549,8 @@ describe.skipIf(!connectionString)(
 );
 
 interface SeedOptions {
+  /** A finalized publication is retained history: it keeps the brand where it is. */
+  hasFinalization?: boolean;
   executionStatus?: 'COMPLETED' | 'RUNNING';
   receiptStatus?: 'accepted' | 'uncertain';
 }
@@ -745,9 +769,16 @@ async function seed(prisma: PrismaClient, options: SeedOptions = {}) {
       workflowExecutionId: execution,
     },
   });
-  await prisma.postPublishFinalization.create({
-    data: { organizationId: source, postId: post, result: {}, source: 'test' },
-  });
+  if (options.hasFinalization) {
+    await prisma.postPublishFinalization.create({
+      data: {
+        organizationId: source,
+        postId: post,
+        result: {},
+        source: 'test',
+      },
+    });
+  }
 
   const credential = (
     await prisma.credential.create({
@@ -825,7 +856,7 @@ async function seed(prisma: PrismaClient, options: SeedOptions = {}) {
         credentialId: credential,
         format: 'text',
         generationKey: id('generation'),
-        kind: 'text',
+        kind: 'follow_up',
         ordinal: 1,
         organizationId: source,
         responseId: response,

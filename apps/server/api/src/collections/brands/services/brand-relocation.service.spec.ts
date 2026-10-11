@@ -73,6 +73,7 @@ const EMPTY_RELOCATION_SUMMARY = {
 describe('BrandRelocationService', () => {
   let delegates: Map<string, Delegate>;
   let queryRaw: ReturnType<typeof vi.fn>;
+  let executeRaw: ReturnType<typeof vi.fn>;
   let transactionSpy: ReturnType<typeof vi.fn>;
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
@@ -111,6 +112,7 @@ describe('BrandRelocationService', () => {
       if (/FOR (NO KEY )?UPDATE/.test(text)) return [{ id: 'locked' }];
       return [];
     });
+    executeRaw = vi.fn().mockResolvedValue(0);
     transactionSpy = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prismaProxy),
     );
@@ -130,6 +132,9 @@ describe('BrandRelocationService', () => {
           }
           if (prop === '$queryRaw') {
             return queryRaw;
+          }
+          if (prop === '$executeRaw') {
+            return executeRaw;
           }
           return getDelegate(prop);
         },
@@ -1312,13 +1317,12 @@ describe('BrandRelocationService', () => {
         await expect(
           service.previewRelocation(BRAND_ID, DEST_ORG, actor),
         ).rejects.toThrow(message);
-        await expect(
-          service.relocateToOrganization(
-            BRAND_ID,
-            { organizationId: DEST_ORG },
-            actor,
-          ),
-        ).rejects.toBeInstanceOf(ConflictException);
+        // The guard's own message reaches the caller, not a generic remap.
+        const failure = await service
+          .relocateToOrganization(BRAND_ID, { organizationId: DEST_ORG }, actor)
+          .catch((error: unknown) => error);
+        expect(failure).toBeInstanceOf(ConflictException);
+        expect((failure as ConflictException).message).toMatch(message);
 
         // The guards run first: no schedule paused, no grant revoked, nothing
         // rewritten, nothing unscheduled, no cache touched.
@@ -1822,6 +1826,44 @@ describe('BrandRelocationService', () => {
       expect(options).toMatchObject({ isolationLevel: 'Serializable' });
       expect(options.timeout).toBeGreaterThanOrEqual(60_000);
       expect(options.maxWait).toBeGreaterThan(0);
+    });
+
+    it('defers the composite organization key checks before it touches anything', async () => {
+      primeRelocatableBrand();
+
+      await service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      );
+
+      expect(executeRaw).toHaveBeenCalledOnce();
+      expect(executeRaw.mock.calls[0][0].join('')).toBe(
+        'SET CONSTRAINTS ALL DEFERRED',
+      );
+      expect(executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        queryRaw.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('rolls a stale reference found at commit back as a 409', async () => {
+      primeRelocatableBrand();
+      transactionSpy.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('violates foreign key', {
+          clientVersion: 'test',
+          code: 'P2003',
+        }),
+      );
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          { isSuperAdmin: true, userId: USER_ID },
+        ),
+      ).rejects.toThrow(/still references the previous organization/);
+      expect(transactionSpy).toHaveBeenCalledTimes(1);
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
     });
 
     it('maps an expired transaction (P2028) to a clear retryable error, without retrying', async () => {

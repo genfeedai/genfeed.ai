@@ -51,6 +51,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   Optional,
@@ -69,6 +70,10 @@ import { ModuleRef } from '@nestjs/core';
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 const PRISMA_TRANSACTION_API_ERROR = 'P2028';
+// P2003 — foreign key violation. The composite organization keys are deferred
+//   for the move and checked at commit; a violation means a row still names a
+//   parent that stayed behind, so the whole move is rolled back.
+const PRISMA_FOREIGN_KEY_VIOLATION = 'P2003';
 const MAX_RELOCATION_SERIALIZATION_RETRIES = 3;
 // The default interactive-transaction timeout is 5 seconds. A relocation rewrites
 // every row the brand owns, so a large brand needs far longer.
@@ -285,6 +290,11 @@ export class BrandRelocationService {
       try {
         moveResult = await this.prisma.$transaction(
           async (tx) => {
+            // A child row can name several parents by composite organization
+            // keys (an observation: brand, credential and post). Whichever the
+            // cascade updates first, the others have not followed yet, so the
+            // checks wait for commit, when every parent and child agree.
+            await tx.$executeRaw`SET CONSTRAINTS ALL DEFERRED`;
             await this.prepareLearningRelocation(
               tx,
               brandId,
@@ -343,6 +353,17 @@ export class BrandRelocationService {
           );
         }
 
+        if (errorCode === PRISMA_FOREIGN_KEY_VIOLATION) {
+          this.logger.error('Brand relocation left a stale reference', error, {
+            brandId,
+            destOrgId,
+            sourceOrgId,
+          });
+          throw new ConflictException(
+            'Cannot move this brand: a record that belongs to it still references the previous organization, so nothing was moved.',
+          );
+        }
+
         if (errorCode === PRISMA_TRANSACTION_API_ERROR) {
           this.logger.error('Brand relocation transaction timed out', error, {
             brandId,
@@ -370,6 +391,7 @@ export class BrandRelocationService {
 
         if (
           error instanceof Error &&
+          !(error instanceof HttpException) &&
           IMMUTABLE_ROW_PATTERN.test(error.message)
         ) {
           throw new ConflictException(
