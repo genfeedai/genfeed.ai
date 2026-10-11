@@ -42,6 +42,7 @@ function createMockPrisma() {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
   };
 }
@@ -1502,15 +1503,9 @@ describe('WorkflowSchedulerService — automatic platform seed marking (#6689)',
       updatedAt: new Date('2026-10-01T00:00:00Z'),
       userId: seeded.userId,
     };
-    const prisma = created.prisma as unknown as {
-      member: { findFirst: ReturnType<typeof vi.fn> };
-      workflow: {
-        findMany: ReturnType<typeof vi.fn>;
-        updateMany: ReturnType<typeof vi.fn>;
-      };
-    };
-    prisma.workflow.findMany = vi.fn().mockResolvedValue([reconcileRow]);
-    prisma.workflow.updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const { prisma } = created;
+    prisma.workflow.findMany.mockResolvedValue([reconcileRow]);
+    prisma.workflow.updateMany.mockResolvedValue({ count: 1 });
     // The organization owner is an active member (the same row also satisfies a live actor
     // refresh, which reads the member's brands and role).
     prisma.member.findFirst.mockResolvedValue({
@@ -1518,7 +1513,7 @@ describe('WorkflowSchedulerService — automatic platform seed marking (#6689)',
       role: { key: MemberRole.ADMIN },
       userId: 'owner-1',
     });
-    return { ...created, prisma };
+    return created;
   }
 
   function runAs(created: ReturnType<typeof fixture>) {
