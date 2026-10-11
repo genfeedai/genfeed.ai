@@ -30,6 +30,7 @@ import {
   BREAKOUT_RESPONSE_ACTION_ID,
   buildBreakoutResponseExecutionWorkflowDefinition,
 } from '@api/collections/outliers/services/breakout-response-execution-workflow-definition';
+import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -40,7 +41,9 @@ import type {
   SystemWorkflowActionRequest,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
+import { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import { PublishApprovalsService } from '@api/publish-approvals/publish-approvals.service';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
@@ -52,36 +55,19 @@ import { BrandedGenerationReceiptsService } from '@api/services/branded-generati
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
+import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import { TurboRunCreationService } from '@api/services/turbo-run/turbo-run-creation.service';
+import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
+import { TurboRunReviewLockService } from '@api/services/turbo-run/turbo-run-review-lock';
+import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ModelCategory } from '@genfeedai/contracts';
-import { brandArtifactValidationReportV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 /** An OpenRouter text model id the production eligibility check accepts. */
 export const ACCEPTANCE_TEXT_MODEL = 'anthropic/claude-sonnet-4.5';
-
-/**
- * TODO(#6526): remove once approved-brand text can reach `ready`. The production validator
- * always appends a hard `system:factual_coverage` check with result `unknown`, and the receipt
- * contract forbids `ready`/`passed` while any hard check is unknown, so every approved-brand
- * text receipt lands in `needs_review` and the breakout quality step throws. This test-only
- * validator drops that one check so the rest of the chain can be exercised; the unshimmed
- * behaviour is pinned by an `it.fails` scenario.
- */
-class CoverageShimmedValidation extends BrandValidationService {
-  override async validateBrandArtifact(
-    input: Parameters<BrandValidationService['validateBrandArtifact']>[0],
-  ) {
-    const report = await super.validateBrandArtifact(input);
-    return brandArtifactValidationReportV1Schema.parse({
-      ...report,
-      checks: report.checks.filter(
-        (check) => check.ruleId !== 'system:factual_coverage',
-      ),
-    });
-  }
-}
 
 /** A minimal approved Brand OS revision, so approved-brand generation can compile a snapshot. */
 export async function seedApprovedBrandIdentity(
@@ -216,6 +202,8 @@ export type ExecutionHarness = CollectionHarness & {
   validation: BrandValidationReceiptService;
   workflowExecutions: WorkflowExecutionsService;
   workflowService: BreakoutResponseExecutionWorkflowService;
+  /** The publishing inbox where a draft that needs brand review waits for a member. */
+  turboReview: TurboRunReviewService;
 };
 
 type Stub = never;
@@ -231,9 +219,6 @@ export function buildExecutionHarness(
   prisma: PrismaService,
   logger: LoggerService,
   world: AcceptanceWorld,
-  options: {
-    shimFactualCoverage?: boolean;
-  } = {},
 ): ExecutionHarness {
   const brandAccess = new BrandAccessService(prisma);
   const balances = new CreditBalanceService(prisma, logger);
@@ -264,6 +249,7 @@ export function buildExecutionHarness(
     } as Stub,
   );
   const artifacts = new AgentArtifactReferenceService(db, logger);
+  const publishApprovals = new PublishApprovalsService(db, artifacts, logger);
   const posts = new PostsService(
     prisma,
     logger,
@@ -272,12 +258,56 @@ export function buildExecutionHarness(
     } as unknown as OnboardingCreditGrantsService,
     undefined,
     undefined,
-    new PublishApprovalsService(db, artifacts, logger),
+    publishApprovals,
   );
   const collection = buildCollectionHarness(prisma, logger, world, posts);
 
   const openRouter = new FakeOpenRouter();
   const replicate = new FakeReplicate();
+  // The review inbox is production code: a draft needing brand review is queued into a manual
+  // review run, and a member's approval there is the human step that schedules it.
+  const summary = new TurboRunSummaryService(prisma, publishApprovals);
+  const reviewLocks = new TurboRunReviewLockService(
+    {
+      get: (key: string) =>
+        key === 'DATABASE_URL'
+          ? process.env.BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL
+          : undefined,
+    } as Stub,
+    logger,
+  );
+  const turboReview = new TurboRunReviewService(
+    prisma,
+    logger,
+    artifacts,
+    new PostLifecycleService(db, logger),
+    publishApprovals,
+    summary,
+    new AutonomousPublishPolicyService(prisma, {} as Stub),
+    {} as Stub,
+    reviewLocks,
+  );
+  const turboRuns = new TurboRunService(
+    new TurboRunCreationService(
+      prisma,
+      logger,
+      {
+        findOne: async (query: { id: string; organizationId: string }) =>
+          db.brand.findFirst({
+            where: scopedWhere(query.organizationId, { id: query.id }),
+          }),
+      } as Stub,
+      posts,
+      {
+        get: async () => null,
+        invalidateByTags: async () => undefined,
+        set: async () => undefined,
+      } as Stub,
+      summary,
+    ),
+    {} as Stub,
+    turboReview,
+  );
   const strategies = new AgentStrategiesService(prisma, logger);
   const optimizers = new OptimizersService(
     prisma,
@@ -311,9 +341,7 @@ export function buildExecutionHarness(
   const validation = new BrandValidationReceiptService(
     material,
     receipts,
-    options.shimFactualCoverage === false
-      ? validator
-      : new CoverageShimmedValidation(),
+    validator,
   );
   const generation = new BrandedTextGenerationService(
     receipts,
@@ -344,6 +372,7 @@ export function buildExecutionHarness(
     credits,
     posts,
     quality,
+    new BreakoutReviewHandoffService(prisma, turboRuns),
   );
   const dependencies = new LearningDependencyService(prisma);
   const scopes = new LearningScopeStateService(prisma, dependencies);
@@ -448,6 +477,7 @@ export function buildExecutionHarness(
     replicate,
     validation,
     workflowExecutions,
+    turboReview,
     workflowService,
   };
 }

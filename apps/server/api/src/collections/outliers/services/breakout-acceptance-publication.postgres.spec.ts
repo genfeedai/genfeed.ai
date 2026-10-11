@@ -3,6 +3,7 @@ import { collectPost } from '@api/collections/outliers/services/breakout-accepta
 import { runQueuedBreakoutExecution } from '@api/collections/outliers/services/breakout-acceptance.execution.fixture';
 import {
   type AcceptanceEnv,
+  approveInReviewQueue,
   type DetectedBreakout,
   detectBreakout,
 } from '@api/collections/outliers/services/breakout-acceptance.journey.fixture';
@@ -10,7 +11,7 @@ import {
   buildDeliveryHarness,
   type DeliveryHarness,
   principalOf,
-  scheduleDraft,
+  scheduleDraft as scheduleDirectly,
 } from '@api/collections/outliers/services/breakout-acceptance.publication.fixture';
 import {
   acceptanceDatabaseUrl,
@@ -103,7 +104,10 @@ describe.skipIf(!connectionString)(
         prisma,
         detected.jobId,
       );
-      expect(run.result).toMatchObject({ status: 'completed' });
+      expect(run.result).toMatchObject({
+        reason: 'brand_review_required',
+        status: 'held',
+      });
       const outputId = must(run.result.outputIds[0], 'the quote output');
       const post = must(
         await db.post.findFirst({
@@ -138,6 +142,34 @@ describe.skipIf(!connectionString)(
       );
     }
 
+    /**
+     * A member approves the queued draft in the publishing inbox (the exact version), then the
+     * principal schedules it. With no principal (a worker, a system path) only the raw
+     * scheduling write exists.
+     */
+    async function scheduleDraft(
+      harness: Scene['harness'],
+      world: Scene['world'],
+      postId: string,
+      principal: BrandAccessActor | undefined,
+    ): Promise<void> {
+      const post = must(
+        await db.post.findFirst({
+          where: scopedWhere(world.organizationId, { id: postId }),
+        }),
+        'the draft',
+      );
+      if (post.reviewDecision !== 'APPROVED')
+        await approveInReviewQueue(
+          harness,
+          db,
+          world,
+          postId,
+          principalOf(world, world.owner),
+        );
+      await scheduleDirectly(harness, world, postId, principal);
+    }
+
     const stateOf = async (scene: Scene) =>
       must(
         await db.post.findFirst({
@@ -149,13 +181,38 @@ describe.skipIf(!connectionString)(
     it('publishes the X quote linked to its source: schedule gate, dispatch gate, provider', async () => {
       const scene = await draftedBy('owner session');
       const { candidate, delivery, harness, world } = scene;
-      const scheduled = await scheduleDraft(
+      // Generation held the paid draft for a member's brand review; nothing is scheduled yet.
+      expect((await stateOf(scene)).targetExecutionState).toBe(
+        TargetExecutionState.DRAFT,
+      );
+      const awaiting = await readBreakoutOutputRecovery(prisma, {
+        brandId: world.brandId,
+        credentialId: world.credentialId,
+        organizationId: world.organizationId,
+        outputId: scene.outputId,
+        platform: Platform.TWITTER,
+        responseId: scene.response.id,
+      });
+      expect(awaiting).toMatchObject({
+        reason: 'brand_review_required',
+        state: 'awaiting_review',
+      });
+      await expect(
+        scheduleDirectly(
+          harness,
+          world,
+          scene.postId,
+          principalOf(world, world.owner),
+        ),
+      ).rejects.toThrow('brand_review_required');
+      // A member approves it in the inbox, then schedules it: the gate admits that member.
+      await scheduleDraft(
         harness,
         world,
         scene.postId,
         principalOf(world, world.owner),
       );
-      expect(scheduled.targetExecutionState).toBe(
+      expect((await stateOf(scene)).targetExecutionState).toBe(
         TargetExecutionState.SCHEDULED,
       );
       expect((await stateOf(scene)).quoteTweetId).toBe(
@@ -290,13 +347,13 @@ describe.skipIf(!connectionString)(
         ).rejects.toBeInstanceOf(ForbiddenException);
       });
 
-      it('publishes a draft a publishing key generated with no human involved', async () => {
+      it('publishes a draft a publishing key generated once a member approved it, and dispatch needs no request', async () => {
         const scene = await draftedBy('publishing key');
         await scheduleDraft(
           scene.harness,
           scene.world,
           scene.postId,
-          undefined,
+          principalOf(scene.world, scene.world.owner),
         );
         const { result } = await scene.delivery.deliver(scene.postId);
         expect(result.success).toBe(true);

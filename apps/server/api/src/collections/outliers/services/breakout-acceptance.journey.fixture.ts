@@ -1,4 +1,6 @@
 import type { AnalyticsCollectionAuthorization } from '@api/analytics/analytics-collection-action.types';
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
+import { runWithRequestPrincipal } from '@api/authorization/brand-access/request-principal.context';
 import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import {
   type BreakoutCandidate,
@@ -20,6 +22,7 @@ import {
   sessionActor,
   type WorldOptions,
 } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
+import { resolveTurboRunItems } from '@api/services/turbo-run/turbo-run.types';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -106,6 +109,45 @@ export async function detectBreakout(
     response,
     world,
   };
+}
+
+/**
+ * A member approves the queued draft in the publishing inbox: the production review service
+ * records the exact-version approval and schedules the post, under the member's request
+ * principal, so the #6690/#6705 gate admits it as that member.
+ */
+export async function approveInReviewQueue(
+  harness: ExecutionHarness,
+  db: PrismaClient<'query'>,
+  world: AcceptanceWorld,
+  postId: string,
+  approver: BrandAccessActor,
+): Promise<void> {
+  const post = must(
+    await db.post.findFirst({
+      where: scopedWhere(world.organizationId, { id: postId }),
+    }),
+    'the draft',
+  );
+  const turboRunId = must(
+    post.reviewTurboRunId,
+    'the review run it was queued in',
+  );
+  const run = must(
+    await db.turboRun.findFirst({
+      where: scopedWhere(world.organizationId, { id: turboRunId }),
+    }),
+    'the review run',
+  );
+  const itemIds = resolveTurboRunItems(run).map((item) => item.id);
+  await runWithRequestPrincipal(approver, () =>
+    harness.turboReview.approveItems(
+      turboRunId,
+      itemIds,
+      world.organizationId,
+      approver.userId,
+    ),
+  );
 }
 
 /**

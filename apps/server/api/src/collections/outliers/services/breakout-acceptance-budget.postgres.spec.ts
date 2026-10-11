@@ -117,7 +117,11 @@ describe.skipIf(!connectionString)(
       });
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       // 10 credits fund three outputs at 3 credits each, with the quote first.
-      expect(run.result.status).toBe('completed');
+      // Every approved-brand draft waits in the review inbox, so the response reports the hold.
+      expect(run.result).toMatchObject({
+        reason: 'brand_review_required',
+        status: 'held',
+      });
       expect(run.result.outputIds).toHaveLength(3);
       const outputs = await db.breakoutResponseOutput.findMany({
         orderBy: { ordinal: 'asc' },

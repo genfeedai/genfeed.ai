@@ -15,7 +15,9 @@ import {
   openAcceptanceDatabase,
   recordingLogger,
 } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
+import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { Platform } from '@genfeedai/contracts';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
@@ -70,9 +72,9 @@ describe.skipIf(!connectionString)(
         await detectBreakout(env);
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       expect(run.result).toMatchObject({
-        reason: null,
+        reason: 'brand_review_required',
         responseId: response.id,
-        status: 'completed',
+        status: 'held',
       });
       expect(run.result.outputIds).toHaveLength(5);
 
@@ -169,7 +171,7 @@ describe.skipIf(!connectionString)(
         jobId,
       );
       const first = await started.run();
-      expect(first.status).toBe('completed');
+      expect(first.status).toBe('held');
       const callsAfterFirst = harness.openRouter.calls.length;
       const holdsAfterFirst = (await reservationsOf(world.organizationId))
         .length;
@@ -182,7 +184,7 @@ describe.skipIf(!connectionString)(
       expect(retried).toMatchObject({
         outputIds: first.outputIds,
         responseId: response.id,
-        status: 'completed',
+        status: 'held',
       });
       expect(harness.openRouter.calls).toHaveLength(callsAfterFirst);
       expect(harness.replicate.calls).toHaveLength(callsAfterFirst);
@@ -216,7 +218,7 @@ describe.skipIf(!connectionString)(
         world: TWO_OUTPUTS,
       });
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
-      expect(run.result.status).toBe('completed');
+      expect(run.result.status).toBe('held');
       expect(harness.openRouter.calls.length).toBeGreaterThan(0);
     });
 
@@ -275,8 +277,8 @@ describe.skipIf(!connectionString)(
         expect(response.state).toBe('detected');
         const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
         expect(run.result).toMatchObject({
-          reason: null,
-          status: 'completed',
+          reason: 'brand_review_required',
+          status: 'held',
         });
         expect(run.result.outputIds).toHaveLength(2);
         expect(harness.openRouter.calls).toHaveLength(2);
@@ -284,25 +286,50 @@ describe.skipIf(!connectionString)(
       });
     });
 
-    describe('known defects, pinned until fixed (TODO(#6526))', () => {
-      // Approved-brand text always carries a hard `unknown` factual coverage check, so its
-      // receipt is `needs_review` and the quality step throws after paid generation.
-      it.fails('completes an approved-brand text output through quality with the production validator', async () => {
-        const { harness, jobId } = await detectBreakout(env, {
-          harness: { shimFactualCoverage: false },
+    describe('brand review', () => {
+      it('queues each paid draft for a member instead of throwing, and nothing auto-publishes', async () => {
+        const { harness, jobId, response, world } = await detectBreakout(env, {
           world: TWO_OUTPUTS,
         });
         const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
-        expect(run.result.status).toBe('completed');
+        expect(run.result).toMatchObject({
+          reason: 'brand_review_required',
+          status: 'held',
+        });
+        const outputs = await outputsOf(world.organizationId, response.id);
+        for (const output of outputs) {
+          const recovery = await readBreakoutOutputRecovery(prisma, {
+            brandId: world.brandId,
+            credentialId: world.credentialId,
+            organizationId: world.organizationId,
+            outputId: output.id,
+            platform: Platform.TWITTER,
+            responseId: response.id,
+          });
+          expect(recovery).toMatchObject({
+            action: 'none',
+            mayRepeatPaidRequest: false,
+            reason: 'brand_review_required',
+            state: 'awaiting_review',
+          });
+        }
+        const posts = await db.post.findMany({
+          where: scopedWhere(world.organizationId, {
+            breakoutOutputId: { in: outputs.map((output) => output.id) },
+          }),
+        });
+        expect(posts).toHaveLength(2);
+        for (const post of posts) {
+          expect(post.targetExecutionState).toBe('draft');
+          expect(post.reviewTurboRunId).toBeTruthy();
+        }
+        // The quality evidence the publication gate needs exists before a member approves.
+        expect(
+          await db.contentScore.count({
+            where: scopedWhere(world.organizationId, {}),
+          }),
+        ).toBe(2);
       });
-
-      // Decided (coordinator, #6717 follows): a paid draft that needs brand review becomes a
-      // held `awaiting_review` output instead of throwing; nothing auto-publishes, and a
-      // member who can publish schedules it through the #6705 path. Enable with
-      // fix/6526-breakout-brand-review-hold.
-      it.todo(
-        'holds a brand-review draft as awaiting_review (execute returns held brand_review_required), then a human schedules it and it publishes',
-      );
     });
   },
 );

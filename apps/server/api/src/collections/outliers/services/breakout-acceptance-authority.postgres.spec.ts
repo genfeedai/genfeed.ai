@@ -238,7 +238,10 @@ describe.skipIf(!connectionString)(
           executionId: started.executionId,
         })
       ).run();
-      expect(completed).toMatchObject({ reason: null, status: 'completed' });
+      expect(completed).toMatchObject({
+        reason: 'brand_review_required',
+        status: 'held',
+      });
       // Only the sibling needed a new provider request.
       expect(harness.openRouter.calls).toHaveLength(2);
       const holds = await db.creditReservation.findMany({
