@@ -7,6 +7,7 @@ import { getAnalyticsActionContract } from './analytics-action-contracts';
 import { getAuthorReplyActionContract } from './author-reply-action-contracts';
 import { getAutomationActionContract } from './automation-action-contracts';
 import { getBrandRemixActionContract } from './brand-remix-action-contracts';
+import { getBreakoutResponseActionContract } from './breakout-response-action-contracts';
 import { getCampaignOutreachActionContract } from './campaign-outreach-action-contracts';
 import { getClipActionContract } from './clip-action-contracts';
 import { getContentLearningActionContract } from './content-learning-action-contracts';
@@ -80,6 +81,7 @@ const CONTRACT_RESOLVERS = [
   getKnowledgeSourceActionContract,
   getKnowledgeToolActionContract,
   getBrandRemixActionContract,
+  getBreakoutResponseActionContract,
   getWorkspaceTaskActionContract,
   getYoutubeClipActionContract,
 ] as const;

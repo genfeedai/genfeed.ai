@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
 import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -8,9 +9,11 @@ import { BreakoutGenerationPlanService } from '@api/collections/outliers/service
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { BreakoutResponseExecutionService } from '@api/collections/outliers/services/breakout-response-execution.service';
+import { BreakoutResponseExecutionWorkflowService } from '@api/collections/outliers/services/breakout-response-execution-workflow.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
 import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
@@ -23,6 +26,8 @@ import { Module } from '@nestjs/common';
 /** Concrete generation consumers; analytics evidence and read services remain independent of this graph. */
 @Module({
   imports: [
+    BrandAccessModule,
+    WorkflowsCoreModule,
     AgentStrategiesCoreModule,
     ContentLearningCoreModule,
     CredentialsCoreModule,
@@ -40,6 +45,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     BreakoutResponseExecutionService,
+    BreakoutResponseExecutionWorkflowService,
     BreakoutTextOutputPreparationService,
     BreakoutGenerationPlanService,
     BreakoutOutputQualityService,

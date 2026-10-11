@@ -2572,6 +2572,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Finalizes one knowledge-source ingestion workflow.',
   ),
   internalAction(
+    'breakout.response.execute',
+    'Execute Breakout Response',
+    'Runs one detected own-account breakout response through pricing, reservation and generation under its pinned initiating actor.',
+  ),
+  internalAction(
     'email-product-signals.dispatch',
     'Discover email product signals',
     'Discover email product signals through a hidden system workflow.',
