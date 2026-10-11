@@ -117,6 +117,8 @@ async function bindPostArtifact(
   if (!response || !output || response.outputPlanFingerprint === null)
     return { status: 'held', reason: 'missing_output' };
   if (
+    // A visual output is composed from its caption and generated visuals by its own binder.
+    isBreakoutMediaFormat(output.format) ||
     (textOnly && output.format !== 'text') ||
     (output.kind !== 'follow_up' && output.kind !== 'quote') ||
     (output.kind === 'quote' &&

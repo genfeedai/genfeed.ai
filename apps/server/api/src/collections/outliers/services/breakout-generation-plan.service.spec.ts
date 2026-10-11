@@ -513,7 +513,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
         mediaModelKey: null,
         reservation: { estimate: { slots: [{ kind: 'quote' }] } },
       });
-      expect(reserved()?.supportedFormats).toEqual(['text']);
+      expect(reserved()?.supportedFormats).toEqual(['text', 'thread']);
     });
   });
 });

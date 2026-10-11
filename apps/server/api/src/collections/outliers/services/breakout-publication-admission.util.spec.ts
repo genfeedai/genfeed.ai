@@ -157,7 +157,18 @@ function fixture() {
     agentStrategy: { findFirst: vi.fn(async () => strategy) },
     contentScore: {
       findFirst: scoreQuery,
-      findMany: vi.fn(async () => visualRows),
+      findMany: vi.fn(async (args: Prisma.ContentScoreFindManyArgs) => {
+        const wanted = (args.where?.OR ?? []).map((clause) =>
+          JSON.stringify(
+            (clause.data as { equals?: unknown } | undefined)?.equals,
+          ),
+        );
+        return visualRows.filter((row) =>
+          wanted.includes(
+            JSON.stringify(row.data[BREAKOUT_VISUAL_QUALITY_KEY]),
+          ),
+        );
+      }),
     },
   };
   return {
@@ -355,6 +366,7 @@ describe('fresh business evidence before native breakout publication', () => {
   });
   it('requires a whole-thread score, including root and ordered child material', async () => {
     const h = fixture();
+    h.output.format = 'thread';
     h.post.format = PostFormat.THREAD;
     const { children: _children, ...segment } = h.post;
     h.post.children = [

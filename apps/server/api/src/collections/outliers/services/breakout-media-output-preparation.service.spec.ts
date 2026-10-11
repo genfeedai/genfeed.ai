@@ -241,10 +241,13 @@ describe('visual breakout output pipeline', () => {
 
   it('queues a post whose caption needs brand review after composing it, still generates and scores it', async () => {
     const h = fixture('image');
-    h.text.generate.mockResolvedValue({
-      kind: 'completed',
-      postId: 'caption-post',
-      receipt: { state: 'needs_review', compliance: 'unverified' },
+    h.text.generate.mockImplementation(async (input) => {
+      h.calls.push(`caption:${input.admission.componentKey}`);
+      return {
+        kind: 'completed',
+        postId: 'caption-post',
+        receipt: { state: 'needs_review', compliance: 'unverified' },
+      };
     });
     expect(await h.service.generate(h.request)).toMatchObject({
       kind: 'completed',
