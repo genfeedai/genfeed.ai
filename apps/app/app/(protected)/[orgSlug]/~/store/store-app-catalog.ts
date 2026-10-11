@@ -3,11 +3,6 @@ import type {
   StoreAppCatalogEntry,
   StoreCategoryId,
 } from '@genfeedai/props/store/organization-store-page.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-
-/** The marketing site's editorial card for a page, served from the asset CDN. */
-const marketingCard = (name: string) =>
-  `${EnvironmentService.assetsEndpoint}/branding/website/editorial/${name}-v1.webp`;
 
 /** Shelves in display order. */
 export const STORE_CATEGORY_IDS = [
@@ -26,57 +21,63 @@ export const STORE_APP_CATALOG: Record<
   StoreAppCatalogEntry
 > = {
   automation: {
-    thumbnailSrc: marketingCard('workflow'),
+    thumbnailSrc: '/store/automation.webp',
     art: 'flow',
     category: 'automate',
     isFeatured: false,
     tone: 'info',
   },
   clips: {
+    thumbnailSrc: '/store/clips.webp',
     art: 'trim',
     category: 'create',
     isFeatured: false,
     tone: 'warning',
   },
   discovery: {
-    thumbnailSrc: marketingCard('research'),
+    thumbnailSrc: '/store/discovery.webp',
     art: 'trend',
     category: 'publish',
     isFeatured: false,
     tone: 'success',
   },
   editor: {
+    thumbnailSrc: '/store/editor.webp',
     art: 'timeline',
     category: 'create',
     isFeatured: false,
     tone: 'info',
   },
   messages: {
+    thumbnailSrc: '/store/messages.webp',
     art: 'inbox',
     category: 'publish',
     isFeatured: false,
     tone: 'primary',
   },
   motion: {
+    thumbnailSrc: '/store/motion.webp',
     art: 'motion',
     category: 'create',
     isFeatured: false,
     tone: 'warning',
   },
   playground: {
-    thumbnailSrc: marketingCard('page-studio'),
+    thumbnailSrc: '/store/playground.webp',
     art: 'prompt',
     category: 'create',
     isFeatured: true,
     tone: 'primary',
   },
   storyboard: {
+    thumbnailSrc: '/store/storyboard.webp',
     art: 'frames',
     category: 'create',
     isFeatured: true,
     tone: 'success',
   },
   turbo: {
+    thumbnailSrc: '/store/turbo.webp',
     art: 'layers',
     category: 'create',
     isFeatured: true,
