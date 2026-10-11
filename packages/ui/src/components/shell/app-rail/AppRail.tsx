@@ -263,6 +263,7 @@ function AppRailLauncher({
 }: AppRailLauncherProps) {
   const t = useTranslations('common.appRail');
   const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matchingItems = normalizedQuery
     ? items.filter((item) =>
@@ -280,30 +281,42 @@ function AppRailLauncher({
   }, 0);
 
   return (
-    <Popover onOpenChange={(isOpen) => !isOpen && setQuery('')}>
-      <PopoverTrigger
-        aria-label={t('launcher')}
-        data-active={isActive}
-        data-testid="app-rail-launcher"
-        className={cn(
-          'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
-          isActive
-            ? 'bg-foreground/[0.12] text-foreground'
-            : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
-        )}
-      >
-        <LayoutGrid aria-hidden="true" className="size-4" />
-        {unpinnedBadgeCount > 0 ? (
-          <span
-            aria-hidden="true"
-            data-testid="app-rail-launcher-badge"
-            className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
+    <Popover
+      onOpenChange={(nextOpen) => {
+        setIsOpen(nextOpen);
+        if (!nextOpen) setQuery('');
+      }}
+    >
+      <Tooltip open={isOpen ? false : undefined}>
+        <TooltipTrigger asChild>
+          <PopoverTrigger
+            aria-label={t('launcher')}
+            data-active={isActive}
+            data-testid="app-rail-launcher"
+            className={cn(
+              'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
+              isActive
+                ? 'bg-foreground/[0.12] text-foreground'
+                : 'text-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
+            )}
           >
-            {unpinnedBadgeCount > 99 ? '99+' : unpinnedBadgeCount}
-          </span>
-        ) : null}
-      </PopoverTrigger>
+            <LayoutGrid aria-hidden="true" className="size-4" />
+            {unpinnedBadgeCount > 0 ? (
+              <span
+                aria-hidden="true"
+                data-testid="app-rail-launcher-badge"
+                className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
+              >
+                {unpinnedBadgeCount > 99 ? '99+' : unpinnedBadgeCount}
+              </span>
+            ) : null}
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={10} collisionPadding={12}>
+          <span className="font-semibold">{t('launcher')}</span>
+        </TooltipContent>
+      </Tooltip>
       <PopoverPanelContent
         align="end"
         className="flex w-60 flex-col gap-1 p-1"
