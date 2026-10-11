@@ -4,6 +4,7 @@ import type {
   IWinnerPost,
   WinnerSignalEvidence,
 } from '@genfeedai/contracts/interfaces';
+import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { AnalyticsWinnersTableProps } from '@props/analytics/analytics-winners-table.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
@@ -14,7 +15,7 @@ import { useMemo } from 'react';
 function formatSignalValue(evidence: WinnerSignalEvidence, value: number) {
   return evidence.signal === 'engagementRate'
     ? `${value.toFixed(2)}%`
-    : Math.round(value).toLocaleString();
+    : formatNumberWithCommas(Math.round(value));
 }
 
 function matchesSearch(winner: IWinnerPost, search: string): boolean {
