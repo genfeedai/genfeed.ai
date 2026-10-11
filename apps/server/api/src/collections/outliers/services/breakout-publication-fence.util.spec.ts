@@ -20,6 +20,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import type { PrismaService } from '@libs/prisma/prisma.service';
 import { ForbiddenException } from '@nestjs/common';
 
 const runtime = vi.hoisted(() => ({ cloud: true }));
@@ -137,7 +138,7 @@ function harness(options: { actor?: Record<string, unknown> } = {}) {
       async (run: (client: Prisma.TransactionClient) => Promise<unknown>) =>
         run(tx),
     ),
-  };
+  } as unknown as PrismaService;
   return {
     tx,
     prisma,
