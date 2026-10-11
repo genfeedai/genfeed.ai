@@ -186,6 +186,7 @@ describe('actual breakout credit admission before the provider', () => {
         ...h.admission.scope,
         credentialId: 'account-a',
         nowMs,
+        responseId: 'response-a',
       });
     },
   );

@@ -327,6 +327,14 @@ describe('breakout normal strategy quality consumer', () => {
     expect(h.optimizers.analyzeContent).not.toHaveBeenCalled();
     expect(h.credits.reserveCredits).not.toHaveBeenCalled();
   });
+  it('reads the quality budget as a step of its own funded response, so pacing never refuses it', async () => {
+    const h = fixture();
+    await h.service.evaluate(h.request);
+    expect(readBreakoutLiveCapacity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ responseId: 'response-a' }),
+    );
+  });
   it('propagates key revocation during the budget await before a quality provider call', async () => {
     const h = fixture();
     const denied = new Error('key_revoked_during_quality_budget');
