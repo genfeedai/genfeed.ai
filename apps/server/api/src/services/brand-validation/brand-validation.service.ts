@@ -23,6 +23,7 @@ import {
   brandGenerationArtifactV1Schema,
   brandIdentitySnapshotV1Schema,
 } from '@genfeedai/contracts/api-types/contracts';
+import type { BrandRenderEvidenceVerificationV1 } from '@genfeedai/contracts/interfaces/content/brand-render-evidence.interface';
 import type {
   BrandArtifactValidationInputV1,
   BrandArtifactValidationReportV1,
@@ -34,6 +35,8 @@ import { BadRequestException } from '@nestjs/common';
 /** What a caller may add to one validation. Absent means no provider-backed reading. */
 export interface BrandValidationOptions {
   visualAnalysis?: BrandVisualAnalysis;
+  /** The outcome of reading and verifying the artifact's render manifest; absent means not read. */
+  renderEvidence?: BrandRenderEvidenceVerificationV1;
 }
 
 const factualMessage =
@@ -274,7 +277,7 @@ export class BrandValidationService {
           text !== null &&
           artifact.parts.length === 0,
       ),
-      options.visualAnalysis,
+      options,
     );
     const diagnostics: BrandArtifactValidationReportV1['diagnostics'] = [
       {

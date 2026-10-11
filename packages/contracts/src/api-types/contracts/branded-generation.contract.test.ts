@@ -979,6 +979,74 @@ describe('blocked identity and canonical rule origin', () => {
       }).success,
     ).toBe(false);
   });
+  it('accepts a font proof only on a typography pass of a still', () => {
+    const base = {
+      ruleId: 'heading',
+      category: 'typography',
+      severity: 'hard',
+      evidenceIds: ['evidence'],
+      method: 'deterministic_render',
+      result: 'pass',
+    } as const;
+    const proof = {
+      kind: 'font' as const,
+      algorithm: 'render-manifest-font-v1' as const,
+      artifactHash: hash,
+      partId: 'part',
+      partVersion: 'v1',
+      partHash: hash,
+      mediaKind: 'image' as const,
+      manifestId: 'manifest',
+      manifestHash: hash,
+      renderer: {
+        id: 'genfeed-visual-code',
+        version: '1',
+        engine: 'remotion-chromium',
+      },
+      frame: 0,
+      textLayers: 2,
+      matchedFonts: [
+        {
+          fontId: 'font-display',
+          family: 'Brand Display',
+          weight: 700,
+          style: 'normal' as const,
+          sourceKind: 'asset' as const,
+        },
+      ],
+    };
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({ ...base, proof })
+        .success,
+    ).toBe(true);
+    for (const wrong of [
+      { category: 'palette' },
+      { category: 'logo' },
+      {
+        result: 'fail',
+        reasonCode: 'font_not_approved',
+      },
+    ] as const)
+      expect(
+        brandArtifactValidationCheckV1Schema.safeParse({
+          ...base,
+          ...wrong,
+          proof,
+        }).success,
+      ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        proof: { ...proof, mediaKind: 'video' },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        proof: { ...proof, matchedFonts: [] },
+      }).success,
+    ).toBe(false);
+  });
   it('accepts an OCR proof only on a literal rule check', () => {
     const base = {
       ruleId: 'name',

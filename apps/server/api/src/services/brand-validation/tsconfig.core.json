@@ -22,6 +22,8 @@
     "./brand-validation-media-proof.util.ts",
     "./brand-validation-placement.util.ts",
     "./brand-validation-placement.spec.ts",
+    "./brand-validation-font.util.ts",
+    "./brand-validation-font.spec.ts",
     "./brand-visual-analysis.types.ts",
     "./brand-validation.service.spec.ts",
     "./brand-validation.corpus.spec.ts",

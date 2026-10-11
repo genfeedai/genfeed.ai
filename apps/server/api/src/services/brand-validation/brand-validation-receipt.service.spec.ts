@@ -1,6 +1,8 @@
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
+import { BrandRenderEvidenceModule } from '@api/services/brand-render-evidence/brand-render-evidence.module';
+import type { BrandRenderEvidenceService } from '@api/services/brand-render-evidence/brand-render-evidence.service';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
@@ -341,6 +343,7 @@ function fixture(description = 'Example Co offers a plan.') {
     receipts,
     validator,
     adapter,
+    bytes,
   };
 }
 async function bindPost(f: ReturnType<typeof fixture>) {
@@ -525,6 +528,42 @@ describe('brand validation receipt completion adapter', () => {
     ).toMatchObject({ reasonCode: 'ocr_absence_unproven', result: 'unknown' });
   });
 
+  it('T3c: reads the render manifest against the pinned bytes of an image ingredient, still needs_review', async () => {
+    const f = fixture();
+    await bindImage(f);
+    const read = vi.fn(
+      async (
+        _scope: { organizationId: string; brandId: string },
+        _artifactId: string,
+        bytes: Uint8Array,
+      ) => ({
+        manifest: null,
+        reasonCode: 'manifest_not_found' as const,
+        status: 'missing' as const,
+        bytes: bytes.length,
+      }),
+    );
+    const adapter = new BrandValidationReceiptService(
+      f.material,
+      f.receipts,
+      f.validator,
+      undefined,
+      { read } as unknown as BrandRenderEvidenceService,
+    );
+    const result = await adapter.validateReceipt(actor, 'receipt-a');
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(read.mock.calls[0][0]).toEqual({
+      brandId: actor.brandId,
+      organizationId: actor.organizationId,
+    });
+    expect(read.mock.calls[0][1]).toBe(f.ingredient.id);
+    expect(read.mock.calls[0][2]).toEqual(new Uint8Array(f.bytes));
+    expect(result.receipt).toMatchObject({
+      compliance: 'unverified',
+      state: 'needs_review',
+    });
+  });
+
   it('T4: completes raw receipts without calling the validator', async () => {
     const f = fixture();
     f.rows[0].projection.mode = 'raw';
@@ -670,6 +709,7 @@ describe('brand validation receipt completion adapter', () => {
     ).toEqual([
       BrandValidationModule,
       BrandVisualAnalysisModule,
+      BrandRenderEvidenceModule,
       BrandedGenerationReceiptsModule,
     ]);
     expect(

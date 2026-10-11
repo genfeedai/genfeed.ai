@@ -1,3 +1,4 @@
+import { BrandRenderEvidenceModule } from '@api/services/brand-render-evidence/brand-render-evidence.module';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandVisualAnalysisModule } from '@api/services/brand-validation/brand-visual-analysis.module';
@@ -8,6 +9,7 @@ import { Module } from '@nestjs/common';
   imports: [
     BrandValidationModule,
     BrandVisualAnalysisModule,
+    BrandRenderEvidenceModule,
     BrandedGenerationReceiptsModule,
   ],
   providers: [BrandValidationReceiptService],

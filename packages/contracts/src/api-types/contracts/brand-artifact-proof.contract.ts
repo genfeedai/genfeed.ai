@@ -163,13 +163,62 @@ export const brandPlacementProofV1Schema = z.strictObject({
     .max(BRAND_PLACEMENT_PROOF_LIMITS.detections),
 });
 
+export const BRAND_FONT_PROOF_LIMITS = {
+  fonts: 16,
+} as const;
+
+/**
+ * An approved font shown to have drawn every text layer of an exported still, by
+ * a render manifest the platform's own renderer emitted and the caller verified
+ * against the exported bytes. The renderer's trust is the evidence: a model's
+ * image has no manifest, and its fonts stay unknown.
+ */
+export const brandFontProofV1Schema = z.strictObject({
+  kind: z.literal('font'),
+  /** Names the matching so a later change cannot reuse this proof. */
+  algorithm: z.literal('render-manifest-font-v1'),
+  artifactHash: hash,
+  partId: id,
+  partVersion: id,
+  partHash: hash,
+  /** A still: sampled video frames never prove every text layer. */
+  mediaKind: z.literal('image'),
+  /** The verified manifest this proof reads, by id and canonical hash. */
+  manifestId: id,
+  manifestHash: hash,
+  renderer: z.strictObject({
+    id: label,
+    version: label,
+    engine: label,
+  }),
+  /** The one frame the manifest inspected: a proof is only made for complete coverage. */
+  frame: z.number().int().min(0),
+  /** Text layers inspected; every one was drawn only with approved fonts, none with a fallback. */
+  textLayers: z.number().int().min(1),
+  /** The fonts matching the approved rule, as the font engine reported them. */
+  matchedFonts: z
+    .array(
+      z.strictObject({
+        fontId: id,
+        family: label,
+        weight: z.number().int().min(1).max(1000).nullable(),
+        style: z.enum(['normal', 'italic', 'oblique']).nullable(),
+        sourceKind: z.enum(['asset', 'embedded', 'system']),
+      }),
+    )
+    .min(1)
+    .max(BRAND_FONT_PROOF_LIMITS.fonts),
+});
+
 export const brandArtifactProofV1Schema = z.discriminatedUnion('kind', [
   brandPaletteProofV1Schema,
   brandOcrProofV1Schema,
   brandPlacementProofV1Schema,
+  brandFontProofV1Schema,
 ]);
 
 export type BrandOcrProofV1 = z.infer<typeof brandOcrProofV1Schema>;
+export type BrandFontProofV1 = z.infer<typeof brandFontProofV1Schema>;
 export type BrandPlacementProofV1 = z.infer<typeof brandPlacementProofV1Schema>;
 export type BrandPaletteProofV1 = z.infer<typeof brandPaletteProofV1Schema>;
 export type BrandArtifactProofV1 = z.infer<typeof brandArtifactProofV1Schema>;
