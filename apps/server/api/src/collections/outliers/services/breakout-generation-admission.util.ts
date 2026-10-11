@@ -222,6 +222,7 @@ export async function admitBreakoutGenerationContinuation(
     ...scope,
     credentialId: admission.credentialId,
     nowMs,
+    responseId: admission.responseId,
   });
   await admission.reauthorize(tx);
   if (capacity.status === 'held') deny(capacity.reason);

@@ -59,6 +59,10 @@ function fixture() {
     },
   ]);
   const links = vi.fn(async () => []);
+  const findOutputs = vi.fn(async () => [
+    { generationKey: 'generation-1' },
+    { generationKey: 'generation-2' },
+  ]);
   const tx = {
     agentStrategy: { findFirst: findStrategy },
     credential: { findFirst: vi.fn(async () => ({ id: input.credentialId })) },
@@ -72,8 +76,20 @@ function fixture() {
     billingAccountOrganization: { findMany: links },
     creditBalance: { findFirst: findWallet },
     post: { findMany: findPosts },
+    breakoutResponseOutput: {
+      findMany: findOutputs,
+    },
   } as unknown as Prisma.TransactionClient;
-  return { tx, strategy, wallet, findWallet, findPosts, findStrategy, links };
+  return {
+    tx,
+    strategy,
+    wallet,
+    findWallet,
+    findPosts,
+    findStrategy,
+    findOutputs,
+    links,
+  };
 }
 describe('read-only live breakout capacity evidence', () => {
   beforeEach(() => {
@@ -86,6 +102,7 @@ describe('read-only live breakout capacity evidence', () => {
         spentCredits: snapshot.storedUsed,
         heldCredits: 0,
         usedCredits: snapshot.storedUsed,
+        ownCredits: 0,
         dimensionUsage: null,
       }),
     );
@@ -97,6 +114,7 @@ describe('read-only live breakout capacity evidence', () => {
         spentCredits: snapshot.storedMonthlyUsed,
         heldCredits: 0,
         usedCredits: snapshot.storedMonthlyUsed,
+        ownCredits: 0,
         dimensionUsage: null,
       }),
     );
@@ -111,6 +129,7 @@ describe('read-only live breakout capacity evidence', () => {
         spentCredits: snapshot.storedUsed,
         heldCredits: 50,
         usedCredits: snapshot.storedUsed + 50,
+        ownCredits: 0,
         dimensionUsage: null,
       }),
     );
@@ -149,6 +168,7 @@ describe('read-only live breakout capacity evidence', () => {
       spentCredits: 20,
       heldCredits: 5,
       usedCredits: 25,
+      ownCredits: 0,
       dimensionUsage: {
         platforms: { [Platform.TWITTER]: 25 },
         formats: { text: 25 },
@@ -163,6 +183,66 @@ describe('read-only live breakout capacity evidence', () => {
       },
     });
   });
+  describe('pacing across a funded plan', () => {
+    // 2026-10-15 of a 31-day month with a 500 monthly budget: expected spend 241.94.
+    const spend = (used: number, own: number) =>
+      vi.mocked(readBreakoutMonthlyUsage).mockResolvedValue({
+        status: 'available',
+        periodStart: '2026-10-01T00:00:00.000Z',
+        periodEnd: '2026-11-01T00:00:00.000Z',
+        spentCredits: used,
+        heldCredits: 0,
+        usedCredits: used,
+        ownCredits: own,
+        dimensionUsage: null,
+      });
+
+    it('stops new spend once the month is ahead of its pace', async () => {
+      const h = fixture();
+      spend(300, 0);
+      expect(await readBreakoutLiveCapacity(h.tx, input)).toMatchObject({
+        budget: { remainingMonthlyCredits: 200, remainingPacingCredits: 0 },
+      });
+    });
+
+    it('does not refuse the follow-up steps of a plan whose own holds pushed the month past its pace', async () => {
+      const h = fixture();
+      spend(300, 100);
+      expect(
+        await readBreakoutLiveCapacity(h.tx, {
+          ...input,
+          responseId: 'response-a',
+        }),
+      ).toMatchObject({
+        budget: { remainingMonthlyCredits: 200, remainingPacingCredits: 200 },
+      });
+      expect(readBreakoutMonthlyUsage).toHaveBeenCalledWith(
+        h.tx,
+        expect.objectContaining({
+          ownGenerationKeys: ['generation-1', 'generation-2'],
+        }),
+      );
+    });
+
+    it('still paces a plan whose outside spend is over the pace', async () => {
+      const h = fixture();
+      spend(400, 100);
+      expect(
+        await readBreakoutLiveCapacity(h.tx, {
+          ...input,
+          responseId: 'response-a',
+        }),
+      ).toMatchObject({ budget: { remainingPacingCredits: 0 } });
+    });
+
+    it('reads no plan keys without a response', async () => {
+      const h = fixture();
+      spend(300, 0);
+      await readBreakoutLiveCapacity(h.tx, input);
+      expect(h.findOutputs).not.toHaveBeenCalled();
+    });
+  });
+
   it('holds unreadable historical ledger allocation without inventing zero spend', async () => {
     const h = fixture();
     vi.mocked(readBreakoutMonthlyUsage).mockResolvedValue({
