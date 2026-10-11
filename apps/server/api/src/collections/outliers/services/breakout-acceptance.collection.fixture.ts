@@ -50,7 +50,9 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import type { Queue } from 'bullmq';
 
 /** The one hidden workflow shape every seeded hidden fixture mirrors. */
-function hiddenDefinition(canonicalId: string): SystemWorkflowGraphDefinition {
+export function hiddenFixtureDefinition(
+  canonicalId: string,
+): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
     definition: { edges: [], inputVariables: [], nodes: [] },
@@ -301,7 +303,7 @@ export async function seedScheduledCollectionChain(
   });
   const hidden = await ensureHiddenSystemWorkflowMirror(
     prisma,
-    hiddenDefinition(DAILY_PUBLISHING_ACCOUNT_WORKFLOW_ID),
+    hiddenFixtureDefinition(DAILY_PUBLISHING_ACCOUNT_WORKFLOW_ID),
   );
   if (!hidden.currentVersion) throw new Error('Hidden workflow is unpinned');
   const child = await db.workflowExecution.create({
