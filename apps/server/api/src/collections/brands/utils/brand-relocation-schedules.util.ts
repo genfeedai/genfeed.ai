@@ -94,6 +94,19 @@ export async function holdBrandSchedules(
       where: { id: { in: touchedWorkflowIds } },
     });
   }
+  // The brand's strategies move with it and carry the actor their turns bind
+  // schedules to. Drop it for the same reason: moving the brand back must not
+  // re-arm it. Saving or enabling the strategy in the new organization binds a
+  // fresh one.
+  // sql-risk-audit: ignore bulk-write-tenant-review -- brand-pinned inside the relocation transaction, which spans the source and destination tenants.
+  // tenant-scope-ignore: a relocation spans the source and destination tenants; the brand id pins the strategies, deleted ones included.
+  await tx.agentStrategy.updateMany({
+    data: { scheduleInitiatingActor: Prisma.DbNull },
+    where: {
+      brandId,
+      NOT: { scheduleInitiatingActor: { equals: Prisma.DbNull } },
+    },
+  });
   return { held, touchedWorkflowIds };
 }
 

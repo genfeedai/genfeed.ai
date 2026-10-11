@@ -527,9 +527,29 @@ describe.skipIf(!connectionString)(
         },
         where: { id: s.workflow },
       });
+      // A strategy saved there binds its actor too (#6718).
+      const strategy = await prisma.agentStrategy.create({
+        data: {
+          brandId: s.brand,
+          organizationId: s.destination,
+          scheduleInitiatingActor: {
+            isApiKey: false,
+            organizationId: s.destination,
+            scopes: [],
+            userId: s.owner,
+          },
+          userId: s.owner,
+        },
+      });
 
       const back = await move(s, s.source);
 
+      await expect(
+        prisma.agentStrategy.findUniqueOrThrow({ where: { id: strategy.id } }),
+      ).resolves.toMatchObject({
+        organizationId: s.source,
+        scheduleInitiatingActor: null,
+      });
       expect(back.summary.schedulesHeld).toBe(1);
       expect(await orgOf(s)).toEqual(everythingIn(s.source));
       await expect(
