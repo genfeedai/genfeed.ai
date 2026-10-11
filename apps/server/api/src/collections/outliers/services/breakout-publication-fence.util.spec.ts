@@ -1,3 +1,4 @@
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { runWithRequestPrincipal } from '@api/authorization/brand-access/request-principal.context';
 import { admitBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-admission.util';
 import {
@@ -540,11 +541,11 @@ describe('breakout publication fence', () => {
 });
 
 describe('breakout publication by the member who schedules it', () => {
-  const scheduler = {
+  const scheduler: BrandAccessActor = {
     userId: 'user-b',
     organizationId: 'org-a',
     isApiKey: false,
-    scopes: [] as string[],
+    scopes: [],
   };
   const target = { organizationId: 'org-a', postId: 'post-a' };
 
@@ -556,7 +557,7 @@ describe('breakout publication by the member who schedules it', () => {
   }
 
   function scheduleAs(
-    principal: typeof scheduler | undefined,
+    principal: BrandAccessActor | undefined,
     h: ReturnType<typeof harness>,
   ) {
     return runWithRequestPrincipal(principal, () =>
