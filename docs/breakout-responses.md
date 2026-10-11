@@ -288,6 +288,12 @@ for reconciliation; a retained hold means a paid attempt already ran and is neve
 A video on a self-hosted deployment is held as `media_quality_capability_unavailable`
 because its frames cannot be judged there.
 
+Current limit: the shipped brand validator reports `artifact_media_unsupported` for every
+image or video admission, so the preflight reads `blocked` and each visual follow-up holds as
+`media_brand_capability_unavailable` (an X original keeps only its text quote) until that
+validator can qualify visual evidence. The connected acceptance suite runs the whole pipeline
+with a qualified admission and separately pins this shipped behavior.
+
 Publication of a visual post runs the same admission at schedule time and at dispatch as text
 (re-reading the channel catalog, the composed material and every per-visual score). The
 YouTube direct upload runs it before the PUBLISHING write and before the upload job.

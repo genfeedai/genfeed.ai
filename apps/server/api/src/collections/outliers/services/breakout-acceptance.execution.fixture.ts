@@ -20,9 +20,19 @@ import {
   buildCollectionHarness,
   type CollectionHarness,
 } from '@api/collections/outliers/services/breakout-acceptance.collection.fixture';
+import {
+  ACCEPTANCE_IMAGE_MODEL,
+  ACCEPTANCE_VIDEO_MODEL,
+  acceptanceMediaCategory,
+  FakeMediaGateway,
+  FakeVisualJudge,
+  VISUAL_GENERATION_CREDITS,
+} from '@api/collections/outliers/services/breakout-acceptance.media.fixture';
 import type { AcceptanceWorld } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
 import { DAY_MS } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
 import { BreakoutGenerationPlanService } from '@api/collections/outliers/services/breakout-generation-plan.service';
+import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
+import { BreakoutMediaOutputPreparationService } from '@api/collections/outliers/services/breakout-media-output-preparation.service';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { BreakoutResponseExecutionService } from '@api/collections/outliers/services/breakout-response-execution.service';
 import { BreakoutResponseExecutionWorkflowService } from '@api/collections/outliers/services/breakout-response-execution-workflow.service';
@@ -33,6 +43,7 @@ import {
 import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
+import { BreakoutVisualQualityService } from '@api/collections/outliers/services/breakout-visual-quality.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { ensureHiddenSystemWorkflowMirror } from '@api/collections/workflows/system-workflow-mirror.util';
@@ -191,6 +202,8 @@ export type ExecutionHarness = CollectionHarness & {
   brandAccess: BrandAccessService;
   credits: CreditsUtilsService;
   execution: BreakoutResponseExecutionService;
+  /** Fake image and video providers behind the product's generation gateway. */
+  mediaGateway: FakeMediaGateway;
   openRouter: FakeOpenRouter;
   receipts: BrandedGenerationReceiptsService;
   replicate: FakeReplicate;
@@ -200,6 +213,8 @@ export type ExecutionHarness = CollectionHarness & {
   hooks: { duringPlanning?: () => Promise<void> };
   material: BrandedGenerationArtifactMaterialService;
   validation: BrandValidationReceiptService;
+  /** Fake visual judge behind the product's evaluation endpoint. */
+  visualJudge: FakeVisualJudge;
   workflowExecutions: WorkflowExecutionsService;
   workflowService: BreakoutResponseExecutionWorkflowService;
   /** The publishing inbox where a draft that needs brand review waits for a member. */
@@ -214,11 +229,21 @@ type Stub = never;
  * code. Faked: the OpenRouter and Replicate providers, the model catalog and router, the
  * account constraint lookup and the BullMQ transport.
  */
+export type ExecutionHarnessOptions = {
+  /**
+   * The shipped brand validator has no qualified image or video evidence and blocks every
+   * visual admission (`artifact_media_unsupported`). By default the visual admission is
+   * qualified so the pipeline behind it can be exercised; set this to run the shipped one.
+   */
+  isShippedMediaValidator?: boolean;
+};
+
 export function buildExecutionHarness(
   db: PrismaClient<'query'>,
   prisma: PrismaService,
   logger: LoggerService,
   world: AcceptanceWorld,
+  options: ExecutionHarnessOptions = {},
 ): ExecutionHarness {
   const brandAccess = new BrandAccessService(prisma);
   const balances = new CreditBalanceService(prisma, logger);
@@ -357,14 +382,28 @@ export function buildExecutionHarness(
     openRouter as Stub,
     brandAccess,
   );
-  // The text scenarios never reach the visual judge; the media fixture wires the real one.
+  const visualJudge = new FakeVisualJudge();
+  const visualQuality = new BreakoutVisualQualityService(
+    prisma,
+    visualJudge as Stub,
+    {
+      findOne: async () => ({
+        inputCostPerMillionTokens: 10_000,
+        outputCostPerMillionTokens: 10_000,
+        pricingType: 'per-token',
+      }),
+    } as Stub,
+    { getFeatureSettings: async () => ({ generationMaxTokens: 500 }) } as Stub,
+    credits,
+  );
   const quality = new BreakoutOutputQualityService(
     prisma,
     strategies,
     optimizers,
     credits,
-    {} as Stub,
+    visualQuality,
   );
+  const reviewHandoff = new BreakoutReviewHandoffService(prisma, turboRuns);
   const textGeneration = new BreakoutTextOutputGenerationService(
     prisma,
     generation,
@@ -374,7 +413,7 @@ export function buildExecutionHarness(
     credits,
     posts,
     quality,
-    new BreakoutReviewHandoffService(prisma, turboRuns),
+    reviewHandoff,
   );
   const dependencies = new LearningDependencyService(prisma);
   const scopes = new LearningScopeStateService(prisma, dependencies);
@@ -396,16 +435,30 @@ export function buildExecutionHarness(
   );
   const hooks: ExecutionHarness['hooks'] = {};
   const registry = {
-    listCallableGenerationModels: async () => [],
+    listCallableGenerationModels: async (
+      _organizationId: string,
+      category: ModelCategory,
+    ) => [
+      {
+        key:
+          category === ModelCategory.VIDEO
+            ? ACCEPTANCE_VIDEO_MODEL
+            : ACCEPTANCE_IMAGE_MODEL,
+      },
+    ],
     listCallableTextModels: async () => {
       await hooks.duringPlanning?.();
       return [{ key: ACCEPTANCE_TEXT_MODEL }];
     },
     validateModelForOrg: async (key: string) => ({
-      category: ModelCategory.TEXT,
+      category:
+        key === ACCEPTANCE_IMAGE_MODEL || key === ACCEPTANCE_VIDEO_MODEL
+          ? acceptanceMediaCategory(key)
+          : ModelCategory.TEXT,
       isActive: true,
       isDeleted: false,
       key,
+      provider: 'replicate',
     }),
   };
   const accountConstraints = {
@@ -421,6 +474,15 @@ export function buildExecutionHarness(
       },
     }),
   };
+  // Only the visual admission is swapped; the text artifacts are validated by the real one.
+  const mediaValidator = options.isShippedMediaValidator
+    ? validator
+    : ({
+        preflightBrandCapabilities: () => ({
+          diagnostics: [],
+          status: 'supported',
+        }),
+      } as Stub);
   const planner = new BreakoutGenerationPlanService(
     prisma,
     registry as Stub,
@@ -432,9 +494,14 @@ export function buildExecutionHarness(
     accountConstraints as Stub,
     optimizers,
     snapshots,
-    validator,
-    {} as Stub,
-    {} as Stub,
+    mediaValidator,
+    {
+      estimate: async () => ({
+        credits: VISUAL_GENERATION_CREDITS,
+        isAvailable: true,
+      }),
+    } as Stub,
+    visualQuality,
   );
   const preparation = new BreakoutTextOutputPreparationService(
     prisma,
@@ -443,11 +510,25 @@ export function buildExecutionHarness(
     learning,
     textGeneration,
   );
+  const mediaGateway = new FakeMediaGateway(db, credits);
+  const media = new BreakoutMediaOutputPreparationService(
+    prisma,
+    registry as Stub,
+    preparation,
+    new BreakoutMediaOutputGenerationService(
+      prisma,
+      mediaGateway as Stub,
+      snapshots,
+      mediaValidator,
+    ),
+    quality,
+    reviewHandoff,
+  );
   const execution = new BreakoutResponseExecutionService(
     prisma,
     planner,
     preparation,
-    {} as Stub,
+    media,
   );
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const workflowService = new BreakoutResponseExecutionWorkflowService(
@@ -477,10 +558,12 @@ export function buildExecutionHarness(
     execution,
     hooks,
     material,
+    mediaGateway,
     openRouter,
     receipts,
     replicate,
     validation,
+    visualJudge,
     workflowExecutions,
     turboReview,
     workflowService,
