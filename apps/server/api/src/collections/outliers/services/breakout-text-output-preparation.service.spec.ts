@@ -218,6 +218,50 @@ describe('canonical source to actual breakout text consumer', () => {
       }),
     );
   });
+  it.each([
+    ['image', 'image post'],
+    ['carousel', 'image carousel post'],
+    ['video', 'video post'],
+    ['short', 'short vertical video post'],
+  ] as const)(
+    'writes the approved-brand caption of a %s output as one text post under the output scope',
+    async (format, subject) => {
+      const h = fixture();
+      h.admission.scope.format = format as never;
+      h.output.kind = 'follow_up';
+      h.output.ordinal = 3;
+      await h.service.generate(h.request);
+      const prepared = h.generation.generate.mock.calls[0]?.[0];
+      expect(prepared).toMatchObject({
+        isVisualCaption: true,
+        admission: { scope: { format } },
+        input: {
+          format: 'text',
+          contentType: 'post',
+          mode: 'approved_brand',
+          requestKey: 'generation-a',
+        },
+      });
+      expect(prepared?.input.originalPrompt).toContain(
+        `caption of a ${subject.replace(' post', '')} post`,
+      );
+      expect(prepared?.input.originalPrompt).toContain('follow-up 3');
+      expect(prepared?.input.originalPrompt).toContain('concrete scene');
+      expect(prepared?.input.originalPrompt).toContain(
+        'Return only one finished caption',
+      );
+      expect(h.learning.previewForContext).toHaveBeenCalledWith(
+        expect.objectContaining({ format: 'text' }),
+      );
+    },
+  );
+  it('keeps a text output’s own request unchanged', async () => {
+    const h = fixture();
+    await h.service.generate(h.request);
+    expect(h.generation.generate.mock.calls[0]?.[0].isVisualCaption).toBe(
+      false,
+    );
+  });
   it('uses the complete original ordered thread and generates a distinct follow-up', async () => {
     const h = fixture();
     h.admission.scope.format = 'thread';

@@ -5,6 +5,7 @@ import type { BreakoutGenerationAdmission } from '@api/collections/outliers/serv
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import type { BreakoutVisualQualityService } from '@api/collections/outliers/services/breakout-visual-quality.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditReservationStatus, Platform } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
@@ -203,6 +204,7 @@ function fixture(thread = false) {
     strategies as unknown as AgentStrategiesService,
     optimizers as unknown as OptimizersService,
     credits as unknown as CreditsUtilsService,
+    { evaluate: vi.fn() } as unknown as BreakoutVisualQualityService,
   );
   return {
     service,

@@ -390,7 +390,7 @@ describe('retained generation and publication recovery facts', () => {
       reason: 'quality_or_brand_blocked',
     });
   });
-  it.each(['image', 'carousel', 'video', 'short'])(
+  it.each(['image', 'carousel', 'video'])(
     'shows an actual %s capability hold without granting dispatch or retry',
     async (format) => {
       const h = fixture();
@@ -809,7 +809,7 @@ function composedBindingFixture(
 }
 
 describe('complete output artifact lineage and recovery', () => {
-  it.each(['text', 'image', 'video', 'short', 'carousel', 'thread'] as const)(
+  it.each(['text', 'thread'] as const)(
     'binds and recovers a complete %s output through normal review/publication states',
     async (format) => {
       const h = composedBindingFixture(format);
@@ -867,7 +867,7 @@ describe('complete output artifact lineage and recovery', () => {
     },
   );
 
-  it.each(['image', 'video', 'short', 'carousel', 'thread'] as const)(
+  it.each(['thread'] as const)(
     'holds a changed complete %s artifact without another paid request',
     async (format) => {
       const h = composedBindingFixture(format);
@@ -885,6 +885,20 @@ describe('complete output artifact lineage and recovery', () => {
         reason: 'artifact_binding_missing',
         mayRepeatPaidRequest: false,
       });
+    },
+  );
+
+  it.each(['image', 'carousel', 'video', 'short'] as const)(
+    'composes a %s output through its own binder, never a text receipt',
+    async (format) => {
+      const h = composedBindingFixture('text');
+      h.output.format = format;
+      h.output.kind = 'follow_up';
+      expect(await bindBreakoutPostArtifact(h.tx, h.binding)).toEqual({
+        status: 'held',
+        reason: 'unsupported_format',
+      });
+      expect(h.update).not.toHaveBeenCalled();
     },
   );
 
