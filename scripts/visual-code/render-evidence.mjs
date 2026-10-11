@@ -118,7 +118,9 @@ export function resolveSource(raw, assetHashes, origin, loaded) {
   let id = outer.origin === origin ? assetId(outer) : null;
   if (id === null) {
     const nested = outer.searchParams.get('src');
-    const isProxy = outer.origin === origin;
+    // Only Remotion's proxy route reads a file named in `src`; any other page
+    // that answered 2xx proves nothing about that file.
+    const isProxy = outer.origin === origin && outer.pathname === '/proxy';
     // The proxy is handed the file's absolute URL; a relative one is not Remotion's.
     const inner = nested && isProxy ? parseUrl(nested) : null;
     if (inner !== null && HTTP.has(inner.protocol) && inner.origin === origin)

@@ -172,6 +172,8 @@ test('a foreign or non-http URL cannot borrow a staged asset by naming its path'
     'http://127.0.0.1:9/x?src=/assets/logo',
     'blob:http://localhost:3000/assets/logo',
     'file:///assets/logo',
+    `${ORIGIN}/index.html?src=${encodeURIComponent(LOGO_URL)}`,
+    `${ORIGIN}/bundle.js?src=${encodeURIComponent(LOGO_URL)}`,
   ];
   // Even if the browser reports a response for every one of them.
   const loaded = fetched(
