@@ -63,6 +63,12 @@ export const replicateSchema = {
   REPLICATE_KEY: conditionalRequired(),
   REPLICATE_OWNER: Joi.string().default('genfeedai'),
   REPLICATE_WEBHOOK_SIGNING_SECRET: conditionalRequired(),
+  // Brand visual analysis (#6727): the open-vocabulary vision model and the price of one
+  // second of its GPU. Whether the analysis runs at all is the Admin platform setting
+  // `isBrandVisualAnalysisEnabled`; these only say which model and what it costs.
+  // A pinned `owner/name:version` (for example a Florence-2 class model); unset keeps the analysis unavailable.
+  BRAND_VISION_REPLICATE_MODEL: Joi.string().optional().allow(''),
+  BRAND_VISION_USD_PER_SECOND: Joi.number().positive().default(0.000975),
 };
 
 /**

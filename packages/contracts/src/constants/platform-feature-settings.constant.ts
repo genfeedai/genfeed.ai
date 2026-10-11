@@ -89,6 +89,7 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     flags: DEFAULT_PLATFORM_FLAGS,
     isAgentContextCompressionEnabled: true,
     isAgentTokenStreamingEnabled: false,
+    isBrandVisualAnalysisEnabled: false,
     isEmailVerificationRequired: false,
     isMediaPerceptionEnabled: true,
     mediaGateVisionMode: 'off',
@@ -417,6 +418,10 @@ export function parsePlatformFeatureSettings(
     isAgentTokenStreamingEnabled: pickBoolean(
       row.isAgentTokenStreamingEnabled,
       defaults.isAgentTokenStreamingEnabled,
+    ),
+    isBrandVisualAnalysisEnabled: pickBoolean(
+      row.isBrandVisualAnalysisEnabled,
+      defaults.isBrandVisualAnalysisEnabled,
     ),
     isEmailVerificationRequired: pickBoolean(
       row.isEmailVerificationRequired,

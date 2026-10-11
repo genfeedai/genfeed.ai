@@ -5736,6 +5736,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'imageCompressionQuality',
       'isAgentContextCompressionEnabled',
       'isAgentTokenStreamingEnabled',
+      'isBrandVisualAnalysisEnabled',
       'isDeleted',
       'isEmailVerificationRequired',
       'isMediaPerceptionEnabled',

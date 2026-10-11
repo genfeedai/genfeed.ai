@@ -5,6 +5,7 @@ import { BrandValidationModule } from '@api/services/brand-validation/brand-vali
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
+import type { BrandVisualAnalysisService } from '@api/services/brand-validation/brand-visual-analysis.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import {
   hashBrandArtifactValidationReportV1,
@@ -480,6 +481,46 @@ describe('brand validation receipt completion adapter', () => {
       expect.objectContaining({ expectedVersion: 's3:v:1' }),
     ]);
     expect(f.rows[0].projection).toEqual(result.receipt);
+  });
+
+  it('T3b: persists a media receipt with OCR proof when an analysis is configured, still needs_review', async () => {
+    const f = fixture();
+    await bindImage(f);
+    const analysis = {
+      extractText: vi.fn(async () => ({
+        provider: { id: 'replicate', model: 'acme/ocr', version: 'v1' },
+        status: 'read' as const,
+        texts: ['Example Co'],
+      })),
+    };
+    const adapter = new BrandValidationReceiptService(
+      f.material,
+      f.receipts,
+      f.validator,
+      analysis as unknown as BrandVisualAnalysisService,
+    );
+    const result = await adapter.validateReceipt(actor, 'receipt-a');
+    expect(analysis.extractText).toHaveBeenCalledTimes(1);
+    expect(result.receipt).toMatchObject({
+      state: 'needs_review',
+      compliance: 'unverified',
+    });
+    expect(
+      result.receipt.validation?.checks.find(
+        (check) => check.ruleId === 'mandatory-a',
+      ),
+    ).toMatchObject({
+      result: 'pass',
+      proof: {
+        kind: 'ocr',
+        artifactHash: result.receipt.artifact?.contentHash,
+      },
+    });
+    expect(
+      result.receipt.validation?.checks.find(
+        (check) => check.ruleId === 'avoid-a',
+      ),
+    ).toMatchObject({ reasonCode: 'ocr_absence_unproven', result: 'unknown' });
   });
 
   it('T4: completes raw receipts without calling the validator', async () => {

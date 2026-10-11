@@ -7,11 +7,14 @@ import {
   assertBrandValidationMetadata,
   copyBrandValidationMaterial,
 } from '@api/services/brand-validation/brand-validation-material.util';
+import { proveBrandLiteralChecksFromOcr } from '@api/services/brand-validation/brand-validation-ocr.util';
 import { proveBrandPaletteChecks } from '@api/services/brand-validation/brand-validation-palette.util';
 import {
   assertBrandValidationRuleDomain,
   buildBrandValidationChecks,
 } from '@api/services/brand-validation/brand-validation-rules.util';
+import { BrandArtifactVisual } from '@api/services/brand-validation/brand-validation-visual.util';
+import type { BrandVisualAnalysis } from '@api/services/brand-validation/brand-visual-analysis.types';
 import {
   hashBrandedGenerationArtifactManifestV1,
   hashBrandedGenerationTextV1,
@@ -29,6 +32,11 @@ import type {
   BrandCapabilityPreflightResultV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { BadRequestException } from '@nestjs/common';
+
+/** What a caller may add to one validation. Absent means no provider-backed reading. */
+export interface BrandValidationOptions {
+  visualAnalysis?: BrandVisualAnalysis;
+}
 
 const factualMessage =
   'Complete factual coverage is unavailable; review the actual output against approved sources.';
@@ -166,6 +174,7 @@ export class BrandValidationService {
 
   async validateBrandArtifact(
     input: BrandArtifactValidationInputV1,
+    options: BrandValidationOptions = {},
   ): Promise<BrandArtifactValidationReportV1> {
     let snapshot: BrandArtifactValidationInputV1['snapshot'];
     let artifact: BrandArtifactValidationInputV1['artifact'];
@@ -257,16 +266,21 @@ export class BrandValidationService {
         throw new BadRequestException('brand_validation_reference_mismatch');
       referenceIds.add(reference.assetReferenceId);
     }
-    const checks = await proveBrandPaletteChecks(
-      { snapshot, artifact, material },
-      buildBrandValidationChecks(
-        snapshot,
-        artifact.mediaKind,
-        text,
-        artifact.mediaKind === 'text' &&
-          text !== null &&
-          artifact.parts.length === 0,
-      ),
+    const validated = { snapshot, artifact, material };
+    const visual = new BrandArtifactVisual(validated);
+    const textChecks = buildBrandValidationChecks(
+      snapshot,
+      artifact.mediaKind,
+      text,
+      artifact.mediaKind === 'text' &&
+        text !== null &&
+        artifact.parts.length === 0,
+    );
+    const checks = await proveBrandLiteralChecksFromOcr(
+      validated,
+      await proveBrandPaletteChecks(validated, textChecks, visual),
+      visual,
+      options.visualAnalysis,
     );
     const diagnostics: BrandArtifactValidationReportV1['diagnostics'] = [
       {

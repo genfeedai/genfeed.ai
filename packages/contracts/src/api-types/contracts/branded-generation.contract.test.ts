@@ -911,6 +911,58 @@ describe('blocked identity and canonical rule origin', () => {
     v.validation.checks[1].category = 'fact';
     expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
   });
+  it('accepts an OCR proof only on a literal rule check', () => {
+    const base = {
+      ruleId: 'name',
+      severity: 'hard',
+      evidenceIds: ['evidence'],
+      method: 'deterministic_render',
+      result: 'pass',
+    } as const;
+    const proof = {
+      kind: 'ocr' as const,
+      algorithm: 'ocr-literal-v1' as const,
+      artifactHash: hash,
+      partId: 'part',
+      partVersion: 'v1',
+      partHash: hash,
+      mediaKind: 'image' as const,
+      decoder: 'sharp/libvips-8.18.7',
+      provider: { id: 'replicate', model: 'acme/ocr', version: 'abc' },
+      sampledFrames: 1,
+      frameTextHashes: [hash],
+      matchedFrames: [0],
+    };
+    for (const category of ['mandatory_rule', 'avoid_rule'] as const)
+      expect(
+        brandArtifactValidationCheckV1Schema.safeParse({
+          ...base,
+          category,
+          proof,
+        }).success,
+      ).toBe(true);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        category: 'palette',
+        proof,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        category: 'mandatory_rule',
+        proof: { ...proof, frameTextHashes: [] },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationCheckV1Schema.safeParse({
+        ...base,
+        category: 'mandatory_rule',
+        proof: { ...proof, matchedFrames: [16] },
+      }).success,
+    ).toBe(false);
+  });
   it('accepts a proof only on a deterministic pass or fail', () => {
     const base = {
       ruleId: 'palette',

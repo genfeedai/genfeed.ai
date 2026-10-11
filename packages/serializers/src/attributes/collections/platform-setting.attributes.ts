@@ -55,6 +55,7 @@ export const platformSettingAttributes = createEntityAttributes([
   'untrustedContentMinConfidence',
   'isAgentContextCompressionEnabled',
   'isAgentTokenStreamingEnabled',
+  'isBrandVisualAnalysisEnabled',
   'systemEventsEnabledAt',
   'isEmailVerificationRequired',
   'isEmailDeliveryConfigured',

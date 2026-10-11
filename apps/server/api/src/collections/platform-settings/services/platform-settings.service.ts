@@ -92,6 +92,7 @@ const PATCHABLE_FEATURE_KEYS = [
   'agentAutoRoutingDecisionMode',
   'isAgentContextCompressionEnabled',
   'isAgentTokenStreamingEnabled',
+  'isBrandVisualAnalysisEnabled',
   'isEmailVerificationRequired',
   'isMediaPerceptionEnabled',
   'mediaGateVisionMode',

@@ -1,4 +1,5 @@
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
+import { BrandVisualAnalysisService } from '@api/services/brand-validation/brand-visual-analysis.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import { hashBrandArtifactValidationReportV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -7,7 +8,7 @@ import type {
   BrandedGenerationMutationResultV1,
 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
 import type { BrandArtifactValidationReportV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class BrandValidationReceiptService {
@@ -15,6 +16,7 @@ export class BrandValidationReceiptService {
     private readonly material: BrandedGenerationArtifactMaterialService,
     private readonly receipts: BrandedGenerationReceiptsService,
     private readonly validator: BrandValidationService,
+    @Optional() private readonly visualAnalysis?: BrandVisualAnalysisService,
   ) {}
 
   async validateReceipt(
@@ -26,11 +28,14 @@ export class BrandValidationReceiptService {
     if (receipt.mode !== 'raw') {
       if (!receipt.artifact || !receipt.snapshot)
         throw new ConflictException('receipt_state_conflict');
-      report = await this.validator.validateBrandArtifact({
-        snapshot: receipt.snapshot,
-        artifact: receipt.artifact,
-        material,
-      });
+      report = await this.validator.validateBrandArtifact(
+        {
+          snapshot: receipt.snapshot,
+          artifact: receipt.artifact,
+          material,
+        },
+        { visualAnalysis: this.visualAnalysis },
+      );
     }
     const reportHash =
       report === null ? null : hashBrandArtifactValidationReportV1(report);

@@ -4839,6 +4839,8 @@
         "heading": "Perception",
         "perceptionLabel": "Media perception",
         "perceptionHelp": "Workers extract frames, on-screen text, transcripts and a scene description from new media. Off stops the sweep from queueing assets.",
+        "brandVisualAnalysisLabel": "Brand visual analysis",
+        "brandVisualAnalysisHelp": "Reads on-screen text and logo or product placement in branded images and video with a paid vision model. Off keeps those brand checks unknown and calls no provider.",
         "frameCountLabel": "Frames per video",
         "lookbackLabel": "Lookback (hours)",
         "visionModelLabel": "Scene model",

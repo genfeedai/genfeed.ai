@@ -509,6 +509,11 @@ export class UpdatePlatformSettingDto {
   @SwitchProperty('Real token-by-token agent streaming.')
   readonly isAgentTokenStreamingEnabled?: boolean;
 
+  @SwitchProperty(
+    'Provider-backed OCR and placement checks on brand artifacts (#6727). Off keeps them unknown and spends nothing.',
+  )
+  readonly isBrandVisualAnalysisEnabled?: boolean;
+
   @ApiProperty({
     description:
       'ISO timestamp from which signup and billing system events are recorded. `null` disables recording.',

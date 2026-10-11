@@ -95,6 +95,11 @@ export interface IPlatformFeatureSettings {
   /** Real token-by-token agent streaming instead of simulated word splits. */
   isAgentTokenStreamingEnabled: boolean;
   /**
+   * Provider-backed reading of brand artifacts (OCR, logo and product placement, #6727).
+   * Off by default: the checks stay `unknown` and no provider is called or paid.
+   */
+  isBrandVisualAnalysisEnabled: boolean;
+  /**
    * ISO timestamp from which signup and billing system events are recorded;
    * `null` disables recording. Events that occurred earlier are never
    * recorded, so enabling never replays historical signups.

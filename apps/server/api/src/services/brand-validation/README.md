@@ -75,6 +75,42 @@ receipt; a soft one does not. The proof says the color is present, not where it 
 placed or in what usage; that stays unproven. The factual coverage check still keeps
 every media receipt at `needs_review`.
 
+## OCR literal checks (images and video, behind a switch)
+
+Mandatory and avoid literals of an image or video are read from the final pixels by
+a provider-backed vision model (a Florence-2 class model on Replicate), never from
+the generation prompt. The Admin platform setting `isBrandVisualAnalysisEnabled` is
+**off by default**; while it is off no provider is called, nothing is paid, and the
+checks are `unknown` (`visual_analysis_disabled`). The model is the pinned
+`owner/name:version` in `BRAND_VISION_REPLICATE_MODEL` (unset keeps the analysis
+unavailable) and its GPU price per second is `BRAND_VISION_USD_PER_SECOND`.
+
+`validateBrandArtifact(input, { visualAnalysis })` takes the analysis port from its
+caller; `BrandValidationReceiptService` passes `BrandVisualAnalysisService`, and the
+plain validator stays free of provider, settings and billing dependencies. The model
+receives PNG frames of the one final visual (the whole still, or four sampled video
+frames) no wider than 1280 px, attributed to the snapshot's organization and brand.
+Each prediction is recorded in the media vendor-cost ledger
+(`brand-validation-ocr`), priced from the runtime Replicate reports, and a frame
+already read by this process is not paid for again.
+
+Matching is the text path's exact, case-sensitive NFC/LF comparison, per frame (a
+literal never joins across frames). A reader can miss text but not invent a literal,
+so only presence is evidence:
+
+| Rule | Read in a frame | Not read |
+| --- | --- | --- |
+| mandatory literal | `pass` | `unknown` `ocr_literal_not_found` |
+| avoid literal | `fail` `forbidden_literal_present` | `unknown` `ocr_absence_unproven` |
+
+A pass or fail is `deterministic_render` with an `ocr` proof: the artifact and part
+hashes, the model identity and version, the frames, the hash of the text each frame
+yielded (not the text) and the matching frames. Disabled, unavailable, an answer
+with the wrong number of frames, an undecodable artifact, a composite (an `overlay`
+part) or several visuals all leave the checks `unknown`. The complete-segmentation
+matcher `matchBrandLiteralBlocks` is not used here: it proves factual coverage of
+all visible text, which a reader that can miss text cannot establish.
+
 Failures are `BadRequestException` with exactly one of:
 
 - `brand_validation_invalid_input`: malformed metadata/material, limits or stale identities.
@@ -93,7 +129,7 @@ The authorized caller must acquire scoped nondeleted assets, snapshot and artifa
 versions, verify stored hashes, retain approval authority, and atomically persist
 against unchanged identities using CAS and durable scoped idempotency. This leaf
 cannot establish tenant authority from mathematically consistent self-authored
-metadata. It performs no networking, provider calls, retries, billing or durable storage; a video is written to a private temporary file for `ffmpeg` and removed.
+metadata. It performs no networking, retries, billing or durable storage, and calls a provider only through the optional analysis port below; a video is written to a private temporary file for `ffmpeg` and removed.
 
 Complete feature delivery still requires trusted qualified render/font/region
 proof, approved complete factual claim and asset-text authority, authenticated

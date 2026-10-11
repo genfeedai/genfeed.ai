@@ -5,11 +5,8 @@ import {
   formatBrandHexColor,
   parseBrandHexColor,
 } from '@api/services/brand-validation/brand-validation-color.util';
-import {
-  type BrandDecodedVisual,
-  decodeBrandImage,
-  sampleBrandVideoFrames,
-} from '@api/services/brand-validation/brand-validation-pixels.util';
+import type { BrandDecodedVisual } from '@api/services/brand-validation/brand-validation-pixels.util';
+import type { BrandArtifactVisual } from '@api/services/brand-validation/brand-validation-visual.util';
 import type { BrandPaletteProofV1 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandArtifactValidationCheckV1,
@@ -24,7 +21,6 @@ export const BRAND_PALETTE_MIN_COVERAGE = 0.01;
 export const BRAND_PALETTE_MIN_PIXELS = 1024;
 const ALPHA_THRESHOLD = 128;
 const SWATCH_COUNT = 5;
-const VISUAL_ROLES = ['primary', 'image', 'video'];
 
 export interface BrandPaletteMeasurement {
   sampledFrames: number;
@@ -122,39 +118,15 @@ type PaletteOutcome =
     };
 
 async function measureVisual(
-  input: BrandArtifactValidationInputV1,
+  visual: BrandArtifactVisual,
 ): Promise<PaletteOutcome> {
-  const { artifact, material } = input;
-  const visuals = artifact.parts.filter((part) =>
-    VISUAL_ROLES.includes(part.role),
-  );
-  if (visuals.length !== 1)
-    return { kind: 'unknown', reasonCode: 'visual_part_unavailable' };
-  // A layer placed over the base changes the final pixels; the base alone proves nothing.
-  if (artifact.parts.some((part) => part.role === 'overlay'))
-    return { kind: 'unknown', reasonCode: 'visual_composite_unproven' };
-  const descriptor = visuals[0];
-  const bytes = material.parts.find(
-    (part) =>
-      part.partId === descriptor.id && part.partVersion === descriptor.version,
-  )?.bytes;
-  if (!bytes) return { kind: 'unknown', reasonCode: 'visual_part_unavailable' };
-  const decoded =
-    artifact.mediaKind === 'video'
-      ? await sampleBrandVideoFrames(bytes)
-      : await decodeBrandImage(bytes);
+  const { selection } = visual;
+  if (selection.kind === 'unknown') return selection;
+  const decoded = await visual.pixels();
   if (!decoded) return { kind: 'unknown', reasonCode: 'artifact_undecodable' };
   const measurement = measureBrandPalette(decoded);
   if (!measurement) return { kind: 'unknown', reasonCode: 'visual_too_small' };
-  return {
-    kind: 'measured',
-    measurement,
-    part: {
-      hash: descriptor.contentHash,
-      id: descriptor.id,
-      version: descriptor.version,
-    },
-  };
+  return { kind: 'measured', measurement, part: selection.part };
 }
 
 function unknownCheck(
@@ -176,6 +148,7 @@ function unknownCheck(
 export async function proveBrandPaletteChecks(
   input: BrandArtifactValidationInputV1,
   checks: readonly BrandArtifactValidationCheckV1[],
+  visual: BrandArtifactVisual,
 ): Promise<BrandArtifactValidationCheckV1[]> {
   const isProvable = (check: BrandArtifactValidationCheckV1) =>
     check.category === 'palette' && check.result === 'unsupported';
@@ -184,7 +157,7 @@ export async function proveBrandPaletteChecks(
     !checks.some((check) => isProvable(check))
   )
     return [...checks];
-  const outcome = await measureVisual(input);
+  const outcome = await measureVisual(visual);
   return checks.map((check) => {
     if (!isProvable(check)) return check;
     if (outcome.kind === 'unknown')

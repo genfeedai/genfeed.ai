@@ -1879,6 +1879,7 @@ model PlatformSetting {
   untrustedContentMinConfidence    Float     @default(0.95)
   isAgentContextCompressionEnabled Boolean   @default(true)
   isAgentTokenStreamingEnabled     Boolean   @default(false)
+  isBrandVisualAnalysisEnabled     Boolean   @default(false)
   // Signup and billing system-event recording starts here; null = disabled.
   systemEventsEnabledAt            DateTime?
   isEmailVerificationRequired      Boolean   @default(false)

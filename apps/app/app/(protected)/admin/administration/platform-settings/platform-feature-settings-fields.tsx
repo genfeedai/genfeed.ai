@@ -339,6 +339,16 @@ export default function PlatformFeatureSettingsFields({
               update('isMediaPerceptionEnabled', isChecked)
             }
           />
+          <Switch
+            aria-label={translate('media.brandVisualAnalysisLabel')}
+            label={translate('media.brandVisualAnalysisLabel')}
+            description={translate('media.brandVisualAnalysisHelp')}
+            isChecked={settings.isBrandVisualAnalysisEnabled}
+            isDisabled={isDisabled}
+            onCheckedChange={(isChecked) =>
+              update('isBrandVisualAnalysisEnabled', isChecked)
+            }
+          />
           <PlatformNumberSettingField
             id="platform-media-perception-frame-count"
             label={translate('media.frameCountLabel')}

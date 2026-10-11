@@ -54,9 +54,53 @@ export const brandPaletteProofV1Schema = z.strictObject({
     .max(BRAND_PALETTE_PROOF_LIMITS.swatches),
 });
 
+export const BRAND_OCR_PROOF_LIMITS = {
+  frames: 16,
+} as const;
+
+/**
+ * Text read from the final pixels by a provider-backed OCR model, matched
+ * against one mandatory or avoid literal. The evidence is the hash of the text
+ * each frame yielded, not the text: an auditor re-runs the model on the bound
+ * part and compares hashes.
+ */
+export const brandOcrProofV1Schema = z.strictObject({
+  kind: z.literal('ocr'),
+  /** Names the matching so a later change cannot reuse this proof. */
+  algorithm: z.literal('ocr-literal-v1'),
+  artifactHash: hash,
+  partId: id,
+  partVersion: id,
+  partHash: hash,
+  mediaKind: z.enum(['image', 'video']),
+  /** How the frames given to the model were produced, e.g. `sharp/libvips-8.18.7`. */
+  decoder: label,
+  /** The OCR model and its pinned version. */
+  provider: z.strictObject({
+    id: label,
+    model: label,
+    version: label,
+  }),
+  sampledFrames: z.number().int().min(1).max(BRAND_OCR_PROOF_LIMITS.frames),
+  /** sha256 of the NFC, LF-normalized text read from each analyzed frame, in order. */
+  frameTextHashes: z.array(hash).min(1).max(BRAND_OCR_PROOF_LIMITS.frames),
+  /** Frame indexes whose text contains the literal. */
+  matchedFrames: z
+    .array(
+      z
+        .number()
+        .int()
+        .min(0)
+        .max(BRAND_OCR_PROOF_LIMITS.frames - 1),
+    )
+    .max(BRAND_OCR_PROOF_LIMITS.frames),
+});
+
 export const brandArtifactProofV1Schema = z.discriminatedUnion('kind', [
   brandPaletteProofV1Schema,
+  brandOcrProofV1Schema,
 ]);
 
+export type BrandOcrProofV1 = z.infer<typeof brandOcrProofV1Schema>;
 export type BrandPaletteProofV1 = z.infer<typeof brandPaletteProofV1Schema>;
 export type BrandArtifactProofV1 = z.infer<typeof brandArtifactProofV1Schema>;

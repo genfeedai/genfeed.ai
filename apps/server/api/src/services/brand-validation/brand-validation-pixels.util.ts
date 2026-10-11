@@ -8,8 +8,10 @@ import sharp from 'sharp';
 
 const execFileAsync = promisify(execFile);
 
-/** Longest edge analyzed; pixels beyond this add cost, not signal. */
+/** Longest edge of the pixels compared with a palette; more adds cost, not signal. */
 export const BRAND_PIXEL_MAX_EDGE = 256;
+/** Longest edge of a frame handed to a vision model; text must stay legible. */
+export const BRAND_ANALYSIS_MAX_EDGE = 1280;
 /** Frames sampled evenly across a video. */
 export const BRAND_VIDEO_SAMPLE_FRAMES = 4;
 const MAX_INPUT_PIXELS = 50_000_000;
@@ -29,6 +31,20 @@ export interface BrandDecodedVisual {
   decoder: string;
   frames: readonly BrandPixelFrame[];
 }
+export interface BrandEncodedVisual {
+  decoder: string;
+  /** PNG frames, longest edge at most `BRAND_ANALYSIS_MAX_EDGE`. */
+  frames: readonly Uint8Array[];
+}
+
+const decoderLabel = () => `sharp/libvips-${sharp.versions.vips}`;
+
+function openRaster(bytes: Uint8Array) {
+  return sharp(Buffer.from(bytes), {
+    failOn: 'error',
+    limitInputPixels: MAX_INPUT_PIXELS,
+  });
+}
 
 /**
  * Decodes a still image to bounded sRGB RGBA. Returns null for anything the
@@ -39,10 +55,7 @@ export async function decodeBrandImage(
   bytes: Uint8Array,
 ): Promise<BrandDecodedVisual | null> {
   try {
-    const source = sharp(Buffer.from(bytes), {
-      failOn: 'error',
-      limitInputPixels: MAX_INPUT_PIXELS,
-    });
+    const source = openRaster(bytes);
     const metadata = await source.metadata();
     if (!metadata.format || !IMAGE_FORMATS.has(metadata.format)) return null;
     const { data, info } = await source
@@ -59,7 +72,7 @@ export async function decodeBrandImage(
       .toBuffer({ resolveWithObject: true });
     if (info.channels !== 4 || info.width < 1 || info.height < 1) return null;
     return {
-      decoder: `sharp/libvips-${sharp.versions.vips}`,
+      decoder: decoderLabel(),
       frames: [
         {
           height: info.height,
@@ -68,6 +81,30 @@ export async function decodeBrandImage(
         },
       ],
     };
+  } catch {
+    return null;
+  }
+}
+
+/** Re-encodes a still as a PNG a vision model can read, or null when it is not a raster image. */
+export async function encodeBrandAnalysisImage(
+  bytes: Uint8Array,
+): Promise<BrandEncodedVisual | null> {
+  try {
+    const source = openRaster(bytes);
+    const metadata = await source.metadata();
+    if (!metadata.format || !IMAGE_FORMATS.has(metadata.format)) return null;
+    const png = await source
+      .resize({
+        fit: 'inside',
+        height: BRAND_ANALYSIS_MAX_EDGE,
+        width: BRAND_ANALYSIS_MAX_EDGE,
+        withoutEnlargement: true,
+      })
+      .toColourspace('srgb')
+      .png()
+      .toBuffer();
+    return { decoder: decoderLabel(), frames: [new Uint8Array(png)] };
   } catch {
     return null;
   }
@@ -132,13 +169,14 @@ async function readDurationSeconds(
 }
 
 /**
- * Decodes evenly spaced frames of a video with the platform's ffmpeg. All
- * frames must decode; a partial sample proves nothing, so any gap (no binary,
- * unknown duration, unreadable container, timeout) returns null.
+ * Samples evenly spaced frames of a video with the platform's ffmpeg, as PNGs
+ * no wider than `BRAND_ANALYSIS_MAX_EDGE`. All frames must decode; a partial
+ * sample proves nothing, so any gap (no binary, unknown duration, unreadable
+ * container, timeout) returns null.
  */
-export async function sampleBrandVideoFrames(
+export async function sampleBrandVideoPngFrames(
   bytes: Uint8Array,
-): Promise<BrandDecodedVisual | null> {
+): Promise<BrandEncodedVisual | null> {
   const binary = await resolveFfmpeg();
   if (!binary) return null;
   let directory: string | null = null;
@@ -148,8 +186,7 @@ export async function sampleBrandVideoFrames(
     await writeFile(file, bytes);
     const duration = await readDurationSeconds(binary, file);
     if (duration === null) return null;
-    const frames: BrandPixelFrame[] = [];
-    let decoder = '';
+    const frames: Uint8Array[] = [];
     for (let index = 0; index < BRAND_VIDEO_SAMPLE_FRAMES; index++) {
       const at = (duration * (index + 0.5)) / BRAND_VIDEO_SAMPLE_FRAMES;
       const { stdout } = await execFileAsync(
@@ -170,6 +207,8 @@ export async function sampleBrandVideoFrames(
           '-frames:v',
           '1',
           '-an',
+          '-vf',
+          `scale='min(${BRAND_ANALYSIS_MAX_EDGE},iw)':-2`,
           '-f',
           'image2pipe',
           '-c:v',
@@ -182,13 +221,10 @@ export async function sampleBrandVideoFrames(
           timeout: FFMPEG_TIMEOUT_MS,
         },
       );
-      const decoded = await decodeBrandImage(stdout);
-      const frame = decoded?.frames[0];
-      if (!decoded || !frame) return null;
-      decoder = decoded.decoder;
-      frames.push(frame);
+      if (stdout.length === 0) return null;
+      frames.push(new Uint8Array(stdout));
     }
-    return { decoder: `ffmpeg+${decoder}`, frames };
+    return { decoder: `ffmpeg+${decoderLabel()}`, frames };
   } catch {
     return null;
   } finally {

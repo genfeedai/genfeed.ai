@@ -35,8 +35,10 @@ export function assertBrandValidationRuleDomain(
       if (rule.id.startsWith('system:'))
         throw new TypeError('brand_validation_invalid_input');
 }
-const normalize = (text: string) =>
+/** CRLF to LF, then NFC: the only normalization literal matching applies. */
+export const normalizeBrandLiteralText = (text: string) =>
   text.replaceAll('\r\n', '\n').normalize('NFC');
+const normalize = normalizeBrandLiteralText;
 export function buildBrandValidationChecks(
   snapshot: BrandIdentitySnapshotV1,
   mediaKind: BrandGenerationArtifactV1['mediaKind'],
