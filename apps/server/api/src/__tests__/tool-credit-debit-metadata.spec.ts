@@ -21,6 +21,7 @@ const ALLOWED_FILES = new Set([
   // Server-owned breakout response generation: native admission, not an agent tool; specs verify the hold and settlement.
   'breakout-output-quality.service.ts',
   'breakout-text-output-generation.service.ts',
+  'breakout-visual-quality.service.ts',
   'credits.utils.service.ts',
   'evaluations.service.ts',
   'expert-first-system.service.ts',
