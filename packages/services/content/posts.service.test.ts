@@ -401,7 +401,7 @@ describe('PostsService', () => {
     });
   });
 
-  describe('turboRunScheduleTweets', () => {
+  describe('batchScheduleTweets', () => {
     it('should batch schedule tweets', async () => {
       mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
@@ -421,7 +421,7 @@ describe('PostsService', () => {
         ],
       };
 
-      const result = await service.turboRunScheduleTweets(data);
+      const result = await service.batchScheduleTweets(data);
 
       expect(mockInstance.patch).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/batch',
@@ -446,7 +446,7 @@ describe('PostsService', () => {
         ],
       };
 
-      await service.turboRunScheduleTweets(data);
+      await service.batchScheduleTweets(data);
 
       expect(mockInstance.patch).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/batch',

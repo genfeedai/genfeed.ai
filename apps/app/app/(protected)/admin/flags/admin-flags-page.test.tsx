@@ -175,11 +175,11 @@ describe('AdminFlagsPage (#5468)', () => {
     render(<AdminFlagsPage />);
 
     const turboIdeas = await screen.findByRole('switch', {
-      name: 'Batch ideas',
+      name: 'Turbo ideas',
     });
     expect(turboIdeas).toBeDisabled();
     expect(turboIdeas.getAttribute('aria-description')).toContain(
-      'Needs Batch. Off while Batch is off.',
+      'Needs Turbo. Off while Turbo is off.',
     );
     expect(screen.getByRole('switch', { name: 'Motion' })).toBeEnabled();
   });
@@ -210,7 +210,7 @@ describe('AdminFlagsPage (#5468)', () => {
     expect(motion.getAttribute('aria-description')).toContain(
       'Off while Studio is off.',
     );
-    expect(screen.getByRole('switch', { name: 'Batch ideas' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Turbo ideas' })).toBeDisabled();
     expect(screen.getByRole('switch', { name: 'Agent' })).toBeEnabled();
   });
 

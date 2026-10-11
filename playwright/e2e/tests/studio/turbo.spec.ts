@@ -116,17 +116,17 @@ test.describe('Persisted Turbo projects', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${base}/new`);
     await page
-      .getByRole('button', { name: 'Generate ideas', exact: true })
+      .getByRole('button', { name: 'From ideas', exact: true })
       .first()
       .click();
     await page
-      .getByRole('textbox', { name: 'Turbo name' })
+      .getByRole('textbox', { name: 'Project name' })
       .fill('Launch collection');
     await page
       .getByRole('button', { name: 'Create project', exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${base}/persisted-project`));
-    await expect(page.getByRole('textbox', { name: 'Turbo name' })).toHaveValue(
+    await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue(
       'Launch collection',
     );
     expect(state.getProject().name).toBe('Launch collection');
@@ -151,7 +151,7 @@ test.describe('Persisted Turbo projects', () => {
     );
     expect(overflow).toBe(false);
     await page.getByRole('link', { name: 'Open', exact: true }).first().click();
-    await expect(page.getByRole('textbox', { name: 'Turbo name' })).toHaveValue(
+    await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue(
       'Launch collection',
     );
   });
@@ -205,7 +205,7 @@ test.describe('Persisted Turbo projects', () => {
         page.getByRole('dialog', { name: 'Request failed', exact: true }),
       ).toHaveCount(0);
       await page
-        .getByRole('textbox', { name: 'Turbo name' })
+        .getByRole('textbox', { name: 'Project name' })
         .fill(`Saved after ${name}`);
       await expect
         .poll(() => state.getProject().name)
@@ -233,7 +233,7 @@ test.describe('Persisted Turbo projects', () => {
     );
     await page.goto(`${base}/new`);
     await page
-      .getByRole('button', { name: 'Saved workflow', exact: true })
+      .getByRole('button', { name: 'From a workflow', exact: true })
       .click();
     await expect(
       page.getByText('No saved workflows yet.', { exact: false }),
@@ -242,7 +242,7 @@ test.describe('Persisted Turbo projects', () => {
       page.getByRole('link', { name: 'Create a workflow' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Generate ideas', exact: true }).first(),
+      page.getByRole('button', { name: 'From ideas', exact: true }).first(),
     ).toBeEnabled();
   });
 });

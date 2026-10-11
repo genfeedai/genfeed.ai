@@ -942,7 +942,7 @@ describe('ReviewQueueContent', () => {
       await screen.findByRole('button', { name: 'Toggle item-1' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Toggle item-2' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Rewrite batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rewrite Turbo run' }));
 
     await waitFor(() =>
       expect(mocks.startRewrite).toHaveBeenCalledWith(['item-1', 'item-2']),
@@ -964,7 +964,7 @@ describe('ReviewQueueContent', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Toggle item-1' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Rewrite batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rewrite Turbo run' }));
 
     await waitFor(() => expect(mocks.startRewrite).toHaveBeenCalledOnce());
     expect(screen.getByText('Selected count: 1')).toBeInTheDocument();

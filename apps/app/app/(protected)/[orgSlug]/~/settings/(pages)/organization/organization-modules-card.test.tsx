@@ -110,7 +110,7 @@ describe('OrganizationModulesCard', () => {
     for (const name of [
       'Motion',
       'Clips',
-      'Batch',
+      'Turbo',
       'Editor',
       'Automation',
       'Messages',
@@ -141,8 +141,8 @@ describe('OrganizationModulesCard', () => {
       expect(toggle(name)).not.toBeChecked();
     }
     expect(screen.getAllByText('Not released')).toHaveLength(5);
-    expect(toggle('Batch')).toBeChecked();
-    expect(toggle('Batch')).toBeEnabled();
+    expect(toggle('Turbo')).toBeChecked();
+    expect(toggle('Turbo')).toBeEnabled();
     expect(
       screen.queryByRole('switch', { name: 'Release preview' }),
     ).not.toBeInTheDocument();
@@ -171,7 +171,7 @@ describe('OrganizationModulesCard', () => {
     for (const name of [
       'Motion',
       'Clips',
-      'Batch',
+      'Turbo',
       'Editor',
       'Messages',
       'Discovery',
@@ -248,7 +248,7 @@ describe('OrganizationModulesCard', () => {
     render(<OrganizationModulesCard />);
     fireEvent.click(toggle('Motion'));
     fireEvent.click(toggle('Motion'));
-    fireEvent.click(toggle('Batch'));
+    fireEvent.click(toggle('Turbo'));
     await waitFor(() => expect(mocks.patchSettings).toHaveBeenCalledTimes(1));
     for (const control of screen.getAllByRole('switch'))
       expect(control).toBeDisabled();

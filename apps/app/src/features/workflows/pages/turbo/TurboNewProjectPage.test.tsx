@@ -58,8 +58,8 @@ vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
 }));
 
 async function chooseIdeas() {
-  fireEvent.click(screen.getAllByRole('button', { name: 'Generate ideas' })[0]);
-  fireEvent.change(screen.getByRole('textbox', { name: 'Turbo name' }), {
+  fireEvent.click(screen.getAllByRole('button', { name: 'From ideas' })[0]);
+  fireEvent.change(screen.getByRole('textbox', { name: 'Project name' }), {
     target: { value: 'My draft' },
   });
 }
@@ -87,7 +87,7 @@ describe('TurboNewProjectPage', () => {
     render(<TurboNewProjectPage />);
 
     const fromIdeasButton = await screen.findByRole('button', {
-      name: 'Generate ideas',
+      name: 'From ideas',
     });
     expect(fromIdeasButton).toBeDisabled();
     expect(
@@ -100,7 +100,7 @@ describe('TurboNewProjectPage', () => {
     render(<TurboNewProjectPage />);
 
     const fromIdeasButtons = screen.getAllByRole('button', {
-      name: 'Generate ideas',
+      name: 'From ideas',
     });
     for (const button of fromIdeasButtons) expect(button).not.toBeDisabled();
     expect(
@@ -110,7 +110,7 @@ describe('TurboNewProjectPage', () => {
   it('waits for a brand before loading workflows', async () => {
     mocks.brandId = '';
     const { rerender } = render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
     expect(mocks.getService).not.toHaveBeenCalled();
     expect(
       screen.getByRole('button', { name: 'Create project' }),
@@ -126,7 +126,7 @@ describe('TurboNewProjectPage', () => {
   it('starts with ideas and does not load unrelated workflows', () => {
     render(<TurboNewProjectPage />);
     expect(
-      screen.getByRole('button', { name: 'Generate ideas' }),
+      screen.getByRole('button', { name: 'From ideas' }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(
       screen.getByText(
@@ -144,11 +144,11 @@ describe('TurboNewProjectPage', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: {},
     };
-    render(<BatchNewProjectPage />);
+    render(<TurboNewProjectPage />);
     expect(
-      screen.getByRole('button', { name: 'Saved workflow' }),
+      screen.getByRole('button', { name: 'From a workflow' }),
     ).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
     expect(mocks.list).not.toHaveBeenCalled();
     await chooseIdeas();
     fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
@@ -162,7 +162,7 @@ describe('TurboNewProjectPage', () => {
   });
   it('stops loading workflow choices after disabling Automation', async () => {
     const { rerender } = render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
     mocks.settings = {
       hasOrganizationBilling: true,
@@ -195,8 +195,8 @@ describe('TurboNewProjectPage', () => {
         }),
     );
     render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Generate ideas' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From ideas' }));
     await act(async () => {
       resolve?.({ list: mocks.list, create: mocks.create });
     });
@@ -212,9 +212,9 @@ describe('TurboNewProjectPage', () => {
         }),
     );
     render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: 'Generate ideas' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From ideas' }));
     await act(async () => {
       reject?.(new Error('Workflow unavailable'));
     });
@@ -229,7 +229,7 @@ describe('TurboNewProjectPage', () => {
       errors: [{ status: '403', detail: 'Workflow access denied' }],
     });
     render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Saved workflow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Workflow access denied',
     );
@@ -252,9 +252,9 @@ describe('TurboNewProjectPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Please subscribe to a plan.',
     );
-    expect(screen.queryByRole('textbox', { name: 'Turbo name' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Generate ideas' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Saved workflow' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'From ideas' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'From a workflow' })).toBeNull();
     expect(
       screen.getByRole('link', { name: 'Manage subscription' }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
@@ -279,7 +279,7 @@ describe('TurboNewProjectPage', () => {
       screen.queryByRole('link', { name: 'Manage subscription' }),
     ).not.toBeInTheDocument();
     expect(mocks.create).toHaveBeenCalledTimes(1);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Turbo name' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Project name' }), {
       target: { value: ' Corrected draft ' },
     });
     await waitFor(() =>
@@ -326,10 +326,10 @@ describe('Turbo workflow paid admission', () => {
       mocks.settings.hasPaidModuleSubscription = grant;
       render(<TurboNewProjectPage />);
       expect(
-        screen.getByRole('button', { name: 'Saved workflow' }),
+        screen.getByRole('button', { name: 'From a workflow' }),
       ).toBeDisabled();
       expect(
-        screen.getByRole('button', { name: 'Generate ideas' }),
+        screen.getByRole('button', { name: 'From ideas' }),
       ).not.toBeDisabled();
       expect(mocks.list).not.toHaveBeenCalled();
       if (grant === false)
