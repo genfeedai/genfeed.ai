@@ -5,6 +5,7 @@ import { BrandValidationModule } from '@api/services/brand-validation/brand-vali
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
+import { BrandVisualAnalysisModule } from '@api/services/brand-validation/brand-visual-analysis.module';
 import type { BrandVisualAnalysisService } from '@api/services/brand-validation/brand-visual-analysis.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import {
@@ -665,7 +666,11 @@ describe('brand validation receipt completion adapter', () => {
         MODULE_METADATA.IMPORTS,
         BrandValidationReceiptModule,
       ),
-    ).toEqual([BrandValidationModule, BrandedGenerationReceiptsModule]);
+    ).toEqual([
+      BrandValidationModule,
+      BrandVisualAnalysisModule,
+      BrandedGenerationReceiptsModule,
+    ]);
     expect(
       Reflect.getMetadata(
         MODULE_METADATA.PROVIDERS,

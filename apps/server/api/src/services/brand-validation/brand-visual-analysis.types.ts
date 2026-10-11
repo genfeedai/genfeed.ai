@@ -24,7 +24,8 @@ export interface BrandOcrRequest {
  */
 export type BrandOcrOutcome =
   | { status: 'read'; provider: BrandVisionModelIdentity; texts: string[] }
-  | { status: 'disabled' | 'unavailable' };
+  | { status: 'disabled' }
+  | { status: 'unavailable' };
 
 /** Provider-backed reading of branded visuals. Never decides a pass or fail itself. */
 export interface BrandVisualAnalysis {
