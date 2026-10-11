@@ -512,11 +512,11 @@ export async function verifyBaselineSources(repo) {
 export const AGENT_PRODUCTION_FILES = [
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.integration.spec.ts',
-    sha256: '12571f679240c51920554aa0cb8ee50c4f503784de1560b99eafeb6ce4e85fbd',
+    sha256: 'bceb9cdecfce6190617220c57dfecd3d350ed593d40958f6f2f769b258376f79',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: 'b55d9a7d1c21bf2cde8543d6ba19de9353f4356e3ff2b43adde5884b9bd1ac73',
+    sha256: '65a6e3a2c560a4245436a7a48bbec9c85f12619f197c8840d8e9266f58ba6d05',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn-cleanup.util.ts',
