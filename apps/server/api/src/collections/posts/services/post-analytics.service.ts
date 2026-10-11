@@ -133,18 +133,16 @@ export class PostAnalyticsService extends BaseService<
     );
     const exposures = mapBreakoutExposureMetrics(metrics, source.platform);
     // Evidence is brand-scoped: the actor must still reach this brand, not just the org.
-    await admitAnalyticsCollection(
-      authorization,
-      source.organizationId,
-      source.brandId,
-    );
+    const admit = () =>
+      admitAnalyticsCollection(
+        authorization,
+        source.organizationId,
+        source.brandId,
+      );
+    await admit();
     const result = await this.prisma.$transaction(
       async (tx) => {
-        await admitAnalyticsCollection(
-          authorization,
-          source.organizationId,
-          source.brandId,
-        );
+        await admit();
         return captureAndDetectPostExposureObservation(tx, {
           ...observation,
           exposures,
