@@ -48,6 +48,12 @@ vi.mock(
   }),
 );
 
+beforeEach(() => {
+  vi.mocked(assertBreakoutPublicationDispatch)
+    .mockReset()
+    .mockResolvedValue(undefined);
+});
+
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {
   credentialId: string;
 } = {
@@ -266,9 +272,6 @@ describe('ScheduledPostDeliveryService', () => {
   let service: ScheduledPostDeliveryService;
 
   beforeEach(() => {
-    vi.mocked(assertBreakoutPublicationDispatch)
-      .mockReset()
-      .mockResolvedValue(undefined);
     mocks = createDeliveryMocks();
     mocks.credentialsService.findOne.mockResolvedValue({
       id: 'cred-1',
