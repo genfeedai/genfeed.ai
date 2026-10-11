@@ -11,6 +11,7 @@ import { decorateBrandResponse } from '@api/collections/brands/controllers/brand
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import type { BrandRelocationSummary } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -266,23 +267,24 @@ export class BrandsController extends BaseCRUDController<
     }
 
     // A relocation spans the source and destination tenants; authorization
-    // (superadmin, or owner/admin of both orgs) is the service's
-    // assertCanRelocate.
+    // (superadmin, or owner/admin of both orgs; an API key also needs the admin
+    // scope) is the service's assertCanRelocate.
     const { brand: moved, summary } = await crossOrgUnsafe(
       async () =>
-        await this.brandsService.relocateToOrganization(id, updateDto, {
-          isSuperAdmin: getIsSuperAdmin(user, request),
-          userId: user.userId ?? user.id,
-        }),
+        await this.brandsService.relocateToOrganization(
+          id,
+          updateDto,
+          this.toRelocationActor(user, request),
+        ),
     );
 
-    await this.activityRecorder.record({
+    await this.recordRelocation({
       brandId: id,
-      key: ActivityKey.BRAND_RELOCATED,
-      organizationId: requestedOrgId,
-      source: ActivitySource.BRAND_RELOCATION,
+      brandOwnerId: existing.userId,
+      destinationOrganizationId: requestedOrgId,
+      sourceOrganizationId: existing.organizationId,
+      summary,
       userId: user.userId ?? user.id,
-      value: JSON.stringify(summary),
     });
 
     return {
@@ -293,6 +295,68 @@ export class BrandsController extends BaseCRUDController<
       ),
       meta: { ...summary },
     };
+  }
+
+  private toRelocationActor(user: User, request: Request) {
+    return {
+      isApiKey: user.isApiKey,
+      isSuperAdmin: getIsSuperAdmin(user, request),
+      scopes: user.scopes,
+      userId: user.userId ?? user.id,
+    };
+  }
+
+  /**
+   * The move is committed, so recording it can never fail the request. The
+   * destination organization's record carries the move; the source
+   * organization gets its own (without the brand, which no longer lives there)
+   * so its owner and the brand owner hear about it too.
+   */
+  private async recordRelocation(params: {
+    brandId: string;
+    brandOwnerId?: string | null;
+    destinationOrganizationId: string;
+    sourceOrganizationId?: string;
+    summary: BrandRelocationSummary;
+    userId: string;
+  }): Promise<void> {
+    const value = JSON.stringify(params.summary);
+    const data = {
+      destinationOrganizationId: params.destinationOrganizationId,
+      sourceOrganizationId: params.sourceOrganizationId ?? null,
+    };
+    try {
+      await this.activityRecorder.recordMany([
+        {
+          brandId: params.brandId,
+          data,
+          key: ActivityKey.BRAND_RELOCATED,
+          organizationId: params.destinationOrganizationId,
+          source: ActivitySource.BRAND_RELOCATION,
+          userId: params.brandOwnerId ?? params.userId,
+          value,
+        },
+        ...(params.sourceOrganizationId
+          ? [
+              {
+                brandId: null,
+                data: { ...data, brandId: params.brandId },
+                key: ActivityKey.BRAND_RELOCATED,
+                organizationId: params.sourceOrganizationId,
+                source: ActivitySource.BRAND_RELOCATION,
+                userId: params.brandOwnerId ?? params.userId,
+                value,
+              },
+            ]
+          : []),
+      ]);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Failed to record brand relocation activity',
+        error,
+        { brandId: params.brandId },
+      );
+    }
   }
 
   /**
@@ -316,10 +380,11 @@ export class BrandsController extends BaseCRUDController<
     // Counts resources across source and destination tenants; see patch().
     const preview = await crossOrgUnsafe(
       async () =>
-        await this.brandsService.previewRelocation(id, organizationId, {
-          isSuperAdmin: getIsSuperAdmin(user, request),
-          userId: user.userId ?? user.id,
-        }),
+        await this.brandsService.previewRelocation(
+          id,
+          organizationId,
+          this.toRelocationActor(user, request),
+        ),
     );
 
     return { data: preview };

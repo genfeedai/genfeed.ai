@@ -15,6 +15,35 @@ const GRANT_PERSONA_SELECT = {
   status: true,
 } as const;
 
+/** The owner check reads these; they never reach the receiving organization. */
+const OWNER_CHECK_PERSONA_SELECT = { organizationId: true } as const;
+
+interface OwnerCheckedGrantRow {
+  ownerOrganizationId: string;
+  persona: { organizationId: string };
+}
+
+/**
+ * A grant is only good while its character still belongs to the organization
+ * that issued it. When a character's brand moves to another organization its
+ * grants are revoked in the same transaction; this read check refuses any grant
+ * that still names the previous owner (an older row, a race), so the new owner's
+ * character is never shared on the previous owner's word. The owner's
+ * organization id is dropped from the rows handed back.
+ */
+function keepGrantsOfCurrentOwner<T extends OwnerCheckedGrantRow>(
+  rows: readonly T[],
+): Array<
+  Omit<T, 'persona'> & { persona: Omit<T['persona'], 'organizationId'> }
+> {
+  return rows
+    .filter((row) => row.ownerOrganizationId === row.persona.organizationId)
+    .map(({ persona: { organizationId: _owner, ...persona }, ...row }) => ({
+      ...row,
+      persona,
+    }));
+}
+
 /**
  * Grants read from the receiving side (#6037). Every query is keyed by the
  * caller's own organization on the grant table, and only an active grant
@@ -26,12 +55,12 @@ export class PersonaGrantReadService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Active grants whose character owns, or has outputs among, the assets. */
-  findReferenceGrants(params: {
+  async findReferenceGrants(params: {
     ingredientIds: readonly string[];
     organizationId: string;
   }) {
     const ids = [...params.ingredientIds];
-    return this.prisma.personaGrant.findMany({
+    const rows = await this.prisma.personaGrant.findMany({
       select: {
         availabilityMode: true,
         availableBrandIds: true,
@@ -41,6 +70,7 @@ export class PersonaGrantReadService {
             avatarIngredientId: true,
             id: true,
             ingredients: { select: { id: true }, where: { id: { in: ids } } },
+            ...OWNER_CHECK_PERSONA_SELECT,
           },
         },
       },
@@ -58,6 +88,7 @@ export class PersonaGrantReadService {
         revokedAt: null,
       },
     });
+    return keepGrantsOfCurrentOwner(rows);
   }
 
   /**
@@ -84,7 +115,14 @@ export class PersonaGrantReadService {
       select: {
         availabilityMode: true,
         availableBrandIds: true,
-        persona: { select: { avatarIngredientId: true, handle: true } },
+        ownerOrganizationId: true,
+        persona: {
+          select: {
+            avatarIngredientId: true,
+            handle: true,
+            ...OWNER_CHECK_PERSONA_SELECT,
+          },
+        },
       },
       where: {
         persona: {
@@ -98,7 +136,9 @@ export class PersonaGrantReadService {
         revokedAt: null,
       },
     });
-    return rows.filter((row) => this.isUsableBy(row, params.brandId));
+    return keepGrantsOfCurrentOwner(rows).filter((row) =>
+      this.isUsableBy(row, params.brandId),
+    );
   }
 
   /** Granted characters usable by the brand, for pickers and mentions. */
@@ -117,7 +157,10 @@ export class PersonaGrantReadService {
         availableBrandIds: true,
         id: true,
         ownerOrganization: { select: { label: true } },
-        persona: { select: GRANT_PERSONA_SELECT },
+        ownerOrganizationId: true,
+        persona: {
+          select: { ...GRANT_PERSONA_SELECT, ...OWNER_CHECK_PERSONA_SELECT },
+        },
       },
       where: {
         persona: {
@@ -149,7 +192,9 @@ export class PersonaGrantReadService {
       },
     });
     const brandId = params.brandId;
-    return rows.filter((row) => this.isUsableBy(row, brandId));
+    return keepGrantsOfCurrentOwner(rows).filter((row) =>
+      this.isUsableBy(row, brandId),
+    );
   }
 
   /** One granted character if the brand can use it, else null. */
@@ -162,6 +207,7 @@ export class PersonaGrantReadService {
       select: {
         availabilityMode: true,
         availableBrandIds: true,
+        ownerOrganizationId: true,
         persona: true,
       },
       where: {
@@ -170,7 +216,10 @@ export class PersonaGrantReadService {
         revokedAt: null,
       },
     });
-    return row && this.isUsableBy(row, params.brandId) ? row.persona : null;
+    if (!row || row.ownerOrganizationId !== row.persona.organizationId) {
+      return null;
+    }
+    return this.isUsableBy(row, params.brandId) ? row.persona : null;
   }
 
   private isUsableBy(

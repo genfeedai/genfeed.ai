@@ -710,8 +710,8 @@ export class BrandsService extends BaseService<Brand> {
    * (which maps the JSON:API document to an entity and drops the
    * top-level `meta`), this reads the raw response so callers get both
    * the updated brand AND the relocation summary
-   * (`workflowsMoved`, `workflowsClonedActive`, `workflowsClonedPaused`,
-   * `membersSevered`, `schedulingPending`).
+   * (`workflowsMoved`, `membersSevered`, `schedulesHeld`, `schedulingPending`,
+   * `personaGrantsRevoked`).
    */
   public async relocateBrand(
     id: string,

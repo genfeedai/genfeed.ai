@@ -502,6 +502,7 @@
       "moveSelected": "Move {count} selected",
       "onlyBrand": "An organization keeps at least one brand, so its last brand can't be moved.",
       "rowAction": "Move to organization",
+      "schedulesWillPause": "{count, plural, one {# schedule will pause until someone saves it again.} other {# schedules will pause until someone saves them again.}}",
       "setupFailed": "Couldn't start the move. Please try again.",
       "status": {
         "blocked": "Blocked",

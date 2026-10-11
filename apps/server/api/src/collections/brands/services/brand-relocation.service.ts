@@ -11,6 +11,12 @@ import {
   patchBrandWithLearningFenced,
 } from '@api/collections/brands/services/brand-learning-mutation.util';
 import {
+  assertNoOrgOnlyChildOrphans,
+  type CascadeDelegate,
+  resolveSecondOrderFilters,
+  type SecondOrderParentIds,
+} from '@api/collections/brands/utils/brand-relocation-cascade.util';
+import {
   assertNoCrunGenerationHistory,
   assertNoKnowledgeHistory,
   assertNoLearningHistory,
@@ -19,16 +25,25 @@ import {
   assertNoBrandedGenerationReceiptHistory as assertNoReceiptHistory,
   assertNoSecurityAuditHistory,
 } from '@api/collections/brands/utils/brand-relocation-guards.util';
+import { assertNoInFlightBrandWork } from '@api/collections/brands/utils/brand-relocation-in-flight.util';
+import {
+  type BrandRelocationHeldSchedule,
+  findActiveBrandSchedules,
+  holdBrandSchedules,
+} from '@api/collections/brands/utils/brand-relocation-schedules.util';
 import { invalidateLearningDependencySource } from '@api/collections/content-learning/services/learning-dependency.service';
+import { revokePersonaGrantsForRelocation } from '@api/collections/personas/utils/persona-grant-revocation.util';
+import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MemberRole } from '@genfeedai/contracts';
+import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
 import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -38,24 +53,10 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Optional,
+  ServiceUnavailableException,
 } from '@nestjs/common';
-
-/**
- * Minimal structural view of a Prisma model delegate, used to drive the brand→org
- * relocation cascade generically over the config in `brand-org-cascade.constants`.
- * The concrete `Prisma.TransactionClient` delegates satisfy this shape.
- */
-interface CascadeDelegate {
-  updateMany(args: {
-    where: Record<string, unknown>;
-    data: Record<string, unknown>;
-  }): Promise<{ count: number }>;
-  findMany(args: {
-    where: Record<string, unknown>;
-    select: Record<string, boolean>;
-  }): Promise<{ id: string }[]>;
-  count(args: { where: Record<string, unknown> }): Promise<number>;
-}
+import { ModuleRef } from '@nestjs/core';
 
 // Prisma error codes used by the relocation transaction's retry/conflict handling.
 // P2034 — serialization failure (SQLSTATE 40001) under Serializable isolation: the
@@ -63,9 +64,19 @@ interface CascadeDelegate {
 //   Retried up to MAX_RELOCATION_SERIALIZATION_RETRIES times (mirrors
 //   default-recurring-content.service.ts's ensureRecurringWorkflowForType).
 // P2002 — unique constraint violation: mapped to a 409 ConflictException.
+// P2028 — transaction API error: the interactive transaction expired or could not
+//   start in time. Nothing was moved; mapped to a retryable 503.
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
+const PRISMA_TRANSACTION_API_ERROR = 'P2028';
 const MAX_RELOCATION_SERIALIZATION_RETRIES = 3;
+// The default interactive-transaction timeout is 5 seconds. A relocation rewrites
+// every row the brand owns, so a large brand needs far longer.
+const RELOCATION_TRANSACTION_TIMEOUT_MS = 120_000;
+const RELOCATION_TRANSACTION_MAX_WAIT_MS = 10_000;
+// A database trigger refused the cascade: the row is immutable or append-only.
+// The guards refuse these brands first; this maps any that slip past them.
+const IMMUTABLE_ROW_PATTERN = /immutable|append-only|cannot be rebound/i;
 
 /**
  * Read-only classification of what a brand relocation would touch, shared by the
@@ -82,25 +93,46 @@ interface RelocationReconcileResult {
   membersSevered: number;
 }
 
+/** Everything the relocation transaction reports back for the summary and the post-commit steps. */
+interface RelocationTransactionResult extends RelocationReconcileResult {
+  heldSchedules: BrandRelocationHeldSchedule[];
+  personaGrantsRevoked: number;
+  touchedWorkflowIds: string[];
+}
+
 export interface BrandRelocationMovingResource {
   resource: string;
   label: string;
   count: number;
 }
 
+/** Who is moving the brand, as the controller read them from the request. */
+export interface BrandRelocationActingUser {
+  userId: string;
+  isSuperAdmin: boolean;
+  /** An API key relocates only with an explicit `admin` scope. */
+  isApiKey?: boolean;
+  scopes?: readonly string[];
+}
+
 /** Server-authoritative summary of a completed (or no-op) brand relocation. */
 export interface BrandRelocationSummary {
   workflowsMoved: number;
-  workflowsClonedActive: number;
-  workflowsClonedPaused: number;
   membersSevered: number;
+  /** Enabled schedules paused because their actor does not carry over. */
+  schedulesHeld: number;
+  /** Held schedules whose queued scheduler job could not be removed. */
   schedulingPending: number;
+  /** Persona grants revoked because their character changed owner. */
+  personaGrantsRevoked: number;
 }
 
 /** Result of `relocateToOrganization`: the moved brand plus a summary for the client. */
 export interface BrandRelocationResult {
   brand: BrandDocument;
   summary: BrandRelocationSummary;
+  /** Workflow schedules paused by the move, for the owner notifications. */
+  heldSchedules: BrandRelocationHeldSchedule[];
 }
 
 /** Counts returned by the read-only relocation preview endpoint. */
@@ -108,16 +140,19 @@ export interface BrandRelocationPreview {
   counts: {
     soleBrandWorkflows: number;
     staleMembers: number;
+    schedulesToHold: number;
   };
   movingResources: BrandRelocationMovingResource[];
+  /** The enabled schedules that will be paused. */
+  schedulesToHold: BrandRelocationHeldSchedule[];
 }
 
 const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
-  workflowsMoved: 0,
-  workflowsClonedActive: 0,
-  workflowsClonedPaused: 0,
   membersSevered: 0,
+  personaGrantsRevoked: 0,
+  schedulesHeld: 0,
   schedulingPending: 0,
+  workflowsMoved: 0,
 };
 
 type BrandSameOrganizationPatch = (
@@ -132,6 +167,7 @@ export class BrandRelocationService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   private static readonly RELOCATION_ELEVATED_ROLES: ReadonlySet<string> =
@@ -176,7 +212,7 @@ export class BrandRelocationService {
     updateBrandDto: Partial<UpdateBrandDto> & {
       organizationId?: string;
     },
-    actingUser: { userId: string; isSuperAdmin: boolean },
+    actingUser: BrandRelocationActingUser,
     patchSameOrganization?: BrandSameOrganizationPatch,
   ): Promise<BrandRelocationResult> {
     const destOrgId = updateBrandDto.organizationId;
@@ -235,8 +271,11 @@ export class BrandRelocationService {
       sourceOrgId,
     });
 
-    let reconcileResult: RelocationReconcileResult = {
+    let moveResult: RelocationTransactionResult = {
+      heldSchedules: [],
       membersSevered: 0,
+      personaGrantsRevoked: 0,
+      touchedWorkflowIds: [],
       workflowsMoved: 0,
     };
 
@@ -246,7 +285,7 @@ export class BrandRelocationService {
       attempt += 1
     ) {
       try {
-        reconcileResult = await this.prisma.$transaction(
+        moveResult = await this.prisma.$transaction(
           async (tx) => {
             await this.prepareLearningRelocation(
               tx,
@@ -256,6 +295,20 @@ export class BrandRelocationService {
               actingUser,
               updateBrandDto.slug,
             );
+            // Before the cascade rewrites any organization id: the schedule
+            // actors and the persona grants both belong to the source tenant.
+            const { held, touchedWorkflowIds } = await holdBrandSchedules(
+              tx,
+              brandId,
+            );
+            const personaGrantsRevoked = await revokePersonaGrantsForRelocation(
+              tx,
+              {
+                actorUserId: actingUser.userId,
+                brandId,
+                organizationId: sourceOrgId,
+              },
+            );
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
@@ -264,9 +317,18 @@ export class BrandRelocationService {
               passthrough,
             );
             await this.assertNoBrandOrgOrphans(tx, brandId, destOrgId);
-            return result;
+            return {
+              ...result,
+              heldSchedules: held,
+              personaGrantsRevoked,
+              touchedWorkflowIds,
+            };
           },
-          { isolationLevel: 'Serializable' },
+          {
+            isolationLevel: 'Serializable',
+            maxWait: RELOCATION_TRANSACTION_MAX_WAIT_MS,
+            timeout: RELOCATION_TRANSACTION_TIMEOUT_MS,
+          },
         );
         break;
       } catch (error: unknown) {
@@ -280,6 +342,17 @@ export class BrandRelocationService {
             : 'a unique constraint';
           throw new ConflictException(
             `Cannot move brand: a record in the destination organization already conflicts on ${target}.`,
+          );
+        }
+
+        if (errorCode === PRISMA_TRANSACTION_API_ERROR) {
+          this.logger.error('Brand relocation transaction timed out', error, {
+            brandId,
+            destOrgId,
+            sourceOrgId,
+          });
+          throw new ServiceUnavailableException(
+            'Moving this brand took too long and was rolled back; nothing moved. Try again, or move it when less work is running.',
           );
         }
 
@@ -297,10 +370,25 @@ export class BrandRelocationService {
           continue;
         }
 
+        if (
+          error instanceof Error &&
+          IMMUTABLE_ROW_PATTERN.test(error.message)
+        ) {
+          throw new ConflictException(
+            'Cannot move this brand: it owns a record that is immutable or append-only and must stay in its original organization.',
+          );
+        }
+
         throw error;
       }
     }
 
+    // The move is committed. Nothing below may fail it: a queued job that
+    // outlives the pause is harmless (the scheduler drops a fire for a paused
+    // workflow), and a cache that stays stale expires.
+    const schedulingPending = await this.unscheduleHeldWorkflows(
+      moveResult.touchedWorkflowIds,
+    );
     await this.invalidateRelocationCaches(brandId, sourceOrgId, destOrgId);
 
     const moved = (await this.prisma.brand.findFirst({
@@ -312,12 +400,13 @@ export class BrandRelocationService {
 
     return {
       brand: moved,
+      heldSchedules: moveResult.heldSchedules,
       summary: {
-        membersSevered: reconcileResult.membersSevered,
-        schedulingPending: 0,
-        workflowsClonedActive: 0,
-        workflowsClonedPaused: 0,
-        workflowsMoved: reconcileResult.workflowsMoved,
+        membersSevered: moveResult.membersSevered,
+        personaGrantsRevoked: moveResult.personaGrantsRevoked,
+        schedulesHeld: moveResult.heldSchedules.length,
+        schedulingPending,
+        workflowsMoved: moveResult.workflowsMoved,
       },
     };
   }
@@ -329,7 +418,7 @@ export class BrandRelocationService {
   async previewRelocation(
     brandId: string,
     destOrgId: string,
-    actingUser: { userId: string; isSuperAdmin: boolean },
+    actingUser: BrandRelocationActingUser,
   ): Promise<BrandRelocationPreview> {
     const brand = (await this.prisma.brand.findFirst({
       where: { id: brandId, isDeleted: false },
@@ -357,6 +446,7 @@ export class BrandRelocationService {
       await assertNoSecurityAuditHistory(this.prisma, brandId, sourceOrgId);
       await assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
       await assertNoOpenVisualProjects(this.prisma, brandId, sourceOrgId);
+      await assertNoInFlightBrandWork(this.prisma, brandId, sourceOrgId);
     }
 
     const impact = await this.classifyRelocationImpact(
@@ -370,12 +460,19 @@ export class BrandRelocationService {
       destOrgId,
     );
 
+    const schedulesToHold = await findActiveBrandSchedules(
+      this.prisma as unknown as Prisma.TransactionClient,
+      brandId,
+    );
+
     return {
       counts: {
+        schedulesToHold: schedulesToHold.length,
         soleBrandWorkflows: impact.soleBrandWorkflowIds.length,
         staleMembers: impact.staleMemberIds.length,
       },
       movingResources,
+      schedulesToHold,
     };
   }
 
@@ -397,37 +494,33 @@ export class BrandRelocationService {
       }),
     );
 
-    const secondOrderResources = await Promise.all(
-      SECOND_ORDER_TARGETS.map(async (child) => {
-        const orClauses: Record<string, unknown>[] = [];
-        await Promise.all(
-          child.parents.map(async (parent) => {
-            const parentRows = await delegateClient[
-              parent.parentDelegate
-            ].findMany({
-              select: { id: true },
-              where: { [parent.parentBrandField]: brandId },
-            });
-            if (parentRows.length > 0) {
-              orClauses.push({
-                [parent.fkField]: { in: parentRows.map((row) => row.id) },
-              });
-            }
-          }),
-        );
-        if (orClauses.length === 0) {
-          return null;
+    const secondOrderResources: (BrandRelocationMovingResource | null)[] = [];
+    const parentIds: SecondOrderParentIds = new Map();
+    for (const child of SECOND_ORDER_TARGETS) {
+      const groups = await resolveSecondOrderFilters(
+        delegateClient,
+        child,
+        brandId,
+        parentIds,
+      );
+      // A child that points at several parents is counted once: each parent's
+      // rows exclude the rows an earlier parent already claimed.
+      const claimed: Record<string, unknown>[] = [];
+      let count = 0;
+      for (const filters of groups) {
+        for (const filter of filters) {
+          count += await delegateClient[child.delegate].count({
+            where: {
+              ...filter,
+              [child.orgField]: { not: destOrgId },
+              ...(claimed.length > 0 ? { NOT: { OR: claimed } } : {}),
+            },
+          });
         }
-
-        const count = await delegateClient[child.delegate].count({
-          where: {
-            OR: orClauses,
-            [child.orgField]: { not: destOrgId },
-          },
-        });
-        return this.toMovingResource(child.delegate, count);
-      }),
-    );
+        claimed.push(...filters);
+      }
+      secondOrderResources.push(this.toMovingResource(child.delegate, count));
+    }
 
     return [...firstOrderResources, ...secondOrderResources].filter(
       (resource): resource is BrandRelocationMovingResource =>
@@ -510,6 +603,7 @@ export class BrandRelocationService {
     if (patchSameOrganization)
       return {
         brand: await patchSameOrganization(updates),
+        heldSchedules: [],
         summary: { ...EMPTY_RELOCATION_SUMMARY },
       };
     const sourceBearing =
@@ -526,6 +620,7 @@ export class BrandRelocationService {
         });
     return {
       brand: brand as unknown as BrandDocument,
+      heldSchedules: [],
       summary: { ...EMPTY_RELOCATION_SUMMARY },
     };
   }
@@ -535,7 +630,7 @@ export class BrandRelocationService {
     brandId: string,
     sourceOrgId: string,
     destOrgId: string,
-    actingUser: { userId: string; isSuperAdmin: boolean },
+    actingUser: BrandRelocationActingUser,
     slug: string | undefined,
   ): Promise<void> {
     const scope = await lockBrandLearningMutation(tx, {
@@ -552,6 +647,7 @@ export class BrandRelocationService {
     await assertNoSecurityAuditHistory(tx, brandId, sourceOrgId);
     await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
     await assertNoOpenVisualProjects(tx, brandId, sourceOrgId);
+    await assertNoInFlightBrandWork(tx, brandId, sourceOrgId);
     await assertNoLearningHistory(tx, brandId, sourceOrgId);
     await invalidateLearningDependencySource(tx, 'brand', brandId, sourceOrgId);
     for (const account of scope.accounts) {
@@ -620,11 +716,22 @@ export class BrandRelocationService {
   }
 
   private async assertCanRelocate(
-    actingUser: { userId: string; isSuperAdmin: boolean },
+    actingUser: BrandRelocationActingUser,
     sourceOrgId: string,
     destOrgId: string,
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
+    // An API key authenticates as its issuer but does not inherit the issuer's
+    // admin rights: it needs the explicit admin scope, superadmin issuer or not.
+    const apiKeyScopes = [...(actingUser.scopes ?? [])];
+    if (
+      actingUser.isApiKey === true &&
+      !hasExplicitApiKeyAdminScope(apiKeyScopes)
+    ) {
+      throw new ForbiddenException(
+        'Moving a brand between organizations with an API key requires the admin scope.',
+      );
+    }
     if (actingUser.isSuperAdmin) {
       return;
     }
@@ -634,8 +741,8 @@ export class BrandRelocationService {
       );
     }
     const [sourceElevated, destElevated] = await Promise.all([
-      this.hasElevatedMembership(actingUser.userId, sourceOrgId, transaction),
-      this.hasElevatedMembership(actingUser.userId, destOrgId, transaction),
+      this.hasElevatedMembership(actingUser, sourceOrgId, transaction),
+      this.hasElevatedMembership(actingUser, destOrgId, transaction),
     ]);
     if (!sourceElevated || !destElevated) {
       throw new ForbiddenException(
@@ -645,22 +752,34 @@ export class BrandRelocationService {
   }
 
   private async hasElevatedMembership(
-    userId: string,
+    actingUser: BrandRelocationActingUser,
     organizationId: string,
     transaction?: Prisma.TransactionClient,
   ): Promise<boolean> {
     const member = await (transaction ?? this.prisma).member.findFirst({
       select: { role: { select: { key: true } }, roleKey: true },
-      where: scopedWhere(organizationId, { isActive: true, userId }),
+      where: scopedWhere(organizationId, {
+        isActive: true,
+        userId: actingUser.userId,
+      }),
     });
     if (!member) {
       return false;
     }
     const roleKey = member.roleKey ?? member.role?.key ?? undefined;
-    return (
-      roleKey !== undefined &&
-      BrandRelocationService.RELOCATION_ELEVATED_ROLES.has(roleKey)
+    if (roleKey === undefined) {
+      return false;
+    }
+    // Same cap as every other membership check: a key without the admin scope
+    // is a plain user in the organization.
+    const effectiveRole = resolveApiKeyEffectiveMemberRole(
+      {
+        isApiKey: actingUser.isApiKey,
+        scopes: [...(actingUser.scopes ?? [])],
+      },
+      roleKey as MemberRole,
     );
+    return BrandRelocationService.RELOCATION_ELEVATED_ROLES.has(effectiveRole);
   }
 
   /**
@@ -732,26 +851,20 @@ export class BrandRelocationService {
     }
 
     // 3. Second-order children (no brand key): follow a moved parent by scalar FK.
+    const parentIds: SecondOrderParentIds = new Map();
     for (const child of SECOND_ORDER_TARGETS) {
-      const orClauses: Record<string, unknown>[] = [];
-      for (const parent of child.parents) {
-        const parentRows = await client[parent.parentDelegate].findMany({
-          select: { id: true },
-          where: { [parent.parentBrandField]: brandId },
+      const groups = await resolveSecondOrderFilters(
+        client,
+        child,
+        brandId,
+        parentIds,
+      );
+      for (const filter of groups.flat()) {
+        await client[child.delegate].updateMany({
+          data: { [child.orgField]: destOrgId },
+          where: { ...filter, [child.orgField]: { not: destOrgId } },
         });
-        if (parentRows.length > 0) {
-          orClauses.push({
-            [parent.fkField]: { in: parentRows.map((row) => row.id) },
-          });
-        }
       }
-      if (orClauses.length === 0) {
-        continue;
-      }
-      await client[child.delegate].updateMany({
-        data: { [child.orgField]: destOrgId },
-        where: { OR: orClauses, [child.orgField]: { not: destOrgId } },
-      });
     }
 
     // 4. Reconcile associations that would become cross-org (move workflows/history,
@@ -903,7 +1016,10 @@ export class BrandRelocationService {
    * org. Part A verifies every configured table (correct field pairing). Part B
    * discovers ANY other dual-keyed table via information_schema and blocks the move
    * if it would orphan rows — so a forgotten/future table rolls back loudly instead
-   * of silently splitting tenancy.
+   * of silently splitting tenancy. Part C does the same for org-only children, which
+   * carry an organization column and a foreign key to a moved parent but no brand
+   * column: the configured ones are re-counted, and any other is found in the
+   * catalog.
    */
   private async assertNoBrandOrgOrphans(
     tx: Prisma.TransactionClient,
@@ -932,6 +1048,7 @@ export class BrandRelocationService {
 
     const knownTables = new Set<string>([
       ...FIRST_ORDER_TARGETS.map((target) => target.table),
+      ...SECOND_ORDER_TARGETS.map((target) => target.table),
       ...AUDITOR_IGNORED_TABLES,
     ]);
 
@@ -943,10 +1060,12 @@ export class BrandRelocationService {
        JOIN information_schema.columns c2
          ON c1.table_name = c2.table_name AND c1.table_schema = c2.table_schema
        WHERE c1.table_schema = 'public'
-         AND c1.column_name LIKE '%brand_id'
-         AND (c2.column_name LIKE '%organization_id' OR c2.column_name LIKE '%org_id')`;
+         AND c1.column_name ~* 'brand_?id$'
+         AND c2.column_name ~* '(organization|org)_?id$'`;
 
-    const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
+    // Columns are camelCase (`brandId`, `organizationId`), so the identifiers are
+    // quoted below and may carry capitals.
+    const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
     const unhandled: string[] = [];
     for (const candidate of candidates) {
       if (knownTables.has(candidate.table_name)) {
@@ -959,7 +1078,7 @@ export class BrandRelocationService {
       ) {
         continue;
       }
-      // sql-risk-audit: ignore raw-sql-review -- table/column identifiers are regex-validated to /^[a-z_][a-z0-9_]*$/ above and injected via Prisma.raw; brandId/destOrgId are bound as parameters.
+      // sql-risk-audit: ignore raw-sql-review -- table/column identifiers are regex-validated to /^[A-Za-z_][A-Za-z0-9_]*$/ above and injected via Prisma.raw; brandId/destOrgId are bound as parameters.
       const rows = await tx.$queryRaw<
         { n: number }[]
       >`SELECT COUNT(*)::int AS n FROM ${Prisma.raw(`"${candidate.table_name}"`)} WHERE ${Prisma.raw(`"${candidate.brand_col}"`)} = ${brandId} AND ${Prisma.raw(`"${candidate.org_col}"`)} IS DISTINCT FROM ${destOrgId}`;
@@ -975,6 +1094,10 @@ export class BrandRelocationService {
         `Brand relocation aborted: unhandled dual-keyed table(s) would be orphaned in the source org: ${unhandled.join(', ')}. Add them to FIRST_ORDER_TARGETS in brand-org-cascade.constants.ts.`,
       );
     }
+
+    // Part C: org-only children (an organization column and a foreign key to a
+    // moved parent, no brand column) must follow their parent too.
+    await assertNoOrgOnlyChildOrphans(tx, brandId, destOrgId);
   }
 
   private async invalidateRelocationCaches(
@@ -982,11 +1105,73 @@ export class BrandRelocationService {
     sourceOrgId: string,
     destOrgId: string,
   ): Promise<void> {
-    await this.cacheInvalidationService.invalidate(
-      CACHE_PATTERNS.BRANDS_SINGLE(brandId),
-      CACHE_PATTERNS.BRANDS_LIST(sourceOrgId),
-      CACHE_PATTERNS.BRANDS_LIST(destOrgId),
-    );
-    await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
+    try {
+      await this.cacheInvalidationService.invalidate(
+        CACHE_PATTERNS.BRANDS_SINGLE(brandId),
+        CACHE_PATTERNS.BRANDS_LIST(sourceOrgId),
+        CACHE_PATTERNS.BRANDS_LIST(destOrgId),
+      );
+      await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
+    } catch (error: unknown) {
+      // The move is committed; a cache that stays stale expires on its own.
+      this.logger.warn('Brand relocation cache invalidation failed', {
+        brandId,
+        error: error instanceof Error ? error.message : String(error),
+        service: this.constructorName,
+      });
+    }
+  }
+
+  /**
+   * Remove the queued scheduler job for every workflow the move paused. Runs
+   * after commit and never fails the move: a job that outlives the pause is
+   * dropped when it fires, because the workflow no longer has an enabled
+   * schedule. Returns how many jobs could not be confirmed removed.
+   */
+  private async unscheduleHeldWorkflows(
+    workflowIds: readonly string[],
+  ): Promise<number> {
+    if (workflowIds.length === 0) {
+      return 0;
+    }
+    const scheduler = await this.resolveWorkflowSchedulerService();
+    if (!scheduler) {
+      this.logger.warn(
+        'Workflow scheduler unavailable; queued jobs of paused schedules will be dropped when they fire',
+        { service: this.constructorName, workflowCount: workflowIds.length },
+      );
+      return workflowIds.length;
+    }
+    let pending = 0;
+    for (const workflowId of workflowIds) {
+      try {
+        await scheduler.unscheduleWorkflow(workflowId);
+      } catch (error: unknown) {
+        pending += 1;
+        this.logger.warn('Failed to unschedule a workflow after relocation', {
+          error: error instanceof Error ? error.message : String(error),
+          service: this.constructorName,
+          workflowId,
+        });
+      }
+    }
+    return pending;
+  }
+
+  private async resolveWorkflowSchedulerService(): Promise<WorkflowSchedulerService | null> {
+    if (!this.moduleRef) {
+      return null;
+    }
+    try {
+      // Deferred import: a top-level value import of the scheduler closes the
+      // brands -> workflows -> brands module cycle and crashes API bootstrap
+      // (the same reason DefaultRecurringContentService resolves it lazily).
+      const { WorkflowSchedulerService: schedulerServiceClass } = await import(
+        '@api/collections/workflows/services/workflow-scheduler.service'
+      );
+      return this.moduleRef.get(schedulerServiceClass, { strict: false });
+    } catch {
+      return null;
+    }
   }
 }

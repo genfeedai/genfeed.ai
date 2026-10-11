@@ -56,8 +56,13 @@ describe('describePreview', () => {
     expect(
       describePreview(
         {
-          counts: { soleBrandWorkflows: 0, staleMembers: 2 },
+          counts: {
+            schedulesToHold: 0,
+            soleBrandWorkflows: 0,
+            staleMembers: 2,
+          },
           movingResources: [{ count: 3, label: 'posts', resource: 'post' }],
+          schedulesToHold: [],
         },
         translate,
       ),
@@ -68,20 +73,50 @@ describe('describePreview', () => {
     expect(
       describePreview(
         {
-          counts: { soleBrandWorkflows: 1, staleMembers: 1 },
+          counts: {
+            schedulesToHold: 0,
+            soleBrandWorkflows: 1,
+            staleMembers: 1,
+          },
           movingResources: [],
+          schedulesToHold: [],
         },
         translate,
       ),
     ).toBe('1 dedicated workflow moves with it. 1 member will lose access.');
   });
 
+  it('warns that schedules pause until someone saves them again', () => {
+    expect(
+      describePreview(
+        {
+          counts: {
+            schedulesToHold: 2,
+            soleBrandWorkflows: 0,
+            staleMembers: 0,
+          },
+          movingResources: [],
+          schedulesToHold: [
+            { id: 'a', label: 'Daily', schedule: '0 9 * * *', timezone: null },
+            { id: 'b', label: null, schedule: '0 10 * * *', timezone: 'UTC' },
+          ],
+        },
+        translate,
+      ),
+    ).toBe('2 schedules will pause until someone saves them again.');
+  });
+
   it('is empty when nothing else moves', () => {
     expect(
       describePreview(
         {
-          counts: { soleBrandWorkflows: 0, staleMembers: 0 },
+          counts: {
+            schedulesToHold: 0,
+            soleBrandWorkflows: 0,
+            staleMembers: 0,
+          },
           movingResources: [],
+          schedulesToHold: [],
         },
         translate,
       ),

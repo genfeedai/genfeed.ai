@@ -6,6 +6,19 @@ import type { Brand } from '@genfeedai/models/organization/brand.model';
 export interface IBrandRelocationCounts {
   soleBrandWorkflows: number;
   staleMembers: number;
+  schedulesToHold: number;
+}
+
+/**
+ * A workflow schedule the move pauses. The cron expression and timezone are
+ * kept; the person who saved it is not carried over, so someone in the new
+ * organization saves it again to resume it.
+ */
+export interface IBrandRelocationHeldSchedule {
+  id: string;
+  label: string | null;
+  schedule: string;
+  timezone: string | null;
 }
 
 export interface IBrandRelocationMovingResource {
@@ -23,6 +36,8 @@ export interface IBrandRelocationMovingResource {
 export interface IBrandRelocationPreview {
   counts: IBrandRelocationCounts;
   movingResources: IBrandRelocationMovingResource[];
+  /** The enabled schedules that will be paused by the move. */
+  schedulesToHold: IBrandRelocationHeldSchedule[];
 }
 
 /**
@@ -40,10 +55,13 @@ export type IBrandRelocationPatchBody = Record<string, unknown> & {
  */
 export interface IBrandRelocationSummary {
   workflowsMoved: number;
-  workflowsClonedActive: number;
-  workflowsClonedPaused: number;
   membersSevered: number;
+  /** Enabled schedules paused until someone saves them again. */
+  schedulesHeld: number;
+  /** Held schedules whose queued job could not be confirmed removed. */
   schedulingPending: number;
+  /** Character grants revoked because their character changed organization. */
+  personaGrantsRevoked: number;
 }
 
 /**

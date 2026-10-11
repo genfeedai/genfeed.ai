@@ -56,6 +56,17 @@ describe('activity alert policy map (#5197)', () => {
     );
   });
 
+  it('tells the brand owner and the organization owner when a brand moves', () => {
+    expect(getActivityAlertPolicy(ActivityKey.BRAND_RELOCATED)).toEqual({
+      recipients: [
+        { channels: ['in_app'], recipient: 'actor' },
+        { channels: ['in_app'], recipient: 'organization-owner' },
+      ],
+      severity: 'info',
+      topic: 'workflow.status',
+    });
+  });
+
   it('uses only known topics and channels', () => {
     for (const policy of Object.values(ACTIVITY_ALERT_POLICIES)) {
       expect(NOTIFICATION_TOPICS).toContain(policy.topic);

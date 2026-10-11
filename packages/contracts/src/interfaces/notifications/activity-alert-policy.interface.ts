@@ -93,6 +93,17 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'info',
     topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
   },
+  // A brand changed organization: its schedules were paused and its actors
+  // dropped. Recorded once in each organization, so the brand owner (the
+  // actor) and that organization's owner are told where they belong.
+  [ActivityKey.BRAND_RELOCATED]: {
+    recipients: [
+      { channels: ['in_app'], recipient: 'actor' },
+      { channels: ['in_app'], recipient: 'organization-owner' },
+    ],
+    severity: 'info',
+    topic: 'workflow.status',
+  },
   [ActivityKey.WORKFLOW_EXECUTION_COMPLETED]: {
     recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'success',
