@@ -7,6 +7,7 @@ import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/sch
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -126,6 +127,7 @@ export class AgentCampaignsController extends BaseCRUDController<
               id,
               organizationId,
               await this.resolveDatabaseUserId(user),
+              toWorkflowSchedulePrincipal(user),
             )
           : await this.executionService.pause(id, organizationId);
 

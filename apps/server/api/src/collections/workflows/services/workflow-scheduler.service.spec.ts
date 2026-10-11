@@ -33,6 +33,7 @@ function createMockPrisma() {
   return {
     apiKey: { findFirst: vi.fn().mockResolvedValue(null) },
     brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
+    organization: { findFirst: vi.fn().mockResolvedValue(null) },
     member: {
       findFirst: vi
         .fn()
@@ -42,6 +43,7 @@ function createMockPrisma() {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
   };
 }
@@ -431,6 +433,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
         },
         platformSeedKey: true,
         scheduleInitiatingActor: true,
+        templateInstantiationKey: true,
       },
       where: {
         id: 'wf-1',
@@ -1451,5 +1454,255 @@ describe('WorkflowSchedulerService — seeded platform authority', () => {
         expect.objectContaining({ userId: 'user-1' }),
       );
     });
+  });
+});
+
+describe('WorkflowSchedulerService — automatic platform seed marking (#6689)', () => {
+  const template = ANALYTICS_SYNC_WORKFLOW_TEMPLATES[0];
+  const canonicalHash = getPlatformSeedContentHash(template) as string;
+  const ownerActor = {
+    isApiKey: false,
+    organizationId: 'org-1',
+    scopes: [],
+    userId: 'owner-1',
+  };
+
+  function fixture(
+    workflow: Record<string, unknown> = {},
+    options: { cloud?: boolean } = {},
+  ) {
+    runtime.cloud = options.cloud ?? true;
+    const created = createService();
+    const seeded = {
+      brandId: null,
+      contentHash: canonicalHash,
+      id: 'wf-1',
+      metadata: {
+        sourceTemplateId: template.id,
+        sourceType: 'seeded-template',
+      },
+      organizationId: 'org-1',
+      platformSeedKey: null,
+      scheduleInitiatingActor: null,
+      templateInstantiationKey: null,
+      userId: 'owner-1',
+      ...workflow,
+    };
+    created.prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow(seeded),
+    );
+    // The reconcile re-reads its candidates: the same row, as the database returns it.
+    const reconcileRow = {
+      brandId: seeded.brandId,
+      currentVersion: { contentHash: seeded.contentHash },
+      currentVersionId: 'wf-1-version-1',
+      id: 'wf-1',
+      isScheduleEnabled: true,
+      metadata: seeded.metadata,
+      platformSeedKey: null,
+      templateInstantiationKey: null,
+      updatedAt: new Date('2026-10-01T00:00:00Z'),
+      userId: seeded.userId,
+    };
+    const { prisma } = created;
+    prisma.workflow.findMany.mockResolvedValue([reconcileRow]);
+    prisma.workflow.updateMany.mockResolvedValue({ count: 1 });
+    // The row's user owns the organization and is an active member (the member row also
+    // satisfies a live actor refresh, which reads the member's brands and role).
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org-1' });
+    prisma.member.findFirst.mockResolvedValue({
+      brands: [],
+      id: 'member-row-1',
+      role: { key: MemberRole.ADMIN },
+    });
+    return created;
+  }
+
+  function runAs(created: ReturnType<typeof fixture>) {
+    return created.workflowExecutorService.executeManualWorkflowDocument;
+  }
+
+  it('marks an unmarked canonical seed and runs it as the platform with no actor', async () => {
+    const created = fixture();
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(created.prisma.workflow.updateMany).toHaveBeenCalledWith({
+      data: {
+        platformSeedKey: template.id,
+        scheduleInitiatingActor: Prisma.DbNull,
+      },
+      where: expect.objectContaining({ id: 'wf-1', platformSeedKey: null }),
+    });
+    expect(runAs(created)).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'wf-1' }),
+      'owner-1',
+      'org-1',
+      {},
+      { scheduledFireJobId: 'fire-1', triggeredBy: 'schedule' },
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    // Not held, not paused: only the execution counter write.
+    expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+    expect(created.queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+    // Only the owner lookup; no live actor refresh ran.
+    expect(created.prisma.member.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces the owner actor the grandfather migration bound', async () => {
+    const created = fixture({ scheduleInitiatingActor: ownerActor });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(created.prisma.workflow.updateMany).toHaveBeenCalledTimes(1);
+    expect(runAs(created)).toHaveBeenCalledWith(
+      expect.anything(),
+      'owner-1',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(created.prisma.member.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['edited (another version hash)', { contentHash: 'sha256:v1:edited' }],
+    [
+      'forged metadata without the seeder provenance',
+      { metadata: { sourceTemplateId: template.id } },
+    ],
+    ['scoped to a brand', { brandId: 'brand-1' }],
+    ['a tenant template install', { templateInstantiationKey: 'attempt-1' }],
+  ])(
+    'leaves a workflow alone and holds it when it is %s',
+    async (_label, overrides) => {
+      const created = fixture(overrides);
+
+      await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+      expect(created.prisma.workflow.findMany).not.toHaveBeenCalled();
+      expect(created.prisma.workflow.updateMany).not.toHaveBeenCalled();
+      expect(runAs(created)).not.toHaveBeenCalled();
+      expect(created.prisma.workflow.update).toHaveBeenCalledWith({
+        data: {
+          isScheduleEnabled: false,
+          scheduleInitiatingActor: Prisma.DbNull,
+        },
+        where: { id: 'wf-1', isDeleted: false, organizationId: 'org-1' },
+      });
+    },
+  );
+
+  it('does not mark a row owned by a member who is not the organization owner', async () => {
+    const created = fixture({ userId: 'member-2' });
+    created.prisma.organization.findFirst.mockResolvedValue(null);
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(created.prisma.workflow.updateMany).not.toHaveBeenCalled();
+    expect(runAs(created)).not.toHaveBeenCalled();
+    expect(created.queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-1',
+    );
+  });
+
+  it('keeps a member-bound schedule on that member instead of the platform', async () => {
+    const created = fixture({
+      scheduleInitiatingActor: { ...ownerActor, userId: 'member-2' },
+    });
+    created.prisma.member.findFirst.mockResolvedValue({
+      brands: [],
+      role: { key: MemberRole.ADMIN },
+    });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(created.prisma.workflow.updateMany).not.toHaveBeenCalled();
+    expect(runAs(created)).toHaveBeenCalledWith(
+      expect.anything(),
+      'member-2',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+  });
+
+  it('falls back to the actor rules when it loses the race to a concurrent edit', async () => {
+    const created = fixture({ scheduleInitiatingActor: ownerActor });
+    created.prisma.workflow.updateMany.mockResolvedValue({ count: 0 });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    // Still the owner, re-checked live as an actor: the pre-release behaviour.
+    expect(runAs(created)).toHaveBeenCalledWith(
+      expect.anything(),
+      'owner-1',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(created.prisma.member.findFirst).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not hold a row that a concurrent fire marked while this one was reconciling', async () => {
+    const created = fixture();
+    const loaded = await created.prisma.workflow.findFirst();
+    created.prisma.workflow.updateMany.mockResolvedValue({ count: 0 });
+    created.prisma.workflow.findFirst
+      .mockResolvedValueOnce(loaded)
+      // The re-read after the lost compare-and-set sees the winner's marker.
+      .mockResolvedValueOnce({
+        platformSeedKey: template.id,
+        scheduleInitiatingActor: null,
+      });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(runAs(created)).toHaveBeenCalledWith(
+      expect.anything(),
+      'owner-1',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(created.queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+    expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps running on the actor rules when the reconcile itself fails', async () => {
+    const created = fixture({ scheduleInitiatingActor: ownerActor });
+    created.prisma.workflow.findMany.mockRejectedValue(
+      new Error('connection lost'),
+    );
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(runAs(created)).toHaveBeenCalledTimes(1);
+    expect(created.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Could not reconcile'),
+      expect.objectContaining({ workflowId: 'wf-1' }),
+    );
+  });
+
+  it('does nothing on self-hosted, which keeps running as the owner', async () => {
+    const created = fixture({}, { cloud: false });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(created.prisma.member.findFirst).not.toHaveBeenCalled();
+    expect(created.prisma.workflow.findMany).not.toHaveBeenCalled();
+    expect(created.prisma.workflow.updateMany).not.toHaveBeenCalled();
+    expect(runAs(created)).toHaveBeenCalledWith(
+      expect.anything(),
+      'owner-1',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
   });
 });

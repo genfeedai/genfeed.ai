@@ -6,6 +6,7 @@ import {
   EXECUTABLE_WORKFLOW_SELECT,
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { reconcileSeededWorkflowBeforeScheduledRun } from '@api/collections/workflows/services/workflow-platform-seed-reconcile.util';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
@@ -77,6 +78,7 @@ const SCHEDULED_WORKFLOW_SELECT = {
   },
   platformSeedKey: true,
   scheduleInitiatingActor: true,
+  templateInstantiationKey: true,
 } as const;
 
 /**
@@ -274,6 +276,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         throw error;
       }
 
+      await this.markCanonicalSeedBeforeRun(workflow);
       const authority = await this.resolveScheduledRunAuthority(workflow);
       if (authority.isHeld) {
         await this.holdScheduledWorkflow(
@@ -352,6 +355,46 @@ export class WorkflowSchedulerService implements OnModuleInit {
         error,
         'WorkflowSchedulerService',
       );
+    }
+  }
+
+  /**
+   * Marks a canonical seeded workflow that predates the platform marker, in the same tick and
+   * before its authority is resolved, so no operator step or boot ordering is involved: an
+   * unmarked row is otherwise run as, or held for, a person. The reconcile rules (owner, exact
+   * template hash, oldest row, unmarked) live in the reconcile util; a lost race or a failure
+   * leaves the row unmarked and this tick on the existing actor rules. Self-hosted is unchanged.
+   */
+  private async markCanonicalSeedBeforeRun(
+    workflow: ScheduledRunWorkflow & {
+      id: string;
+      metadata: unknown;
+      templateInstantiationKey: string | null;
+    },
+  ): Promise<void> {
+    if (!isCloudDeployment()) {
+      return;
+    }
+    const result = await reconcileSeededWorkflowBeforeScheduledRun(
+      { logger: this.logger, prisma: this.prisma },
+      workflow,
+    );
+    if (result.status === 'marked') {
+      workflow.platformSeedKey = result.platformSeedKey;
+      workflow.scheduleInitiatingActor = null;
+      return;
+    }
+    if (result.status === 'unmarked') {
+      // A concurrent fire or reconcile may have marked the row (or bound an actor) after this
+      // copy was read. Refresh the authority fields before they can cause a stale hold.
+      const persisted = await this.prisma.workflow.findFirst({
+        select: { platformSeedKey: true, scheduleInitiatingActor: true },
+        where: scopedWhere(workflow.organizationId, { id: workflow.id }),
+      });
+      if (persisted) {
+        workflow.platformSeedKey = persisted.platformSeedKey;
+        workflow.scheduleInitiatingActor = persisted.scheduleInitiatingActor;
+      }
     }
   }
 

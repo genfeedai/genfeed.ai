@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const template = ANALYTICS_SYNC_WORKFLOW_TEMPLATES[0];
 const canonicalHash = getPlatformSeedContentHash(template) as string;
+const updatedAt = new Date('2026-10-01T00:00:00Z');
 const input = { organizationId: 'org-1', template, userId: 'seed-user' };
 
 function row(overrides: Record<string, unknown> = {}) {
@@ -21,6 +22,8 @@ function row(overrides: Record<string, unknown> = {}) {
     isScheduleEnabled: true,
     metadata: { sourceTemplateId: template.id, sourceType: 'seeded-template' },
     platformSeedKey: null,
+    templateInstantiationKey: null,
+    updatedAt,
     userId: 'seed-user',
     ...overrides,
   };
@@ -72,6 +75,8 @@ describe('reconcilePlatformSeedMarker', () => {
         isDeleted: false,
         organizationId: 'org-1',
         platformSeedKey: null,
+        templateInstantiationKey: null,
+        updatedAt,
         userId: 'seed-user',
       },
     });
@@ -101,6 +106,20 @@ describe('reconcilePlatformSeedMarker', () => {
       { metadata: { sourceTemplateId: template.id } },
     ],
     ['a marker for another template', { platformSeedKey: 'other-template' }],
+    [
+      'a tenant template install (instantiation key)',
+      { templateInstantiationKey: 'attempt-1' },
+    ],
+    [
+      'a tenant install origin',
+      {
+        metadata: {
+          createdFrom: 'agent',
+          sourceTemplateId: template.id,
+          sourceType: 'seeded-template',
+        },
+      },
+    ],
   ])('does not mark a row owned by %s', async (_name, overrides) => {
     prisma.workflow.findMany.mockResolvedValue([row(overrides)]);
 

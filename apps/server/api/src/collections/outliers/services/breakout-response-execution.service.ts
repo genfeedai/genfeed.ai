@@ -24,6 +24,15 @@ export type BreakoutResponseExecutionResult = {
   outputs: Array<{ outputId: string; recovery: BreakoutOutputRecoveryResult }>;
 };
 
+function awaitsBrandReview(
+  recovery: BreakoutOutputRecoveryResult | undefined,
+): boolean {
+  return (
+    recovery?.status === 'available' &&
+    recovery.reason === 'brand_review_required'
+  );
+}
+
 /** The concrete native-action integration: normal pricing/reservation → execution binding → generation → retained recovery. */
 @Injectable()
 export class BreakoutResponseExecutionService {
@@ -57,6 +66,9 @@ export class BreakoutResponseExecutionService {
     )
       throw new ConflictException('breakout_execution_plan_conflict');
     const outputs: BreakoutResponseExecutionResult['outputs'] = [];
+    // A draft held for a member's brand review is a settled outcome, not a failure: the other
+    // outputs continue and the response reports the hold.
+    let isReviewHeld = false;
     for (const outputId of reservation.outputIds) {
       const output = await this.bindExecution(request, outputId);
       if (output.format !== 'text' && output.format !== 'thread') {
@@ -93,6 +105,7 @@ export class BreakoutResponseExecutionService {
         });
         // A retained ambiguous attempt is not permission to spend on a sibling before reconciliation.
         const recovery = outputs.at(-1)?.recovery;
+        isReviewHeld ||= awaitsBrandReview(recovery);
         if (
           outcome.kind === 'in_progress' ||
           recovery?.status === 'unavailable' ||
@@ -113,6 +126,7 @@ export class BreakoutResponseExecutionService {
           recovery: await this.recovery(request, outputId),
         });
         const recovery = outputs.at(-1)?.recovery;
+        isReviewHeld ||= awaitsBrandReview(recovery);
         if (
           output.heldReason === 'quality_evaluation_pending' ||
           recovery?.status === 'unavailable' ||
@@ -128,6 +142,13 @@ export class BreakoutResponseExecutionService {
       }
     }
     await request.reauthorize(this.prisma);
+    if (isReviewHeld)
+      return {
+        status: 'held',
+        responseId: request.responseId,
+        reason: 'brand_review_required',
+        outputs,
+      };
     return {
       status: 'completed',
       responseId: request.responseId,

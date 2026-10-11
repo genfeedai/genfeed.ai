@@ -4838,6 +4838,12 @@ model AgentStrategy {
   agentType String?
   platforms String[] @default([])
 
+  // Server-written authenticated actor (WorkflowInitiatingActor JSON) that this strategy's
+  // autonomous turns bind to the schedules they save. Persisted only when an authenticated user
+  // or API key saves or enables the strategy; cleared when it is disabled. Never read from input
+  // and never copied between strategies.
+  scheduleInitiatingActor Json?
+
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, preferredWorkflowId])
   @@index([organizationId, preferredWorkflowTemplateId])

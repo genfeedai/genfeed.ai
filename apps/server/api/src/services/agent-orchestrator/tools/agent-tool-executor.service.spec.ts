@@ -94,6 +94,11 @@ const textGenerationCredits = {
   deductCreditsFromOrganization: async () => undefined,
 };
 
+// A turn with a live principal keeps it; strategy-actor resolution has its own spec.
+const passThroughScheduleAuthority = {
+  withScheduleAuthority: async (ctx: ToolExecutionContext) => ctx,
+};
+
 describe('AgentToolExecutorService', () => {
   const createWorkflowRunner = () => {
     const executors = new Map<string, SystemWorkflowActionExecutor>();
@@ -1110,6 +1115,7 @@ describe('AgentToolExecutorService', () => {
         workflowExecutionsService as never,
         { getWorkflow: vi.fn(), runWorkflow: vi.fn() } as never,
       ),
+      passThroughScheduleAuthority as never,
     );
     const assetGenerationService = new AgentMediaAssetGenerationService(
       loggerService,
@@ -6436,6 +6442,7 @@ describe('AgentToolExecutorService', () => {
           { findAll: vi.fn(), findOne: vi.fn() } as never,
           { runAuthenticated: vi.fn() } as never,
         ),
+        passThroughScheduleAuthority as never,
       ),
       new AgentMediaGenerationToolHandler(
         new AgentMediaTextGenerationService(

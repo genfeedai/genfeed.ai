@@ -148,6 +148,55 @@ describe('campaign → runtime → thread snapshot smoke', () => {
     );
   });
 
+  it('execute hands the authenticated starter to the strategies it activates and never to ones already active', async () => {
+    const organizationId = 'org-1';
+    const starter = {
+      isApiKey: false,
+      organizationId,
+      scopes: [] as string[],
+      userId: 'user-1',
+    };
+    agentCampaignsService.findOneById.mockResolvedValue({
+      agents: ['inactive-strategy', 'active-strategy'],
+      brandId: 'brand-1',
+      brief: 'Grow engagement on X',
+      id: 'campaign-1',
+      label: 'Spring Push',
+      organizationId,
+      status: 'draft',
+      userId: 'user-1',
+    });
+    agentCampaignsService.patch.mockResolvedValue({
+      agents: ['inactive-strategy', 'active-strategy'],
+      id: 'campaign-1',
+      organizationId,
+      status: 'active',
+    });
+    agentStrategiesService.findOneById.mockImplementation(
+      async (id: string) => ({
+        agentType: 'orchestrator',
+        id,
+        isActive: id === 'active-strategy',
+        label: id,
+      }),
+    );
+
+    await executionService.execute(
+      'campaign-1',
+      organizationId,
+      'user-1',
+      starter,
+    );
+
+    expect(agentStrategiesService.setActive).toHaveBeenCalledTimes(1);
+    expect(agentStrategiesService.setActive).toHaveBeenCalledWith(
+      'inactive-strategy',
+      organizationId,
+      true,
+      starter,
+    );
+  });
+
   it('pause returns the populated Program roster', async () => {
     const campaignId = 'campaign-1';
     const organizationId = 'org-1';

@@ -146,6 +146,8 @@ describe('WorkflowTemplateSeederService platform authority (#6689)', () => {
           sourceType: 'seeded-template',
         },
         platformSeedKey: null,
+        templateInstantiationKey: null,
+        updatedAt: new Date(),
         userId: 'seed-user',
       },
     ]);
@@ -203,6 +205,8 @@ describe('WorkflowTemplateSeederService platform authority (#6689)', () => {
                     sourceType: 'seeded-template',
                   },
                   platformSeedKey: null,
+                  templateInstantiationKey: null,
+                  updatedAt: new Date(),
                   userId: 'seed-user',
                 },
               ]

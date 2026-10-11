@@ -16,6 +16,7 @@ import {
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import {
   IngredientCategory,
+  PersistedReviewDecision,
   Platform,
   PostCategory,
   PostFormat,
@@ -359,6 +360,36 @@ describe('retained generation and publication recovery facts', () => {
       });
     },
   );
+  it('holds a needs-review draft for a member and clears it only on an explicit approval of this exact version', async () => {
+    const h = fixture();
+    h.retain({ ...h.projection, state: 'needs_review' });
+    h.findPost.mockResolvedValue(h.post);
+    expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+      state: 'awaiting_review',
+      reason: 'brand_review_required',
+      action: 'none',
+      postId: 'post-output-a',
+      mayRepeatPaidRequest: false,
+    });
+    // An approval without a pinned version (cleared when the material changes) is not enough.
+    Object.assign(h.post, {
+      reviewDecision: PersistedReviewDecision.APPROVED,
+      reviewVersionPinId: null,
+    });
+    expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+      reason: 'brand_review_required',
+    });
+    Object.assign(h.post, { reviewVersionPinId: 'pin-a' });
+    expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+      state: 'draft',
+      reason: 'publication_admission_required',
+    });
+    // A hard-blocked receipt is never cleared by a review decision.
+    h.retain({ ...h.projection, state: 'blocked' });
+    expect(await readBreakoutOutputRecovery(h.tx, input)).toMatchObject({
+      reason: 'quality_or_brand_blocked',
+    });
+  });
   it.each(['image', 'carousel', 'video', 'short'])(
     'shows an actual %s capability hold without granting dispatch or retry',
     async (format) => {

@@ -114,6 +114,14 @@ describe('AgentCampaignsController', () => {
         'campaign-1',
         organizationId,
         metadataUserId,
+        // The authenticated starter becomes the actor of the strategies it activates.
+        {
+          apiKeyId: undefined,
+          isApiKey: false,
+          organizationId,
+          scopes: [],
+          userId: metadataUserId,
+        },
       );
       expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });
@@ -136,6 +144,7 @@ describe('AgentCampaignsController', () => {
         'campaign-2',
         organizationId,
         'user_123',
+        expect.objectContaining({ organizationId, userId: 'user_123' }),
       );
       expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });

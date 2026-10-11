@@ -579,7 +579,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
   /**
    * The authenticated principal the accepted turn acts for. Proactive,
    * campaign and strategy runs are system turns: they are enqueued without a
-   * request principal and never acquire one here.
+   * request principal and never acquire one here. The schedules they save bind
+   * to the strategy's persisted actor instead
+   * (`AgentStrategyScheduleAuthorityService`), read live at each save.
    */
   private resolveTurnPrincipal(
     state: PreparedAgentTurnState,

@@ -5,6 +5,7 @@ import {
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import type { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { bindBreakoutPostArtifact } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import type { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import {
   type BreakoutTextOutputGenerationRequest,
   BreakoutTextOutputGenerationService,
@@ -97,6 +98,7 @@ function fixture(thread = false) {
     breakoutResponseOutput: {
       findFirst: vi.fn(async () => ({ generationKey: 'generation-a' })),
     },
+    post: { updateMany: vi.fn(async () => ({ count: 1 })) },
   } as unknown as Prisma.TransactionClient;
   const prisma = {
     ...tx,
@@ -121,6 +123,8 @@ function fixture(thread = false) {
     ),
   };
   const receipt = {
+    state: 'ready',
+    compliance: 'passed',
     execution: { providerAttemptRef: 'openrouter:actual-1' },
   } as BrandedTextGenerationOutcomeV1['receipt'];
   const run = async (
@@ -142,6 +146,9 @@ function fixture(thread = false) {
       scoreId: 'actual-score',
     })),
   };
+  const review = {
+    queue: vi.fn(async () => ({ turboRunId: 'review-run-a' })),
+  };
   const service = new BreakoutTextOutputGenerationService(
     prisma as unknown as PrismaService,
     generation as unknown as BrandedTextGenerationService,
@@ -149,6 +156,7 @@ function fixture(thread = false) {
     credits as unknown as CreditsUtilsService,
     posts as unknown as PostsService,
     quality as unknown as BreakoutOutputQualityService,
+    review as unknown as BreakoutReviewHandoffService,
   );
   return {
     service,
@@ -162,6 +170,7 @@ function fixture(thread = false) {
     generation,
     receipt,
     quality,
+    review,
   };
 }
 
@@ -209,6 +218,87 @@ describe('breakout text provider consumer', () => {
       }),
     );
   });
+  it('queues a draft the receipt left for brand review, keeps it linked and still scores it', async () => {
+    const h = fixture();
+    Object.assign(h.receipt, {
+      state: 'needs_review',
+      compliance: 'unverified',
+    });
+    const order: string[] = [];
+    h.review.queue.mockImplementation(async () => {
+      order.push('review');
+      return { turboRunId: 'review-run-a' };
+    });
+    h.quality.evaluate.mockImplementation(async () => {
+      order.push('quality');
+      return { state: 'approved', scoreId: 'actual-score' };
+    });
+    expect(await h.service.generate(h.request)).toMatchObject({
+      kind: 'completed',
+      postId: 'post-a',
+    });
+    expect(bindBreakoutPostArtifact).toHaveBeenCalledOnce();
+    expect(h.review.queue).toHaveBeenCalledWith(h.request.admission, {
+      postId: 'post-a',
+      generationKey: 'generation-a',
+    });
+    expect(order).toEqual(['review', 'quality']);
+    expect(h.tx.post.updateMany).not.toHaveBeenCalled();
+  });
+  it('does not queue a draft the receipt cleared', async () => {
+    const h = fixture();
+    await h.service.generate(h.request);
+    expect(h.review.queue).not.toHaveBeenCalled();
+  });
+  it('keeps a brand-blocked draft linked and held without review or scoring', async () => {
+    const h = fixture();
+    h.generation.generate.mockImplementation(async (normal) => {
+      await normal.resolveApiKey(normal.input.model);
+      await normal.admitDispatch?.();
+      const { postId } = await normal.persistText('One useful follow-up');
+      return {
+        kind: 'stopped',
+        receipt: h.receipt,
+        postId,
+        reasonCode: 'brand_validation_blocked',
+        hasNewDispatch: true,
+      };
+    });
+    expect(await h.service.generate(h.request)).toMatchObject({
+      kind: 'stopped',
+      reasonCode: 'brand_validation_blocked',
+    });
+    expect(bindBreakoutPostArtifact).toHaveBeenCalledOnce();
+    expect(h.review.queue).not.toHaveBeenCalled();
+    expect(h.quality.evaluate).not.toHaveBeenCalled();
+    expect(h.tx.post.updateMany).not.toHaveBeenCalled();
+  });
+  it('discards a paid draft it cannot link instead of orphaning it and reports why', async () => {
+    const h = fixture();
+    vi.mocked(bindBreakoutPostArtifact).mockResolvedValueOnce({
+      status: 'held',
+      reason: 'receipt_invalid',
+    });
+    expect(await h.service.generate(h.request)).toMatchObject({
+      kind: 'stopped',
+      postId: null,
+      reasonCode: 'breakout_artifact_binding_held:receipt_invalid',
+    });
+    expect(h.tx.post.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        credentialId: 'account-a',
+        breakoutOutputId: null,
+        targetExecutionState: TargetExecutionState.DRAFT,
+        OR: [{ id: 'post-a' }, { parentId: 'post-a' }],
+        isDeleted: false,
+      }),
+      data: { isDeleted: true },
+    });
+    expect(h.review.queue).not.toHaveBeenCalled();
+    expect(h.quality.evaluate).not.toHaveBeenCalled();
+  });
   it('saves every accepted thread segment with the canonical root relationship', async () => {
     const h = fixture(true);
     await h.service.generate(h.request);
@@ -232,6 +322,23 @@ describe('breakout text provider consumer', () => {
       }),
       [],
     );
+  });
+  it('discards a partly written thread instead of leaving paid segments nothing refers to', async () => {
+    const h = fixture(true);
+    h.posts.create
+      .mockResolvedValueOnce({ id: 'post-a' })
+      .mockRejectedValueOnce(new Error('segment write failed'));
+    await expect(h.service.generate(h.request)).rejects.toThrow(
+      'segment write failed',
+    );
+    expect(h.tx.post.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        OR: [{ id: 'post-a' }, { parentId: 'post-a' }],
+        breakoutOutputId: null,
+      }),
+      data: { isDeleted: true },
+    });
+    expect(h.quality.evaluate).not.toHaveBeenCalled();
   });
   it('uses one real BYOK resolution while retaining fresh growth admission and skipping a platform hold', async () => {
     const h = fixture();

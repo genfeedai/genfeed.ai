@@ -76,7 +76,8 @@ import { ModuleRef } from '@nestjs/core';
  * and the ownership guards shared by the workflows controllers.
  *
  * Sibling concerns split out in #754:
- * - `WorkflowTemplateSeederService` — operator-only catalog backfill helpers
+ * - `WorkflowTemplateSeederService` — catalog seeding helpers (operator-run; platform
+ *   marking of existing seeds is automatic, see the scheduler)
  * - `WorkflowRunControlService` — partial runs, resume, credits, execution logs
  * - `WorkflowWebhookService` — inbound webhook credentials + trigger path
  */
