@@ -6,7 +6,11 @@ import {
   brandedPostMaterialSelect,
   describeBrandedPostMaterialLayout,
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
-import { Platform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  PersistedReviewDecision,
+  Platform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BreakoutOutputRecoveryInput,
@@ -312,6 +316,8 @@ export async function readBreakoutOutputRecovery(
       externalId: true,
       targetExecutionState: true,
       quoteTweetId: true,
+      reviewDecision: true,
+      reviewVersionPinId: true,
     },
   });
   const base = {
@@ -501,7 +507,16 @@ export async function readBreakoutOutputRecovery(
       reason: 'approved_brand_required',
       action: 'none',
     };
-  if (receipt.state !== 'ready' || receipt.compliance !== 'passed')
+  // The approved-brand check leaves factual coverage unverified, so a human's review clears it:
+  // an explicit approval of this exact post version (the pin is cleared when its material changes).
+  const isReviewCleared =
+    receipt.state === 'needs_review' &&
+    post?.reviewDecision === PersistedReviewDecision.APPROVED &&
+    Boolean(post.reviewVersionPinId);
+  if (
+    (receipt.state !== 'ready' || receipt.compliance !== 'passed') &&
+    !isReviewCleared
+  )
     return {
       ...base,
       state: 'awaiting_review',

@@ -10,6 +10,7 @@ import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { BreakoutResponseExecutionService } from '@api/collections/outliers/services/breakout-response-execution.service';
 import { BreakoutResponseExecutionWorkflowService } from '@api/collections/outliers/services/breakout-response-execution-workflow.service';
+import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import { BreakoutTextOutputGenerationService } from '@api/collections/outliers/services/breakout-text-output-generation.service';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
@@ -20,6 +21,7 @@ import { BrandedGenerationReceiptsModule } from '@api/services/branded-generatio
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { RouterModule } from '@api/services/router/router.module';
+import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { Module } from '@nestjs/common';
 
@@ -42,6 +44,7 @@ import { Module } from '@nestjs/common';
     BrandedTextGenerationModule,
     ByokModule,
     PrismaModule,
+    TurboRunModule,
   ],
   providers: [
     BreakoutResponseExecutionService,
@@ -50,6 +53,7 @@ import { Module } from '@nestjs/common';
     BreakoutGenerationPlanService,
     BreakoutOutputQualityService,
     BreakoutMediaOutputGenerationService,
+    BreakoutReviewHandoffService,
     BreakoutTextOutputGenerationService,
   ],
   exports: [

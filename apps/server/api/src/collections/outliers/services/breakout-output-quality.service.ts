@@ -227,6 +227,9 @@ export class BreakoutOutputQualityService {
           'publication_admission_required',
           'platform_quality_blocked',
           'quality_evaluation_pending',
+          // Held for a member's review, but already paid for: still scored, so the evidence the
+          // publication gate needs exists the moment a member approves it.
+          'brand_review_required',
         ].includes(recovery.reason)
       )
         throw new ConflictException('breakout_quality_artifact_unavailable');

@@ -6,6 +6,7 @@ import {
 } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import { BreakoutOutputQualityService } from '@api/collections/outliers/services/breakout-output-quality.service';
 import { bindBreakoutPostArtifact } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import { BreakoutReviewHandoffService } from '@api/collections/outliers/services/breakout-review-handoff.service';
 import {
   type PostCreateInput,
   PostsService,
@@ -18,6 +19,7 @@ import type {
 import { textDispatchApiKey } from '@api/services/byok/text-dispatch-byok.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivitySource,
   CreditReservationStatus,
@@ -64,6 +66,7 @@ export class BreakoutTextOutputGenerationService {
     private readonly credits: CreditsUtilsService,
     private readonly posts: PostsService,
     private readonly quality: BreakoutOutputQualityService,
+    private readonly review: BreakoutReviewHandoffService,
   ) {}
 
   async generate(
@@ -186,27 +189,84 @@ export class BreakoutTextOutputGenerationService {
               settlementIdempotencyKey: `${admission.componentKey}:settled`,
             });
         }
-        if (outcome.kind === 'completed') {
-          await this.prisma.$transaction(async (tx) => {
-            await admission.reauthorize(tx);
-            const result = await bindBreakoutPostArtifact(tx, {
-              ...scope,
-              credentialId: admission.credentialId,
-              responseId: admission.responseId,
-              outputId: admission.outputId,
-              postId: outcome.postId,
-            });
-            if (result.status === 'held')
-              throw new ConflictException(
-                `breakout_artifact_binding_held:${result.reason}`,
-              );
-          });
-          await this.quality.evaluate({ admission, postId: outcome.postId });
-        }
+        // Every persisted draft was paid for. It is linked to its output, or it is discarded:
+        // never left as an unlinked draft that nothing can find, review or recover.
+        const settled =
+          outcome.kind === 'in_progress'
+            ? outcome
+            : await this.keepDraft(request, outcome);
         await admission.reauthorize(this.prisma);
-        return outcome;
+        return settled;
       },
     );
+  }
+
+  /**
+   * Links the persisted draft to its output, then queues it for the human review its receipt
+   * calls for and runs the quality gate. A blocked draft stays linked and held. A draft that
+   * cannot be linked is discarded, and the outcome says why.
+   */
+  private async keepDraft(
+    request: Readonly<BreakoutTextOutputGenerationRequest>,
+    outcome: Exclude<BrandedTextGenerationOutcomeV1, { kind: 'in_progress' }>,
+  ): Promise<BrandedTextGenerationOutcomeV1> {
+    const { admission } = request;
+    const { scope } = admission;
+    const postId = outcome.postId;
+    if (!postId) return outcome;
+    const bound = await this.prisma.$transaction(async (tx) => {
+      await admission.reauthorize(tx);
+      return bindBreakoutPostArtifact(tx, {
+        ...scope,
+        credentialId: admission.credentialId,
+        responseId: admission.responseId,
+        outputId: admission.outputId,
+        postId,
+      });
+    });
+    if (bound.status === 'held') {
+      await this.discardUnlinkedDraft(admission, postId);
+      return {
+        kind: 'stopped',
+        receipt: outcome.receipt,
+        postId: null,
+        reasonCode: `breakout_artifact_binding_held:${bound.reason}`,
+        hasNewDispatch: outcome.hasNewDispatch,
+      };
+    }
+    if (outcome.kind === 'stopped') return outcome;
+    // The approved-brand check always leaves factual coverage unverified, so a draft the
+    // receipt did not clear goes to a member's review instead of failing the response.
+    if (
+      outcome.receipt.state !== 'ready' ||
+      outcome.receipt.compliance !== 'passed'
+    )
+      await this.review.queue(admission, {
+        postId,
+        generationKey: request.input.requestKey,
+      });
+    await this.quality.evaluate({ admission, postId });
+    return outcome;
+  }
+
+  private async discardUnlinkedDraft(
+    admission: Readonly<BreakoutGenerationAdmission>,
+    postId: string,
+  ): Promise<void> {
+    const { scope } = admission;
+    await this.prisma.$transaction(async (tx) => {
+      await admission.reauthorize(tx);
+      await tx.post.updateMany({
+        where: scopedWhere(scope.organizationId, {
+          brandId: scope.brandId,
+          credentialId: admission.credentialId,
+          breakoutOutputId: null,
+          targetExecutionState: TargetExecutionState.DRAFT,
+          OR: [{ id: postId }, { parentId: postId }],
+        }),
+        data: { isDeleted: true },
+      });
+    });
   }
   private async persistDraft(
     request: Readonly<BreakoutTextOutputGenerationRequest>,
@@ -237,14 +297,24 @@ export class BreakoutTextOutputGenerationService {
     const first = drafts[0];
     if (!first) throw new BadRequestException('breakout_text_output_empty');
     const root = await this.posts.create({ ...first, order: 0 }, []);
-    for (const [index, draft] of drafts.slice(1).entries()) {
+    try {
+      for (const [index, draft] of drafts.slice(1).entries()) {
+        await admission.reauthorize(this.prisma);
+        await this.posts.create(
+          { ...draft, parentId: root.id, order: index + 1 },
+          [],
+        );
+      }
       await admission.reauthorize(this.prisma);
-      await this.posts.create(
-        { ...draft, parentId: root.id, order: index + 1 },
-        [],
+    } catch (error: unknown) {
+      // The receipt fails without a draft id when a segment write fails, so a partly written
+      // thread would be a paid draft nothing refers to. Discard it before reporting the failure.
+      // A revoked actor may not write at all; the original failure is the one reported.
+      await this.discardUnlinkedDraft(admission, root.id).catch(
+        () => undefined,
       );
+      throw error;
     }
-    await admission.reauthorize(this.prisma);
     return { postId: root.id };
   }
 }
