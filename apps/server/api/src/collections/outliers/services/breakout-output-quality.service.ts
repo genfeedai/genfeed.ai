@@ -86,61 +86,13 @@ export class BreakoutOutputQualityService {
         return { state: 'reconciliation_required', scoreId: null };
       return this.applyGate(request, existing, prepared);
     }
-    const claim = await this.prisma.$transaction(async (tx) => {
-      await admitBreakoutGenerationContinuation(tx, admission);
-      const output = await tx.breakoutResponseOutput.findFirst({
-        where: scopedWhere(
-          admission.scope.organizationId,
-          this.outputWhere(admission),
-        ),
-        select: { generationKey: true },
-      });
-      await admission.reauthorize(tx);
-      if (!output)
-        throw new ConflictException('breakout_quality_output_unavailable');
-      const changed = await tx.breakoutResponseOutput.updateMany({
-        where: scopedWhere(admission.scope.organizationId, {
-          ...this.outputWhere(admission),
-          state: { in: ['reserved', 'generating'] },
-          heldReason: null,
-        }),
-        data: { heldReason: 'quality_evaluation_pending' },
-      });
-      await admission.reauthorize(tx);
-      return { won: changed.count === 1, generationKey: output.generationKey };
-    });
+    const claim = await this.claimAttempt(admission);
     if (!claim.won) return { state: 'reconciliation_required', scoreId: null };
     const component = {
       ...admission,
       componentKey: `${claim.generationKey}:quality`,
     };
-    const capacity = await this.prisma.$transaction(async (tx) => {
-      await admission.reauthorize(tx);
-      const snapshot = await readBreakoutLiveCapacity(tx, {
-        ...admission.scope,
-        credentialId: admission.credentialId,
-        nowMs: Date.now(),
-      });
-      await admission.reauthorize(tx);
-      return snapshot;
-    });
-    if (capacity.status !== 'available')
-      throw new ConflictException('breakout_quality_budget_unavailable');
-    const remaining = [
-      capacity.budget.remainingDailyCredits,
-      capacity.budget.remainingWeeklyCredits,
-      capacity.budget.remainingMonthlyCredits,
-      capacity.budget.remainingPlatformCredits,
-      capacity.budget.remainingPacingCredits,
-      capacity.budget.availableOrganizationCredits,
-      ...(capacity.budget.remainingFormatCredits[admission.scope.format] ===
-      undefined
-        ? []
-        : [capacity.budget.remainingFormatCredits[admission.scope.format]]),
-    ];
-    if (remaining.some((value) => value === null || !Number.isFinite(value)))
-      throw new ConflictException('breakout_quality_budget_unavailable');
-    const budget = Math.min(...remaining.map((value) => value ?? 0));
+    const budget = await this.readBudget(admission);
     let attempts = 0;
     let reservationId: string | undefined;
     let maximumCredits = 0;
@@ -228,6 +180,68 @@ export class BreakoutOutputQualityService {
     const score = await this.readScore(request, prepared.binding);
     if (!score) return { state: 'reconciliation_required', scoreId: null };
     return this.applyGate(request, score, prepared);
+  }
+
+  /** One claim per output: a held reason marks the single paid quality attempt as taken. */
+  private async claimAttempt(
+    admission: Readonly<BreakoutGenerationAdmission>,
+  ): Promise<{ won: boolean; generationKey: string }> {
+    return this.prisma.$transaction(async (tx) => {
+      await admitBreakoutGenerationContinuation(tx, admission);
+      const output = await tx.breakoutResponseOutput.findFirst({
+        where: scopedWhere(
+          admission.scope.organizationId,
+          this.outputWhere(admission),
+        ),
+        select: { generationKey: true },
+      });
+      await admission.reauthorize(tx);
+      if (!output)
+        throw new ConflictException('breakout_quality_output_unavailable');
+      const changed = await tx.breakoutResponseOutput.updateMany({
+        where: scopedWhere(admission.scope.organizationId, {
+          ...this.outputWhere(admission),
+          state: { in: ['reserved', 'generating'] },
+          heldReason: null,
+        }),
+        data: { heldReason: 'quality_evaluation_pending' },
+      });
+      await admission.reauthorize(tx);
+      return { won: changed.count === 1, generationKey: output.generationKey };
+    });
+  }
+
+  /** The smallest remaining budget the output's scope allows one quality attempt to spend. */
+  private async readBudget(
+    admission: Readonly<BreakoutGenerationAdmission>,
+  ): Promise<number> {
+    const capacity = await this.prisma.$transaction(async (tx) => {
+      await admission.reauthorize(tx);
+      const snapshot = await readBreakoutLiveCapacity(tx, {
+        ...admission.scope,
+        credentialId: admission.credentialId,
+        nowMs: Date.now(),
+      });
+      await admission.reauthorize(tx);
+      return snapshot;
+    });
+    if (capacity.status !== 'available')
+      throw new ConflictException('breakout_quality_budget_unavailable');
+    const remaining = [
+      capacity.budget.remainingDailyCredits,
+      capacity.budget.remainingWeeklyCredits,
+      capacity.budget.remainingMonthlyCredits,
+      capacity.budget.remainingPlatformCredits,
+      capacity.budget.remainingPacingCredits,
+      capacity.budget.availableOrganizationCredits,
+      ...(capacity.budget.remainingFormatCredits[admission.scope.format] ===
+      undefined
+        ? []
+        : [capacity.budget.remainingFormatCredits[admission.scope.format]]),
+    ];
+    if (remaining.some((value) => value === null || !Number.isFinite(value)))
+      throw new ConflictException('breakout_quality_budget_unavailable');
+    return Math.min(...remaining.map((value) => value ?? 0));
   }
 
   private outputWhere(admission: Readonly<BreakoutGenerationAdmission>) {
