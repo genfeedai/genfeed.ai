@@ -129,12 +129,7 @@ describe.skipIf(!connectionString)(
       collectionStopsWhenRevoked,
     );
 
-    // TODO(#6526): the collection authorization's `admit` re-reads membership and the API key
-    // but never asserts access to the brand being collected
-    // (analytics-collection-actor.ts `authorize`: refreshWorkflowActor only calls
-    // policy.resolve, not policy.assert(brandId)). A creator removed from the brand keeps
-    // capturing its analytics and detecting breakouts; only execution later re-checks.
-    it.fails('stops collection when brand access is removed before the measurement is stored', () =>
+    it('stops collection when brand access is removed before the measurement is stored', () =>
       collectionStopsWhenRevoked('brand access'));
 
     describe.each(['membership', 'brand access', 'API key'] as const)(
