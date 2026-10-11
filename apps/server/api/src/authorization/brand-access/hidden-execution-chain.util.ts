@@ -108,6 +108,7 @@ const EXECUTION_SELECT = {
       organizationId: true,
       userId: true,
       metadata: true,
+      platformSeedKey: true,
       scheduleInitiatingActor: true,
     },
   },
@@ -355,5 +356,8 @@ function scheduledTenantActor(
     record(record(parent.result).metadata).triggeredBy !== 'schedule'
   )
     return undefined;
+  // A seeded platform workflow runs under platform authority: it never lends a person to its
+  // fan-out children, even if a stale binding survived on the row.
+  if (parent.workflow.platformSeedKey) return undefined;
   return parent.workflow.scheduleInitiatingActor ?? undefined;
 }

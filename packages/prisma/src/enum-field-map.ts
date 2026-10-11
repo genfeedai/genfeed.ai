@@ -8562,6 +8562,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'metadata',
       'organization',
       'organizationId',
+      'platformSeedKey',
       'progress',
       'recurrence',
       'schedule',

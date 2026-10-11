@@ -1,5 +1,10 @@
 import type { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  isUniqueConstraintViolation,
+  type PlatformSeedReconcileOutcome,
+  reconcilePlatformSeedMarker,
+} from '@api/collections/workflows/services/workflow-platform-seed-reconcile.util';
 import { areWorkflowMetadataValuesEqual } from '@api/collections/workflows/services/workflow-template-seeder-metadata.util';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import {
@@ -14,18 +19,12 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
   type SystemWorkflowMetadata,
 } from '@api/collections/workflows/system-workflow.contract';
-import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
-import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
-import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
-import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
-import { CONTENT_LEARNING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-learning-workflows.template';
-import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
-import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
-import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
-import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
-import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
-import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
-import { type WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import {
+  isPlatformScheduledTemplate,
+  PLATFORM_SEED_TEMPLATE_SETS,
+  type PlatformSeedTemplateSet,
+  type SeedableWorkflowTemplate,
+} from '@api/collections/workflows/utils/workflow-platform-seed.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/contracts';
@@ -42,8 +41,6 @@ const WORKFLOW_SCHEDULER_SYNC_SELECT = {
   status: true,
   timezone: true,
 } as const;
-
-type SeedableWorkflowTemplate = WorkflowTemplate & { schedule?: string };
 
 /**
  * Idempotent seeding of system workflows for an organization.
@@ -236,10 +233,12 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Race-safe idempotent insert keyed on `metadata.sourceTemplateId` within an
-   * organization. Fast-path read first; otherwise a SERIALIZABLE re-check +
-   * create where both operations use the same `tx` client so Postgres can
-   * detect a concurrent conflicting write and serialise the two callers.
+   * Idempotent insert keyed on `metadata.sourceTemplateId` within an organization. A template
+   * that ships a canonical cron is written as a platform workflow (see
+   * {@link WorkflowsService.createPlatformSeeded}); an existing row is reconciled instead, so a
+   * row seeded before the marker existed is marked here once it provably matches the template.
+   * The partial unique index on (organizationId, platformSeedKey) settles two concurrent
+   * seeders: the loser sees a unique violation and treats the workflow as already seeded.
    */
   private async ensureSeededWorkflow(input: {
     createData: Record<string, unknown>;
@@ -247,6 +246,8 @@ export class WorkflowTemplateSeederService {
     logMeta: Record<string, unknown>;
     organizationId: string;
     sourceTemplateId: string;
+    template: SeedableWorkflowTemplate;
+    userId: string;
   }): Promise<void> {
     const where = scopedWhere(input.organizationId, {
       metadata: {
@@ -276,17 +277,48 @@ export class WorkflowTemplateSeederService {
         input.organizationId,
         input.createData.metadata,
       );
+      await reconcilePlatformSeedMarker(
+        { logger: this.logger, prisma: this.prisma },
+        {
+          organizationId: input.organizationId,
+          template: input.template,
+          userId: input.userId,
+        },
+      );
       return;
     }
 
-    await this.workflowsService.create(
-      input.createData as unknown as CreateWorkflowDto,
-    );
+    try {
+      await this.createSeededWorkflow(input);
+    } catch (error: unknown) {
+      if (!isUniqueConstraintViolation(error)) {
+        throw error;
+      }
+      this.logger?.debug('Seeded workflow was created concurrently', {
+        ...input.logMeta,
+        logContext: input.logContext,
+      });
+    }
 
     await this.reconcileDesiredSystemWorkflowDuplicates(
       input.organizationId,
       input.createData.metadata,
     );
+  }
+
+  private async createSeededWorkflow(input: {
+    createData: Record<string, unknown>;
+    template: SeedableWorkflowTemplate;
+  }): Promise<void> {
+    const createDto = input.createData as unknown as CreateWorkflowDto;
+    if (isPlatformScheduledTemplate(input.template)) {
+      await this.workflowsService.createPlatformSeeded(
+        createDto,
+        input.template.id,
+      );
+      return;
+    }
+    await this.workflowsService.create(createDto);
   }
 
   private buildSeededTemplateCreateData(input: {
@@ -327,20 +359,18 @@ export class WorkflowTemplateSeederService {
     T extends SeedableWorkflowTemplate,
   >(input: {
     buildExtraMetadata?: (template: T) => Record<string, unknown>;
-    lifecycle?: WorkflowLifecycle;
     logContext: string;
     organizationId: string;
-    sourceIssue: number;
-    templates: readonly T[];
+    set: PlatformSeedTemplateSet & { templates: readonly T[] };
     userId: string;
   }): Promise<void> {
-    for (const template of input.templates) {
+    for (const template of input.set.templates) {
       await this.ensureSeededWorkflow({
         createData: this.buildSeededTemplateCreateData({
           extraMetadata: input.buildExtraMetadata?.(template),
-          lifecycle: input.lifecycle,
+          lifecycle: input.set.lifecycle,
           organizationId: input.organizationId,
-          sourceIssue: input.sourceIssue,
+          sourceIssue: input.set.sourceIssue,
           template,
           userId: input.userId,
         }),
@@ -351,6 +381,8 @@ export class WorkflowTemplateSeederService {
         },
         organizationId: input.organizationId,
         sourceTemplateId: template.id,
+        template,
+        userId: input.userId,
       });
     }
   }
@@ -364,11 +396,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
-      lifecycle: WorkflowLifecycle.PUBLISHED,
+      set: PLATFORM_SEED_TEMPLATE_SETS.adAutomation,
       logContext: 'ensureAdAutomationWorkflows',
       organizationId,
-      sourceIssue: 782,
-      templates: AD_AUTOMATION_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -382,10 +412,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.campaignOrchestration,
       logContext: 'ensureCampaignOrchestrationWorkflows',
       organizationId,
-      sourceIssue: 783,
-      templates: CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -399,10 +428,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.outreachCampaignDispatch,
       logContext: 'ensureOutreachCampaignDispatchWorkflows',
       organizationId,
-      sourceIssue: 3407,
-      templates: OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -416,10 +444,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.agentAutopilot,
       logContext: 'ensureAgentAutopilotWorkflows',
       organizationId,
-      sourceIssue: 784,
-      templates: AGENT_AUTOPILOT_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -433,11 +460,10 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.contentLearning,
       logContext: 'ensureContentLearningWorkflows',
       organizationId,
       userId,
-      sourceIssue: 5728,
-      templates: CONTENT_LEARNING_WORKFLOW_TEMPLATES,
     });
   }
 
@@ -446,10 +472,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.analyticsSync,
       logContext: 'ensureAnalyticsSyncWorkflows',
       organizationId,
-      sourceIssue: 785,
-      templates: ANALYTICS_SYNC_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -463,10 +488,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.contentProduction,
       logContext: 'ensureContentProductionWorkflows',
       organizationId,
-      sourceIssue: 786,
-      templates: CONTENT_PRODUCTION_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -480,10 +504,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.contentLoopAutopilot,
       logContext: 'ensureContentLoopAutopilotWorkflows',
       organizationId,
-      sourceIssue: 3018,
-      templates: CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -497,10 +520,9 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.replyPolling,
       logContext: 'ensureReplyPollingWorkflows',
       organizationId,
-      sourceIssue: 787,
-      templates: REPLY_POLLING_WORKFLOW_TEMPLATES,
       userId,
     });
   }
@@ -517,8 +539,7 @@ export class WorkflowTemplateSeederService {
       buildExtraMetadata: (template) => ({ cadence: template.cadence }),
       logContext: 'ensureTrendNotificationWorkflows',
       organizationId,
-      sourceIssue: 788,
-      templates: TREND_NOTIFICATION_WORKFLOW_TEMPLATES,
+      set: PLATFORM_SEED_TEMPLATE_SETS.trendNotification,
       userId,
     });
   }
@@ -532,12 +553,37 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Promise<void> {
     await this.ensureSeededTemplateWorkflows({
+      set: PLATFORM_SEED_TEMPLATE_SETS.livestreamBot,
       logContext: 'ensureLivestreamBotWorkflows',
       organizationId,
-      sourceIssue: 793,
-      templates: LIVESTREAM_BOT_WORKFLOW_TEMPLATES,
       userId,
     });
+  }
+
+  /**
+   * Operator backfill: marks the rows an earlier seed run left in one organization as platform
+   * workflows, without creating anything. `userId` is the seeding user the operator names; a
+   * row is marked only if it belongs to that user and still matches its catalog template
+   * exactly (see {@link reconcilePlatformSeedMarker}). Never infer the marker from metadata:
+   * tenants can forge it. Run `syncOrganizationWorkflowSchedulers` afterwards if rows were
+   * re-enabled by hand.
+   */
+  async reconcilePlatformSeedMarkers(
+    userId: string,
+    organizationId: string,
+  ): Promise<Record<string, PlatformSeedReconcileOutcome>> {
+    const outcomes: Record<string, PlatformSeedReconcileOutcome> = {};
+
+    for (const set of Object.values(PLATFORM_SEED_TEMPLATE_SETS)) {
+      for (const template of set.templates) {
+        outcomes[template.id] = await reconcilePlatformSeedMarker(
+          { logger: this.logger, prisma: this.prisma },
+          { organizationId, template, userId },
+        );
+      }
+    }
+
+    return outcomes;
   }
 
   /**

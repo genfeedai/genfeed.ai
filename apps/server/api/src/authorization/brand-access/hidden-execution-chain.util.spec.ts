@@ -486,6 +486,10 @@ describe('hidden execution chain validation', () => {
       ['a run with no trigger', { trigger: null }],
       ['a run not recorded as schedule-started', { triggeredBy: 'user' }],
       ['an unbound schedule', { actor: null }],
+      [
+        'a seeded platform workflow, even with a stale binding on the row',
+        { platformSeedKey: 'analytics.sync' },
+      ],
     ])('carries no actor for %s', async (_name, overrides) => {
       const { child, parent } = scheduled(overrides);
       const { tx } = harness([parent, child]);

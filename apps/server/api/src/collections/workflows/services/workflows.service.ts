@@ -30,6 +30,7 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
+import { PLATFORM_SEED_INVALIDATING_PATCH_FIELDS } from '@api/collections/workflows/utils/workflow-platform-seed.util';
 import {
   resolveScheduleInitiatingActor,
   type WorkflowSchedulePrincipal,
@@ -193,18 +194,43 @@ export class WorkflowsService extends BaseService<
     );
   }
 
+  /**
+   * Tenant-facing create. Whatever the input carries, the platform authority marker is
+   * dropped: only {@link createPlatformSeeded} can write it.
+   */
   override async create(
     createDto: CreateWorkflowDto,
+  ): Promise<WorkflowDocument> {
+    return this.persistCreate(createDto);
+  }
+
+  /**
+   * Seeder-only create: persists the workflow marked as the canonical seeded template
+   * `platformSeedKey`, so Cloud runs its schedule under platform authority without an actor.
+   * Nothing else may call this; callers resolve the key from the code-owned catalog.
+   */
+  async createPlatformSeeded(
+    createDto: CreateWorkflowDto,
+    platformSeedKey: string,
+  ): Promise<WorkflowDocument> {
+    return this.persistCreate(createDto, platformSeedKey);
+  }
+
+  private async persistCreate(
+    createDto: CreateWorkflowDto,
+    platformSeedKey?: string,
   ): Promise<WorkflowDocument> {
     const { definition, workflow } = splitWorkflowDefinition(
       createDto as unknown as Record<string, unknown>,
     );
     delete workflow.currentVersionId;
+    delete workflow.platformSeedKey;
     const created = await this.prisma.$transaction((transaction) =>
       createVersionedWorkflow(
         transaction,
         workflow as VersionedWorkflowIdentityInput,
         definition,
+        { platformSeedKey },
       ),
     );
 
@@ -232,6 +258,9 @@ export class WorkflowsService extends BaseService<
         'The schedule initiating actor is server-owned',
       );
     }
+    if ('platformSeedKey' in workflowPatch) {
+      throw new BadRequestException('The platform seed key is server-owned');
+    }
     const configPatch = pickDefinedFields(
       workflowPatch,
       WORKFLOW_CONFIG_FIELDS,
@@ -255,6 +284,14 @@ export class WorkflowsService extends BaseService<
       delete scalarPatch[field];
     }
     delete scalarPatch.currentVersionId;
+    // Editing what a seeded workflow is or runs makes it a tenant workflow in the same write.
+    if (
+      PLATFORM_SEED_INVALIDATING_PATCH_FIELDS.some(
+        (field) => field in workflowPatch,
+      )
+    ) {
+      scalarPatch.platformSeedKey = null;
+    }
 
     const hasDefinitionPatch = WORKFLOW_DEFINITION_FIELDS.some(
       (field) => field in workflowPatch,

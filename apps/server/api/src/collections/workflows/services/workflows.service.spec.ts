@@ -1082,7 +1082,7 @@ describe('WorkflowsService versioned edge style patches', () => {
         }),
       });
       expect(updateMany).toHaveBeenCalledWith({
-        data: { currentVersionId: 'version-2' },
+        data: { currentVersionId: 'version-2', platformSeedKey: null },
         where: {
           currentVersionId: 'version-1',
           id: 'workflow-1',

@@ -24,6 +24,7 @@ export type ExecutionFixture = {
     isDeleted: boolean;
     metadata: Record<string, unknown>;
     organizationId: string;
+    platformSeedKey: string | null;
     scheduleInitiatingActor: unknown;
     userId: string;
   };
@@ -61,6 +62,7 @@ export function hiddenExecutionRow(options: RowOptions): ExecutionFixture {
       isDeleted: false,
       organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      platformSeedKey: null,
       scheduleInitiatingActor: null,
       metadata: {
         sourceType: 'hidden-system-workflow',
@@ -88,6 +90,7 @@ type TenantOptions = {
   actor?: unknown;
   id: string;
   organizationId?: string;
+  platformSeedKey?: string;
   trigger?: string | null;
   triggeredBy?: string;
   userId?: string;
@@ -109,6 +112,7 @@ export function tenantExecutionRow(options: TenantOptions): ExecutionFixture {
       isDeleted: false,
       organizationId,
       userId: 'workflow-creator',
+      platformSeedKey: options.platformSeedKey ?? null,
       scheduleInitiatingActor: options.actor ?? null,
       metadata: {},
     },

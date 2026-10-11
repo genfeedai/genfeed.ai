@@ -144,20 +144,31 @@ type VersionedWorkflowTransaction = Pick<
   Prisma.TransactionClient,
   'workflow' | 'workflowVersion'
 >;
+/**
+ * Caller-supplied workflow identity. `platformSeedKey` is omitted on purpose: the platform
+ * authority marker is server-only and travels only through the `platformSeedKey` option below.
+ */
 export type VersionedWorkflowIdentityInput = Omit<
   Prisma.WorkflowUncheckedCreateInput,
-  'currentVersionId'
+  'currentVersionId' | 'platformSeedKey'
 >;
 
 export async function createVersionedWorkflow(
   transaction: VersionedWorkflowTransaction,
   identityData: VersionedWorkflowIdentityInput,
   definitionInput: WorkflowDefinitionInput,
+  options: { platformSeedKey?: string } = {},
 ) {
   const definition = buildWorkflowVersionDefinition(definitionInput);
   const versionId = randomUUID();
   const identity = await transaction.workflow.create({
-    data: { ...identityData, currentVersionId: versionId },
+    data: {
+      ...identityData,
+      currentVersionId: versionId,
+      ...(options.platformSeedKey
+        ? { platformSeedKey: options.platformSeedKey }
+        : {}),
+    },
   });
   await transaction.workflowVersion.create({
     data: {

@@ -2,6 +2,8 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
+import { getPlatformSeedContentHash } from '@api/collections/workflows/utils/workflow-platform-seed.util';
 import { getOrganizationModuleExecutionContext } from '@api/common/organization-modules/organization-module-execution.context';
 import {
   MemberRole,
@@ -52,6 +54,7 @@ function createMockQueueService() {
 }
 
 function versionedWorkflow(input: {
+  contentHash?: string;
   id: string;
   inputVariables?: unknown[];
   nodes?: unknown[];
@@ -59,11 +62,12 @@ function versionedWorkflow(input: {
   userId?: string | null;
   [key: string]: unknown;
 }) {
-  const { inputVariables = [], nodes = [], ...identity } = input;
+  const { contentHash, inputVariables = [], nodes = [], ...identity } = input;
 
   return {
     ...identity,
     currentVersion: {
+      ...(contentHash ? { contentHash } : {}),
       graph: { edges: [], lockedNodeIds: [], nodes },
       id: `${input.id}-version-1`,
       inputSchema: inputVariables,
@@ -417,7 +421,17 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     await service.executeScheduledWorkflow('wf-1', 'fire-1');
 
     expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
-      select: { ...EXECUTABLE_WORKFLOW_SELECT, scheduleInitiatingActor: true },
+      select: {
+        ...EXECUTABLE_WORKFLOW_SELECT,
+        currentVersion: {
+          select: {
+            ...EXECUTABLE_WORKFLOW_SELECT.currentVersion.select,
+            contentHash: true,
+          },
+        },
+        platformSeedKey: true,
+        scheduleInitiatingActor: true,
+      },
       where: {
         id: 'wf-1',
         isDeleted: false,
@@ -1064,6 +1078,303 @@ describe('WorkflowSchedulerService — scheduled run actor', () => {
         expect.anything(),
         expect.anything(),
         WorkflowExecutionTrigger.SCHEDULED,
+      );
+    });
+  });
+});
+
+describe('WorkflowSchedulerService — seeded platform authority', () => {
+  const template = ANALYTICS_SYNC_WORKFLOW_TEMPLATES[0];
+  const otherTemplate = ANALYTICS_SYNC_WORKFLOW_TEMPLATES[1];
+  const canonicalHash = getPlatformSeedContentHash(template) as string;
+  const actor = {
+    isApiKey: false,
+    organizationId: 'org-1',
+    scopes: [],
+    userId: 'actor-1',
+  };
+
+  function fixture(
+    workflow: Record<string, unknown> = {},
+    options: { cloud?: boolean } = {},
+  ) {
+    runtime.cloud = options.cloud ?? true;
+    const created = createService();
+    created.prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow({
+        brandId: null,
+        contentHash: canonicalHash,
+        id: 'wf-1',
+        organizationId: 'org-1',
+        platformSeedKey: template.id,
+        scheduleInitiatingActor: null,
+        userId: 'seed-user',
+        ...workflow,
+      }),
+    );
+    return created;
+  }
+
+  it('has a scheduled canonical template to check against', () => {
+    expect(template.schedule).toBeTruthy();
+    expect(canonicalHash).toMatch(/^sha256:v1:/);
+    expect(getPlatformSeedContentHash(otherTemplate)).not.toBe(canonicalHash);
+  });
+
+  it('runs a canonical seeded workflow in Cloud with no actor, as the seeding user', async () => {
+    const created = fixture();
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'wf-1' }),
+      'seed-user',
+      'org-1',
+      {},
+      // Nothing platform-side becomes a person: no actor rides the execution metadata.
+      { scheduledFireJobId: 'fire-1', triggeredBy: 'schedule' },
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(created.prisma.member.findFirst).not.toHaveBeenCalled();
+    expect(created.prisma.apiKey.findFirst).not.toHaveBeenCalled();
+    // Only the execution counter write: the schedule stays enabled.
+    expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+    expect(created.queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('ignores a stale actor still bound to the row instead of promoting it', async () => {
+    const created = fixture({ scheduleInitiatingActor: actor });
+    created.prisma.member.findFirst.mockResolvedValue(null);
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      'seed-user',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(created.prisma.member.findFirst).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'its graph was edited (a newer version with another hash)',
+      { contentHash: 'sha256:v1:edited' },
+    ],
+    ['its version carries no hash', { contentHash: undefined }],
+    [
+      'it was swapped to another template while keeping the old graph',
+      { platformSeedKey: otherTemplate.id },
+    ],
+    ['its marker names no catalog template', { platformSeedKey: 'forged-key' }],
+    ['it was scoped to a brand', { brandId: 'brand-1' }],
+  ])(
+    'holds and unmarks a marked workflow when %s',
+    async (_label, overrides) => {
+      const created = fixture(overrides);
+
+      await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+      expect(
+        created.workflowExecutorService.executeManualWorkflowDocument,
+      ).not.toHaveBeenCalled();
+      expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+      expect(created.prisma.workflow.update).toHaveBeenCalledWith({
+        data: {
+          isScheduleEnabled: false,
+          platformSeedKey: null,
+          scheduleInitiatingActor: Prisma.DbNull,
+        },
+        where: { id: 'wf-1', isDeleted: false, organizationId: 'org-1' },
+      });
+      expect(created.queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+        'wf-1',
+      );
+      expect(created.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'no longer matches its seeded platform template',
+        ),
+        'WorkflowSchedulerService',
+      );
+    },
+  );
+
+  it('does not let a bound actor rescue a marked workflow that no longer matches', async () => {
+    const created = fixture({
+      contentHash: 'sha256:v1:edited',
+      scheduleInitiatingActor: actor,
+    });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).not.toHaveBeenCalled();
+    expect(created.prisma.member.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('still requires Automation module access for a platform run', async () => {
+    const created = fixture();
+    created.moduleAccess.assertAccess.mockRejectedValue(
+      new ForbiddenException('Automation requires a subscription'),
+    );
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(created.moduleAccess.assertAccess).toHaveBeenCalledWith(
+      'org-1',
+      'automation',
+    );
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).not.toHaveBeenCalled();
+    expect(created.prisma.workflow.update).not.toHaveBeenCalled();
+  });
+
+  it('still pauses a platform run whose required inputs have no defaults, keeping the marker', async () => {
+    const created = fixture({
+      inputVariables: [{ key: 'accountId', required: true }],
+    });
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).not.toHaveBeenCalled();
+    expect(created.prisma.workflow.update).toHaveBeenCalledWith({
+      data: {
+        isScheduleEnabled: false,
+        scheduleInitiatingActor: Prisma.DbNull,
+      },
+      where: { id: 'wf-1', isDeleted: false, organizationId: 'org-1' },
+    });
+  });
+
+  it('does not validate the marker on self-hosted, which keeps running as the owner', async () => {
+    const created = fixture(
+      { contentHash: 'sha256:v1:edited' },
+      { cloud: false },
+    );
+
+    await created.service.executeScheduledWorkflow('wf-1', 'fire-1');
+
+    expect(
+      created.workflowExecutorService.executeManualWorkflowDocument,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      'seed-user',
+      'org-1',
+      expect.anything(),
+      expect.anything(),
+      WorkflowExecutionTrigger.SCHEDULED,
+    );
+    expect(created.prisma.workflow.update).toHaveBeenCalledTimes(1);
+  });
+
+  describe('schedule saves', () => {
+    const principal = {
+      isApiKey: false,
+      organizationId: 'org-1',
+      scopes: [],
+      userId: 'user-1',
+    };
+
+    function savedWorkflow() {
+      return versionedWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        schedule: '0 7 * * *',
+        timezone: 'UTC',
+      });
+    }
+
+    function writtenData(prisma: ReturnType<typeof createMockPrisma>) {
+      const [args] = prisma.workflow.update.mock.calls[0] as [
+        { data: Record<string, unknown> },
+      ];
+      return args.data;
+    }
+
+    function existingSeed(contentHash: string) {
+      return {
+        brandId: null,
+        currentVersion: { contentHash },
+        id: 'wf-1',
+        platformSeedKey: template.id,
+      };
+    }
+
+    it('keeps the marker and leaves the saver out of a canonical seeded workflow', async () => {
+      const prisma = createMockPrisma();
+      prisma.workflow.findFirst.mockResolvedValue(existingSeed(canonicalHash));
+      prisma.workflow.update.mockResolvedValue(savedWorkflow());
+      const { service } = createService({ prisma });
+
+      await service.updateSchedule(
+        'wf-1',
+        'org-1',
+        '0 7 * * *',
+        'UTC',
+        true,
+        principal,
+      );
+
+      const data = writtenData(prisma);
+      expect(data.scheduleInitiatingActor).toBe(Prisma.DbNull);
+      expect(data).not.toHaveProperty('platformSeedKey');
+      expect(data).toMatchObject({
+        isScheduleEnabled: true,
+        schedule: '0 7 * * *',
+        timezone: 'UTC',
+      });
+    });
+
+    it('keeps the marker when a canonical seeded workflow is paused', async () => {
+      const prisma = createMockPrisma();
+      prisma.workflow.findFirst.mockResolvedValue(existingSeed(canonicalHash));
+      prisma.workflow.update.mockResolvedValue(savedWorkflow());
+      const { service } = createService({ prisma });
+
+      await service.updateSchedule(
+        'wf-1',
+        'org-1',
+        '0 7 * * *',
+        'UTC',
+        false,
+        principal,
+      );
+
+      expect(writtenData(prisma)).not.toHaveProperty('platformSeedKey');
+    });
+
+    it('drops a marker that no longer matches its template and binds the saver', async () => {
+      const prisma = createMockPrisma();
+      prisma.workflow.findFirst.mockResolvedValue(
+        existingSeed('sha256:v1:edited'),
+      );
+      prisma.workflow.update.mockResolvedValue(savedWorkflow());
+      const { service } = createService({ prisma });
+
+      await service.updateSchedule(
+        'wf-1',
+        'org-1',
+        '0 7 * * *',
+        'UTC',
+        true,
+        principal,
+      );
+
+      const data = writtenData(prisma);
+      expect(data.platformSeedKey).toBeNull();
+      expect(data.scheduleInitiatingActor).toEqual(
+        expect.objectContaining({ userId: 'user-1' }),
       );
     });
   });
