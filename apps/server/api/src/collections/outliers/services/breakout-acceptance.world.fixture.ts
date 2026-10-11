@@ -22,7 +22,11 @@ import type {
   BreakoutExposureEvidence,
   BreakoutPublicationSourceV1,
 } from '@genfeedai/contracts/interfaces';
-import { PrismaClient } from '@genfeedai/prisma';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  PrismaClient,
+} from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import type { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.service';
@@ -340,6 +344,58 @@ export async function seedApiKey(
   };
 }
 
+export type SourceMediaFormat = 'image' | 'carousel' | 'video' | 'short';
+const SOURCE_MEDIA: Record<
+  SourceMediaFormat,
+  { category: IngredientCategory; count: number; postCategory: PostCategory }
+> = {
+  carousel: {
+    category: IngredientCategory.IMAGE,
+    count: 3,
+    postCategory: PostCategory.IMAGE,
+  },
+  image: {
+    category: IngredientCategory.IMAGE,
+    count: 1,
+    postCategory: PostCategory.IMAGE,
+  },
+  short: {
+    category: IngredientCategory.VIDEO,
+    count: 1,
+    postCategory: PostCategory.REEL,
+  },
+  video: {
+    category: IngredientCategory.VIDEO,
+    count: 1,
+    postCategory: PostCategory.VIDEO,
+  },
+};
+
+/** Stored, ready assets for a source post of a visual format. */
+async function seedSourceMedia(
+  db: PrismaClient<'query'>,
+  world: AcceptanceWorld,
+  format: SourceMediaFormat,
+): Promise<string[]> {
+  const { category, count } = SOURCE_MEDIA[format];
+  const ids: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const created = await db.ingredient.create({
+      data: {
+        brandId: world.brandId,
+        category,
+        organizationId: world.organizationId,
+        s3Key: `acceptance/source/${randomUUID()}`,
+        status: IngredientStatus.GENERATED,
+        userId: world.owner.id,
+        version: 1,
+      },
+    });
+    ids.push(created.id);
+  }
+  return ids;
+}
+
 export type PublishedPost = {
   externalId: string;
   postId: string;
@@ -354,15 +410,29 @@ export type PublishedPost = {
 export async function publishOwnPost(
   db: PrismaClient<'query'>,
   world: AcceptanceWorld,
-  input: { publishedAt: Date; text: string; externalId?: string },
+  input: {
+    publishedAt: Date;
+    text: string;
+    externalId?: string;
+    /** The visual format of the post; text when absent. */
+    media?: SourceMediaFormat;
+  },
 ): Promise<PublishedPost> {
   const postId = `bk-post-${randomUUID().replaceAll('-', '').slice(0, 20)}`;
   const externalId =
     input.externalId ?? `x-${randomUUID().replaceAll('-', '').slice(0, 18)}`;
+  const mediaIds = input.media
+    ? await seedSourceMedia(db, world, input.media)
+    : [];
   await db.post.create({
     data: {
       brandId: world.brandId,
-      category: PostCategory.TEXT,
+      category: input.media
+        ? SOURCE_MEDIA[input.media].postCategory
+        : PostCategory.TEXT,
+      ...(mediaIds.length > 0
+        ? { ingredients: { connect: mediaIds.map((id) => ({ id })) } }
+        : {}),
       credentialId: world.credentialId,
       description: input.text,
       format: PostFormat.STANDARD,
@@ -526,6 +596,8 @@ export async function seedComparableHistory(
   db: PrismaClient<'query'>,
   world: AcceptanceWorld,
   options: {
+    /** The visual format the earlier posts share with the target; text when absent. */
+    media?: SourceMediaFormat;
     /** Age of each earlier post when it was observed; the breakout is compared at this age. */
     observedAtAgeMs?: number;
     values?: number[];
@@ -542,6 +614,7 @@ export async function seedComparableHistory(
     const post = await publishOwnPost(db, world, {
       publishedAt: new Date(nowMs - (index + daysBack) * DAY_MS),
       text: `History post ${index + 1} for the acceptance baseline`,
+      ...(options.media ? { media: options.media } : {}),
     });
     const source = await resolveExposureSource(db, world, post);
     if (!source) throw new Error('History publication did not resolve');
