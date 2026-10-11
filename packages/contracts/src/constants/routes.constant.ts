@@ -305,8 +305,6 @@ export const APP_ROUTES = {
     MODULES: '/settings/modules',
     /** Organization-wide preferences (avatar, voice, models, publishing caps). */
     PREFERENCES: '/settings/preferences',
-    /** Custom model controls and the LoRA setup call-to-action. */
-    CUSTOM_MODELS: '/settings/custom-models',
     /** Personal email and future in-app notification preferences. */
     NOTIFICATIONS: '/settings/notifications',
     /** Creation heatmap, streaks, and setup checklist. */

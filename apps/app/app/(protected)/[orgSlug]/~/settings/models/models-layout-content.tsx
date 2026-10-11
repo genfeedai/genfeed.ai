@@ -24,10 +24,12 @@ import type { ReactNode } from 'react';
 import { useCallback } from 'react';
 
 // Category filtering lives in the catalog's own chip row; the header only
-// switches between the catalog and the organization's trainings.
+// switches between the catalog, the organization's trainings and its managed
+// custom models.
 const MODEL_TYPE_OPTIONS = [
   { value: 'all', label: 'Catalog' },
   { value: 'trainings', label: 'Trainings' },
+  { value: 'custom-models', label: 'Custom Models' },
 ] as const;
 
 type ModelTypeValue = (typeof MODEL_TYPE_OPTIONS)[number]['value'];
@@ -56,6 +58,7 @@ export default function ModelsLayoutContent({
     )?.value ?? 'all';
 
   const isTrainingsTab = activeType === 'trainings';
+  const isCustomModelsTab = activeType === 'custom-models';
   const isRefreshing = isTrainingsTab
     ? isRefreshingTrainings
     : isRefreshingModels;
@@ -111,7 +114,12 @@ export default function ModelsLayoutContent({
             </SelectContent>
           </Select>
 
-          <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+          {isCustomModelsTab ? null : (
+            <ButtonRefresh
+              onClick={handleRefresh}
+              isRefreshing={isRefreshing}
+            />
+          )}
 
           {isTrainingsTab && canTrain ? (
             <Button

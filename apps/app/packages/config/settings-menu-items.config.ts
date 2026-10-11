@@ -10,7 +10,6 @@ import {
   Building2,
   ChartColumn,
   CircleQuestionMark,
-  Cpu,
   CreditCard,
   Flame,
   Gift,
@@ -159,14 +158,6 @@ function buildOrganizationMenuItems(
       label: 'Brands',
       outline: Tag,
       solid: Tag,
-    },
-    {
-      group: 'Organization',
-      href: APP_ROUTES.SETTINGS.CUSTOM_MODELS,
-      hrefScope: 'organization',
-      label: 'Custom Models',
-      outline: Cpu,
-      solid: Cpu,
     },
     {
       // Org model catalog + defaults for the studio prompt bar.

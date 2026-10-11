@@ -1,5 +1,6 @@
 'use client';
 
+import OrganizationCustomModelsCard from '@app/(protected)/[orgSlug]/~/settings/(pages)/organization/custom-models/organization-custom-models-card';
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { PageScope } from '@genfeedai/contracts';
@@ -13,6 +14,10 @@ export default function ModelsTypePageClientContent({
 }) {
   const { setRefreshModels } = useModelsContext();
   const { setRefreshTrainings } = useTrainingsContext();
+
+  if (type === 'custom-models') {
+    return <OrganizationCustomModelsCard />;
+  }
 
   if (type === 'trainings') {
     // Body-only list: Models layout owns tabs, refresh, and create chrome.
