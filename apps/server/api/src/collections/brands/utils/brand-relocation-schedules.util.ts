@@ -21,28 +21,29 @@ export interface BrandRelocationScheduleHold {
   touchedWorkflowIds: string[];
 }
 
+const SCHEDULE_SELECT = {
+  id: true,
+  isDeleted: true,
+  isScheduleEnabled: true,
+  label: true,
+  schedule: true,
+  timezone: true,
+} as const;
+
+type ScheduleRow = Prisma.WorkflowGetPayload<{
+  select: typeof SCHEDULE_SELECT;
+}>;
+
 /**
- * The brand's live workflows with an enabled schedule. The relocation preview
- * and the relocation itself both read this, so the preview lists exactly the
+ * A live workflow with an enabled schedule is one the move pauses. The preview
+ * and the relocation both apply this, so the preview lists exactly the
  * schedules the move pauses.
  */
-export async function findActiveBrandSchedules(
-  client: Prisma.TransactionClient,
-  brandId: string,
-): Promise<BrandRelocationHeldSchedule[]> {
-  // tenant-scope-ignore: a relocation spans the source and destination tenants; the brand id pins the workflows.
-  const workflows = await client.workflow.findMany({
-    orderBy: { createdAt: 'asc' },
-    select: { id: true, label: true, schedule: true, timezone: true },
-    where: {
-      brandId,
-      isDeleted: false,
-      isScheduleEnabled: true,
-      schedule: { not: null },
-    },
-  });
+function toHeldSchedules(
+  workflows: readonly ScheduleRow[],
+): BrandRelocationHeldSchedule[] {
   return workflows.flatMap((workflow) =>
-    workflow.schedule
+    !workflow.isDeleted && workflow.isScheduleEnabled && workflow.schedule
       ? [
           {
             id: workflow.id,
@@ -53,6 +54,25 @@ export async function findActiveBrandSchedules(
         ]
       : [],
   );
+}
+
+/** The brand's live workflows with an enabled schedule. */
+export async function findActiveBrandSchedules(
+  client: Prisma.TransactionClient,
+  brandId: string,
+): Promise<BrandRelocationHeldSchedule[]> {
+  // tenant-scope-ignore: a relocation spans the source and destination tenants; the brand id pins the workflows.
+  const workflows = await client.workflow.findMany({
+    orderBy: { createdAt: 'asc' },
+    select: SCHEDULE_SELECT,
+    where: {
+      brandId,
+      isDeleted: false,
+      isScheduleEnabled: true,
+      schedule: { not: null },
+    },
+  });
+  return toHeldSchedules(workflows);
 }
 
 /**
@@ -66,16 +86,13 @@ export async function holdBrandSchedules(
   tx: Prisma.TransactionClient,
   brandId: string,
 ): Promise<BrandRelocationScheduleHold> {
-  const held = await findActiveBrandSchedules(tx, brandId);
   // tenant-scope-ignore: a relocation spans the source and destination tenants; the brand id pins the workflows, deleted ones included.
   const bound = await tx.workflow.findMany({
-    select: {
-      id: true,
-      isScheduleEnabled: true,
-      scheduleInitiatingActor: true,
-    },
+    orderBy: { createdAt: 'asc' },
+    select: { ...SCHEDULE_SELECT, scheduleInitiatingActor: true },
     where: { brandId },
   });
+  const held = toHeldSchedules(bound);
   const touchedWorkflowIds = bound
     .filter(
       (workflow) =>

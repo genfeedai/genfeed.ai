@@ -15,6 +15,7 @@ describe('MembersService', () => {
       findMany: vi.fn(),
       update: vi.fn(),
     },
+    role: { findFirst: vi.fn() },
   };
   const logger = {
     debug: vi.fn(),
@@ -31,6 +32,8 @@ describe('MembersService', () => {
     prisma.member.create.mockReset();
     prisma.member.findMany.mockReset();
     prisma.member.update.mockReset();
+    prisma.role.findFirst.mockReset();
+    prisma.role.findFirst.mockResolvedValue({ id: 'role_admin', key: 'admin' });
     accessBootstrapCacheService.invalidateForUser.mockReset();
     service = new MembersService(
       prisma as never,
@@ -99,6 +102,30 @@ describe('MembersService', () => {
       );
     },
   );
+
+  it('writes the denormalized roleKey from the assigned role on a role change', async () => {
+    prisma.member.update.mockResolvedValue({ id: 'member-1' });
+
+    await service.patch('member-1', { roleId: 'role_admin' });
+
+    expect(prisma.role.findFirst).toHaveBeenCalledWith({
+      select: { id: true, key: true },
+      where: { id: 'role_admin', isDeleted: false },
+    });
+    expect(prisma.member.update).toHaveBeenCalledWith({
+      data: { roleId: 'role_admin', roleKey: 'admin' },
+      where: { id: 'member-1' },
+    });
+  });
+
+  it('rejects an unknown role without writing', async () => {
+    prisma.role.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.patch('member-1', { roleId: 'role_missing' }),
+    ).rejects.toThrow('Role not found');
+    expect(prisma.member.update).not.toHaveBeenCalled();
+  });
 
   it('does not invalidate bootstrap for brand assignment changes', async () => {
     prisma.member.update.mockResolvedValue({

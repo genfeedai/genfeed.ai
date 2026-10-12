@@ -1,5 +1,5 @@
 import { isSelfHostedDeployment, usesMeteredCredits } from '@genfeedai/config';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, CreditTransactionCategory } from '@genfeedai/contracts';
 import { resolveFreeTrialEndsAt } from '@genfeedai/contracts/constants';
 import type { IFreeTrialState } from '@genfeedai/contracts/interfaces/billing';
 import {
@@ -14,6 +14,17 @@ type FreeTrialStateClient = Pick<Prisma.TransactionClient, 'organization'>;
 const STRIPE_REFERENCE_PREFIX = 'stripe-';
 /** PAYG grants written before `ActivitySource.PAY_AS_YOU_GO` existed. */
 const LEGACY_PAYG_SOURCE = 'pay-as-you-go';
+
+/**
+ * Ledger categories that put credits into a wallet: a one-off grant (`ADD`) or
+ * a plan period (`RESET`). Debits (`DEDUCT`, `EXPIRE`, `BYOK_USAGE`) also store
+ * a positive amount, and a `REFUND` returns spent credits rather than paying
+ * for new ones, so a grant is never identified by its amount alone.
+ */
+const CREDIT_GRANT_CATEGORIES: readonly string[] = [
+  CreditTransactionCategory.ADD,
+  CreditTransactionCategory.RESET,
+];
 
 export const FREE_TRIAL_NOT_APPLICABLE: Readonly<IFreeTrialState> =
   Object.freeze({ isTrialExpired: false, trialEndsAt: null });
@@ -31,6 +42,7 @@ export function isFreeTrialEnforced(): boolean {
 export function paidCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
   return {
     amount: { gt: 0 },
+    category: { in: [...CREDIT_GRANT_CATEGORIES] },
     isDeleted: false,
     OR: [
       { referenceType: { startsWith: STRIPE_REFERENCE_PREFIX } },
@@ -60,6 +72,7 @@ const WARMUP_GRANT_REFERENCE_TYPE = 'warmup-account';
 export function operatorCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
   return {
     amount: { gt: 0 },
+    category: { in: [...CREDIT_GRANT_CATEGORIES] },
     isDeleted: false,
     OR: [
       { source: { in: [...OPERATOR_CREDIT_GRANT_SOURCES] } },
@@ -157,6 +170,24 @@ type TrialSubject = Prisma.OrganizationGetPayload<{
   select: ReturnType<typeof trialSubjectSelect>;
 }>;
 
+/**
+ * A Stripe subscription on the organization, its user or its billing account.
+ * Unlike a shared wallet, a warm-up workspace or an operator comp, which an
+ * operator can undo, this exemption holds, so callers may cache it.
+ */
+function hasSubscriptionExemption(organization: TrialSubject): boolean {
+  const userSubscription = organization.user.userSubscription;
+  return (
+    organization.subscriptions.length > 0 ||
+    Boolean(
+      userSubscription &&
+        !userSubscription.isDeleted &&
+        userSubscription.stripeSubscriptionId,
+    ) ||
+    (organization.billingAccount?.subscriptions.length ?? 0) > 0
+  );
+}
+
 function isExemptFromTrial(organization: TrialSubject): boolean {
   const account = organization.billingAccount;
   const userSubscription = organization.user.userSubscription;
@@ -180,30 +211,54 @@ function isExemptFromTrial(organization: TrialSubject): boolean {
   );
 }
 
+export type FreeTrialReading = {
+  /** The exemption rests on a subscription and is safe to cache. */
+  isExemptionDurable: boolean;
+  state: IFreeTrialState;
+};
+
 /**
  * Where an organization stands in the hosted free trial. One read; usable
  * inside a transaction. Shared by admission, the expiry sweep, the bootstrap
  * and the trial emails so they always agree on who is in the trial.
  */
+export async function readFreeTrial(
+  client: FreeTrialStateClient,
+  organizationId: string,
+  now: Date,
+  rolloutAt: Date,
+): Promise<FreeTrialReading> {
+  if (!isFreeTrialEnforced() || !organizationId) {
+    return { isExemptionDurable: false, state: FREE_TRIAL_NOT_APPLICABLE };
+  }
+  const organization = await client.organization.findFirst({
+    select: trialSubjectSelect(organizationId),
+    where: { id: organizationId, isDeleted: false },
+  });
+  if (!organization) {
+    return { isExemptionDurable: false, state: FREE_TRIAL_NOT_APPLICABLE };
+  }
+  if (isExemptFromTrial(organization)) {
+    return {
+      isExemptionDurable: hasSubscriptionExemption(organization),
+      state: FREE_TRIAL_NOT_APPLICABLE,
+    };
+  }
+  const trialEndsAt = resolveFreeTrialEndsAt(organization.createdAt, rolloutAt);
+  return {
+    isExemptionDurable: false,
+    state: {
+      isTrialExpired: now.getTime() >= trialEndsAt.getTime(),
+      trialEndsAt,
+    },
+  };
+}
+
 export async function readFreeTrialState(
   client: FreeTrialStateClient,
   organizationId: string,
   now: Date,
   rolloutAt: Date,
 ): Promise<IFreeTrialState> {
-  if (!isFreeTrialEnforced() || !organizationId) {
-    return FREE_TRIAL_NOT_APPLICABLE;
-  }
-  const organization = await client.organization.findFirst({
-    select: trialSubjectSelect(organizationId),
-    where: { id: organizationId, isDeleted: false },
-  });
-  if (!organization || isExemptFromTrial(organization)) {
-    return FREE_TRIAL_NOT_APPLICABLE;
-  }
-  const trialEndsAt = resolveFreeTrialEndsAt(organization.createdAt, rolloutAt);
-  return {
-    isTrialExpired: now.getTime() >= trialEndsAt.getTime(),
-    trialEndsAt,
-  };
+  return (await readFreeTrial(client, organizationId, now, rolloutAt)).state;
 }

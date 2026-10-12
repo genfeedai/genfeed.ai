@@ -429,7 +429,7 @@ export class BillingAccountsService {
       throw new NotFoundException('Organization');
     }
     const targetMembership = await tx.member.findFirst({
-      select: { role: { select: { key: true } }, roleKey: true },
+      select: { role: { select: { key: true } } },
       where: {
         isActive: true,
         isDeleted: false,
@@ -437,7 +437,7 @@ export class BillingAccountsService {
         userId: actorUserId,
       },
     });
-    const targetRole = targetMembership?.roleKey ?? targetMembership?.role.key;
+    const targetRole = targetMembership?.role.key;
     if (targetRole !== MemberRole.OWNER && targetRole !== MemberRole.ADMIN) {
       throw new ForbiddenException(
         'Organization administration permission required',
@@ -671,7 +671,7 @@ export class BillingAccountsService {
       this.prisma.$transaction(
         async (tx) => {
           const membership = await tx.member.findFirst({
-            select: { role: { select: { key: true } }, roleKey: true },
+            select: { role: { select: { key: true } } },
             where: {
               isActive: true,
               isDeleted: false,
@@ -679,7 +679,7 @@ export class BillingAccountsService {
               userId: input.actorUserId,
             },
           });
-          const organizationRole = membership?.roleKey ?? membership?.role.key;
+          const organizationRole = membership?.role.key;
           if (
             organizationRole !== MemberRole.OWNER &&
             organizationRole !== MemberRole.ADMIN

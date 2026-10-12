@@ -14,7 +14,7 @@ import { MemberSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { INestApplication } from '@nestjs/common';
+import { BadRequestException, type INestApplication } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
@@ -40,7 +40,15 @@ describe('Organization member mutations (real HTTP role guard)', () => {
   let principal: AuthenticatedUser;
   let actorRole: MemberRole;
   let membership: { isActive: boolean; isDeleted: boolean } | null;
-  const members = { findOne: vi.fn(), patch: vi.fn() };
+  let targetRoleKey: string;
+  let nextRoleKey: string;
+  const members = {
+    findMembershipRoleKey: vi.fn(),
+    findOne: vi.fn(),
+    patch: vi.fn(),
+    resolveRoleAssignment: vi.fn(),
+  };
+  const invitations = { createInvitation: vi.fn() };
   const organizations = { findOne: vi.fn() };
   const brands = { findAll: vi.fn() };
 
@@ -61,7 +69,7 @@ describe('Organization member mutations (real HTTP role guard)', () => {
         { provide: MembersService, useValue: members },
         { provide: OrganizationsService, useValue: organizations },
         { provide: BrandsService, useValue: brands },
-        { provide: InvitationService, useValue: {} },
+        { provide: InvitationService, useValue: invitations },
         { provide: ConfigService, useValue: { get: vi.fn() } },
         {
           provide: LoggerService,
@@ -69,7 +77,7 @@ describe('Organization member mutations (real HTTP role guard)', () => {
         },
       ],
     })
-      // Only the unused invitation route carries the billing guard.
+      // Only the invitation route carries the billing guard.
       .overrideGuard(MemberCreditsGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -108,7 +116,18 @@ describe('Organization member mutations (real HTTP role guard)', () => {
         return { id: query.id, organizationId };
       },
     );
+    targetRoleKey = MemberRole.USER;
+    nextRoleKey = MemberRole.USER;
+    members.findMembershipRoleKey.mockImplementation(
+      async (_orgId: string, where: { id?: string; userId?: string }) =>
+        where.userId ? actorRole : targetRoleKey,
+    );
+    members.resolveRoleAssignment.mockImplementation(async (id: string) => ({
+      roleId: id,
+      roleKey: nextRoleKey,
+    }));
     members.patch.mockResolvedValue({ id: otherMemberId, organizationId });
+    invitations.createInvitation.mockResolvedValue({ id: testId('invite') });
     organizations.findOne.mockResolvedValue({ id: organizationId });
     brands.findAll.mockResolvedValue({ docs: [{ id: brandId }] });
   });
@@ -231,6 +250,90 @@ describe('Organization member mutations (real HTTP role guard)', () => {
       organizationId,
     });
     expect(members.patch).not.toHaveBeenCalled();
+  });
+
+  describe('owner membership', () => {
+    it.each(mutations.filter(([field]) => field !== 'brandIds'))(
+      'denies an admin changing an owner %s',
+      async (_field, body) => {
+        targetRoleKey = MemberRole.OWNER;
+        await patchMember(otherMemberId, body).expect(403);
+        expect(members.patch).not.toHaveBeenCalled();
+      },
+    );
+
+    it('denies an admin granting the owner role, to themselves or others', async () => {
+      nextRoleKey = MemberRole.OWNER;
+      await patchMember(ownMemberId, { roleId }).expect(403);
+      await patchMember(otherMemberId, { roleId }).expect(403);
+      expect(members.patch).not.toHaveBeenCalled();
+    });
+
+    it('denies an admin-scoped API key of an admin granting the owner role', async () => {
+      principal = { ...principal, isApiKey: true, scopes: [ApiKeyScope.ADMIN] };
+      nextRoleKey = MemberRole.OWNER;
+      await patchMember(otherMemberId, { roleId }).expect(403);
+      expect(members.patch).not.toHaveBeenCalled();
+    });
+
+    it('denies an admin restoring a soft-deleted owner', async () => {
+      targetRoleKey = MemberRole.OWNER;
+      await patchMember(otherMemberId, { isDeleted: false }).expect(403);
+      expect(members.findMembershipRoleKey).toHaveBeenCalledWith(
+        organizationId,
+        { id: otherMemberId },
+      );
+      expect(members.findMembershipRoleKey).toHaveBeenCalledWith(
+        organizationId,
+        { isActive: true, isDeleted: false, userId },
+      );
+      expect(members.patch).not.toHaveBeenCalled();
+    });
+
+    it('still lets an admin assign brands to an owner', async () => {
+      targetRoleKey = MemberRole.OWNER;
+      await patchMember(otherMemberId, { brandIds: [brandId] }).expect(200);
+      expect(members.findMembershipRoleKey).not.toHaveBeenCalled();
+      expect(members.patch).toHaveBeenCalled();
+    });
+
+    it('lets an owner grant the owner role and change another owner', async () => {
+      actorRole = MemberRole.OWNER;
+      targetRoleKey = MemberRole.OWNER;
+      nextRoleKey = MemberRole.OWNER;
+      await patchMember(otherMemberId, { roleId }).expect(200);
+      await patchMember(otherMemberId, { isActive: false }).expect(200);
+      expect(members.patch).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects an unknown role before any write', async () => {
+      members.resolveRoleAssignment.mockRejectedValueOnce(
+        new BadRequestException('Role not found'),
+      );
+      await patchMember(otherMemberId, { roleId }).expect(400);
+      expect(members.patch).not.toHaveBeenCalled();
+    });
+
+    it('denies an admin inviting someone as owner', async () => {
+      nextRoleKey = MemberRole.OWNER;
+      await request(app.getHttpServer())
+        .post(`/organizations/${organizationId}/members`)
+        .send({ email: 'new@example.com', roleId })
+        .expect(403);
+      expect(invitations.createInvitation).not.toHaveBeenCalled();
+    });
+
+    it('lets an owner invite someone as owner', async () => {
+      actorRole = MemberRole.OWNER;
+      nextRoleKey = MemberRole.OWNER;
+      await request(app.getHttpServer())
+        .post(`/organizations/${organizationId}/members`)
+        .send({ email: 'new@example.com', roleId })
+        .expect(201);
+      expect(invitations.createInvitation).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId, roleId }),
+      );
+    });
   });
 
   it('rejects a foreign brand assignment without mutation', async () => {

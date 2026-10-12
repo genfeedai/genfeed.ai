@@ -32,12 +32,21 @@ describe('brand relocation schedule hold (#6689)', () => {
       active: [
         {
           id: 'wf_1',
+          isDeleted: false,
+          isScheduleEnabled: true,
           label: 'Daily',
           schedule: '0 9 * * *',
           timezone: 'UTC',
         },
         // A row the query should never return, but a null cron is not a schedule.
-        { id: 'wf_2', label: null, schedule: null, timezone: null },
+        {
+          id: 'wf_2',
+          isDeleted: false,
+          isScheduleEnabled: true,
+          label: null,
+          schedule: null,
+          timezone: null,
+        },
       ],
     });
 
@@ -46,7 +55,14 @@ describe('brand relocation schedule hold (#6689)', () => {
     ]);
     expect(tx.workflow.findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: 'asc' },
-      select: { id: true, label: true, schedule: true, timezone: true },
+      select: {
+        id: true,
+        isDeleted: true,
+        isScheduleEnabled: true,
+        label: true,
+        schedule: true,
+        timezone: true,
+      },
       where: {
         brandId: 'brand',
         isDeleted: false,
@@ -57,29 +73,38 @@ describe('brand relocation schedule hold (#6689)', () => {
   });
 
   it('pauses enabled schedules and clears every leftover binding, touching nothing else', async () => {
+    const row = {
+      isDeleted: false,
+      label: null,
+      schedule: '* * * * *',
+      timezone: null,
+    };
     const tx = client({
-      active: [
-        { id: 'wf_on', label: 'On', schedule: '* * * * *', timezone: null },
-      ],
       bound: [
         {
+          ...row,
           id: 'wf_on',
           isScheduleEnabled: true,
+          label: 'On',
           scheduleInitiatingActor: BOUND,
         },
         // Paused but still bound, and a deleted workflow still enabled.
         {
+          ...row,
           id: 'wf_old',
           isScheduleEnabled: false,
           scheduleInitiatingActor: BOUND,
         },
         {
+          ...row,
           id: 'wf_deleted',
+          isDeleted: true,
           isScheduleEnabled: true,
           scheduleInitiatingActor: null,
         },
         // Nothing to undo: skipped.
         {
+          ...row,
           id: 'wf_idle',
           isScheduleEnabled: null,
           scheduleInitiatingActor: null,
@@ -89,7 +114,12 @@ describe('brand relocation schedule hold (#6689)', () => {
 
     const result = await holdBrandSchedules(asTx(tx), 'brand');
 
-    expect(result.held.map(({ id }) => id)).toEqual(['wf_on']);
+    // One read of the brand's workflows serves both the held list and the
+    // bindings to clear.
+    expect(tx.workflow.findMany).toHaveBeenCalledTimes(1);
+    expect(result.held).toEqual([
+      { id: 'wf_on', label: 'On', schedule: '* * * * *', timezone: null },
+    ]);
     expect(result.touchedWorkflowIds).toEqual([
       'wf_on',
       'wf_old',
@@ -123,8 +153,12 @@ describe('brand relocation schedule hold (#6689)', () => {
       bound: [
         {
           id: 'wf_idle',
+          isDeleted: false,
           isScheduleEnabled: false,
+          label: null,
+          schedule: '0 9 * * *',
           scheduleInitiatingActor: null,
+          timezone: null,
         },
       ],
     });

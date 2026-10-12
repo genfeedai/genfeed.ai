@@ -298,6 +298,27 @@ describe('BillingAccountsService', () => {
     expect(prisma.billingAccountOrganization.updateMany).not.toHaveBeenCalled();
   });
 
+  it('refuses to detach for a member demoted through roleId whose roleKey copy is stale', async () => {
+    prisma.billingAccountMember.findFirst.mockResolvedValue({
+      role: BillingAccountMemberRole.OWNER,
+    });
+    prisma.member.findFirst.mockResolvedValue({
+      role: { key: 'user' },
+      roleKey: 'admin',
+    });
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org_1' }, () =>
+        service.detachOrganization({
+          actorUserId: 'user_1',
+          billingAccountId: 'ba_1',
+          organizationId: 'org_2',
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.billingAccountOrganization.updateMany).not.toHaveBeenCalled();
+  });
+
   it('rejects detaching an organization with unsettled reservations', async () => {
     prisma.billingAccountMember.findFirst.mockResolvedValue({
       role: BillingAccountMemberRole.OWNER,

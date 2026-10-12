@@ -177,6 +177,9 @@ describe('FreeTrialService', () => {
       const select = organizationFindFirst.mock.calls[0][0].select;
       expect(select.creditTransactions.where.OR).toContainEqual({
         amount: { gt: 0 },
+        category: {
+          in: [CreditTransactionCategory.ADD, CreditTransactionCategory.RESET],
+        },
         isDeleted: false,
         OR: [
           {
@@ -210,6 +213,9 @@ describe('FreeTrialService', () => {
       });
       expect(select.creditTransactions.where.OR).toContainEqual({
         amount: { gt: 0 },
+        category: {
+          in: [CreditTransactionCategory.ADD, CreditTransactionCategory.RESET],
+        },
         isDeleted: false,
         OR: [
           { referenceType: { startsWith: 'stripe-' } },
@@ -374,6 +380,28 @@ describe('FreeTrialService', () => {
 
       expect(organizationFindFirst).toHaveBeenCalledTimes(2);
     });
+
+    it.each([
+      ['a shared wallet', subject({ billingAccount: { organizations: [{ id: 'o' }] } })],
+      ['a warm-up workspace', subject({ warmupAccounts: [{ id: 'w' }] })],
+      ['an operator comp', subject({ creditTransactions: [{ id: 'comp' }] })],
+    ])(
+      'does not cache an exemption an operator can undo (%s)',
+      async (_label, exempt) => {
+        organizationFindFirst
+          .mockResolvedValueOnce({ createdAt: CREATED_AT })
+          .mockResolvedValueOnce(exempt)
+          .mockResolvedValueOnce({ createdAt: CREATED_AT })
+          .mockResolvedValueOnce(subject());
+        const service = buildService();
+
+        await service.assertTrialActive('org_1', PAST_WINDOW);
+        await expect(
+          service.assertTrialActive('org_1', PAST_WINDOW),
+        ).rejects.toBeInstanceOf(FreeTrialExpiredException);
+        expect(organizationFindFirst).toHaveBeenCalledTimes(4);
+      },
+    );
   });
 
   describe('expireTrialCredits (sweep)', () => {
@@ -471,10 +499,23 @@ describe('FreeTrialService', () => {
         await expect(
           buildService().expireTrialCredits('org_1', now),
         ).resolves.toBe(0);
+        expect(transaction).not.toHaveBeenCalled();
         expect(walletFindFirst).not.toHaveBeenCalled();
         expect(applyDelta).not.toHaveBeenCalled();
       },
     );
+
+    it('honours a payment that lands between the plain read and the transaction', async () => {
+      organizationFindFirst
+        .mockResolvedValueOnce(subject())
+        .mockResolvedValueOnce(subject({ subscriptions: [{ id: 's' }] }));
+
+      await expect(
+        buildService().expireTrialCredits('org_1', PAST_WINDOW),
+      ).resolves.toBe(0);
+      expect(transaction).toHaveBeenCalledTimes(1);
+      expect(applyDelta).not.toHaveBeenCalled();
+    });
 
     it('retries a serialization conflict and then expires once', async () => {
       transaction.mockRejectedValueOnce({ code: 'P2034' });
@@ -515,6 +556,26 @@ describe('FreeTrialService', () => {
       });
       expect(query.where.organization.is.subscriptions.none).toBeDefined();
       expect(query.where.organization.is.creditTransactions.none).toBeDefined();
+      // Billing-account and user subscriptions are excluded up front too.
+      expect(query.where.organization.is.NOT).toEqual([
+        {
+          billingAccount: {
+            is: {
+              OR: [
+                { subscriptions: { some: expect.any(Object) } },
+                { creditTransactions: { some: expect.any(Object) } },
+              ],
+            },
+          },
+        },
+        {
+          user: {
+            userSubscription: {
+              is: { isDeleted: false, stripeSubscriptionId: { not: null } },
+            },
+          },
+        },
+      ]);
     });
   });
 });

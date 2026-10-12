@@ -17,7 +17,7 @@ import type { AgentTeamMentionItem } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DEFAULT_TEAM_MENTION_LIMIT = 50;
 const MAX_TEAM_MENTION_LIMIT = 100;
@@ -58,12 +58,55 @@ export class MembersService extends BaseService<
     super(prisma, 'member', logger);
   }
 
+  /**
+   * The role a role id assigns. Authorization reads `Member.roleId -> Role`;
+   * `roleKey` is a denormalized copy for Better Auth, so every write that sets
+   * `roleId` derives `roleKey` from here instead of leaving it stale.
+   */
+  async resolveRoleAssignment(
+    roleId: string,
+  ): Promise<{ roleId: string; roleKey: string }> {
+    const role = await this.prisma.role.findFirst({
+      select: { id: true, key: true },
+      where: { id: roleId, isDeleted: false },
+    });
+    if (!role) {
+      throw new BadRequestException('Role not found');
+    }
+    return { roleId: role.id, roleKey: role.key };
+  }
+
+  /**
+   * The authorizing role key (`Member.roleId -> Role.key`) of the membership
+   * matching `where` in this organization, or null when none matches. Callers
+   * state `isActive` / `isDeleted` themselves: the acting user needs a live
+   * membership, while a change target may be a soft-deleted one being restored.
+   */
+  async findMembershipRoleKey(
+    organizationId: string,
+    where: Prisma.MemberWhereInput,
+  ): Promise<string | null> {
+    const member = await this.prisma.member.findFirst({
+      select: { role: { select: { key: true } } },
+      where: { ...where, organizationId },
+    });
+    return member?.role.key ?? null;
+  }
+
   override async patch(
     id: string,
     updateDto: Partial<UpdateMemberDto> | PrismaUpdate,
     populate: PopulateInput = [],
   ): Promise<MemberDocument> {
-    const member = await super.patch(id, updateDto, populate);
+    const roleId = (updateDto as { roleId?: unknown }).roleId;
+    const data =
+      typeof roleId === 'string'
+        ? {
+            ...updateDto,
+            roleKey: (await this.resolveRoleAssignment(roleId)).roleKey,
+          }
+        : updateDto;
+    const member = await super.patch(id, data, populate);
     if (
       member?.userId &&
       ('roleId' in updateDto ||

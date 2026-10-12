@@ -4,6 +4,7 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import {
   isFreeTrialEnforced,
   paidSubscriptionWhere,
+  readFreeTrial,
   readFreeTrialState,
   trialExemptingGrantWhere,
 } from '@api/collections/credits/services/free-trial-state.util';
@@ -32,8 +33,9 @@ import { Injectable } from '@nestjs/common';
 
 const TRIAL_REFERENCE_TYPE = 'free-trial';
 /**
- * Paying is permanent, so an exempt verdict is safe to reuse for a while. It
- * keeps the admission check to one cheap read for paid organizations.
+ * A subscription exemption holds, so that verdict is safe to reuse for a
+ * while; it keeps the admission check to one cheap read for subscribers.
+ * Exemptions an operator can undo (shared wallet, warm-up, comp) are re-read.
  */
 const EXEMPT_CACHE_TTL_MS = 10 * 60 * 1000;
 const EXEMPT_CACHE_MAX_ENTRIES = 10_000;
@@ -138,6 +140,34 @@ export class FreeTrialService {
                 creditTransactions: { none: trialExemptingGrantWhere() },
                 isDeleted: false,
                 isProactiveOnboarding: false,
+                // The rest of the exemption (`readFreeTrialState`), so exempt
+                // organizations do not come back on every sweep.
+                NOT: [
+                  {
+                    billingAccount: {
+                      is: {
+                        OR: [
+                          { subscriptions: { some: paidSubscriptionWhere() } },
+                          {
+                            creditTransactions: {
+                              some: trialExemptingGrantWhere(),
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                  {
+                    user: {
+                      userSubscription: {
+                        is: {
+                          isDeleted: false,
+                          stripeSubscriptionId: { not: null },
+                        },
+                      },
+                    },
+                  },
+                ],
                 subscriptions: { none: paidSubscriptionWhere() },
                 warmupAccounts: { none: { isDeleted: false } },
               },
@@ -166,6 +196,13 @@ export class FreeTrialService {
     now: Date = new Date(),
   ): Promise<number> {
     if (!isFreeTrialEnforced()) {
+      return 0;
+    }
+    // A plain read first: an organization the candidate query could not rule
+    // out (a shared wallet) is skipped without a Serializable transaction.
+    // The transaction re-checks, so a payment landing in between still wins.
+    const { isTrialExpired } = await this.getState(organizationId, now);
+    if (!isTrialExpired) {
       return 0;
     }
     const outcome = await this.runSerializable((tx) =>
@@ -256,9 +293,16 @@ export class FreeTrialService {
     ) {
       return null;
     }
-    const state = await this.getState(organizationId, now);
+    const { isExemptionDurable, state } = await readFreeTrial(
+      this.prisma,
+      organizationId,
+      now,
+      this.rolloutAt,
+    );
     if (!state.trialEndsAt) {
-      this.rememberExempt(organizationId, now);
+      if (isExemptionDurable) {
+        this.rememberExempt(organizationId, now);
+      }
       return null;
     }
     return state.isTrialExpired ? state.trialEndsAt : null;

@@ -1172,8 +1172,8 @@ describe('BrandRelocationService', () => {
   it('rechecks both elevated memberships inside the source transaction after the fence and refuses revocation', async () => {
     primeRelocatableBrand();
     getDelegate('member')
-      .findFirst.mockResolvedValueOnce({ roleKey: 'owner' })
-      .mockResolvedValueOnce({ roleKey: 'admin' })
+      .findFirst.mockResolvedValueOnce({ role: { key: 'owner' } })
+      .mockResolvedValueOnce({ role: { key: 'admin' } })
       .mockResolvedValue(null);
     await expect(
       service.relocateToOrganization(
@@ -1188,6 +1188,22 @@ describe('BrandRelocationService', () => {
     expect(queryRaw.mock.calls[0][0].join(' ')).toContain(
       'pg_advisory_xact_lock',
     );
+  });
+  it('authorizes from the assigned role, not a stale denormalized roleKey', async () => {
+    primeRelocatableBrand();
+    // Demoted through roleId; the Better Auth roleKey copy still says owner.
+    getDelegate('member').findFirst.mockResolvedValue({
+      role: { key: 'user' },
+      roleKey: 'owner',
+    });
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: false, userId: USER_ID },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(transactionSpy).not.toHaveBeenCalled();
   });
   it('same-org deactivation without facade callback uses the learning source owner protocol', async () => {
     primeBrand();
@@ -1384,37 +1400,36 @@ describe('BrandRelocationService', () => {
     const BOUND = { organizationId: SOURCE_ORG, userId: 'saved-by' };
 
     function mockScheduledWorkflows(): void {
+      const daily = {
+        id: 'wf_a',
+        isDeleted: false,
+        isScheduleEnabled: true,
+        label: 'Daily post',
+        schedule: '0 9 * * *',
+        timezone: 'Europe/Berlin',
+      };
       getDelegate('workflow').findMany.mockImplementation(
         async (args: { select?: Record<string, boolean> }) => {
-          if (args.select?.schedule) {
-            return [
-              {
-                id: 'wf_a',
-                label: 'Daily post',
-                schedule: '0 9 * * *',
-                timezone: 'Europe/Berlin',
-              },
-            ];
-          }
           if (args.select?.scheduleInitiatingActor) {
             return [
-              {
-                id: 'wf_a',
-                isScheduleEnabled: true,
-                scheduleInitiatingActor: BOUND,
-              },
+              { ...daily, scheduleInitiatingActor: BOUND },
               // Paused earlier but still carrying its old binding.
               {
+                ...daily,
                 id: 'wf_b',
                 isScheduleEnabled: false,
                 scheduleInitiatingActor: BOUND,
               },
               {
+                ...daily,
                 id: 'wf_c',
                 isScheduleEnabled: false,
                 scheduleInitiatingActor: null,
               },
             ];
+          }
+          if (args.select?.schedule) {
+            return [daily];
           }
           return [{ id: 'wf_a' }];
         },

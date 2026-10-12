@@ -14,9 +14,18 @@ import { validatedWorkflowAccountingAttribution } from '@api/collections/workflo
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  type BillingAccountScope,
+  resolveBillingAccountAccess,
+} from '@api/tenancy/billing-account-scope';
+import {
+  billingAccountScopedWhere,
+  scopedWhere,
+} from '@api/tenancy/scoped-where';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -586,18 +595,45 @@ export class CreditTransactionsService extends BaseService<
   }
 
   /**
-   * Credits in the organization's most recent paid grant (Stripe-backed or a
-   * PAYG pack), or null when it never paid. Sizes the paid low-credit alert.
+   * Credits in the most recent paid grant (Stripe-backed or a PAYG pack) to
+   * the wallet this organization spends from, or null when nothing was ever
+   * paid. A shared billing account pays for every organization linked to it,
+   * so its grants count wherever they were recorded, the same way the trial
+   * exemption counts them. Sizes the paid low-credit alert.
    */
   async getLatestPaidGrantCredits(
     organizationId: string,
   ): Promise<number | null> {
+    const scope = await this.resolveWalletBillingAccountScope(organizationId);
     const latest = await this.delegate.findFirst({
       orderBy: { createdAt: 'desc' },
       select: { amount: true },
-      where: { ...paidCreditGrantWhere(), organizationId, isDeleted: false },
+      where: {
+        AND: [
+          paidCreditGrantWhere(),
+          {
+            OR: [
+              scopedWhere(organizationId),
+              ...(scope ? [billingAccountScopedWhere(scope)] : []),
+            ],
+          },
+        ],
+      },
     });
     return latest && Number.isFinite(latest.amount) ? latest.amount : null;
+  }
+
+  private async resolveWalletBillingAccountScope(
+    organizationId: string,
+  ): Promise<BillingAccountScope | null> {
+    try {
+      return await resolveBillingAccountAccess(organizationId, this.prisma);
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async getLastPurchaseBaseline(organizationId: string): Promise<{

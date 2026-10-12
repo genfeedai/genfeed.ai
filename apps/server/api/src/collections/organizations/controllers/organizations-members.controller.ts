@@ -15,6 +15,7 @@ import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto'
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { assertMembershipChangeAllowed } from '@api/collections/members/utils/member-role-authority.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -24,6 +25,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -140,6 +143,15 @@ export class OrganizationsMembersController {
       return returnNotFound(this.constructorName, organizationId);
     }
 
+    if (inviteDto.roleId) {
+      const { roleKey } = await this.membersService.resolveRoleAssignment(
+        inviteDto.roleId,
+      );
+      await this.assertMembershipChangeAllowed(request, user, organizationId, {
+        nextRoleKey: roleKey,
+      });
+    }
+
     const invitedByUserId = this.getInvitedByUserId(user, organization);
     const invitation = await this.invitationService.createInvitation({
       defaultRoleKey: 'user',
@@ -188,6 +200,26 @@ export class OrganizationsMembersController {
 
     if (!member) {
       return returnNotFound('Member', memberId);
+    }
+
+    const isMembershipChange =
+      updateMemberDto.roleId !== undefined ||
+      updateMemberDto.isActive !== undefined ||
+      updateMemberDto.isDeleted !== undefined;
+    if (isMembershipChange) {
+      const [targetRoleKey, nextRole] = await Promise.all([
+        // Soft-deleted included: restoring an owner is an owner change too.
+        this.membersService.findMembershipRoleKey(organizationId, {
+          id: memberId,
+        }),
+        updateMemberDto.roleId
+          ? this.membersService.resolveRoleAssignment(updateMemberDto.roleId)
+          : Promise.resolve(null),
+      ]);
+      await this.assertMembershipChangeAllowed(request, user, organizationId, {
+        nextRoleKey: nextRole?.roleKey,
+        targetRoleKey,
+      });
     }
 
     let memberUpdate = updateMemberDto;
@@ -251,6 +283,37 @@ export class OrganizationsMembersController {
     }
 
     return String(userId);
+  }
+
+  /**
+   * RolesGuard proved the caller is an owner or admin; changes that grant the
+   * owner role or touch an owner's membership also need the caller to be an
+   * owner. Reads the caller's role the way RolesGuard does (`roleId -> Role`,
+   * API-key cap applied).
+   */
+  private async assertMembershipChangeAllowed(
+    request: Request,
+    user: User,
+    organizationId: string,
+    change: { nextRoleKey?: string | null; targetRoleKey?: string | null },
+  ): Promise<void> {
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    const actorUserId = this.toIdString(user.userId ?? user.id);
+    const actorRoleKey =
+      isSuperAdmin || !actorUserId
+        ? null
+        : await this.membersService.findMembershipRoleKey(organizationId, {
+            isActive: true,
+            isDeleted: false,
+            userId: actorUserId,
+          });
+    assertMembershipChangeAllowed({
+      ...change,
+      actorRole: actorRoleKey
+        ? resolveApiKeyEffectiveMemberRole(user, actorRoleKey as MemberRole)
+        : null,
+      isSuperAdmin,
+    });
   }
 
   private assertOrganizationScope(user: User, organizationId: string): void {

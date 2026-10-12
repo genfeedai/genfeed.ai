@@ -697,7 +697,7 @@ export class BrandRelocationService {
     transaction?: Prisma.TransactionClient,
   ): Promise<boolean> {
     const member = await (transaction ?? this.prisma).member.findFirst({
-      select: { role: { select: { key: true } }, roleKey: true },
+      select: { role: { select: { key: true } } },
       where: scopedWhere(organizationId, {
         isActive: true,
         userId: actingUser.userId,
@@ -706,7 +706,8 @@ export class BrandRelocationService {
     if (!member) {
       return false;
     }
-    const roleKey = member.roleKey ?? member.role?.key ?? undefined;
+    // Authorization reads `roleId -> Role`; `roleKey` is a Better Auth copy.
+    const roleKey = member.role?.key;
     if (roleKey === undefined) {
       return false;
     }
