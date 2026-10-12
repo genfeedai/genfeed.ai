@@ -2601,6 +2601,130 @@ describe('StudioPlaygroundWorkspace', () => {
       );
     });
 
+    describe('attaching frames to a video prompt', () => {
+      function installStatefulAttachments() {
+        mocks.attachments.mockImplementation(() => {
+          const [items, setItems] = useState<
+            {
+              file: File;
+              id: string;
+              ingredientId: string;
+              kind: 'image';
+              name: string;
+              previewUrl: string;
+            }[]
+          >([]);
+          return {
+            addFiles: (files: File[]) =>
+              setItems((current) => [
+                ...current,
+                ...files.map((file) => ({
+                  file,
+                  id: `up-${file.name}`,
+                  ingredientId: `ing-${file.name}`,
+                  kind: 'image' as const,
+                  name: file.name,
+                  previewUrl: `blob:${file.name}`,
+                })),
+              ]),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () =>
+              items.map((item) => ({
+                ingredientId: item.ingredientId,
+                kind: item.kind,
+              })),
+            isUploading: false,
+            removeAttachment: (id: string) =>
+              setItems((current) => current.filter((item) => item.id !== id)),
+          };
+        });
+      }
+
+      function composerActions() {
+        return mocks.composer.mock.calls.at(-1)?.[0] as {
+          attachedAssets: { id: string; role: string }[];
+          onAddFiles: (files: File[], role: string) => void;
+          onSubmit: () => void;
+        };
+      }
+
+      function frameFile(name: string): File {
+        return new File(['x'], name, { type: 'image/png' });
+      }
+
+      it('keeps an end frame attached in Auto after cleanup and sends it', async () => {
+        mocks.type.value = 'video';
+        mocks.settings.mockReturnValue({
+          resetSettings: vi.fn(),
+          settings: { modelKey: AUTO_MODEL_OPTION_VALUE },
+          setType: mocks.setType,
+          type: 'video',
+          updateSettings: vi.fn(),
+        });
+        installStatefulAttachments();
+        render(<StudioPlaygroundWorkspace />);
+
+        act(() =>
+          composerActions().onAddFiles([frameFile('start.png')], 'startFrame'),
+        );
+        act(() =>
+          composerActions().onAddFiles([frameFile('end.png')], 'endFrame'),
+        );
+        await act(async () => {
+          await Promise.resolve();
+        });
+
+        expect(composerActions().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ role: 'startFrame' }),
+            expect.objectContaining({ id: 'up-end.png', role: 'endFrame' }),
+          ]),
+        );
+        expect(mocks.notify).not.toHaveBeenCalledWith(
+          expect.stringContaining('cleared'),
+        );
+        act(() => composerActions().onSubmit());
+        expect(mocks.submit).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            endFrameId: 'ing-end.png',
+            imageReferenceIds: ['ing-start.png'],
+          }),
+          expect.anything(),
+        );
+      });
+
+      it('still drops an end frame for a concrete model that rejects it', async () => {
+        mocks.type.value = 'video';
+        mocks.settings.mockReturnValue({
+          resetSettings: vi.fn(),
+          settings: { modelKey: MODEL_KEYS.REPLICATE_OPENAI_SORA_2 },
+          setType: mocks.setType,
+          type: 'video',
+          updateSettings: vi.fn(),
+        });
+        installStatefulAttachments();
+        render(<StudioPlaygroundWorkspace />);
+
+        act(() =>
+          composerActions().onAddFiles([frameFile('end.png')], 'endFrame'),
+        );
+        await waitFor(() =>
+          expect(composerActions().attachedAssets).not.toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ role: 'endFrame' }),
+            ]),
+          ),
+        );
+        expect(mocks.notify).toHaveBeenCalledWith(
+          'Unsupported frame or video references were cleared for the selected model.',
+        );
+      });
+    });
+
     it('reads the draft of the brand open in this tab', async () => {
       render(<StudioPlaygroundWorkspace />);
 

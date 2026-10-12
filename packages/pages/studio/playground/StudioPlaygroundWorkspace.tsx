@@ -35,6 +35,7 @@ import type {
   IStudioGenerateDraft,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type {
   StudioGenerateDraftPayload,
   StudioPlaygroundJob,
@@ -181,6 +182,20 @@ interface StudioContentReference {
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
 const EMPTY_ATTACHMENTS: AttachmentItem[] = [];
+
+// Auto defers to the router, which can pick a start/end-frame model, so a
+// start and end frame may be attached together. A concrete model decides.
+function resolveSupportsInterpolation(
+  modelKey: string | undefined,
+  videoControls: CrunInputControls | undefined,
+): boolean {
+  if (isAutoStudioModelKey(modelKey)) {
+    return true;
+  }
+  return videoControls?.mediaKind === 'video'
+    ? videoControls.videoRules?.referenceMode === 'start-end'
+    : hasInterpolation(modelKey ?? '');
+}
 
 function warnForImageEditEntry(
   entry: ImageEditEntryResolution,
@@ -1373,10 +1388,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       const videoControls = models.find(
         (model) => model.key === settings.modelKey && model.provider === 'crun',
       )?.inputControls;
-      const supportsInterpolation =
-        videoControls?.mediaKind === 'video'
-          ? videoControls.videoRules?.referenceMode === 'start-end'
-          : hasInterpolation(settings.modelKey);
+      const supportsInterpolation = resolveSupportsInterpolation(
+        settings.modelKey,
+        videoControls,
+      );
       const hasStartFrame =
         contentReferences.some(
           (reference) => reference.role === 'startFrame',
@@ -1509,10 +1524,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       const videoControls = models.find(
         (model) => model.key === settings.modelKey && model.provider === 'crun',
       )?.inputControls;
-      const supportsInterpolation =
-        videoControls?.mediaKind === 'video'
-          ? videoControls.videoRules?.referenceMode === 'start-end'
-          : hasInterpolation(settings.modelKey);
+      const supportsInterpolation = resolveSupportsInterpolation(
+        settings.modelKey,
+        videoControls,
+      );
       const hasStartFrame =
         contentReferences.some(
           (reference) => reference.role === 'startFrame',
@@ -1668,10 +1683,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       return;
     }
     const unsupportedRoles = new Set<StudioPlaygroundReferenceRole>();
-    const supportsInterpolation =
-      videoControls?.mediaKind === 'video'
-        ? videoControls.videoRules?.referenceMode === 'start-end'
-        : hasInterpolation(settings.modelKey);
+    const supportsInterpolation = resolveSupportsInterpolation(
+      settings.modelKey,
+      videoControls,
+    );
     const hasStartFrame =
       contentReferences.some((reference) => reference.role === 'startFrame') ||
       attachments.some(
