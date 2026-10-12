@@ -18,9 +18,10 @@ import {
   recordingLogger,
   seedAcceptanceWorld,
 } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
+import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import type { BrandFactCheckOutcome } from '@api/services/brand-validation/brand-fact-check.types';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
@@ -274,9 +275,18 @@ describe.skipIf(!connectionString)(
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       expect(run.result.status).toBe('completed');
       expect(await receiptStates(world.organizationId)).toContain('ready');
-      expect(await draftStates(world.organizationId)).toEqual([
-        TargetExecutionState.SCHEDULED,
-      ]);
+      const recovery = await readBreakoutOutputRecovery(prisma, {
+        brandId: world.brandId,
+        credentialId: world.credentialId,
+        organizationId: world.organizationId,
+        outputId: must(run.result.outputIds[0], 'the quote output'),
+        platform: Platform.TWITTER,
+        responseId: run.result.responseId,
+      });
+      expect(
+        await draftStates(world.organizationId),
+        JSON.stringify(recovery),
+      ).toEqual([TargetExecutionState.SCHEDULED]);
     });
 
     it('holds a draft with an unverified claim for a member review, even with auto-publish on (#6717)', async () => {
