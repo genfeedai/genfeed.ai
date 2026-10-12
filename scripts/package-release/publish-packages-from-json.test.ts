@@ -11,6 +11,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   assertCleanWorkingTree,
+  assertMasterPublication,
   collectModuleSpecifiers,
   normalizeReleaseRequests,
   registryAction,
@@ -237,6 +238,66 @@ describe('publish package release planning', () => {
     }
   });
 
+  it('publishes the dispatched release SHA after master advances past it', () => {
+    const fixture = createMasterFixture();
+    try {
+      const releaseSha = fixture.commit('release');
+      fixture.push();
+      expect(() =>
+        assertMasterPublication(fixture.root, releaseSha, {
+          dispatchSha: releaseSha,
+        }),
+      ).not.toThrow();
+
+      fixture.advanceRemoteMaster('merged after dispatch');
+      expect(() =>
+        assertMasterPublication(fixture.root, releaseSha, {
+          dispatchSha: releaseSha,
+        }),
+      ).not.toThrow();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it('refuses a release SHA that is no longer on master', () => {
+    const fixture = createMasterFixture();
+    try {
+      fixture.commit('base');
+      fixture.push();
+      const offMasterSha = fixture.commit('never merged');
+      expect(() =>
+        assertMasterPublication(fixture.root, offMasterSha, {
+          dispatchSha: offMasterSha,
+        }),
+      ).toThrow('to remain on origin/master');
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it('refuses a source other than the dispatched release SHA', () => {
+    const fixture = createMasterFixture();
+    try {
+      const dispatchSha = fixture.commit('dispatched');
+      const laterSha = fixture.commit('later master');
+      fixture.push();
+      expect(() =>
+        assertMasterPublication(fixture.root, laterSha, { dispatchSha }),
+      ).toThrow('requires the dispatched release commit');
+      expect(() =>
+        assertMasterPublication(fixture.root, laterSha, {
+          dispatchSha: undefined,
+        }),
+      ).toThrow('requires the dispatched release commit');
+      expect(() =>
+        assertMasterPublication(fixture.root, dispatchSha, { dispatchSha }),
+      ).toThrow('release plan was built from');
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   it('resumes only when an existing registry tarball matches the plan', () => {
     expect(registryAction('sha256-matching', null)).toBe('publish');
     expect(registryAction('sha256-matching', 'sha256-matching')).toBe('skip');
@@ -383,6 +444,62 @@ describe('publish package release planning', () => {
     ]);
   });
 });
+
+function createMasterFixture() {
+  const fixtureRoot = mkdtempSync(
+    path.join(tmpdir(), 'package-release-master-'),
+  );
+  const remote = path.join(fixtureRoot, 'origin.git');
+  const root = path.join(fixtureRoot, 'checkout');
+  const peer = path.join(fixtureRoot, 'peer');
+  const git = (cwd: string, args: string[]) =>
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Package Test',
+        '-c',
+        'user.email=package-test@example.com',
+        ...args,
+      ],
+      { cwd, encoding: 'utf8' },
+    ).trim();
+  let commitCount = 0;
+
+  mkdirSync(root);
+  git(fixtureRoot, ['init', '--quiet', '--bare', remote]);
+  git(root, ['init', '--quiet', '--initial-branch=master']);
+  git(root, ['remote', 'add', 'origin', remote]);
+
+  return {
+    advanceRemoteMaster(message: string) {
+      git(fixtureRoot, [
+        'clone',
+        '--quiet',
+        '--branch',
+        'master',
+        remote,
+        peer,
+      ]);
+      git(peer, ['commit', '--quiet', '--allow-empty', '-m', message]);
+      git(peer, ['push', '--quiet', 'origin', 'HEAD:master']);
+    },
+    cleanup() {
+      rmSync(fixtureRoot, { force: true, recursive: true });
+    },
+    commit(message: string) {
+      commitCount += 1;
+      writeFileSync(path.join(root, 'tracked.txt'), `${commitCount}\n`);
+      git(root, ['add', 'tracked.txt']);
+      git(root, ['commit', '--quiet', '-m', message]);
+      return git(root, ['rev-parse', 'HEAD']);
+    },
+    push() {
+      git(root, ['push', '--quiet', 'origin', 'HEAD:master']);
+    },
+    root,
+  };
+}
 
 function packageEntry(
   packagePath: string,
