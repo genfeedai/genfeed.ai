@@ -44,7 +44,8 @@ for (const viewport of [
     await expect(
       canvas.getByRole('heading', { level: 1, name: 'Responsive draft' }),
     ).toBeVisible();
-    const editor = canvas.locator('[contenteditable="true"]');
+    // The first editable region is the post editor; the prompt bar has its own.
+    const editor = canvas.locator('[contenteditable="true"]').first();
     await expect(editor).toBeVisible();
     const editorBounds = await editor.boundingBox();
     expect(editorBounds).not.toBeNull();
@@ -53,17 +54,17 @@ for (const viewport of [
       (editorBounds?.x ?? 0) + (editorBounds?.width ?? 0),
     ).toBeLessThanOrEqual(viewport.width);
 
-    // #6783: the rewrite prompt is labelled, and its placeholder is an example.
+    // #6807: one docked prompt bar writes and rewrites; its input is labelled.
     const prompt = canvas.getByRole('textbox', {
       exact: true,
-      name: 'Rewrite instruction',
+      name: 'Ask AI to write or rewrite',
     });
     await expect(prompt).toBeVisible();
     const promptBounds = await prompt.boundingBox();
     expect(promptBounds?.width).toBeGreaterThanOrEqual(120);
     await prompt.fill('QA layout check');
     await expect(
-      canvas.getByRole('button', { name: 'Enhance', exact: true }),
+      canvas.getByRole('button', { name: 'Rewrite', exact: true }),
     ).toBeEnabled();
     for (const control of await canvas
       .locator('button, [role="combobox"]')
@@ -81,7 +82,7 @@ for (const viewport of [
     });
     await prompt.fill('');
     await expect(
-      canvas.getByRole('button', { name: 'Enhance', exact: true }),
+      canvas.getByRole('button', { name: 'Rewrite', exact: true }),
     ).toBeDisabled();
     await expectNoErrorOverlay(page);
   });
