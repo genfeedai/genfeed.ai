@@ -18,6 +18,25 @@ describe('BrandDeferredVisualAnalysis', () => {
     expect(deferral.isRequested).toBe(true);
   });
 
+  it('asks the gate about the organization the reading is attributed to', async () => {
+    const gate = { isEnabled: vi.fn(async (_organizationId: string) => true) };
+    const deferral = new BrandDeferredVisualAnalysis(gate);
+    await deferral.extractText({ frames, scope });
+    await deferral.detectRegions({ frames, query: 'logo', scope });
+    expect(gate.isEnabled).toHaveBeenNthCalledWith(1, 'org-a');
+    expect(gate.isEnabled).toHaveBeenNthCalledWith(2, 'org-a');
+  });
+
+  it('answers disabled, and queues nothing, while only the organization has it off', async () => {
+    const deferral = new BrandDeferredVisualAnalysis({
+      isEnabled: async (organizationId) => organizationId !== 'org-a',
+    });
+    expect(await deferral.extractText({ frames, scope })).toEqual({
+      status: 'disabled',
+    });
+    expect(deferral.isRequested).toBe(false);
+  });
+
   it('answers disabled, and records nothing, while the platform switch is off', async () => {
     const deferral = new BrandDeferredVisualAnalysis({
       isEnabled: async () => false,
