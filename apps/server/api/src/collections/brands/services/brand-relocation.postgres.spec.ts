@@ -182,6 +182,12 @@ describe.skipIf(!connectionString)(
         post: await pick(
           prisma.post.findUnique({ select, where: { id: s.post } }),
         ),
+        postIngredient: await pick(
+          prisma.postIngredient.findFirst({
+            select,
+            where: { postId: s.post },
+          }),
+        ),
         postReceipt: await pick(
           prisma.postProviderPublishReceipt.findFirst({
             select,
@@ -227,6 +233,7 @@ describe.skipIf(!connectionString)(
             'nodeResult',
             'persona',
             'post',
+            'postIngredient',
             'postReceipt',
             'threadContext',
             'workflow',
@@ -288,6 +295,7 @@ describe.skipIf(!connectionString)(
         'agentThreadSnapshot',
         'threadContextState',
         'postProviderPublishReceipt',
+        'postIngredient',
       ]) {
         expect(previewed.get(resource), resource).toBe(1);
       }
@@ -918,6 +926,15 @@ async function seed(prisma: PrismaClient, options: SeedOptions = {}) {
       },
     })
   ).id;
+  // The post's ordered media link carries the post's organization.
+  await prisma.postIngredient.create({
+    data: {
+      ingredientId: ingredient,
+      organizationId: source,
+      position: 0,
+      postId: post,
+    },
+  });
   await prisma.postProviderPublishReceipt.create({
     data: {
       attemptStartedAt: now,
