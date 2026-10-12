@@ -137,8 +137,11 @@ export default function CreditsBarTrigger({
             {compactBalance}
           </span>
           <span
+            data-testid="topbar-credits-unit"
             className={cn(
-              'text-2xs font-medium uppercase tracking-[0.06em]',
+              // Below 360px the number alone keeps the topbar row on one line;
+              // the unit stays in the title and aria-label.
+              'text-2xs font-medium uppercase tracking-[0.06em] max-[359px]:hidden',
               isCritical && 'text-destructive/80',
               isWarning && 'text-warning/80',
               (isLoadingState || !isLow) && 'text-muted-foreground',

@@ -32,6 +32,7 @@ import {
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -458,7 +459,8 @@ export function usePostsList({
       openConfirmDelete({
         entity: {
           id: post.id,
-          label: post.label || post.description || 'this post',
+          label:
+            post.label || stripHtmlToPlainText(post.description) || 'this post',
         },
         entityName: 'post',
         onConfirm: async () => {

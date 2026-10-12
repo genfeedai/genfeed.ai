@@ -168,9 +168,18 @@ export const connectedAdRemixSourceSelectorSchema = z
   })
   .strict();
 
+/** A source the user saved from the browser into Imported sources (#5859). */
+export const importedSourceRemixSourceSelectorSchema = z
+  .object({
+    importedSourceId: opaqueIdSchema,
+    kind: z.literal('imported_source'),
+  })
+  .strict();
+
 export const brandRemixSourceSelectorSchema = z.discriminatedUnion('kind', [
   trendReferenceRemixSourceSelectorSchema,
   sourcePostRemixSourceSelectorSchema,
+  importedSourceRemixSourceSelectorSchema,
   ownedPostRemixSourceSelectorSchema,
   publicAdRemixSourceSelectorSchema,
   savedAdRemixSourceSelectorSchema,

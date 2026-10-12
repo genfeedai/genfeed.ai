@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChatActionChips } from '~components/chat/ChatActionChips';
 import { TextActionPanel } from '~components/chat/TextActionPanel';
 import type { UseTextActionReturn } from '~hooks/use-text-action';
+import { usePanelNavigationStore } from '~store/use-panel-navigation-store';
 import { usePlatformStore } from '~store/use-platform-store';
 
 const RESULT = {
@@ -20,10 +21,14 @@ function textAction(overrides: Partial<UseTextActionReturn> = {}) {
     apply: vi.fn(),
     dismiss: vi.fn(),
     error: null,
+    failedRequest: null,
     mode: null,
     original: '',
     phase: 'idle',
+    recovery: null,
     result: null,
+    retry: vi.fn(),
+    routing: null,
     snapshotId: null,
     start: vi.fn(),
     undo: vi.fn(),
@@ -95,6 +100,80 @@ describe('TextActionPanel', () => {
       (screen.getByRole('button', { name: 'Proofread' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it('says a local provider wrote the suggestion', () => {
+    const notice =
+      'Genfeed reached its request limit, so this was written locally with Claude Code, using your approved brand voice.';
+    render(
+      <TextActionPanel
+        textAction={textAction({
+          phase: 'preview',
+          result: RESULT,
+          routing: {
+            hasBrandVoice: true,
+            notice,
+            providerId: 'claude-cli',
+            providerLabel: 'Claude Code',
+            reason: 'quota_exceeded',
+            voiceSource: 'live',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('status').textContent).toBe(notice);
+  });
+
+  it('offers Retry with local provider and Provider settings after a host failure', () => {
+    usePanelNavigationStore.setState({ requestedTab: null });
+    const state = textAction({
+      error: 'The Genfeed local bridge is not reachable.',
+      recovery: {
+        canOpenProviderSettings: true,
+        canRetry: true,
+        kind: 'host_unreachable',
+        retryTarget: 'local',
+      },
+    });
+    render(<TextActionPanel textAction={state} />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Retry with local provider' }),
+    );
+    expect(state.retry).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Provider settings' }));
+    expect(usePanelNavigationStore.getState().requestedTab).toBe('settings');
+  });
+
+  it('offers a plain Retry when Genfeed did not confirm the outcome', () => {
+    render(
+      <TextActionPanel
+        textAction={textAction({
+          error: 'Genfeed did not confirm whether this finished.',
+          recovery: {
+            canOpenProviderSettings: false,
+            canRetry: true,
+            kind: 'cloud_unconfirmed',
+            retryTarget: 'cloud',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Provider settings' }),
+    ).toBeNull();
+  });
+
+  it('offers nothing to retry for an ordinary error', () => {
+    render(
+      <TextActionPanel
+        textAction={textAction({ error: 'Not enough credits.' })}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /Retry/ })).toBeNull();
   });
 
   it('announces an error', () => {

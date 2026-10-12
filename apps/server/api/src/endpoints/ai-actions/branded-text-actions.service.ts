@@ -6,23 +6,23 @@ import type {
   TextActionOutcomeV1,
   TextActionRequestV1,
 } from '@api/endpoints/ai-actions/branded-text-actions.types';
+import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import {
-  BrandedTextRunnerService,
   NO_BRAND_VOICE_HINT,
-} from '@api/endpoints/ai-actions/branded-text-runner.service';
+  REPLY_MAX_CHARACTERS,
+} from '@genfeedai/contracts/constants';
 import {
   createReplyVariantsGate,
   splitReplyVariants,
-} from '@api/endpoints/ai-actions/reply-variants.util';
-import { buildReplyVariantsPrompt } from '@api/endpoints/ai-actions/reply-variants-prompt.util';
-import { buildTextActionPrompt } from '@api/endpoints/ai-actions/text-action-prompt.util';
+} from '@genfeedai/helpers/content/text-action/reply-variants.helper';
+import { buildReplyVariantsPrompt } from '@genfeedai/helpers/content/text-action/reply-variants-prompt.helper';
+import { buildTextActionPrompt } from '@genfeedai/helpers/content/text-action/text-action-prompt.helper';
 import {
   createTextActionGate,
   resolveTextActionLimit,
-} from '@api/endpoints/ai-actions/text-action-text.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
-import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
-import { REPLY_MAX_CHARACTERS } from '@genfeedai/contracts/constants';
+} from '@genfeedai/helpers/content/text-action/text-action-text.helper';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_CHANNEL_LIMIT = 5000;

@@ -133,7 +133,13 @@ function harness(options: { actor?: Record<string, unknown> } = {}) {
       return { count: 1 };
     },
   );
+  const findSettings = vi.fn(async () => ({
+    isBrandVisionChecksEnabled: false,
+    isBreakoutAutoPublishEnabled: true,
+    isBreakoutResponsesEnabled: true,
+  }));
   const tx = {
+    organizationSetting: { findFirst: findSettings },
     post: { findFirst: findPost },
     breakoutResponseOutput: { findFirst: findOutput, updateMany: updateOutput },
     breakoutResponse: { findFirst: findResponse },
@@ -155,6 +161,7 @@ function harness(options: { actor?: Record<string, unknown> } = {}) {
     output,
     execution,
     findPost,
+    findSettings,
     findOutput,
     updateOutput,
     findResponse,
@@ -819,5 +826,155 @@ describe('breakout publication dispatch fence', () => {
     expect(isBreakoutPublicationHold(new Error('connection reset'))).toBe(
       false,
     );
+  });
+});
+
+describe('breakout publication and the organization opt-ins (#6526)', () => {
+  const member: BrandAccessActor = {
+    userId: 'user-b',
+    organizationId: 'org-a',
+    isApiKey: false,
+    scopes: [],
+  };
+  const target = { organizationId: 'org-a', postId: 'post-a' };
+  const settings = (
+    isBreakoutResponsesEnabled: boolean,
+    isBreakoutAutoPublishEnabled: boolean,
+  ) => ({
+    isBrandVisionChecksEnabled: false,
+    isBreakoutAutoPublishEnabled,
+    isBreakoutResponsesEnabled,
+  });
+
+  beforeEach(() => {
+    runtime.cloud = true;
+    vi.mocked(admitBreakoutPublication)
+      .mockReset()
+      .mockResolvedValue({ scoreId: 'score-a' });
+  });
+
+  describe('breakout responses', () => {
+    it('holds a member scheduling the draft while the organization has responses off', async () => {
+      const h = harness();
+      h.findSettings.mockResolvedValue(settings(false, true));
+      await expect(
+        runWithRequestPrincipal(member, () =>
+          assertBreakoutPublicationFence(h.tx, candidate),
+        ),
+      ).rejects.toThrow('Breakout publication held: org_breakout_disabled');
+      expect(admitBreakoutPublication).not.toHaveBeenCalled();
+      expect(h.updateOutput).not.toHaveBeenCalled();
+      expect(h.findSettings).toHaveBeenCalledWith({
+        select: expect.objectContaining({ isBreakoutResponsesEnabled: true }),
+        where: { organizationId: 'org-a' },
+      });
+    });
+
+    it('holds an organization without a settings row', async () => {
+      const h = harness();
+      h.findSettings.mockResolvedValue(null as never);
+      await expect(
+        runWithRequestPrincipal(member, () =>
+          assertBreakoutPublicationFence(h.tx, candidate),
+        ),
+      ).rejects.toThrow('org_breakout_disabled');
+    });
+
+    it('holds at dispatch when the setting was turned off after the schedule', async () => {
+      const h = harness();
+      await runWithRequestPrincipal(member, () =>
+        assertBreakoutPublicationFence(h.tx, candidate),
+      );
+      expect(admitBreakoutPublication).toHaveBeenCalledOnce();
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      h.findSettings.mockResolvedValue(settings(false, true));
+      vi.mocked(admitBreakoutPublication).mockClear();
+      const error = await assertBreakoutPublicationDispatch(
+        h.prisma,
+        target,
+      ).catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(BusinessLogicException);
+      expect(isBreakoutPublicationHold(error)).toBe(true);
+      expect(String((error as Error).message)).toContain(
+        'org_breakout_disabled',
+      );
+      expect(admitBreakoutPublication).not.toHaveBeenCalled();
+    });
+
+    it('admits a member once the organization turned responses on', async () => {
+      const h = harness();
+      h.findSettings.mockResolvedValue(settings(true, false));
+      await runWithRequestPrincipal(member, () =>
+        assertBreakoutPublicationFence(h.tx, candidate),
+      );
+      expect(admitBreakoutPublication).toHaveBeenCalledOnce();
+    });
+
+    it('does not block a post that is already PUBLISHING from being recorded', async () => {
+      const h = harness();
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      h.findSettings.mockResolvedValue(settings(false, false));
+      await assertBreakoutPublicationFence(h.tx, {
+        ...candidate,
+        targetExecutionState: TargetExecutionState.PUBLISHING,
+      });
+      expect(h.findSettings).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('auto-publish', () => {
+    it('holds an automatic schedule while the organization has auto-publish off', async () => {
+      const h = harness();
+      h.findSettings.mockResolvedValue(settings(true, false));
+      await expect(
+        assertBreakoutPublicationFence(h.tx, candidate),
+      ).rejects.toThrow(
+        'Breakout publication held: org_breakout_auto_publish_disabled',
+      );
+      expect(admitBreakoutPublication).not.toHaveBeenCalled();
+      expect(h.updateOutput).not.toHaveBeenCalled();
+    });
+
+    it('holds an automatic dispatch while auto-publish is off, even for a draft that passed every check', async () => {
+      const h = harness();
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      h.findSettings.mockResolvedValue(settings(true, false));
+      await expect(
+        assertBreakoutPublicationDispatch(h.prisma, target),
+      ).rejects.toThrow('org_breakout_auto_publish_disabled');
+      expect(admitBreakoutPublication).not.toHaveBeenCalled();
+    });
+
+    it('holds an automatic dispatch when auto-publish is on but responses are off', async () => {
+      const h = harness();
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      h.findSettings.mockResolvedValue(settings(false, true));
+      await expect(
+        assertBreakoutPublicationDispatch(h.prisma, target),
+      ).rejects.toThrow('org_breakout_disabled');
+    });
+
+    it('admits an automatic schedule and dispatch once both are on, through the same publication gate', async () => {
+      const h = harness();
+      h.findSettings.mockResolvedValue(settings(true, true));
+      await assertBreakoutPublicationFence(h.tx, candidate);
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      await assertBreakoutPublicationDispatch(h.prisma, target);
+      expect(admitBreakoutPublication).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not need auto-publish for a member who scheduled it', async () => {
+      const h = harness();
+      h.findSettings.mockResolvedValue(settings(true, false));
+      await runWithRequestPrincipal(member, () =>
+        assertBreakoutPublicationFence(h.tx, candidate),
+      );
+      expect(admitBreakoutPublication).toHaveBeenCalledOnce();
+      // The dispatch that follows has no request, but the person who scheduled it is recorded.
+      h.post.targetExecutionState = TargetExecutionState.PUBLISHING;
+      vi.mocked(admitBreakoutPublication).mockClear();
+      await assertBreakoutPublicationDispatch(h.prisma, target);
+      expect(admitBreakoutPublication).toHaveBeenCalledOnce();
+    });
   });
 });

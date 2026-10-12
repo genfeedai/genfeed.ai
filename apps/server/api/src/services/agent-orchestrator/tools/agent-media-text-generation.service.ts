@@ -173,6 +173,8 @@ const EMPTY_TEXT_GENERATION_RESULT: AgentToolResult = {
 
 const INSUFFICIENT_TEXT_CREDITS_RESULT: AgentToolResult = {
   creditsUsed: 0,
+  /** Stable reason for clients that must tell a credit limit from any other failure. */
+  data: { code: 'insufficient_credits' },
   error: 'Not enough credits to generate content.',
   success: false,
 };

@@ -1,6 +1,12 @@
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class EnhancePostDto {
   @IsString()
@@ -22,4 +28,14 @@ export class EnhancePostDto {
     required: false,
   })
   tone?: TweetTone;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'When true, return the proposed text on the post without saving it, so the caller can review it first',
+    required: false,
+  })
+  isDraft?: boolean;
 }

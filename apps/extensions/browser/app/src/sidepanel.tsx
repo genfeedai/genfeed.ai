@@ -1,4 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { LibraryAsset } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import { type ReactElement, useEffect, useReducer, useRef } from 'react';
@@ -6,7 +7,7 @@ import { ChatContainer } from '~components/chat/ChatContainer';
 import { CreatePanel } from '~components/create/CreatePanel';
 import { ThreadList } from '~components/history/ThreadList';
 import { type ActiveTab, SidebarNav } from '~components/navigation/SidebarNav';
-import { IdeaDraftPage as ImportedPostsPage } from '~components/pages/IdeaDraftPage';
+import { ImportedSourcesPage } from '~components/pages/ImportedSourcesPage';
 import { KnowledgeCapturePage } from '~components/pages/KnowledgeCapturePage';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { OrganizationSelector } from '~components/settings/OrganizationSelector';
@@ -14,13 +15,17 @@ import { SettingsPanel } from '~components/settings/SettingsPanel';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
 import { useWorkspace } from '~hooks/use-workspace';
+import type {
+  KnowledgeHandoff,
+  SourceCaptureRequest,
+} from '~models/imported-source.model';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 import { appDomain } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { loadWorkspace } from '~services/workspace.service';
 import { useChatStore } from '~store/use-chat-store';
+import { usePanelNavigationStore } from '~store/use-panel-navigation-store';
 import type { ExtensionMessage } from '~types/extension';
-import { extensionIdeaTab } from '~utils/extension-idea-tab.util';
 
 import '~style.css';
 import Spinner from '@ui/primitives/spinner';
@@ -35,6 +40,8 @@ type AuthPanelState =
 interface PanelState {
   activeTab: ActiveTab;
   pendingAuthor: string;
+  pendingCapture?: SourceCaptureRequest;
+  pendingReferences: LibraryAsset[];
   pendingContent: string;
   pendingPlatform: string;
   pendingUrl: string;
@@ -43,7 +50,8 @@ interface PanelState {
 
 type PanelAction =
   | { type: 'resetScope' }
-  | { type: 'addToKnowledge'; url: string }
+  | { type: 'addToKnowledge'; handoff: KnowledgeHandoff }
+  | { type: 'attachReference'; asset: LibraryAsset }
   | { type: 'openMode'; payload: ExtensionMessage }
   | { type: 'setActiveTab'; activeTab: ActiveTab };
 
@@ -56,19 +64,25 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
         pendingContent: '',
         pendingPlatform: '',
         pendingUrl: '',
+        pendingCapture: undefined,
+        pendingReferences: [],
         captureMode: undefined,
       };
     case 'openMode': {
       const { type, content, url, author, platform } = action.payload;
       const activeTabByMessage: Record<ExtensionMessage['type'], ActiveTab> = {
-        IDEA: extensionIdeaTab(action.payload),
+        IDEA: 'knowledge',
         REMIX: 'remix',
         REPLY: 'reply',
+        SETTINGS: 'settings',
+        SOURCE: 'imported',
       };
 
       return {
         ...state,
         activeTab: activeTabByMessage[type],
+        pendingCapture:
+          type === 'SOURCE' ? action.payload.sourceCapture : undefined,
         pendingAuthor: author ?? '',
         pendingContent: content ?? '',
         pendingPlatform: platform ?? '',
@@ -80,12 +94,27 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
       return {
         ...state,
         activeTab: 'knowledge',
-        captureMode: 'link',
-        pendingContent: '',
-        pendingUrl: action.url,
+        captureMode: action.handoff.mode,
+        pendingContent: action.handoff.text,
+        pendingUrl: action.handoff.url,
+      };
+    case 'attachReference':
+      return {
+        ...state,
+        activeTab: 'chat',
+        pendingReferences: [
+          ...state.pendingReferences.filter(
+            (asset) => asset.id !== action.asset.id,
+          ),
+          action.asset,
+        ],
       };
     case 'setActiveTab':
-      return { ...state, activeTab: action.activeTab };
+      return {
+        ...state,
+        activeTab: action.activeTab,
+        pendingCapture: undefined,
+      };
     default:
       return state;
   }
@@ -94,19 +123,23 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
 function SidePanelRoute({
   activeTab,
   pendingAuthor,
+  pendingCapture,
   pendingContent,
   pendingPlatform,
+  pendingReferences,
   pendingUrl,
   captureMode,
   onActiveTabChange,
   onAddToKnowledge,
+  onUseReference,
 }: PanelState & {
   onActiveTabChange: (activeTab: ActiveTab) => void;
-  onAddToKnowledge: (url: string) => void;
+  onAddToKnowledge: (handoff: KnowledgeHandoff) => void;
+  onUseReference: (asset: LibraryAsset) => void;
 }): ReactElement {
   switch (activeTab) {
     case 'chat':
-      return <ChatContainer />;
+      return <ChatContainer initialReferences={pendingReferences} />;
     case 'remix':
       return (
         <ChatContainer
@@ -125,11 +158,12 @@ function SidePanelRoute({
           initialUrl={pendingUrl}
         />
       );
-    case 'idea':
+    case 'imported':
       return (
-        <ImportedPostsPage
-          initialUrl={pendingUrl}
+        <ImportedSourcesPage
+          initialCapture={pendingCapture}
           onAddToKnowledge={onAddToKnowledge}
+          onUseReference={onUseReference}
         />
       );
     case 'knowledge':
@@ -172,6 +206,7 @@ function SidePanelContent() {
     pendingAuthor: '',
     pendingContent: '',
     pendingPlatform: '',
+    pendingReferences: [],
     pendingUrl: '',
   } satisfies PanelState);
 
@@ -186,6 +221,14 @@ function SidePanelContent() {
       dispatchPanel({ type: 'resetScope' });
     }
   }, [scopeRevision]);
+
+  // A component inside the panel asked for another tab (for example Provider settings).
+  const requestedTab = usePanelNavigationStore((s) => s.requestedTab);
+  useEffect(() => {
+    if (!requestedTab) return;
+    dispatchPanel({ activeTab: requestedTab, type: 'setActiveTab' });
+    usePanelNavigationStore.getState().clearRequest();
+  }, [requestedTab]);
 
   // Listen for OPEN_MODE messages from the background/content scripts
   useEffect(() => {
@@ -286,8 +329,11 @@ function SidePanelContent() {
             key={mountedRevision.current ?? 'loading'}
             {...panelState}
             onActiveTabChange={setActiveTab}
-            onAddToKnowledge={(url) =>
-              dispatchPanel({ type: 'addToKnowledge', url })
+            onAddToKnowledge={(handoff) =>
+              dispatchPanel({ handoff, type: 'addToKnowledge' })
+            }
+            onUseReference={(asset) =>
+              dispatchPanel({ asset, type: 'attachReference' })
             }
           />
         </main>

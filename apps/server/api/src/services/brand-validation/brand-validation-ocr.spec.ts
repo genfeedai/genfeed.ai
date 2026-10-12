@@ -283,6 +283,7 @@ describe('OCR literal checks for images and video', () => {
   });
   it.each([
     ['disabled', 'visual_analysis_disabled'],
+    ['pending', 'visual_analysis_pending'],
     ['unavailable', 'visual_analysis_unavailable'],
   ] as const)(
     'stays unknown when the analysis is %s',

@@ -1,8 +1,26 @@
 import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { Locator, Page } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
+
+// #6775: the setup popover opens in Auto, which shows only the output-type
+// grid. Model, Output, Look and the rest (and `Configure Type`) are Advanced.
+function setupDialog(page: Page): Locator {
+  return page.getByRole('dialog').filter({
+    has: page.getByRole('button', { name: 'Auto', exact: true }),
+  });
+}
+
+async function switchToAdvanced(page: Page): Promise<Locator> {
+  const dialog = setupDialog(page);
+  await dialog.getByRole('button', { name: 'Advanced', exact: true }).click();
+  await expect(
+    dialog.getByRole('button', { name: 'Configure Type', exact: true }),
+  ).toBeVisible();
+  return dialog;
+}
 
 for (const viewport of [
   { height: 844, width: 360 },
@@ -35,23 +53,29 @@ for (const viewport of [
       );
       const trigger = page.getByRole('button', { name: /^Generation setup:/ });
       await trigger.click();
-      const dialog = page.getByRole('dialog').filter({
-        has: page.getByRole('button', { name: 'Configure Type', exact: true }),
-      });
+      const dialog = setupDialog(page);
       await expect(dialog).toBeVisible();
+      await expect(
+        dialog.getByRole('group', { name: 'Type', exact: true }),
+      ).toBeVisible();
+      const expectWithinViewport = () =>
+        expect
+          .poll(async () => {
+            const bounds = await dialog.boundingBox();
+            return (
+              bounds !== null &&
+              bounds.x >= 16 &&
+              bounds.x + bounds.width <= viewport.width - 16
+            );
+          })
+          .toBe(true);
+      await expectWithinViewport();
+
+      await switchToAdvanced(page);
       await expect(
         dialog.getByRole('button', { name: 'Reset all fields to agent' }),
       ).toBeVisible();
-      await expect
-        .poll(async () => {
-          const bounds = await dialog.boundingBox();
-          return (
-            bounds !== null &&
-            bounds.x >= 16 &&
-            bounds.x + bounds.width <= viewport.width - 16
-          );
-        })
-        .toBe(true);
+      await expectWithinViewport();
       await page.screenshot({
         path: testInfo.outputPath('generation-setup-in-viewport.png'),
       });
@@ -82,13 +106,12 @@ test.describe('200% browser zoom layout', () => {
       });
       const trigger = page.getByRole('button', { name: /^Generation setup:/ });
       await trigger.click();
-      const dialog = page.getByRole('dialog').filter({
-        has: page.getByRole('button', {
-          name: 'Configure Type',
-          exact: true,
-        }),
-      });
+      const dialog = setupDialog(page);
       await expect(dialog).toBeVisible();
+      await expect(
+        dialog.getByRole('group', { name: 'Type', exact: true }),
+      ).toBeInViewport();
+      await switchToAdvanced(page);
       await expect
         .poll(async () => {
           const b = await dialog.boundingBox();
@@ -145,13 +168,6 @@ test.describe('touch generation setup', () => {
     expect(target.hitWidth).toBeGreaterThanOrEqual(44);
     expect(target.hitHeight).toBeGreaterThanOrEqual(44);
     await page.touchscreen.tap(target.x + target.width / 2, target.y - 5);
-    await expect(
-      page.getByRole('dialog').filter({
-        has: page.getByRole('button', {
-          name: 'Configure Type',
-          exact: true,
-        }),
-      }),
-    ).toBeVisible();
+    await expect(setupDialog(page)).toBeVisible();
   });
 });

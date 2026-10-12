@@ -292,11 +292,26 @@
     "useSet": "Use set"
   },
   "postSidebarSchedule": {
+    "chooseDateTime": "Choose a date and time",
+    "finishTikTokSettings": "Finish TikTok settings",
+    "localTimezone": "Local timezone",
+    "moreTikTokOptions": "More TikTok publishing options",
     "musicConfirmation": "Music Usage Confirmation",
     "musicConfirmationPrefix": "By publishing, you agree to TikTok\u2019s",
+    "now": "Now",
+    "publishNow": "Publish now",
+    "publishTiming": "Publish timing",
+    "publishToTikTok": "Publish to TikTok",
     "publishViaTikTokApp": "Publish via TikTok App",
     "publishViaTikTokAppDescription": "Add TikTok-licensed music or make final edits before publishing.",
-    "scheduledTime": "Scheduled time"
+    "published": "Published",
+    "publishing": "Publishing\u2026",
+    "ready": "Ready",
+    "saving": "Saving\u2026",
+    "schedule": "Schedule",
+    "scheduledTime": "Scheduled time",
+    "viewOn": "View on {platform}",
+    "when": "When"
   },
   "publishPostCard": {
     "awaitingResult": "Still publishing. This card updates when it finishes.",

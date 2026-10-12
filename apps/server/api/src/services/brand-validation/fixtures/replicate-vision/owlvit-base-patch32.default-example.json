@@ -1,0 +1,41 @@
+{
+  "source": "The model owner's published default_example for the pinned version (GET /v1/models/adirik/owlvit-base-patch32). It is not a live prediction of ours.",
+  "version": "5e899f155a1913c4b7304d09082d842ca7fe6cb1f22e066c83eb1d7849dc37c2",
+  "input": {
+    "image": "https://replicate.delivery/pbxt/JhlycB8ScNVrMu0ke1Xlg09ajbsmMfp4TK19JXpnYq6GrHK8/astronaut.png",
+    "query": "human face, rocket, star-spangled banner, nasa badge",
+    "threshold": 0.11,
+    "show_visualisation": true
+  },
+  "output": {
+    "json_data": {
+      "objects": [
+        {
+          "bbox": [180, 71, 271, 178],
+          "label": "human face",
+          "confidence": 0.35713595151901245
+        },
+        {
+          "bbox": [1, 1, 105, 509],
+          "label": "star-spangled banner",
+          "confidence": 0.13790424168109894
+        },
+        {
+          "bbox": [350, -1, 468, 288],
+          "label": "rocket",
+          "confidence": 0.2110234647989273
+        },
+        {
+          "bbox": [129, 348, 206, 427],
+          "label": "nasa badge",
+          "confidence": 0.28099769353866577
+        },
+        {
+          "bbox": [277, 338, 327, 380],
+          "label": "nasa badge",
+          "confidence": 0.1195005401968956
+        }
+      ]
+    }
+  }
+}

@@ -323,7 +323,18 @@
     "sortOrderLabel": "Sort order"
   },
   "evaluationCard": {
-    "persuasion": "Persuasion"
+    "persuasion": "Persuasion",
+    "qualityEvaluation": "Quality evaluation",
+    "running": "Running…",
+    "failed": "Failed",
+    "notRun": "Not run",
+    "rerun": "Re-run",
+    "run": "Run",
+    "rerunEvaluation": "Re-run evaluation",
+    "runEvaluation": "Run evaluation",
+    "toggleDetails": "Toggle evaluation details",
+    "details": "Details",
+    "evaluationFailed": "Evaluation failed. Please try again."
   },
   "organizationSwitcher": {
     "switching": "Switching…"
@@ -509,5 +520,129 @@
     "saving": "Saving…",
     "saved": "YouTube settings saved",
     "saveFailed": "Could not save YouTube settings."
+  },
+  "seoScorecard": {
+    "seoScore": "SEO score",
+    "notScored": "Not scored",
+    "scoring": "Scoring",
+    "score": "Score",
+    "rescore": "Re-score",
+    "actionSeo": "{action} SEO",
+    "saveBeforeScoringSeo": "Save changes before scoring SEO",
+    "saveBeforeScoring": "Save your changes before scoring.",
+    "toggleDetails": "Toggle SEO details",
+    "details": "Details",
+    "words": "{count} words",
+    "flesch": "Flesch {score}",
+    "keywordDensity": "{percent}% keyword",
+    "title": "SEO Scorecard",
+    "emptyTitle": "No SEO score yet",
+    "emptyBody": "Score this {contentType} to check keywords, metadata, links, media, structure, and readability.",
+    "defaultContentType": "content",
+    "checks": "Checks",
+    "suggestions": "Suggestions",
+    "dimensions": {
+      "contentStructure": "Structure",
+      "keywordPlacement": "Keyword",
+      "links": "Links",
+      "media": "Media",
+      "metaOptimization": "Metadata",
+      "readability": "Readability",
+      "technicalSignals": "Technical"
+    },
+    "ratings": {
+      "critical": "Critical",
+      "excellent": "Excellent",
+      "good": "Good",
+      "needsWork": "Needs work",
+      "poor": "Poor"
+    }
+  },
+  "postCardFooter": {
+    "addMedia": "Add media",
+    "media": "Media ({count})",
+    "changeMedia": "Change media ({count})",
+    "generateIllustration": "Generate illustration",
+    "deletePost": "Delete post",
+    "saving": "Saving…",
+    "unsaved": "Unsaved changes",
+    "saved": "Saved",
+    "save": "Save"
+  },
+  "postComposerPromptBar": {
+    "presets": {
+      "shorten": "Shorten",
+      "simplify": "Simplify",
+      "boost": "Boost",
+      "hashtags": "Hashtags",
+      "caption": "Optimize caption",
+      "comment": "Add first comment",
+      "grok": "End with @grok",
+      "thread": "Turn into a thread"
+    },
+    "tones": {
+      "professional": "Professional",
+      "casual": "Casual",
+      "viral": "Viral",
+      "educational": "Educational",
+      "humorous": "Humorous"
+    },
+    "discard": "Discard",
+    "tryAgain": "Try again",
+    "replaceText": "Replace text",
+    "addToThread": "Add to thread",
+    "proposedThread": "Proposed {count} posts for the thread",
+    "proposedThreadAria": "Proposed thread",
+    "rewriteAria": "AI rewrite",
+    "writing": "Writing…",
+    "yourInstruction": "Your instruction",
+    "postNumber": "Post {number}",
+    "actingOn": "Acting on",
+    "instructionAria": "Ask AI to write or rewrite",
+    "placeholder": "Ask AI to rewrite, e.g. “open with the result”",
+    "toneAria": "Tone",
+    "creditPerRun": "1 credit per run",
+    "rewrite": "Rewrite"
+  },
+  "postDetailInspector": {
+    "tabs": {
+      "details": "Details",
+      "preview": "Preview"
+    },
+    "viewAria": "Inspector view",
+    "tiktokSettings": "TikTok settings",
+    "youtubeSettings": "YouTube settings",
+    "tiktokReady": "Ready",
+    "tiktokNeedsSettings": "Needs settings",
+    "performance": "Performance",
+    "lineage": "Lineage",
+    "checks": "Checks",
+    "ingredients": "Ingredients",
+    "qualitySummary": "Quality {score}",
+    "seoSummary": "SEO {score}",
+    "notRun": "Not run",
+    "postLabel": "post",
+    "openOnPlatform": "Open on platform",
+    "unknownPlatform": "Unknown",
+    "publishedPrefix": "Published ",
+    "scheduledPrefix": "Scheduled ",
+    "workflowLineage": "Workflow lineage",
+    "workflow": "Workflow",
+    "action": "Action",
+    "generation": "Generation",
+    "prompt": "Prompt",
+    "turboRun": "Turbo run",
+    "reviewItem": "Review item",
+    "notRecorded": "Not recorded",
+    "notLinked": "Not linked",
+    "reviewState": "Review State",
+    "decision": "Decision",
+    "reviewed": "Reviewed",
+    "decisions": {
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "requestChanges": "Changes requested",
+      "unset": "Not reviewed"
+    }
   }
 }

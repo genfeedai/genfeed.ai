@@ -8,6 +8,8 @@ export interface EvaluationCardProps {
   onEvaluate: () => Promise<void>;
   isEvaluating?: boolean;
   isPublished?: boolean;
+  /** `embedded` renders one compact row with expandable details, no Card. */
+  variant?: 'card' | 'embedded';
 }
 
 export interface EvaluationBadgeProps {

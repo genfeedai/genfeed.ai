@@ -1,6 +1,8 @@
 import * as matchers from '@testing-library/jest-dom/matchers';
 import { expect } from 'vitest';
+
 expect.extend(matchers);
+
 import * as React from 'react';
 import { vi } from 'vitest';
 
@@ -30,13 +32,18 @@ Object.defineProperty(global, 'chrome', {
     storage: {
       local: {
         clear: vi.fn(),
-        get: vi.fn(),
+        get: vi.fn().mockResolvedValue({}),
         remove: vi.fn(),
         set: vi.fn(),
       },
       onChanged: {
         addListener: vi.fn(),
         removeListener: vi.fn(),
+      },
+      session: {
+        get: vi.fn().mockResolvedValue({}),
+        remove: vi.fn().mockResolvedValue(undefined),
+        set: vi.fn().mockResolvedValue(undefined),
       },
       sync: {
         clear: vi.fn(),

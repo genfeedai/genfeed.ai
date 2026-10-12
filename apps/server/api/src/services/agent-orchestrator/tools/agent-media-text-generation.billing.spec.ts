@@ -241,6 +241,7 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
       const result = await service.refineText(params, headless);
 
       expect(result).toMatchObject({
+        data: { code: 'insufficient_credits' },
         error: 'Not enough credits to generate content.',
         success: false,
       });
@@ -367,6 +368,7 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
       expect(
         await service.generateReplyVariants(params, headless),
       ).toMatchObject({
+        data: { code: 'insufficient_credits' },
         error: 'Not enough credits to generate content.',
         success: false,
       });

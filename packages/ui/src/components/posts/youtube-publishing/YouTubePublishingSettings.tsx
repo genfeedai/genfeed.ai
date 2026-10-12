@@ -5,6 +5,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { YouTubePublishingSettingsProps } from '@genfeedai/props/components/youtube-publishing.props';
 import { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
@@ -19,6 +20,7 @@ import { useState } from 'react';
 export default function YouTubePublishingSettings({
   post,
   onSaved,
+  isEmbedded = false,
 }: YouTubePublishingSettingsProps) {
   const translate = useTranslations('ui.youtubePublishing');
   const [privacy, setPrivacy] = useState(() =>
@@ -71,9 +73,14 @@ export default function YouTubePublishingSettings({
   return (
     <section
       aria-label={translate('sectionLabel')}
-      className="space-y-3 rounded-lg border border-border p-4"
+      className={cn(
+        'space-y-3',
+        !isEmbedded && 'rounded-lg border border-border p-4',
+      )}
     >
-      <h3 className="text-sm font-semibold">{translate('title')}</h3>
+      {isEmbedded ? null : (
+        <h3 className="text-sm font-semibold">{translate('title')}</h3>
+      )}
       {error ? (
         <p role="alert" className="text-sm text-error">
           {error}

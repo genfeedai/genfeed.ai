@@ -72,6 +72,21 @@ export async function detectBreakout(
   env: AcceptanceEnv,
   options: DetectOptions = {},
 ): Promise<DetectedBreakout> {
+  const detected = await collectBreakout(env, options);
+  return {
+    ...detected,
+    jobId: must(detected.jobId, 'the queued job'),
+  };
+}
+
+/**
+ * The same collection, without requiring the producer to have queued anything: for scenarios
+ * where an organization has not opted in and the detection must cost nothing.
+ */
+export async function collectBreakout(
+  env: AcceptanceEnv,
+  options: DetectOptions = {},
+): Promise<Omit<DetectedBreakout, 'jobId'> & { jobId: string | undefined }> {
   const { db, logger, prisma } = env;
   const world = await seedAcceptanceWorld(db, options.world);
   await seedApprovedBrandIdentity(db, world, options.brandRules);
@@ -101,7 +116,7 @@ export async function detectBreakout(
     authorization,
     candidate,
     harness,
-    jobId: must(jobId, 'the queued job'),
+    jobId,
     response,
     world,
   };

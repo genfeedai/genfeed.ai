@@ -1,3 +1,4 @@
+import { BreakoutAutoPublishService } from '@api/collections/outliers/services/breakout-auto-publish.service';
 import { breakoutGenerationScope } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import {
   type BreakoutGenerationPlanRequest,
@@ -6,6 +7,10 @@ import {
 } from '@api/collections/outliers/services/breakout-generation-plan.service';
 import { isBreakoutMediaFormat } from '@api/collections/outliers/services/breakout-media-format.util';
 import { BreakoutMediaOutputPreparationService } from '@api/collections/outliers/services/breakout-media-output-preparation.service';
+import {
+  BREAKOUT_ORG_DISABLED_REASON,
+  isBreakoutResponsesEnabledFor,
+} from '@api/collections/outliers/services/breakout-organization-gate.util';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -56,12 +61,17 @@ export class BreakoutResponseExecutionService {
     private readonly planner: BreakoutGenerationPlanService,
     private readonly text: BreakoutTextOutputPreparationService,
     private readonly media: BreakoutMediaOutputPreparationService,
+    private readonly autoPublish: BreakoutAutoPublishService,
   ) {}
 
   async execute(
     request: BreakoutResponseExecutionRequest,
   ): Promise<BreakoutResponseExecutionResult> {
     await request.reauthorize(this.prisma);
+    // The organization's opt-in (#6526) comes before the plan, so a response for an organization
+    // that has it off reserves and spends nothing.
+    if (!(await this.isEnabled(request)))
+      return this.held(request, BREAKOUT_ORG_DISABLED_REASON);
     const plan = await this.planner.prepare(request);
     await request.reauthorize(this.prisma);
     if (plan.status === 'held') return this.held(request, plan.reason);
@@ -86,6 +96,15 @@ export class BreakoutResponseExecutionService {
     // outputs continue and the response reports the hold.
     let isReviewHeld = false;
     for (const outputId of reservation.outputIds) {
+      // Turning the setting off mid-flight stops before the next output's paid steps. A provider
+      // call already dispatched is settled by its own retained recovery, never abandoned here.
+      if (!(await this.isEnabled(request)))
+        return {
+          status: 'held',
+          responseId: request.responseId,
+          reason: BREAKOUT_ORG_DISABLED_REASON,
+          outputs,
+        };
       const output = await this.bindExecution(request, outputId);
       const step = await this.runOutput(request, plan, output);
       outputs.push({ outputId, recovery: step.recovery });
@@ -201,7 +220,22 @@ export class BreakoutResponseExecutionService {
         recovery,
         stop: { status: 'held', reason: outcome.reasonCode },
       };
-    return { recovery, stop: null };
+    // An output that passed every check schedules itself only for an organization that turned
+    // auto-publish on (#6526); otherwise, or on any hold, it stays a draft for review.
+    const published = await this.autoPublish.schedule({
+      outputId: output.id,
+      reauthorize: request.reauthorize,
+      responseId: request.responseId,
+      scope: request.scope,
+      strategyId: request.strategyId,
+    });
+    return {
+      recovery:
+        published.status === 'scheduled'
+          ? await this.recovery(request, output.id)
+          : recovery,
+      stop: null,
+    };
   }
 
   /** Whether an already retained output blocks its siblings until it is reconciled. */
@@ -218,6 +252,17 @@ export class BreakoutResponseExecutionService {
           reason: recovery.reason ?? heldReason,
         }
       : null;
+  }
+
+  private async isEnabled(
+    request: BreakoutResponseExecutionRequest,
+  ): Promise<boolean> {
+    const isEnabled = await isBreakoutResponsesEnabledFor(
+      this.prisma,
+      request.scope.organizationId,
+    );
+    await request.reauthorize(this.prisma);
+    return isEnabled;
   }
 
   private held(

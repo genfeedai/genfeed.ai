@@ -78,6 +78,9 @@ export const ONBOARDING_STARTER_ASSETS_QUEUE = 'onboarding-starter-assets';
 export const MEDIA_PERCEPTION_QUEUE = 'media-perception';
 /** Moderation classifier (#4880) over perceived frames, transcript and OCR. */
 export const MEDIA_MODERATION_QUEUE = 'media-moderation';
+/** Brand vision checks (#6727): OCR and logo or product placement of a branded
+ * visual by a cold-start-tolerant vision model, off the generation request. */
+export const BRAND_VISION_QUEUE = 'brand-vision';
 
 // ---------- Review ----------
 /** Review batch rewrites (#5365): up to 100 sequential LLM rewrites run off the
@@ -99,6 +102,7 @@ export const ALL_QUEUE_NAMES = [
   ONBOARDING_STARTER_ASSETS_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   MEDIA_MODERATION_QUEUE,
+  BRAND_VISION_QUEUE,
   TURBO_REWRITE_QUEUE,
 ] as const;
 

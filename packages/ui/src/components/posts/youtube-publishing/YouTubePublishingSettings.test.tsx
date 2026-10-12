@@ -24,7 +24,7 @@ const post = {
   groupId: 'group-1',
   ingredients: [],
   targetExecutionState: TargetExecutionState.DRAFT,
-} as IPost;
+} as unknown as IPost;
 
 describe('YouTube publishing settings', () => {
   beforeEach(() => {

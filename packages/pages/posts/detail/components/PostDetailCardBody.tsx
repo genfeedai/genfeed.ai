@@ -12,7 +12,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { MutableRefObject } from 'react';
+import type { MutableRefObject, ReactNode } from 'react';
 
 export interface PostDetailCardBodyProps {
   post: IPost;
@@ -36,6 +36,10 @@ export interface PostDetailCardBodyProps {
   publishedDisplay?: string;
   hasAnalytics: boolean;
   showAnalytics?: boolean;
+  /** Shows the thread position marker; a single post has no numbering. */
+  isThread?: boolean;
+  /** Assist and action area rendered inside the same surface as the content. */
+  footer?: ReactNode;
 }
 
 export default function PostDetailCardBody({
@@ -57,6 +61,8 @@ export default function PostDetailCardBody({
   publishedDisplay,
   hasAnalytics,
   showAnalytics,
+  isThread = false,
+  footer,
 }: PostDetailCardBodyProps) {
   const translate = useTranslations('pages.posts.detail');
   const tweetLength = calculateTweetLength(
@@ -66,19 +72,21 @@ export default function PostDetailCardBody({
   const isTweetOverLimit = tweetLength > tweetLimit;
 
   return (
-    <Card className="overflow-hidden space-y-3">
-      <div className="flex items-start gap-3">
-        <div className="flex flex-col items-center">
-          <div
-            className={`w-8 h-8 flex items-center justify-center text-sm font-medium transition-colors duration-200 ${
-              focusedPostId === post.id
-                ? 'bg-foreground text-background'
-                : 'bg-muted text-foreground'
-            }`}
-          >
-            {index + 1}
+    <Card bodyClassName="gap-0 p-0">
+      <div className="flex items-start gap-3 p-4">
+        {isThread ? (
+          <div className="flex flex-col items-center">
+            <div
+              className={`flex size-8 items-center justify-center rounded-full text-sm font-medium transition-colors duration-200 ${
+                focusedPostId === post.id
+                  ? 'bg-foreground text-background'
+                  : 'bg-muted text-foreground'
+              }`}
+            >
+              {index + 1}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between mb-2">
@@ -198,6 +206,7 @@ export default function PostDetailCardBody({
           </div>
         </div>
       </div>
+      {footer}
     </Card>
   );
 }

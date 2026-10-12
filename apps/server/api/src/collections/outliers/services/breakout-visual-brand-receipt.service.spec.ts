@@ -53,6 +53,7 @@ function setup(
     category?: string | null;
     externalId?: string | null;
     validated?: ReceiptState;
+    isVisionPending?: boolean;
   } = {},
 ) {
   const ingredient =
@@ -99,7 +100,16 @@ function setup(
   const snapshots = { preview: vi.fn(async () => snapshot) };
   const validation = {
     validateReceipt: vi.fn(async () => ({
-      receipt: receipt(options.validated ?? 'needs_review', 4),
+      receipt: {
+        ...receipt(options.validated ?? 'needs_review', 4),
+        ...(options.isVisionPending
+          ? {
+              validation: {
+                checks: [{ reasonCode: 'visual_analysis_pending' }],
+              } as unknown as BrandedGenerationReceiptV1['validation'],
+            }
+          : {}),
+      },
       replayed: false,
     })),
   };
@@ -117,10 +127,23 @@ function setup(
 const visuals = [{ ingredientId: 'ingredient-1', prompt: 'A scene of it' }];
 
 describe('BreakoutVisualBrandReceiptService', () => {
+  it('reports a visual whose OCR or placement reading is still running in the background', async () => {
+    const h = setup({ isVisionPending: true });
+    const outcome = await h.service.validate(admission, visuals);
+    expect(outcome).toEqual({
+      isBlocked: false,
+      isVisionPending: true,
+      states: ['needs_review'],
+    });
+  });
   it('runs create, resolve, dispatch, bind and validate for a finished visual', async () => {
     const h = setup();
     const outcome = await h.service.validate(admission, visuals);
-    expect(outcome).toEqual({ isBlocked: false, states: ['needs_review'] });
+    expect(outcome).toEqual({
+      isBlocked: false,
+      isVisionPending: false,
+      states: ['needs_review'],
+    });
     expect(h.receipts.create).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-a',
@@ -198,6 +221,7 @@ describe('BreakoutVisualBrandReceiptService', () => {
     const h = setup({ validated: 'blocked' });
     expect(await h.service.validate(admission, visuals)).toEqual({
       isBlocked: true,
+      isVisionPending: false,
       states: ['blocked'],
     });
   });
@@ -208,6 +232,7 @@ describe('BreakoutVisualBrandReceiptService', () => {
     );
     expect(await h.service.validate(admission, visuals)).toEqual({
       isBlocked: true,
+      isVisionPending: false,
       states: ['blocked'],
     });
     expect(h.receipts.blockUnboundCompletion).toHaveBeenCalledTimes(1);
@@ -220,6 +245,7 @@ describe('BreakoutVisualBrandReceiptService', () => {
     );
     expect(await h.service.validate(admission, visuals)).toEqual({
       isBlocked: false,
+      isVisionPending: false,
       states: ['unavailable'],
     });
     expect(h.receipts.blockUnboundCompletion).not.toHaveBeenCalled();
@@ -233,6 +259,7 @@ describe('BreakoutVisualBrandReceiptService', () => {
     );
     expect(await binding.service.validate(admission, visuals)).toEqual({
       isBlocked: false,
+      isVisionPending: false,
       states: ['unavailable'],
     });
     expect(binding.receipts.blockUnboundCompletion).not.toHaveBeenCalled();
@@ -242,6 +269,7 @@ describe('BreakoutVisualBrandReceiptService', () => {
     );
     expect(await validating.service.validate(admission, visuals)).toEqual({
       isBlocked: false,
+      isVisionPending: false,
       states: ['unavailable'],
     });
     const failing = setup();
@@ -259,6 +287,7 @@ describe('BreakoutVisualBrandReceiptService', () => {
     );
     expect(await unavailable.service.validate(admission, visuals)).toEqual({
       isBlocked: false,
+      isVisionPending: false,
       states: ['unavailable'],
     });
     expect(unavailable.receipts.create).not.toHaveBeenCalled();
@@ -273,6 +302,7 @@ describe('BreakoutVisualBrandReceiptService', () => {
       const h = setup({ category });
       expect(await h.service.validate(admission, visuals)).toEqual({
         isBlocked: false,
+        isVisionPending: false,
         states: ['unavailable'],
       });
       expect(h.receipts.create).not.toHaveBeenCalled();

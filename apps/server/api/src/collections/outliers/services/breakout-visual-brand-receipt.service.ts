@@ -1,6 +1,7 @@
 import type { BreakoutGenerationAdmission } from '@api/collections/outliers/services/breakout-generation-admission.util';
 import { breakoutVisualBrandRequestKey } from '@api/collections/outliers/services/breakout-visual-brand-key.util';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
+import { hasPendingBrandVisionChecks } from '@api/services/brand-validation/brand-vision-pending.util';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -46,6 +47,11 @@ export interface BreakoutVisualBrandOutcome {
   states: BreakoutVisualBrandState[];
   /** A visual failed a hard brand rule: the output is held and never publishable. */
   isBlocked: boolean;
+  /**
+   * A visual's OCR or placement reading is still running in the background: its checks are
+   * unknown until that job finishes, so the output waits for a member's review.
+   */
+  isVisionPending: boolean;
 }
 
 function receiptErrorCode(error: unknown): string {
@@ -116,16 +122,20 @@ export class BreakoutVisualBrandReceiptService {
       );
       return {
         isBlocked: false,
+        isVisionPending: false,
         states: visuals.map(() => 'unavailable' as const),
       };
     }
     await admission.reauthorize(this.prisma);
     const states: BreakoutVisualBrandState[] = [];
+    let isVisionPending = false;
     for (const visual of visuals) {
-      states.push(await this.validateOne(admission, actor, snapshot, visual));
+      const one = await this.validateOne(admission, actor, snapshot, visual);
+      states.push(one.state);
+      isVisionPending ||= one.isVisionPending;
       await admission.reauthorize(this.prisma);
     }
-    return { isBlocked: states.includes('blocked'), states };
+    return { isBlocked: states.includes('blocked'), isVisionPending, states };
   }
 
   private async validateOne(
@@ -133,7 +143,7 @@ export class BreakoutVisualBrandReceiptService {
     actor: BrandedGenerationActorV1,
     snapshot: BrandIdentitySnapshotV1,
     visual: BreakoutVisualToValidate,
-  ): Promise<BreakoutVisualBrandState> {
+  ): Promise<{ state: BreakoutVisualBrandState; isVisionPending: boolean }> {
     const { scope } = admission;
     const ingredient = await this.prisma.ingredient.findFirst({
       where: scopedWhere(scope.organizationId, {
@@ -155,7 +165,7 @@ export class BreakoutVisualBrandReceiptService {
       (category !== IngredientCategory.IMAGE &&
         category !== IngredientCategory.VIDEO)
     )
-      return 'unavailable';
+      return { isVisionPending: false, state: 'unavailable' };
     const kind = category === IngredientCategory.IMAGE ? 'image' : 'video';
     const provider = ingredient.metadata?.externalProvider?.trim() || 'unknown';
     const model = ingredient.metadata?.model?.trim() || 'unknown';
@@ -214,7 +224,10 @@ export class BreakoutVisualBrandReceiptService {
         );
       }
     }
-    return this.stateOf(receipt);
+    return {
+      isVisionPending: hasPendingBrandVisionChecks(receipt),
+      state: this.stateOf(receipt),
+    };
   }
 
   private stateOf(receipt: BrandedGenerationReceiptV1) {

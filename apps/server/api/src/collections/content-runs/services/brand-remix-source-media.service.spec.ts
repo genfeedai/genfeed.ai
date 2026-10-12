@@ -295,6 +295,75 @@ describe('BrandRemixSourceMediaService', () => {
     },
   );
 
+  it('uses the prepared Library copy of an imported source without copying anything again', async () => {
+    ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.IMAGE,
+      id: 'cmedia000000001',
+    });
+    const result = await service.ingest({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+      source: {
+        ...source,
+        snapshot: {
+          ...source.snapshot,
+          selector: {
+            importedSourceId: 'csource00000001',
+            kind: 'imported_source',
+          },
+        },
+        sourceMedia: {
+          ...source.sourceMedia,
+          existingAssetIds: ['cmedia000000001'],
+        },
+      },
+    });
+    expect(result).toEqual({
+      assetId: 'cmedia000000001',
+      category: IngredientCategory.IMAGE,
+      status: 'saved',
+    });
+    expect(ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          id: 'cmedia000000001',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(shared.createMediaDocumentsInternal).not.toHaveBeenCalled();
+    expect(files.uploadToS3).not.toHaveBeenCalled();
+  });
+
+  it('never copies an embed-only imported source', async () => {
+    const result = await service.ingest({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+      source: {
+        ...source,
+        snapshot: {
+          ...source.snapshot,
+          selector: {
+            importedSourceId: 'csource00000001',
+            kind: 'imported_source',
+          },
+        },
+        sourceMedia: {
+          existingAssetIds: [],
+          imageUrls: [],
+          importPolicy: 'embed_only',
+          videoUrls: ['https://www.youtube.com/watch?v=abc123'],
+        },
+      },
+    });
+    expect(result).toEqual({ status: 'unavailable', reason: 'embed_only' });
+    expect(files.uploadToS3).not.toHaveBeenCalled();
+  });
+
   it('rejects existing IDs supplied by a non-owned source before database access', async () => {
     const result = await service.ingest({
       organizationId: 'org-1',

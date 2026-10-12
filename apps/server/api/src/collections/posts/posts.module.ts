@@ -24,6 +24,7 @@ import { ContentMentionsController } from '@api/collections/posts/controllers/co
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
+import { PostsThreadDraftController } from '@api/collections/posts/controllers/operations/posts-thread-draft.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fanout.module';
@@ -60,6 +61,7 @@ import { Module } from '@nestjs/common';
     ContentMentionsController,
     PostsAnalyticsController,
     PostsGenerationController,
+    PostsThreadDraftController,
     PostsOperationsController,
     PostsRetryController,
     PostsController,
