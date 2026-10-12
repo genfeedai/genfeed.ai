@@ -1,0 +1,57 @@
+{
+  "model": "owlvit-base-patch32",
+  "version": "5e899f155a1913c4b7304d09082d842ca7fe6cb1f22e066c83eb1d7849dc37c2",
+  "verifiedAt": "2026-10-12",
+  "source": "GET /v1/models/{owner}/{name}/versions/{id}, openapi_schema components Input and Output",
+  "Input": {
+    "properties": {
+      "image": {
+        "description": "Input image to query",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "query": {
+        "description": "Comma seperated names of the objects to be detected in the image",
+        "title": "Query",
+        "type": "string",
+        "x-order": 1
+      },
+      "show_visualisation": {
+        "default": true,
+        "description": "Draw and visualize bounding boxes on the image",
+        "title": "Show Visualisation",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "threshold": {
+        "default": 0.1,
+        "description": "Confidence level for object detection",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Threshold",
+        "type": "number",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "Output": {
+    "properties": {
+      "json_data": {
+        "title": "Json Data",
+        "type": "object"
+      },
+      "result_image": {
+        "format": "uri",
+        "title": "Result Image",
+        "type": "string"
+      }
+    },
+    "required": ["json_data"],
+    "title": "ModelOutput",
+    "type": "object"
+  }
+}
