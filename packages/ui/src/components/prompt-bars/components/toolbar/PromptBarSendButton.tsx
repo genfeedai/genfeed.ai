@@ -17,13 +17,16 @@ export default function PromptBarSendButton({
   isDisabled = false,
   isLoading = false,
   onClick,
+  ref,
   testId,
   tooltip,
+  ...buttonProps
 }: PromptBarSendButtonProps): ReactElement {
   const isCompact = density === 'compact';
 
   return (
     <Button
+      {...buttonProps}
       ariaLabel={ariaLabel}
       aria-disabled={isAriaDisabled || undefined}
       className={cn(
@@ -36,6 +39,7 @@ export default function PromptBarSendButton({
       isDisabled={isDisabled}
       isLoading={isLoading}
       onClick={onClick}
+      ref={ref}
       size={ButtonSize.ICON}
       tooltip={tooltip}
       tooltipPosition="top"
