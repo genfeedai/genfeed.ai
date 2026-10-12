@@ -33,7 +33,7 @@ function generateRequest(): Record<string, unknown> {
       (message as { event?: string }).event === 'generateReplyVariants',
   );
   if (!call) throw new Error('No generateReplyVariants request was sent');
-  return call[0] as Record<string, unknown>;
+  return call[0] as unknown as Record<string, unknown>;
 }
 
 describe('ReplyPage', () => {
