@@ -61,7 +61,9 @@ const RETAIN =
   'Could not save this recording. Keep this tab open and select Retry recording. Closing the browser may lose it.';
 const UNAVAILABLE =
   'Recording is not available on this server yet. Retry after Genfeed is updated.';
-const FAILED = 'Published on X; recording failed. Retry in Genfeed Settings.';
+const FAILED = 'Recording failed.';
+const failedMessage = (platform: string) =>
+  `Published on ${platform === 'linkedin' ? 'LinkedIn' : 'X'}; recording failed. Retry in Genfeed Settings.`;
 let queue: Promise<unknown> = Promise.resolve();
 const inFlight = new Map<string, Promise<PublicationCaptureReply>>();
 function serial<T>(operation: () => Promise<T>): Promise<T> {
@@ -290,7 +292,7 @@ async function record(
       const message =
         error instanceof Error && error.message === UNAVAILABLE
           ? UNAVAILABLE
-          : FAILED;
+          : failedMessage(entry.input.platform);
       try {
         await serial(async () => {
           const entries = await outboxEntries();

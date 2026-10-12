@@ -290,6 +290,7 @@ async function injectMediaIntoLinkedIn(
       commentBox.focus();
       commentBox.textContent = replyText;
       commentBox.dispatchEvent(new Event('input', { bubbles: true }));
+      markWrittenByGenfeed(replyText);
     }
 
     // LinkedIn's image upload is more complex - try to find the file input
@@ -488,6 +489,7 @@ async function injectVideoIntoTwitter(
       commentBox.focus();
       commentBox.textContent = replyText;
       commentBox.dispatchEvent(new Event('input', { bubbles: true }));
+      markWrittenByGenfeed(replyText);
       return true;
     }
     return false;

@@ -9,6 +9,7 @@ import type {
 import {
   publicationCaptureHomeUrl,
   publicationCapturePageUrl,
+  publicationCapturePlatform,
   validPublicationCaptureIdentity,
 } from '~services/publication-capture-validation';
 
@@ -20,7 +21,7 @@ export function isXHome(value: string): boolean {
   return Boolean(publicationCaptureHomeUrl(value));
 }
 export function isXPublicationPage(value: string): boolean {
-  return Boolean(publicationCapturePageUrl(value));
+  return publicationCapturePlatform(value) === 'twitter';
 }
 function primary(element: Element, article: Element): boolean {
   for (

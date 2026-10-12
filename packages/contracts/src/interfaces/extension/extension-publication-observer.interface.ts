@@ -1,7 +1,12 @@
 import type {
   ExtensionPublicationCaptureInput,
   ExtensionPublicationCaptureResult,
+  ExtensionPublicationPlatform,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
+export type PublicationCapturePlatform = Extract<
+  ExtensionPublicationPlatform,
+  'twitter' | 'linkedin'
+>;
 export interface PublicationCaptureScope {
   userId: string;
   organizationId: string;
@@ -20,7 +25,9 @@ export type PublicationCaptureSurface =
       returnUrl: string;
       replyIntentId: string;
       parent: PublicationCaptureParent;
-    };
+    }
+  | { kind: 'linkedin-post' }
+  | { kind: 'linkedin-comment'; parent: PublicationCaptureParent };
 export interface PublicationCaptureReplyIntentInput {
   scope: PublicationCaptureScope;
   createdAt: number;
@@ -39,7 +46,8 @@ export interface PublicationCaptureAttempt {
   scope: PublicationCaptureScope;
   startedAt: number;
   documentUrl: string;
-  authorHandle: string;
+  /** Always set on X; LinkedIn attempts carry null and read the author from the published element. */
+  authorHandle: string | null;
   description: string;
   baselineIds: string[];
 }
@@ -47,7 +55,7 @@ export interface PublicationCaptureObservation {
   attemptId: string;
   externalId: string;
   url: string;
-  authorHandle: string;
+  authorHandle: string | null;
   description: string;
   publicationDate: string;
 }
@@ -153,4 +161,17 @@ export interface XPublicationReplyTarget {
   control: HTMLElement;
   article: Element;
   parent: PublicationCaptureParent;
+}
+export interface LinkedInPublicationCandidate {
+  externalId: string;
+  url: string;
+  authorHandle: string | null;
+  publicationDate: string;
+}
+export interface LinkedInPublicationComposer {
+  root: Element;
+  editor: HTMLElement;
+  submit: HTMLElement;
+  kind: 'post' | 'comment';
+  parent: PublicationCaptureParent | null;
 }

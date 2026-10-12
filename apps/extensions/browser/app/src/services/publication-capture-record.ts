@@ -3,15 +3,18 @@ import type {
   PublicationCaptureConfirmed,
   PublicationCaptureObservation,
   PublicationCaptureOutboxEntry,
+  PublicationCapturePlatform,
   PublicationCaptureSenderBinding,
+  PublicationCaptureSurface,
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 import {
   publicationCaptureBody as body,
-  publicationCaptureHandle as handle,
-  publicationCaptureHomeUrl as home,
+  canonicalLinkedInUrn,
   publicationCaptureKeys as keys,
-  publicationCaptureNumericId as numeric,
   publicationCaptureRecord as object,
+  publicationCaptureObservedId as observedId,
+  publicationCapturePageUrl as page,
+  publicationCapturePlatform as platformOf,
   parsePublicationCaptureScope as scope,
   publicationCaptureText as text,
   publicationCaptureUuid as uuid,
@@ -30,7 +33,7 @@ export function parsePublicationCaptureSenderBinding(
     !text(v.origin)
   )
     return null;
-  const origin = home(`${v.origin}/home`);
+  const origin = page(`${v.origin}/`);
   if (!origin || origin.origin !== v.origin) return null;
   return { tabId: v.tabId, origin: v.origin };
 }
@@ -54,23 +57,54 @@ export function samePublicationCaptureObservation(
   );
 }
 
+export function publicationCaptureSurfaceKind(
+  surface: PublicationCaptureSurface,
+): 'post' | 'reply' {
+  return surface.kind === 'x-reply-modal' || surface.kind === 'linkedin-comment'
+    ? 'reply'
+    : 'post';
+}
+/**
+ * The provider identity sent as `externalId`. X posts and replies carry the tweet id; a
+ * LinkedIn post carries it only when its permalink URN is already a share/UGC URN, and
+ * otherwise (activity URN, or any comment) is recorded by URL alone.
+ */
+export function publicationCaptureProviderId(
+  platform: PublicationCapturePlatform,
+  kind: 'post' | 'reply',
+  observedExternalId: string,
+): string | undefined {
+  if (platform === 'twitter') return observedExternalId;
+  return kind === 'post' &&
+    /^urn:li:(?:share|ugcPost):\d+$/.test(observedExternalId)
+    ? observedExternalId
+    : undefined;
+}
 export function publicationCaptureEntryFromConfirmed(
   item: PublicationCaptureConfirmed,
 ): PublicationCaptureOutboxEntry {
+  const platform = platformOf(item.observation.url);
+  if (!platform) throw new Error('Unsupported publication platform.');
+  const publicationKind = publicationCaptureSurfaceKind(item.attempt.surface);
+  const externalId = publicationCaptureProviderId(
+    platform,
+    publicationKind,
+    item.observation.externalId,
+  );
+  const handle = item.observation.authorHandle;
   return {
     id: item.attempt.id,
     sourceBinding: item.binding,
     scope: item.attempt.scope,
     input: {
       brandId: item.attempt.scope.brandId,
-      platform: 'twitter',
-      publicationKind:
-        item.attempt.surface.kind === 'x-reply-modal' ? 'reply' : 'post',
+      platform,
+      publicationKind,
       description: item.attempt.description,
       publicationDate: item.observation.publicationDate,
       url: item.observation.url,
-      externalId: item.observation.externalId,
-      author: { handle: item.attempt.authorHandle },
+      ...(externalId ? { externalId } : {}),
+      ...(handle ? { author: { handle } } : {}),
       observedVisibility: 'unknown',
     },
     createdAt: item.observedAt,
@@ -83,14 +117,53 @@ export function publicationCaptureEntryMatches(
 ): boolean {
   return (
     entry.id === observation.attemptId &&
-    entry.input.externalId === observation.externalId &&
+    // The url carries the observed id, so equal urls are the same publication.
     entry.input.url === observation.url &&
     entry.input.description === observation.description &&
     entry.input.publicationDate === observation.publicationDate &&
-    entry.input.author?.handle === observation.authorHandle
+    (entry.input.author?.handle ?? null) === observation.authorHandle
   );
 }
 
+/** The id the page showed, recovered from a stored input: X keeps it, LinkedIn keeps it in the permalink. */
+function storedObservedId(
+  platform: PublicationCapturePlatform,
+  input: Record<string, unknown>,
+): unknown {
+  if (platform === 'twitter') return input.externalId;
+  const url = page(input.url);
+  const post =
+    /^\/feed\/update\/(urn:li:(?:activity|share|ugcPost):\d+)\/?$/.exec(
+      url?.pathname ?? '',
+    );
+  const comment = url?.searchParams.get('commentUrn');
+  return post && (comment === null || comment === undefined)
+    ? post[1]
+    : canonicalLinkedInUrn(comment);
+}
+function storedIdentity(
+  platform: PublicationCapturePlatform,
+  kind: 'post' | 'reply',
+  origin: string,
+  input: Record<string, unknown>,
+  authorHandle: unknown,
+): boolean {
+  const observed = storedObservedId(platform, input);
+  if (!observedId(platform, observed) || typeof input.url !== 'string')
+    return false;
+  return (
+    input.externalId ===
+      publicationCaptureProviderId(platform, kind, observed) &&
+    (platform === 'twitter' ||
+      (kind === 'reply') === observed.startsWith('urn:li:comment:')) &&
+    validPublicationCaptureIdentity(
+      origin,
+      observed,
+      input.url,
+      typeof authorHandle === 'string' ? authorHandle : null,
+    )
+  );
+}
 export function parsePublicationCaptureOutbox(
   value: unknown,
   inFlightIds: ReadonlySet<string>,
@@ -107,6 +180,7 @@ export function parsePublicationCaptureOutbox(
     const s = scope(v?.scope);
     const input = object(v?.input);
     const author = object(input?.author);
+    const platform = platformOf(input?.url);
     if (
       !v ||
       !keys(v, [
@@ -134,22 +208,23 @@ export function parsePublicationCaptureOutbox(
         'observedVisibility',
       ]) ||
       input.brandId !== s.brandId ||
-      input.platform !== 'twitter' ||
+      !platform ||
+      input.platform !== platform ||
+      platformOf(`${binding.origin}/`) !== platform ||
       (input.publicationKind !== 'post' && input.publicationKind !== 'reply') ||
       !text(input.url) ||
-      !numeric(input.externalId) ||
       !body(input.description) ||
       !text(input.publicationDate, 64) ||
       !Number.isFinite(Date.parse(input.publicationDate)) ||
-      !author ||
-      !keys(author, ['handle']) ||
-      !handle(author.handle) ||
+      (input.author !== undefined &&
+        (!author || !keys(author, ['handle']) || !text(author.handle, 255))) ||
       input.observedVisibility !== 'unknown' ||
-      !validPublicationCaptureIdentity(
+      !storedIdentity(
+        platform,
+        input.publicationKind,
         binding.origin,
-        String(input.externalId),
-        String(input.url),
-        String(author.handle),
+        input,
+        author?.handle,
       ) ||
       typeof v.createdAt !== 'number' ||
       !Number.isFinite(v.createdAt) ||
@@ -170,13 +245,17 @@ export function parsePublicationCaptureOutbox(
       scope: s,
       input: {
         brandId: s.brandId,
-        platform: 'twitter',
+        platform,
         publicationKind: input.publicationKind,
         url: input.url,
-        externalId: input.externalId,
+        ...(typeof input.externalId === 'string'
+          ? { externalId: input.externalId }
+          : {}),
         description: input.description,
         publicationDate: input.publicationDate,
-        author: { handle: author.handle },
+        ...(typeof author?.handle === 'string'
+          ? { author: { handle: author.handle } }
+          : {}),
         observedVisibility: 'unknown',
       },
       createdAt: v.createdAt,

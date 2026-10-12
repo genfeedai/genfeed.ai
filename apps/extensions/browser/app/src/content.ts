@@ -1,7 +1,6 @@
-import {
-  attachXPublicationObserver,
-  isXPublicationPage,
-} from '~platforms/x-publication-observer';
+import type { PublicationCapturePlatform } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
+import { attachLinkedInPublicationObserver } from '~platforms/linkedin-publication-observer';
+import { attachXPublicationObserver } from '~platforms/x-publication-observer';
 // Multi-platform content script for Genfeed Extension
 
 import {
@@ -24,12 +23,21 @@ import {
   watchContentTheme,
 } from '~platforms/ui-helpers';
 import { initializeErrorTracking } from '~services/error-tracking.service';
+import { publicationCapturePlatform } from '~services/publication-capture-validation';
 
 const DEBOUNCE_DELAY_MS = 300;
 const NAVIGATION_DELAY_MS = 100;
 const TOAST_DURATION_MS = 3200;
 
+const PUBLICATION_OBSERVERS: Record<
+  PublicationCapturePlatform,
+  () => () => void
+> = {
+  linkedin: attachLinkedInPublicationObserver,
+  twitter: attachXPublicationObserver,
+};
 let stopPublicationObserver: (() => void) | null = null;
+let publicationObserverPlatform: PublicationCapturePlatform | null = null;
 let currentPlatform: PlatformConfig | null = null;
 let observer: MutationObserver | null = null;
 let injectTimeout: NodeJS.Timeout | null = null;
@@ -190,12 +198,15 @@ function cleanup(): void {
 }
 
 function synchronizePublicationObserver(): void {
-  if (isXPublicationPage(location.href)) {
-    if (!stopPublicationObserver)
-      stopPublicationObserver = attachXPublicationObserver();
-  } else if (stopPublicationObserver) {
+  const platform = publicationCapturePlatform(location.href);
+  if (stopPublicationObserver && platform !== publicationObserverPlatform) {
     stopPublicationObserver();
     stopPublicationObserver = null;
+    publicationObserverPlatform = null;
+  }
+  if (platform && !stopPublicationObserver) {
+    stopPublicationObserver = PUBLICATION_OBSERVERS[platform]();
+    publicationObserverPlatform = platform;
   }
 }
 

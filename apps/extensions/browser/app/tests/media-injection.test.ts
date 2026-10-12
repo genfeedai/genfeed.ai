@@ -508,6 +508,48 @@ describe('UI Helpers', () => {
     });
   });
 
+  describe('LinkedIn composer text', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it.each(['Reply with Image', 'Reply with Video'])(
+      'tells the background which text %s wrote into the LinkedIn comment box',
+      async (label) => {
+        vi.stubGlobal('location', {
+          hostname: 'www.linkedin.com',
+          href: 'https://www.linkedin.com/feed/',
+          pathname: '/feed/',
+        });
+        document.body.innerHTML =
+          '<form class="comments-comment-box__form-container"><div class="ql-editor" contenteditable="true"></div></form>';
+        vi.spyOn(chrome.runtime, 'sendMessage').mockImplementation(
+          (async (message: { event?: string }) =>
+            message.event
+              ? {
+                  success: true,
+                  reply: 'A LinkedIn reply',
+                  mediaDataUrl: 'data:image/png;base64,iVBORw0KGgo=',
+                }
+              : undefined) as never,
+        );
+        const dropdown = createGenFeedDropdown('123', 'linkedin');
+        [...dropdown.querySelectorAll('button')]
+          .find((button) => button.textContent?.includes(label))
+          ?.click();
+        await vi.waitFor(() =>
+          expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+            payload: { content: 'A LinkedIn reply', success: true },
+            type: 'CONTENT_INSERTED',
+          }),
+        );
+        expect(document.querySelector('.ql-editor')?.textContent).toBe(
+          'A LinkedIn reply',
+        );
+      },
+    );
+  });
+
   describe('createButtonContainer', () => {
     it('should create a div container', () => {
       const container = createButtonContainer();
