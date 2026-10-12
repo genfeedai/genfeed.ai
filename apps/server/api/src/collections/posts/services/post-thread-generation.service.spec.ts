@@ -105,6 +105,33 @@ describe('PostThreadGenerationService', () => {
     service = module.get(PostThreadGenerationService);
   });
 
+  it('drafts thread replies without saving posts or emitting updates', async () => {
+    const replies = await service.draftThread(
+      originalPost,
+      { count: 3, tone: TweetTone.CASUAL },
+      identity,
+    );
+
+    expect(replies).toEqual(['Reply one', 'Reply two']);
+    expect(postsService.patch).not.toHaveBeenCalled();
+    expect(websocketService.emit).not.toHaveBeenCalled();
+    expect(activitiesService.record).not.toHaveBeenCalled();
+  });
+
+  it('drops invalid draft replies instead of returning empty slots', async () => {
+    replicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify(['Reply one', 'x'.repeat(400)]),
+    );
+
+    const replies = await service.draftThread(
+      originalPost,
+      { count: 3 },
+      identity,
+    );
+
+    expect(replies).toEqual(['Reply one']);
+  });
+
   it('completes generated children in order with activities and websocket evidence', async () => {
     await service.expandThread(
       originalPost,

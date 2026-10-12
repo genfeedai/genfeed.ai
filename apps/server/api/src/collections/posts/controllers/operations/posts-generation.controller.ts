@@ -265,6 +265,65 @@ export class PostsGenerationController {
    * Expand an existing post into a Twitter/X thread
    * Original post becomes first tweet, AI generates additional tweets that expand on the content
    */
+  @Post(':postId/thread-drafts')
+  @Credits({
+    allowByokBypass: true,
+    description: 'Thread draft (text model)',
+    modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
+    source: ActivitySource.POST_ENHANCEMENT,
+  })
+  @UseGuards(CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async draftThread(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('postId') postId: string,
+    @Body() dto: ExpandToThreadDto,
+  ): Promise<{ posts: string[] }> {
+    const originalPost = await this.postsService.findOne({ id: postId }, [
+      PopulatePatterns.credentialMinimal,
+    ]);
+    const existingChildren = originalPost
+      ? await this.postsService.count(originalPost.organizationId, {
+          parentId: postId,
+        })
+      : 0;
+    const blockReason = threadExpansionBlockReason({
+      existingChildren,
+      isOwned: isOwnedPost(originalPost, user.organizationId),
+      isTwitter: isTwitterPlatform(originalPost?.platform),
+      postExists: Boolean(originalPost),
+    });
+
+    if (blockReason || !originalPost) {
+      throw createPostsGenerationHttpException(
+        blockReason?.detail ?? 'The specified post does not exist',
+        blockReason?.title ?? 'Post not found',
+        blockReason?.status ?? HttpStatus.NOT_FOUND,
+      );
+    }
+
+    try {
+      const posts = await this.postGenerationService.draftThread(
+        originalPost,
+        dto,
+        user,
+        resolveByokApiKeyOverride(request),
+      );
+      return { posts };
+    } catch (error: unknown) {
+      const errorMessage = generationFailureMessage(error, 'Unknown error');
+      this.logger.error(`Thread draft failed: ${errorMessage}`);
+      throw createPostsGenerationHttpException(
+        errorMessage || 'Failed to draft the thread',
+        'Thread draft failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post(':postId/thread-expansions')
   @Credits({
     allowByokBypass: true,

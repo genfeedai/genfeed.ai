@@ -271,6 +271,7 @@ describe('PostsOperationsController', () => {
   };
 
   const mockPostThreadGenerationService = {
+    draftThread: vi.fn().mockResolvedValue(['Reply one', 'Reply two']),
     expandThread: vi.fn().mockResolvedValue(undefined),
   };
   const mockPostVariationService = { generate: vi.fn() };
@@ -462,6 +463,7 @@ Tweet 3: Tech innovation is changing the world.`,
     ['generateAccountContent', 'account-generations'],
     ['generateSourceVariations', 'source-variations'],
     ['expandToThread', ':postId/thread-expansions'],
+    ['draftThread', ':postId/thread-drafts'],
     ['enhancePost', ':postId/enhancements'],
     ['repurposePost', ':postId/repurpose'],
     ['scoreSeo', ':postId/seo-scores'],
@@ -500,6 +502,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
   it.each([
     'expandToThread',
+    'draftThread',
     'enhancePost',
     'repurposePost',
     'scoreSeo',
@@ -845,6 +848,93 @@ Tweet 3: Tech innovation is changing the world.`,
   });
 
   // ==========================================================================
+  // POST /posts/:postId/thread-drafts - draftThread
+  describe('draftThread', () => {
+    const draftDto = { count: 3, tone: TweetTone.CASUAL };
+
+    beforeEach(() => {
+      mockPostsService.findOne.mockResolvedValue({
+        ...mockPost,
+        platform: CredentialPlatform.TWITTER,
+      });
+      mockPostsService.count.mockResolvedValue(0);
+      mockPostsService.create.mockClear();
+      mockPostsService.patch.mockClear();
+      mockPostThreadGenerationService.draftThread.mockResolvedValue([
+        'Reply one',
+        'Reply two',
+      ]);
+    });
+
+    it('returns proposed replies without creating or changing posts', async () => {
+      const result = await generationController.draftThread(
+        mockRequest,
+        mockUser,
+        postId,
+        draftDto,
+      );
+
+      expect(result).toEqual({ posts: ['Reply one', 'Reply two'] });
+      expect(mockPostThreadGenerationService.draftThread).toHaveBeenCalledWith(
+        expect.objectContaining({ platform: CredentialPlatform.TWITTER }),
+        draftDto,
+        mockUser,
+        undefined,
+      );
+      expect(mockPostsService.create).not.toHaveBeenCalled();
+      expect(mockPostsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects posts that already have thread replies', async () => {
+      mockPostsService.count.mockResolvedValueOnce(2);
+
+      await expect(
+        generationController.draftThread(
+          mockRequest,
+          mockUser,
+          postId,
+          draftDto,
+        ),
+      ).rejects.toThrow(HttpException);
+      expect(
+        mockPostThreadGenerationService.draftThread,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects non-X posts', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        platform: CredentialPlatform.YOUTUBE,
+      });
+
+      await expect(
+        generationController.draftThread(
+          mockRequest,
+          mockUser,
+          postId,
+          draftDto,
+        ),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('rejects posts from another organization', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        organizationId: testId('other'),
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      await expect(
+        generationController.draftThread(
+          mockRequest,
+          mockUser,
+          postId,
+          draftDto,
+        ),
+      ).rejects.toThrow(HttpException);
+    });
+  });
+
   // POST /posts/:postId/expand-to-thread - expandToThread
   // ==========================================================================
   describe('expandToThread', () => {
