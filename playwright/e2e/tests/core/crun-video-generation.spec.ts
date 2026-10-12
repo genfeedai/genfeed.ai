@@ -428,6 +428,8 @@ async function openOutputControls(page: Page) {
   await openConfiguration(page, 'Output');
 }
 async function closeGenerationSetup(page: Page) {
+  // Two layers: the Output submenu, then the setup popover itself.
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   await expect(
     page.getByRole('button', { name: 'Configure Output', exact: true }),
@@ -606,6 +608,8 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
   await expect(
     page.getByText('Aspect ratio comes from the frames', { exact: true }),
   ).toBeVisible();
+  // Close the Output submenu before opening Model's.
+  await page.keyboard.press('Escape');
   await openConfiguration(page, 'Model');
   await page.getByRole('option', { name: /Veo 3.1 Fast/ }).click();
   await page.keyboard.press('Escape');
