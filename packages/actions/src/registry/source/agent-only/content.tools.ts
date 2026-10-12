@@ -1,3 +1,7 @@
+import {
+  TEXT_ACTION_MAX_INPUT_LENGTH,
+  TEXT_ACTION_MODES,
+} from '@genfeedai/contracts/constants/text-action.constant';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants/tool-credit.constant';
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
@@ -170,6 +174,53 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
         },
       },
       required: ['topic', 'type'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: GENERATE_CONTENT_TEXT_CREDITS,
+    description:
+      'Proofread or rewrite a draft the user already wrote and return the edited text. proofread fixes spelling and grammar only and keeps the meaning, tone, @mentions, #hashtags and links. rewrite applies the brand voice within the platform length limit; a brand with no approved voice is rewritten without voice context and the result says how to define one. requestKey (a UUID per user request) makes a repeat return the first result without a new charge. Nothing is written to a composer or published.',
+    name: 'refine_text',
+    parameters: {
+      properties: {
+        brandId: {
+          description:
+            'Brand whose voice applies. Authorized server-side against the caller.',
+          type: 'string',
+        },
+        mode: {
+          description: 'proofread keeps the wording; rewrite uses the voice',
+          enum: [...TEXT_ACTION_MODES],
+          type: 'string',
+        },
+        platform: {
+          description: 'Platform the text will be posted on',
+          enum: [
+            'twitter',
+            'linkedin',
+            'reddit',
+            'facebook',
+            'instagram',
+            'tiktok',
+            'youtube',
+          ],
+          type: 'string',
+        },
+        requestKey: {
+          description: 'UUID identifying this user request, for idempotency',
+          format: 'uuid',
+          type: 'string',
+        },
+        text: {
+          description: 'The draft to edit',
+          maxLength: TEXT_ACTION_MAX_INPUT_LENGTH,
+          minLength: 1,
+          type: 'string',
+        },
+      },
+      required: ['mode', 'platform', 'requestKey', 'text'],
       type: 'object',
     },
     requiredRole: 'user',
