@@ -149,7 +149,9 @@ describe('HedraController', () => {
     } catch (error) {
       const httpError = error as HttpException;
       const response = httpError.getResponse() as Record<string, string>;
-      expect(response.detail).toBe('Unknown error occurred');
+      expect(response.detail).toBe(
+        'An unexpected error occurred while loading the provider catalog.',
+      );
     }
   });
 });
