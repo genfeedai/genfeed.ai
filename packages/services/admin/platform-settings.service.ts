@@ -1,4 +1,5 @@
 import type {
+  IBrandVisionModelOption,
   IBrandVisionModelOptions,
   IPlatformSetting,
   IUpdatePlatformSettingPayload,
@@ -9,6 +10,23 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+
+function isBrandVisionModelOption(
+  value: unknown,
+): value is IBrandVisionModelOption {
+  if (!value || typeof value !== 'object') return false;
+  const option = value as Record<string, unknown>;
+  return (
+    typeof option.key === 'string' &&
+    typeof option.label === 'string' &&
+    typeof option.providerCostUsd === 'number'
+  );
+}
+
+/** A response without a well-formed option list yields no choices instead of crashing the page. */
+function toBrandVisionModelOptions(value: unknown): IBrandVisionModelOption[] {
+  return Array.isArray(value) ? value.filter(isBrandVisionModelOption) : [];
+}
 
 export class AdminPlatformSettingsService extends HTTPBaseService {
   constructor(token: string) {
@@ -37,7 +55,14 @@ export class AdminPlatformSettingsService extends HTTPBaseService {
       'brand-vision-models',
       { signal },
     );
-    return deserializeResource<IBrandVisionModelOptions>(response.data);
+    const options = deserializeResource<Partial<IBrandVisionModelOptions>>(
+      response.data,
+    );
+    return {
+      detect: toBrandVisionModelOptions(options.detect),
+      id: options.id ?? 'brand-vision-models',
+      ocr: toBrandVisionModelOptions(options.ocr),
+    };
   }
 
   async updateSettings(
