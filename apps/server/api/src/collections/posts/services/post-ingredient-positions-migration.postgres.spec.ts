@@ -29,9 +29,11 @@ const migrationSql = readFileSync(
   ),
   'utf8',
 );
+const BRIDGE_MARKER = '-- Rollout bridge (#6740).';
 // The data step alone, so it can be re-run on a table that already holds the links.
 const backfillStep = migrationSql.slice(
   migrationSql.indexOf('INSERT INTO "post_ingredients"'),
+  migrationSql.indexOf(BRIDGE_MARKER),
 );
 
 // Fixture tables for the migration's joins and foreign keys. Their other required columns are
@@ -67,6 +69,42 @@ describe.skipIf(!connectionString)(
         `INSERT INTO "_post_ingredients" ("A","B") VALUES ($1,$2)`,
         [ingredientId, postId],
       );
+    }
+
+    async function oldLinks(postId: string): Promise<string[]> {
+      const { rows } = await client.query<{ A: string }>(
+        `SELECT "A" FROM "_post_ingredients" WHERE "B" = $1 ORDER BY "A"`,
+        [postId],
+      );
+      return rows.map((row) => row.A);
+    }
+
+    async function newLink(
+      id: string,
+      postId: string,
+      ingredientId: string,
+      position: number,
+    ): Promise<void> {
+      await client.query(
+        `INSERT INTO "post_ingredients" ("id","postId","ingredientId","organizationId","position")
+         VALUES ($1,$2,$3,'org-1',$4)`,
+        [id, postId, ingredientId, position],
+      );
+    }
+
+    async function positionOf(
+      postId: string,
+      ingredientId: string,
+    ): Promise<{ position: number; organizationId: string } | undefined> {
+      const { rows } = await client.query<{
+        position: number;
+        organizationId: string;
+      }>(
+        `SELECT "position","organizationId" FROM "post_ingredients"
+         WHERE "postId" = $1 AND "ingredientId" = $2`,
+        [postId, ingredientId],
+      );
+      return rows[0];
     }
 
     async function positions(postId: string): Promise<string[]> {
@@ -222,6 +260,197 @@ describe.skipIf(!connectionString)(
 
       expect(await positions('post-ties')).toEqual([]);
       expect(await positions('post-carousel')).toHaveLength(4);
+    });
+
+    describe('rollout bridge between the old and new link tables', () => {
+      beforeAll(async () => {
+        // A trigger-level write, which is where a mirror's own write lands. It lets a test put a
+        // pair on one side only.
+        await client.query(
+          `CREATE TABLE "link_probe" ("ingredientId" TEXT, "postId" TEXT, "side" TEXT)`,
+        );
+        await client.query(
+          `CREATE FUNCTION probe_write() RETURNS TRIGGER LANGUAGE plpgsql AS $probe$
+           BEGIN
+             IF NEW."side" = 'old' THEN
+               INSERT INTO "_post_ingredients" ("A","B") VALUES (NEW."ingredientId", NEW."postId");
+             ELSE
+               INSERT INTO "post_ingredients" ("id","postId","ingredientId","organizationId","position")
+               VALUES ('probe-' || NEW."ingredientId", NEW."postId", NEW."ingredientId", 'org-1', 7);
+             END IF;
+             RETURN NEW;
+           END
+           $probe$`,
+        );
+        await client.query(
+          `CREATE TRIGGER link_probe_insert AFTER INSERT ON "link_probe"
+           FOR EACH ROW EXECUTE FUNCTION probe_write()`,
+        );
+      });
+
+      it('adds a link written by an old release at the post’s next position with its organization', async () => {
+        await insertIngredient('ing-late-1', null);
+        await insertIngredient('ing-late-2', null);
+        await insertPost('post-old-writer', 'org-2');
+
+        await link('ing-late-1', 'post-old-writer');
+        await link('ing-late-2', 'post-old-writer');
+        expect(await positionOf('post-old-writer', 'ing-late-1')).toEqual({
+          organizationId: 'org-2',
+          position: 0,
+        });
+        expect(await positionOf('post-old-writer', 'ing-late-2')).toEqual({
+          organizationId: 'org-2',
+          position: 1,
+        });
+
+        // An existing carousel appends after its last slide.
+        await insertIngredient('ing-late-3', null);
+        await link('ing-late-3', 'post-carousel');
+        expect(await positions('post-carousel')).toEqual([
+          'ing-z',
+          'ing-y',
+          'ing-x',
+          'ing-w',
+          'ing-late-3',
+        ]);
+        expect(await positionOf('post-carousel', 'ing-late-3')).toEqual({
+          organizationId: 'org-1',
+          position: 4,
+        });
+      });
+
+      it('removes a link an old release deleted and keeps the other slides in place', async () => {
+        await client.query(
+          `DELETE FROM "_post_ingredients" WHERE "A" = 'ing-y' AND "B" = 'post-carousel'`,
+        );
+        expect(await positions('post-carousel')).toEqual([
+          'ing-z',
+          'ing-x',
+          'ing-w',
+          'ing-late-3',
+        ]);
+        expect(await positionOf('post-carousel', 'ing-x')).toMatchObject({
+          position: 2,
+        });
+
+        // The next add continues after the highest position, not into the gap.
+        await insertIngredient('ing-late-4', null);
+        await link('ing-late-4', 'post-carousel');
+        expect(await positionOf('post-carousel', 'ing-late-4')).toMatchObject({
+          position: 5,
+        });
+      });
+
+      it('mirrors a link the new release writes into the old table for rollback', async () => {
+        await insertIngredient('ing-new-1', null);
+        await newLink('new-1', 'post-single', 'ing-new-1', 1);
+        expect(await oldLinks('post-single')).toEqual([
+          'ing-new-1',
+          'ing-solo',
+        ]);
+
+        await client.query(
+          `DELETE FROM "post_ingredients" WHERE "id" = 'new-1'`,
+        );
+        expect(await oldLinks('post-single')).toEqual(['ing-solo']);
+      });
+
+      it('does not mirror a position change, which the old table cannot express', async () => {
+        const before = await oldLinks('post-carousel');
+        await client.query(
+          `UPDATE "post_ingredients" SET "position" = 9
+           WHERE "postId" = 'post-carousel' AND "ingredientId" = 'ing-z'`,
+        );
+        expect(await oldLinks('post-carousel')).toEqual(before);
+        expect(await positionOf('post-carousel', 'ing-z')).toMatchObject({
+          position: 9,
+        });
+      });
+
+      it('settles each write to one row per table instead of echoing it back and forth', async () => {
+        await insertIngredient('ing-once', null);
+        await link('ing-once', 'post-single');
+        const old = await client.query<{ count: string }>(
+          `SELECT count(*) FROM "_post_ingredients" WHERE "A" = 'ing-once'`,
+        );
+        const current = await client.query<{ count: string }>(
+          `SELECT count(*) FROM "post_ingredients" WHERE "ingredientId" = 'ing-once'`,
+        );
+        expect([old.rows[0]?.count, current.rows[0]?.count]).toEqual([
+          '1',
+          '1',
+        ]);
+      });
+
+      it('never re-mirrors a write that is itself a mirror, so the directions cannot loop', async () => {
+        // A write made from inside another trigger runs one level deeper, exactly where a
+        // mirror's own write lands. It must be left alone rather than mirrored again.
+        await insertIngredient('ing-nested', null);
+        await client.query(
+          `INSERT INTO "link_probe" VALUES ('ing-nested','post-single','old')`,
+        );
+        expect(await oldLinks('post-single')).toContain('ing-nested');
+        expect(await positionOf('post-single', 'ing-nested')).toBeUndefined();
+        // Keep the later tests free of this deliberate one-sided pair.
+        await client.query(
+          `DELETE FROM "_post_ingredients" WHERE "A" = 'ing-nested'`,
+        );
+      });
+
+      it('tolerates a pair that already exists on the other side', async () => {
+        await insertIngredient('ing-only-new', null);
+        await insertIngredient('ing-only-old', null);
+        await client.query(
+          `INSERT INTO "link_probe" VALUES ('ing-only-new','post-single','new'),
+                                           ('ing-only-old','post-single','old')`,
+        );
+        expect(await oldLinks('post-single')).not.toContain('ing-only-new');
+        expect(await positionOf('post-single', 'ing-only-old')).toBeUndefined();
+
+        // An old-release add of a pair the new table holds keeps the stored position.
+        await link('ing-only-new', 'post-single');
+        expect(await positionOf('post-single', 'ing-only-new')).toMatchObject({
+          position: 7,
+        });
+
+        // A new-release add of a pair the old table holds neither fails nor duplicates it.
+        await newLink('both', 'post-single', 'ing-only-old', 3);
+        const copies = await client.query<{ count: string }>(
+          `SELECT count(*) FROM "_post_ingredients" WHERE "A" = 'ing-only-old' AND "B" = 'post-single'`,
+        );
+        expect(copies.rows[0]?.count).toBe('1');
+      });
+
+      it('leaves both tables unchanged when the backfill runs again with the bridge installed', async () => {
+        const count = async (table: string) =>
+          (
+            await client.query<{ count: string }>(
+              `SELECT count(*) FROM "${table}"`,
+            )
+          ).rows[0]?.count;
+        const before = [
+          await count('_post_ingredients'),
+          await count('post_ingredients'),
+        ];
+        const order = await positions('post-carousel');
+
+        await client.query(backfillStep);
+
+        expect([
+          await count('_post_ingredients'),
+          await count('post_ingredients'),
+        ]).toEqual(before);
+        expect(await positions('post-carousel')).toEqual(order);
+      });
+
+      it('clears both tables when a post is deleted', async () => {
+        await client.query(
+          `DELETE FROM "posts" WHERE "id" = 'post-old-writer'`,
+        );
+        expect(await oldLinks('post-old-writer')).toEqual([]);
+        expect(await positions('post-old-writer')).toEqual([]);
+      });
     });
   },
 );

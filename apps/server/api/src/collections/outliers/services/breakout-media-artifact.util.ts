@@ -146,6 +146,12 @@ export async function bindBreakoutMediaPostArtifact(
     },
     select: {
       ...brandedPostMaterialSelect,
+      // The material select orders media by id for a stable identity. The replay proof compares
+      // the stored slide order, so it loads the links by position.
+      ingredientLinks: {
+        ...brandedPostMaterialSelect.ingredientLinks,
+        orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      },
       breakoutOutputId: true,
       quoteTweetId: true,
       targetExecutionState: true,
@@ -262,11 +268,10 @@ export async function bindBreakoutMediaPostArtifact(
     return held('media_incomplete');
   const visualIds = visuals.map((visual) => visual.id);
   if (alreadyBound) {
-    const attached = post.ingredientLinks
-      .map((link) => link.ingredient.id)
-      .sort();
+    // Slide order is part of the binding: the same media in another order is a changed draft.
+    const attached = post.ingredientLinks.map((link) => link.ingredient.id);
     return attached.length === visualIds.length &&
-      [...visualIds].sort().every((id, index) => id === attached[index])
+      visualIds.every((id, index) => id === attached[index])
       ? { status: 'replayed', outputId, postId }
       : held('binding_conflict');
   }

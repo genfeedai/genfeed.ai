@@ -266,6 +266,46 @@ describe('composing a visual output', () => {
     expect(h.update).not.toHaveBeenCalled();
   });
 
+  it('replays a carousel only when its slides are still in the generated order', async () => {
+    const h = fixture('carousel');
+    h.state.post.breakoutOutputId = 'output-a';
+    h.state.bound = { id: 'post-output-a' };
+    h.state.post.ingredientLinks = material(h.ids).ingredientLinks;
+    expect(await run(h)).toMatchObject({ status: 'replayed' });
+  });
+
+  it('holds a replay whose slides were reordered after binding', async () => {
+    const h = fixture('carousel');
+    h.state.post.breakoutOutputId = 'output-a';
+    h.state.bound = { id: 'post-output-a' };
+    // The same media, rearranged through the post patch path.
+    h.state.post.ingredientLinks = material(
+      [...h.ids].reverse(),
+    ).ingredientLinks;
+    expect(await run(h)).toEqual({
+      status: 'held',
+      reason: 'binding_conflict',
+    });
+    expect(h.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('loads the replay links in stored slide order', async () => {
+    const h = fixture('carousel');
+    h.state.post.breakoutOutputId = 'output-a';
+    h.state.bound = { id: 'post-output-a' };
+    h.state.post.ingredientLinks = material(h.ids).ingredientLinks;
+    await run(h);
+    const loadingPost = h.tx.post.findFirst as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    const select = loadingPost.mock.calls
+      .map(([args]) => (args as Prisma.PostFindFirstArgs).select)
+      .find((candidate) => candidate && 'breakoutOutputId' in candidate);
+    expect(select?.ingredientLinks).toMatchObject({
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+    });
+  });
+
   it('holds a replay whose attached visuals are not the output’s own', async () => {
     const h = fixture('image');
     h.state.post.breakoutOutputId = 'output-a';
