@@ -135,6 +135,7 @@ describe('LibraryBrowserToolbar', () => {
 
     renderToolbar({
       onStatusChange,
+      shelf: LibraryShelf.NEEDS_REVIEW,
       shelfCounts: {
         [LibraryShelf.FAILED]: 3,
         [LibraryShelf.GENERATING]: 0,
