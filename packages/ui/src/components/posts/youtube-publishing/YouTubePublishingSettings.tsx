@@ -23,14 +23,26 @@ export default function YouTubePublishingSettings({
   isEmbedded = false,
 }: YouTubePublishingSettingsProps) {
   const translate = useTranslations('ui.youtubePublishing');
-  const [privacy, setPrivacy] = useState(() =>
+  const savedPrivacy =
     typeof post.targetSettings?.privacyStatus === 'string'
       ? post.targetSettings.privacyStatus
-      : '',
-  );
-  const [madeForKids, setMadeForKids] = useState(
-    post.targetSettings?.madeForKids === true,
-  );
+      : '';
+  const savedMadeForKids = post.targetSettings?.madeForKids === true;
+  const [privacy, setPrivacy] = useState(savedPrivacy);
+  const [madeForKids, setMadeForKids] = useState(savedMadeForKids);
+  const [syncedSettings, setSyncedSettings] = useState({
+    madeForKids: savedMadeForKids,
+    privacy: savedPrivacy,
+  });
+  // Adopt refreshed settings for the same post (adjusting state during render).
+  if (
+    syncedSettings.privacy !== savedPrivacy ||
+    syncedSettings.madeForKids !== savedMadeForKids
+  ) {
+    setSyncedSettings({ madeForKids: savedMadeForKids, privacy: savedPrivacy });
+    setPrivacy(savedPrivacy);
+    setMadeForKids(savedMadeForKids);
+  }
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const getReleasesService = useAuthedService((token) =>

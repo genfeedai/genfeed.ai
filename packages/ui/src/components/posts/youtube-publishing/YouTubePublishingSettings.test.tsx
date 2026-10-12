@@ -45,6 +45,25 @@ describe('YouTube publishing settings', () => {
     ).toBeDisabled();
   });
 
+  it('adopts refreshed settings for the same post', () => {
+    const { rerender } = render(<YouTubePublishingSettings post={post} />);
+    expect(screen.getByRole('combobox')).toHaveTextContent('Choose privacy');
+
+    rerender(
+      <YouTubePublishingSettings
+        post={{
+          ...post,
+          targetSettings: { madeForKids: true, privacyStatus: 'unlisted' },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('Unlisted');
+    expect(
+      screen.getByRole('checkbox', { name: 'Made for kids' }),
+    ).toBeChecked();
+  });
+
   it.each([
     ['Private', PostVisibility.PRIVATE],
     ['Unlisted', PostVisibility.UNLISTED],
