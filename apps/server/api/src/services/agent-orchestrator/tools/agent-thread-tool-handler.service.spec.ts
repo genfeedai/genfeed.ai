@@ -447,7 +447,11 @@ describe('AgentThreadToolHandler', () => {
                 order: Number(dto.order),
               },
             ]);
-            return { id: 'new-a' };
+            return {
+              description: String(dto.description),
+              id: 'new-a',
+              order: Number(dto.order),
+            };
           })
           .mockRejectedValueOnce(new Error('boom'));
         await h.handler.execute(
