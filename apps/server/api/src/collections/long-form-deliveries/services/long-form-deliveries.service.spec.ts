@@ -393,11 +393,32 @@ describe('LongFormDeliveriesService', () => {
       ]);
 
       await expect(
-        service.listArticleDeliveries('org-1', 'article-1'),
+        service.listArticleDeliveries(ctx, 'article-1'),
       ).resolves.toEqual([{ id: 'target-2' }, { id: 'target-1' }]);
+      expect(prisma.article.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          brandId: 'brand-1',
+          id: 'article-1',
+          isDeleted: false,
+          OR: [{ userId: 'user-1' }, { scope: 'ORGANIZATION' }],
+          organizationId: 'org-1',
+        },
+      });
       expect(
         postGroupPersistenceService.listSourceReleases,
       ).toHaveBeenCalledWith(prisma, 'org-1', { articleId: 'article-1' });
+    });
+
+    it('hides deliveries of a private article owned by a teammate', async () => {
+      prisma.article.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.listArticleDeliveries(ctx, 'article-2'),
+      ).rejects.toThrow(NotFoundException);
+      expect(
+        postGroupPersistenceService.listSourceReleases,
+      ).not.toHaveBeenCalled();
     });
 
     it('returns 404 for a newsletter in another organization', async () => {

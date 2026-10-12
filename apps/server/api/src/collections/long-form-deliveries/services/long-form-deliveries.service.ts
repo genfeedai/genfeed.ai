@@ -213,19 +213,27 @@ export class LongFormDeliveriesService {
     return release;
   }
 
-  /** Delivery targets of an article the caller's organization owns, newest first. */
+  /**
+   * Delivery targets of an article, newest first. Readable exactly when the
+   * article is (`GET /articles/:id`): the caller's organization and brand, and
+   * their own or an organization-scoped article.
+   */
   async listArticleDeliveries(
-    organizationId: string,
+    ctx: LongFormDeliveryContext,
     articleId: string,
   ): Promise<IChannelTarget[]> {
     const article = await this.prisma.article.findFirst({
       select: { id: true },
-      where: scopedWhere(organizationId, { id: articleId }),
+      where: scopedWhere(ctx.organizationId, {
+        ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
+        id: articleId,
+        OR: [{ userId: ctx.userId }, { scope: 'ORGANIZATION' }],
+      }),
     });
     if (!article) {
       throw new NotFoundException('Article', articleId);
     }
-    return this.listDeliveries(organizationId, { articleId: article.id });
+    return this.listDeliveries(ctx.organizationId, { articleId: article.id });
   }
 
   /** Delivery targets of a newsletter the caller's organization owns, newest first. */

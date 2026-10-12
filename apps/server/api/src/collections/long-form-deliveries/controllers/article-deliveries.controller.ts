@@ -7,8 +7,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
-import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import {
@@ -38,7 +36,6 @@ export class ArticleDeliveriesController {
     private readonly longFormDeliveriesService: LongFormDeliveriesService,
   ) {}
 
-  @TenantReadPolicy('selected')
   @Get(':articleId/deliveries')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -46,9 +43,10 @@ export class ArticleDeliveriesController {
     @CurrentUser() user: User,
     @Param('articleId') articleId: string,
   ) {
-    const { organizationId } = resolveTenantReadScope(user);
+    // Same access as GET /articles/:id: caller's brand and own or
+    // organization-scoped articles only.
     const targets = await this.longFormDeliveriesService.listArticleDeliveries(
-      organizationId,
+      extractRequestContext(user),
       articleId,
     );
     return serializeCollection(request, ChannelTargetSerializer, {
