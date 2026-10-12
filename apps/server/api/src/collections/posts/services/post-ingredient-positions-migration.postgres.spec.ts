@@ -24,7 +24,7 @@ if (connectionString) {
 
 const migrationSql = readFileSync(
   new URL(
-    '../../../../../../../packages/prisma/prisma/migrations/20261012200000_post_ingredient_positions/migration.sql',
+    '../../../../../../../packages/prisma/prisma/migrations/20261012220000_post_ingredient_positions/migration.sql',
     import.meta.url,
   ),
   'utf8',
