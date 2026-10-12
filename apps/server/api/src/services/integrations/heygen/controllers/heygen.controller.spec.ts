@@ -7,7 +7,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { AxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 import { validate } from 'class-validator';
 
 const mockUser = {
@@ -16,6 +16,22 @@ const mockUser = {
   organizationId: testId('org'),
   userId: testId('user'),
 } as unknown as User;
+
+function providerFailure(options: {
+  code?: string;
+  message?: string;
+  status?: number;
+  data?: unknown;
+}): Error {
+  return Object.assign(new Error(options.message ?? 'Request failed'), {
+    code: options.code,
+    isAxiosError: true,
+    response:
+      options.status === undefined
+        ? undefined
+        : { data: options.data ?? {}, status: options.status },
+  });
+}
 
 describe('HeyGenController', () => {
   let controller: HeyGenController;
@@ -30,7 +46,15 @@ describe('HeyGenController', () => {
     error: ReturnType<typeof vi.fn>;
   };
 
+  afterEach(() => {
+    vi.mocked(isAxiosError).mockReturnValue(false);
+  });
+
   beforeEach(async () => {
+    vi.mocked(isAxiosError).mockImplementation(
+      (value: unknown): value is never =>
+        (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
+    );
     heygenService = {
       getConnectionStatus: vi
         .fn()
@@ -102,19 +126,7 @@ describe('HeyGenController', () => {
 
   it('classifies a provider rejection instead of returning an empty catalog', async () => {
     heygenService.getVoices.mockRejectedValue(
-      new AxiosError(
-        'Request failed',
-        'ERR_BAD_REQUEST',
-        undefined,
-        undefined,
-        {
-          config: {},
-          data: { secret: 'provider-payload' },
-          headers: {},
-          status: 422,
-          statusText: '',
-        } as never,
-      ),
+      providerFailure({ data: { secret: 'provider-payload' }, status: 422 }),
     );
     const error = await controller.getVoices(mockUser).catch((e) => e);
     expect(error).toBeInstanceOf(HttpException);
@@ -130,7 +142,10 @@ describe('HeyGenController', () => {
 
   it('reports provider timeouts as a gateway timeout', async () => {
     heygenService.getVoices.mockRejectedValue(
-      new AxiosError('timeout of 15000ms exceeded', 'ECONNABORTED'),
+      providerFailure({
+        code: 'ECONNABORTED',
+        message: 'timeout of 15000ms exceeded',
+      }),
     );
     const error = await controller.getVoices(mockUser).catch((e) => e);
     expect(error.getStatus()).toBe(HttpStatus.GATEWAY_TIMEOUT);
@@ -138,15 +153,7 @@ describe('HeyGenController', () => {
   });
 
   it('reports invalid or missing provider credentials as actionable', async () => {
-    heygenService.getVoices.mockRejectedValue(
-      new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', undefined, undefined, {
-        config: {},
-        data: {},
-        headers: {},
-        status: 401,
-        statusText: '',
-      } as never),
-    );
+    heygenService.getVoices.mockRejectedValue(providerFailure({ status: 401 }));
     const error = await controller.getVoices(mockUser).catch((e) => e);
     expect(error.getStatus()).toBe(HttpStatus.FAILED_DEPENDENCY);
     expect(error.getResponse()).toMatchObject({ code: 'provider_config' });
@@ -303,7 +310,9 @@ describe('HeyGenController', () => {
     } catch (error) {
       const httpError = error as HttpException;
       const response = httpError.getResponse() as Record<string, string>;
-      expect(response.detail).toBe('Unknown error occurred');
+      expect(response.detail).toBe(
+        'An unexpected error occurred while loading the provider catalog.',
+      );
     }
   });
 });

@@ -4,7 +4,7 @@ import {
   throwProviderCatalogError,
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
-import { AxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 import { z } from 'zod';
 
 describe('serializeProviderCatalog', () => {
@@ -43,23 +43,33 @@ function axiosFailure(options: {
   code?: string;
   message?: string;
   status?: number;
-}): AxiosError {
-  return new AxiosError(
-    options.message ?? 'Request failed',
-    options.code,
-    { headers: { 'X-Api-Key': 'sk-secret' } } as never,
-    undefined,
-    options.status === undefined
-      ? undefined
-      : ({
-          config: {},
-          data: { token: 'provider-payload-secret' },
-          headers: {},
-          status: options.status,
-          statusText: '',
-        } as never),
-  );
+}): Error {
+  return Object.assign(new Error(options.message ?? 'Request failed'), {
+    code: options.code,
+    config: { headers: { 'X-Api-Key': 'sk-secret' } },
+    isAxiosError: true,
+    name: 'AxiosError',
+    response:
+      options.status === undefined
+        ? undefined
+        : {
+            data: { token: 'provider-payload-secret' },
+            status: options.status,
+          },
+  });
 }
+
+beforeEach(() => {
+  // The unit setup stubs axios, so give the real flag check back.
+  vi.mocked(isAxiosError).mockImplementation(
+    (value: unknown): value is never =>
+      (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
+  );
+});
+
+afterEach(() => {
+  vi.mocked(isAxiosError).mockReturnValue(false);
+});
 
 function capture(error: unknown): HttpException {
   try {
