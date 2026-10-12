@@ -393,6 +393,26 @@ function beginOf(): PublicationCaptureAttempt {
   return request.attempt;
 }
 
+it('treats an empty runtime reply as no capture context', async () => {
+  vi.stubGlobal('location', { href: FEED });
+  document.body.innerHTML = fixture('linkedin-post-modal.html');
+  // chrome.runtime.sendMessage resolves undefined when no listener replies.
+  send.mockResolvedValue(undefined);
+  const rejections: unknown[] = [];
+  const onRejection = (reason: unknown) => rejections.push(reason);
+  process.on('unhandledRejection', onRejection);
+  try {
+    stop = attachLinkedInPublicationObserver();
+    await flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    process.off('unhandledRejection', onRejection);
+  }
+
+  expect(calls('publicationCaptureContext')).toHaveLength(1);
+  expect(rejections).toEqual([]);
+});
+
 it('a synthetic click cannot arm anything', async () => {
   vi.stubGlobal('location', { href: FEED });
   document.body.innerHTML = fixture('linkedin-post-modal.html');
