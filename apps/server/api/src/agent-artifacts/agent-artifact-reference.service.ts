@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  flattenPostTreeIngredients,
+  flattenLoadedPostIngredients,
   orderedPostIngredientLinks,
 } from '@api/collections/posts/services/post-ingredient-links.util';
 import {
@@ -586,7 +586,7 @@ export class AgentArtifactReferenceService {
       throw artifactNotFound('Post', recordId);
     }
 
-    const record = readArtifactRecord(flattenPostTreeIngredients(loaded));
+    const record = readArtifactRecord(flattenLoadedPostIngredients(loaded));
     const children = Array.isArray(record.children)
       ? record.children
           .map((child) => readArtifactRecord(child))

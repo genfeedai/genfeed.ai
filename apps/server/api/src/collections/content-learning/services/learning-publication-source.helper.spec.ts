@@ -150,7 +150,7 @@ async function fixture() {
     publishedAt: published,
     publishApprovalId: 'approval',
     reviewVersionPinId: 'pin',
-    _count: { ingredients: 0, children: 0 },
+    _count: { ingredientLinks: 0, children: 0 },
   };
   const organization: LearningPublicationOrganizationRow = {
     id: 'org',
@@ -1077,7 +1077,7 @@ describe('same-client publication source authority', () => {
     {
       name: 'ingredient link',
       change: (f) => {
-        f.post._count.ingredients = 1;
+        f.post._count.ingredientLinks = 1;
       },
     },
     {
@@ -1283,14 +1283,16 @@ describe('same-client publication source authority', () => {
 describe('current physical checkpoint and bounded source closure', () => {
   it('T5 counts deleted-but-still-linked ingredients and rejects their contradictory material', async () => {
     const f = await fixture();
-    expect(learningPublicationPostSelect._count.select.ingredients).toBe(true);
+    expect(learningPublicationPostSelect._count.select.ingredientLinks).toBe(
+      true,
+    );
     expect(learningPublicationPostSelect._count.select.children).toEqual({
       where: { isDeleted: false },
     });
     Reflect.set(f.post, 'ingredients', [
       { id: 'deleted-linked', isDeleted: true },
     ]);
-    f.post._count.ingredients = 1;
+    f.post._count.ingredientLinks = 1;
     expect(
       await resolveLearningPublicationSourceV1(f.tx, 'org', 'post'),
     ).toBeNull();

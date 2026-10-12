@@ -167,8 +167,8 @@ describe('IngredientsRelationshipsController', () => {
         {
           orderBy: { createdAt: -1 },
           where: {
-            ingredients: {
-              some: { id: ingredientId },
+            ingredientLinks: {
+              some: { ingredientId },
             },
             isDeleted: false,
             organizationId: mockIngredient.organizationId,

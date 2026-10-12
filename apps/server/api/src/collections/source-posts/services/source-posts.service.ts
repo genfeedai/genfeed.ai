@@ -640,7 +640,7 @@ export class SourcePostsService {
 
     // The new image joins the end of the slides already attached.
     const ingredientIds = new Set([
-      ...(post.ingredientLinks ?? []).map((link) => link.ingredient.id),
+      ...post.ingredientLinks.map((link) => link.ingredient.id),
       ingredientId,
     ]);
     const updated = await this.db.post.update({

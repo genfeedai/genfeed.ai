@@ -10,6 +10,7 @@ import {
   GROUP_ACTION_STATES,
   type PostGroupTargetOperationDependencies,
 } from '@api/collections/post-groups/services/post-group-target.operations';
+import { replacePostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import type { PostLifecycleService } from '@api/index';
@@ -200,7 +201,10 @@ describe('applyReleaseTargetUpdates', () => {
     expect(update).toHaveBeenCalledWith({
       data: {
         category: PostCategory.IMAGE,
-        ingredients: { set: [{ id: 'asset-1' }, { id: 'asset-2' }] },
+        ingredientLinks: replacePostIngredientLinks('org-1', [
+          'asset-1',
+          'asset-2',
+        ]),
       },
       where: expect.objectContaining({ id: 'target-scheduled' }),
     });
@@ -247,7 +251,10 @@ describe('applyReleaseTargetUpdates', () => {
 
     expect(findMany).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith({
-      data: { category: PostCategory.TEXT, ingredients: { set: [] } },
+      data: {
+        category: PostCategory.TEXT,
+        ingredientLinks: replacePostIngredientLinks('org-1', []),
+      },
       where: expect.objectContaining({ id: 'target-scheduled' }),
     });
   });
@@ -284,7 +291,7 @@ describe('applyReleaseTargetUpdates', () => {
     expect(update).toHaveBeenCalledWith({
       data: {
         category: PostCategory.REEL,
-        ingredients: { set: [{ id: 'video-2' }] },
+        ingredientLinks: replacePostIngredientLinks('org-1', ['video-2']),
       },
       where: expect.objectContaining({ id: 'target-reel' }),
     });

@@ -702,7 +702,7 @@ function bindingFixture() {
     format: 'standard',
     parentId: null,
     learningDecisionId: null,
-    ingredients: [{ id: 'ingredient', version: 2 }],
+    ingredientLinks: [{ ingredient: { id: 'ingredient', version: 2 } }],
   };
   const hash = learningArtifactHashV1({
     text: 'First line\nSecond line',

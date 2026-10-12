@@ -79,7 +79,7 @@ function fixture(index = 0) {
     publishedAt: published,
     publishApprovalId: `approval-${index}`,
     reviewVersionPinId: `pin-${index}`,
-    _count: { ingredients: 0, children: 0 },
+    _count: { ingredientLinks: 0, children: 0 },
   };
   const organization: LearningPublicationOrganizationRow = {
     id: 'org',
@@ -219,12 +219,12 @@ function delegates(rows: Rows[]) {
   const queryRaw = vi.fn(async (query: { sql: string; values: unknown[] }) => {
     const ids = query.values[0] as string[];
     const organizationId = query.values[1] as string | undefined;
-    if (query.sql.includes('SUM(ingredients)'))
+    if (query.sql.includes('SUM("ingredientLinks")'))
       return models.post
         .filter((post) => ids.includes(post.id))
         .map((post) => ({
           postId: post.id,
-          ingredients: post._count.ingredients,
+          ingredientLinks: post._count.ingredientLinks,
           children: post._count.children,
         }));
     if (query.sql.includes('publish_approvals'))
@@ -465,7 +465,7 @@ describe('batched current publication pins', () => {
     [
       'deleted ingredient still linked',
       (row) => {
-        row.post._count.ingredients = 1;
+        row.post._count.ingredientLinks = 1;
       },
     ],
     [

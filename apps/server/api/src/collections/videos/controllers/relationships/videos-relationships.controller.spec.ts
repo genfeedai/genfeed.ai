@@ -150,7 +150,7 @@ describe('VideosRelationshipsController', () => {
       expect(postsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            ingredients: { some: { id: videoId } },
+            ingredientLinks: { some: { ingredientId: videoId } },
             organizationId: mockUser.organizationId,
             userId: mockUser.userId,
           }),

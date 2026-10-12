@@ -89,7 +89,7 @@ function publicationFixture() {
     parentId: null as string | null,
     learningDecisionId: null as string | null,
     publishApprovalId: 'approval' as string | null,
-    ingredients: [{ id: 'ingredient', version: 2 }],
+    ingredientLinks: [{ ingredient: { id: 'ingredient', version: 2 } }],
   };
   const account = { epoch: 2, revision: 4 };
   const tx = {

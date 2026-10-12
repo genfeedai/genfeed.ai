@@ -195,9 +195,12 @@ describe('PostsController editor media and account', () => {
               id: true,
             }),
           },
-          ingredients: {
-            include: { metadata: true },
-            where: { organizationId: 'org-1', isDeleted: false },
+          ingredientLinks: {
+            include: { ingredient: { include: { metadata: true } } },
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            where: {
+              ingredient: { organizationId: 'org-1', isDeleted: false },
+            },
           },
         },
       }),

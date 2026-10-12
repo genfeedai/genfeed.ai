@@ -511,7 +511,9 @@ describe('PostLifecycleService', () => {
       const findFirst = vi
         .fn()
         .mockResolvedValueOnce(current)
-        .mockResolvedValueOnce({ ingredients })
+        .mockResolvedValueOnce({
+          ingredientLinks: ingredients.map((ingredient) => ({ ingredient })),
+        })
         .mockResolvedValue({
           ...current,
           targetExecutionState: TargetExecutionState.SCHEDULED,
@@ -590,7 +592,12 @@ describe('PostLifecycleService', () => {
 
       expect(result.kind).toBe('transitioned');
       expect(transaction.post.findFirst).toHaveBeenNthCalledWith(2, {
-        select: { ingredients: { select: { category: true, id: true } } },
+        select: {
+          ingredientLinks: {
+            include: { ingredient: { select: { category: true, id: true } } },
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          },
+        },
         where: { id: 'post-1', isDeleted: false, organizationId: 'org-1' },
       });
       // The corrected category is persisted in the same write, so the
