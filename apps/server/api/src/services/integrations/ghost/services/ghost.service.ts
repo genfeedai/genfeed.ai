@@ -152,6 +152,9 @@ export class GhostService {
               Authorization: `Ghost ${token}`,
               'Content-Type': 'application/json',
             },
+            // Ghost ignores `html` on create unless the request names HTML as
+            // the content source; without it the post body is empty.
+            params: { source: 'html' },
           },
         ),
       );
