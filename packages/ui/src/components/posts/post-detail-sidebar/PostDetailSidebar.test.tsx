@@ -4,6 +4,7 @@ import {
   PostStatus,
   ReviewDecision,
 } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -331,15 +332,21 @@ describe('PostDetailSidebar', () => {
   });
 
   it('shows YouTube settings for unpublished YouTube posts only', () => {
-    const post = {
-      category: PostCategory.VIDEO,
-      id: 'post-1',
-      ingredients: [{ id: 'video-1' }],
-      platform: CredentialPlatform.YOUTUBE,
-      status: PostStatus.DRAFT,
-    } as never;
+    function buildPost(platform: CredentialPlatform): IPost {
+      return {
+        category: PostCategory.VIDEO,
+        id: 'post-1',
+        ingredients: [{ id: 'video-1' }],
+        platform,
+        status: PostStatus.DRAFT,
+      } as unknown as IPost;
+    }
     const { unmount } = render(
-      <PostDetailSidebar {...baseProps} post={post} onPublishNow={vi.fn()} />,
+      <PostDetailSidebar
+        {...baseProps}
+        post={buildPost(CredentialPlatform.YOUTUBE)}
+        onPublishNow={vi.fn()}
+      />,
     );
 
     expect(screen.getByTestId('inspector-youtube')).toBeInTheDocument();
@@ -349,7 +356,7 @@ describe('PostDetailSidebar', () => {
     render(
       <PostDetailSidebar
         {...baseProps}
-        post={{ ...post, platform: CredentialPlatform.TWITTER } as never}
+        post={buildPost(CredentialPlatform.TWITTER)}
         onPublishNow={vi.fn()}
       />,
     );
