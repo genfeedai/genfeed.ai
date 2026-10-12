@@ -4,11 +4,17 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 export interface LandingTopbarProps {
   ctaHref: string;
   ctaLabel: string;
+  /**
+   * CSS selector of an in-page CTA. While it is on screen the topbar CTA is
+   * hidden below `sm`, where the hero button already owns the tap; it appears
+   * once the page scrolls past it. Desktop always shows the topbar CTA.
+   */
+  hideActionWhileVisible?: string;
   logoHref?: string;
   primaryAction?: ReactNode;
   /**
@@ -25,17 +31,43 @@ export interface LandingTopbarProps {
 export default function LandingTopbar({
   ctaHref,
   ctaLabel,
+  hideActionWhileVisible,
   logoHref = '/',
   primaryAction,
   secondaryCtaHref,
   secondaryCtaLabel,
 }: LandingTopbarProps): React.ReactElement {
+  // Start hidden when a selector is given: the hero CTA is the first thing on
+  // screen, so the server render matches and the bar does not flash a button.
+  const [isInPageCtaVisible, setIsInPageCtaVisible] = useState(
+    Boolean(hideActionWhileVisible),
+  );
+
+  useEffect(() => {
+    if (!hideActionWhileVisible || typeof IntersectionObserver === 'undefined')
+      return;
+    const target = document.querySelector(hideActionWhileVisible);
+    if (!target) {
+      setIsInPageCtaVisible(false);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) =>
+      setIsInPageCtaVisible(entry.isIntersecting),
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hideActionWhileVisible]);
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-edge/10 bg-background/90 backdrop-blur-2xl">
       <div className="container mx-auto flex h-20 items-center justify-between px-6">
         <TopbarLogo logoHref={logoHref} />
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div
+          className={`flex items-center gap-2 transition-opacity sm:gap-3 ${
+            isInPageCtaVisible ? 'max-sm:invisible max-sm:opacity-0' : ''
+          }`}
+        >
           {secondaryCtaHref && secondaryCtaLabel ? (
             <Button
               variant={ButtonVariant.SECONDARY}
