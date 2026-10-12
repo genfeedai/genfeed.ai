@@ -3,6 +3,9 @@ import { loadMarketingSatoriFonts } from '@genfeedai/fonts/og';
 import { BrandMark } from '@website/(content)/articles/[slug]/og/brand-mark';
 import { ImageResponse } from 'next/og';
 
+// 3:2 hero artwork at full card height.
+const RIGHT_ARTWORK_WIDTH = Math.round((MARKETING_OG_SIZE.height * 3) / 2);
+
 async function loadArtwork(url: string | null): Promise<string | null> {
   if (!url) return null;
 
@@ -29,6 +32,7 @@ export async function renderMarketingOg(
   kind: keyof typeof MARKETING_OG_CARDS,
 ): Promise<ImageResponse> {
   const card = MARKETING_OG_CARDS[kind];
+  const isRightPlacement = card.artworkPlacement === 'right';
   const [artwork, fonts] = await Promise.all([
     loadArtwork(card.artwork),
     loadMarketingSatoriFonts(),
@@ -45,7 +49,35 @@ export async function renderMarketingOg(
         width: '100%',
       }}
     >
-      {artwork ? (
+      {artwork && isRightPlacement ? (
+        <>
+          {/* biome-ignore lint/performance/noImgElement: Satori needs a plain image. */}
+          <img
+            alt=""
+            height={MARKETING_OG_SIZE.height}
+            src={artwork}
+            style={{
+              height: '100%',
+              left: MARKETING_OG_SIZE.width - RIGHT_ARTWORK_WIDTH,
+              position: 'absolute',
+              width: RIGHT_ARTWORK_WIDTH,
+            }}
+            width={RIGHT_ARTWORK_WIDTH}
+          />
+          <div
+            style={{
+              backgroundImage:
+                'linear-gradient(90deg, #0b0c0d 0%, #0b0c0d 30%, rgba(11, 12, 13, 0) 58%)',
+              display: 'flex',
+              height: MARKETING_OG_SIZE.height,
+              left: 0,
+              position: 'absolute',
+              top: 0,
+              width: MARKETING_OG_SIZE.width,
+            }}
+          />
+        </>
+      ) : artwork ? (
         // biome-ignore lint/performance/noImgElement: Satori needs a plain image.
         <img
           alt=""
@@ -54,7 +86,8 @@ export async function renderMarketingOg(
           style={{ height: '100%', position: 'absolute', width: '100%' }}
           width={MARKETING_OG_SIZE.width}
         />
-      ) : (
+      ) : null}
+      {!artwork || isRightPlacement ? (
         <div
           style={{
             alignItems: 'center',
@@ -70,7 +103,7 @@ export async function renderMarketingOg(
           <BrandMark fill="#faf6ed" size={48} />
           <div style={{ display: 'flex' }}>genfeed.ai</div>
         </div>
-      )}
+      ) : null}
       <div
         style={{
           display: 'flex',
@@ -78,7 +111,7 @@ export async function renderMarketingOg(
           fontFamily: 'Zodiak',
           fontSize: card.headlineFontSize,
           fontWeight: 400,
-          left: 40,
+          left: isRightPlacement ? 54 : 40,
           letterSpacing: '-0.04em',
           lineHeight: 1.05,
           position: 'absolute',

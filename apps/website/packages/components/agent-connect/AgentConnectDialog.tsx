@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import { ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { isConnectDeepLink } from './connect-deep-link';
 
 export default function AgentConnectDialog({
   openOnMount = false,
@@ -55,11 +56,7 @@ export default function AgentConnectDialog({
     };
     const onEvent = () => show();
     const showDeepLink = () => {
-      if (
-        window.location.pathname === '/agent' &&
-        window.location.hash === '#connect'
-      )
-        show();
+      if (isConnectDeepLink()) show();
     };
     if (openOnMount) show(returnFocusTo);
     else showDeepLink();
@@ -77,11 +74,7 @@ export default function AgentConnectDialog({
 
   function onOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
-    if (
-      !nextOpen &&
-      window.location.pathname === '/agent' &&
-      window.location.hash === '#connect'
-    ) {
+    if (!nextOpen && isConnectDeepLink()) {
       window.history.replaceState(
         window.history.state,
         '',

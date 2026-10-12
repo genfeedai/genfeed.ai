@@ -310,6 +310,19 @@ describe('AgentConnectDialog', () => {
     }
   });
 
+  it('opens the connect deep link from a social landing page', () => {
+    const url = window.location.href;
+    window.history.replaceState(null, '', '/x#connect');
+    try {
+      render(<AgentConnectDialog />);
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(window.location.hash).toBe('');
+    } finally {
+      window.history.replaceState(null, '', url);
+    }
+  });
+
   it('opens legacy agent connection links and preserves dedicated setup anchors', () => {
     const url = window.location.href;
     window.history.replaceState(null, '', '/agent#connect');
@@ -320,9 +333,13 @@ describe('AgentConnectDialog', () => {
       expect(window.location.hash).toBe('');
       first.unmount();
       window.history.replaceState(null, '', '/claude#connect');
+      const setupSection = document.createElement('section');
+      setupSection.id = 'connect';
+      document.body.append(setupSection);
       render(<AgentConnectDialog />);
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(window.location.hash).toBe('#connect');
+      setupSection.remove();
     } finally {
       window.history.replaceState(null, '', url);
     }

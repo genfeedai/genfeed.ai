@@ -149,36 +149,36 @@ export const PAGE_MARKETING_ASSETS = {
     src: cdnAsset('/assets/branding/website/editorial/page-fleet-v1.webp'),
   },
   '/linkedin': {
-    alt: 'Photoreal thoughtful adult professional in a modern warm studio office, a refined portrait photographic contact sheet on the desk',
-    src: cdnAsset('/assets/branding/website/editorial/page-linkedin-v1.webp'),
+    alt: 'The LinkedIn logo as a glossy blue enamel badge on a graphite plinth, professional portrait frames and article cards fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-linkedin-v2.webp'),
   },
   '/x': {
-    alt: 'Three sharp graphite speech strips orbit a polished silver hub, tiny amber creative signals spread outward through a precise branching network',
-    src: cdnAsset('/assets/branding/website/editorial/page-x-v1.webp'),
+    alt: 'The X logo as a black obsidian-glass and brushed-silver sculpture on a graphite plinth, smoked-glass post cards fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-x-v2.webp'),
   },
   '/instagram': {
-    alt: 'Photoreal striking coral fashion accessory and cobalt ceramic object arranged for a square editorial campaign shoot under sculptural afternoon light',
-    src: cdnAsset('/assets/branding/website/editorial/page-instagram-v1.webp'),
+    alt: 'The Instagram logo as a glossy gradient-glass sculpture on a graphite plinth, square and portrait campaign photographs fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-instagram-v2.webp'),
   },
   '/tiktok': {
-    alt: 'Photoreal adult creator filming an energetic vertical product scene with an unmarked phone on a tripod, coral studio setting and cinematic practical light',
-    src: cdnAsset('/assets/branding/website/editorial/page-tiktok-v1.webp'),
+    alt: 'The TikTok logo as a glossy glass sculpture with cyan and red layered edges on a graphite plinth, vertical creator video frames fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-tiktok-v2.webp'),
   },
   '/threads': {
-    alt: 'Interwoven fine chrome conversational ribbons wrap around several warm amber glass beads, open organic composition suggests connected thoughtful discussion',
-    src: cdnAsset('/assets/branding/website/editorial/page-threads-v1.webp'),
+    alt: 'The Threads logo as a black obsidian-glass and silver sculpture on a graphite plinth, stacked conversation cards fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-threads-v2.webp'),
   },
   '/youtube': {
-    alt: 'Photoreal premium cinema camera with a large lens faces a carefully arranged coral studio scene, warm film light and a single unmarked film reel in foreground',
-    src: cdnAsset('/assets/branding/website/editorial/page-youtube-v1.webp'),
+    alt: 'The YouTube logo as a glossy red enamel sculpture on a graphite plinth, cinematic widescreen and vertical video frames fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-youtube-v2.webp'),
   },
   '/facebook': {
-    alt: 'Photoreal small diverse adult community sharing creative photographic prints around a warm studio table, candid relaxed interaction, no devices with legible screens',
-    src: cdnAsset('/assets/branding/website/editorial/page-facebook-v1.webp'),
+    alt: 'The Facebook logo as a glossy blue enamel disc on a graphite plinth, community photographs and post cards fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-facebook-v2.webp'),
   },
   '/pinterest': {
-    alt: 'Photoreal tactile inspiration pinboard filled with unmarked product, interiors, fashion and travel photographs plus coral textile swatches, dark editorial studio setting',
-    src: cdnAsset('/assets/branding/website/editorial/page-pinterest-v1.webp'),
+    alt: 'The Pinterest logo as a glossy red enamel disc on a graphite plinth, portrait inspiration pins fanning out on amber light threads',
+    src: cdnAsset('/assets/branding/website/editorial/page-pinterest-v2.webp'),
   },
   '/mcp': {
     alt: 'A precise universal brushed-silver coupling connects several different camera, microphone and photographic output modules',

@@ -145,7 +145,7 @@ describe('ServiceLandingPage', () => {
   });
 
   it.each(AGENT_LANDING_SLUGS)(
-    'leads /%s with agent connection in the header, hero and closing CTA',
+    'gives /%s one CTA: agent connection in the header, hero and closing',
     (slug) => {
       render(<ServiceLandingPage slug={slug} />);
       const header = within(screen.getByRole('banner'));
@@ -155,8 +155,8 @@ describe('ServiceLandingPage', () => {
       expect(connect).toHaveAttribute('aria-haspopup', 'dialog');
       expect(connect).not.toHaveAttribute('target', '_blank');
       expect(
-        header.getByRole('link', { name: 'Start for $0' }),
-      ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+        screen.queryByRole('link', { name: 'Start for $0' }),
+      ).not.toBeInTheDocument();
       const body = within(screen.getByRole('main'));
       const actions = [
         ...screen.getByRole('main').querySelectorAll('button, a'),
@@ -165,9 +165,7 @@ describe('ServiceLandingPage', () => {
       );
       expect(actions.map((link) => link.textContent)).toEqual([
         'Connect your agent',
-        'Start for $0',
         'Connect your agent',
-        'Start for $0',
       ]);
       for (const link of body.getAllByRole('button', {
         name: 'Connect your agent',
