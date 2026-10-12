@@ -19,6 +19,7 @@ import {
   seedAcceptanceWorld,
 } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import type { BrandFactCheckOutcome } from '@api/services/brand-validation/brand-fact-check.types';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
@@ -50,7 +51,7 @@ describe.skipIf(!connectionString)(
   () => {
     const database = openAcceptanceDatabase(connectionString ?? '');
     const { db, prisma } = database;
-    const { logger } = recordingLogger();
+    const { logger, warnings } = recordingLogger();
     const env: AcceptanceEnv = { db, logger, prisma };
 
     afterAll(async () => {
@@ -283,9 +284,27 @@ describe.skipIf(!connectionString)(
         platform: Platform.TWITTER,
         responseId: run.result.responseId,
       });
+      const post = await db.post.findFirst({
+        where: scopedWhere(world.organizationId, {
+          breakoutOutputId: { not: null },
+        }),
+      });
+      const policy = await new AutonomousPublishPolicyService(
+        prisma,
+        {} as never,
+      ).resolveForPost({
+        organizationId: world.organizationId,
+        postId: post?.id ?? '',
+        strategyId: world.strategyId,
+      });
       expect(
         await draftStates(world.organizationId),
-        JSON.stringify(recovery),
+        JSON.stringify({
+          policy: policy.result,
+          recovery,
+          review: post?.reviewDecision,
+          warnings,
+        }),
       ).toEqual([TargetExecutionState.SCHEDULED]);
     });
 
