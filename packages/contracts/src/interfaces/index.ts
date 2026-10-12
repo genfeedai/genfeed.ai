@@ -152,6 +152,7 @@ export * from './content/generation-entry.interface';
 export * from './content/generation-harness.interface';
 export * from './content/generation-payload.interface';
 export * from './content/ingredient-time-group.interface';
+export * from './content/long-form-delivery.interface';
 export * from './content/media-delivery.interface';
 export * from './content/media-delivery-source.interface';
 export * from './content/media-provenance.interface';

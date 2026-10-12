@@ -22,6 +22,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   PostCategory,
+  PostEntityModel,
   ReleaseAttachmentKind,
   ReleaseStatus,
 } from '@genfeedai/contracts';
@@ -314,6 +315,14 @@ export class PostGroupPersistenceService {
           }),
           ...(params.provenance?.agentThreadId && {
             agentThreadId: params.provenance.agentThreadId,
+          }),
+          ...(params.provenance?.sourceArticleId && {
+            entityArticleId: params.provenance.sourceArticleId,
+            entityModel: PostEntityModel.ARTICLE,
+          }),
+          ...(params.provenance?.sourceNewsletterId && {
+            entityModel: PostEntityModel.NEWSLETTER,
+            entityNewsletterId: params.provenance.sourceNewsletterId,
           }),
           brandId: context.brandId,
           category,

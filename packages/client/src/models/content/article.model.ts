@@ -28,6 +28,7 @@ export class Article extends BaseEntity implements IArticle {
   declare public category: ArticleCategory;
   declare public status: ArticleStatus;
   declare public publishedAt?: string;
+  declare public externalUrl?: string | null;
   declare public scope: AssetScope;
   declare public generationPrompt?: string;
   declare public seoScore?: number | null;

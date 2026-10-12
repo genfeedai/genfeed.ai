@@ -569,6 +569,54 @@ const channelCapabilities = [
     status: 'supported',
   },
   {
+    caption: { maxLength: 100_000, required: true },
+    description:
+      'Long-form HTML post on a connected Ghost site. Articles deliver here from the article editor.',
+    helpers: [
+      {
+        key: 'ghost.credential',
+        kind: 'credential',
+        label: 'Ghost site',
+        required: true,
+      },
+    ],
+    label: 'Ghost',
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'link'],
+      maxItems: 1,
+      minItems: 0,
+    },
+    platform: CredentialPlatform.GHOST,
+    publishModes: ['draft', 'publish_now', 'scheduled'],
+    settings: [],
+    status: 'supported',
+  },
+  {
+    caption: { maxLength: 100_000, required: true },
+    description:
+      'Long-form HTML post on a connected WordPress site. Articles deliver here from the article editor.',
+    helpers: [
+      {
+        key: 'wordpress.credential',
+        kind: 'credential',
+        label: 'WordPress site',
+        required: true,
+      },
+    ],
+    label: 'WordPress',
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'link'],
+      maxItems: 1,
+      minItems: 0,
+    },
+    platform: CredentialPlatform.WORDPRESS,
+    publishModes: ['draft', 'publish_now', 'scheduled'],
+    settings: [],
+    status: 'supported',
+  },
+  {
     caption: { maxLength: 63_206, required: false },
     description:
       'Backend integration stub for Facebook pages; hidden until scheduler publishing is productized.',
@@ -746,7 +794,8 @@ const channelCapabilities = [
   },
   {
     caption: { maxLength: 100_000, required: true },
-    description: 'Planned scheduler surface for Medium article publishing.',
+    description:
+      'Long-form HTML story on a connected Medium account. Articles deliver here from the article editor.',
     helpers: [
       {
         key: 'medium.accounts',
@@ -757,15 +806,16 @@ const channelCapabilities = [
     ],
     label: 'Medium',
     media: {
+      // Medium stories carry images inline in the HTML body; there is no
+      // separate media upload on the create-story API.
       animated: { supported: true },
-      kinds: ['image', 'link'],
-      maxItems: 10,
+      kinds: ['link'],
       minItems: 0,
     },
     platform: CredentialPlatform.MEDIUM,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [],
-    status: 'planned',
+    status: 'supported',
   },
 ] satisfies ChannelCapability[];
 

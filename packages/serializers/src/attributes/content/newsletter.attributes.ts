@@ -20,4 +20,5 @@ export const newsletterAttributes = createEntityAttributes([
   'approvedAt',
   'publishedAt',
   'scheduledFor',
+  'externalUrl',
 ]);

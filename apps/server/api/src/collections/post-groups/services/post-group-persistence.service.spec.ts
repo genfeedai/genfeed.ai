@@ -11,6 +11,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
+  PostEntityModel,
   PostStatus,
   PostVisibility,
   ReleaseAttachmentKind,
@@ -50,6 +51,7 @@ describe('PostGroupPersistenceService', () => {
       findMany: ReturnType<typeof vi.fn>;
     };
     postGroup: {
+      create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
@@ -69,6 +71,7 @@ describe('PostGroupPersistenceService', () => {
         findMany: vi.fn().mockResolvedValue([]),
       },
       postGroup: {
+        create: vi.fn().mockResolvedValue(makeGroup()),
         findFirst: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
         update: vi.fn(),
@@ -658,6 +661,65 @@ describe('PostGroupPersistenceService', () => {
     ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [
+      { sourceArticleId: 'article-1' },
+      { entityArticleId: 'article-1', entityModel: PostEntityModel.ARTICLE },
+    ],
+    [
+      { sourceNewsletterId: 'newsletter-1' },
+      {
+        entityModel: PostEntityModel.NEWSLETTER,
+        entityNewsletterId: 'newsletter-1',
+      },
+    ],
+  ])(
+    'links every target to its long-form source %o',
+    async (provenance, expectedLink) => {
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          id: 'credential-1',
+          isConnected: true,
+          organizationId: 'org-1',
+          platform: CredentialPlatform.GHOST,
+        },
+      ]);
+      prisma.post.create.mockResolvedValue(makeTarget());
+
+      await service.createPostGroup(prisma as never, {
+        input: {
+          baseContent: '<p>Long-form body</p>',
+          brandId: 'brand-1',
+          targets: [
+            {
+              credentialId: 'credential-1',
+              platform: CredentialPlatform.GHOST,
+              visibility: PostVisibility.PUBLIC,
+            },
+          ],
+          timezone: 'UTC',
+          title: 'Long-form title',
+        },
+        organizationId: 'org-1',
+        provenance: { source: 'long_form_delivery', ...provenance },
+        scheduledAt: null,
+        status: ReleaseStatus.DRAFT,
+        userId: 'user-1',
+      });
+
+      expect(prisma.post.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            ...expectedLink,
+            label: 'Long-form title',
+            source: 'long_form_delivery',
+          }),
+        }),
+      );
+    },
+  );
 
   it('copies independent lifecycle and visibility onto attachment posts', async () => {
     await service.createAttachmentPosts(prisma as never, {

@@ -13,6 +13,7 @@ export const articleAttributes = createEntityAttributes([
   'status',
   'scope',
   'publishedAt',
+  'externalUrl',
   // Persist the public artwork contract directly. Serializer attributes must
   // be backed by real Prisma columns or explicit computed projections.
   'coverImageUrl',

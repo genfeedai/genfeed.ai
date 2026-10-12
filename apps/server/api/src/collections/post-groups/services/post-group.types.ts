@@ -182,6 +182,11 @@ export type CreateAttachmentPostsParams = {
   userId: string;
 };
 
+/** The Article or Newsletter a long-form delivery release publishes. */
+export type LongFormDeliverySource =
+  | { articleId: string }
+  | { newsletterId: string };
+
 export type CreatePostGroupParams = {
   input: CreateReleaseGroupInput;
   organizationId: string;

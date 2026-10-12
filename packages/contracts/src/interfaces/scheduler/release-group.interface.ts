@@ -95,6 +95,13 @@ export interface PostGroupCreateProvenance {
   postingSetId?: string;
   source?: string;
   sourceActionId?: string;
+  /**
+   * Long-form source the release delivers (#6753). Set server-side only, after
+   * the caller has proved the record belongs to the organization; persisted as
+   * the target Post's `entityArticleId` / `entityNewsletterId`.
+   */
+  sourceArticleId?: string;
+  sourceNewsletterId?: string;
 }
 
 /**

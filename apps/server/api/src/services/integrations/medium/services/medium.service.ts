@@ -1,6 +1,4 @@
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { scopedWhere } from '@api/tenancy/scoped-where';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -44,7 +42,6 @@ export class MediumService {
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
-    private readonly articlesService: ArticlesService,
   ) {
     this.clientId = this.configService.get('MEDIUM_CLIENT_ID');
     this.clientSecret = this.configService.get('MEDIUM_CLIENT_SECRET');
@@ -154,96 +151,41 @@ export class MediumService {
   }
 
   /**
-   * Publish article to Medium
+   * Create a story on the authenticated Medium account. The publish pipeline
+   * owns account resolution and persistence; this is only the provider call.
    */
-  public async publishArticle(
-    articleId: string,
-    organizationId: string,
-    brandId: string,
-    publishStatus: 'public' | 'draft' | 'unlisted' = 'public',
-    credentialId?: string,
+  public async createPost(
+    accessToken: string,
+    authorId: string,
+    input: {
+      contentHtml: string;
+      publishStatus: 'public' | 'draft' | 'unlisted';
+      title: string;
+    },
   ): Promise<MediumPost> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      // Get Medium credentials
-      const credential = await this.credentialsService.resolveBrandAccount({
-        brandId,
-        credentialId,
-        organizationId,
-        platform: CredentialPlatform.MEDIUM,
-      });
-
-      if (!credential) {
-        throw new Error('Medium credential not found');
-      }
-
-      if (!credential.accessToken) {
-        throw new Error('Medium credential is missing an access token');
-      }
-
-      // Decrypt the access token
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
-
-      // Get article
-      const article = await this.articlesService.findOne({
-        id: articleId,
-        organizationId,
-      });
-
-      if (!article) {
-        throw new Error('Article not found');
-      }
-
-      // Get Medium user ID from credential
-      const mediumUserId = credential.externalId;
-
-      // Publish to Medium
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.MEDIUM_API_BASE}/users/${mediumUserId}/posts`,
+          `${this.MEDIUM_API_BASE}/users/${encodeURIComponent(authorId)}/posts`,
           {
-            canonicalUrl: `https://genfeed.ai/articles/${article.slug}`,
-            content: article.content,
+            content: input.contentHtml,
             contentFormat: 'html',
-            publishStatus: publishStatus,
-            tags: [], // Medium supports up to 3 tags
-            title: article.label,
+            publishStatus: input.publishStatus,
+            title: input.title,
           },
           {
             headers: {
               Accept: 'application/json',
-              Authorization: `Bearer ${decryptedAccessToken}`,
+              Authorization: `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
             },
           },
         ),
       );
 
-      const mediumPost = response.data.data;
-
-      // Store Medium post reference in article
-      const existingPosts = Array.isArray(article.posts)
-        ? (article.posts as unknown[])
-        : [];
-      await this.articlesService.patchOneWhere(
-        scopedWhere(organizationId, { id: articleId }),
-        {
-          posts: [
-            ...existingPosts,
-            {
-              externalId: mediumPost.id,
-              platform: 'medium',
-              publishedAt: new Date(mediumPost.publishedAt),
-              url: mediumPost.url,
-            },
-          ],
-        } as unknown as Record<string, unknown>,
-      );
-
-      return mediumPost;
+      return response.data.data;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

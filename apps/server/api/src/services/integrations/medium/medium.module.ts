@@ -1,4 +1,3 @@
-import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { MediumController } from '@api/services/integrations/medium/controllers/medium.controller';
@@ -14,7 +13,6 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     HttpModule,
 
-    ArticlesModule,
     BrandsModule,
     CredentialsCoreModule,
   ],

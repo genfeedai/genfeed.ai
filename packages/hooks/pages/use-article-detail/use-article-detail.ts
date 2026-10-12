@@ -26,6 +26,7 @@ export interface UseArticleDetailReturn {
   isLoading: boolean;
   isSaving: boolean;
   isScoringSeo: boolean;
+  isSavingExternalUrl: boolean;
   isDirty: boolean;
   error: string | null;
   form: ArticleFormState;
@@ -38,6 +39,8 @@ export interface UseArticleDetailReturn {
   handleArchive: () => Promise<void>;
   handleDelete: () => Promise<void>;
   handleScoreSeo: () => Promise<void>;
+  handleArticleDelivered: () => void;
+  handleSaveExternalUrl: (externalUrl: string | null) => Promise<void>;
   pathname: string;
   notificationsService: NotificationsService;
   getArticlesService: () => Promise<ArticlesService>;
@@ -72,6 +75,7 @@ export function useArticleDetail({
   const [isLoading, setIsLoading] = useState(!!articleId);
   const [isSaving, setIsSaving] = useState(false);
   const [isScoringSeo, setIsScoringSeo] = useState(false);
+  const [isSavingExternalUrl, setIsSavingExternalUrl] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const initialFormRef = useRef<ArticleFormState>(DEFAULT_FORM_STATE);
@@ -209,6 +213,35 @@ export function useArticleDetail({
     }
   }, [resolvedId, getArticlesService, notificationsService]);
 
+  /** A connected-blog delivery also marks the article published server-side. */
+  const handleArticleDelivered = useCallback(() => {
+    setForm((prev) => ({ ...prev, status: ArticleStatus.PUBLISHED }));
+  }, []);
+
+  const handleSaveExternalUrl = useCallback(
+    async (externalUrl: string | null) => {
+      if (!resolvedId) {
+        return;
+      }
+
+      setIsSavingExternalUrl(true);
+      try {
+        const service = await getArticlesService();
+        const updated = await service.patch(resolvedId, { externalUrl });
+        setArticle(updated);
+        notificationsService.success(
+          externalUrl ? 'Live link saved' : 'Live link removed',
+        );
+      } catch (err) {
+        logger.error('Failed to save article live link', err);
+        notificationsService.error('Failed to save the live link');
+      } finally {
+        setIsSavingExternalUrl(false);
+      }
+    },
+    [resolvedId, getArticlesService, notificationsService],
+  );
+
   const handleArchive = useCallback(async () => {
     if (!resolvedId) {
       return;
@@ -274,12 +307,15 @@ export function useArticleDetail({
     form,
     getArticlesService,
     handleArchive,
+    handleArticleDelivered,
     handleDelete,
     handlePublish,
     handleSave,
+    handleSaveExternalUrl,
     handleScoreSeo,
     isDirty,
     isLoading,
+    isSavingExternalUrl,
     isScoringSeo,
     isSaving,
     notificationsService,

@@ -6,6 +6,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import ArtifactEditorShell from '../../artifact-editor-shell';
 import NewsletterContextReview from '../newsletter-context-review';
+import NewsletterDeliveryCard from '../newsletter-delivery-card';
 import NewsletterEditor, {
   NewsletterEditorActions,
 } from '../newsletter-editor';
@@ -20,11 +21,14 @@ export default function NewsletterEditorContent({
     editorState,
     handleApprove,
     handleArchive,
+    handleDelivered,
     handleEditorChange,
     handlePublish,
     handleRegenerate,
     handleSave,
+    handleSaveExternalUrl,
     isLoading,
+    isSavingExternalUrl,
     loadingAction,
     newsletter,
   } = useNewsletterEditor(artifactId);
@@ -77,7 +81,16 @@ export default function NewsletterEditorContent({
           onEditorChange={handleEditorChange}
         />
 
-        <NewsletterContextReview contextPreview={contextPreview} />
+        <div className="space-y-6">
+          <NewsletterDeliveryCard
+            isDirty={isEditorDirty}
+            isSavingExternalUrl={isSavingExternalUrl}
+            newsletter={newsletter}
+            onDelivered={handleDelivered}
+            onSaveExternalUrl={handleSaveExternalUrl}
+          />
+          <NewsletterContextReview contextPreview={contextPreview} />
+        </div>
       </div>
     </ArtifactEditorShell>
   );

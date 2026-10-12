@@ -8,6 +8,7 @@ import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
+import { MediumModule } from '@api/services/integrations/medium/medium.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
@@ -16,6 +17,7 @@ import { GhostPublisherService } from '@api/services/integrations/publishers/gho
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
+import { MediumPublisherService } from '@api/services/integrations/publishers/medium-publisher.service';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
@@ -56,6 +58,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     InstagramPublisherService,
     LinkedInPublisherService,
     MastodonPublisherService,
+    MediumPublisherService,
     PinterestPublisherService,
     // Export factory for use in cron service
     PublisherFactoryService,
@@ -85,6 +88,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     InstagramModule,
     LinkedInModule,
     MastodonModule,
+    MediumModule,
     PinterestModule,
     RedditModule,
     ShopifyModule,
@@ -108,6 +112,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     InstagramPublisherService,
     LinkedInPublisherService,
     MastodonPublisherService,
+    MediumPublisherService,
     PinterestPublisherService,
     // Factory
     PublisherFactoryService,
