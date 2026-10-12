@@ -210,11 +210,26 @@ echo "noise on stdout"`
     expect(args).toEqual(
       expect.arrayContaining(['exec', '--sandbox', 'read-only', '--ephemeral', '-'])
     );
+    // Untrusted post text is the prompt, so the shell tool, user MCP config and web access are off.
+    expect(args).toEqual(
+      expect.arrayContaining([
+        '--ignore-user-config',
+        '--ignore-rules',
+        'features.shell_tool=false',
+        'features.plugins=false',
+        'features.hooks=false',
+        'web_search="disabled"',
+      ])
+    );
   });
 
   it('runs Gemini with the task on stdin', async () => {
     const { bin, dependencies, record } = await setup();
-    await writeExecutable(bin, 'gemini', `cat > "$FAKE_RECORD/stdin"\nprintf 'From gemini @ada'`);
+    await writeExecutable(
+      bin,
+      'gemini',
+      `cat > "$FAKE_RECORD/stdin"\nprintf '%s\\n' "$@" > "$FAKE_RECORD/args"\nprintf 'From gemini @ada'`
+    );
 
     const response = await generateText(
       parse(refineRequest({ providerId: 'gemini-cli' })),
@@ -223,6 +238,11 @@ echo "noise on stdout"`
 
     expect(response).toMatchObject({ result: { text: 'From gemini @ada' } });
     expect(await readFile(path.join(record, 'stdin'), 'utf8')).toContain('<draft>');
+    const args = (await readFile(path.join(record, 'args'), 'utf8')).split('\n');
+    expect(args).toEqual(
+      expect.arrayContaining(['--approval-mode', 'default', '--allowed-mcp-server-names'])
+    );
+    expect(args.join(' ')).not.toContain('--yolo');
   });
 
   it('returns reply variants split and gated like the cloud action', async () => {
