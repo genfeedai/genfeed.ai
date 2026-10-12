@@ -29,6 +29,19 @@ describe('ServicesService authorized signals', () => {
 
     expect(mockInstance.post).toHaveBeenCalledWith(
       'credential-1/authorized-signals/refresh',
+      undefined,
+      { signal: undefined },
+    );
+  });
+
+  it('passes the caller cancellation signal to the refresh request', async () => {
+    const controller = new AbortController();
+    const service = new ServicesService('tiktok', 'token');
+    await service.refreshAuthorizedSignals('credential-1', controller.signal);
+    expect(mockInstance.post).toHaveBeenCalledWith(
+      'credential-1/authorized-signals/refresh',
+      undefined,
+      { signal: controller.signal },
     );
   });
 });

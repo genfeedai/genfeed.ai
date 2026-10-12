@@ -5,6 +5,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import TikTokPublishingSettings from '@ui/posts/tiktok-publishing/TikTokPublishingSettings';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const { refresh, updateTarget, notify, getTikTok, getReleases } = vi.hoisted(
   () => {
     const refresh = vi.fn();

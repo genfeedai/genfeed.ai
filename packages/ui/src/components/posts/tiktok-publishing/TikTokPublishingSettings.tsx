@@ -21,6 +21,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { SelectField } from '@ui/primitives/select';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function TikTokPublishingSettings({
@@ -28,6 +29,7 @@ export default function TikTokPublishingSettings({
   onSaved,
   onReadinessChange,
 }: TikTokPublishingSettingsProps) {
+  const translate = useTranslations('ui.tiktokPublishing');
   const [capabilities, setCapabilities] =
     useState<TikTokPublishingCapabilities | null>(null);
   const [settings, setSettings] = useState<Record<string, unknown>>(() =>
@@ -55,8 +57,7 @@ export default function TikTokPublishingSettings({
     setCapabilities(null);
     setError(null);
     try {
-      if (!credentialId)
-        throw new Error('Connect a TikTok account before posting.');
+      if (!credentialId) throw new Error(translate('connectAccount'));
       const service = await getTikTokService();
       if (controller.signal.aborted) return;
       const credential = await service.refreshAuthorizedSignals(
@@ -64,22 +65,17 @@ export default function TikTokPublishingSettings({
         controller.signal,
       );
       const latest = readTikTokPublishingCapabilities(credential.warmupSignals);
-      if (!latest)
-        throw new Error(
-          'TikTok posting capabilities are unavailable. Reconnect the account or try again later.',
-        );
+      if (!latest) throw new Error(translate('capabilitiesUnavailable'));
       if (!controller.signal.aborted) setCapabilities(latest);
     } catch (failure) {
       if (!controller.signal.aborted)
         setError(
-          failure instanceof Error
-            ? failure.message
-            : 'Could not load TikTok posting capabilities.',
+          failure instanceof Error ? failure.message : translate('loadFailed'),
         );
     } finally {
       if (!controller.signal.aborted) setIsLoading(false);
     }
-  }, [credentialId, getTikTokService]);
+  }, [credentialId, getTikTokService, translate]);
 
   useEffect(() => {
     void refreshCapabilities();
@@ -166,12 +162,10 @@ export default function TikTokPublishingSettings({
             : PostVisibility.PUBLIC,
       });
       await onSaved?.();
-      NotificationsService.getInstance().success('TikTok settings saved');
+      NotificationsService.getInstance().success(translate('saved'));
     } catch (failure) {
       setError(
-        failure instanceof Error
-          ? failure.message
-          : 'Could not save TikTok settings.',
+        failure instanceof Error ? failure.message : translate('saveFailed'),
       );
     } finally {
       setIsSaving(false);
@@ -180,13 +174,13 @@ export default function TikTokPublishingSettings({
 
   return (
     <section
-      aria-label="TikTok publishing settings"
+      aria-label={translate('sectionLabel')}
       className="space-y-3 rounded-lg border border-border p-4"
     >
-      <h3 className="text-sm font-semibold">Post to TikTok</h3>
+      <h3 className="text-sm font-semibold">{translate('title')}</h3>
       {isLoading ? (
         <p role="status" className="text-sm text-muted-foreground">
-          Loading the account’s current posting options…
+          {translate('loading')}
         </p>
       ) : null}
       {error ? (
@@ -196,7 +190,7 @@ export default function TikTokPublishingSettings({
       ) : null}
       {!isLoading && !capabilities ? (
         <Button
-          label="Refresh TikTok options"
+          label={translate('refresh')}
           variant={ButtonVariant.SECONDARY}
           onClick={() => void refreshCapabilities()}
         />
@@ -210,21 +204,20 @@ export default function TikTokPublishingSettings({
             </span>
           </p>
           <p className="text-xs text-muted-foreground">
-            Maximum video length: {capabilities.maxVideoPostDurationSeconds}{' '}
-            seconds.
+            {translate('maximumDuration', {
+              seconds: capabilities.maxVideoPostDurationSeconds,
+            })}
           </p>
           {!hasVideo ? (
-            <p className="text-sm text-warning">
-              Add one video using Add media in the editor.
-            </p>
+            <p className="text-sm text-warning">{translate('addVideo')}</p>
           ) : !isDurationValid ? (
             <p role="alert" className="text-sm text-error">
               {isDurationKnown
-                ? 'The video exceeds this account’s maximum duration.'
-                : 'Video duration is unavailable. Choose a video with duration metadata.'}
+                ? translate('durationExceeded')
+                : translate('durationUnavailable')}
             </p>
           ) : null}
-          <FormControl label="Privacy">
+          <FormControl label={translate('privacy')}>
             <SelectField
               name="tiktokPrivacy"
               value={selectedPrivacy}
@@ -236,23 +229,39 @@ export default function TikTokPublishingSettings({
                 }))
               }
             >
-              <option value="">Choose privacy</option>
+              <option value="">{translate('choosePrivacy')}</option>
               {options.map((option) => (
                 <option
                   key={option.value}
                   value={option.value}
                   disabled={isBranded && option.value === 'private'}
                 >
-                  {option.label}
+                  {translate(
+                    option.value === 'public'
+                      ? 'privacyPublic'
+                      : option.value === 'followers'
+                        ? 'privacyFollowers'
+                        : option.value === 'friends'
+                          ? 'privacyFriends'
+                          : 'privacyPrivate',
+                  )}
                 </option>
               ))}
             </SelectField>
           </FormControl>
           {(
             [
-              ['allowComments', 'Allow comments', capabilities.commentDisabled],
-              ['allowDuet', 'Allow duet', capabilities.duetDisabled],
-              ['allowStitch', 'Allow stitch', capabilities.stitchDisabled],
+              [
+                'allowComments',
+                translate('allowComments'),
+                capabilities.commentDisabled,
+              ],
+              ['allowDuet', translate('allowDuet'), capabilities.duetDisabled],
+              [
+                'allowStitch',
+                translate('allowStitch'),
+                capabilities.stitchDisabled,
+              ],
             ] as const
           ).map(([key, label, isRestricted]) => (
             <Checkbox
@@ -264,7 +273,7 @@ export default function TikTokPublishingSettings({
             />
           ))}
           <Checkbox
-            label="Disclose commercial content"
+            label={translate('commercialContent')}
             isChecked={isCommercial}
             isDisabled={isSaving}
             onCheckedChange={(value) =>
@@ -274,7 +283,7 @@ export default function TikTokPublishingSettings({
           {isCommercial ? (
             <div className="space-y-2">
               <Checkbox
-                label="Your brand"
+                label={translate('yourBrand')}
                 isChecked={settings.yourBrand === true}
                 isDisabled={isSaving}
                 onCheckedChange={(value) =>
@@ -282,7 +291,7 @@ export default function TikTokPublishingSettings({
                 }
               />
               <Checkbox
-                label="Branded content"
+                label={translate('brandedContent')}
                 isChecked={settings.brandedContent === true}
                 isDisabled={isSaving || selectedPrivacy === 'private'}
                 onCheckedChange={(value) =>
@@ -291,22 +300,22 @@ export default function TikTokPublishingSettings({
               />
               {selectedPrivacy === 'private' ? (
                 <p className="text-xs text-muted-foreground">
-                  Branded content cannot be private.
+                  {translate('privateBranded')}
                 </p>
               ) : null}
               <p className="text-xs text-muted-foreground">
                 {isBranded
-                  ? 'Your video will be labeled Paid partnership.'
+                  ? translate('paidPartnership')
                   : settings.yourBrand === true
-                    ? 'Your video will be labeled Promotional content.'
-                    : 'Choose Your brand, Branded content, or both.'}
+                    ? translate('promotionalContent')
+                    : translate('chooseDisclosure')}
               </p>
             </div>
           ) : null}
           <Checkbox
             label={
               <span>
-                By posting, you agree to TikTok’s{' '}
+                {translate('consentPrefix')}{' '}
                 {isBranded ? (
                   <>
                     <Link
@@ -315,9 +324,9 @@ export default function TikTokPublishingSettings({
                       rel="noreferrer"
                       className="underline"
                     >
-                      Branded Content Policy
+                      {translate('brandedPolicy')}
                     </Link>{' '}
-                    and{' '}
+                    {translate('and')}{' '}
                   </>
                 ) : null}
                 <Link
@@ -326,7 +335,7 @@ export default function TikTokPublishingSettings({
                   rel="noreferrer"
                   className="underline"
                 >
-                  Music Usage Confirmation
+                  {translate('musicConfirmation')}
                 </Link>
                 .
               </span>
@@ -338,7 +347,7 @@ export default function TikTokPublishingSettings({
             }
           />
           <Button
-            label={isSaving ? 'Saving…' : 'Save TikTok settings'}
+            label={isSaving ? translate('saving') : translate('save')}
             variant={ButtonVariant.SECONDARY}
             isDisabled={
               isSaving || issues.length > 0 || !hasVideo || !isDurationValid
@@ -346,8 +355,7 @@ export default function TikTokPublishingSettings({
             onClick={() => void save()}
           />
           <p className="text-xs text-muted-foreground">
-            Preview your video before publishing. TikTok may take a few minutes
-            to process it and show it on your profile.
+            {translate('previewNotice')}
           </p>
         </>
       ) : null}
