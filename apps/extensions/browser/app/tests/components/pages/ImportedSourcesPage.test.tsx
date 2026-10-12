@@ -7,6 +7,11 @@ import { useBrandStore } from '~store/use-brand-store';
 vi.mock('~components/settings/BrandSelector', () => ({
   BrandSelector: () => <p>Brand selector</p>,
 }));
+vi.mock('~components/pages/SourceRemixPanel', () => ({
+  SourceRemixPanel: ({ source: item }: { source: { id: string } }) => (
+    <p>{`Remix panel for ${item.id}`}</p>
+  ),
+}));
 
 const BRAND = 'cbrand000000001';
 
@@ -222,6 +227,19 @@ describe('Imported sources panel', () => {
       brandId: BRAND,
       sourceId: 'cdeleted0000001',
     });
+  });
+});
+
+describe('Remix now entry', () => {
+  it('opens the remix panel only when the user chooses Remix now', async () => {
+    sources = [source('csource00000001')];
+    render(<ImportedSourcesPage {...handlers} />);
+    await screen.findByText('Saved post');
+    expect(screen.queryByText(/Remix panel for/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Remix now' }));
+    expect(
+      await screen.findByText('Remix panel for csource00000001'),
+    ).toBeInTheDocument();
   });
 });
 

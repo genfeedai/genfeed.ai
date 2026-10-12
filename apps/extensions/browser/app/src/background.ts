@@ -40,6 +40,10 @@ import {
   registerExtensionWrittenText,
 } from '~services/publication-capture.service';
 import {
+  handleSourceRemixMessage,
+  SOURCE_REMIX_EVENTS,
+} from '~services/source-remix-message';
+import {
   assertWorkspace,
   loadWorkspace,
   requireWorkspace,
@@ -387,6 +391,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   if (IMPORTED_SOURCE_EVENTS.has(request.event)) {
     handleImportedSourceMessage(request, sender, sendResponse);
+    return true;
+  }
+  if (SOURCE_REMIX_EVENTS.has(request.event)) {
+    handleSourceRemixMessage(request, sendResponse);
     return true;
   }
   switch (request.event) {

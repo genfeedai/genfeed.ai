@@ -3,6 +3,7 @@ import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ImportedSourceCard } from '~components/pages/ImportedSourceCard';
 import { SourceCaptureCard } from '~components/pages/SourceCaptureCard';
+import { SourceRemixPanel } from '~components/pages/SourceRemixPanel';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import {
   IMPORTED_SOURCES_CHANGED,
@@ -69,6 +70,9 @@ export function ImportedSourcesPage({
   const [notice, setNotice] = useState<string | null>(null);
   const [deletedSourceId, setDeletedSourceId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [remixSource, setRemixSource] = useState<ImportedSourceView | null>(
+    null,
+  );
 
   const preview = useMemo(
     () => (capture ? buildCapturePreview(capture, kind) : null),
@@ -113,6 +117,7 @@ export function ImportedSourcesPage({
   // A new workspace brand never keeps another brand's draft or list.
   useEffect(() => {
     setCapture(null);
+    setRemixSource(null);
     setError(null);
     setNotice(null);
     setDeletedSourceId(null);
@@ -428,6 +433,13 @@ export function ImportedSourcesPage({
           preview={preview}
         />
       ) : null}
+      {remixSource ? (
+        <SourceRemixPanel
+          key={remixSource.id}
+          onClose={() => setRemixSource(null)}
+          source={remixSource}
+        />
+      ) : null}
       <section aria-label="Saved sources" className="space-y-2">
         <h3 className="text-sm font-medium">Saved sources</h3>
         {sources.length === 0 ? (
@@ -451,6 +463,7 @@ export function ImportedSourcesPage({
                 );
               }}
               onOpenOriginal={openUrl}
+              onRemixNow={setRemixSource}
               onPrepareMedia={(item) => {
                 void mediaAction(
                   item,

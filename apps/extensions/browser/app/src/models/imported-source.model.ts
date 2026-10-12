@@ -140,6 +140,7 @@ export interface ImportedSourceCardProps {
   onCheckMedia: (source: ImportedSourceView) => void;
   onOpenOriginal: (url: string) => void;
   onPrepareMedia: (source: ImportedSourceView) => void;
+  onRemixNow: (source: ImportedSourceView) => void;
   onRetryMedia: (
     source: ImportedSourceView,
     media: ImportedSourceMediaView,

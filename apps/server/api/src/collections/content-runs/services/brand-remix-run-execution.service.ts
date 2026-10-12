@@ -894,6 +894,12 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
               'The generated placeholder could not be bound to this remix revision.',
             );
           }
+          await this.linkImportedSourceLineage({
+            brandId: params.brandId,
+            config: params.config,
+            ingredientId,
+            organizationId: params.organizationId,
+          });
           await this.state.patchGeneratingVariant({
             organizationId: params.organizationId,
             patch: {
@@ -946,6 +952,45 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       });
       throw error;
     }
+  }
+
+  /**
+   * A Library output made from a saved browser source records that source (and
+   * its prepared media) in the existing `sources` lineage, so the Library can
+   * show where the output came from. The original stays unchanged.
+   */
+  private async linkImportedSourceLineage(params: {
+    brandId: string;
+    config: BrandRemixRunConfig;
+    ingredientId: string;
+    organizationId: string;
+  }): Promise<void> {
+    const { selector, media } = params.config.sourceSnapshot;
+    if (selector.kind !== 'imported_source') return;
+    const sourceIds = [
+      selector.importedSourceId,
+      ...(media?.status === 'saved' ? [media.assetId] : []),
+    ];
+    const sources = await this.prisma.ingredient.findMany({
+      select: { id: true },
+      where: scopedWhere(params.organizationId, {
+        brandId: params.brandId,
+        id: { in: sourceIds },
+      }),
+    });
+    if (!sources.some((source) => source.id === selector.importedSourceId)) {
+      throw new ConflictException(
+        'The imported source is no longer available for this remix.',
+      );
+    }
+    await this.prisma.ingredient.update({
+      data: { sources: { connect: sources.map(({ id }) => ({ id })) } },
+      where: {
+        id: params.ingredientId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+    });
   }
 
   private async adoptOrphanedPlaceholders(params: {

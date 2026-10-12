@@ -220,6 +220,41 @@ describe('brand remix run contract', () => {
     ).toEqual({ kind: 'saved_ad', savedAdId: 'saved_ad_1' });
   });
 
+  test('accepts an imported source selector by id only and rejects client creative', () => {
+    expect(
+      createBrandRemixRunSchema.parse({
+        source: {
+          importedSourceId: 'csource00000001',
+          kind: 'imported_source',
+        },
+      }).source,
+    ).toEqual({
+      importedSourceId: 'csource00000001',
+      kind: 'imported_source',
+    });
+
+    for (const extra of [
+      { capturedText: 'Copy this text.' },
+      { canonicalUrl: 'https://untrusted.example/source' },
+      { sourcePostId: 'post_1' },
+    ]) {
+      expect(
+        createBrandRemixRunSchema.safeParse({
+          source: {
+            importedSourceId: 'csource00000001',
+            kind: 'imported_source',
+            ...extra,
+          },
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      createBrandRemixRunSchema.safeParse({
+        source: { importedSourceId: '', kind: 'imported_source' },
+      }).success,
+    ).toBe(false);
+  });
+
   test('rejects client-supplied source prose, metrics, URLs, and provider identities', () => {
     const result = createBrandRemixRunSchema.safeParse({
       source: {

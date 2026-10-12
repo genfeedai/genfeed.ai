@@ -71,6 +71,12 @@ const routes = [
   ['POST', 'brands/:id/imported-sources/:id/media'],
   ['GET', 'brands/:id/imported-sources/:id/media'],
   ['POST', 'brands/:id/imported-sources/:id/media/retry'],
+  ['POST', 'brands/:id/content-runs/remixes'],
+  ['GET', 'content-runs/:id/remix'],
+  ['PATCH', 'content-runs/:id/remix'],
+  ['POST', 'content-runs/:id/remix/generation/quote'],
+  ['POST', 'content-runs/:id/remix/generation/execute'],
+  ['GET', 'models'],
   ['GET', 'brands/:id'],
   ['GET', 'organizations'],
   ['POST', 'posts'],
@@ -129,13 +135,14 @@ describe('extension API route contract', () => {
       'services/publication-insights.service.ts',
       'services/theme-settings.service.ts',
       'services/imported-source.service.ts',
+      'services/source-remix.service.ts',
       'components/settings/ConnectedAccounts.tsx',
     ];
     for (const file of files) {
       const source = readFileSync(resolve(extensionRoot, file), 'utf8');
       const endpoints = Array.from(
         source.matchAll(
-          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|organizations)[^'"`]*)['"`]/g,
+          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|organizations|content-runs|models)[^'"`]*)['"`]/g,
         ),
         (match) => normalizeRoute(match[1]),
       );
@@ -161,10 +168,16 @@ describe('extension API route contract', () => {
         expect(source, file).not.toContain(route);
       }
     }
-    const remix = readFileSync(
-      resolve(extensionRoot, 'components/pages/RemixPage.tsx'),
-      'utf8',
-    );
-    expect(remix).not.toContain('/ingredients');
+    // Remix now never calls a provider route; generation is the quote/execute pair.
+    for (const file of sourceFiles(
+      resolve(extensionRoot, 'components/pages'),
+    )) {
+      const source = readFileSync(file, 'utf8');
+      if (/Remix/.test(file)) {
+        expect(source, file).not.toContain('/ingredients');
+        expect(source, file).not.toContain('/images');
+        expect(source, file).not.toContain('/videos');
+      }
+    }
   });
 });

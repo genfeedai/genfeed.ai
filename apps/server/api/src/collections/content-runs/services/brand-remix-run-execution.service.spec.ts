@@ -7,7 +7,10 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { ContentRunStatus } from '@genfeedai/contracts';
-import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import {
+  type BrandRemixRunConfig,
+  brandRemixRunConfigSchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type CapturedWorkflowAction = (request: {
@@ -32,7 +35,7 @@ describe('BrandRemixRunExecutionService', () => {
     $transaction: vi.fn(),
     asset: { findMany: vi.fn() },
     contentRun,
-    ingredient: { findMany: vi.fn(), updateMany: vi.fn() },
+    ingredient: { findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     sourcePost: { findFirst: vi.fn() },
   } as unknown as PrismaService;
   const imageGenerationService = { generateImage: vi.fn() };
@@ -353,5 +356,107 @@ describe('BrandRemixRunExecutionService', () => {
       status: 402,
     });
     expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+  });
+
+  describe('imported source lineage', () => {
+    type LineageLinker = {
+      linkImportedSourceLineage(params: {
+        brandId: string;
+        config: BrandRemixRunConfig;
+        ingredientId: string;
+        organizationId: string;
+      }): Promise<void>;
+    };
+
+    function configFor(
+      selector: BrandRemixRunConfig['sourceSnapshot']['selector'],
+      media?: BrandRemixRunConfig['sourceSnapshot']['media'],
+    ): BrandRemixRunConfig {
+      return {
+        sourceSnapshot: {
+          capturedAt: '2026-08-20T10:00:00.000Z',
+          evidence: ['hook'],
+          media,
+          metrics: {},
+          pattern: {},
+          platform: 'x',
+          selector,
+          sourceId: 'csource00000001',
+          title: 'hook',
+        },
+      } as unknown as BrandRemixRunConfig;
+    }
+
+    const link = (config: BrandRemixRunConfig) =>
+      (execution as unknown as LineageLinker).linkImportedSourceLineage({
+        brandId: 'brand-1',
+        config,
+        ingredientId: 'generated-1',
+        organizationId: 'org-1',
+      });
+
+    it('links a generated Library output to the saved source and its prepared media', async () => {
+      (
+        prisma.ingredient.findMany as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        { id: 'csource00000001' },
+        { id: 'cmedia000000001' },
+      ]);
+      await link(
+        configFor(
+          { importedSourceId: 'csource00000001', kind: 'imported_source' },
+          {
+            assetId: 'cmedia000000001',
+            category: 'image',
+            purpose: 'analysis_only',
+            status: 'saved',
+          },
+        ),
+      );
+      expect(prisma.ingredient.findMany).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          brandId: 'brand-1',
+          id: { in: ['csource00000001', 'cmedia000000001'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+      expect(prisma.ingredient.update).toHaveBeenCalledWith({
+        data: {
+          sources: {
+            connect: [{ id: 'csource00000001' }, { id: 'cmedia000000001' }],
+          },
+        },
+        where: {
+          id: 'generated-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+    });
+
+    it('stops before paid dispatch when the saved source is gone', async () => {
+      (
+        prisma.ingredient.findMany as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([]);
+      await expect(
+        link(
+          configFor({
+            importedSourceId: 'csource00000001',
+            kind: 'imported_source',
+          }),
+        ),
+      ).rejects.toThrow(/no longer available/);
+      expect(prisma.ingredient.update).not.toHaveBeenCalled();
+    });
+
+    it('leaves every other source kind untouched', async () => {
+      await link(
+        configFor({ kind: 'source_post', sourcePostId: 'source-post-1' }),
+      );
+      expect(prisma.ingredient.findMany).not.toHaveBeenCalled();
+      expect(prisma.ingredient.update).not.toHaveBeenCalled();
+    });
   });
 });

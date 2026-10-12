@@ -23,7 +23,7 @@ function MediaBlock({
   source,
 }: Omit<
   ImportedSourceCardProps,
-  'onAddToKnowledge' | 'onOpenOriginal'
+  'onAddToKnowledge' | 'onOpenOriginal' | 'onRemixNow'
 >): ReactElement | null {
   const selected = source.snapshot.selectedMedia;
   if (!selected) {
@@ -115,6 +115,7 @@ export function ImportedSourceCard({
   onCheckMedia,
   onOpenOriginal,
   onPrepareMedia,
+  onRemixNow,
   onRetryMedia,
   onUseReference,
   source,
@@ -159,6 +160,9 @@ export function ImportedSourceCard({
           variant={ButtonVariant.GHOST}
         >
           Open original
+        </Button>
+        <Button onClick={() => onRemixNow(source)} type="button">
+          Remix now
         </Button>
         <Button
           onClick={() => onAddToKnowledge(source)}
