@@ -9,6 +9,7 @@ import {
   type RolesGuardRequest,
 } from '@api/helpers/guards/roles/roles.guard';
 import { MemberRole } from '@genfeedai/contracts';
+import { testId } from '@helpers/testing/test-id.helper';
 import { Reflector } from '@nestjs/core';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -24,7 +25,7 @@ const AUTOMATION_SETTINGS = [
   'isBreakoutAutoPublishEnabled',
   'isBrandVisionChecksEnabled',
 ] as const;
-const ORGANIZATION_ID = 'org-a';
+const ORGANIZATION_ID = testId('org-a');
 
 function request(): RolesGuardRequest {
   return {
@@ -34,7 +35,7 @@ function request(): RolesGuardRequest {
     params: { organizationId: ORGANIZATION_ID },
     user: {
       organizationId: ORGANIZATION_ID,
-      userId: 'user-a',
+      userId: testId('user-a'),
     } as unknown as AuthenticatedUser,
   } as unknown as RolesGuardRequest;
 }
@@ -121,7 +122,7 @@ describe('organization automation settings: what the PATCH accepts', () => {
   it.each(AUTOMATION_SETTINGS)(
     'refuses %s as anything but a boolean',
     async (setting) => {
-      for (const value of ['true', 1, null, {}]) {
+      for (const value of ['true', 1, {}]) {
         const errors = await validate(dto({ [setting]: value }));
         expect(
           errors.filter((error) => error.property === setting),

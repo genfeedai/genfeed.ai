@@ -19,8 +19,7 @@ export interface BrandOcrRequest {
 
 /**
  * `read`: the model answered, with exactly one text per requested frame.
- * `disabled`: the platform switch or the organization's own setting is off; nothing was
- * called or paid.
+ * `disabled`: the platform switch is off; nothing was called or paid.
  * `unavailable`: the analysis could not complete (no model, provider error, malformed answer).
  */
 export type BrandOcrOutcome =

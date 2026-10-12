@@ -1,4 +1,3 @@
-import { readOrganizationAutomationSettings } from '@api/collections/organization-settings/utils/organization-automation-settings.util';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { BrandReplicateVisionProvider } from '@api/services/brand-validation/brand-replicate-vision.provider';
 import type {
@@ -8,19 +7,15 @@ import type {
   BrandOcrRequest,
   BrandVisualAnalysis,
 } from '@api/services/brand-validation/brand-visual-analysis.types';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
 /**
- * The gate in front of every paid reading of a branded visual. Two switches must
- * both be on, and both are off by default: the Admin platform setting
- * `isBrandVisualAnalysisEnabled` (the master kill switch, checked first) and the
- * organization's own `isBrandVisionChecksEnabled` (#6727), which its owners and
- * admins turn on and pay for in credits. While either is off nothing is called
- * or paid and the caller leaves its checks unknown. Any failure after that is
- * `unavailable`, never a result.
+ * The gate in front of every paid reading of a branded visual. The Admin
+ * platform setting `isBrandVisualAnalysisEnabled` is off by default; while it is
+ * off nothing is called or paid and the caller leaves its checks unknown. Any
+ * failure after that is `unavailable`, never a result.
  */
 @Injectable()
 export class BrandVisualAnalysisService implements BrandVisualAnalysis {
@@ -30,22 +25,12 @@ export class BrandVisualAnalysisService implements BrandVisualAnalysis {
     private readonly platformSettings: PlatformSettingsService,
     private readonly provider: BrandReplicateVisionProvider,
     private readonly logger: LoggerService,
-    private readonly prisma: PrismaService,
   ) {}
-
-  /** Whether this organization may be charged for a reading right now. Read fresh on every call. */
-  private async isAllowed(organizationId: string): Promise<boolean> {
-    const settings = await this.platformSettings.getFeatureSettings();
-    if (!settings.isBrandVisualAnalysisEnabled) return false;
-    return (
-      await readOrganizationAutomationSettings(this.prisma, organizationId)
-    ).isBrandVisionChecksEnabled;
-  }
 
   async extractText(request: BrandOcrRequest): Promise<BrandOcrOutcome> {
     try {
-      if (!(await this.isAllowed(request.scope.organizationId)))
-        return { status: 'disabled' };
+      const settings = await this.platformSettings.getFeatureSettings();
+      if (!settings.isBrandVisualAnalysisEnabled) return { status: 'disabled' };
       const result = await this.provider.extractText(request);
       if (
         result.texts.length !== request.frames.length ||
@@ -70,8 +55,8 @@ export class BrandVisualAnalysisService implements BrandVisualAnalysis {
     request: BrandDetectionRequest,
   ): Promise<BrandDetectionOutcome> {
     try {
-      if (!(await this.isAllowed(request.scope.organizationId)))
-        return { status: 'disabled' };
+      const settings = await this.platformSettings.getFeatureSettings();
+      if (!settings.isBrandVisualAnalysisEnabled) return { status: 'disabled' };
       const result = await this.provider.detectRegions(request);
       if (result.frames.length !== request.frames.length)
         return { status: 'unavailable' };

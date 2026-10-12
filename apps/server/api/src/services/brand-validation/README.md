@@ -81,11 +81,7 @@ Mandatory and avoid literals of an image or video are read from the final pixels
 a provider-backed vision model (Florence-2 on Replicate), never from the generation
 prompt. The Admin platform setting `isBrandVisualAnalysisEnabled` is **off by
 default**; while it is off no provider is called, nothing is paid, and the checks are
-`unknown` (`visual_analysis_disabled`). It is the master kill switch. Each organization
-also has its own **Brand vision checks** setting (`isBrandVisionChecksEnabled`, off by
-default; owners and admins turn it on and pay for readings in credits). A reading runs only
-when both are on; an organization that has it off leaves the same checks `unknown`, and the
-platform switch overrides an organization that turned it on.
+`unknown` (`visual_analysis_disabled`).
 
 The model is an Admin-selected catalog model, not an environment variable. The
 platform setting `brandVisionOcrModelKey` holds the `Model.key` of an active,
