@@ -2482,6 +2482,7 @@ test('the v0.2.6 evidence cannot be replayed under another run or tag identity',
   assert.throws(() => validateReleaseRecoveryEvidence(otherRun));
   const unreviewed = v026NpmSourceNoopFixture();
   unreviewed.requestedRunId = '38217325375';
+  unreviewed.run.id = 38217325375;
   assert.throws(
     () => validateReleaseRecoveryEvidence(unreviewed),
     /no reviewed controller qualification/,
