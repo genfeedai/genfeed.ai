@@ -11,6 +11,7 @@ import type { PostCardFooterProps } from '@ui/posts/card-footer/PostCardFooter.p
 import { Button } from '@ui/primitives/button';
 import { ImageIcon, Sparkles, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -30,6 +31,7 @@ export default function PostCardFooter({
   showDelete = false,
   className = '',
 }: PostCardFooterProps) {
+  const translate = useTranslations('ui.postCardFooter');
   const mediaCount = selectedMedia.length;
   const hasMedia = mediaCount > 0;
   const firstMedia = selectedMedia[0];
@@ -48,8 +50,16 @@ export default function PostCardFooter({
       <div className="flex flex-wrap items-center gap-1">
         {onSelectMedia && (
           <Button
-            ariaLabel={hasMedia ? `Change media (${mediaCount})` : 'Add media'}
-            label={hasMedia ? `Media (${mediaCount})` : 'Add media'}
+            ariaLabel={
+              hasMedia
+                ? translate('changeMedia', { count: mediaCount })
+                : translate('addMedia')
+            }
+            label={
+              hasMedia
+                ? translate('media', { count: mediaCount })
+                : translate('addMedia')
+            }
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             textTransform="none"
@@ -81,7 +91,7 @@ export default function PostCardFooter({
 
         {onGenerateIllustration && (
           <Button
-            label="Generate illustration"
+            label={translate('generateIllustration')}
             icon={<Sparkles className="size-4" />}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
@@ -92,11 +102,11 @@ export default function PostCardFooter({
 
         {showDelete && onDelete && (
           <Button
-            ariaLabel="Delete post"
+            ariaLabel={translate('deletePost')}
             icon={<Trash2 className="size-4" />}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
-            tooltip="Delete post"
+            tooltip={translate('deletePost')}
             tooltipPosition="top"
             onClick={onDelete}
           />
@@ -120,11 +130,15 @@ export default function PostCardFooter({
                     : 'bg-success',
               )}
             />
-            {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
+            {isSaving
+              ? translate('saving')
+              : isDirty
+                ? translate('unsaved')
+                : translate('saved')}
           </p>
           {isDirty && (
             <Button
-              label="Save"
+              label={translate('save')}
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               textTransform="none"

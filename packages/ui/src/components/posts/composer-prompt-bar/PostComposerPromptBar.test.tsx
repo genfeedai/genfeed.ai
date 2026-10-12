@@ -11,6 +11,12 @@ import type { PostComposerPromptBarProps } from '@ui/posts/composer-prompt-bar/P
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 // The TipTap editor needs a real DOM layout; a textarea keeps these tests on
 // the bar's own behaviour.
 vi.mock('@ui/prompt-editor/PromptEditor', () => ({

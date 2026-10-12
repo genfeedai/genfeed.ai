@@ -20,6 +20,7 @@ import {
   Gauge,
   RefreshCw,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 const DETERMINISTIC_CHECK_IDS = [
@@ -51,22 +52,13 @@ const SEO_DIMENSION_MAX: Record<SeoDimension, number> = {
   technicalSignals: 10,
 };
 
-const DIMENSION_LABELS: Record<SeoDimension, string> = {
-  contentStructure: 'Structure',
-  keywordPlacement: 'Keyword',
-  links: 'Links',
-  media: 'Media',
-  metaOptimization: 'Metadata',
-  readability: 'Readability',
-  technicalSignals: 'Technical',
-};
-
-const RATING_LABELS: Record<string, string> = {
-  critical: 'Critical',
-  excellent: 'Excellent',
-  good: 'Good',
-  needs_work: 'Needs work',
-  poor: 'Poor',
+/** Rating values the scorer returns, mapped to `ui.seoScorecard.ratings` keys. */
+const RATING_KEYS: Record<string, string> = {
+  critical: 'critical',
+  excellent: 'excellent',
+  good: 'good',
+  needs_work: 'needsWork',
+  poor: 'poor',
 };
 
 type CheckState = 'pass' | 'partial' | 'fix' | 'unavailable';
@@ -150,6 +142,8 @@ function formatScore(value: number): number {
 }
 
 function SeoDimensionBars({ scorecard }: { scorecard: SeoScorecardSnapshot }) {
+  const translate = useTranslations('ui.seoScorecard');
+
   return (
     <div className="space-y-2">
       {SEO_DIMENSIONS.map((dimension) => {
@@ -159,7 +153,7 @@ function SeoDimensionBars({ scorecard }: { scorecard: SeoScorecardSnapshot }) {
           <div key={dimension} className="space-y-1.5">
             <div className="flex items-center justify-between gap-3 text-xs">
               <span className="font-medium text-foreground/70">
-                {DIMENSION_LABELS[dimension]}
+                {translate(`dimensions.${dimension}`)}
               </span>
               <span className="text-foreground/50">
                 {value}/{max}
@@ -174,10 +168,12 @@ function SeoDimensionBars({ scorecard }: { scorecard: SeoScorecardSnapshot }) {
 }
 
 function SeoChecks({ checks }: { checks: SeoCheck[] }) {
+  const translate = useTranslations('ui.seoScorecard');
+
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-semibold text-foreground/60 uppercase">
-        Checks
+        {translate('checks')}
       </h4>
       <div className="flex flex-wrap gap-2">
         {checks.map((check) => {
@@ -200,10 +196,12 @@ function SeoChecks({ checks }: { checks: SeoCheck[] }) {
 }
 
 function SeoSuggestions({ suggestions }: { suggestions: string[] }) {
+  const translate = useTranslations('ui.seoScorecard');
+
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-semibold text-foreground/60 uppercase">
-        Suggestions
+        {translate('suggestions')}
       </h4>
       <ul className="space-y-1.5">
         {suggestions.slice(0, 4).map((suggestion) => (
@@ -222,7 +220,7 @@ function SeoSuggestions({ suggestions }: { suggestions: string[] }) {
 export default function SeoScorecard({
   score,
   scorecard,
-  contentTypeLabel = 'content',
+  contentTypeLabel,
   isScoring = false,
   isDisabled = false,
   hasUnsavedChanges = false,
@@ -230,6 +228,7 @@ export default function SeoScorecard({
   className,
   variant = 'card',
 }: SeoScorecardProps) {
+  const translate = useTranslations('ui.seoScorecard');
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const resolvedScore =
     typeof score === 'number'
@@ -238,7 +237,16 @@ export default function SeoScorecard({
         ? formatScore(scorecard.score)
         : null;
   const hasScore = resolvedScore !== null;
-  const actionLabel = hasScore ? 'Re-score' : 'Score';
+  const actionLabel = hasScore ? translate('rescore') : translate('score');
+  const actionSeoLabel = translate('actionSeo', { action: actionLabel });
+  const resolvedContentType = (
+    contentTypeLabel ?? translate('defaultContentType')
+  ).toLowerCase();
+  const ratingKey = scorecard ? RATING_KEYS[scorecard.rating] : undefined;
+  const ratingLabel =
+    scorecard && ratingKey
+      ? translate(`ratings.${ratingKey}`)
+      : (scorecard?.rating ?? '');
   const scoreDisabled =
     isDisabled || isScoring || hasUnsavedChanges || !onScore;
   const deterministicChecks =
@@ -250,19 +258,17 @@ export default function SeoScorecard({
 
   const headerAction = onScore ? (
     <Button
-      ariaLabel={`${actionLabel} SEO`}
+      ariaLabel={actionSeoLabel}
       icon={<RefreshCw className="size-4" />}
       isDisabled={scoreDisabled}
       isLoading={isScoring}
-      label={isScoring ? 'Scoring' : actionLabel}
+      label={isScoring ? translate('scoring') : actionLabel}
       onClick={() => {
         void onScore();
       }}
       size={ButtonSize.SM}
       tooltip={
-        hasUnsavedChanges
-          ? 'Save changes before scoring SEO'
-          : `${actionLabel} SEO`
+        hasUnsavedChanges ? translate('saveBeforeScoringSeo') : actionSeoLabel
       }
       variant={ButtonVariant.DEFAULT}
     />
@@ -273,7 +279,7 @@ export default function SeoScorecard({
       <div className="flex flex-col gap-2" data-testid="seo-row">
         <div className="flex items-center gap-3">
           <span className="min-w-0 flex-1 truncate text-sm font-medium">
-            SEO score
+            {translate('seoScore')}
           </span>
           {hasScore ? (
             <span
@@ -288,23 +294,25 @@ export default function SeoScorecard({
               </span>
             </span>
           ) : (
-            <span className="text-xs text-muted-foreground">Not scored</span>
+            <span className="text-xs text-muted-foreground">
+              {translate('notScored')}
+            </span>
           )}
           {onScore ? (
             <Button
-              ariaLabel={`${actionLabel} SEO`}
+              ariaLabel={actionSeoLabel}
               icon={<RefreshCw className="size-4" />}
               isDisabled={scoreDisabled}
               isLoading={isScoring}
-              label={isScoring ? 'Scoring' : actionLabel}
+              label={isScoring ? translate('scoring') : actionLabel}
               onClick={() => {
                 void onScore();
               }}
               size={ButtonSize.SM}
               tooltip={
                 hasUnsavedChanges
-                  ? 'Save changes before scoring SEO'
-                  : `${actionLabel} SEO`
+                  ? translate('saveBeforeScoringSeo')
+                  : actionSeoLabel
               }
               variant={ButtonVariant.SECONDARY}
             />
@@ -312,7 +320,7 @@ export default function SeoScorecard({
         </div>
         {hasUnsavedChanges ? (
           <p className="text-xs text-warning">
-            Save your changes before scoring.
+            {translate('saveBeforeScoring')}
           </p>
         ) : null}
         {hasScore && scorecard ? (
@@ -322,7 +330,7 @@ export default function SeoScorecard({
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
-              ariaLabel="Toggle SEO details"
+              ariaLabel={translate('toggleDetails')}
               className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <ChevronDown
@@ -331,13 +339,13 @@ export default function SeoScorecard({
                   !isDetailsOpen && '-rotate-90',
                 )}
               />
-              Details
+              {translate('details')}
             </Button>
             {isDetailsOpen ? (
               <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={resolvedScore >= 70 ? 'success' : 'warning'}>
-                    {RATING_LABELS[scorecard.rating] ?? scorecard.rating}
+                    {ratingLabel}
                   </Badge>
                   {scorecard.meta?.targetKeyword ? (
                     <Badge variant="outline">
@@ -345,7 +353,9 @@ export default function SeoScorecard({
                     </Badge>
                   ) : null}
                   <span className="text-xs text-foreground/60">
-                    {scorecard.meta?.wordCount ?? 0} words
+                    {translate('words', {
+                      count: scorecard.meta?.wordCount ?? 0,
+                    })}
                   </span>
                 </div>
                 <SeoDimensionBars scorecard={scorecard} />
@@ -366,7 +376,7 @@ export default function SeoScorecard({
   if (!hasScore || !scorecard) {
     return (
       <Card
-        label="SEO Scorecard"
+        label={translate('title')}
         headerAction={headerAction}
         className={className}
       >
@@ -375,14 +385,13 @@ export default function SeoScorecard({
             <Gauge className="size-4" />
           </div>
           <div className="min-w-0 space-y-1">
-            <p className="text-sm font-medium">No SEO score yet</p>
+            <p className="text-sm font-medium">{translate('emptyTitle')}</p>
             <p className="text-xs leading-relaxed text-foreground/60">
-              Score this {contentTypeLabel.toLowerCase()} to check keywords,
-              metadata, links, media, structure, and readability.
+              {translate('emptyBody', { contentType: resolvedContentType })}
             </p>
             {hasUnsavedChanges ? (
               <p className="text-xs text-warning">
-                Save your changes before scoring.
+                {translate('saveBeforeScoring')}
               </p>
             ) : null}
           </div>
@@ -393,7 +402,7 @@ export default function SeoScorecard({
 
   return (
     <Card
-      label="SEO Scorecard"
+      label={translate('title')}
       headerAction={headerAction}
       className={cn('bg-card', className)}
       bodyClassName="space-y-4"
@@ -413,7 +422,7 @@ export default function SeoScorecard({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={resolvedScore >= 70 ? 'success' : 'warning'}>
-              {RATING_LABELS[scorecard.rating] ?? scorecard.rating}
+              {ratingLabel}
             </Badge>
             {scorecard.meta?.targetKeyword ? (
               <Badge variant="outline">{scorecard.meta.targetKeyword}</Badge>
@@ -422,11 +431,19 @@ export default function SeoScorecard({
         </div>
 
         <div className="text-right text-xs text-foreground/60">
-          <p>{scorecard.meta?.wordCount ?? 0} words</p>
-          <p>Flesch {Math.round(scorecard.meta?.fleschReadingEase ?? 0)}</p>
+          <p>{translate('words', { count: scorecard.meta?.wordCount ?? 0 })}</p>
+          <p>
+            {translate('flesch', {
+              score: Math.round(scorecard.meta?.fleschReadingEase ?? 0),
+            })}
+          </p>
           {scorecard.meta?.keywordDensity !== null &&
           scorecard.meta?.keywordDensity !== undefined ? (
-            <p>{scorecard.meta.keywordDensity.toFixed(1)}% keyword</p>
+            <p>
+              {translate('keywordDensity', {
+                percent: scorecard.meta.keywordDensity.toFixed(1),
+              })}
+            </p>
           ) : null}
         </div>
       </div>

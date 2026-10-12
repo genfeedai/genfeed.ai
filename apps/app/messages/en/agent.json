@@ -294,6 +294,7 @@
   "postSidebarSchedule": {
     "chooseDateTime": "Choose a date and time",
     "finishTikTokSettings": "Finish TikTok settings",
+    "localTimezone": "Local timezone",
     "moreTikTokOptions": "More TikTok publishing options",
     "musicConfirmation": "Music Usage Confirmation",
     "musicConfirmationPrefix": "By publishing, you agree to TikTok\u2019s",

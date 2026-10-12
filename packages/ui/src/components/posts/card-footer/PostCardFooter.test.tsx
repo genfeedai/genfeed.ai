@@ -3,6 +3,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import PostCardFooter from '@ui/posts/card-footer/PostCardFooter';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('PostCardFooter', () => {
   it('exposes media selection as a named visible action', () => {
     const onSelectMedia = vi.fn();

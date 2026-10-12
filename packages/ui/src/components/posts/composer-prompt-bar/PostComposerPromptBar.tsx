@@ -17,7 +17,7 @@ import {
   QUICK_ACTION_KEYS,
   REWRITE_PRESETS,
   THREAD_PRESETS,
-  TONE_OPTIONS,
+  TONE_KEYS,
 } from '@ui/posts/composer-prompt-bar/post-composer-prompt-bar.helpers';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
@@ -27,14 +27,8 @@ import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSen
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { Check, RefreshCw, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
-
-const CUSTOM_LABEL = 'Your instruction';
-
-const TONE_SELECT_OPTIONS = TONE_OPTIONS.map((option) => ({
-  label: option.label,
-  value: option.key,
-}));
 
 interface RewriteProposal {
   label: string;
@@ -55,10 +49,6 @@ type PendingRequest =
       actionKey: PostQuickActionKey | null;
     }
   | { kind: 'thread'; label: string };
-
-function toneLabel(tone: TweetTone): string {
-  return TONE_OPTIONS.find((option) => option.key === tone)?.label ?? tone;
-}
 
 /**
  * Page-level AI composer for a post and its thread, built from the shared
@@ -81,6 +71,12 @@ export default function PostComposerPromptBar({
   onAddFirstComment,
   className,
 }: PostComposerPromptBarProps) {
+  const translate = useTranslations('ui.postComposerPromptBar');
+  const customLabel = translate('yourInstruction');
+  const toneSelectOptions = TONE_KEYS.map((key) => ({
+    label: translate(`tones.${key}`),
+    value: key,
+  }));
   const [tone, setTone] = useState<TweetTone>('professional');
   const [proposal, setProposal] = useState<RewriteProposal | null>(null);
   const [threadProposal, setThreadProposal] = useState<ThreadProposal | null>(
@@ -136,7 +132,7 @@ export default function PostComposerPromptBar({
         const isOk = await run({
           actionKey: null,
           kind: 'rewrite',
-          label: CUSTOM_LABEL,
+          label: customLabel,
           prompt: trimmedPrompt,
         });
         if (!isOk) {
@@ -158,14 +154,14 @@ export default function PostComposerPromptBar({
     return {
       icon: <Icon className="size-4" />,
       id: preset.key,
-      label: preset.label,
+      label: translate(`presets.${preset.key}`),
       prompt: preset.prompt ? preset.prompt(platformLabel) : '',
     };
   });
 
   const runPreset = (key: PostComposerPresetKey) => {
     if (key === 'thread') {
-      void run({ kind: 'thread', label: THREAD_PRESETS.thread.label });
+      void run({ kind: 'thread', label: translate('presets.thread') });
       return;
     }
     if (key === 'grok') {
@@ -186,7 +182,7 @@ export default function PostComposerPromptBar({
         ? (key as PostQuickActionKey)
         : null,
       kind: 'rewrite',
-      label: preset.label,
+      label: translate(`presets.${preset.key}`),
       prompt: preset.prompt(platformLabel),
     });
   };
@@ -228,7 +224,7 @@ export default function PostComposerPromptBar({
   ) => (
     <div className="flex flex-wrap items-center gap-1.5">
       <Button
-        label="Discard"
+        label={translate('discard')}
         variant={ButtonVariant.GHOST}
         size={ButtonSize.SM}
         textTransform="none"
@@ -236,7 +232,7 @@ export default function PostComposerPromptBar({
         onClick={onDiscard}
       />
       <Button
-        label="Try again"
+        label={translate('tryAgain')}
         icon={<RefreshCw className="size-3.5" />}
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.SM}
@@ -260,7 +256,11 @@ export default function PostComposerPromptBar({
     pendingLabel || proposal || threadProposal ? (
       <section
         aria-live="polite"
-        aria-label={threadProposal ? 'Proposed thread' : 'AI rewrite'}
+        aria-label={
+          threadProposal
+            ? translate('proposedThreadAria')
+            : translate('rewriteAria')
+        }
         className="overflow-hidden rounded-lg border border-border-strong bg-card shadow-composer"
       >
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2 pl-3 pr-2">
@@ -269,23 +269,27 @@ export default function PostComposerPromptBar({
             <span>
               {pendingLabel ??
                 (threadProposal
-                  ? `Proposed ${threadProposal.posts.length} posts for the thread`
+                  ? translate('proposedThread', {
+                      count: threadProposal.posts.length,
+                    })
                   : `${proposal?.label} · ${targetLabel}`)}
             </span>
             <span className="font-normal text-muted-foreground">
               {pendingLabel
-                ? '· Writing…'
-                : `· ${toneLabel(threadProposal?.tone ?? proposal?.tone ?? tone)}`}
+                ? `· ${translate('writing')}`
+                : `· ${translate(`tones.${threadProposal?.tone ?? proposal?.tone ?? tone}`)}`}
             </span>
           </p>
           {proposal && !pendingLabel
-            ? proposalActions('Replace text', handleAcceptRewrite, () =>
-                setProposal(null),
+            ? proposalActions(
+                translate('replaceText'),
+                handleAcceptRewrite,
+                () => setProposal(null),
               )
             : null}
           {threadProposal && !pendingLabel
             ? proposalActions(
-                'Add to thread',
+                translate('addToThread'),
                 () => void handleAddThread(),
                 () => setThreadProposal(null),
               )
@@ -317,7 +321,7 @@ export default function PostComposerPromptBar({
             {threadProposal.posts.map((draft, index) => (
               <li key={draft.id} className="grid gap-1 px-3 py-2.5">
                 <span className="text-2xs font-medium text-muted-foreground">
-                  Post {index + 2}
+                  {translate('postNumber', { number: index + 2 })}
                 </span>
                 <span className="whitespace-pre-wrap text-sm leading-6 text-foreground">
                   {stripHtmlToPlainText(draft.text)}
@@ -357,7 +361,7 @@ export default function PostComposerPromptBar({
           density="compact"
           beforeBody={
             <p className="flex items-center gap-1.5 px-3.5 pt-2.5 text-2xs font-medium text-foreground/55">
-              Acting on
+              {translate('actingOn')}
               <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
                 {targetLabel}
               </span>
@@ -365,10 +369,10 @@ export default function PostComposerPromptBar({
           }
         >
           <PromptEditor
-            ariaLabel="Ask AI to write or rewrite"
+            ariaLabel={translate('instructionAria')}
             value={prompt}
             isDisabled={isRunning}
-            placeholder="Ask AI to rewrite, e.g. “open with the result”"
+            placeholder={translate('placeholder')}
             onValueChange={setPrompt}
             onSubmit={() => void handleSubmit()}
             className="min-h-12"
@@ -377,10 +381,10 @@ export default function PostComposerPromptBar({
             density="compact"
             leading={
               <PromptBarCompactSelect
-                ariaLabel="Tone"
+                ariaLabel={translate('toneAria')}
                 density="compact"
                 isDisabled={isRunning}
-                options={TONE_SELECT_OPTIONS}
+                options={toneSelectOptions}
                 value={tone}
                 onChange={(value) => setTone(value as TweetTone)}
               />
@@ -388,15 +392,15 @@ export default function PostComposerPromptBar({
             trailing={
               <>
                 <span className="text-2xs text-muted-foreground">
-                  1 credit per run
+                  {translate('creditPerRun')}
                 </span>
                 <PromptBarSendButton
-                  ariaLabel="Rewrite"
+                  ariaLabel={translate('rewrite')}
                   density="compact"
                   isDisabled={isSubmitDisabled || !hasTargetContent}
-                  isLoading={pendingLabel === CUSTOM_LABEL}
+                  isLoading={pendingLabel === customLabel}
                   onClick={() => void handleSubmit()}
-                  tooltip="Rewrite"
+                  tooltip={translate('rewrite')}
                 />
               </>
             }

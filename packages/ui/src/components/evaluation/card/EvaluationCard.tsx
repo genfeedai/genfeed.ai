@@ -146,6 +146,7 @@ export default function EvaluationCard({
   isPublished = false,
   variant = 'card',
 }: EvaluationCardProps) {
+  const translate = useTranslations('ui.evaluationCard');
   const evaluationData = evaluation?.data;
   const [isCardCollapsed, setIsCardCollapsed] = useState(
     () => isPublished && evaluationData?.status === Status.COMPLETED,
@@ -249,7 +250,7 @@ export default function EvaluationCard({
       <div className="flex flex-col gap-2" data-testid="evaluation-row">
         <div className="flex items-center gap-3">
           <span className="min-w-0 flex-1 truncate text-sm font-medium">
-            Quality evaluation
+            {translate('qualityEvaluation')}
           </span>
           {isCompleted && !isRunning ? (
             <span
@@ -262,7 +263,11 @@ export default function EvaluationCard({
             </span>
           ) : (
             <span className="text-xs text-muted-foreground">
-              {isRunning ? 'Running…' : isFailed ? 'Failed' : 'Not run'}
+              {isRunning
+                ? translate('running')
+                : isFailed
+                  ? translate('failed')
+                  : translate('notRun')}
             </span>
           )}
           {isPublished ? null : (
@@ -270,8 +275,12 @@ export default function EvaluationCard({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               icon={<ArrowUp />}
-              label={hasRun ? 'Re-run' : 'Run'}
-              ariaLabel={hasRun ? 'Re-run evaluation' : 'Run evaluation'}
+              label={hasRun ? translate('rerun') : translate('run')}
+              ariaLabel={
+                hasRun
+                  ? translate('rerunEvaluation')
+                  : translate('runEvaluation')
+              }
               onClick={onEvaluate}
               isLoading={isRunning}
               isDisabled={isRunning}
@@ -285,7 +294,7 @@ export default function EvaluationCard({
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
-              ariaLabel="Toggle evaluation details"
+              ariaLabel={translate('toggleDetails')}
               className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <ChevronDown
@@ -294,7 +303,7 @@ export default function EvaluationCard({
                   !isDetailsOpen && '-rotate-90',
                 )}
               />
-              Details
+              {translate('details')}
             </Button>
             {isDetailsOpen ? (
               <EvaluationCardContent
@@ -316,9 +325,7 @@ export default function EvaluationCard({
           </>
         ) : null}
         {isFailed && !isRunning ? (
-          <p className="text-xs text-error">
-            Evaluation failed. Please try again.
-          </p>
+          <p className="text-xs text-error">{translate('evaluationFailed')}</p>
         ) : null}
       </div>
     );

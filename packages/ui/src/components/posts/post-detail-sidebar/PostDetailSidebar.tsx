@@ -24,19 +24,15 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import TikTokPublishingSettings from '@ui/posts/tiktok-publishing/TikTokPublishingSettings';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import InspectorSection from './InspectorSection';
 import PostSidebarDestination from './PostSidebarDestination';
-import PostSidebarLineage, { formatReviewDecision } from './PostSidebarLineage';
+import PostSidebarLineage, { getReviewDecisionKey } from './PostSidebarLineage';
 import PostSidebarWhenDock from './PostSidebarWhenDock';
 
 type InspectorTab = 'details' | 'preview';
-
-const INSPECTOR_TABS = [
-  { id: 'details', label: 'Details' },
-  { id: 'preview', label: 'Preview' },
-];
 
 export default function PostDetailSidebar({
   post,
@@ -58,6 +54,7 @@ export default function PostDetailSidebar({
   onTikTokReadinessChange,
   className = '',
 }: PostDetailSidebarProps) {
+  const translate = useTranslations('ui.postDetailInspector');
   // Get browser timezone for consistent date display
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const contentId = post?.id ?? '';
@@ -115,22 +112,28 @@ export default function PostDetailSidebar({
       ? evaluation.data.overallScore
       : undefined;
   const checksSummary = [
-    typeof evaluationScore === 'number' ? `Quality ${evaluationScore}` : null,
+    typeof evaluationScore === 'number'
+      ? translate('qualitySummary', { score: evaluationScore })
+      : null,
     typeof post.seoScore === 'number'
-      ? `SEO ${Math.round(post.seoScore)}`
+      ? translate('seoSummary', { score: Math.round(post.seoScore) })
       : null,
   ]
     .filter(Boolean)
     .join(' · ');
   const firstStat = analyticsStats[0];
   const isPreviewActive = Boolean(preview) && activeTab === 'preview';
+  const inspectorTabs = [
+    { id: 'details', label: translate('tabs.details') },
+    { id: 'preview', label: translate('tabs.preview') },
+  ];
 
   return (
     <div className={cn('flex flex-col', className)}>
       {preview ? (
         <Tabs
-          ariaLabel="Inspector view"
-          items={INSPECTOR_TABS}
+          ariaLabel={translate('viewAria')}
+          items={inspectorTabs}
           activeTab={activeTab}
           onTabChange={(tabId) => setActiveTab(tabId as InspectorTab)}
           fullWidth={false}
@@ -158,8 +161,12 @@ export default function PostDetailSidebar({
 
         {!isPublished && isTikTok ? (
           <InspectorSection
-            title="TikTok settings"
-            summary={isTikTokReady ? 'Ready' : 'Needs settings'}
+            title={translate('tiktokSettings')}
+            summary={
+              isTikTokReady
+                ? translate('tiktokReady')
+                : translate('tiktokNeedsSettings')
+            }
             isDefaultOpen
             isMountedWhenClosed
             testId="inspector-tiktok"
@@ -176,7 +183,7 @@ export default function PostDetailSidebar({
 
         {isPublished && firstStat ? (
           <InspectorSection
-            title="Performance"
+            title={translate('performance')}
             summary={`${firstStat.value} ${firstStat.label}`}
             isDefaultOpen
             testId="inspector-performance"
@@ -203,10 +210,12 @@ export default function PostDetailSidebar({
 
         {hasReviewLineage && reviewSummary ? (
           <InspectorSection
-            title="Lineage"
+            title={translate('lineage')}
             summary={
               reviewSummary.reviewDecision
-                ? formatReviewDecision(reviewSummary.reviewDecision)
+                ? translate(
+                    `decisions.${getReviewDecisionKey(reviewSummary.reviewDecision)}`,
+                  )
                 : (reviewSummary.sourceWorkflowName ?? undefined)
             }
             testId="inspector-lineage"
@@ -219,8 +228,8 @@ export default function PostDetailSidebar({
         ) : null}
 
         <InspectorSection
-          title="Checks"
-          summary={checksSummary || 'Not run'}
+          title={translate('checks')}
+          summary={checksSummary || translate('notRun')}
           isDefaultOpen
           testId="inspector-checks"
         >
@@ -241,7 +250,7 @@ export default function PostDetailSidebar({
               variant="embedded"
               score={post.seoScore}
               scorecard={post.seoBreakdown}
-              contentTypeLabel="post"
+              contentTypeLabel={translate('postLabel')}
               isScoring={isScoringSeo}
               hasUnsavedChanges={isSeoDirty}
               onScore={onScoreSeo}
@@ -251,7 +260,7 @@ export default function PostDetailSidebar({
 
         {isPublished && post.ingredients?.length > 0 ? (
           <InspectorSection
-            title="Ingredients"
+            title={translate('ingredients')}
             summary={String(post.ingredients.length)}
             testId="inspector-ingredients"
           >

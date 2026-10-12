@@ -16,6 +16,7 @@ import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode } from 'react';
 
 const platformIconMap: Partial<Record<CredentialPlatform, IconType>> = {
@@ -28,10 +29,13 @@ const platformIconMap: Partial<Record<CredentialPlatform, IconType>> = {
   [CredentialPlatform.REDDIT]: RedditIcon,
 };
 
-export function getPlatformLabel(platform?: string): string {
+export function getPlatformLabel(
+  platform: string | undefined,
+  unknownLabel: string,
+): string {
   return platform
     ? platform.charAt(0).toUpperCase() + platform.slice(1)
-    : 'Unknown';
+    : unknownLabel;
 }
 
 interface DestinationFact {
@@ -50,6 +54,7 @@ export default function PostSidebarDestination({
   browserTimezone,
   isPublished,
 }: PostSidebarDestinationProps) {
+  const translate = useTranslations('ui.postDetailInspector');
   const PlatformIcon = post.platform
     ? platformIconMap[post.platform as CredentialPlatform]
     : undefined;
@@ -74,7 +79,11 @@ export default function PostSidebarDestination({
       node: (
         <ClientDateTime
           value={whenValue}
-          prefix={isPublished ? 'Published ' : 'Scheduled '}
+          prefix={
+            isPublished
+              ? translate('publishedPrefix')
+              : translate('scheduledPrefix')
+          }
           format={(date) =>
             date.toLocaleString(undefined, { timeZone: browserTimezone })
           }
@@ -84,7 +93,10 @@ export default function PostSidebarDestination({
   }
 
   if (typeof post.seoScore === 'number') {
-    facts.push({ id: 'seo', node: `SEO ${Math.round(post.seoScore)}` });
+    facts.push({
+      id: 'seo',
+      node: translate('seoSummary', { score: Math.round(post.seoScore) }),
+    });
   }
 
   return (
@@ -101,7 +113,7 @@ export default function PostSidebarDestination({
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">
-            {getPlatformLabel(post.platform)}
+            {getPlatformLabel(post.platform, translate('unknownPlatform'))}
           </p>
           {credential?.externalHandle || accountLabel ? (
             <p className="truncate text-xs text-muted-foreground">
@@ -138,7 +150,7 @@ export default function PostSidebarDestination({
           className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
           <ExternalLink className="size-3" />
-          <span>Open on platform</span>
+          <span>{translate('openOnPlatform')}</span>
         </Link>
       ) : null}
     </div>

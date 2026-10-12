@@ -3,22 +3,32 @@
 import { ReviewDecision } from '@genfeedai/contracts';
 import type { PostSidebarLineageProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
+import { useTranslations } from 'next-intl';
 
-const REVIEW_DECISION_LABELS: Record<ReviewDecision, string> = {
-  [ReviewDecision.APPROVED]: 'Approved',
-  [ReviewDecision.REJECTED]: 'Rejected',
-  [ReviewDecision.REQUEST_CHANGES]: 'Changes requested',
-  [ReviewDecision.UNSET]: 'Not reviewed',
+type ReviewDecisionKey = 'approved' | 'rejected' | 'requestChanges' | 'unset';
+
+const REVIEW_DECISION_KEYS: Record<ReviewDecision, ReviewDecisionKey> = {
+  [ReviewDecision.APPROVED]: 'approved',
+  [ReviewDecision.REJECTED]: 'rejected',
+  [ReviewDecision.REQUEST_CHANGES]: 'requestChanges',
+  [ReviewDecision.UNSET]: 'unset',
 };
 
-export const formatReviewDecision = (decision?: ReviewDecision) =>
-  REVIEW_DECISION_LABELS[decision ?? ReviewDecision.UNSET];
+/** Message key under `ui.postDetailInspector.decisions` for a review decision. */
+export function getReviewDecisionKey(
+  decision?: ReviewDecision,
+): ReviewDecisionKey {
+  return REVIEW_DECISION_KEYS[decision ?? ReviewDecision.UNSET];
+}
 
 /** Lineage and review state, rendered inside the Lineage inspector section. */
 export default function PostSidebarLineage({
   reviewSummary,
   browserTimezone,
 }: PostSidebarLineageProps) {
+  const translate = useTranslations('ui.postDetailInspector');
+  const formatReviewDecision = (decision?: ReviewDecision) =>
+    translate(`decisions.${getReviewDecisionKey(decision)}`);
   const reviewEvents = (reviewSummary.reviewEvents ?? []).toSorted(
     (left, right) => right.reviewedAt.localeCompare(left.reviewedAt),
   );
@@ -27,45 +37,49 @@ export default function PostSidebarLineage({
     <div className="space-y-4" data-testid="post-lineage">
       <div>
         <h3 className="text-xs font-semibold uppercase text-foreground/60">
-          Workflow lineage
+          {translate('workflowLineage')}
         </h3>
         <div className="mt-3 space-y-2 text-sm">
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Workflow</span>
+            <span className="text-foreground/60">{translate('workflow')}</span>
             <span className="text-right">
               {reviewSummary.sourceWorkflowName ??
                 reviewSummary.sourceWorkflowId ??
-                'Not recorded'}
+                translate('notRecorded')}
             </span>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Action</span>
+            <span className="text-foreground/60">{translate('action')}</span>
             <span className="text-right">
-              {reviewSummary.sourceActionId ?? 'Not recorded'}
+              {reviewSummary.sourceActionId ?? translate('notRecorded')}
             </span>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Generation</span>
+            <span className="text-foreground/60">
+              {translate('generation')}
+            </span>
             <span className="text-right">
-              {reviewSummary.generationId ?? 'Not linked'}
+              {reviewSummary.generationId ?? translate('notLinked')}
             </span>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Prompt</span>
+            <span className="text-foreground/60">{translate('prompt')}</span>
             <span className="line-clamp-2 text-right">
-              {reviewSummary.promptUsed ?? 'Not recorded'}
+              {reviewSummary.promptUsed ?? translate('notRecorded')}
             </span>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Turbo run</span>
+            <span className="text-foreground/60">{translate('turboRun')}</span>
             <span className="text-right">
-              {reviewSummary.reviewTurboRunId ?? 'Not linked'}
+              {reviewSummary.reviewTurboRunId ?? translate('notLinked')}
             </span>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Review item</span>
+            <span className="text-foreground/60">
+              {translate('reviewItem')}
+            </span>
             <span className="text-right">
-              {reviewSummary.reviewItemId ?? 'Not linked'}
+              {reviewSummary.reviewItemId ?? translate('notLinked')}
             </span>
           </div>
         </div>
@@ -73,17 +87,17 @@ export default function PostSidebarLineage({
 
       <div className="border-t border-border pt-4">
         <h3 className="text-xs font-semibold uppercase text-foreground/60">
-          Review State
+          {translate('reviewState')}
         </h3>
         <div className="mt-3 space-y-2 text-sm">
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Decision</span>
+            <span className="text-foreground/60">{translate('decision')}</span>
             <span className="text-right">
               {formatReviewDecision(reviewSummary.reviewDecision)}
             </span>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <span className="text-foreground/60">Reviewed</span>
+            <span className="text-foreground/60">{translate('reviewed')}</span>
             <span className="text-right">
               {reviewSummary.reviewedAt ? (
                 <ClientDateTime
@@ -95,7 +109,7 @@ export default function PostSidebarLineage({
                   }
                 />
               ) : (
-                'Not reviewed'
+                translate('decisions.unset')
               )}
             </span>
           </div>

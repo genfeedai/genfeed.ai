@@ -44,6 +44,7 @@ export default function PostSidebarWhenDock({
   onPublishViaTikTokApp,
 }: PostSidebarWhenDockProps) {
   const translate = useTranslations('agent.postSidebarSchedule');
+  const inspectorTranslate = useTranslations('ui.postDetailInspector');
   const [mode, setMode] = useState<PublishMode>(
     scheduleDraft || !onPublishNow ? 'schedule' : 'now',
   );
@@ -75,7 +76,10 @@ export default function PostSidebarWhenDock({
           >
             <Link href={post.url} target="_blank" rel="noopener noreferrer">
               {translate('viewOn', {
-                platform: getPlatformLabel(post.platform),
+                platform: getPlatformLabel(
+                  post.platform,
+                  inspectorTranslate('unknownPlatform'),
+                ),
               })}
             </Link>
           </Button>
@@ -138,7 +142,8 @@ export default function PostSidebarWhenDock({
             }
           />
           <p className="text-xs text-muted-foreground">
-            {translate('scheduledTime')} · {browserTimezone || 'Local timezone'}
+            {translate('scheduledTime')} ·{' '}
+            {browserTimezone || translate('localTimezone')}
           </p>
         </div>
       ) : null}

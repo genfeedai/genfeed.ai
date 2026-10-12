@@ -9,6 +9,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { SelectField } from '@ui/primitives/select';
 import { MessageSquarePlus, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -63,6 +64,7 @@ export default function PostDetailThreadFooter({
   performAutoSaveForPost,
   autoSaveRefs,
 }: PostDetailThreadFooterProps) {
+  const translate = useTranslations('pages.posts.detail.threadFooter');
   const [activeTab, setActiveTab] = useState<'reply' | 'grok'>('reply');
   const [pendingQuestion, setPendingQuestion] = useState<string>(
     GROK_FEEDBACK_QUESTIONS[0] ?? '',
@@ -81,14 +83,16 @@ export default function PostDetailThreadFooter({
           <div className="px-2 pt-2">
             <Tabs
               activeTab={activeTab}
-              ariaLabel="Thread end"
+              ariaLabel={translate('ariaLabel')}
               fullWidth={false}
               listClassName="mr-auto"
               items={[
-                { id: 'reply', label: 'Reply' },
+                { id: 'reply', label: translate('replyTab') },
                 {
                   id: 'grok',
-                  label: isLastChildGrokTweet ? '@grok · On' : '@grok',
+                  label: isLastChildGrokTweet
+                    ? translate('grokTabOn')
+                    : translate('grokTab'),
                 },
               ]}
               onTabChange={(tab) =>
@@ -99,10 +103,10 @@ export default function PostDetailThreadFooter({
           {activeTab === 'reply' ? (
             <div className="flex flex-wrap items-center justify-between gap-3 p-3">
               <p className="text-xs text-muted-foreground">
-                Replies post in order after your first post.
+                {translate('replyHint')}
               </p>
               <Button
-                label="Add reply"
+                label={translate('addReply')}
                 icon={<Plus className="size-4" />}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
@@ -114,7 +118,7 @@ export default function PostDetailThreadFooter({
             <div className="grid gap-3 p-3">
               <Checkbox
                 name="grok-feedback-request"
-                label="End the thread by asking @grok for feedback"
+                label={translate('grokFeedbackLabel')}
                 isChecked={isLastChildGrokTweet}
                 isDisabled={isTogglingGrok}
                 onChange={(event) =>
@@ -123,7 +127,7 @@ export default function PostDetailThreadFooter({
               />
               <SelectField
                 name="grok-feedback-question"
-                aria-label="Question for @grok"
+                aria-label={translate('grokQuestionAria')}
                 value={question}
                 isDisabled={isTogglingGrok}
                 onChange={(event) => {
@@ -141,7 +145,7 @@ export default function PostDetailThreadFooter({
                 ))}
               </SelectField>
               <p className="text-xs text-muted-foreground">
-                Posted as the last reply of the thread.
+                {translate('grokHint')}
               </p>
             </div>
           )}
@@ -154,7 +158,7 @@ export default function PostDetailThreadFooter({
     return (
       <div className="ml-4 border-l border-border-strong pl-4">
         <Button
-          label="Add first comment"
+          label={translate('addFirstComment')}
           icon={<MessageSquarePlus className="size-4" />}
           variant={ButtonVariant.SECONDARY}
           textTransform="none"
@@ -169,16 +173,16 @@ export default function PostDetailThreadFooter({
   return (
     <div className="ml-4 border-l border-border-strong pl-4">
       <section
-        aria-label="First comment"
+        aria-label={translate('firstComment')}
         className="overflow-hidden rounded-lg border border-border bg-card"
       >
         <div className="flex items-center gap-2 py-2 pl-3 pr-2">
-          <p className="text-xs font-semibold">First comment</p>
+          <p className="text-xs font-semibold">{translate('firstComment')}</p>
           <p className="text-xs text-muted-foreground">
-            Posted right after the post
+            {translate('firstCommentHint')}
           </p>
           <Button
-            label="Remove"
+            label={translate('remove')}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             textTransform="none"
@@ -193,7 +197,7 @@ export default function PostDetailThreadFooter({
             firstCommentPost.description ??
             ''
           }
-          placeholder="Add context, a link or a question…"
+          placeholder={translate('firstCommentPlaceholder')}
           toolbarMode="hidden"
           minHeight={{ desktop: 96, mobile: 72 }}
           onChange={(value) => {
