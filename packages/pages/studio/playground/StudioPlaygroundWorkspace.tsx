@@ -1678,16 +1678,19 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         (attachment: AttachmentItem) =>
           getAttachmentRole(attachment) === 'startFrame',
       );
-    if (
-      !(videoControls?.mediaKind === 'video'
-        ? videoControls.videoRules?.referenceMode === 'start-end'
-        : hasEndFrame(settings.modelKey))
-    ) {
-      unsupportedRoles.add('endFrame');
-    } else if (supportsInterpolation && !hasStartFrame) {
-      unsupportedRoles.add('endFrame');
-    } else if (!supportsInterpolation && hasStartFrame) {
-      unsupportedRoles.add('endFrame');
+    // Auto defers to the router, which picks a model that accepts the frame.
+    if (!isAutoStudioModelKey(settings.modelKey)) {
+      if (
+        !(videoControls?.mediaKind === 'video'
+          ? videoControls.videoRules?.referenceMode === 'start-end'
+          : hasEndFrame(settings.modelKey))
+      ) {
+        unsupportedRoles.add('endFrame');
+      } else if (supportsInterpolation && !hasStartFrame) {
+        unsupportedRoles.add('endFrame');
+      } else if (!supportsInterpolation && hasStartFrame) {
+        unsupportedRoles.add('endFrame');
+      }
     }
     if (
       videoControls?.mediaKind === 'video' ||

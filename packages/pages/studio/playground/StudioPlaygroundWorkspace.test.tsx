@@ -2529,6 +2529,78 @@ describe('StudioPlaygroundWorkspace', () => {
       );
     });
 
+    it('keeps a restored end frame in Auto, where the router picks a model that accepts it', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: AUTO_MODEL_OPTION_VALUE },
+        setType: mocks.setType,
+        type: 'video',
+        updateSettings: vi.fn(),
+      });
+      // Real hook timing: restored uploads land one render after the
+      // Library references.
+      mocks.attachments.mockImplementation(
+        (options: { initialAttachments?: unknown[] }) => {
+          const [items, setItems] = useState<unknown[]>([]);
+          useEffect(() => {
+            setItems(options.initialAttachments ?? []);
+          }, [options.initialAttachments]);
+          return {
+            addFiles: vi.fn(),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () => [],
+            isUploading: false,
+            removeAttachment: vi.fn(),
+          };
+        },
+      );
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [{ id: 'upload-start', role: 'startFrame' }],
+        droppedReferenceIds: [],
+        references: [{ id: 'library-end', role: 'endFrame' }],
+        type: 'video',
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/end.png',
+          id: 'library-end',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/start.png',
+          id: 'upload-start',
+        },
+      ]);
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: 'upload-start', role: 'startFrame' }),
+            expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+          ]),
+        ),
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+        ]),
+      );
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'Unsupported frame or video references were cleared for the selected model.',
+      );
+    });
+
     it('reads the draft of the brand open in this tab', async () => {
       render(<StudioPlaygroundWorkspace />);
 
