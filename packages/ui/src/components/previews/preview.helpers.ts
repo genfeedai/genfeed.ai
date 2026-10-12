@@ -3,12 +3,12 @@ import type {
   IChannelTarget,
   IReleaseAttachment,
 } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
 import type {
   TargetPreviewCredential,
   TargetPreviewProps,
   TargetPreviewRelease,
 } from '@genfeedai/props/ui/previews.props';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import type { PlatformPreviewTarget } from '@ui/posts/platform-preview/PlatformPreview.types';
 
 /**

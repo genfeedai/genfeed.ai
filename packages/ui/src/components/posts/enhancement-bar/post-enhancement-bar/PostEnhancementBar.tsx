@@ -6,9 +6,9 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
 import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-submission/use-prompt-bar-submission';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import CaptionGeneratorButton from '@ui/ai/caption-generator/CaptionGeneratorButton';
 import HashtagGeneratorButton from '@ui/ai/hashtag-generator/HashtagGeneratorButton';
 import type {
