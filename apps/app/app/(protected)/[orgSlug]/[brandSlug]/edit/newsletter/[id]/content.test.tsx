@@ -37,8 +37,10 @@ vi.mock('@/lib/analytics', () => ({
   captureAnalyticsEvent: mocks.captureAnalyticsEvent,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
+// The real hook returns a memoized getter; a fresh one per render would
+// re-run every effect that depends on it.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
+  const getService = async () => ({
     approve: mocks.approve,
     archive: mocks.archive,
     deliver: mocks.deliver,
@@ -48,8 +50,9 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     getContext: mocks.getContext,
     patch: mocks.patch,
     publish: mocks.publish,
-  }),
-}));
+  });
+  return { useAuthedService: () => getService };
+});
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1', credentials: mocks.credentials }),
@@ -77,11 +80,11 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: mocks.loggerError },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({ error: mocks.error, success: mocks.success }),
-  },
-}));
+vi.mock('@services/core/notifications.service', () => {
+  // A singleton, like the real service, so effects keyed on it stay settled.
+  const notifications = { error: mocks.error, success: mocks.success };
+  return { NotificationsService: { getInstance: () => notifications } };
+});
 
 const newsletter = {
   angle: 'Operator lessons',
