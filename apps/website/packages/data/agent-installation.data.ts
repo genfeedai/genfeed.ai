@@ -1,6 +1,10 @@
 import type { AgentInstallation } from '@genfeedai/contracts/interfaces/website/agent-installation.interface';
 
 const repository = 'https://github.com/genfeedai/agent';
+// claude.ai universal links open the Claude app (iOS and Android) on this path
+// only with `modal=add-custom-connector`; without it the link stays in the browser.
+const CLAUDE_CONNECTORS_URL =
+  'https://claude.ai/customize/connectors?modal=add-custom-connector';
 const connector =
   'In Claude, open Customize → Connectors → + Add → Add custom connector. Name it Genfeed, paste the URL below and approve browser sign-in. If Add is unavailable, ask your workspace owner. Create media in Genfeed Studio.';
 
@@ -14,7 +18,7 @@ export const agentInstallations = {
     method: 'Custom ChatGPT app',
   },
   claude: {
-    destination: 'https://claude.ai/customize/connectors',
+    destination: CLAUDE_CONNECTORS_URL,
     destinationLabel: 'Open Claude Customize',
     instruction: connector,
     label: 'Add to Claude',
@@ -28,7 +32,7 @@ export const agentInstallations = {
     method: 'Claude Code plugin',
   },
   'claude-cowork': {
-    destination: 'https://claude.ai/customize/connectors',
+    destination: CLAUDE_CONNECTORS_URL,
     destinationLabel: 'Open Claude Customize',
     instruction: `${connector} Then enable Genfeed in your Cowork task.`,
     label: 'Add to Cowork',
