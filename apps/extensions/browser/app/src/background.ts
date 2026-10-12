@@ -8,6 +8,7 @@ import type {
   ExtensionWorkspaceSnapshot,
   ReplyVariantsResult,
 } from '@genfeedai/contracts/interfaces';
+import type { SourceCaptureRequest } from '~models/imported-source.model';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
@@ -18,7 +19,10 @@ import {
   isGenfeedAuthUrl,
 } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
-import { handleExtensionImportMessage } from '~services/extension-import-message';
+import {
+  handleImportedSourceMessage,
+  IMPORTED_SOURCE_EVENTS,
+} from '~services/imported-source-message';
 import {
   discardKnowledgeCapture,
   enqueueKnowledgeCapture,
@@ -72,6 +76,7 @@ chrome.sidePanel
 
 const CONTEXT_MENU_REMIX = 'genfeed-remix';
 const CONTEXT_MENU_IDEA = 'genfeed-idea';
+const CONTEXT_MENU_SOURCE = 'genfeed-source';
 
 chrome.runtime.onInstalled.addListener(() => {
   // Remove stale items before recreating
@@ -83,23 +88,57 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 
     chrome.contextMenus.create({
+      contexts: ['selection', 'page', 'link', 'image', 'video', 'audio'],
+      id: CONTEXT_MENU_SOURCE,
+      title: 'Save source to Genfeed',
+    });
+
+    chrome.contextMenus.create({
       contexts: ['selection', 'page', 'link'],
       id: CONTEXT_MENU_IDEA,
-      title: 'Save to Genfeed',
+      title: 'Add to Genfeed Knowledge',
     });
   });
 });
+
+/** What a context-menu click asks to capture, from the element that was clicked. */
+function sourceCaptureFor(
+  info: chrome.contextMenus.OnClickData,
+  pageUrl: string,
+): SourceCaptureRequest {
+  const mediaType = info.mediaType;
+  if (
+    (mediaType === 'image' || mediaType === 'video' || mediaType === 'audio') &&
+    info.srcUrl
+  ) {
+    return {
+      mediaKind: mediaType,
+      pageUrl,
+      scope: 'media',
+      targetUrl: info.srcUrl,
+    };
+  }
+  if (info.selectionText) {
+    return { pageUrl, scope: 'selection' };
+  }
+  if (info.linkUrl) {
+    return { pageUrl, scope: 'link', targetUrl: info.linkUrl };
+  }
+  return { pageUrl, scope: 'page' };
+}
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab?.id) {
     return;
   }
 
+  const pageUrl = info.pageUrl ?? tab.url ?? '';
   const content =
-    info.menuItemId === CONTEXT_MENU_IDEA
+    info.menuItemId === CONTEXT_MENU_IDEA ||
+    info.menuItemId === CONTEXT_MENU_SOURCE
       ? ''
       : (info.selectionText ?? info.linkUrl ?? '');
-  const url = info.linkUrl ?? info.pageUrl ?? tab.url ?? '';
+  const url = info.linkUrl ?? pageUrl;
 
   let messageType: ExtensionMessage['type'] | null = null;
 
@@ -107,6 +146,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     messageType = 'REMIX';
   } else if (info.menuItemId === CONTEXT_MENU_IDEA) {
     messageType = 'IDEA';
+  } else if (info.menuItemId === CONTEXT_MENU_SOURCE) {
+    messageType = 'SOURCE';
   }
 
   if (!messageType) {
@@ -122,6 +163,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       : info.linkUrl
         ? 'link'
         : 'page',
+    ...(messageType === 'SOURCE'
+      ? { sourceCapture: sourceCaptureFor(info, pageUrl) }
+      : {}),
   };
 
   // Open side panel then forward the message
@@ -341,15 +385,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       );
     return true;
   }
+  if (IMPORTED_SOURCE_EVENTS.has(request.event)) {
+    handleImportedSourceMessage(request, sender, sendResponse);
+    return true;
+  }
   switch (request.event) {
     case 'checkAuth':
       checkAuthentication(sendResponse);
-      return true;
-
-    case 'listImportedPosts':
-    case 'openImportedRemix':
-    case 'savePost':
-      handleExtensionImportMessage(request, sendResponse);
       return true;
 
     case 'saveBookmark':

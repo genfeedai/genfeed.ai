@@ -7,6 +7,8 @@ export interface LibraryAttachmentActionsProps {
   isDisabled: boolean;
 }
 export interface ChatInputProps {
+  /** Library assets already attached when the input opens, such as a saved source's media. */
+  initialAssets?: readonly LibraryAsset[];
   onSend: (
     content: string,
     references?: AgentArtifactReference[],

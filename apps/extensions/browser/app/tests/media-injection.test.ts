@@ -47,7 +47,6 @@ import {
   createAIReplyButton,
   createButtonContainer,
   createGenFeedDropdown,
-  createSaveButton,
   icons,
   injectGlobalStyles,
   watchContentTheme,
@@ -285,52 +284,6 @@ describe('UI Helpers', () => {
       await Promise.resolve();
       expect(dropdown.dataset.genfeedTheme).toBe('light');
       stopWatching();
-    });
-  });
-
-  describe('createSaveButton', () => {
-    it('should create a button element', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button).toBeInstanceOf(HTMLButtonElement);
-      expect(button.className).toContain('genfeed-btn');
-      expect(button.className).toContain('genfeed-save-btn');
-    });
-
-    it('should set data attributes', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button.getAttribute('data-post-id')).toBe('123');
-      expect(button.getAttribute('data-platform')).toBe('twitter');
-    });
-
-    it('should have bookmark icon', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button.innerHTML).toContain('svg');
-      expect(button.innerHTML).toContain(icons.bookmark);
-    });
-
-    it('should have title tooltip', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button.title).toBe('Import post');
     });
   });
 

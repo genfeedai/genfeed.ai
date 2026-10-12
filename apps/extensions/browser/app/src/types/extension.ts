@@ -4,11 +4,12 @@ import type {
   TextActionMode,
   TextActionResult,
 } from '@genfeedai/contracts/interfaces';
+import type { SourceCaptureRequest } from '~models/imported-source.model';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 
-// Extension message types for Remix / Reply / Idea flows
+// Extension message types for Remix / Reply / Idea (Knowledge) / Source flows
 
-export type ExtensionMessageType = 'REMIX' | 'REPLY' | 'IDEA';
+export type ExtensionMessageType = 'REMIX' | 'REPLY' | 'IDEA' | 'SOURCE';
 
 export interface ExtensionMessage {
   type: ExtensionMessageType;
@@ -18,6 +19,8 @@ export interface ExtensionMessage {
   author?: string;
   platform?: string;
   captureMode?: CaptureMode;
+  /** What a SOURCE message asks the panel to capture. */
+  sourceCapture?: SourceCaptureRequest;
 }
 
 export type SocialPlatform =

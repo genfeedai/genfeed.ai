@@ -1,5 +1,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentArtifactReference,
+  LibraryAsset,
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { PenLine, Shuffle } from 'lucide-react';
@@ -21,12 +24,14 @@ export function ChatContainer({
   initialAuthor = '',
   initialContent = '',
   initialPlatform = '',
+  initialReferences,
   initialUrl = '',
 }: {
   mode?: 'chat' | 'reply' | 'remix';
   initialAuthor?: string;
   initialContent?: string;
   initialPlatform?: string;
+  initialReferences?: readonly LibraryAsset[];
   initialUrl?: string;
 }): ReactElement {
   const messages = useChatStore((s) => s.messages);
@@ -143,6 +148,7 @@ export function ChatContainer({
         />
         <ChatInput
           key={brandId ?? 'no-brand'}
+          initialAssets={initialReferences}
           onSend={handleSend}
           disabled={isGenerating}
           suggestedPrompt={suggestedPrompt}

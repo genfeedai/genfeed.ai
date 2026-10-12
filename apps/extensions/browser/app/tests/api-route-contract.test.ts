@@ -65,8 +65,12 @@ if (
 const routes = [
   ['POST', 'agent-tools/:name/execute'],
   ['POST', 'knowledge-sources'],
-  ['POST', 'social-sources/import-post'],
-  ['GET', 'source-posts'],
+  ['POST', 'brands/:id/imported-sources'],
+  ['GET', 'brands/:id/imported-sources'],
+  ['POST', 'brands/:id/imported-sources/:id/recaptures'],
+  ['POST', 'brands/:id/imported-sources/:id/media'],
+  ['GET', 'brands/:id/imported-sources/:id/media'],
+  ['POST', 'brands/:id/imported-sources/:id/media/retry'],
   ['GET', 'brands/:id'],
   ['GET', 'organizations'],
   ['POST', 'posts'],
@@ -124,14 +128,14 @@ describe('extension API route contract', () => {
       'services/publication-capture.service.ts',
       'services/publication-insights.service.ts',
       'services/theme-settings.service.ts',
-      'services/social-post-import.service.ts',
+      'services/imported-source.service.ts',
       'components/settings/ConnectedAccounts.tsx',
     ];
     for (const file of files) {
       const source = readFileSync(resolve(extensionRoot, file), 'utf8');
       const endpoints = Array.from(
         source.matchAll(
-          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|social-sources|source-posts|organizations)[^'"`]*)['"`]/g,
+          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|organizations)[^'"`]*)['"`]/g,
         ),
         (match) => normalizeRoute(match[1]),
       );
@@ -150,6 +154,9 @@ describe('extension API route contract', () => {
         '/clip-projects/analyze',
         '/videos/create',
         '/auth/validate',
+        // The legacy source-import routes were hard-cut for Imported sources (#5859).
+        '/social-sources',
+        '/source-posts',
       ]) {
         expect(source, file).not.toContain(route);
       }
