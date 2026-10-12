@@ -377,6 +377,59 @@ describe('ToolRegistryService', () => {
       },
     });
     expect(result).not.toHaveProperty('structuredContent.estimatedCredits');
+    expect(JSON.stringify(result)).toContain(
+      'A model-specific credit quote is unavailable',
+    );
+  });
+
+  it('handleToolCall generate presents the model quote as the approval estimate', async () => {
+    clientService.createApproval.mockResolvedValueOnce({
+      generationQuote: {
+        credits: 321,
+        isAvailable: true,
+        modelKey: 'selected-video-model',
+      },
+      id: 'apr-1',
+      status: 'PENDING',
+      toolName: 'generate',
+    });
+
+    const result = await service.handleToolCall({
+      arguments: { prompt: 'AI surfing', type: 'video' },
+      name: 'generate',
+    });
+
+    expect(clientService.executeAgentTool).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: {
+        code: 'approval_pending',
+        estimatedCredits: 321,
+      },
+    });
+  });
+
+  it('handleToolCall generate never presents an unavailable quote as the estimate', async () => {
+    clientService.createApproval.mockResolvedValueOnce({
+      generationQuote: {
+        credits: 321,
+        isAvailable: false,
+        modelKey: 'selected-video-model',
+      },
+      id: 'apr-1',
+      status: 'PENDING',
+      toolName: 'generate',
+    });
+
+    const result = await service.handleToolCall({
+      arguments: { prompt: 'AI surfing', type: 'video' },
+      name: 'generate',
+    });
+
+    expect(result).not.toHaveProperty('structuredContent.estimatedCredits');
+    expect(JSON.stringify(result)).toContain(
+      'A model-specific credit quote is unavailable',
+    );
   });
 
   it('handleToolCall onboard_brand runs the agent tool for its action (#6268)', async () => {
