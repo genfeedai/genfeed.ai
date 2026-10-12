@@ -209,6 +209,8 @@ export default function PostComposerPromptBar({
     try {
       await onAddThreadPosts(threadProposal.posts.map((post) => post.text));
       setThreadProposal(null);
+    } catch {
+      // The page reports the failure; keep the proposal so nothing is lost.
     } finally {
       setIsAddingThread(false);
     }

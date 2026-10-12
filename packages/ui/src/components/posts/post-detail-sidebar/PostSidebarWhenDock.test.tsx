@@ -95,6 +95,48 @@ describe('PostSidebarWhenDock', () => {
     );
   });
 
+  it('switches to Schedule when an existing schedule loads after the first render', () => {
+    const { rerender } = render(
+      <PostSidebarWhenDock {...baseProps} scheduleDraft="" />,
+    );
+    expect(screen.getByRole('tab', { name: 'Now' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+
+    rerender(
+      <PostSidebarWhenDock
+        {...baseProps}
+        scheduleDraft="2026-10-20T10:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: 'Schedule' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+  });
+
+  it('keeps the mode the user picked when a schedule loads later', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <PostSidebarWhenDock {...baseProps} scheduleDraft="" />,
+    );
+    await user.click(screen.getByRole('tab', { name: 'Now' }));
+
+    rerender(
+      <PostSidebarWhenDock
+        {...baseProps}
+        scheduleDraft="2026-10-20T10:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: 'Now' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+  });
+
   it('disables publishing and names the missing item while TikTok is not ready', () => {
     render(
       <PostSidebarWhenDock

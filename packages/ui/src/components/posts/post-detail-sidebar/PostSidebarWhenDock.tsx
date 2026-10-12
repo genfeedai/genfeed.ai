@@ -16,7 +16,7 @@ import {
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { getPlatformLabel } from './PostSidebarDestination';
 
@@ -48,6 +48,15 @@ export default function PostSidebarWhenDock({
   const [mode, setMode] = useState<PublishMode>(
     scheduleDraft || !onPublishNow ? 'schedule' : 'now',
   );
+  const [hasChosenMode, setHasChosenMode] = useState(false);
+
+  // An existing schedule can arrive after the first render; show it unless the
+  // user already picked a mode themselves.
+  useEffect(() => {
+    if (scheduleDraft && !hasChosenMode) {
+      setMode('schedule');
+    }
+  }, [scheduleDraft, hasChosenMode]);
 
   if (isPublished) {
     return (
@@ -125,7 +134,10 @@ export default function PostSidebarWhenDock({
             { id: 'schedule', label: translate('schedule') },
           ]}
           activeTab={activeMode}
-          onTabChange={(tabId) => setMode(tabId as PublishMode)}
+          onTabChange={(tabId) => {
+            setHasChosenMode(true);
+            setMode(tabId as PublishMode);
+          }}
           fullWidth={false}
           className="justify-start"
           listClassName="ml-0"

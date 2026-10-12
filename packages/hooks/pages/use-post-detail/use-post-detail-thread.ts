@@ -114,42 +114,58 @@ export function usePostDetailThread({
     [setChildDescription],
   );
 
-  // Adds replies before a closing @grok post, which stays last.
+  // Adds replies before a closing @grok post, which stays last. Replies saved
+  // before a failure are still reconciled into local state, and the failure is
+  // rethrown so callers can keep what the user was adding.
   const addReplies = useCallback(
     async (descriptions: string[], successMessage: string) => {
       if (!post || !canAddThread || descriptions.length === 0) {
         return;
       }
 
-      try {
-        const service = await getPostsService();
-        const lastChild = sortedChildren.at(-1) ?? null;
-        const grokTweet = lastChild?.description?.trim().startsWith('@grok')
-          ? lastChild
-          : null;
-        const firstOrder = grokTweet
-          ? grokTweet.order || sortedChildren.length
-          : sortedChildren.length + 1;
+      const lastChild = sortedChildren.at(-1) ?? null;
+      const grokTweet = lastChild?.description?.trim().startsWith('@grok')
+        ? lastChild
+        : null;
+      const firstOrder = grokTweet
+        ? grokTweet.order || sortedChildren.length
+        : sortedChildren.length + 1;
+      const created: IPost[] = [];
+      let failure: unknown = null;
 
-        const created: IPost[] = [];
+      try {
+        // Validate before the first write so a bad post never half-saves.
+        const credentialId = requireCredentialId(post);
+        const parentId = requirePostId(post);
+        const service = await getPostsService();
+
         for (const [offset, description] of descriptions.entries()) {
           created.push(
             await service.post({
-              credentialId: requireCredentialId(post),
+              credentialId,
               description,
               ingredients: [],
               label: 'Thread reply',
               order: firstOrder + offset,
-              parentId: requirePostId(post),
+              parentId,
               targetExecutionState: TargetExecutionState.DRAFT,
               visibility: post.visibility ?? PostVisibility.PUBLIC,
             }),
           );
         }
+      } catch (err) {
+        failure = err;
+      }
 
-        const grokOrder = firstOrder + descriptions.length;
-        if (grokTweet) {
-          await service.patch(grokTweet.id, { order: grokOrder });
+      if (created.length > 0) {
+        const grokOrder = firstOrder + created.length;
+        try {
+          if (grokTweet) {
+            const service = await getPostsService();
+            await service.patch(grokTweet.id, { order: grokOrder });
+          }
+        } catch (err) {
+          failure ??= err;
         }
 
         setPost((prevPost) => {
@@ -172,12 +188,15 @@ export function usePostDetailThread({
         for (const reply of created) {
           updateChildDescriptions(reply.id, reply.description ?? '');
         }
-
-        notificationsService.success(successMessage);
-      } catch (err) {
-        logger.error('Failed to add to thread', err);
-        notificationsService.error('Failed to add to the thread');
       }
+
+      if (failure) {
+        logger.error('Failed to add to thread', failure);
+        notificationsService.error('Failed to add to the thread');
+        throw failure;
+      }
+
+      notificationsService.success(successMessage);
     },
     [
       post,
@@ -190,10 +209,14 @@ export function usePostDetailThread({
     ],
   );
 
-  const handleAddToThread = useCallback(
-    () => addReplies(["What's happening?"], 'New post added to thread'),
-    [addReplies],
-  );
+  // The add button is fire-and-forget: the failure is already reported.
+  const handleAddToThread = useCallback(async () => {
+    try {
+      await addReplies(["What's happening?"], 'New post added to thread');
+    } catch {
+      // Reported by addReplies.
+    }
+  }, [addReplies]);
 
   const handleAddThreadPosts = useCallback(
     (descriptions: string[]) =>

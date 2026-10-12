@@ -198,6 +198,30 @@ describe('PostComposerPromptBar', () => {
     });
   });
 
+  it('keeps the thread proposal when adding the posts fails', async () => {
+    const onAddThreadPosts = vi
+      .fn()
+      .mockRejectedValue(new Error('save failed'));
+    renderBar({
+      canDraftThread: true,
+      onAddThreadPosts,
+      onDraftThread: vi.fn().mockResolvedValue(['Reply one', 'Reply two']),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Turn into a thread' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Add to thread' }),
+    );
+
+    await waitFor(() => {
+      expect(onAddThreadPosts).toHaveBeenCalledOnce();
+    });
+    expect(
+      await screen.findByRole('region', { name: 'Proposed thread' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Reply one')).toBeInTheDocument();
+  });
+
   it('discards a thread proposal without adding posts', async () => {
     const onAddThreadPosts = vi.fn();
     renderBar({

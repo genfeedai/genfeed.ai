@@ -228,6 +228,68 @@ describe('usePostDetailThread', () => {
       );
     });
 
+    it('reconciles saved replies, fixes the grok order and rethrows when a later reply fails', async () => {
+      const grok = createChild('grok-1', 1, '@grok what do you think?');
+      mockServicePost
+        .mockResolvedValueOnce(createChild('reply-a', 1, 'Reply A'))
+        .mockRejectedValueOnce(new Error('boom'));
+      const { result } = renderHook(() =>
+        usePostDetailThread(buildOptions({ sortedChildren: [grok] })),
+      );
+
+      await expect(
+        act(async () => {
+          await result.current.handleAddThreadPosts(['Reply A', 'Reply B']);
+        }),
+      ).rejects.toThrow('boom');
+
+      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', { order: 2 });
+      const updater = mockSetPost.mock.calls[0][0] as (
+        prev: IPost | null,
+      ) => IPost | null;
+      const next = updater(createPost({ children: [grok] }));
+      expect(next?.children?.map((c) => c.id)).toEqual(['reply-a', 'grok-1']);
+      expect(mockSetChildDescription).toHaveBeenCalledWith(
+        'reply-a',
+        'Reply A',
+      );
+      expect(notificationsService.error).toHaveBeenCalledWith(
+        'Failed to add to the thread',
+      );
+      expect(notificationsService.success).not.toHaveBeenCalled();
+    });
+
+    it('rejects without writing when the post has no publishing credential', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailThread(
+          buildOptions({
+            post: createPost({
+              credential: undefined,
+              credentialId: undefined,
+            }),
+          }),
+        ),
+      );
+
+      await expect(
+        act(async () => {
+          await result.current.handleAddThreadPosts(['Reply A']);
+        }),
+      ).rejects.toThrow();
+      expect(mockServicePost).not.toHaveBeenCalled();
+    });
+
+    it('does not reject for the single add button', async () => {
+      mockServicePost.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => usePostDetailThread(buildOptions()));
+
+      await expect(
+        act(async () => {
+          await result.current.handleAddToThread();
+        }),
+      ).resolves.toBeUndefined();
+    });
+
     it('does nothing when adding is not allowed', async () => {
       const { result } = renderHook(() =>
         usePostDetailThread(buildOptions({ canAddThread: false })),
