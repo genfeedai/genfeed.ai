@@ -214,9 +214,12 @@ function AnalyticsWorkSurfaceBridge({
   );
   useAnalyticsWorkspaceSurfaceAdapter(adapter);
 
+  // The export endpoint has no source scope: with the Extension filter on it
+  // would export posts the page is not showing.
   const isExportAvailable =
     queryReference?.provenance.source === 'genfeed-analytics-api' &&
-    restoredState.descriptor.exportKind === 'published-posts';
+    restoredState.descriptor.exportKind === 'published-posts' &&
+    queryReference.filters.source === undefined;
   const scopedExport = useMemo(
     () => (isExportAvailable ? handleOpenExport : null),
     [handleOpenExport, isExportAvailable],

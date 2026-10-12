@@ -347,6 +347,7 @@ describe('AnalyticsController', () => {
           totalSaves: 12,
           totalShares: 30,
           totalViews: 12000,
+          visibility: 'private',
         },
       ]);
 
@@ -370,6 +371,7 @@ describe('AnalyticsController', () => {
       expect(attributes.totalEngagement).toBe(887);
       expect(attributes.label).toBe('Launch day recap');
       expect(attributes.postId).toBe('post-1');
+      expect(attributes.visibility).toBe('private');
       // The unrelated top-content serializer's fields must not leak in.
       expect(attributes.title).toBeUndefined();
       expect(attributes.views).toBeUndefined();

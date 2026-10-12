@@ -518,6 +518,12 @@
       },
       "untitled": "Untitled post",
       "winners": "Winners"
+    },
+    "sourceFilter": {
+      "all": "All sources",
+      "audience": "Audience",
+      "aria": "Filter post analytics by source",
+      "extension": "Extension"
     }
   },
   "adsResearch": {
@@ -2172,6 +2178,30 @@
       "choosePlatform": "Choose a platform to preview this post."
     },
     "list": {
+      "captured": {
+        "audience": {
+          "private": "Private",
+          "public": "Public",
+          "unavailable": "Audience unavailable",
+          "unlisted": "Unlisted"
+        },
+        "columns": {
+          "audience": "Audience",
+          "content": "Content",
+          "published": "Published",
+          "source": "Source"
+        },
+        "description": "Read-only records of publications observed by the browser extension. They cannot be scheduled, rescheduled or retried.",
+        "empty": {
+          "description": "Publications the browser extension records will appear here.",
+          "label": "No captured publications"
+        },
+        "loadError": "Captured publications could not be loaded. Refresh to try again.",
+        "openAnalytics": "Open analytics for {title}",
+        "sourceBadge": "Extension",
+        "tableLabel": "Captured from the extension",
+        "untitled": "Captured publication"
+      },
       "channelCount": "{count, plural, one {# channel} other {# channels}}",
       "empty": {
         "description": "Create and schedule posts to see them here.",
@@ -2224,7 +2254,10 @@
         "publishing": "Publishing",
         "publishingStateAria": "Publishing state",
         "searchPlaceholder": "Search posts",
-        "sortAria": "Sort"
+        "sortAria": "Sort",
+        "sourceAll": "All sources",
+        "sourceAria": "Source",
+        "sourceExtension": "Extension"
       },
       "unscheduled": "Unscheduled",
       "untitled": "Untitled post",

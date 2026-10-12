@@ -1,7 +1,12 @@
 'use client';
 
 import { ComponentSize, PostStatus } from '@genfeedai/contracts';
-import type { PublishingPostsView } from '@pages/posts/list/posts-list-query';
+import {
+  POSTS_SOURCE_EXTENSION,
+  type PostsSourceFilter,
+  type PublishingPostsView,
+  parsePostsSource,
+} from '@pages/posts/list/posts-list-query';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -28,6 +33,8 @@ const PUBLISHING_VIEW_OPTIONS: {
   { messageKey: 'failed', value: PostStatus.FAILED },
 ];
 
+const SOURCE_ALL = 'all';
+
 export interface PostsListToolbarProps {
   showSearch?: boolean;
   searchValue: string;
@@ -36,7 +43,9 @@ export interface PostsListToolbarProps {
   onSearchChange: (value: string) => void;
   onSortChange: (value: string) => void;
   onPublishingViewChange?: (value: PublishingPostsView) => void;
+  onSourceChange?: (value: PostsSourceFilter | undefined) => void;
   publishingView?: PublishingPostsView;
+  sourceValue?: PostsSourceFilter;
 }
 
 export function PostsListSearch({
@@ -66,7 +75,9 @@ export default function PostsListToolbar({
   onSearchChange,
   onSortChange,
   onPublishingViewChange,
+  onSourceChange,
   publishingView,
+  sourceValue,
 }: PostsListToolbarProps) {
   const translate = useTranslations('pages.posts.list');
 
@@ -98,6 +109,28 @@ export default function PostsListToolbar({
                 {translate(`toolbar.${option.messageKey}`)}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+      ) : null}
+
+      {onSourceChange ? (
+        <Select
+          value={sourceValue ?? SOURCE_ALL}
+          onValueChange={(value) => onSourceChange(parsePostsSource(value))}
+        >
+          <SelectTrigger
+            aria-label={translate('toolbar.sourceAria')}
+            className="w-36"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SOURCE_ALL}>
+              {translate('toolbar.sourceAll')}
+            </SelectItem>
+            <SelectItem value={POSTS_SOURCE_EXTENSION}>
+              {translate('toolbar.sourceExtension')}
+            </SelectItem>
           </SelectContent>
         </Select>
       ) : null}

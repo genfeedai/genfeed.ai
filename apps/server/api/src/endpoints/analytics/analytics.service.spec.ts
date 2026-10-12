@@ -409,6 +409,25 @@ describe('AnalyticsService', () => {
           description: 'Best performing',
           brand_name: 'Brand A',
           brand_logo: null,
+          visibility: 'unlisted',
+        },
+        {
+          id: 'pa-2',
+          post_id: 'post-2',
+          platform: 'TWITTER',
+          date: new Date(),
+          total_views: BigInt(10),
+          total_likes: BigInt(1),
+          total_comments: BigInt(0),
+          total_saves: BigInt(0),
+          total_shares: BigInt(0),
+          engagement_rate: 10,
+          total_engagement: BigInt(1),
+          label: 'Observed without audience',
+          description: 'Audience was never observed',
+          brand_name: 'Brand A',
+          brand_logo: null,
+          visibility: null,
         },
       ]);
 
@@ -416,7 +435,11 @@ describe('AnalyticsService', () => {
         await service.getTopContent(),
       );
 
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
+      // Observed audience is preserved; an unobserved one stays null, never a
+      // guessed value.
+      expect(result[0].visibility).toBe('unlisted');
+      expect(result[1].visibility).toBeNull();
       expect(result[0].label).toBe('Top Video');
       expect(result[0].description).toBe('Best performing');
       expect(result[0].brandName).toBe('Brand A');
@@ -894,6 +917,24 @@ describe('AnalyticsService', () => {
           totalViews: 100000,
         },
       ]);
+    });
+
+    it('selects the post audience for top content rows', async () => {
+      const capturedQueries = captureQueryRawCalls();
+
+      await service.getTopContent(
+        '2025-01-01',
+        '2025-01-31',
+        10,
+        AnalyticsMetric.VIEWS,
+        undefined,
+        undefined,
+        undefined,
+        'extension',
+      );
+
+      expect(capturedQueries[0].sql).toContain('p.visibility AS visibility');
+      expect(capturedQueries[0].values).toContain('extension');
     });
 
     it('filters top content by the Prisma label of the requested platform', async () => {

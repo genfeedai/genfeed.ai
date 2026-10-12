@@ -77,7 +77,7 @@ describe('AnalyticsPostsList', () => {
     expect(searchInput).toHaveClass('border-border');
 
     const triggers = screen.getAllByRole('combobox');
-    expect(triggers).toHaveLength(3);
+    expect(triggers).toHaveLength(4);
     for (const trigger of triggers) {
       expect(trigger).toHaveClass('rounded-lg');
       expect(trigger).toHaveClass('border-border');
@@ -85,6 +85,75 @@ describe('AnalyticsPostsList', () => {
 
     expect(screen.getByText('All')).toBeInTheDocument();
     expect(screen.queryByText('All Platforms')).not.toBeInTheDocument();
+  });
+
+  it('does not scope top posts to a source or show an audience column by default', () => {
+    renderPostsList();
+
+    expect(useTopPostsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ source: undefined }),
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'Filter post analytics by source' }),
+    ).toHaveTextContent('All sources');
+    expect(
+      screen.queryByRole('columnheader', { name: 'Audience' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('scopes top posts to extension captures and shows each observed audience', () => {
+    useTopPostsMock.mockReturnValue({
+      isLoading: false,
+      topPosts: [
+        {
+          brandName: 'Acme',
+          engagementRate: 1,
+          label: 'Private capture',
+          platform: 'twitter',
+          postId: 'post-private',
+          totalEngagement: 3,
+          totalViews: 30,
+          visibility: 'private',
+        },
+        {
+          brandName: 'Acme',
+          engagementRate: 1,
+          label: 'Capture with no audience',
+          platform: 'twitter',
+          postId: 'post-unknown',
+          totalEngagement: 1,
+          totalViews: 10,
+          visibility: null,
+        },
+      ],
+    });
+
+    renderPostsList({ source: 'extension' });
+
+    expect(useTopPostsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'extension' }),
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'Filter post analytics by source' }),
+    ).toHaveTextContent('Extension');
+    expect(
+      screen.getByRole('columnheader', { name: 'Audience' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Private')).toBeInTheDocument();
+    expect(screen.getByText('Audience unavailable')).toBeInTheDocument();
+  });
+
+  it('ignores a restored source in the Winners view, which has no source scope', () => {
+    renderPostsList({ show: 'winners', source: 'extension' });
+
+    expect(useTopPostsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ source: undefined }),
+    );
+    expect(
+      screen.queryByRole('combobox', {
+        name: 'Filter post analytics by source',
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps winners off until the Winners view is chosen', () => {

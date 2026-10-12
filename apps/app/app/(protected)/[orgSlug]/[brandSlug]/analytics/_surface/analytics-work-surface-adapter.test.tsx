@@ -253,6 +253,30 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     expect(exportModalValue.openExport).toHaveBeenCalledTimes(1);
   });
 
+  it('hides the scoped export while the Extension source filter narrows the page', () => {
+    navigation.pathname = '/acme/moonrise/analytics/posts';
+    const filters: Record<string, string> = analyticsContextValue.filters;
+    filters.source = 'extension';
+
+    try {
+      render(
+        <AnalyticsWorkspaceSurfaceAdapterProvider>
+          <AnalyticsWorkSurfaceAdapter>
+            <AnalyticsScopedExportButton />
+          </AnalyticsWorkSurfaceAdapter>
+        </AnalyticsWorkspaceSurfaceAdapterProvider>,
+      );
+
+      // The export endpoint has no source scope; offering it would export
+      // posts the page is not showing.
+      expect(
+        screen.queryByRole('button', { name: 'Export scoped data' }),
+      ).toBeNull();
+    } finally {
+      delete filters.source;
+    }
+  });
+
   it('hides the scoped export where the visible data has none', () => {
     navigation.pathname = '/acme/~/analytics/brands';
 

@@ -11,8 +11,14 @@ import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useWinnerPosts } from '@hooks/data/analytics/use-winner-posts/use-winner-posts';
 import AnalyticsWinnersTable from '@pages/analytics/posts-list/analytics-winners-table';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import { resolveCapturedAudience } from '@pages/posts/list/captured-post.helpers';
+import {
+  POSTS_SOURCE_EXTENSION,
+  parsePostsSource,
+} from '@pages/posts/list/posts-list-query';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
+import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -43,6 +49,7 @@ interface PostsListItem {
   totalViews: number;
   totalEngagement: number;
   engagementRate: number;
+  visibility?: string | null;
 }
 
 const METRIC_OPTIONS: Array<{
@@ -70,6 +77,7 @@ type PlatformFilterValue = (typeof PLATFORM_OPTIONS)[number]['value'];
 
 const SHOW_ALL = 'all';
 const SHOW_WINNERS = 'winners';
+const SOURCE_ALL = 'all';
 
 const renderPlatformOption = (
   option: (typeof PLATFORM_OPTIONS)[number],
@@ -110,7 +118,11 @@ export default function AnalyticsPostsList() {
     | AnalyticsMetric.LIKES;
   const platform = (filters.platform ?? 'all') as PlatformFilterValue;
   const isWinnersView = filters.show === SHOW_WINNERS;
+  // Winners have no source scope, so the filter only applies to all posts.
+  const source = isWinnersView ? undefined : parsePostsSource(filters.source);
   const translateWinners = useTranslations('pages.analytics.winners');
+  const translateSource = useTranslations('pages.analytics.sourceFilter');
+  const translateAudience = useTranslations('pages.posts.list.captured');
 
   useEffect(() => {
     setLocalFocusedPostId(urlFocusedPostId || null);
@@ -135,6 +147,7 @@ export default function AnalyticsPostsList() {
     limit: 50,
     metric,
     platform: platform === 'all' ? undefined : platform,
+    source,
   });
 
   const winnerPosts = useWinnerPosts({
@@ -165,6 +178,7 @@ export default function AnalyticsPostsList() {
           postId: post.postId,
           totalEngagement: post.totalEngagement || 0,
           totalViews: post.totalViews || 0,
+          visibility: post.visibility,
         });
         return acc;
       }, []),
@@ -228,8 +242,28 @@ export default function AnalyticsPostsList() {
           <span className="font-mono">{item.engagementRate.toFixed(2)}%</span>
         ),
       },
+      ...(source
+        ? [
+            {
+              header: translateSource('audience'),
+              key: 'visibility',
+              render: (item: PostsListItem) => {
+                const audience = resolveCapturedAudience(item.visibility);
+                return (
+                  <Badge
+                    variant={
+                      audience === 'unavailable' ? 'outline' : 'secondary'
+                    }
+                  >
+                    {translateAudience(`audience.${audience}`)}
+                  </Badge>
+                );
+              },
+            },
+          ]
+        : []),
     ],
-    [],
+    [source, translateAudience, translateSource],
   );
 
   const toolbar = useMemo(
@@ -265,9 +299,12 @@ export default function AnalyticsPostsList() {
 
         <Select
           value={isWinnersView ? SHOW_WINNERS : SHOW_ALL}
-          onValueChange={(value) =>
-            setFilter('show', value === SHOW_WINNERS ? value : undefined)
-          }
+          onValueChange={(value) => {
+            setFilter('show', value === SHOW_WINNERS ? value : undefined);
+            if (value === SHOW_WINNERS) {
+              setFilter('source', undefined);
+            }
+          }}
         >
           <SelectTrigger
             aria-label={translateWinners('showLabel')}
@@ -326,6 +363,30 @@ export default function AnalyticsPostsList() {
             ))}
           </SelectContent>
         </Select>
+
+        {isWinnersView ? null : (
+          <Select
+            value={source ?? SOURCE_ALL}
+            onValueChange={(value) =>
+              setFilter('source', parsePostsSource(value))
+            }
+          >
+            <SelectTrigger
+              aria-label={translateSource('aria')}
+              className="w-full sm:w-40"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SOURCE_ALL}>
+                {translateSource('all')}
+              </SelectItem>
+              <SelectItem value={POSTS_SOURCE_EXTENSION}>
+                {translateSource('extension')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
     ),
     [
@@ -338,6 +399,8 @@ export default function AnalyticsPostsList() {
       setFocusedPost,
       setFilter,
       push,
+      source,
+      translateSource,
       translateWinners,
     ],
   );

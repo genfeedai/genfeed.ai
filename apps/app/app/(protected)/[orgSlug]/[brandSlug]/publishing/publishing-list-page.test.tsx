@@ -26,6 +26,11 @@ describe('publishing-list-page', () => {
     expect(source).not.toContain('loadPostsPageData');
   });
 
+  it('does not prefetch a release page for the Extension source list', () => {
+    expect(source).toContain('parsePostsSource(source)');
+    expect(source).toMatch(/if \(!isCapturedSource\) \{\s+prefetchServerQuery/);
+  });
+
   it('maps pending and processing statuses onto the publishing execution state', () => {
     expect(source).toMatch(
       /normalizedStatus === PostStatus\.PENDING \|\|\s+normalizedStatus === PostStatus\.PROCESSING/,

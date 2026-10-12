@@ -67,6 +67,29 @@ describe('Analytics work surface state', () => {
     expect(elsewhere.canonicalSearchParams.get('show')).toBeNull();
   });
 
+  it('restores the lowercase extension source on Posts and drops anything else', () => {
+    const extension = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/posts',
+      searchParams: new URLSearchParams('source=extension'),
+    });
+    const uppercase = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/posts',
+      searchParams: new URLSearchParams('source=EXTENSION'),
+    });
+    const elsewhere = restoreAnalyticsSurfaceState({
+      pathname: '/acme/moonrise/analytics/accounts',
+      searchParams: new URLSearchParams('source=extension'),
+    });
+
+    expect(extension.filters.source).toBe('extension');
+    expect(extension.canonicalSearchParams.get('source')).toBe('extension');
+    expect(extension.isCanonical).toBe(true);
+    expect(uppercase.filters.source).toBeUndefined();
+    expect(uppercase.canonicalSearchParams.get('source')).toBeNull();
+    expect(elsewhere.filters.source).toBeUndefined();
+    expect(elsewhere.canonicalSearchParams.get('source')).toBeNull();
+  });
+
   it('canonicalizes unsafe filters and invalid future date ranges', () => {
     const restored = restoreAnalyticsSurfaceState({
       pathname: '/acme/moonrise/analytics/outliers',

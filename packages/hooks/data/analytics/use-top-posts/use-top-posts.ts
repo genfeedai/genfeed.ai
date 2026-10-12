@@ -1,5 +1,5 @@
 import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
-import { AnalyticsMetric } from '@genfeedai/contracts';
+import { AnalyticsMetric, type PostVisibility } from '@genfeedai/contracts';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import {
   createCacheKey,
@@ -27,6 +27,8 @@ export interface TopPostData {
   thumbnailUrl?: string;
   ingredientUrl?: string;
   isVideo?: boolean;
+  /** Observed audience; null/absent when it was never observed. */
+  visibility?: PostVisibility | null;
 }
 
 export interface UseTopPostsOptions {
@@ -39,6 +41,8 @@ export interface UseTopPostsOptions {
     | AnalyticsMetric.LIKES;
   brandId?: string;
   platform?: string;
+  /** Restrict to posts captured by the browser extension. */
+  source?: 'extension';
   revalidateOnMount?: boolean;
 }
 
@@ -50,6 +54,7 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
     metric = AnalyticsMetric.VIEWS,
     brandId,
     platform,
+    source,
     initialData,
     initialCachedAt = null,
     revalidateOnMount,
@@ -84,10 +89,11 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
         metric,
         brandId ?? 'all',
         platform ?? 'all',
+        source ?? 'all',
         startDateKey ?? 'none',
         endDateKey ?? 'none',
       ),
-    [limit, metric, brandId, platform, startDateKey, endDateKey],
+    [limit, metric, brandId, platform, source, startDateKey, endDateKey],
   );
 
   const topPostsCache = useMemo(() => {
@@ -127,6 +133,7 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
       metric,
       brandId,
       platform,
+      source,
       refreshTrigger,
     ],
     queryFn: async () => {
@@ -143,6 +150,7 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
           startDate: startDateKey,
           ...(brandId && { brand: brandId }),
           ...(platform && { platform }),
+          ...(source && { source }),
         })) as TopPostData[];
 
         if (topPostsCache && topPostsCacheMeta) {

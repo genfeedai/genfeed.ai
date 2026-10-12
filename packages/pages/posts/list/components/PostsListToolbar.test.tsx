@@ -1,7 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import Module from './PostsListToolbar.tsx';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+const sortOptions = [{ label: 'Newest First', value: 'createdAt: -1' }];
 
 describe('PostsListToolbar.tsx', () => {
   const source = readFileSync(
@@ -24,5 +33,51 @@ describe('PostsListToolbar.tsx', () => {
   it('does not accept route navigation as toolbar content', () => {
     expect(source).not.toContain('viewNode');
     expect(source).not.toContain('ReactNode');
+  });
+
+  it('offers the Source filter only when a handler is supplied', () => {
+    const { rerender } = render(
+      <Module
+        onSearchChange={vi.fn()}
+        onSortChange={vi.fn()}
+        searchValue=""
+        sortOptions={sortOptions}
+        sortValue="createdAt: -1"
+      />,
+    );
+    expect(
+      screen.queryByRole('combobox', { name: 'Source' }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <Module
+        onSearchChange={vi.fn()}
+        onSortChange={vi.fn()}
+        onSourceChange={vi.fn()}
+        searchValue=""
+        sortOptions={sortOptions}
+        sortValue="createdAt: -1"
+      />,
+    );
+    expect(screen.getByRole('combobox', { name: 'Source' })).toHaveTextContent(
+      'All sources',
+    );
+  });
+
+  it('shows the lowercase extension source as the Extension label', () => {
+    render(
+      <Module
+        onSearchChange={vi.fn()}
+        onSortChange={vi.fn()}
+        onSourceChange={vi.fn()}
+        searchValue=""
+        sortOptions={sortOptions}
+        sortValue="createdAt: -1"
+        sourceValue="extension"
+      />,
+    );
+    expect(screen.getByRole('combobox', { name: 'Source' })).toHaveTextContent(
+      'Extension',
+    );
   });
 });

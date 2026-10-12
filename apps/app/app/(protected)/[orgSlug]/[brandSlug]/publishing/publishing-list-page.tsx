@@ -12,6 +12,7 @@ import {
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
 import {
   parsePostsPublicationState,
+  parsePostsSource,
   parsePostsStatus,
 } from '@pages/posts/list/posts-list-query';
 import ReleasePostsList from '@pages/posts/list/release-posts-list';
@@ -53,7 +54,9 @@ export async function renderPostsListPage({
       publicationState: publicationStateParam,
       search,
       sort,
+      source,
       status,
+      view,
     },
     bootstrap,
   ] = await Promise.all([searchParams, loadProtectedBootstrap()]);
@@ -94,42 +97,51 @@ export async function renderPostsListPage({
             : undefined);
   const canonicalSort = normalizeReleasePostsSort(sort);
   const contentTypes = normalizeReleasePostContentTypes(contentType);
+  // The Extension source lists captured posts client-side; no release page
+  // is read for it, so none is prefetched.
+  const isEmbeddedView =
+    (calendar !== undefined && view === 'calendar') ||
+    (approvals !== undefined && view === 'approvals');
+  const isCapturedSource =
+    parsePostsSource(source) !== undefined && !isEmbeddedView;
   // Start the query without awaiting it so the Publishing shell paints while
   // TanStack Query streams the pending result into the client boundary.
-  prefetchServerQuery({
-    queryFn: async () => {
-      const pageData = await loadReleasePostsPageData({
+  if (!isCapturedSource) {
+    prefetchServerQuery({
+      queryFn: async () => {
+        const pageData = await loadReleasePostsPageData({
+          campaignId,
+          contentTypes,
+          credentialIds,
+          currentPage,
+          executionStates,
+          platform: platformFilter,
+          publicationState: canonicalPublicationState,
+          scope,
+          search,
+          sort: canonicalSort,
+        });
+        return {
+          pagination: pageData.pagination,
+          releases: pageData.releases,
+        };
+      },
+      queryKey: buildReleasePostsListQueryKey({
+        brandId,
         campaignId,
         contentTypes,
         credentialIds,
         currentPage,
         executionStates,
+        organizationId,
         platform: platformFilter,
         publicationState: canonicalPublicationState,
         scope,
-        search,
+        search: search ?? '',
         sort: canonicalSort,
-      });
-      return {
-        pagination: pageData.pagination,
-        releases: pageData.releases,
-      };
-    },
-    queryKey: buildReleasePostsListQueryKey({
-      brandId,
-      campaignId,
-      contentTypes,
-      credentialIds,
-      currentPage,
-      executionStates,
-      organizationId,
-      platform: platformFilter,
-      publicationState: canonicalPublicationState,
-      scope,
-      search: search ?? '',
-      sort: canonicalSort,
-    }),
-  });
+      }),
+    });
+  }
 
   return (
     <ServerQueryHydrationBoundary>

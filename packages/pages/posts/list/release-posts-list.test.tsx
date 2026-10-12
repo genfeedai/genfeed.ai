@@ -39,6 +39,9 @@ const replaceMock = vi.fn();
 const refetchMock = vi.fn();
 const setViewToggleNode = vi.fn();
 const setLeadingNode = vi.fn();
+const setFiltersNode = vi.fn();
+const setRefresh = vi.fn();
+const queryOptions: Array<{ enabled?: boolean }> = [];
 let queryError: Error | null = null;
 let queryReleases = releases;
 
@@ -73,8 +76,8 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
-    setFiltersNode: vi.fn(),
-    setRefresh: vi.fn(),
+    setFiltersNode,
+    setRefresh,
     setViewToggleNode,
     setLeadingNode,
   }),
@@ -90,20 +93,23 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({
-    data: {
-      pagination: {
-        page: 1,
-        pageSize: 12,
-        total: queryReleases.length,
-        totalPages: 1,
+  useQuery: (options: { enabled?: boolean }) => {
+    queryOptions.push(options);
+    return {
+      data: {
+        pagination: {
+          page: 1,
+          pageSize: 12,
+          total: queryReleases.length,
+          totalPages: 1,
+        },
+        releases: queryReleases,
       },
-      releases: queryReleases,
-    },
-    error: queryError,
-    isLoading: false,
-    refetch: refetchMock,
-  }),
+      error: queryError,
+      isLoading: false,
+      refetch: refetchMock,
+    };
+  },
   useQueryClient: () => ({
     setQueryData: vi.fn(),
   }),
@@ -112,6 +118,18 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string) =>
     key === 'loadError' ? `${namespace}.${key}` : key,
+}));
+
+vi.mock('./captured-posts-list', () => ({
+  __esModule: true,
+  default: (props: { platform?: string; search: string; sort: string }) => (
+    <div
+      data-platform={props.platform}
+      data-search={props.search}
+      data-sort={props.sort}
+      data-testid="captured-list"
+    />
+  ),
 }));
 
 vi.mock('@pages/posts/rail/release-rail-accounts', () => ({
@@ -153,6 +171,110 @@ describe('ReleasePostsList selection from the release URL param', () => {
     setLeadingNode.mockClear();
     queryError = null;
     queryReleases = releases;
+    queryOptions.length = 0;
+    setFiltersNode.mockClear();
+    setRefresh.mockClear();
+  });
+
+  it('keeps the release list and its query for all sources', () => {
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+
+    expect(screen.getByText('Campaign release')).toBeInTheDocument();
+    expect(screen.queryByTestId('captured-list')).not.toBeInTheDocument();
+    expect(queryOptions.at(-1)?.enabled).toBe(true);
+    expect(setRefresh).toHaveBeenCalled();
+  });
+
+  it('swaps the releases for read-only captured posts under the Extension source', () => {
+    searchParams = new URLSearchParams(
+      'source=extension&account=a&platform=twitter',
+    );
+
+    render(
+      <ReleasePostsList
+        platform="twitter"
+        scope={PageScope.PUBLISHING}
+        search="launch"
+        sort="scheduledDate: 1"
+      />,
+    );
+
+    const captured = screen.getByTestId('captured-list');
+    expect(captured).toHaveAttribute('data-platform', 'twitter');
+    expect(captured).toHaveAttribute('data-search', 'launch');
+    expect(screen.queryByText('Campaign release')).not.toBeInTheDocument();
+    expect(screen.queryByText('Accounts')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+    // The release query never runs for the captured list, and the captured
+    // list (not the releases) owns the refresh action.
+    expect(queryOptions.at(-1)?.enabled).toBe(false);
+    expect(setRefresh).not.toHaveBeenCalled();
+  });
+
+  it('keeps the calendar and approvals views when a source is in the URL', () => {
+    searchParams = new URLSearchParams('view=calendar&source=extension');
+
+    render(
+      <ReleasePostsList
+        calendar={<div>Calendar content</div>}
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+
+    expect(screen.getByText('Calendar content')).toBeInTheDocument();
+    expect(screen.queryByTestId('captured-list')).not.toBeInTheDocument();
+  });
+
+  it('puts the source in the URL, resetting page and release, and drops it for all sources', () => {
+    searchParams = new URLSearchParams(
+      'page=3&release=release-2&sort=createdAt%3A+1',
+    );
+
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: 1"
+      />,
+    );
+
+    const toolbar = setFiltersNode.mock.calls.at(-1)?.[0];
+    expect(toolbar.props.sourceValue).toBeUndefined();
+    toolbar.props.onSourceChange('extension');
+    expect(replaceMock).toHaveBeenLastCalledWith(
+      '/genfeed-ai/paperclip/publishing/posts?sort=createdAt%3A+1&source=extension',
+      { scroll: false },
+    );
+
+    searchParams = new URLSearchParams('source=extension&page=2');
+    replaceMock.mockClear();
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+    const extensionToolbar = setFiltersNode.mock.calls.at(-1)?.[0];
+    expect(extensionToolbar.props.sourceValue).toBe('extension');
+    expect(
+      extensionToolbar.props.sortOptions.map(
+        (option: { value: string }) => option.value,
+      ),
+    ).toEqual(['createdAt: -1', 'createdAt: 1']);
+    extensionToolbar.props.onSourceChange(undefined);
+    expect(replaceMock).toHaveBeenLastCalledWith(
+      '/genfeed-ai/paperclip/publishing/posts',
+      { scroll: false },
+    );
   });
 
   it('keeps the parent view selector while rendering the calendar content', () => {

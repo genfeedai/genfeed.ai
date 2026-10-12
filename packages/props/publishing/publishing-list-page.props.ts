@@ -8,5 +8,6 @@ export type PostsListSearchParams = Promise<{
   publicationState?: string;
   search?: string;
   sort?: string;
+  source?: string;
   status?: string;
 }>;

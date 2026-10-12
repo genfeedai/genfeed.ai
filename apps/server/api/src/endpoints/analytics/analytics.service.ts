@@ -410,6 +410,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         (pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
         p.label AS label,
         p.description AS description,
+        p.visibility AS visibility,
         b.label AS brand_name,
         NULL AS brand_logo
       FROM "post_analytics" pa

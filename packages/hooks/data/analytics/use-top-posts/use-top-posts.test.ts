@@ -83,6 +83,24 @@ describe('useTopPosts', () => {
     });
   });
 
+  it('only sends the source when one is requested', async () => {
+    const { result, rerender } = renderHook(
+      ({ source }: { source?: 'extension' }) =>
+        useTopPosts({ limit: 5, source }),
+      { initialProps: {}, wrapper: createQueryWrapper() },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockGetTopContent.mock.calls[0][0]).not.toHaveProperty('source');
+
+    rerender({ source: 'extension' });
+    await waitFor(() =>
+      expect(mockGetTopContent).toHaveBeenLastCalledWith(
+        expect.objectContaining({ source: 'extension' }),
+      ),
+    );
+    expect(mockGetTopContent).toHaveBeenCalledTimes(2);
+  });
+
   it('disables fetching when date range is missing', () => {
     (useAnalyticsContext as ReturnType<typeof vi.fn>).mockReturnValue({
       dateRange: {

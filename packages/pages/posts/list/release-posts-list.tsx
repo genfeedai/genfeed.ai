@@ -64,9 +64,15 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import CapturedPostsList from './captured-posts-list';
+import {
+  CAPTURED_POSTS_SORT_OPTIONS,
+  normalizeCapturedPostsSort,
+} from './captured-posts-list-query';
 import PostsListToolbar, {
   PostsListSearch,
 } from './components/PostsListToolbar';
+import { type PostsSourceFilter, parsePostsSource } from './posts-list-query';
 import {
   buildReleasePostsListQueryKey,
   RELEASE_POSTS_SORT_OPTIONS,
@@ -138,6 +144,9 @@ export default function ReleasePostsList({
   const isApprovals =
     Boolean(approvals) && searchParams?.get('view') === 'approvals';
   const isEmbeddedView = isCalendar || isApprovals;
+  const source = parsePostsSource(searchParams?.get('source'));
+  // Captured records are not releases; the Extension filter swaps the list.
+  const isCapturedView = source !== undefined && !isEmbeddedView;
   const currentPage = Math.max(
     1,
     Number(new URLSearchParams(searchParamsString).get('page')) || 1,
@@ -201,7 +210,7 @@ export default function ReleasePostsList({
     isLoading,
     refetch,
   } = useQuery({
-    enabled: isReady,
+    enabled: isReady && !isCapturedView,
     initialData,
     queryFn: async () => {
       const service = await getReleaseGroupsService();
@@ -409,6 +418,31 @@ export default function ReleasePostsList({
     [replaceSearchParams, search],
   );
 
+  const handleSourceChange = useCallback(
+    (nextSource: PostsSourceFilter | undefined) => {
+      replaceSearchParams((params) => {
+        if (nextSource) {
+          params.set('source', nextSource);
+        } else {
+          params.delete('source');
+        }
+        // A selected release and the page belong to the list being left.
+        params.delete(PUBLISHING_POSTS_QUERY_KEYS.RELEASE);
+        params.delete('page');
+      });
+    },
+    [replaceSearchParams],
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) =>
+      replaceSearchParams((params) => {
+        if (page <= 1) params.delete('page');
+        else params.set('page', String(page));
+      }),
+    [replaceSearchParams],
+  );
+
   useEffect(() => {
     // The approval queue owns the toolbar while its view is open.
     if (isApprovals) return;
@@ -425,6 +459,8 @@ export default function ReleasePostsList({
         <PostsListToolbar
           showSearch={false}
           onSearchChange={handleSearchChange}
+          onSourceChange={handleSourceChange}
+          sourceValue={source}
           onSortChange={(nextSort) =>
             replaceSearchParams((params) => {
               if (nextSort === 'createdAt: -1') {
@@ -436,8 +472,12 @@ export default function ReleasePostsList({
             })
           }
           searchValue={search}
-          sortOptions={RELEASE_POSTS_SORT_OPTIONS}
-          sortValue={sort}
+          sortOptions={
+            isCapturedView
+              ? CAPTURED_POSTS_SORT_OPTIONS
+              : RELEASE_POSTS_SORT_OPTIONS
+          }
+          sortValue={isCapturedView ? normalizeCapturedPostsSort(sort) : sort}
         />
       ),
     );
@@ -447,13 +487,16 @@ export default function ReleasePostsList({
     };
   }, [
     handleSearchChange,
+    handleSourceChange,
     isApprovals,
     isCalendar,
+    isCapturedView,
     replaceSearchParams,
     search,
     setFiltersNode,
     setLeadingNode,
     sort,
+    source,
   ]);
 
   useEffect(() => {
@@ -509,12 +552,13 @@ export default function ReleasePostsList({
         ]}
       />,
     );
-    if (!isEmbeddedView)
+    // The embedded views and the captured list own the refresh action.
+    if (!isEmbeddedView && !isCapturedView)
       setRefresh(() => () => {
         void refetch();
       });
     return () => {
-      if (!isEmbeddedView) setRefresh(() => () => {});
+      if (!isEmbeddedView && !isCapturedView) setRefresh(() => () => {});
       setViewToggleNode(null);
     };
   }, [
@@ -522,6 +566,7 @@ export default function ReleasePostsList({
     handleViewModeChange,
     isApprovals,
     isCalendar,
+    isCapturedView,
     isEmbeddedView,
     replaceSearchParams,
     refetch,
@@ -533,6 +578,7 @@ export default function ReleasePostsList({
 
   useEffect(() => {
     if (
+      isCapturedView ||
       isLoading ||
       data.pagination.totalPages < 1 ||
       currentPage <= data.pagination.totalPages
@@ -546,7 +592,13 @@ export default function ReleasePostsList({
         params.set('page', String(data.pagination.totalPages));
       }
     });
-  }, [currentPage, data.pagination.totalPages, isLoading, replaceSearchParams]);
+  }, [
+    currentPage,
+    data.pagination.totalPages,
+    isCapturedView,
+    isLoading,
+    replaceSearchParams,
+  ]);
 
   useEffect(() => {
     if (error instanceof Error) {
@@ -555,7 +607,7 @@ export default function ReleasePostsList({
   }, [error]);
 
   const { activeIndex, registerItem, setActiveIndex } = useRailKeys({
-    enabled: !isEmbeddedView,
+    enabled: !isEmbeddedView && !isCapturedView,
     itemCount: data.releases.length,
     onOpen: (index) => {
       const release = data.releases[index];
@@ -568,6 +620,21 @@ export default function ReleasePostsList({
 
   if (isCalendar) return <>{calendar}</>;
   if (isApprovals) return <>{approvals}</>;
+  if (isCapturedView)
+    return (
+      <CapturedPostsList
+        campaignId={campaignId}
+        contentTypes={contentTypes}
+        currentPage={currentPage}
+        executionStates={executionStates}
+        onPageChange={handlePageChange}
+        platform={platformFilter}
+        publicationState={publicationState}
+        scope={scope}
+        search={search}
+        sort={sort}
+      />
+    );
 
   return (
     <div>
@@ -707,12 +774,7 @@ export default function ReleasePostsList({
           currentPage={currentPage}
           totalItems={data.pagination.total}
           totalLabel="posts"
-          onPageChange={(page) =>
-            replaceSearchParams((params) => {
-              if (page <= 1) params.delete('page');
-              else params.set('page', String(page));
-            })
-          }
+          onPageChange={handlePageChange}
           totalPages={data.pagination.totalPages}
         />
       </div>

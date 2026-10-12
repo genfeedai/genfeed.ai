@@ -154,6 +154,8 @@ export class AnalyticsResponseProjection {
       totalSaves: Number(row.total_saves),
       totalShares: Number(row.total_shares),
       totalViews: Number(row.total_views),
+      // Observed audience; null when the post never recorded one.
+      visibility: typeof row.visibility === 'string' ? row.visibility : null,
     }));
   }
 

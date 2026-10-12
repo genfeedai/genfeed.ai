@@ -30,4 +30,5 @@ export const analyticsTopPostAttributes = createEntityAttributes([
   'thumbnailUrl',
   'ingredientUrl',
   'isVideo',
+  'visibility',
 ]);

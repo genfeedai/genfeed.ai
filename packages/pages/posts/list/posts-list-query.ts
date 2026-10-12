@@ -11,6 +11,19 @@ export type PublishingPostsView =
   | PostStatus.PENDING
   | PostStatus.PROCESSING;
 
+/**
+ * `Post.source` provenance filter. Lowercase `extension` is the persisted/query
+ * value shared with the API (`PostsQueryDto.source`); the UI label is Extension.
+ */
+export const POSTS_SOURCE_EXTENSION = 'extension';
+export type PostsSourceFilter = typeof POSTS_SOURCE_EXTENSION;
+
+export function parsePostsSource(
+  value?: string | null,
+): PostsSourceFilter | undefined {
+  return value === POSTS_SOURCE_EXTENSION ? value : undefined;
+}
+
 export function parsePostsPublicationState(
   value?: string | null,
 ): PostsPublicationState | undefined {
