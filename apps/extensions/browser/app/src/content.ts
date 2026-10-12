@@ -316,16 +316,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'CAPTURE_COMPOSER_TEXT') {
     const captured = captureComposerText(getCurrentPlatform());
     sendResponse(
-      captured.success
-        ? {
+      'error' in captured
+        ? { error: captured.error, success: false }
+        : {
             scope: captured.snapshot.scope,
             snapshotId: registerTextActionSession(
               new TextActionSession(captured.snapshot),
             ),
             success: true,
             text: captured.snapshot.text,
-          }
-        : { error: captured.error, success: false },
+          },
     );
     return true;
   }
@@ -340,17 +340,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return true;
     }
     const written = session.apply(String(message.text ?? ''));
-    if (written.success) {
-      chrome.runtime.sendMessage({
-        payload: { content: written.applied.draftAfter, success: true },
-        type: 'CONTENT_INSERTED',
-      });
+    if ('error' in written) {
+      sendResponse({ error: written.error, success: false });
+      return true;
     }
-    sendResponse(
-      written.success
-        ? { success: true }
-        : { error: written.error, success: false },
-    );
+    chrome.runtime.sendMessage({
+      payload: { content: written.applied.draftAfter, success: true },
+      type: 'CONTENT_INSERTED',
+    });
+    sendResponse({ success: true });
     return true;
   }
 

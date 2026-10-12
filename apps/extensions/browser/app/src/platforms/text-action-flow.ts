@@ -31,7 +31,7 @@ export async function runPageTextAction(
     return;
   }
   const captured = captureComposerText(platform);
-  if (!captured.success) {
+  if ('error' in captured) {
     hooks.notify(captured.error, true);
     return;
   }
@@ -50,7 +50,7 @@ export async function runPageTextAction(
   } catch {
     response = undefined;
   }
-  if (!response?.success) {
+  if (!response || 'error' in response) {
     hooks.notify(
       response?.error ??
         'Could not reach Genfeed. Reload the page and try again.',
@@ -63,7 +63,7 @@ export async function runPageTextAction(
     mode,
     onApply: () => {
       const written = session.apply(result.text);
-      if (!written.success) return written;
+      if ('error' in written) return written;
       hooks.markWritten(written.applied.draftAfter);
       return { success: true };
     },

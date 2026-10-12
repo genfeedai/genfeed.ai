@@ -37,7 +37,7 @@ function selectText(node: Node, start: number, end: number): void {
 
 function captured(platform = PLATFORM) {
   const result = captureComposerText(platform);
-  if (!result.success) throw new Error(result.error);
+  if ('error' in result) throw new Error(result.error);
   return result.snapshot;
 }
 
@@ -111,7 +111,7 @@ describe('text action composer capture and replacement', () => {
       const element = textarea('Intro. Teh launch is live. Outro.');
       element.setSelectionRange(7, 25);
       const written = applyComposerText(captured(), 'The launch is live');
-      if (!written.success) throw new Error(written.error);
+      if ('error' in written) throw new Error(written.error);
 
       expect(undoComposerText(written.applied)).toEqual({ success: true });
       expect(element.value).toBe('Intro. Teh launch is live. Outro.');
@@ -120,7 +120,7 @@ describe('text action composer capture and replacement', () => {
     it('does not undo over text typed after the apply', () => {
       const element = textarea('Teh launch');
       const written = applyComposerText(captured(), 'The launch');
-      if (!written.success) throw new Error(written.error);
+      if ('error' in written) throw new Error(written.error);
       element.value = 'The launch, and more';
 
       expect(undoComposerText(written.applied)).toEqual({
@@ -163,7 +163,7 @@ describe('text action composer capture and replacement', () => {
       const element = editable('Intro. Teh launch is live. Outro.');
       selectText(element.firstChild as Text, 7, 25);
       const written = applyComposerText(captured(), 'The launch is live');
-      if (!written.success) throw new Error(written.error);
+      if ('error' in written) throw new Error(written.error);
 
       expect(element.textContent).toBe('Intro. The launch is live. Outro.');
       expect(undoComposerText(written.applied)).toEqual({ success: true });

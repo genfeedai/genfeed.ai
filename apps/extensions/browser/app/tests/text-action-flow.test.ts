@@ -52,7 +52,7 @@ describe('page text action flow', () => {
     vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
       result: RESULT,
       success: true,
-    });
+    } as never);
     hooks.markWritten.mockReset();
     hooks.notify.mockReset();
   });
@@ -139,7 +139,7 @@ describe('page text action flow', () => {
     vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
       error: 'Not enough credits to generate content.',
       success: false,
-    });
+    } as never);
 
     await runPageTextAction('rewrite', hooks);
 

@@ -129,7 +129,7 @@ export function useTextAction(): UseTextActionReturn {
             requestKey: crypto.randomUUID(),
             text: captured.text,
           });
-        if (!response?.success) {
+        if (!response || 'error' in response) {
           throw new Error(response?.error ?? 'Could not edit the text.');
         }
         dispatch({
