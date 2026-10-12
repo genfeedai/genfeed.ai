@@ -161,7 +161,7 @@ describe('batchSchedulePosts channel target validation (#5193)', () => {
           id: 'post-video',
           parentId: null,
           publishApprovalId: null,
-          targetSettings: {},
+          targetSettings: { privacyLevel: 'private', musicUsageAccepted: true },
           visibility: null,
         },
       ],

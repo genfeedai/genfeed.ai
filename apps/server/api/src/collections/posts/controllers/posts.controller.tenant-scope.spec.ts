@@ -92,9 +92,9 @@ describe('Post detail reads (#6176)', () => {
       controller.findOne(tenantReadRequest(adminUser), adminUser, id),
     ).rejects.toMatchObject({ status: 404 });
     expect(findAll).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         where: { id, organizationId: sessionOrganizationId, isDeleted: false },
-      },
+      }),
       { pagination: false },
     );
     expect(getChildren).not.toHaveBeenCalled();

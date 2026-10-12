@@ -5,6 +5,7 @@ import {
   postSerializerConfig,
   publicPostSerializerConfig,
 } from '@serializers/configs';
+import { serializePostTargetSettings } from '@serializers/helpers/post-target-settings.helper';
 import type { ISerializer } from '@serializers/interfaces';
 
 type PostRecord = Record<string, unknown>;
@@ -19,6 +20,7 @@ function canonicalizePostRecord(value: unknown): unknown {
   const normalized: PostRecord = {
     ...value,
     reviewDecision: normalizeReviewDecision(value.reviewDecision),
+    targetSettings: serializePostTargetSettings(value),
   };
 
   if (Array.isArray(value.reviewEvents)) {

@@ -1755,7 +1755,7 @@ describe('ScheduledPostDeliveryService', () => {
       category: 'VIDEO',
       ingredients: [{ id: 'video-1' }],
       platform: CredentialPlatform.TIKTOK,
-      targetSettings: { privacyLevel: 'public' },
+      targetSettings: { privacyLevel: 'public', musicUsageAccepted: true },
     });
 
     await executeDelivery(mocks, post, 'tiktok_app');
