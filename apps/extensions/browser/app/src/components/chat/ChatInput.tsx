@@ -23,6 +23,7 @@ import {
 import { useWorkspaceStore } from '~store/use-workspace-store';
 
 export function ChatInput({
+  initialAssets,
   onSend,
   disabled,
   suggestedPrompt,
@@ -92,6 +93,19 @@ export function ChatInput({
     setDebouncedQuery('');
     setIsDebouncing(false);
   }, [scopeKey, workspaceState.status === 'loading']);
+  // A reference handed over from a saved source joins the attached assets once,
+  // and only for the brand it was prepared in.
+  useEffect(() => {
+    if (!initialAssets?.length || !brandId) return;
+    setAssets((current) => {
+      const additions = initialAssets.filter(
+        (asset) =>
+          asset.brandId === brandId &&
+          !current.some((existing) => existing.id === asset.id),
+      );
+      return additions.length ? [...current, ...additions] : current;
+    });
+  }, [initialAssets, brandId]);
   useEffect(() => {
     if (!isDebouncing) return;
     const timer = setTimeout(() => {

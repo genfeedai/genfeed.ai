@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { BrandedGenerationOperationKindV1 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import type { BrandFactClaimV1 } from '@genfeedai/contracts/api-types/contracts';
 import {
   brandArtifactValidationReportV1Schema,
   brandedGenerationInputV1Schema,
@@ -30,7 +31,8 @@ export type BrandedGenerationHashDomainV1 =
   | 'generation-artifact-v1'
   | 'receipt-operation-v1'
   | 'brand-validation-report-v1'
-  | 'brand-generation-rules-review-v1';
+  | 'brand-generation-rules-review-v1'
+  | 'brand-fact-claims-v1';
 export interface BrandGenerationArtifactManifestInputV1 {
   mediaKind: BrandGenerationArtifactV1['mediaKind'];
   textHash: string | null;
@@ -44,6 +46,7 @@ const domains: readonly BrandedGenerationHashDomainV1[] = [
   'receipt-operation-v1',
   'brand-validation-report-v1',
   'brand-generation-rules-review-v1',
+  'brand-fact-claims-v1',
 ];
 const operations: readonly BrandedGenerationOperationKindV1[] = [
   'resolve',
@@ -176,6 +179,15 @@ function projection(value: unknown): BrandedGenerationJsonV1 {
     return output;
   }
   return copy(value);
+}
+/** The canonical hash of a fact check's claim list, so the list cannot change unnoticed. */
+export function hashBrandFactClaimsV1(
+  claims: readonly BrandFactClaimV1[],
+): string {
+  return hashBrandedGenerationJsonV1(
+    'brand-fact-claims-v1',
+    projection({ claims }),
+  );
 }
 export function hashBrandGenerationRulesReviewV1(
   rules: BrandGenerationRulesV1,

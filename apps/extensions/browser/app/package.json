@@ -58,6 +58,7 @@
       "https://*.linkedin.com/*",
       "https://api.genfeed.ai/*"
     ],
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6n9lNymWyChoM8iJk9SoEDB+ykmhUpaFVmdqAodXXYy5Bqg9jb8mlgZqwBnoyggfjlgfbfz9OUu2+lxaMJJY0D1pags2jdWtn68niR8wzUBhKqcNQLJTckU7RpRjl+NARw80dbvIIKtAYXOpmcQR047bzt1dbOxx6CH4CtlINR+KWijNh+cGhuE3Xjj1ZOp9EEXw1CVeTyN97eYg62Y6eTfNoXQqWZG7VsiXeyIbBCuLNmpbDqiaNY5IjwCRFs0fd87mxceOsIIGjrhJ0eEJJ7RM6930d2dUF5wZ7yXWKhQaVjCsW1wnTrC8LqykXQ6esBUnkvOBuJ9rC9Xl+8jQPwIDAQAB",
     "permissions": [
       "cookies",
       "contextMenus",
@@ -66,7 +67,8 @@
       "tabs",
       "scripting",
       "activeTab",
-      "sidePanel"
+      "sidePanel",
+      "nativeMessaging"
     ],
     "side_panel": {
       "default_path": "sidepanel.html"

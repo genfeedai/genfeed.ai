@@ -14,6 +14,7 @@ import {
   type ApprovedBrandRules,
   buildExecutionHarness,
   type ExecutionHarness,
+  type ExecutionHarnessOptions,
   seedApprovedBrandIdentity,
 } from '@api/collections/outliers/services/breakout-acceptance.execution.fixture';
 import {
@@ -53,6 +54,8 @@ export type DetectOptions = {
   /** Rules the approved brand identity carries (none by default). */
   brandRules?: Partial<ApprovedBrandRules>;
   candidate?: CandidateOptions;
+  /** A fake brand fact check (#6717); none leaves factual coverage unknown. */
+  factCheck?: ExecutionHarnessOptions['factCheck'];
   /** The latest, breakout measurement (default tenfold-plus). */
   impressions?: number;
   world?: WorldOptions;
@@ -72,11 +75,28 @@ export async function detectBreakout(
   env: AcceptanceEnv,
   options: DetectOptions = {},
 ): Promise<DetectedBreakout> {
+  const detected = await collectBreakout(env, options);
+  return {
+    ...detected,
+    jobId: must(detected.jobId, 'the queued job'),
+  };
+}
+
+/**
+ * The same collection, without requiring the producer to have queued anything: for scenarios
+ * where an organization has not opted in and the detection must cost nothing.
+ */
+export async function collectBreakout(
+  env: AcceptanceEnv,
+  options: DetectOptions = {},
+): Promise<Omit<DetectedBreakout, 'jobId'> & { jobId: string | undefined }> {
   const { db, logger, prisma } = env;
   const world = await seedAcceptanceWorld(db, options.world);
   await seedApprovedBrandIdentity(db, world, options.brandRules);
   const candidate = await seedBreakoutCandidate(db, world, options.candidate);
-  const harness = buildExecutionHarness(db, prisma, logger, world);
+  const harness = buildExecutionHarness(db, prisma, logger, world, {
+    factCheck: options.factCheck,
+  });
   harness.tweets.set(candidate.target.externalId, {
     impressions: options.impressions ?? 1500,
   });
@@ -101,7 +121,7 @@ export async function detectBreakout(
     authorization,
     candidate,
     harness,
-    jobId: must(jobId, 'the queued job'),
+    jobId,
     response,
     world,
   };

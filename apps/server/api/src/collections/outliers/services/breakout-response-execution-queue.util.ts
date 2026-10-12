@@ -1,5 +1,6 @@
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
+import { readOrganizationAutomationSettings } from '@api/collections/organization-settings/utils/organization-automation-settings.util';
 import {
   buildBreakoutResponseExecutionRequest,
   denyBreakoutExecution,
@@ -25,7 +26,10 @@ export type DetectedBreakoutSource = Readonly<{
 }>;
 
 export type BreakoutResponseExecutionQueueDeps = Readonly<{
-  prisma: Pick<PrismaService, 'agentStrategy' | 'breakoutResponse'>;
+  prisma: Pick<
+    PrismaService,
+    'agentStrategy' | 'breakoutResponse' | 'organizationSetting'
+  >;
   queue: Pick<WorkflowExecutionQueueService, 'queueSystemWorkflow'>;
   logger: Pick<LoggerService, 'warn'>;
 }>;
@@ -40,7 +44,9 @@ export function breakoutResponseExecutionJobId(responseId: string): string {
  * observation and detection transaction has committed, and only with the server-bound actor
  * of an authorized collection; an account without one never reaches this function.
  *
- * Returns the job id, or null when nothing is eligible to execute.
+ * Returns the job id, or null when nothing is eligible to execute. An organization that has
+ * not turned on breakout responses (#6526) never reaches the queue, so a detection costs it
+ * nothing; the observation and the detection itself are already persisted and stay useful.
  */
 export async function enqueueDetectedBreakoutResponse(
   deps: BreakoutResponseExecutionQueueDeps,
@@ -50,6 +56,11 @@ export async function enqueueDetectedBreakoutResponse(
   const initiatingActor = toWorkflowActor(actor, denyBreakoutExecution);
   if (initiatingActor.organizationId !== source.organizationId)
     denyBreakoutExecution();
+  const settings = await readOrganizationAutomationSettings(
+    deps.prisma,
+    source.organizationId,
+  );
+  if (!settings.isBreakoutResponsesEnabled) return null;
   // Only a response still waiting for its plan; a planned one is owned by recovery.
   const response = await deps.prisma.breakoutResponse.findFirst({
     where: scopedWhere(source.organizationId, {

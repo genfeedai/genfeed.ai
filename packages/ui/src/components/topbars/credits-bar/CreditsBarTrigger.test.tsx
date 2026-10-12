@@ -33,6 +33,18 @@ const defaultProps = {
 };
 
 describe('CreditsBarTrigger', () => {
+  it('drops the unit text below 360px but keeps it in the accessible name', () => {
+    render(<CreditsBarTrigger {...defaultProps} />);
+
+    expect(screen.getByTestId('topbar-credits-unit')).toHaveClass(
+      'max-[359px]:hidden',
+    );
+    expect(screen.getByTestId('topbar-credits-trigger')).toHaveAttribute(
+      'title',
+      '0 GEN',
+    );
+  });
+
   it('highlights empty balance in destructive red with buy-credits urgency', async () => {
     const user = userEvent.setup();
     render(<CreditsBarTrigger {...defaultProps} />);

@@ -1549,6 +1549,23 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(result).toBeDefined();
     });
 
+    it('should return a draft without saving when isDraft is set', async () => {
+      mockPostsService.patch.mockClear();
+
+      const result = await generationController.enhancePost(
+        mockRequest,
+        postId,
+        { ...enhancePostDto, isDraft: true },
+        mockUser,
+      );
+
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalled();
+      expect(mockPostsService.patch).not.toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should throw NOT_FOUND when post not found', async () => {
       mockPostsService.findOne.mockResolvedValueOnce(null);
 

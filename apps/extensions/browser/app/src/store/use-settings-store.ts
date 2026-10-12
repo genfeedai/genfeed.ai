@@ -1,4 +1,7 @@
-import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
+import {
+  DEFAULT_THEME,
+  isNativeHostProviderId,
+} from '@genfeedai/contracts/constants';
 import type {
   PersistedExtensionSettings,
   SettingsActions,
@@ -28,6 +31,11 @@ function normalizeSettings(settings: unknown): PersistedExtensionSettings {
       typeof candidate.autoFill === 'boolean' ? candidate.autoFill : false,
     autoPost:
       typeof candidate.autoPost === 'boolean' ? candidate.autoPost : false,
+    localFallbackProviderId: isNativeHostProviderId(
+      candidate.localFallbackProviderId,
+    )
+      ? candidate.localFallbackProviderId
+      : null,
     theme: readStoredTheme(candidate),
   };
 }
@@ -39,9 +47,20 @@ function persistSettings(settings: PersistedExtensionSettings): void {
 }
 
 function currentPersistedSettings(): PersistedExtensionSettings {
-  const { autoFill, autoPost, theme, recordOwnPublications } =
-    useSettingsStore.getState();
-  return { autoFill, autoPost, theme, recordOwnPublications };
+  const {
+    autoFill,
+    autoPost,
+    localFallbackProviderId,
+    theme,
+    recordOwnPublications,
+  } = useSettingsStore.getState();
+  return {
+    autoFill,
+    autoPost,
+    localFallbackProviderId,
+    theme,
+    recordOwnPublications,
+  };
 }
 
 export const useSettingsStore = create<SettingsState & SettingsActions>(
@@ -50,6 +69,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>(
     autoFill: false,
     autoPost: false,
     isLoaded: false,
+    localFallbackProviderId: null,
     settingsRevision: 0,
     theme: DEFAULT_THEME,
     themeRevision: 0,
@@ -111,6 +131,14 @@ export const useSettingsStore = create<SettingsState & SettingsActions>(
     setAutoPost: (autoPost) => {
       set((state) => ({
         autoPost,
+        settingsRevision: state.settingsRevision + 1,
+      }));
+      persistSettings(currentPersistedSettings());
+    },
+
+    setLocalFallbackProvider: (localFallbackProviderId) => {
+      set((state) => ({
+        localFallbackProviderId,
         settingsRevision: state.settingsRevision + 1,
       }));
       persistSettings(currentPersistedSettings());

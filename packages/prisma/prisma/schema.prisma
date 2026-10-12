@@ -1794,6 +1794,13 @@ model OrganizationSetting {
   // #5502 founder release preview. Only platform admins set it; on cloud,
   // founder-only modules admit new work only in organizations with it on.
   isReleasePreviewEnabled        Boolean           @default(false)
+  // #6526 / #6727. Owner/admin opt-ins, off until an organization chooses them.
+  // Breakout responses spend credits on a detected own-account breakout; auto-publish
+  // lets a response that passed every check schedule itself; vision checks pay a
+  // provider to read branded visuals. Platform switches stay the master kill switches.
+  isBreakoutResponsesEnabled     Boolean           @default(false)
+  isBreakoutAutoPublishEnabled   Boolean           @default(false)
+  isBrandVisionChecksEnabled     Boolean           @default(false)
   fleetEvaluationPolicy          Json              @default("{}")
   byokKeys                       Json              @default("{}")
   createdAt                      DateTime          @default(now())

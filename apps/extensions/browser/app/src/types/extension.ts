@@ -4,11 +4,21 @@ import type {
   TextActionMode,
   TextActionResult,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  ActionRecovery,
+  ActionRouting,
+} from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
+import type { SourceCaptureRequest } from '~models/imported-source.model';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 
-// Extension message types for Remix / Reply / Idea flows
+// Extension message types for Remix / Reply / Idea (Knowledge) / Source flows
 
-export type ExtensionMessageType = 'REMIX' | 'REPLY' | 'IDEA';
+export type ExtensionMessageType =
+  | 'REMIX'
+  | 'REPLY'
+  | 'IDEA'
+  | 'SOURCE'
+  | 'SETTINGS';
 
 export interface ExtensionMessage {
   type: ExtensionMessageType;
@@ -18,6 +28,8 @@ export interface ExtensionMessage {
   author?: string;
   platform?: string;
   captureMode?: CaptureMode;
+  /** What a SOURCE message asks the panel to capture. */
+  sourceCapture?: SourceCaptureRequest;
 }
 
 export type SocialPlatform =
@@ -34,14 +46,16 @@ export interface ReplyVariantsRequest {
   postContent: string;
   /** UUID per user request: a repeat is answered from the first result. */
   requestKey: string;
+  /** Reruns the request with this key after a failure; see `ActionRecovery.retryTarget`. */
+  retry?: boolean;
   tone: ReplyVariantTone;
   /** How many options to return; the server defaults and caps it. */
   variants?: number;
 }
 
 export type ReplyVariantsResponse =
-  | { success: true; result: ReplyVariantsResult }
-  | { success: false; error: string };
+  | { success: true; result: ReplyVariantsResult; routing?: ActionRouting }
+  | { success: false; error: string; recovery?: ActionRecovery };
 
 /** What a page or the side panel sends the background to edit a draft. */
 export interface TextActionRequest {
@@ -49,12 +63,14 @@ export interface TextActionRequest {
   platform: string;
   /** UUID per user request: a repeat is answered from the first result. */
   requestKey: string;
+  /** Reruns the request with this key after a failure; see `ActionRecovery.retryTarget`. */
+  retry?: boolean;
   text: string;
 }
 
 export type TextActionResponse =
-  | { success: true; result: TextActionResult }
-  | { success: false; error: string };
+  | { success: true; result: TextActionResult; routing?: ActionRouting }
+  | { success: false; error: string; recovery?: ActionRecovery };
 
 /** The part of a composer a text action reads and later replaces. */
 export type ComposerTextScope = 'selection' | 'draft';

@@ -113,6 +113,10 @@ async function scheduleDraftPostForTomorrow(
     };
   });
 
+  // The When dock opens on "Now"; pick Schedule to reveal the date picker.
+  const whenDock = authenticatedPage.getByTestId('post-when-dock');
+  await whenDock.getByRole('tab', { name: 'Schedule', exact: true }).click();
+
   await authenticatedPage.getByRole('button', { name: 'Date' }).click();
   if (monthChanged) {
     await authenticatedPage
@@ -128,14 +132,11 @@ async function scheduleDraftPostForTomorrow(
     .getByRole('option', { name: '9:00 AM', exact: true })
     .click();
 
-  // The header repeats Schedule as its primary action; this drives the
-  // sidebar schedule card's own button.
-  const scheduleButton = authenticatedPage
-    .getByTestId('post-schedule-card')
-    .getByRole('button', {
-      name: 'Schedule',
-      exact: true,
-    });
+  // Publishing lives in the pinned When dock of the inspector.
+  const scheduleButton = whenDock.getByRole('button', {
+    name: 'Schedule',
+    exact: true,
+  });
   await expect(scheduleButton).toBeEnabled();
 
   // Require the actual mutation chain, not just "some PATCH fired":

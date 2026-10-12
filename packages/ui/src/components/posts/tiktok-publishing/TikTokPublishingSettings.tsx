@@ -11,6 +11,7 @@ import {
   type TikTokPublishingCapabilities,
   validateTikTokPublishingSettings,
 } from '@genfeedai/contracts/api-types/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { TikTokPublishingSettingsProps } from '@genfeedai/props/components/tiktok-publishing.props';
 import { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
@@ -28,6 +29,7 @@ export default function TikTokPublishingSettings({
   post,
   onSaved,
   onReadinessChange,
+  isEmbedded = false,
 }: TikTokPublishingSettingsProps) {
   const translate = useTranslations('ui.tiktokPublishing');
   const [capabilities, setCapabilities] =
@@ -180,9 +182,14 @@ export default function TikTokPublishingSettings({
   return (
     <section
       aria-label={translate('sectionLabel')}
-      className="space-y-3 rounded-lg border border-border p-4"
+      className={cn(
+        'space-y-3',
+        !isEmbedded && 'rounded-lg border border-border p-4',
+      )}
     >
-      <h3 className="text-sm font-semibold">{translate('title')}</h3>
+      {isEmbedded ? null : (
+        <h3 className="text-sm font-semibold">{translate('title')}</h3>
+      )}
       {isLoading ? (
         <p role="status" className="text-sm text-muted-foreground">
           {translate('loading')}

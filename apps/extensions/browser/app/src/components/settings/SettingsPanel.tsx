@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { AutoFillToggle } from '~components/settings/AutoFillToggle';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { ConnectedAccounts } from '~components/settings/ConnectedAccounts';
+import { LocalFallbackSettings } from '~components/settings/LocalFallbackSettings';
 import { OrganizationSelector } from '~components/settings/OrganizationSelector';
 import { PublicationRecordingSettings } from '~components/settings/PublicationRecordingSettings';
 import { ThemeSelector } from '~components/settings/ThemeSelector';
@@ -53,6 +54,7 @@ export function SettingsPanel(): ReactElement {
               <ThemeSelector />
               <AutoFillToggle />
               <PublicationRecordingSettings />
+              <LocalFallbackSettings />
             </div>
           ) : (
             <p className="text-xs text-muted-foreground" role="status">

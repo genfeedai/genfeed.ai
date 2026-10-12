@@ -1,4 +1,5 @@
 import type { BrandArtifactVisual } from '@api/services/brand-validation/brand-validation-visual.util';
+import { BRAND_VISION_PENDING_REASON } from '@api/services/brand-validation/brand-vision-pending.util';
 import type {
   BrandDetectedRegion,
   BrandDetectionOutcome,
@@ -203,6 +204,10 @@ export async function proveBrandPlacementChecks(
     }
     if (outcome.status === 'disabled') {
       results.push(unknownCheck(check, 'visual_analysis_disabled'));
+      continue;
+    }
+    if (outcome.status === 'pending') {
+      results.push(unknownCheck(check, BRAND_VISION_PENDING_REASON));
       continue;
     }
     if (outcome.frames.length !== encoded.frames.length) {

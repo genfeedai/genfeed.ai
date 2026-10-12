@@ -20,11 +20,14 @@ export interface BrandOcrRequest {
 /**
  * `read`: the model answered, with exactly one text per requested frame.
  * `disabled`: the platform switch is off; nothing was called or paid.
+ * `pending`: the analysis is wanted but runs later in a background job; nothing was
+ * called or paid yet, and the check stays unknown until that job finishes.
  * `unavailable`: the analysis could not complete (no model, provider error, malformed answer).
  */
 export type BrandOcrOutcome =
   | { status: 'read'; provider: BrandVisionModelIdentity; texts: string[] }
   | { status: 'disabled' }
+  | { status: 'pending' }
   | { status: 'unavailable' };
 
 /** A region a detector proposes, as fractions of the frame it was found in. */
@@ -43,7 +46,8 @@ export interface BrandDetectionRequest {
 
 /**
  * `detected`: the model answered, with exactly one list of regions per requested
- * frame (possibly empty). `disabled` and `unavailable` mean what they mean for OCR.
+ * frame (possibly empty). `disabled`, `pending` and `unavailable` mean what they
+ * mean for OCR.
  */
 export type BrandDetectionOutcome =
   | {
@@ -52,6 +56,7 @@ export type BrandDetectionOutcome =
       frames: BrandDetectedRegion[][];
     }
   | { status: 'disabled' }
+  | { status: 'pending' }
   | { status: 'unavailable' };
 
 /** Provider-backed reading of branded visuals. Never decides a pass or fail itself. */

@@ -6,6 +6,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
+import { BreakoutAutoPublishService } from '@api/collections/outliers/services/breakout-auto-publish.service';
 import { BreakoutGenerationPlanService } from '@api/collections/outliers/services/breakout-generation-plan.service';
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutMediaOutputPreparationService } from '@api/collections/outliers/services/breakout-media-output-preparation.service';
@@ -21,6 +22,7 @@ import { PlatformSettingsModule } from '@api/collections/platform-settings/platf
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
+import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
 import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
 import { BrandedGenerationReceiptsModule } from '@api/services/branded-generation-receipts/branded-generation-receipts.module';
@@ -34,6 +36,7 @@ import { Module } from '@nestjs/common';
 /** Concrete generation consumers; analytics evidence and read services remain independent of this graph. */
 @Module({
   imports: [
+    AutonomousPublishingModule,
     BrandAccessModule,
     WorkflowsCoreModule,
     AgentStrategiesCoreModule,
@@ -56,6 +59,7 @@ import { Module } from '@nestjs/common';
     TurboRunModule,
   ],
   providers: [
+    BreakoutAutoPublishService,
     BreakoutResponseExecutionService,
     BreakoutResponseExecutionWorkflowService,
     BreakoutTextOutputPreparationService,

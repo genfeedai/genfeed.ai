@@ -21,12 +21,14 @@ registration.
 | Complete standalone text, nonempty mandatory/avoid literal | NFC and CRLF matching; exact case-sensitive substring pass/fail |
 | Semantic or empty literal | Unknown with explicit capability reason |
 | Multipart text or image/video text | Unknown text coverage |
-| Facts and complete factual coverage | Always unknown |
+| Brand OS fact rules (`generationRules.facts`) | Always unknown |
+| Hard `system:factual_coverage` of the draft's claims (#6717) | Unknown until the fact check runs (see below); then pass, unknown or hard fail |
 | Palette color on a single final image or video (#6727) | Pixel proof: pass or fail, else unknown (see below) |
 | Font/logo/product/other visual asset | Unsupported without qualified artifact-bound evidence |
 | Owner-excluded medium | Not applicable; absent applicability is universal |
 
-Every report includes hard `system:factual_coverage` unknown and `quality: null`.
+Every report includes the hard `system:factual_coverage` check, `unknown` unless the
+fact check below decided it, and `quality: null`.
 No reference byte hash proves asset placement, actual font use or visual
 compliance. For text, required unavailable capabilities block preflight and optional
 ones warn. Image and video are admitted for review only (#6727): the preflight warns
@@ -81,7 +83,12 @@ Mandatory and avoid literals of an image or video are read from the final pixels
 a provider-backed vision model (Florence-2 on Replicate), never from the generation
 prompt. The Admin platform setting `isBrandVisualAnalysisEnabled` is **off by
 default**; while it is off no provider is called, nothing is paid, and the checks are
-`unknown` (`visual_analysis_disabled`).
+`unknown` (`visual_analysis_disabled`). It is the master kill switch. Each organization
+also has its own **Brand vision checks** setting (`isBrandVisionChecksEnabled`, off by
+default; owners and admins turn it on and pay for readings in credits). A reading runs
+only when both are on, and `BrandVisualAnalysisService.isEnabled(organizationId)` is the one
+place that reads them: the request path defers on it and the background job re-checks it
+before every paid prediction. The platform switch overrides an organization that turned it on.
 
 The model is an Admin-selected catalog model, not an environment variable. The
 platform setting `brandVisionOcrModelKey` holds the `Model.key` of an active,
@@ -100,6 +107,27 @@ frames) no wider than 1280 px, attributed to the snapshot's organization and bra
 Each prediction is recorded in the media vendor-cost ledger
 (`brand-validation-ocr`), priced from the runtime Replicate reports, and a frame
 already read by this process is not paid for again.
+
+### The reading runs in a background job (cold starts)
+
+A community model on Replicate boots cold for minutes (a live OWL-ViT prediction took
+138 s from request to answer, of which 1.6 s was runtime), so no reading happens in a
+request. `BrandValidationReceiptService.validateReceipt` validates the visual at once
+with the readable OCR and placement checks left `unknown`
+(`visual_analysis_pending`) and, when the platform switch is on, queues one job on
+`brand-vision` (deduplicated by receipt). The workers' `BrandVisionProcessor` calls
+`completeVisionChecks`, which reads the pixels (each prediction waits up to 5 minutes,
+then is cancelled and its reported runtime priced) and revalidates the receipt:
+
+- a proof or a forbidden literal moves the receipt to `ready`, `needs_review` or
+  `blocked`, which the publication gates read live;
+- a reading that cannot complete (timeout, provider error) is recorded as
+  `visual_analysis_unavailable`, fails closed, and the spend is in the ledger;
+- a receipt with no pending check is left alone, so a duplicate job pays nothing, and a
+  job runs once (a failed job leaves the checks pending, never a second reading).
+
+A breakout output with a pending visual is queued for a member's review until the
+check finishes. Without a queue nothing is deferred and no reading is made.
 
 Matching is the text path's exact, case-sensitive NFC/LF comparison, per frame (a
 literal never joins across frames). A reader can miss text but not invent a literal,
@@ -143,7 +171,7 @@ placement has no fail:
 | `unknown` `placement_not_found` | nothing detected at or above the minimum score |
 | `unknown` `placement_unmatched` | regions were detected and none matches the asset |
 | `unknown` `reference_unavailable` | no hash-verified reference bytes (no call is made) |
-| `unknown` `visual_analysis_disabled` / `visual_analysis_unavailable` | switch off, provider error or an answer for the wrong number of frames |
+| `unknown` `visual_analysis_disabled` / `visual_analysis_pending` / `visual_analysis_unavailable` | switch off, reading queued in the background, or provider error / timeout / an answer for the wrong number of frames |
 | `unknown` `artifact_undecodable` / `visual_composite_unproven` / `visual_part_unavailable` | as for OCR |
 
 The `placement` proof records the artifact and part hashes, the model identity and
@@ -195,8 +223,9 @@ OCR and placement proofs are persisted with the receipt exactly as text is. It i
 safe, spends nothing itself, and fails soft: an unreadable approved identity or
 unreadable bytes leave no evidence rather than an error.
 
-Readiness stays what the contract allows: factual coverage is hard `unknown`, so a media
-receipt is `needs_review` at best. A hard failure (for example a required palette color
+Readiness stays what the contract allows: a visual never completes factual coverage (it
+is hard `unknown` at best, see the fact check), so a media receipt is `needs_review` at
+best. A hard failure (for example a required palette color
 absent) makes the receipt `blocked`. `readBreakoutMediaOutputRecovery`, which the
 schedule-time and dispatch publication gates both read, then returns `awaiting_review`
 with `quality_or_brand_blocked` for the output, which no member approval clears; the
@@ -284,13 +313,100 @@ conflict propagates without retry.
 All acquisition, access, integrity, validator and persistence errors propagate
 unchanged without a receipt write, state change or partial report. In particular,
 an integrity error leaves a checking receipt in checking with no invented checks.
-The adapter performs no provider work or paid retries and preserves costs and
-budget.
+The adapter does no provider work of its own and never retries a paid call. The one
+paid step is the optional fact check below, which runs only when a
+`BrandFactCheckService` is wired and bills the vendor cost ledger; with none wired the
+adapter performs no provider work and preserves costs and budget.
 
 Readiness comes only from `classifyBrandedGenerationReadinessV1` through the
 existing receipt projection. Any hard failure gives blocked/failed; raw completion
-gives ready/not_claimed. Factual coverage stays hard unknown, so approved output
-is needs_review/unverified, never ready/passed.
+gives ready/not_claimed. A text draft whose every required hard check passes,
+factual coverage included, is ready/passed; with no fact check wired, or when it
+cannot decide, factual coverage stays hard unknown and approved output is
+needs_review/unverified.
+
+## Fact check (`system:factual_coverage`, #6717)
+
+`BrandFactCheckService` (`BrandFactCheckModule`, wired into
+`BrandValidationReceiptModule`) decides the hard `system:factual_coverage` check. It
+reaches the validator as `BrandValidationOptions.factCheck`, bound to the receipt's
+actor, so `BrandValidationService` itself stays dependency-free and a caller with no
+fact check gets the old always-unknown behavior.
+
+1. **Claims.** A structured LLM call (`LlmDispatcherService.completeStructured`,
+   schema-enforced with one repair retry) extracts the checkable factual claims
+   (numbers, prices, dates, rankings, guarantees, named people, partners) from the
+   draft text. Each claim carries a `quote` that must appear verbatim in the text, or
+   the extraction is refused. Opinions, slogans and calls to action are not claims.
+   For an image or video the text is whatever the OCR read of #6727 produced for the
+   mandatory and avoid literals; no extra read is paid for, and a visual with no read
+   text is not checked at all.
+2. **Evidence, approved brand evidence only.** The facts of the receipt's approved
+   Brand OS snapshot (none when the snapshot is provisional) and the brand's
+   `BRAND_TRUTH` Knowledge passages retrieved per claim through
+   `KnowledgeContentRetrievalService.retrieveBrandKnowledge`: pgvector, tenant scoped
+   (`organizationId`, `isDeleted: false`), limited to the actor's brand plus
+   organization-wide sources, current ready active versions only, and gated by
+   `BrandAccessService`. There is no web search. A snapshot that is not the actor's
+   own organization and brand is refused before any read or model call.
+3. **Verdicts.** A second structured call judges every claim against that evidence,
+   or is skipped when there is none (every claim is then unverified).
+   - `supported`: the evidence states it. The verdict cites evidence ids and a quote.
+   - `contradicted`: the evidence states something incompatible.
+   - `unverified`: no backing evidence.
+
+   A `supported` or `contradicted` verdict stands only with at least one citation
+   that names a real evidence item and quotes it verbatim (compared after Unicode
+   form, quote glyph, whitespace and case normalization). Anything else, and any
+   claim the judge skipped, is `unverified`, so a model can lose a pass but never
+   invent one.
+4. **Result.**
+
+   | Situation | `system:factual_coverage` |
+   | --- | --- |
+   | Any claim contradicted | hard `fail` (`factual_claim_contradicted`): brand blocked, not approvable as is |
+   | Else any claim unverified | `unknown` (`factual_claim_unverified`): goes to review |
+   | Else every claim supported, or none, in a whole standalone text draft | `pass` |
+   | Else supported claims in a multipart text | `unknown` (`factual_coverage_text_incomplete`) |
+   | Else supported claims in OCR text of an image or video | `unknown` (`factual_coverage_media_unproven`): a visual is never fully read, so it can never reach ready/passed |
+   | The check could not run | `unknown`, with `fact_check_budget_exhausted`, `fact_check_unavailable`, `fact_check_invalid_output`, `fact_check_evidence_unavailable`, `fact_check_claim_limit`, `fact_check_text_too_long` or `fact_check_scope_mismatch` |
+
+   The check never passes by default: a thrown error, a malformed answer, more than
+   32 claims, text over 20,000 characters, an exhausted budget or a down provider all
+   leave the check `unknown`. A result that would break the report contract is
+   replaced by `unknown` (`fact_check_invalid_output`) instead of failing validation.
+   The soft and hard results stay separate: this check only ever replaces the one
+   hard system check and touches no brand rule.
+5. **Proof.** A `fact` proof (`brandFactProofV1Schema`, in
+   `brand-artifact-proof.contract.ts`) is attached to the check, also for `unknown`
+   and for a draft with no claims (an explicit empty claim list and the evidence id
+   `system:no_factual_claims`). It binds the artifact hash, the snapshot hash, the
+   hash of the checked text, the sorted Knowledge source versions that supplied
+   passages, the claim list with its canonical hash (`hashBrandFactClaimsV1`), the
+   models that answered and whether the text was complete. The contract itself
+   rejects a pass that carries an unverified claim, a partial text or a visual, and a
+   fail without a contradicted claim. The receipt inspector shows it on the
+   `system:factual_coverage` line next to the other proof lines
+   (`brand-proof-summary.util.ts`).
+6. **Cost.** Both model calls and any Knowledge embeddings go through the existing
+   LLM dispatcher and context services, which record the vendor cost in the LLM
+   vendor cost ledger for the actor's organization and brand. No credits are
+   charged for the check itself. Each validation or revalidation runs it again.
+
+**With the background vision job.** The request path defers the paid reading of a
+visual (`visual_analysis_pending`), so no text has been read and the fact check does
+not run for it yet: a text draft is fact-checked in the request path, a visual not at
+all. The `brand-vision` job (`completeVisionChecks`) revalidates only receipts with
+pending vision checks, so only visuals; that revalidation reads the pixels, hands the
+read text to the fact check (the same `onFrameTexts` hook) and records the result with
+the OCR and placement proofs in one report. A contradicted claim in a visual's read
+text therefore blocks the receipt when the job finishes, exactly like a forbidden
+literal, and a text receipt is never revalidated by the job, so its fact check runs
+once. A job that finds nothing pending pays nothing, and neither does its fact check.
+
+The claims are a model's reading of the draft: a claim the extractor misses is not
+checked, so a pass means that no claim the extractor found lacked evidence.
+Real-Postgres coverage of the Knowledge path is `brand-fact-check.postgres.spec.ts`.
 
 The production trigger belongs to #5786: after `bindArtifact` resolves, including
 a replay, its route matrix imports `BrandValidationReceiptModule` and calls

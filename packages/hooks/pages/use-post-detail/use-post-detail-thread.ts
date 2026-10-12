@@ -48,12 +48,17 @@ export interface UsePostDetailThreadReturn {
 
   // Handlers
   handleAddToThread: () => Promise<void>;
+  handleAddThreadPosts: (descriptions: string[]) => Promise<void>;
+  handleSetGrokQuestion: (question: string) => Promise<void>;
   handleExpandToThread: (count: 2 | 3 | 5) => Promise<void>;
   handleDeleteChild: (childId: string) => void;
   handleDragStart: (postId: string) => void;
   handleDragEnd: () => void;
   handleDrop: (targetPostId: string, targetOrder: number) => Promise<void>;
-  handleToggleGrokFeedback: (checked: boolean) => Promise<void>;
+  handleToggleGrokFeedback: (
+    checked: boolean,
+    question?: string,
+  ) => Promise<void>;
   handleToggleFirstComment: (checked: boolean) => Promise<void>;
 }
 
@@ -109,89 +114,120 @@ export function usePostDetailThread({
     [setChildDescription],
   );
 
-  // Add to thread handler
-  const handleAddToThread = useCallback(async () => {
-    if (!post || !canAddThread) {
-      return;
-    }
-
-    try {
-      const service = await getPostsService();
-      const childrenCount = sortedChildren.length;
-
-      const lastChild =
-        sortedChildren.length > 0
-          ? sortedChildren[sortedChildren.length - 1]
-          : null;
-      const isLastGrok = lastChild?.description?.trim().startsWith('@grok');
-
-      let newPostOrder: number;
-      let grokTweetToUpdate: IPost | null = null;
-
-      if (isLastGrok && lastChild) {
-        newPostOrder = lastChild.order || childrenCount;
-        grokTweetToUpdate = lastChild;
-      } else {
-        newPostOrder = childrenCount + 1;
+  // Adds replies before a closing @grok post, which stays last. Replies saved
+  // before a failure are still reconciled into local state, and the failure is
+  // rethrown so callers can keep what the user was adding.
+  const addReplies = useCallback(
+    async (descriptions: string[], successMessage: string) => {
+      if (!post || !canAddThread || descriptions.length === 0) {
+        return;
       }
 
-      const newPost = await service.post({
-        credentialId: requireCredentialId(post),
-        description: "What's happening?",
-        ingredients: [],
-        label: 'Thread reply',
-        order: newPostOrder,
-        parentId: requirePostId(post),
-        targetExecutionState: TargetExecutionState.DRAFT,
-        visibility: post.visibility ?? PostVisibility.PUBLIC,
-      });
+      const lastChild = sortedChildren.at(-1) ?? null;
+      const grokTweet = lastChild?.description?.trim().startsWith('@grok')
+        ? lastChild
+        : null;
+      const firstOrder = grokTweet
+        ? grokTweet.order || sortedChildren.length
+        : sortedChildren.length + 1;
+      const created: IPost[] = [];
+      let failure: unknown = null;
 
-      if (grokTweetToUpdate) {
-        const newGrokOrder = childrenCount + 2;
-        await service.patch(grokTweetToUpdate.id, {
-          order: newGrokOrder,
-        });
-      }
+      try {
+        // Validate before the first write so a bad post never half-saves.
+        const credentialId = requireCredentialId(post);
+        const parentId = requirePostId(post);
+        const service = await getPostsService();
 
-      setPost((prevPost) => {
-        if (!prevPost) {
-          return prevPost;
-        }
-
-        let updatedChildren = [...(prevPost.children || [])];
-
-        if (grokTweetToUpdate) {
-          updatedChildren = updatedChildren.map((child) =>
-            child.id === grokTweetToUpdate?.id
-              ? { ...child, order: childrenCount + 2 }
-              : child,
+        for (const [offset, description] of descriptions.entries()) {
+          created.push(
+            await service.post({
+              credentialId,
+              description,
+              ingredients: [],
+              label: 'Thread reply',
+              order: firstOrder + offset,
+              parentId,
+              targetExecutionState: TargetExecutionState.DRAFT,
+              visibility: post.visibility ?? PostVisibility.PUBLIC,
+            }),
           );
         }
+      } catch (err) {
+        failure = err;
+      }
 
-        updatedChildren.push(newPost);
+      if (created.length > 0) {
+        const grokOrder = firstOrder + created.length;
+        try {
+          if (grokTweet) {
+            const service = await getPostsService();
+            await service.patch(grokTweet.id, { order: grokOrder });
+          }
+        } catch (err) {
+          failure ??= err;
+        }
 
-        return {
-          ...prevPost,
-          children: updatedChildren,
-        };
-      });
+        setPost((prevPost) => {
+          if (!prevPost) {
+            return prevPost;
+          }
+          const children = prevPost.children || [];
+          const others = children.filter((child) => child.id !== grokTweet?.id);
+          const grok = children.find((child) => child.id === grokTweet?.id);
+          return {
+            ...prevPost,
+            children: [
+              ...others,
+              ...created,
+              ...(grok ? [{ ...grok, order: grokOrder }] : []),
+            ],
+          };
+        });
 
-      updateChildDescriptions(newPost.id, newPost.description ?? '');
+        for (const reply of created) {
+          updateChildDescriptions(reply.id, reply.description ?? '');
+        }
+      }
 
-      notificationsService.success('New tweet added to thread');
-    } catch (err) {
-      logger.error('Failed to add to thread', err);
-      notificationsService.error('Failed to add tweet to thread');
+      if (failure) {
+        logger.error('Failed to add to thread', failure);
+        notificationsService.error('Failed to add to the thread');
+        throw failure;
+      }
+
+      notificationsService.success(successMessage);
+    },
+    [
+      post,
+      canAddThread,
+      getPostsService,
+      notificationsService,
+      sortedChildren,
+      setPost,
+      updateChildDescriptions,
+    ],
+  );
+
+  // The add button is fire-and-forget: the failure is already reported.
+  const handleAddToThread = useCallback(async () => {
+    try {
+      await addReplies(["What's happening?"], 'New post added to thread');
+    } catch {
+      // Reported by addReplies.
     }
-  }, [
-    post,
-    canAddThread,
-    getPostsService,
-    notificationsService,
-    sortedChildren,
-    setPost,
-    updateChildDescriptions,
-  ]);
+  }, [addReplies]);
+
+  const handleAddThreadPosts = useCallback(
+    (descriptions: string[]) =>
+      addReplies(
+        descriptions,
+        descriptions.length === 1
+          ? 'Added 1 post to the thread'
+          : `Added ${descriptions.length} posts to the thread`,
+      ),
+    [addReplies],
+  );
 
   // Expand post to thread handler
   const handleExpandToThread = useCallback(
@@ -342,7 +378,7 @@ export function usePostDetailThread({
 
   // Toggle grok feedback handler
   const handleToggleGrokFeedback = useCallback(
-    async (checked: boolean) => {
+    async (checked: boolean, question?: string) => {
       if (!post) {
         return;
       }
@@ -353,6 +389,7 @@ export function usePostDetailThread({
 
         if (checked) {
           const randomQuestion =
+            question ??
             GROK_FEEDBACK_QUESTIONS[
               Math.floor(Math.random() * GROK_FEEDBACK_QUESTIONS.length)
             ];
@@ -425,6 +462,46 @@ export function usePostDetailThread({
   );
 
   // Toggle first comment handler
+  const handleSetGrokQuestion = useCallback(
+    async (question: string) => {
+      const grokTweet = isLastChildGrokTweet ? sortedChildren.at(-1) : null;
+      if (!grokTweet) {
+        return;
+      }
+
+      try {
+        const service = await getPostsService();
+        await service.patch(grokTweet.id, { description: question });
+        setPost((prevPost) =>
+          prevPost
+            ? {
+                ...prevPost,
+                children: (prevPost.children || []).map((child) =>
+                  child.id === grokTweet.id
+                    ? { ...child, description: question }
+                    : child,
+                ),
+              }
+            : prevPost,
+        );
+        updateDescriptionRefs(grokTweet.id, question);
+        updateChildDescriptions(grokTweet.id, question);
+      } catch (err) {
+        logger.error('Failed to change the @grok question', err);
+        notificationsService.error('Failed to change the @grok question');
+      }
+    },
+    [
+      isLastChildGrokTweet,
+      sortedChildren,
+      getPostsService,
+      setPost,
+      updateDescriptionRefs,
+      updateChildDescriptions,
+      notificationsService,
+    ],
+  );
+
   const handleToggleFirstComment = useCallback(
     async (checked: boolean) => {
       if (!post) {
@@ -625,12 +702,14 @@ export function usePostDetailThread({
   return {
     draggedPostId,
     dragOverDividerIndex,
+    handleAddThreadPosts,
     handleAddToThread,
     handleDeleteChild,
     handleDragEnd,
     handleDragStart,
     handleDrop,
     handleExpandToThread,
+    handleSetGrokQuestion,
     handleToggleFirstComment,
     handleToggleGrokFeedback,
     setDragOverDividerIndex,

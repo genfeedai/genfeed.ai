@@ -114,7 +114,16 @@ test.describe('Content Library', () => {
 
       const libraryNav = authenticatedPage.getByTestId('library-nav-panel');
 
-      // #5502: Recent and Starred are the toolbar's Show filter.
+      await libraryNav
+        .getByRole('link', { name: 'Assets', exact: true })
+        .click();
+      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
+
+      // #5502: Recent and Starred are the asset browser toolbar's Show filter
+      // (the captions list has no such control).
       const show = authenticatedPage.getByRole('combobox', { name: 'Show' });
       for (const place of ['Recent', 'Starred'] as const) {
         await show.click();
@@ -124,15 +133,10 @@ test.describe('Content Library', () => {
             new URL(authenticatedPage.url()).searchParams.get('place'),
           )
           .toBe(place.toLowerCase());
+        await expect
+          .poll(() => new URL(authenticatedPage.url()).pathname)
+          .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
       }
-
-      await libraryNav
-        .getByRole('link', { name: 'Assets', exact: true })
-        .click();
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-      await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
-        .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
 
       await expect(
         libraryNav.getByRole('link', { name: 'Knowledge' }),

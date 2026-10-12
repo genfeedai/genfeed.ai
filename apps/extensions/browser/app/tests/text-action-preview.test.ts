@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { showTextActionPreview } from '~platforms/text-action-preview';
+import {
+  showTextActionFailure,
+  showTextActionPreview,
+} from '~platforms/text-action-preview';
 
 const result = {
   hasBrandVoice: true,
@@ -142,5 +145,98 @@ describe('text action preview', () => {
     expect(
       document.querySelectorAll('#genfeed-text-action-preview'),
     ).toHaveLength(1);
+  });
+});
+
+describe('text action preview routing notice and failure card', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('shows the routing notice as text, never markup', () => {
+    show({
+      routing: {
+        hasBrandVoice: false,
+        notice: 'Written locally <b>with</b> Claude Code.',
+        providerId: 'claude-cli',
+        providerLabel: 'Claude Code',
+        reason: 'credit_limit',
+        voiceSource: 'none',
+      },
+    });
+
+    const notice = card().querySelector('.hint');
+    expect(notice?.textContent).toBe(
+      'Written locally <b>with</b> Claude Code.',
+    );
+    expect(card().querySelector('b')).toBeNull();
+  });
+
+  it('shows why the action failed with only the actions that apply', () => {
+    const onRetry = vi.fn();
+    const onOpenProviderSettings = vi.fn();
+    showTextActionFailure({
+      message: 'The Genfeed local bridge is not reachable.',
+      mode: 'rewrite',
+      onOpenProviderSettings,
+      onRetry,
+      recovery: {
+        canOpenProviderSettings: true,
+        canRetry: true,
+        kind: 'host_unreachable',
+        retryTarget: 'local',
+      },
+    });
+
+    expect(card().querySelector('[role="alert"]')?.textContent).toBe(
+      'The Genfeed local bridge is not reachable.',
+    );
+    expect(labels(card())).toEqual([
+      'Dismiss',
+      'Provider settings',
+      'Retry with local provider',
+    ]);
+    press(card(), 'Retry with local provider');
+    press(card(), 'Provider settings');
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(onOpenProviderSettings).toHaveBeenCalledOnce();
+    press(card(), 'Dismiss');
+    expect(document.getElementById('genfeed-text-action-preview')).toBeNull();
+  });
+
+  it('offers a plain Retry for an unconfirmed Genfeed outcome', () => {
+    showTextActionFailure({
+      message: 'Genfeed did not confirm whether this finished.',
+      mode: 'proofread',
+      onOpenProviderSettings: vi.fn(),
+      onRetry: vi.fn(),
+      recovery: {
+        canOpenProviderSettings: false,
+        canRetry: true,
+        kind: 'cloud_unconfirmed',
+        retryTarget: 'cloud',
+      },
+    });
+
+    expect(labels(card())).toEqual(['Dismiss', 'Retry']);
+  });
+
+  it('closes on Escape', () => {
+    showTextActionFailure({
+      message: 'Failed',
+      mode: 'rewrite',
+      onOpenProviderSettings: vi.fn(),
+      onRetry: vi.fn(),
+      recovery: {
+        canOpenProviderSettings: true,
+        canRetry: false,
+        kind: 'host_failed',
+        retryTarget: null,
+      },
+    });
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(document.getElementById('genfeed-text-action-preview')).toBeNull();
   });
 });

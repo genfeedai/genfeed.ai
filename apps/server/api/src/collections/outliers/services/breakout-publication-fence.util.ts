@@ -8,6 +8,12 @@ import {
   toWorkflowActor,
   type WorkflowInitiatingActor,
 } from '@api/authorization/brand-access/workflow-actor.util';
+import { readOrganizationAutomationSettings } from '@api/collections/organization-settings/utils/organization-automation-settings.util';
+import {
+  BREAKOUT_ORG_AUTO_PUBLISH_DISABLED_REASON,
+  BREAKOUT_ORG_DISABLED_REASON,
+  isBreakoutAutoPublishAllowed,
+} from '@api/collections/outliers/services/breakout-organization-gate.util';
 import { admitBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-admission.util';
 import {
   type BreakoutResponseExecutionAdmission,
@@ -114,6 +120,19 @@ async function admitBreakoutPost(
     post.platform !== response.platform
   )
     hold('publication_state_unavailable');
+  // The organization's opt-ins (#6526), re-read in this transaction at schedule and at dispatch,
+  // so turning breakout responses off holds an output already generated or scheduled.
+  const settings = await readOrganizationAutomationSettings(tx, organizationId);
+  if (!settings.isBreakoutResponsesEnabled) hold(BREAKOUT_ORG_DISABLED_REASON);
+  const principal = getRequestPrincipal();
+  // Without a signed-in member or key behind it and without a person who scheduled it, this is
+  // an automatic publication, and only an organization that turned auto-publish on allows one.
+  if (
+    principal === undefined &&
+    output.publicationActor === null &&
+    !isBreakoutAutoPublishAllowed(settings)
+  )
+    hold(BREAKOUT_ORG_AUTO_PUBLISH_DISABLED_REASON);
   const policy = new BrandAccessService(tx as unknown as PrismaService);
   const generated = await readBreakoutPublicationAdmission(
     tx,
@@ -129,7 +148,6 @@ async function admitBreakoutPost(
     scope.strategyId !== post.agentStrategyId
   )
     hold('actor_scope_changed');
-  const principal = getRequestPrincipal();
   const admission = {
     initiatingActor: resolvePublishingActor(
       principal,

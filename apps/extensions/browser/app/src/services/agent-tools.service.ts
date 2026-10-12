@@ -18,6 +18,26 @@ export type ExtensionToolAction =
   | 'refine'
   | 'replies';
 
+/**
+ * An action the API answered with `success: false`. `code` is the stable
+ * reason the action reports (for example `insufficient_credits`), or null when
+ * it gave none.
+ */
+export class AgentActionError extends Error {
+  constructor(
+    message: string,
+    readonly code: string | null,
+  ) {
+    super(message);
+    this.name = 'AgentActionError';
+  }
+}
+
+function readActionCode(result: AgentToolResult): string | null {
+  const code = (result.data as { code?: unknown } | undefined)?.code;
+  return typeof code === 'string' ? code : null;
+}
+
 const TOOL_NAME_BY_ACTION: Record<ExtensionToolAction, CuratedActionName> = {
   analytics: 'get_analytics',
   generate: 'generate_content',
@@ -183,8 +203,11 @@ export class AgentToolsService extends HTTPBaseService {
 
     assertWorkspace(workspace);
     if (!response.data.success || response.data.requiresConfirmation) {
-      throw new Error(
+      throw new AgentActionError(
         response.data.error || 'The action requires approval in Genfeed.',
+        response.data.requiresConfirmation
+          ? 'approval_required'
+          : readActionCode(response.data),
       );
     }
     return response.data;

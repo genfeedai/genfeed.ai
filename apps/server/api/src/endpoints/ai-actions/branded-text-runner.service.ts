@@ -20,10 +20,6 @@ import { Injectable } from '@nestjs/common';
 
 const NO_APPROVED_VOICE_REASON = 'no_approved_revision';
 
-/** Shown when text was written without voice context, so the user can fix the cause. */
-export const NO_BRAND_VOICE_HINT =
-  'This brand has no approved voice yet, so the text was written without voice context. Set up and approve your brand voice in Genfeed to use it.';
-
 const FAILURE_MESSAGES: Readonly<Record<string, string>> = {
   artifact_bind_failed: 'The result could not be saved. Try again.',
   artifact_persist_failed: 'The result could not be saved. Try again.',

@@ -3,13 +3,11 @@ import type {
   ReplyVariantsRequestV1,
   TextActionRequestV1,
 } from '@api/endpoints/ai-actions/branded-text-actions.types';
-import {
-  BrandedTextRunnerService,
-  NO_BRAND_VOICE_HINT,
-} from '@api/endpoints/ai-actions/branded-text-runner.service';
+import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
+import { NO_BRAND_VOICE_HINT } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const requestKey = '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c';

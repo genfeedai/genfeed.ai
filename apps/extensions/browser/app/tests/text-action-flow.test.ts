@@ -185,4 +185,88 @@ describe('page text action flow', () => {
     );
     expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
   });
+
+  it('shows a notice when a local provider wrote the suggestion', async () => {
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
+      result: RESULT,
+      routing: {
+        hasBrandVoice: true,
+        notice:
+          'Genfeed reached its request limit, so this was written locally with Claude Code.',
+        providerId: 'claude-cli',
+        providerLabel: 'Claude Code',
+        reason: 'quota_exceeded',
+        voiceSource: 'live',
+      },
+      success: true,
+    } as never);
+
+    await runPageTextAction('rewrite', hooks);
+
+    expect(preview().querySelector('.hint')?.textContent).toContain(
+      'written locally with Claude Code',
+    );
+  });
+
+  it('keeps the draft, offers Retry and Provider settings, and retries with the same key', async () => {
+    const recovery = {
+      canOpenProviderSettings: true,
+      canRetry: true,
+      kind: 'host_unreachable',
+      retryTarget: 'local',
+    };
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValueOnce({
+      error: 'The Genfeed local bridge is not reachable.',
+      recovery,
+      success: false,
+    } as never);
+
+    await runPageTextAction('rewrite', hooks);
+
+    expect(preview().querySelector('.error')?.textContent).toBe(
+      'The Genfeed local bridge is not reachable.',
+    );
+    expect(composer().value).toBe('Teh launch is live');
+    expect(hooks.notify).not.toHaveBeenCalledWith(
+      'The Genfeed local bridge is not reachable.',
+      true,
+    );
+    const firstKey = (
+      vi.mocked(chrome.runtime.sendMessage).mock.calls[0][0] as unknown as {
+        requestKey: string;
+      }
+    ).requestKey;
+
+    press('Provider settings');
+    expect(chrome.runtime.sendMessage).toHaveBeenLastCalledWith({
+      event: 'openProviderSettings',
+    });
+
+    press('Retry with local provider');
+    await vi.waitFor(() =>
+      expect(preview().querySelector('.text')?.textContent).toBe(
+        'The launch is live',
+      ),
+    );
+    expect(chrome.runtime.sendMessage).toHaveBeenLastCalledWith({
+      event: 'refineText',
+      mode: 'rewrite',
+      platform: 'twitter',
+      requestKey: firstKey,
+      retry: true,
+      text: 'Teh launch is live',
+    });
+  });
+
+  it('only notifies for an ordinary error', async () => {
+    vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
+      error: 'Not enough credits.',
+      success: false,
+    } as never);
+
+    await runPageTextAction('rewrite', hooks);
+
+    expect(hooks.notify).toHaveBeenLastCalledWith('Not enough credits.', true);
+    expect(document.getElementById('genfeed-text-action-preview')).toBeNull();
+  });
 });

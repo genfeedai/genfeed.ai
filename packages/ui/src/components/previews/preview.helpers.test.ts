@@ -20,6 +20,17 @@ import {
 } from './preview.test-helpers';
 
 describe('resolveTargetCaption', () => {
+  it('shows stored HTML content as plain text, not markup', () => {
+    const release = makeRelease({
+      baseContent: '<p>Tom &amp; Jerry</p><p>Second line</p>',
+    });
+    const target = makeTarget({ settings: {} });
+
+    expect(resolveTargetCaption(release, target)).toBe(
+      'Tom & Jerry\n\nSecond line',
+    );
+  });
+
   it('falls back to the release base content with no target override', () => {
     const release = makeRelease({ baseContent: 'Shared caption' });
     const target = makeTarget({ settings: {} });

@@ -4,6 +4,7 @@ import axios, {
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import { HttpRequestError } from '~services/http-request-error';
 import {
   assertWorkspace,
   requireWorkspace,
@@ -56,6 +57,13 @@ export abstract class HTTPBaseService {
             throw new AxiosError(
               `timeout of ${timeoutMs}ms exceeded`,
               AxiosError.ECONNABORTED,
+              config,
+            );
+          // fetch rejects with a TypeError when the connection fails.
+          if (error instanceof TypeError)
+            throw new AxiosError(
+              'Network Error',
+              AxiosError.ERR_NETWORK,
               config,
             );
           throw error;
@@ -194,26 +202,26 @@ export abstract class HTTPBaseService {
 
     if (!response) {
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        const timeoutError = new Error(
+        throw new HttpRequestError(
           'Request timed out. Please check your connection and try again.',
-        ) as Error & { isTimeout: boolean };
-        timeoutError.isTimeout = true;
-        throw timeoutError;
+          'timeout',
+          null,
+        );
       }
 
-      const networkError = new Error(
+      throw new HttpRequestError(
         'Network error. Please check your connection and try again.',
-      ) as Error & { isNetworkError: boolean };
-      networkError.isNetworkError = true;
-      throw networkError;
+        'network',
+        null,
+      );
     }
 
     if (response.status === 401) {
-      const authError = new Error(
+      throw new HttpRequestError(
         'Authentication failed. Please sign in again.',
-      ) as Error & { isAuthError: boolean };
-      authError.isAuthError = true;
-      throw authError;
+        'unauthorized',
+        401,
+      );
     }
 
     const data = response.data;
@@ -221,12 +229,14 @@ export abstract class HTTPBaseService {
       typeof data === 'object' && data !== null && 'message' in data
         ? data.message
         : undefined;
-    throw new Error(
+    throw new HttpRequestError(
       Array.isArray(message)
         ? message.join(', ')
         : typeof message === 'string'
           ? message
           : error.message,
+      'http',
+      response.status,
     );
   };
 

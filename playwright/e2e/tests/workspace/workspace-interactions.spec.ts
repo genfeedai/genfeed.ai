@@ -136,9 +136,19 @@ test.describe('Workspace — deep interactions', () => {
       .getByRole('link', { name: 'Attention queue' });
     await expect(openReview).toBeVisible();
     await openReview.click();
+    // Approvals is a Posts view (`?view=approvals`), not its own pathname.
+    const reviewRoute = new URL(
+      brandPath(APP_ROUTES.PUBLISHING.REVIEW),
+      'http://localhost',
+    );
     await expect
-      .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(brandPath(APP_ROUTES.PUBLISHING.REVIEW));
+      .poll(() => {
+        const current = new URL(authenticatedPage.url());
+        return `${current.pathname}?view=${current.searchParams.get('view')}`;
+      })
+      .toBe(
+        `${reviewRoute.pathname}?view=${reviewRoute.searchParams.get('view')}`,
+      );
 
     await assertRouteRenders(
       authenticatedPage,

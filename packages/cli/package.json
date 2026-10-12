@@ -21,6 +21,7 @@
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/errors": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@types/bun": "1.4.2",

@@ -166,6 +166,12 @@ export type WorldOptions = {
   policies?: Record<string, unknown>;
   /** Strategy platforms; defaults to the X credential's platform. */
   platforms?: string[];
+  /**
+   * The organization's opt-ins (#6526). Production defaults both to off; the world turns them
+   * on so a scenario exercises the feature, and a scenario that tests the opt-in turns one off.
+   */
+  isBreakoutResponsesEnabled?: boolean;
+  isBreakoutAutoPublishEnabled?: boolean;
 };
 
 /** Actor shape the workflow admission persists for a signed-in session user. */
@@ -214,6 +220,14 @@ export async function seedAcceptanceWorld(
       label: organizationId,
       slug: organizationId,
       userId: userIds.owner,
+    },
+  });
+  await db.organizationSetting.create({
+    data: {
+      isBreakoutAutoPublishEnabled:
+        options.isBreakoutAutoPublishEnabled ?? true,
+      isBreakoutResponsesEnabled: options.isBreakoutResponsesEnabled ?? true,
+      organizationId,
     },
   });
   await db.creditBalance.create({

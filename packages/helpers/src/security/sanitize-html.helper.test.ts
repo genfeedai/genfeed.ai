@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createMarkup,
+  plainTextToHtml,
   sanitizeHtml,
   stripHtmlToPlainText,
 } from './sanitize-html.helper';
@@ -282,6 +283,31 @@ describe('sanitize-html', () => {
       expect(
         stripHtmlToPlainText('<p>Para1</p><p></p><p></p><p>Para2</p>'),
       ).toBe('Para1\n\nPara2');
+    });
+  });
+
+  describe('plainTextToHtml', () => {
+    it('wraps blocks in paragraphs and keeps single newlines as breaks', () => {
+      expect(plainTextToHtml('One\nTwo\n\nThree')).toBe(
+        '<p>One<br>Two</p><p>Three</p>',
+      );
+    });
+
+    it('escapes angle brackets in plain text', () => {
+      expect(plainTextToHtml('I <3 this & that')).toBe(
+        '<p>I &lt;3 this &amp; that</p>',
+      );
+    });
+
+    it('keeps and sanitizes text that already has markup', () => {
+      expect(plainTextToHtml('<p>Hi</p><script>x()</script>')).toBe(
+        '<p>Hi</p>',
+      );
+    });
+
+    it('returns an empty string for empty input', () => {
+      expect(plainTextToHtml('  ')).toBe('');
+      expect(plainTextToHtml(null)).toBe('');
     });
   });
 });

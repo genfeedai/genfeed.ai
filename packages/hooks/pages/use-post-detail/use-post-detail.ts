@@ -78,6 +78,12 @@ export interface UsePostDetailReturn {
   handlePublishNow: () => Promise<void>;
   handlePublishViaTikTokApp: () => Promise<void>;
   handleAddToThread: () => Promise<void>;
+  handleAddThreadPosts: (descriptions: string[]) => Promise<void>;
+  handleSetGrokQuestion: (question: string) => Promise<void>;
+  handleDraftThread: (
+    postId: string,
+    tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+  ) => Promise<string[] | null>;
   handleDeletePost: () => void;
   handleDeleteChild: (childId: string) => void;
   handleSelectMedia: (
@@ -94,16 +100,19 @@ export interface UsePostDetailReturn {
     prompt: string,
     actionKey: PostQuickActionKey,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-  ) => Promise<void>;
+  ) => Promise<string | null>;
   handlePerTweetEnhance: (
     postId: string,
     prompt: string,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-  ) => Promise<void>;
+  ) => Promise<string | null>;
   handleDragStart: (postId: string) => void;
   handleDragEnd: () => void;
   handleDrop: (targetPostId: string, targetOrder: number) => Promise<void>;
-  handleToggleGrokFeedback: (checked: boolean) => Promise<void>;
+  handleToggleGrokFeedback: (
+    checked: boolean,
+    question?: string,
+  ) => Promise<void>;
   handleToggleFirstComment: (checked: boolean) => Promise<void>;
   handleUpdateChild: (childId: string, updates: Partial<IPost>) => void;
   handleExpandToThread: (count: 2 | 3 | 5) => Promise<void>;
@@ -186,7 +195,6 @@ export function usePostDetail({
     fetchPost: state.fetchPost,
     getPostsService: state.getPostsService,
     getReleaseGroupsService: state.getReleaseGroupsService,
-    handleUpdateChild: state.handleUpdateChild,
     isContentDirty: drafts.isContentDirty,
     isDescriptionDirty: drafts.isDescriptionDirty,
     isLabelDirty: drafts.isLabelDirty,
@@ -196,15 +204,11 @@ export function usePostDetail({
     post: state.post,
     router: state.router,
     scheduleDraft: drafts.scheduleDraft,
-    setChildDescriptions: drafts.setChildDescription,
-    setDescriptionDraft: drafts.setDescriptionDraft,
     setEnhancingAction: state.setEnhancingAction,
     setEnhancingPostId: state.setEnhancingPostId,
     setIsSavingDescription: state.setIsSavingDescription,
     setIsSavingSchedule: state.setIsSavingSchedule,
-    setPost: state.setPost,
     updateActivePost: state.updateActivePost,
-    updateDescriptionRefs: state.updateDescriptionRefs,
   });
 
   // 5. Media operations (gallery, illustration)
@@ -237,7 +241,9 @@ export function usePostDetail({
     firstCommentPost: state.firstCommentPost,
     focusedPostId: state.focusedPostId,
     getPostsService: state.getPostsService,
+    handleAddThreadPosts: thread.handleAddThreadPosts,
     handleAddToThread: thread.handleAddToThread,
+    handleDraftThread: actions.handleDraftThread,
     handleContentSave: actions.handleContentSave,
     handleDeleteChild: thread.handleDeleteChild,
     handleDeletePost: actions.handleDeletePost,
@@ -253,6 +259,7 @@ export function usePostDetail({
     handleScheduleSave: actions.handleScheduleSave,
     handleSelectMedia: media.handleSelectMedia,
     handleToggleFirstComment: thread.handleToggleFirstComment,
+    handleSetGrokQuestion: thread.handleSetGrokQuestion,
     handleToggleGrokFeedback: thread.handleToggleGrokFeedback,
     handleUpdateChild: state.handleUpdateChild,
     hasChildren: state.hasChildren,

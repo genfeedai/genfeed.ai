@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
 import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
@@ -11,6 +12,9 @@ import type { MediaVendorCostLedgerService } from '@api/services/media-vendor-co
 import {
   BRAND_DETECTION_CAPABILITY,
   BRAND_OCR_CAPABILITY,
+  BRAND_VISION_DETECT_MODEL_KEY,
+  BRAND_VISION_MODELS,
+  BRAND_VISION_OCR_MODEL_KEY,
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
 import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
@@ -140,6 +144,37 @@ describe('readBrandOcrText', () => {
     ['an object with text', { text: "{'<OCR>': 'Sale\nnow'}" }, 'Sale\nnow'],
     ['an object keyed by the task', { '<OCR>': 'Example Co' }, 'Example Co'],
     ['an empty read', { text: "{'<OCR>': ''}" }, ''],
+    // Florence-2 prints a Python repr: line breaks and quotes arrive escaped.
+    [
+      'the live Florence-2 answer with its escaped line break',
+      { img: null, text: "{'<OCR>': 'GENFEED SALE\\n'}" },
+      'GENFEED SALE\n',
+    ],
+    [
+      'escaped line breaks between lines',
+      "{'<OCR>': 'GENFEED\\nSALE\\r\\n50%\\tOFF'}",
+      'GENFEED\nSALE\r\n50%\tOFF',
+    ],
+    [
+      'an escaped quote and backslash',
+      "{'<OCR>': 'It\\'s a \\\\ sale'}",
+      "It's a \\ sale",
+    ],
+    [
+      'a double quoted repr holding an apostrophe',
+      "{'<OCR>': \"It's on sale\"}",
+      "It's on sale",
+    ],
+    [
+      'hex and unicode escapes',
+      "{'<OCR>': 'caf\\xe9 \\u2713 \\U0001f600'}",
+      'café ✓ \u{1f600}',
+    ],
+    [
+      'an escape that names no code point, left as written',
+      "{'<OCR>': 'a\\U00110000b \\q'}",
+      'a\\U00110000b \\q',
+    ],
   ])('reads %s', (_name, output, expected) => {
     expect(readBrandOcrText(output)).toBe(expected);
   });
@@ -247,7 +282,7 @@ describe('BrandReplicateVisionProvider', () => {
       )
       .mockResolvedValueOnce(prediction());
     const pending = provider.extractText({ frames: [frame], scope });
-    await vi.advanceTimersByTimeAsync(2_000);
+    await vi.advanceTimersByTimeAsync(4_000);
     expect((await pending).texts).toEqual(['Example Co']);
     expect(predictions.get).toHaveBeenCalledTimes(2);
   });
@@ -306,8 +341,25 @@ describe('BrandReplicateVisionProvider', () => {
     ).rejects.toThrow('brand_vision_output_unrecognized');
     expect(ledger.record).toHaveBeenCalledTimes(1);
   });
-  it('cancels a prediction that never finishes', async () => {
+  it('waits through a cold start of several minutes', async () => {
     const { predictions, provider } = setup();
+    const starting = prediction({
+      metrics: undefined,
+      output: undefined,
+      status: 'starting',
+    });
+    predictions.create.mockResolvedValueOnce(starting);
+    predictions.get.mockResolvedValue(starting);
+    const pending = provider.extractText({ frames: [frame], scope });
+    await vi.advanceTimersByTimeAsync(4 * 60_000);
+    expect(predictions.get).toHaveBeenCalled();
+    predictions.get.mockResolvedValue(prediction());
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect((await pending).texts).toEqual(['Example Co']);
+    expect(predictions.cancel).not.toHaveBeenCalled();
+  });
+  it('cancels a prediction that never finishes after five minutes and prices what it ran', async () => {
+    const { ledger, predictions, provider } = setup();
     const unfinished = prediction({
       metrics: undefined,
       output: undefined,
@@ -315,11 +367,23 @@ describe('BrandReplicateVisionProvider', () => {
     });
     predictions.create.mockResolvedValueOnce(unfinished);
     predictions.get.mockResolvedValue(unfinished);
+    predictions.cancel.mockResolvedValueOnce(
+      prediction({ metrics: { predict_time: 3 }, status: 'canceled' }),
+    );
     const pending = provider.extractText({ frames: [frame], scope });
     const settled = expect(pending).rejects.toThrow('brand_vision_timeout');
-    await vi.advanceTimersByTimeAsync(61_000);
+    await vi.advanceTimersByTimeAsync(299_000);
+    expect(predictions.cancel).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(4_000);
     await settled;
     expect(predictions.cancel).toHaveBeenCalledWith('pred-1');
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        costEvidence: 'calculated',
+        pricingSnapshot: expect.objectContaining({ status: 'canceled' }),
+        units: 3,
+      }),
+    );
   });
   it.each([
     ['no model is selected', { settings: { brandVisionOcrModelKey: null } }],
@@ -548,5 +612,225 @@ describe('BrandReplicateVisionProvider detection', () => {
       }),
     ).rejects.toThrow('brand_vision_output_unrecognized');
     expect(ledger.record).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Shapes recorded against Replicate on 2026-10-12 (#6727, lane Z). The schema
+// files are the pinned versions' own openapi_schema; the OCR answer and the
+// detector's empty answer are live predictions; the detector's boxes come from the
+// model owner's published example for the pinned version (our live prediction on a
+// synthetic logo found no region, so no live box has been seen).
+const readFixture = async <T>(file: string): Promise<T> =>
+  JSON.parse(
+    await readFile(
+      new URL(`./fixtures/replicate-vision/${file}`, import.meta.url),
+      'utf8',
+    ),
+  ) as T;
+
+interface JsonSchemaProperty {
+  enum?: string[];
+  maximum?: number;
+  minimum?: number;
+  type: string;
+}
+interface PinnedSchema {
+  Input: {
+    properties: Record<string, JsonSchemaProperty>;
+    required?: string[];
+  };
+  Output: { properties: Record<string, unknown>; required?: string[] };
+  version: string;
+}
+interface LiveOcrRecording {
+  ledger: { units: number; vendorCostMicros: number };
+  metrics: { predict_time: number };
+  output: { img: string | null; text: string };
+  version: string;
+}
+interface LiveDetectionRecording {
+  ledger: { units: number; vendorCostMicros: number };
+  metrics: { predict_time: number };
+  output: { json_data: { objects: unknown[] }; result_image: string | null };
+  version: string;
+}
+interface PublishedDetectionExample {
+  input: Record<string, unknown>;
+  output: { json_data: { objects: unknown[] } };
+  version: string;
+}
+
+function catalogRowFor(key: string): CatalogRow {
+  const model = BRAND_VISION_MODELS.find((entry) => entry.key === key);
+  if (!model) throw new Error(`no catalog model ${key}`);
+  return catalogRow({
+    capabilities: [model.capability],
+    externalId: model.externalId,
+    key: model.key,
+    label: model.label,
+    providerCostUsd: model.providerCostUsd,
+  });
+}
+
+describe('Replicate vision models as verified against the live API', () => {
+  const realRows = [
+    catalogRowFor(BRAND_VISION_OCR_MODEL_KEY),
+    catalogRowFor(BRAND_VISION_DETECT_MODEL_KEY),
+  ];
+  const realSettings = {
+    brandVisionDetectModelKey: BRAND_VISION_DETECT_MODEL_KEY,
+    brandVisionOcrModelKey: BRAND_VISION_OCR_MODEL_KEY,
+  };
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ['florence-2-large.schema.json', BRAND_VISION_OCR_MODEL_KEY],
+    ['owlvit-base-patch32.schema.json', BRAND_VISION_DETECT_MODEL_KEY],
+  ])('pins the schema %s to the catalog version', async (file, key) => {
+    const schema = await readFixture<PinnedSchema>(file);
+    const model = BRAND_VISION_MODELS.find((entry) => entry.key === key);
+    expect(model?.externalId.endsWith(`:${schema.version}`)).toBe(true);
+  });
+
+  it('sends Florence-2 only inputs its schema defines, with the required image and an enum task', async () => {
+    const schema = await readFixture<PinnedSchema>(
+      'florence-2-large.schema.json',
+    );
+    const { predictions, provider } = setup({
+      rows: realRows,
+      settings: realSettings,
+    });
+    await provider.extractText({ frames: [frame], scope });
+    const sent = (
+      predictions.create.mock.calls[0] as unknown as [
+        { input: Record<string, unknown> },
+      ]
+    )[0].input;
+    for (const name of Object.keys(sent))
+      expect(schema.Input.properties).toHaveProperty(name);
+    for (const name of schema.Input.required ?? [])
+      expect(sent).toHaveProperty(name);
+    expect(schema.Input.properties.task_input?.enum).toContain(sent.task_input);
+    expect(schema.Output.required).toEqual(['text']);
+  });
+
+  it('sends OWL-ViT only inputs its schema defines, inside their bounds', async () => {
+    const schema = await readFixture<PinnedSchema>(
+      'owlvit-base-patch32.schema.json',
+    );
+    const { predictions, provider } = setup({
+      rows: realRows,
+      settings: realSettings,
+    });
+    predictions.create.mockResolvedValueOnce(
+      prediction({ output: { json_data: { objects: [] } } }),
+    );
+    await provider.detectRegions({
+      frames: [await png(60, 40)],
+      query: 'logo',
+      scope,
+    });
+    const sent = (
+      predictions.create.mock.calls[0] as unknown as [
+        { input: Record<string, unknown> },
+      ]
+    )[0].input;
+    for (const name of Object.keys(sent))
+      expect(schema.Input.properties).toHaveProperty(name);
+    for (const name of schema.Input.required ?? [])
+      expect(sent).toHaveProperty(name);
+    expect(schema.Input.properties.query?.type).toBe('string');
+    expect(schema.Input.properties.show_visualisation?.type).toBe('boolean');
+    const threshold = schema.Input.properties.threshold;
+    expect(sent.threshold).toBeGreaterThanOrEqual(threshold?.minimum ?? 0);
+    expect(sent.threshold).toBeLessThanOrEqual(threshold?.maximum ?? 1);
+    expect(schema.Output.required).toEqual(['json_data']);
+  });
+
+  it('reads the live Florence-2 answer to the exact text and prices it from the reported runtime', async () => {
+    const recording = await readFixture<LiveOcrRecording>(
+      'florence-2-large.ocr.live.json',
+    );
+    const { ledger, predictions, provider } = setup({
+      rows: realRows,
+      settings: realSettings,
+    });
+    predictions.create.mockResolvedValueOnce(
+      prediction({
+        metrics: recording.metrics,
+        output: recording.output,
+        version: recording.version,
+      }),
+    );
+    const result = await provider.extractText({ frames: [frame], scope });
+    expect(result.texts).toEqual(['GENFEED SALE\n']);
+    expect(result.provider).toEqual({
+      id: 'replicate',
+      model: BRAND_VISION_OCR_MODEL_KEY,
+      version: recording.version,
+    });
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        costEvidence: 'calculated',
+        units: recording.ledger.units,
+        vendorCostMicros: recording.ledger.vendorCostMicros,
+      }),
+    );
+  });
+
+  it('reads the live OWL-ViT answer with no region as an empty list and prices it from the reported runtime', async () => {
+    const recording = await readFixture<LiveDetectionRecording>(
+      'owlvit-base-patch32.detect.live.json',
+    );
+    const { ledger, predictions, provider } = setup({
+      rows: realRows,
+      settings: realSettings,
+    });
+    predictions.create.mockResolvedValueOnce(
+      prediction({
+        metrics: recording.metrics,
+        output: recording.output,
+        version: recording.version,
+      }),
+    );
+    const result = await provider.detectRegions({
+      frames: [await png(800, 600)],
+      query: 'logo',
+      scope,
+    });
+    expect(result.frames).toEqual([[]]);
+    expect(result.provider.version).toBe(recording.version);
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'brand-validation-vision',
+        costEvidence: 'calculated',
+        units: recording.ledger.units,
+        vendorCostMicros: recording.ledger.vendorCostMicros,
+      }),
+    );
+  });
+
+  it("reads OWL-ViT's published example into fractional regions, best first", async () => {
+    const example = await readFixture<PublishedDetectionExample>(
+      'owlvit-base-patch32.default-example.json',
+    );
+    // The example's pixel boxes fit this frame; one box reaches y = -1.
+    const regions = readBrandDetections(example.output, {
+      height: 509,
+      width: 512,
+    });
+    expect(regions).toHaveLength(example.output.json_data.objects.length);
+    expect(regions?.map((region) => region.score)).toEqual(
+      [...(regions ?? [])].map((region) => region.score).sort((a, b) => b - a),
+    );
+    for (const region of regions ?? []) {
+      expect(region.box.x).toBeGreaterThanOrEqual(0);
+      expect(region.box.y).toBeGreaterThanOrEqual(0);
+      expect(region.box.x + region.box.width).toBeLessThanOrEqual(1);
+      expect(region.box.y + region.box.height).toBeLessThanOrEqual(1);
+    }
+    expect(regions?.[0]?.score).toBeCloseTo(0.357136, 5);
+    expect(regions?.[0]?.box.x).toBeCloseTo(180 / 512, 6);
   });
 });

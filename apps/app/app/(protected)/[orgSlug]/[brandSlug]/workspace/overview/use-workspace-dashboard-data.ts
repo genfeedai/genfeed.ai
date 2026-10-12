@@ -6,6 +6,7 @@ import type {
   ITimeSeriesApiDataPoint,
 } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
@@ -109,7 +110,7 @@ export function normalizeTopPosts(
     id: post.postId,
     platform: post.platform,
     ...(post.label || post.description
-      ? { title: post.label ?? post.description }
+      ? { title: post.label || stripHtmlToPlainText(post.description) }
       : {}),
     ...(post.thumbnailUrl ? { thumbnail: post.thumbnailUrl } : {}),
     views: post.totalViews,

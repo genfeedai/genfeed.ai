@@ -9,6 +9,7 @@ import {
   hashBrandedGenerationRequestV1,
   hashBrandedGenerationResolutionV1,
   hashBrandedGenerationTextV1,
+  hashBrandFactClaimsV1,
   hashBrandGenerationRulesReviewV1,
   hashBrandIdentitySnapshotV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -1030,5 +1031,40 @@ describe('canonical saved voice guideline identity hashing', () => {
       }),
     ).toBe(digest);
     expect(exact.voice.guidelines).toBe('  Café 😀\r\n exact\t ');
+  });
+});
+
+describe('fact claim list hash', () => {
+  const claim = {
+    evidence: [
+      {
+        evidenceId: 'fact:rule',
+        origin: 'brand_os' as const,
+        quote: 'Shipping takes: two days',
+        ruleId: 'rule',
+      },
+    ],
+    id: 'claim-1',
+    origin: 'text' as const,
+    source: 'Orders ship in two days',
+    text: 'Orders ship in two days',
+    verdict: 'supported' as const,
+  };
+  it('is domain-separated, stable and sensitive to every claim field', () => {
+    const digest = hashBrandFactClaimsV1([claim]);
+    expect(digest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(hashBrandFactClaimsV1([{ ...claim }])).toBe(digest);
+    expect(hashBrandFactClaimsV1([])).not.toBe(digest);
+    expect(
+      hashBrandFactClaimsV1([{ ...claim, verdict: 'unverified' }]),
+    ).not.toBe(digest);
+    expect(
+      hashBrandFactClaimsV1([{ ...claim, text: 'Orders ship in 3 days' }]),
+    ).not.toBe(digest);
+    expect(
+      hashBrandedGenerationJsonV1('brand-validation-report-v1', {
+        claims: [claim],
+      }),
+    ).not.toBe(digest);
   });
 });

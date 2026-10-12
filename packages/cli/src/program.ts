@@ -7,6 +7,7 @@ import { configCommand } from '@/commands/config';
 import { connectCommand } from '@/commands/connect';
 import { creditsCommand } from '@/commands/credits';
 import { generateCommand } from '@/commands/generate/index';
+import { hostCommand } from '@/commands/host/index';
 import { insightsCommand } from '@/commands/insights';
 import { jobCommand } from '@/commands/job';
 import { keysCommand } from '@/commands/keys';
@@ -78,5 +79,6 @@ export function createProgram(): Command {
     .addCommand(postsCommand)
     .addCommand(connectCommand)
     .addCommand(configCommand)
-    .addCommand(toolsCommand);
+    .addCommand(toolsCommand)
+    .addCommand(hostCommand);
 }

@@ -1,7 +1,10 @@
 import { TargetExecutionState } from '@genfeedai/contracts';
 import axios from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AgentToolsService } from '~services/agent-tools.service';
+import {
+  AgentActionError,
+  AgentToolsService,
+} from '~services/agent-tools.service';
 
 vi.mock('axios', () => ({ default: { create: vi.fn() } }));
 
@@ -323,6 +326,49 @@ describe('AgentToolsService', () => {
         'brand-1',
       ),
     ).rejects.toThrow('Account is unavailable');
+  });
+
+  it.each([
+    [
+      'a credit limit',
+      {
+        creditsUsed: 0,
+        data: { code: 'insufficient_credits' },
+        error: 'Not enough credits to generate content.',
+        success: false,
+      },
+      'insufficient_credits',
+    ],
+    [
+      'a provider outage',
+      {
+        creditsUsed: 0,
+        data: { code: 'provider_unavailable' },
+        error: 'The text provider is unavailable.',
+        success: false,
+      },
+      'provider_unavailable',
+    ],
+    [
+      'a failure without a code',
+      { error: 'A brand is required to edit text.', success: false },
+      null,
+    ],
+    [
+      'an approval requirement',
+      { requiresConfirmation: true, success: true },
+      'approval_required',
+    ],
+  ])('keeps the reason code of %s', async (_label, data, code) => {
+    post.mockResolvedValue({ data });
+
+    const failure = await new AgentToolsService('token')
+      .execute('refine', { mode: 'rewrite', text: 'Draft' })
+      .catch((error) => error);
+
+    expect(failure).toBeInstanceOf(AgentActionError);
+    expect(failure.code).toBe(code);
+    expect(failure.message).toBeTruthy();
   });
 });
 

@@ -20,7 +20,8 @@ const source = {
   externalId: 'tweet-a',
 };
 
-function harness() {
+function harness(isBreakoutResponsesEnabled = true) {
+  const findSettings = vi.fn(async () => ({ isBreakoutResponsesEnabled }));
   const findResponse = vi.fn(
     async (): Promise<{ id: string } | null> => ({
       id: 'response-a',
@@ -31,13 +32,21 @@ function harness() {
   const warn = vi.fn();
   const deps = {
     prisma: {
+      organizationSetting: { findFirst: findSettings },
       breakoutResponse: { findFirst: findResponse },
       agentStrategy: { findMany: findStrategies },
     },
     queue: { queueSystemWorkflow },
     logger: { warn },
   } as unknown as Parameters<typeof enqueueDetectedBreakoutResponse>[0];
-  return { deps, findResponse, findStrategies, queueSystemWorkflow, warn };
+  return {
+    deps,
+    findResponse,
+    findSettings,
+    findStrategies,
+    queueSystemWorkflow,
+    warn,
+  };
 }
 
 describe('enqueueDetectedBreakoutResponse', () => {
@@ -73,6 +82,56 @@ describe('enqueueDetectedBreakoutResponse', () => {
       organizationId: 'org-a',
       source: 'breakout-response',
       userId: 'user-a',
+    });
+  });
+
+  describe('the organization opt-in (#6526)', () => {
+    it('enqueues nothing and reads nothing else while breakout responses are off', async () => {
+      const h = harness(false);
+      await expect(
+        enqueueDetectedBreakoutResponse(h.deps, actor, source),
+      ).resolves.toBeNull();
+      expect(h.findSettings).toHaveBeenCalledWith({
+        select: expect.objectContaining({ isBreakoutResponsesEnabled: true }),
+        where: { organizationId: 'org-a' },
+      });
+      expect(h.findResponse).not.toHaveBeenCalled();
+      expect(h.findStrategies).not.toHaveBeenCalled();
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('treats an organization without a settings row as off', async () => {
+      const h = harness();
+      h.findSettings.mockResolvedValue(
+        null as unknown as { isBreakoutResponsesEnabled: boolean },
+      );
+      await expect(
+        enqueueDetectedBreakoutResponse(h.deps, actor, source),
+      ).resolves.toBeNull();
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('reads the setting for every enqueue, so turning it off takes effect at once', async () => {
+      const h = harness();
+      await expect(
+        enqueueDetectedBreakoutResponse(h.deps, actor, source),
+      ).resolves.toBe('job');
+      h.findSettings.mockResolvedValueOnce({
+        isBreakoutResponsesEnabled: false,
+      });
+      await expect(
+        enqueueDetectedBreakoutResponse(h.deps, actor, source),
+      ).resolves.toBeNull();
+      expect(h.queueSystemWorkflow).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays silent after commit while off: the detection is kept and nothing is warned or queued', async () => {
+      const h = harness(false);
+      await expect(
+        enqueueDetectedBreakoutResponseAfterCommit(h.deps, actor, source),
+      ).resolves.toBeUndefined();
+      expect(h.queueSystemWorkflow).not.toHaveBeenCalled();
+      expect(h.warn).not.toHaveBeenCalled();
     });
   });
 
