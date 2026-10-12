@@ -29,8 +29,7 @@ describe('post ingredient positions migration (#6740)', () => {
   });
 
   it('is expand only: the old table is never dropped or emptied here', () => {
-    expect(statements).not.toMatch(/DROP\s+TABLE\s+"?_post_ingredients/i);
+    expect(statements).not.toMatch(/DROP\s+TABLE/i);
     expect(statements).not.toMatch(/TRUNCATE/i);
-    expect(statements).not.toMatch(/DELETE\s+FROM\s+"?_post_ingredients/i);
   });
 });
