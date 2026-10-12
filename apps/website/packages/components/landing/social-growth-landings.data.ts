@@ -56,7 +56,7 @@ function socialGrowthFaqs({
       question: 'Will it sound like me?',
     },
     {
-      answer: `No. Genfeed handles the research, production, scheduling, and analytics. We do not ${refusedTactics}, or use anything that puts the account at risk.`,
+      answer: `No. You choose what publishes and send your own replies. Genfeed helps prepare drafts and schedule approved posts. We do not ${refusedTactics}.`,
       question: 'Is this bots and fake engagement?',
     },
     {
@@ -111,106 +111,107 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     isAgentFirst: true,
     badge: 'X Growth',
     closingDescription:
-      'Connect your agent and turn your next product update into content for X. Review the drafts in Genfeed, then publish when you are ready.',
-    closingTitle: 'Grow On X Without Living On X',
+      'Turn your next product update into posts for X. Review the drafts, choose when to publish and use the available results to plan what comes next.',
+    closingTitle: 'Grow Your X Account From What You Ship',
     deliverableBuckets: [
       {
         items: [
-          'Positioning and content pillars for your niche',
-          'Voice calibration from your past posts and notes',
-          'Target accounts and conversations to show up in',
-          'Weekly themes tied to your launches and news',
+          'Content ideas drawn from your product updates and expertise',
+          'Writing samples and brand context for your drafts',
+          'Source posts and conversations you choose to respond to',
+          'Post ideas tied to your launches and customer questions',
         ],
-        title: 'Strategy',
+        title: 'Plan',
       },
       {
         items: [
-          'Daily posts with hooks written for the timeline',
-          'Threads built from your long-form, calls, and notes',
-          'Short video clips and visuals sized for X',
-          'Reply and quote-post drafts on relevant conversations',
+          'Posts that explain what you are building and why it matters',
+          'Threads developed from your notes and longer content',
+          'Visuals and video drafts for your posts',
+          'Reply and quote-post drafts for conversations you select',
         ],
-        title: 'Content',
+        title: 'Create',
       },
       {
         items: [
-          'Scheduling around when your audience is online',
-          'Tracking impressions, replies, reposts, and profile clicks',
-          'Doubling down on the topics and formats that grow followers',
-          'Monthly review of what is working and what changes next',
+          'Review and editing before publication',
+          'Scheduling to your connected X account at times you choose',
+          'Available views and engagement for your published posts',
+          'Reviewing results before creating the next batch',
         ],
-        title: 'Growth Ops',
+        title: 'Publish And Review',
       },
     ],
     deliverablesDescription:
-      'The full X growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the account, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+      'Bring your content drafts, brand context and publishing into one workspace. Your connected agent helps prepare the content; you choose what goes live.',
+    deliverablesTitle: 'What You Can Do',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
-        'Solo founders and operators whose buyers, peers, or future hires are on X, and who want to turn what they ship into content from the agent they already use.',
+        'Founders, developers and operators who have a product or expertise to share, and want to build an audience where their buyers and peers spend time.',
       platform: 'X',
       refusedTactics:
         'buy followers, run engagement pods, or use follow/unfollow tactics',
       selfServe:
-        'trend monitoring, posts and threads, reply drafts, scheduling, and analytics',
+        'posts, threads, visuals, reply drafts, scheduling, and available post analytics',
     }),
     faqTitle: 'Common Questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
-      'Your buyers, investors, or future hires already read X, and your account is not where it should be.',
-      'You have opinions and expertise, but posting daily and replying in real time does not fit your calendar.',
-      'You want an account that sounds like you, not like an engagement-bait ghostwriter.',
+      'You are building something useful, but few people hear about it.',
+      'Your buyers and peers are on X, and you have something relevant to contribute.',
+      'You want to publish and join conversations in your own voice while keeping time for your product.',
     ],
     heroAccent: 'X account',
     heroDescription:
-      'Turn what you ship into X posts, threads, and visuals with the agent you already use. Genfeed adds your brand voice, scheduling, and analytics. You approve what publishes.',
+      'Turn product updates and expertise into posts, threads and visuals with your agent. Draft useful replies, review the content and choose what to publish.',
     heroTitle: 'Grow your',
     includes: [
-      'X growth strategy and content pillars',
-      'Voice calibration',
-      'Daily posts and threads',
-      'Video clips and visuals',
-      'Trend monitoring in your niche',
+      'Content ideas from your product and expertise',
+      'Brand context and writing samples',
+      'Posts and threads',
+      'Visuals and video drafts',
+      'Saved source posts to respond to or build on',
       'Reply and quote-post drafts',
-      'Scheduling and publishing',
-      'Monthly performance review',
+      'Review, scheduling and publishing',
+      'Available post performance data',
     ],
     intro:
-      'X rewards accounts that show up every day with a sharp point of view and join the conversation while it is still moving. Almost nobody can sustain that on top of a real job. Genfeed handles trend monitoring, drafting in your voice, replies, scheduling, and analytics. Ask your connected agent for the next batch from your product updates, notes, or customer insights. Review the drafts in Genfeed before publishing.',
+      'Your product updates, customer questions and hard-earned lessons give you something worth sharing. Ask your connected agent to turn them into content for X. Choose relevant conversations, prepare replies that add something useful and review every draft. Genfeed keeps the content and publishing work in one workspace so you can keep building.',
     metaDescription:
-      'Grow on X with your existing AI agent. Create posts, threads, and reply drafts in Genfeed, review the results, then schedule approved content.',
-    metaTitle: 'X (Twitter) Growth With Your Agent | Genfeed.ai',
+      'Build an audience around what you ship on X. Use Genfeed with your agent for posts, threads, visuals and reply drafts, then review and schedule approved content.',
+    metaTitle: 'Grow Your X Account With Genfeed',
     outcomes: [
       {
         description:
-          'Genfeed watches the trends and conversations in your niche, so your takes land while the topic is still moving.',
+          'Turn product updates, demos and lessons into posts that explain why your work matters to the people you want to reach.',
         icon: TrendingUp,
-        title: 'Timely, Not Late',
+        title: 'Give People A Reason To Follow',
       },
       {
         description:
-          'A steady queue of posts, threads, and clips, scheduled for when your audience is actually online.',
+          'Prepare a batch of posts and threads, review the drafts and schedule them at times you choose.',
         icon: CalendarRange,
-        title: 'A Daily Cadence',
+        title: 'Keep Showing Up',
       },
       {
         description:
-          'Reply and quote-post drafts on the accounts that matter in your space, the fastest way in front of new followers.',
+          'Choose a relevant conversation and draft a reply or quote-post that contributes an answer, an example or your perspective. Review it before sending.',
         icon: MessageCircle,
-        title: 'Replies That Build Reach',
+        title: 'Join Useful Conversations',
       },
     ],
     outcomesDescription:
-      'Growth on X comes from consistency, timing, and conversation. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+      'Make your work easier to discover through useful posts and real conversations, with a publishing routine you can sustain.',
+    outcomesTitle: 'What This Helps You Do',
     process: agentLandingProcess(
-      'Ask your agent to turn a product update or note into X posts, threads, and reply drafts in your voice.',
+      'Ask your agent to turn a product update into posts and threads, or draft a reply to a conversation you select.',
     ),
-    processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
+    processDescription:
+      'Your agent prepares drafts. You edit and approve them, schedule posts and review available performance. You choose and send each reply.',
     processTitle: 'How It Works',
     slug: 'x',
-    title: 'X Growth With Your Agent',
+    title: 'X Growth With Genfeed',
   },
   {
     isAgentFirst: true,

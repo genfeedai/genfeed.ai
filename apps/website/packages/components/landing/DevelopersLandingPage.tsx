@@ -38,27 +38,27 @@ const MCP_SNIPPET = `{
 const FEATURES = [
   {
     description:
-      'Connect Claude, Cursor, or any MCP client to a curated catalog of content actions. Your agent drafts, schedules, and publishes. Every risky action is gated behind human review.',
+      'Connect your agent to Genfeed for content drafts, scheduling and available analytics. Claude uses the content connector; clients on the standard MCP connector can also generate media.',
     icon: Terminal,
-    title: 'MCP Server Built In',
+    title: 'Connect Through MCP',
   },
   {
     description:
-      'The whole platform is AGPL open source. Run it with Docker on your own infrastructure, with your own provider keys. No black box between your agent and your channels.',
+      'Inspect the AGPL-licensed source, adapt it to your workflow, or run the stack with Docker and your own provider keys. Use managed cloud when you want hosting handled for you.',
     icon: GitBranch,
-    title: 'Open Source, Self-Hostable',
+    title: 'Run It Your Way',
   },
   {
     description:
-      'X, LinkedIn, Instagram, TikTok, YouTube, Discord, Slack, Telegram, and dozens more. One connected surface instead of a pile of platform SDKs and OAuth dances.',
+      'Create content for X, LinkedIn and other supported destinations from the same workspace. Connect the accounts you need and check the available publishing actions for each.',
     icon: Layers,
-    title: 'Every Channel, One Surface',
+    title: 'Reuse Your Connected Accounts',
   },
   {
     description:
-      'Recurring publishing runs on a real workflow engine with triggers, schedules, and approval gates. Automation you can inspect, not a cron job you have to trust.',
+      'Use the standard MCP connector or Genfeed Studio to build generation and publishing workflows with triggers and schedules. Review outputs and inspect execution status when a run needs attention.',
     icon: Server,
-    title: 'Workflow Engine Underneath',
+    title: 'Build Repeatable Workflows',
   },
 ];
 
@@ -66,44 +66,47 @@ const STEPS = [
   {
     icon: FileText,
     label: 'Brief',
-    sublabel: 'Send a brief from your agent, workflow, or the studio',
+    sublabel:
+      'Send a product update or content brief from your connected agent',
   },
   {
     icon: Sparkles,
     label: 'Generate',
-    sublabel: 'Platform-native posts, images, and video from one brief',
+    sublabel:
+      'Create drafts and assets with the tools available to your client',
   },
   {
     icon: BadgeCheck,
     label: 'Review',
-    sublabel: 'Human approval gates before anything goes live',
+    sublabel: 'Review the content and choose what to schedule or publish',
   },
   {
     icon: Send,
     label: 'Publish',
-    sublabel: 'Scheduled delivery to every connected channel',
+    sublabel:
+      'Publish to supported connected accounts and read available metrics',
   },
 ];
 
 const FAQS = [
   {
     answer:
-      'Yes. The monorepo is AGPL-3.0 and public on GitHub: the API, the generation pipelines, the workflow engine, and the MCP server. Enterprise features live in a clearly separated commercial directory.',
+      'Yes. The public AGPL-licensed monorepo includes the API, generation pipelines, workflow engine and MCP server. You can inspect and adapt the source under its license.',
     question: 'Is it actually open source?',
   },
   {
     answer:
-      'Yes. The self-hosted stack runs with Docker on your own infrastructure with your own model provider keys. Self-hosting is free; the cloud version adds managed credits, hosted MCP, and zero-ops publishing.',
+      'Yes. Run the Docker stack with your own infrastructure and provider keys. The open-source software has no platform fee; you cover hosting and model costs. Managed cloud handles hosting and uses Genfeed credits.',
     question: 'Can I self-host it?',
   },
   {
     answer:
-      'The MCP server is the programmatic surface today: connect Claude, Cursor, or any MCP client and drive content through a reviewed action catalog. Headless API keys for direct REST access are on the public roadmap.',
-    question: 'Is there a public REST API?',
+      'Start with the documented MCP connection for your agent. Claude uses browser authorization and the content connector; other supported clients use the standard /mcp connector. The documentation covers endpoints, authentication and client-specific capabilities.',
+    question: 'How do I integrate Genfeed with my agent?',
   },
   {
     answer:
-      'Cloud pricing is usage-based. Credits meter generation and publishing output, with a free tier to start. There are no hard caps on brands or connected channels. Self-hosted has no platform fee at all.',
+      'Start for $0 on managed cloud. Paid usage follows your plan and credits. Self-hosting has no Genfeed platform fee; you pay for your infrastructure and model providers.',
     question: 'How does pricing work?',
   },
 ];
@@ -118,8 +121,8 @@ export default function DevelopersLandingPage(): React.ReactElement {
         heroMedia={<MarketingArtwork page="/developers" />}
         badge="Genfeed for Developers"
         badgeIcon={Terminal}
-        title="Content infrastructure for developers"
-        description="One open-source surface to generate, review, and publish brand-native content on every channel, driven by your agents, your workflows, or your own self-hosted stack."
+        title="Distribution for developers"
+        description="Connect your agent to Genfeed to turn product updates into content drafts, media and scheduled posts. Use the hosted MCP server or run the open-source stack yourself."
         heroActions={
           <>
             <ButtonTracked
@@ -129,7 +132,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               trackingData={{ action: 'start_free' }}
             >
               <Link href={signUpHref} target="_blank" rel="noopener noreferrer">
-                Start creating
+                Start for $0
                 <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
@@ -160,7 +163,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
             <p className="border-t border-edge/5 bg-background/95 px-4 py-3 text-xs text-surface/55">
               Connect Claude for drafts, scheduling and analytics, then open
               Genfeed Studio for media creation. Cursor and other MCP clients
-              can also generate assets through the full connector.
+              can also generate assets through the standard connector.
             </p>
           </div>
         }
@@ -172,14 +175,13 @@ export default function DevelopersLandingPage(): React.ReactElement {
           <div className="gen-card-spotlight p-8">
             <div className="flex flex-col gap-3">
               <Heading as="h3" className="text-2xl font-bold">
-                Distribution Is the Bottleneck, Not Generation
+                Distribution As Tool Calls
               </Heading>
               <Text as="p" className="text-surface/65">
-                Any model can generate content. The hard part is everything
-                after: making it platform-native, keeping it on-brand, getting
-                it approved, publishing it to eight channels, and reading what
-                worked. Genfeed is that layer: open source, agent-ready, and
-                built to run on your terms.
+                Your agent calls Genfeed over MCP: read brand context, create
+                drafts, check publishing readiness and schedule approved posts.
+                Read available analytics before the next run. Use the hosted
+                server or connect to your own deployment.
               </Text>
               <div className="flex flex-row items-center flex-wrap gap-2">
                 {['Generate', 'Review', 'Publish', 'Measure'].map((tag) => (
@@ -198,7 +200,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         {/* Features grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
-            Built Like Infrastructure, Not a Marketing Tool
+            The Building Blocks For Your Integration
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
             {FEATURES.map((feature) => {
@@ -228,7 +230,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         {/* How it works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-12">
-            From Brief to Published, Programmatically
+            Connect, Draft, Review, Publish
           </Heading>
           <div className="space-y-0">
             {STEPS.map((step, index) => {
@@ -298,11 +300,11 @@ export default function DevelopersLandingPage(): React.ReactElement {
               <Terminal className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
-              Ship Content Like You Ship Code
+              Connect Your Agent To Genfeed
             </Heading>
             <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Connect the MCP server, or clone the repo and run the whole stack
-              yourself. Free to start, open source forever.
+              Connect your agent for a first draft, or explore the source to run
+              and adapt Genfeed yourself. Start for $0 on managed cloud.
             </Text>
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <ButtonTracked
@@ -316,7 +318,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Start creating
+                  Start for $0
                 </Link>
               </ButtonTracked>
               <ButtonTracked
