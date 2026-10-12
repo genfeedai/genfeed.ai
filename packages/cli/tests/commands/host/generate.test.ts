@@ -1,5 +1,5 @@
 import { readdirSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -35,7 +35,8 @@ async function setup(
     bin,
     dependencies: {
       config: options.config ?? emptyHostConfig(),
-      env: { FAKE_RECORD: record, HOME: home, PATH: bin } as NodeJS.ProcessEnv,
+      // The fake CLIs call cat, sleep and friends, so the system bins stay on PATH.
+      env: { FAKE_RECORD: record, HOME: home, PATH: `${bin}:/usr/bin:/bin` } as NodeJS.ProcessEnv,
       environment: { homeDirectory: home, pathValue: bin, systemDirectories: [] },
       fetchImpl: options.fetchImpl ?? (vi.fn() as unknown as FetchLike),
       timeoutMs: options.timeoutMs ?? 5_000,
@@ -43,10 +44,6 @@ async function setup(
     home,
     record,
   };
-}
-
-function scratchDirectories(): string[] {
-  return readdirSync(os.tmpdir()).filter((name) => name.startsWith('genfeed-host-'));
 }
 
 async function pidIsGone(pid: number): Promise<boolean> {
@@ -118,21 +115,31 @@ describe('generateText with a local CLI', () => {
     await expect(readFile(sentinel, 'utf8')).rejects.toThrow();
   });
 
-  it('removes its scratch directory after the run', async () => {
-    const { bin, dependencies } = await setup();
-    await writeExecutable(bin, 'claude', 'cat > /dev/null; echo ok');
-    const before = scratchDirectories();
+  it('runs in a private scratch directory and removes it after the run', async () => {
+    const { bin, dependencies, home } = await setup();
+    const scratchRoot = path.join(home, 'tmp');
+    await mkdir(scratchRoot);
+    vi.spyOn(os, 'tmpdir').mockReturnValue(scratchRoot);
+    try {
+      await writeExecutable(bin, 'claude', 'cat > /dev/null; pwd > "$FAKE_RECORD/cwd"; echo ok');
 
-    await generateText(
-      parse(
-        refineRequest({
-          action: { action: 'refine_text', mode: 'rewrite', platform: 'linkedin', text: 'hello' },
-        })
-      ),
-      dependencies
-    );
+      await generateText(
+        parse(
+          refineRequest({
+            action: { action: 'refine_text', mode: 'rewrite', platform: 'linkedin', text: 'hello' },
+          })
+        ),
+        dependencies
+      );
 
-    expect(scratchDirectories()).toEqual(before);
+      const cwd = (
+        await readFile(path.join(dependencies.env.FAKE_RECORD ?? '', 'cwd'), 'utf8')
+      ).trim();
+      expect(cwd).toMatch(/\/tmp\/genfeed-host-[^/]+$/u);
+      expect(readdirSync(scratchRoot)).toEqual([]);
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it('adds the approved voice as fenced data and strips fence breaks from it', async () => {
@@ -189,7 +196,7 @@ while [ "$#" -gt 0 ]; do
   if [ "$1" = "--output-last-message" ]; then out="$2"; fi
   shift
 done
-printf 'Rewritten by codex' > "$out"
+printf 'Rewritten by codex @ada' > "$out"
 echo "noise on stdout"`
     );
 
@@ -198,7 +205,7 @@ echo "noise on stdout"`
       dependencies
     );
 
-    expect(response).toMatchObject({ result: { text: 'Rewritten by codex' } });
+    expect(response).toMatchObject({ result: { text: 'Rewritten by codex @ada' } });
     const args = (await readFile(path.join(record, 'args'), 'utf8')).split('\n');
     expect(args).toEqual(
       expect.arrayContaining(['exec', '--sandbox', 'read-only', '--ephemeral', '-'])
@@ -207,14 +214,14 @@ echo "noise on stdout"`
 
   it('runs Gemini with the task on stdin', async () => {
     const { bin, dependencies, record } = await setup();
-    await writeExecutable(bin, 'gemini', `cat > "$FAKE_RECORD/stdin"\nprintf 'From gemini'`);
+    await writeExecutable(bin, 'gemini', `cat > "$FAKE_RECORD/stdin"\nprintf 'From gemini @ada'`);
 
     const response = await generateText(
       parse(refineRequest({ providerId: 'gemini-cli' })),
       dependencies
     );
 
-    expect(response).toMatchObject({ result: { text: 'From gemini' } });
+    expect(response).toMatchObject({ result: { text: 'From gemini @ada' } });
     expect(await readFile(path.join(record, 'stdin'), 'utf8')).toContain('<draft>');
   });
 

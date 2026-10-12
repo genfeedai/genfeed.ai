@@ -25,7 +25,7 @@ async function startHost(options: {
   await writeExecutable(record, '.keep', 'exit 0');
   const pipes = createPipes();
   const finished = runHost({
-    env: { FAKE_RECORD: record, HOME: home, PATH: bin },
+    env: { FAKE_RECORD: record, HOME: home, PATH: `${bin}:/usr/bin:/bin` },
     fetchImpl: vi.fn() as unknown as FetchLike,
     homeDirectory: home,
     hostVersion: '9.9.9',
