@@ -247,9 +247,9 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.gotoSection('insights');
 
       await expect(authenticatedPage).toHaveURL(/insights/);
-      // The page title and the insights feed card share the "AI Insights"
-      // label, so two headings are expected.
-      await expect(analyticsPage.sectionHeading('AI Insights')).toHaveCount(2);
+      // The page title lives in the Analytics sub-topbar (outside `main`), so
+      // the only "AI Insights" heading in `main` is the insights feed card.
+      await expect(analyticsPage.sectionHeading('AI Insights')).toHaveCount(1);
       await expect(
         analyticsPage.sectionHeading('Social intelligence inbox'),
       ).toBeVisible();

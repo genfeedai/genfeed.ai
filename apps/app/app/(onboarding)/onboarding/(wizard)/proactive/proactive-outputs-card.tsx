@@ -1,4 +1,5 @@
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import type { ProactiveOutputsCardProps } from '@props/onboarding/proactive-outputs-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -6,7 +7,9 @@ import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 
 function getOutputTitle(post: IPost): string {
   return (
-    post.label?.trim() || post.description?.trim() || `${post.platform} draft`
+    post.label?.trim() ||
+    stripHtmlToPlainText(post.description) ||
+    `${post.platform} draft`
   );
 }
 
@@ -46,7 +49,7 @@ export default function ProactiveOutputsCard({
               </div>
               {post.description && (
                 <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">
-                  {post.description}
+                  {stripHtmlToPlainText(post.description)}
                 </p>
               )}
             </InsetSurface>

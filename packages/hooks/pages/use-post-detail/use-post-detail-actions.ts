@@ -13,13 +13,13 @@ import type {
 import type { ReleaseGroupsService } from '@genfeedai/services/content/release-groups.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback } from 'react';
 
 export interface UsePostDetailActionsOptions {
   post: IPost | null;
-  setPost: React.Dispatch<React.SetStateAction<IPost | null>>;
   getPostsService: () => Promise<PostsService>;
   getReleaseGroupsService: () => Promise<ReleaseGroupsService>;
   notificationsService: NotificationsService;
@@ -30,12 +30,9 @@ export interface UsePostDetailActionsOptions {
     successMessage?: string,
     silent?: boolean,
   ) => Promise<IPost | null>;
-  handleUpdateChild: (childId: string, updates: Partial<IPost>) => void;
-  updateDescriptionRefs: (refPostId: string, description: string) => void;
 
   // Draft accessors
   descriptionDraft: string;
-  setDescriptionDraft: (value: string) => void;
   labelDraft: string;
   scheduleDraft: string;
   isContentDirty: boolean;
@@ -46,7 +43,6 @@ export interface UsePostDetailActionsOptions {
   setIsSavingSchedule: React.Dispatch<React.SetStateAction<boolean>>;
   setEnhancingPostId: React.Dispatch<React.SetStateAction<string | null>>;
   setEnhancingAction: React.Dispatch<React.SetStateAction<string | null>>;
-  setChildDescriptions: (childId: string, value: string) => void;
 }
 
 export interface UsePostDetailActionsReturn {
@@ -60,12 +56,16 @@ export interface UsePostDetailActionsReturn {
     prompt: string,
     actionKey: PostQuickActionKey,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-  ) => Promise<void>;
+  ) => Promise<string | null>;
   handlePerTweetEnhance: (
     postId: string,
     prompt: string,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-  ) => Promise<void>;
+  ) => Promise<string | null>;
+  handleDraftThread: (
+    postId: string,
+    tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+  ) => Promise<string[] | null>;
 }
 
 function requirePostId(post: IPost): string {
@@ -77,17 +77,13 @@ function requirePostId(post: IPost): string {
 
 export function usePostDetailActions({
   post,
-  setPost,
   getPostsService,
   getReleaseGroupsService,
   notificationsService,
   router,
   fetchPost,
   updateActivePost,
-  handleUpdateChild,
-  updateDescriptionRefs,
   descriptionDraft,
-  setDescriptionDraft,
   labelDraft,
   scheduleDraft,
   isContentDirty,
@@ -98,7 +94,6 @@ export function usePostDetailActions({
   setIsSavingSchedule,
   setEnhancingPostId,
   setEnhancingAction,
-  setChildDescriptions,
 }: UsePostDetailActionsOptions): UsePostDetailActionsReturn {
   const { openConfirmDelete } = useConfirmDeleteModal();
   const { href } = useOrgUrl();
@@ -286,7 +281,8 @@ export function usePostDetailActions({
     openConfirmDelete({
       entity: {
         id: requirePostId(post),
-        label: post.label || post.description || 'this post',
+        label:
+          post.label || stripHtmlToPlainText(post.description) || 'this post',
       },
       entityName: 'post',
       onConfirm: async () => {
@@ -310,16 +306,16 @@ export function usePostDetailActions({
     href,
   ]);
 
-  // Quick action handler
-  const handleQuickAction = useCallback(
+  // AI rewrites return a proposal; the caller decides whether to apply it.
+  const requestRewriteDraft = useCallback(
     async (
       actionPostId: string,
       prompt: string,
-      actionKey: PostQuickActionKey,
       tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-    ) => {
+      actionKey: PostQuickActionKey | null = null,
+    ): Promise<string | null> => {
       if (!post) {
-        return;
+        return null;
       }
 
       setEnhancingPostId(actionPostId);
@@ -327,34 +323,14 @@ export function usePostDetailActions({
 
       try {
         const service = await getPostsService();
-        const enhanced = await service.enhance(actionPostId, prompt, tone);
-
-        if (actionPostId === post.id) {
-          const newDescription = enhanced.description || '';
-          setDescriptionDraft(newDescription);
-          if (post.id) {
-            updateDescriptionRefs(post.id, newDescription);
-          }
-          setPost((prevPost) => ({
-            ...enhanced,
-            children: enhanced.children ?? prevPost?.children ?? [],
-            credential: enhanced.credential ?? prevPost?.credential,
-          }));
-        } else {
-          handleUpdateChild(actionPostId, {
-            description: enhanced.description,
-          });
-          const newDescription = enhanced.description || '';
-          setChildDescriptions(actionPostId, newDescription);
-          if (actionPostId) {
-            updateDescriptionRefs(actionPostId, newDescription);
-          }
-        }
-
-        notificationsService.success('Tweet enhanced');
+        const draft = await service.enhance(actionPostId, prompt, tone, {
+          isDraft: true,
+        });
+        return draft.description || null;
       } catch (err) {
-        logger.error('Quick action failed', err);
-        notificationsService.error('Failed to enhance tweet');
+        logger.error('AI rewrite failed', err);
+        notificationsService.error('Failed to rewrite. Try again.');
+        return null;
       } finally {
         setEnhancingPostId(null);
         setEnhancingAction(null);
@@ -364,59 +340,51 @@ export function usePostDetailActions({
       post,
       getPostsService,
       notificationsService,
-      handleUpdateChild,
-      updateDescriptionRefs,
-      setDescriptionDraft,
-      setPost,
       setEnhancingPostId,
       setEnhancingAction,
-      setChildDescriptions,
     ],
   );
 
-  // Per-tweet enhance handler
+  const handleQuickAction = useCallback(
+    (
+      actionPostId: string,
+      prompt: string,
+      actionKey: PostQuickActionKey,
+      tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+    ) => requestRewriteDraft(actionPostId, prompt, tone, actionKey),
+    [requestRewriteDraft],
+  );
+
   const handlePerTweetEnhance = useCallback(
-    async (
+    (
       enhancePostId: string,
       prompt: string,
       tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-    ) => {
+    ) => requestRewriteDraft(enhancePostId, prompt, tone),
+    [requestRewriteDraft],
+  );
+
+  // Proposed X replies; nothing is saved until the user adds them.
+  const handleDraftThread = useCallback(
+    async (
+      draftPostId: string,
+      tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+    ): Promise<string[] | null> => {
       if (!post) {
-        return;
+        return null;
       }
 
-      setEnhancingPostId(enhancePostId);
+      setEnhancingPostId(draftPostId);
+      setEnhancingAction(null);
 
       try {
         const service = await getPostsService();
-        const enhanced = await service.enhance(enhancePostId, prompt, tone);
-
-        if (enhancePostId === post.id) {
-          const newDescription = enhanced.description || '';
-          setDescriptionDraft(newDescription);
-          if (post.id) {
-            updateDescriptionRefs(post.id, newDescription);
-          }
-          setPost((prevPost) => ({
-            ...enhanced,
-            children: enhanced.children ?? prevPost?.children ?? [],
-            credential: enhanced.credential ?? prevPost?.credential,
-          }));
-        } else {
-          handleUpdateChild(enhancePostId, {
-            description: enhanced.description,
-          });
-          const newDescription = enhanced.description || '';
-          setChildDescriptions(enhancePostId, newDescription);
-          if (enhancePostId) {
-            updateDescriptionRefs(enhancePostId, newDescription);
-          }
-        }
-
-        notificationsService.success('Tweet enhanced');
+        const replies = await service.draftThread(draftPostId, 4, tone);
+        return replies.length > 0 ? replies : null;
       } catch (err) {
-        logger.error('Enhancement failed', err);
-        notificationsService.error('Failed to enhance tweet');
+        logger.error('Thread draft failed', err);
+        notificationsService.error('Failed to draft the thread. Try again.');
+        return null;
       } finally {
         setEnhancingPostId(null);
       }
@@ -425,17 +393,14 @@ export function usePostDetailActions({
       post,
       getPostsService,
       notificationsService,
-      handleUpdateChild,
-      updateDescriptionRefs,
-      setDescriptionDraft,
-      setPost,
       setEnhancingPostId,
-      setChildDescriptions,
+      setEnhancingAction,
     ],
   );
 
   return {
     handleContentSave,
+    handleDraftThread,
     handleDeletePost,
     handlePerTweetEnhance,
     handlePublishNow,

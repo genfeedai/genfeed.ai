@@ -3,6 +3,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const scorecard: SeoScorecardSnapshot = {
   breakdown: {
     contentStructure: 16,
@@ -83,5 +89,58 @@ describe('SeoScorecard', () => {
     expect(
       screen.getByText('Save your changes before scoring.'),
     ).toBeInTheDocument();
+  });
+
+  describe('embedded variant', () => {
+    it('shows Not scored with a Score action and no card chrome', () => {
+      const onScore = vi.fn();
+      render(<SeoScorecard onScore={onScore} variant="embedded" />);
+
+      expect(screen.getByText('SEO score')).toBeInTheDocument();
+      expect(screen.getByText('Not scored')).toBeInTheDocument();
+      expect(screen.queryByText('No SEO score yet')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Score SEO' }));
+
+      expect(onScore).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the score inline and expands the breakdown on demand', () => {
+      render(
+        <SeoScorecard
+          score={77}
+          scorecard={scorecard}
+          onScore={vi.fn()}
+          variant="embedded"
+        />,
+      );
+
+      expect(screen.getByText('77')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Re-score SEO' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Add more internal links.'),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Toggle SEO details' }),
+      );
+
+      expect(screen.getByText('Add more internal links.')).toBeInTheDocument();
+      expect(screen.getByText('Keyword')).toBeInTheDocument();
+      expect(screen.getByText('Title length')).toBeInTheDocument();
+    });
+
+    it('disables scoring while there are unsaved changes', () => {
+      render(
+        <SeoScorecard hasUnsavedChanges onScore={vi.fn()} variant="embedded" />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Score SEO' })).toBeDisabled();
+      expect(
+        screen.getByText('Save your changes before scoring.'),
+      ).toBeInTheDocument();
+    });
   });
 });

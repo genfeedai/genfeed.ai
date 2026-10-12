@@ -99,12 +99,26 @@ export class PostsService extends BaseService<
     id: string,
     prompt: string,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+    options: { isDraft?: boolean } = {},
   ): Promise<Post> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/enhancements`,
-      { prompt, tone },
+      { isDraft: options.isDraft, prompt, tone },
     );
     return this.mapOne(response.data);
+  }
+
+  /** Proposed replies for an X post; nothing is saved until the user adds them. */
+  public async draftThread(
+    id: string,
+    count: 2 | 3 | 4 | 5,
+    tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+  ): Promise<string[]> {
+    const response = await this.instance.post<{ posts: string[] }>(
+      `/${id}/thread-drafts`,
+      { count, tone },
+    );
+    return response.data.posts;
   }
 
   public async scoreSeo(id: string, data: ScoreSeoRequest = {}): Promise<Post> {

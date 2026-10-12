@@ -20,8 +20,14 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import type { Prediction } from 'replicate';
 
-const POLL_INTERVAL_MS = 1_000;
-const MAX_POLLS = 60;
+const POLL_INTERVAL_MS = 2_000;
+/**
+ * Replicate boots a cold community model for minutes, and the clock runs while a
+ * prediction is still `starting`. One prediction waits this long; the analysis
+ * runs in a background job (`brand-vision` queue), never on a request.
+ */
+export const BRAND_VISION_PREDICTION_TIMEOUT_MS = 300_000;
+const MAX_POLLS = BRAND_VISION_PREDICTION_TIMEOUT_MS / POLL_INTERVAL_MS;
 const CACHE_LIMIT = 256;
 const OCR_TASK = 'OCR';
 const OCR_COST_CATEGORY = 'brand-validation-ocr';
@@ -32,10 +38,47 @@ const DETECT_QUERY_THRESHOLD = 0.1;
 const delay = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
+const PYTHON_SIMPLE_ESCAPES: Record<string, string> = {
+  '"': '"',
+  "'": "'",
+  '\\': '\\',
+  a: '\x07',
+  b: '\b',
+  f: '\f',
+  n: '\n',
+  r: '\r',
+  t: '\t',
+  v: '\v',
+};
+
+/**
+ * Florence-2 prints its answer through Python's `repr`, so the text inside the
+ * quotes is a Python string literal: a line break arrives as the two characters
+ * `\n`, a non-printable character as `\xNN` or `\uNNNN`. Decodes those escapes;
+ * one that names no code point is left as written.
+ */
+function decodePythonStringLiteral(literal: string): string {
+  return literal.replace(
+    /\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{1,3}|[\s\S])/g,
+    (match, sequence: string) => {
+      if (sequence === '\n') return '';
+      const simple = PYTHON_SIMPLE_ESCAPES[sequence];
+      if (simple !== undefined) return simple;
+      const codePoint = /^[xuU]/.test(sequence)
+        ? Number.parseInt(sequence.slice(1), 16)
+        : /^[0-7]/.test(sequence)
+          ? Number.parseInt(sequence, 8)
+          : null;
+      if (codePoint === null || codePoint > 0x10ffff) return match;
+      return String.fromCodePoint(codePoint);
+    },
+  );
+}
+
 /**
  * Pulls the text out of an OCR answer. Models of this class answer either the
  * text, an object holding it, or a task-keyed dict printed as a string
- * (`{'<OCR>': '...'}`). Anything else is not an answer.
+ * (`{'<OCR>': '...'}`, a Python `repr`). Anything else is not an answer.
  */
 export function readBrandOcrText(output: unknown): string | null {
   if (typeof output === 'string') {
@@ -43,7 +86,7 @@ export function readBrandOcrText(output: unknown): string | null {
       /^\s*\{\s*(['"])<OCR>\1\s*:\s*(['"])([\s\S]*)\2\s*,?\s*\}\s*$/.exec(
         output,
       );
-    return wrapped ? wrapped[3] : output;
+    return wrapped ? decodePythonStringLiteral(wrapped[3]) : output;
   }
   if (output && typeof output === 'object' && !Array.isArray(output)) {
     const record = output as Record<string, unknown>;
@@ -312,7 +355,12 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
         polls++
       ) {
         if (polls >= MAX_POLLS) {
-          await client.predictions.cancel(prediction.id).catch(() => null);
+          // The cancelled prediction is the record of what ran, so any runtime it
+          // reports is priced.
+          const cancelled = await client.predictions
+            .cancel(prediction.id)
+            .catch(() => null);
+          if (cancelled) prediction = cancelled;
           throw new Error('brand_vision_timeout');
         }
         await delay(POLL_INTERVAL_MS);

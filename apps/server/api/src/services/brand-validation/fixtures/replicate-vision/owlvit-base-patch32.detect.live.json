@@ -1,0 +1,25 @@
+{
+  "source": "One live prediction through BrandReplicateVisionProvider on 2026-10-12. Input: the same synthetic 800x600 PNG as the OCR recording (the text \"GENFEED SALE\" and a red circle logo), query \"logo\", threshold 0.1. The detector found no region. total_time includes a cold start.",
+  "model": "adirik/owlvit-base-patch32",
+  "version": "5e899f155a1913c4b7304d09082d842ca7fe6cb1f22e066c83eb1d7849dc37c2",
+  "status": "succeeded",
+  "inputKeys": ["image", "query", "show_visualisation", "threshold"],
+  "metrics": {
+    "predict_time": 1.603990983,
+    "total_time": 138.205281712
+  },
+  "output": {
+    "json_data": {
+      "objects": []
+    },
+    "result_image": null
+  },
+  "ledger": {
+    "category": "brand-validation-vision",
+    "costEvidence": "calculated",
+    "model": "adirik/owlvit-base-patch32",
+    "pricingType": "per-second",
+    "units": 1.603990983,
+    "vendorCostMicros": 361
+  }
+}

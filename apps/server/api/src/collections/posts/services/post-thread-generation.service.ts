@@ -80,44 +80,12 @@ export class PostThreadGenerationService {
         }),
       });
 
-      const additionalCount = dto.count - 1;
-      const originalContent =
-        originalPost.description?.replace(/<[^>]+>/g, ' ').trim() || '';
-      const prompt = await this.templatesService.getRenderedPrompt(
-        PromptTemplateKey.THREAD_EXPAND,
-        {
-          additionalCount,
-          count: dto.count,
-          originalContent,
-          tone: dto.tone || TweetTone.PROFESSIONAL,
-        },
-        identity.organizationId,
-      );
-      const { input } = await this.promptBuilderService.buildPrompt(
-        DEFAULT_MINI_TEXT_MODEL,
-        {
-          maxTokens: TEXT_GENERATION_LIMITS.postThreadExpansion,
-          modelCategory: ModelCategory.TEXT,
-          prompt,
-          systemPromptTemplate: SystemPromptKey.TWITTER,
-          temperature: 0.8,
-          useTemplate: false,
-        },
-        identity.organizationId,
-      );
-      const content = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_MINI_TEXT_MODEL,
-        input,
+      const tweetLines = await this.generateThreadLines(
+        originalPost,
+        dto,
+        identity,
         byokApiKeyOverride,
       );
-
-      if (!content) {
-        throw new Error('No content generated from AI service');
-      }
-
-      const tweetLines = parsePostGenerationSlots(content, additionalCount, {
-        constraints: TWITTER_THREAD_CONSTRAINTS,
-      });
 
       const completedCount = await this.completeGeneratedChildren(
         childPosts,
@@ -155,6 +123,72 @@ export class PostThreadGenerationService {
         await this.markChildFailed(String(child.id), error);
       }
     }
+  }
+
+  /**
+   * Proposes the replies for a thread without creating or changing any post.
+   * The caller shows them for review and saves only the ones the user adds.
+   */
+  async draftThread(
+    originalPost: PostDocument,
+    dto: ExpandToThreadDto,
+    identity: ThreadGenerationMetadata,
+    byokApiKeyOverride?: string,
+  ): Promise<string[]> {
+    const lines = await this.generateThreadLines(
+      originalPost,
+      dto,
+      identity,
+      byokApiKeyOverride,
+    );
+    return lines.filter((line): line is string => Boolean(line));
+  }
+
+  /** One slot per reply after the original; invalid replies stay `null`. */
+  private async generateThreadLines(
+    originalPost: PostDocument,
+    dto: ExpandToThreadDto,
+    identity: ThreadGenerationMetadata,
+    byokApiKeyOverride?: string,
+  ): Promise<Array<string | null>> {
+    const additionalCount = dto.count - 1;
+    const originalContent =
+      originalPost.description?.replace(/<[^>]+>/g, ' ').trim() || '';
+    const prompt = await this.templatesService.getRenderedPrompt(
+      PromptTemplateKey.THREAD_EXPAND,
+      {
+        additionalCount,
+        count: dto.count,
+        originalContent,
+        tone: dto.tone || TweetTone.PROFESSIONAL,
+      },
+      identity.organizationId,
+    );
+    const { input } = await this.promptBuilderService.buildPrompt(
+      DEFAULT_MINI_TEXT_MODEL,
+      {
+        maxTokens: TEXT_GENERATION_LIMITS.postThreadExpansion,
+        modelCategory: ModelCategory.TEXT,
+        prompt,
+        systemPromptTemplate: SystemPromptKey.TWITTER,
+        temperature: 0.8,
+        useTemplate: false,
+      },
+      identity.organizationId,
+    );
+    const content = await this.replicateService.generateTextCompletionSync(
+      DEFAULT_MINI_TEXT_MODEL,
+      input,
+      byokApiKeyOverride,
+    );
+
+    if (!content) {
+      throw new Error('No content generated from AI service');
+    }
+
+    return parsePostGenerationSlots(content, additionalCount, {
+      constraints: TWITTER_THREAD_CONSTRAINTS,
+    });
   }
 
   private async completeGeneratedChildren(

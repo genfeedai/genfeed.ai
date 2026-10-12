@@ -520,7 +520,7 @@ export async function readBreakoutOutputRecovery(
       reason: 'approved_brand_required',
       action: 'none',
     };
-  // The approved-brand check leaves factual coverage unverified, so a human's review clears it:
+  // Factual coverage stays unverified unless the fact check backed every claim (#6717), so a human's review clears it:
   // an explicit approval of this exact post version (the pin is cleared when its material changes).
   const isReviewCleared =
     receipt.state === 'needs_review' &&

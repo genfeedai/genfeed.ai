@@ -3,10 +3,13 @@ import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
 import { BrandRenderEvidenceModule } from '@api/services/brand-render-evidence/brand-render-evidence.module';
 import type { BrandRenderEvidenceService } from '@api/services/brand-render-evidence/brand-render-evidence.service';
+import { BrandFactCheckModule } from '@api/services/brand-validation/brand-fact-check.module';
+import type { BrandFactCheckService } from '@api/services/brand-validation/brand-fact-check.service';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
+import { BrandVisionQueueService } from '@api/services/brand-validation/brand-vision-queue.service';
 import { BrandVisualAnalysisModule } from '@api/services/brand-validation/brand-visual-analysis.module';
 import type { BrandVisualAnalysisService } from '@api/services/brand-validation/brand-visual-analysis.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
@@ -35,6 +38,9 @@ import {
   StorageReadError,
   type VersionedStorageProvider,
 } from '@genfeedai/storage';
+import { LoggerModule } from '@libs/logger/logger.module';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { BullModule } from '@nestjs/bullmq';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -487,45 +493,363 @@ describe('brand validation receipt completion adapter', () => {
     expect(f.rows[0].projection).toEqual(result.receipt);
   });
 
-  it('T3b: persists a media receipt with OCR proof when an analysis is configured, still needs_review', async () => {
-    const f = fixture();
-    await bindImage(f);
-    const analysis = {
+  describe('T3b: OCR and placement readings run in a background job', () => {
+    function wired(
+      analysis: Record<string, unknown>,
+      f: ReturnType<typeof fixture>,
+    ) {
+      const queue = { enqueue: vi.fn(async () => undefined) };
+      const logger = { warn: vi.fn() };
+      const adapter = new BrandValidationReceiptService(
+        f.material,
+        f.receipts,
+        f.validator,
+        analysis as unknown as BrandVisualAnalysisService,
+        undefined,
+        queue as unknown as BrandVisionQueueService,
+        logger as unknown as LoggerService,
+      );
+      return { adapter, logger, queue };
+    }
+    const readAnalysis = () => ({
       detectRegions: vi.fn(async () => ({ status: 'unavailable' as const })),
       extractText: vi.fn(async () => ({
         provider: { id: 'replicate', model: 'acme/ocr', version: 'v1' },
         status: 'read' as const,
         texts: ['Example Co'],
       })),
-    };
-    const adapter = new BrandValidationReceiptService(
-      f.material,
-      f.receipts,
-      f.validator,
-      analysis as unknown as BrandVisualAnalysisService,
-    );
-    const result = await adapter.validateReceipt(actor, 'receipt-a');
-    expect(analysis.extractText).toHaveBeenCalledTimes(1);
-    expect(result.receipt).toMatchObject({
-      state: 'needs_review',
-      compliance: 'unverified',
+      isEnabled: vi.fn(async () => true),
     });
-    expect(
+    const checkOf = (
+      result: { receipt: BrandedGenerationReceiptV1 },
+      ruleId: string,
+    ) =>
       result.receipt.validation?.checks.find(
-        (check) => check.ruleId === 'mandatory-a',
-      ),
-    ).toMatchObject({
-      result: 'pass',
-      proof: {
-        kind: 'ocr',
-        artifactHash: result.receipt.artifact?.contentHash,
-      },
+        (check) => check.ruleId === ruleId,
+      );
+
+    it('leaves the readable checks pending, reads nothing and queues one job', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      const { adapter, queue } = wired(analysis, f);
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(analysis.extractText).not.toHaveBeenCalled();
+      expect(result.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+      expect(checkOf(result, 'mandatory-a')).toMatchObject({
+        reasonCode: 'visual_analysis_pending',
+        result: 'unknown',
+      });
+      expect(checkOf(result, 'avoid-a')).toMatchObject({
+        reasonCode: 'visual_analysis_pending',
+        result: 'unknown',
+      });
+      expect(queue.enqueue).toHaveBeenCalledTimes(1);
+      expect(queue.enqueue).toHaveBeenCalledWith({
+        actorId: actor.actorId,
+        brandId: actor.brandId,
+        organizationId: actor.organizationId,
+        receiptId: 'receipt-a',
+      });
     });
-    expect(
-      result.receipt.validation?.checks.find(
-        (check) => check.ruleId === 'avoid-a',
-      ),
-    ).toMatchObject({ reasonCode: 'ocr_absence_unproven', result: 'unknown' });
+
+    it('queues nothing while the platform switch is off', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      analysis.isEnabled.mockResolvedValue(false);
+      const { adapter, queue } = wired(analysis, f);
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(checkOf(result, 'mandatory-a')).toMatchObject({
+        reasonCode: 'visual_analysis_disabled',
+      });
+      expect(queue.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('does not defer, or call the provider, without a queue', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      const adapter = new BrandValidationReceiptService(
+        f.material,
+        f.receipts,
+        f.validator,
+        analysis as unknown as BrandVisualAnalysisService,
+      );
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(analysis.extractText).not.toHaveBeenCalled();
+      expect(checkOf(result, 'mandatory-a')).toMatchObject({
+        reasonCode: 'text_coverage_incomplete',
+      });
+    });
+
+    it('keeps the receipt validated when the job cannot be queued', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const { adapter, logger, queue } = wired(readAnalysis(), f);
+      queue.enqueue.mockRejectedValueOnce(new Error('redis down'));
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(result.receipt.state).toBe('needs_review');
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('proves the literals when the job completes, still needs_review, and never pays twice', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      const { adapter } = wired(analysis, f);
+      await adapter.validateReceipt(actor, 'receipt-a');
+      const done = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(done?.replayed).toBe(false);
+      expect(analysis.extractText).toHaveBeenCalledTimes(1);
+      expect(done?.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+      expect(done && checkOf(done, 'mandatory-a')).toMatchObject({
+        proof: {
+          artifactHash: done?.receipt.artifact?.contentHash,
+          kind: 'ocr',
+        },
+        result: 'pass',
+      });
+      expect(done && checkOf(done, 'avoid-a')).toMatchObject({
+        reasonCode: 'ocr_absence_unproven',
+        result: 'unknown',
+      });
+      const again = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(again?.replayed).toBe(true);
+      expect(analysis.extractText).toHaveBeenCalledTimes(1);
+    });
+
+    it('fact-checks a visual only when the job has read its text, once, and a contradiction blocks it', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      const check = vi.fn(async () => ({
+        claims: [
+          {
+            evidence: [
+              {
+                evidenceId: 'fact:rule',
+                origin: 'brand_os' as const,
+                quote: 'Shipping takes: two days',
+                ruleId: 'rule',
+              },
+            ],
+            id: 'claim-1',
+            origin: 'ocr' as const,
+            source: 'Example Co',
+            text: 'Example Co ships overnight',
+            verdict: 'contradicted' as const,
+          },
+        ],
+        knowledgeVersions: [],
+        models: ['judge-model'],
+        status: 'checked' as const,
+      }));
+      const adapter = new BrandValidationReceiptService(
+        f.material,
+        f.receipts,
+        f.validator,
+        analysis as unknown as BrandVisualAnalysisService,
+        undefined,
+        {
+          enqueue: vi.fn(async () => undefined),
+        } as unknown as BrandVisionQueueService,
+        undefined,
+        { check } as unknown as BrandFactCheckService,
+      );
+      const first = await adapter.validateReceipt(actor, 'receipt-a');
+      // Nothing has been read yet, so there is no text to check and nothing is paid.
+      expect(check).not.toHaveBeenCalled();
+      expect(checkOf(first, 'system:factual_coverage')).toMatchObject({
+        result: 'unknown',
+      });
+      const done = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(check).toHaveBeenCalledTimes(1);
+      expect(check.mock.calls[0]).toEqual([
+        actor,
+        expect.objectContaining({ origin: 'ocr', text: 'Example Co' }),
+      ]);
+      expect(done && checkOf(done, 'system:factual_coverage')).toMatchObject({
+        reasonCode: 'factual_claim_contradicted',
+        result: 'fail',
+      });
+      expect(done?.receipt).toMatchObject({
+        compliance: 'failed',
+        state: 'blocked',
+      });
+      await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(check).toHaveBeenCalledTimes(1);
+    });
+
+    it('blocks the receipt when the job reads a forbidden literal', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      analysis.extractText.mockResolvedValue({
+        provider: { id: 'replicate', model: 'acme/ocr', version: 'v1' },
+        status: 'read' as const,
+        texts: ['Example Co Guaranteed returns'],
+      });
+      const { adapter } = wired(analysis, f);
+      await adapter.validateReceipt(actor, 'receipt-a');
+      const done = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(done?.receipt.state).toBe('blocked');
+      expect(done && checkOf(done, 'avoid-a')).toMatchObject({
+        reasonCode: 'forbidden_literal_present',
+        result: 'fail',
+      });
+    });
+
+    it('records a reading that could not complete as unavailable, failing closed', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      analysis.extractText.mockResolvedValue({
+        status: 'unavailable',
+      } as never);
+      const { adapter } = wired(analysis, f);
+      await adapter.validateReceipt(actor, 'receipt-a');
+      const done = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(done?.receipt.state).toBe('needs_review');
+      expect(done && checkOf(done, 'mandatory-a')).toMatchObject({
+        reasonCode: 'visual_analysis_unavailable',
+        result: 'unknown',
+      });
+      // No pending check is left, so the job is not offered again.
+      const again = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(again?.replayed).toBe(true);
+      expect(analysis.extractText).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing without an analysis', async () => {
+      const f = fixture();
+      await bindImage(f);
+      await expect(
+        f.adapter.completeVisionChecks(actor, 'receipt-a'),
+      ).resolves.toBeNull();
+    });
+  });
+
+  describe('T3d: fact check (#6717)', () => {
+    const claim = (verdict: 'supported' | 'unverified' | 'contradicted') => ({
+      evidence:
+        verdict === 'unverified'
+          ? []
+          : [
+              {
+                evidenceId: 'fact:rule',
+                origin: 'brand_os' as const,
+                quote: 'Example Co plan',
+                ruleId: 'rule',
+              },
+            ],
+      id: 'claim-1',
+      origin: 'text' as const,
+      source: 'Example Co offers a plan.',
+      text: 'Example Co offers a plan',
+      verdict,
+    });
+    async function validateWith(
+      claims: ReturnType<typeof claim>[] | 'unavailable',
+    ) {
+      const f = fixture();
+      await bindPost(f);
+      const check = vi.fn(async () =>
+        claims === 'unavailable'
+          ? ({
+              reasonCode: 'fact_check_unavailable',
+              status: 'unavailable',
+            } as const)
+          : ({
+              claims,
+              knowledgeVersions: [],
+              models: ['judge-model'],
+              status: 'checked',
+            } as const),
+      );
+      const adapter = new BrandValidationReceiptService(
+        f.material,
+        f.receipts,
+        f.validator,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { check } as unknown as BrandFactCheckService,
+      );
+      return {
+        check,
+        result: await adapter.validateReceipt(actor, 'receipt-a'),
+      };
+    }
+
+    it('runs the check as the actor on the bound snapshot and lets a fully backed draft be ready', async () => {
+      const { check, result } = await validateWith([claim('supported')]);
+      expect(check).toHaveBeenCalledTimes(1);
+      const [calledActor, request] = check.mock.calls[0] as unknown as [
+        unknown,
+        { origin: string; snapshot: { contentHash: string }; text: string },
+      ];
+      expect(calledActor).toEqual(actor);
+      expect(request).toMatchObject({ origin: 'text' });
+      expect(request.snapshot.contentHash).toBe(
+        result.receipt.snapshot?.contentHash,
+      );
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        proof: { kind: 'fact' },
+        result: 'pass',
+        ruleId: 'system:factual_coverage',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'passed',
+        state: 'ready',
+      });
+    });
+
+    it('holds a draft with an unbacked claim for review', async () => {
+      const { result } = await validateWith([claim('unverified')]);
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        reasonCode: 'factual_claim_unverified',
+        result: 'unknown',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+    });
+
+    it('blocks a draft with a contradicted claim so it cannot be approved as is', async () => {
+      const { result } = await validateWith([
+        claim('supported'),
+        { ...claim('contradicted'), id: 'claim-2' },
+      ]);
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        reasonCode: 'factual_claim_contradicted',
+        result: 'fail',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'failed',
+        state: 'blocked',
+      });
+    });
+
+    it('never passes by default when the check cannot run', async () => {
+      const { result } = await validateWith('unavailable');
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        reasonCode: 'fact_check_unavailable',
+        result: 'unknown',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+    });
   });
 
   it('T3c: reads the render manifest against the pinned bytes of an image ingredient, still needs_review', async () => {
@@ -707,17 +1031,20 @@ describe('brand validation receipt completion adapter', () => {
         BrandValidationReceiptModule,
       ),
     ).toEqual([
+      BrandFactCheckModule,
       BrandValidationModule,
       BrandVisualAnalysisModule,
       BrandRenderEvidenceModule,
       BrandedGenerationReceiptsModule,
+      expect.objectContaining({ module: BullModule }),
+      LoggerModule,
     ]);
     expect(
       Reflect.getMetadata(
         MODULE_METADATA.PROVIDERS,
         BrandValidationReceiptModule,
       ),
-    ).toEqual([BrandValidationReceiptService]);
+    ).toEqual([BrandValidationReceiptService, BrandVisionQueueService]);
     expect(
       Reflect.getMetadata(
         MODULE_METADATA.EXPORTS,

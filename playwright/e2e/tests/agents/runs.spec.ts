@@ -5,7 +5,10 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
-import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
+import {
+  isPlaywrightAuthBypassed,
+  PLAYWRIGHT_AUTH_BYPASS_SKIP,
+} from '../../utils/playwright-auth-bypass';
 
 test.describe('Workflow Execution Runs', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -77,11 +80,17 @@ test.describe('Workflow Execution Runs', () => {
     await expect(authenticatedPage.getByText('Trend scan')).toBeVisible();
     await expect(authenticatedPage.getByText('Caption draft')).toBeHidden();
   });
+});
+
+// Outside the authenticated describe: its beforeEach shares the page with
+// `unauthenticatedPage`, so the authenticated shell's late requests tripped the
+// network guard (nightly shard 8). The skip must run before any fixture sets up.
+test.describe('Workflow Execution Runs (unauthenticated)', () => {
+  test.skip(isPlaywrightAuthBypassed(), PLAYWRIGHT_AUTH_BYPASS_SKIP);
 
   test('redirects unauthenticated users from the runs page', async ({
     unauthenticatedPage,
   }) => {
-    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS);
 
     await unauthenticatedPage.waitForURL(/\/login/, { timeout: 15000 });

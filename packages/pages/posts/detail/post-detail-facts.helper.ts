@@ -35,7 +35,7 @@ export function buildPostDetailFacts(
       id: 'when',
       label: isPublished ? 'Published' : 'Scheduled',
       // Same timezone source as the schedule editor (`getBrowserTimezone`,
-      // via `PostSidebarScheduleCard`) so the fact line and the editor never
+      // via the inspector's When dock) so the fact line and the editor never
       // disagree about what time is shown.
       value: scheduledOrPublishedAt
         ? new Date(scheduledOrPublishedAt).toLocaleString('en-US', {

@@ -194,8 +194,21 @@ test.describe('Storyboard runs', () => {
 
     await page.goto(`${BRAND_BASE}/studio/storyboard`);
 
-    await expect(page.getByText(/No storyboards yet/)).toBeVisible();
-    await page.getByRole('link', { name: 'New storyboard' }).click();
+    // An empty brand lands on the first-run onboarding (#6693): preset cards
+    // plus the remix and from-scratch choices, not a bare empty message.
+    const onboarding = page.getByTestId('storyboard-onboarding');
+    await expect(
+      onboarding.getByRole('heading', {
+        name: 'Turn an idea into a storyboard',
+      }),
+    ).toBeVisible();
+    await expect(
+      onboarding.getByRole('list', { name: 'Storyboard presets' }),
+    ).toBeVisible();
+    await expect(
+      onboarding.getByRole('link', { name: 'Choose a video' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'New storyboard' }).first().click();
     await expect(page).toHaveURL(/\/studio\/storyboard\/new$/);
     await expect(
       page.getByRole('link', { name: 'Browse Discovery' }),

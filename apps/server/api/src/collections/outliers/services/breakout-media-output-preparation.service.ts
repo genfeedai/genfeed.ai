@@ -155,9 +155,12 @@ export class BreakoutMediaOutputPreparationService {
     // reviewed, scored nor ever publishable.
     if (brand.isBlocked)
       return { kind: 'stopped', reasonCode: 'quality_or_brand_blocked' };
-    // The approved-brand check leaves factual coverage unverified, so a caption the receipt did
-    // not clear sends the finished post to a member's review; it is still scored.
-    if (caption.isReviewRequired)
+    // Factual coverage stays unverified unless the fact check backed every claim (#6717), so a caption the receipt did
+    // not clear sends the finished post to a member's review; it is still scored. So does a
+    // visual whose OCR or placement reading is still running in the background: its checks are
+    // unknown until that job finishes, and a forbidden literal it then finds blocks the visual's
+    // receipt, which the publication gates read live.
+    if (caption.isReviewRequired || brand.isVisionPending)
       await this.review.queue(admission, {
         postId: caption.postId,
         generationKey: output.generationKey,

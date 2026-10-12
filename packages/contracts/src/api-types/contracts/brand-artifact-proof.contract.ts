@@ -210,13 +210,111 @@ export const brandFontProofV1Schema = z.strictObject({
     .max(BRAND_FONT_PROOF_LIMITS.fonts),
 });
 
+export const BRAND_FACT_PROOF_LIMITS = {
+  claims: 32,
+  citations: 3,
+  knowledgeVersions: 64,
+  models: 4,
+} as const;
+
+/** One passage of approved brand evidence a claim was judged against. */
+export const brandFactEvidenceV1Schema = z
+  .strictObject({
+    /** `fact:<rule id>` for a Brand OS fact, `knowledge:<source>:<version>:<hash>` for a passage. */
+    evidenceId: id,
+    origin: z.enum(['brand_os', 'knowledge']),
+    /** The approved Brand OS fact rule, bound to the report's snapshot hash. */
+    ruleId: id.optional(),
+    /** The Knowledge source version the passage came from. */
+    sourceId: id.optional(),
+    versionId: id.optional(),
+    version: z.number().int().min(1).optional(),
+    /** A verbatim span of the evidence the verdict rests on. */
+    quote: z.string().min(1).max(600),
+  })
+  .superRefine((v, ctx) => {
+    const isBound =
+      v.origin === 'brand_os'
+        ? v.ruleId !== undefined
+        : v.sourceId !== undefined &&
+          v.versionId !== undefined &&
+          v.version !== undefined;
+    if (!isBound)
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Evidence must name its Brand OS rule or Knowledge version',
+      });
+  });
+
+export const brandFactClaimV1Schema = z
+  .strictObject({
+    id,
+    /** The claim as a standalone statement. */
+    text: z.string().min(1).max(500),
+    /** A verbatim span of the checked text the claim was taken from. */
+    source: z.string().min(1).max(500),
+    origin: z.enum(['text', 'ocr']),
+    verdict: z.enum(['supported', 'unverified', 'contradicted']),
+    evidence: z
+      .array(brandFactEvidenceV1Schema)
+      .max(BRAND_FACT_PROOF_LIMITS.citations),
+  })
+  .superRefine((v, ctx) => {
+    if ((v.verdict === 'unverified') !== (v.evidence.length === 0))
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Only an unverified claim may lack cited evidence',
+      });
+  });
+
+/**
+ * The fact check behind `system:factual_coverage` (#6717): the factual claims
+ * found in the draft text, or in the text read from a visual, each judged
+ * against approved brand evidence only (the approved Brand OS facts and the
+ * brand's authoritative Knowledge sources). No claims is a recorded proof too.
+ * The claims and the evidence are model readings, so the proof is bound to the
+ * exact artifact, snapshot and Knowledge versions rather than to a byte.
+ */
+export const brandFactProofV1Schema = z.strictObject({
+  kind: z.literal('fact'),
+  /** Names the procedure so a later change cannot reuse this proof. */
+  algorithm: z.literal('fact-check-v1'),
+  artifactHash: hash,
+  /** The Brand OS snapshot whose approved facts were evidence. */
+  snapshotHash: hash,
+  mediaKind: z.enum(['text', 'image', 'video']),
+  /** sha256 of the NFC, LF-normalized text the claims were taken from. */
+  textHash: hash,
+  /** True when the text was the whole artifact, so no claim could hide outside it. */
+  isTextComplete: z.boolean(),
+  /** The models that extracted and judged the claims, as the provider reported them. */
+  models: z.array(label).max(BRAND_FACT_PROOF_LIMITS.models),
+  /** Every Knowledge source version a passage was retrieved from, sorted. */
+  knowledgeVersions: z
+    .array(
+      z.strictObject({
+        sourceId: id,
+        versionId: id,
+        version: z.number().int().min(1),
+      }),
+    )
+    .max(BRAND_FACT_PROOF_LIMITS.knowledgeVersions),
+  claims: z.array(brandFactClaimV1Schema).max(BRAND_FACT_PROOF_LIMITS.claims),
+  /** The canonical hash of `claims`, so the list cannot change without notice. */
+  claimsHash: hash,
+});
+
 export const brandArtifactProofV1Schema = z.discriminatedUnion('kind', [
   brandPaletteProofV1Schema,
   brandOcrProofV1Schema,
   brandPlacementProofV1Schema,
   brandFontProofV1Schema,
+  brandFactProofV1Schema,
 ]);
 
+export type BrandFactProofV1 = z.infer<typeof brandFactProofV1Schema>;
+export type BrandFactClaimV1 = z.infer<typeof brandFactClaimV1Schema>;
+export type BrandFactEvidenceV1 = z.infer<typeof brandFactEvidenceV1Schema>;
 export type BrandOcrProofV1 = z.infer<typeof brandOcrProofV1Schema>;
 export type BrandFontProofV1 = z.infer<typeof brandFontProofV1Schema>;
 export type BrandPlacementProofV1 = z.infer<typeof brandPlacementProofV1Schema>;

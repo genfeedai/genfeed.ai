@@ -1,0 +1,60 @@
+{
+  "model": "florence-2-large",
+  "version": "da53547e17d45b9cfb48174b2f18af8b83ca020fa76db62136bf9c6616762595",
+  "verifiedAt": "2026-10-12",
+  "source": "GET /v1/models/{owner}/{name}/versions/{id}, openapi_schema components Input and Output",
+  "Input": {
+    "properties": {
+      "image": {
+        "description": "Grayscale input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "task_input": {
+        "default": "Caption",
+        "description": "Input task",
+        "enum": [
+          "Caption",
+          "Detailed Caption",
+          "More Detailed Caption",
+          "Caption to Phrase Grounding",
+          "Object Detection",
+          "Dense Region Caption",
+          "Region Proposal",
+          "OCR",
+          "OCR with Region"
+        ],
+        "title": "task_input",
+        "type": "string",
+        "x-order": 1
+      },
+      "text_input": {
+        "description": "Text Input(Optional)",
+        "title": "Text Input",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": ["image"],
+    "title": "Input",
+    "type": "object"
+  },
+  "Output": {
+    "properties": {
+      "img": {
+        "format": "uri",
+        "title": "Img",
+        "type": "string"
+      },
+      "text": {
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": ["text"],
+    "title": "Output",
+    "type": "object"
+  }
+}

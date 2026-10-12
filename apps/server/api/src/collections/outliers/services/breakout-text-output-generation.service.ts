@@ -247,7 +247,7 @@ export class BreakoutTextOutputGenerationService {
       };
     }
     if (outcome.kind === 'stopped') return outcome;
-    // The approved-brand check always leaves factual coverage unverified, so a draft the
+    // A draft with an unbacked claim (or no fact check) leaves factual coverage unverified, so a draft the
     // receipt did not clear goes to a member's review instead of failing the response.
     if (
       outcome.receipt.state !== 'ready' ||

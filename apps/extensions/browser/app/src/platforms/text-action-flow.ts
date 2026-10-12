@@ -1,7 +1,10 @@
 import type { TextActionMode } from '@genfeedai/contracts/interfaces';
 import { captureComposerText } from '~platforms/composer-helpers';
 import { getCurrentPlatform, getPlatformName } from '~platforms/config';
-import { showTextActionPreview } from '~platforms/text-action-preview';
+import {
+  showTextActionFailure,
+  showTextActionPreview,
+} from '~platforms/text-action-preview';
 import { TextActionSession } from '~platforms/text-action-session';
 import type { TextActionRequest, TextActionResponse } from '~types/extension';
 
@@ -35,41 +38,64 @@ export async function runPageTextAction(
     hooks.notify(captured.error, true);
     return;
   }
-  const session = new TextActionSession(captured.snapshot);
+  const { snapshot } = captured;
+  const session = new TextActionSession(snapshot);
   const request: TextActionRequest & { event: 'refineText' } = {
     event: 'refineText',
     mode,
     platform: getPlatformName(),
     requestKey: crypto.randomUUID(),
-    text: captured.snapshot.text,
+    text: snapshot.text,
   };
-  hooks.notify(TEXT_ACTION_PROGRESS[mode]);
-  let response: TextActionResponse | undefined;
-  try {
-    response = await chrome.runtime.sendMessage(request);
-  } catch {
-    response = undefined;
+
+  async function attempt(isRetry: boolean): Promise<void> {
+    hooks.notify(TEXT_ACTION_PROGRESS[mode]);
+    let response: TextActionResponse | undefined;
+    try {
+      response = await chrome.runtime.sendMessage(
+        isRetry ? { ...request, retry: true } : request,
+      );
+    } catch {
+      response = undefined;
+    }
+    if (!response || 'error' in response) {
+      const failure = response && 'error' in response ? response : null;
+      const message =
+        failure?.error ??
+        'Could not reach Genfeed. Reload the page and try again.';
+      // A failure with a next step keeps its request key: Retry reruns it.
+      if (failure?.recovery) {
+        showTextActionFailure({
+          message,
+          mode,
+          onOpenProviderSettings: () => {
+            void chrome.runtime.sendMessage({ event: 'openProviderSettings' });
+          },
+          onRetry: () => {
+            void attempt(true);
+          },
+          recovery: failure.recovery,
+        });
+      } else {
+        hooks.notify(message, true);
+      }
+      return;
+    }
+    const { result, routing } = response;
+    showTextActionPreview({
+      mode,
+      onApply: () => {
+        const written = session.apply(result.text);
+        if ('error' in written) return written;
+        hooks.markWritten(written.applied.draftAfter);
+        return { success: true };
+      },
+      onUndo: () => session.undo(),
+      original: snapshot.text,
+      result,
+      routing,
+    });
   }
-  if (!response || 'error' in response) {
-    hooks.notify(
-      response && 'error' in response
-        ? response.error
-        : 'Could not reach Genfeed. Reload the page and try again.',
-      true,
-    );
-    return;
-  }
-  const { result } = response;
-  showTextActionPreview({
-    mode,
-    onApply: () => {
-      const written = session.apply(result.text);
-      if ('error' in written) return written;
-      hooks.markWritten(written.applied.draftAfter);
-      return { success: true };
-    },
-    onUndo: () => session.undo(),
-    original: captured.snapshot.text,
-    result,
-  });
+
+  await attempt(false);
 }

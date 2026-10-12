@@ -10,6 +10,7 @@ describe('useSettingsStore theme preference', () => {
       autoFill: false,
       autoPost: false,
       isLoaded: false,
+      localFallbackProviderId: null,
       settingsRevision: 0,
       theme: 'system',
       themeRevision: 0,
@@ -57,10 +58,45 @@ describe('useSettingsStore theme preference', () => {
       'genfeed-settings': {
         autoFill: true,
         autoPost: false,
+        localFallbackProviderId: null,
         theme: 'dark',
         recordOwnPublications: true,
       },
     });
+  });
+
+  it('keeps cloud only until a fallback provider is chosen', () => {
+    expect(useSettingsStore.getState().localFallbackProviderId).toBeNull();
+    useSettingsStore.getState().applyStoredSettings({ autoFill: true });
+    expect(useSettingsStore.getState().localFallbackProviderId).toBeNull();
+  });
+
+  it('persists the chosen fallback provider and reads it back', () => {
+    useSettingsStore.getState().setLocalFallbackProvider('claude-cli');
+
+    expect(useSettingsStore.getState().localFallbackProviderId).toBe(
+      'claude-cli',
+    );
+    expect(chrome.storage.local.set).toHaveBeenLastCalledWith({
+      'genfeed-settings': expect.objectContaining({
+        localFallbackProviderId: 'claude-cli',
+      }),
+    });
+
+    useSettingsStore.getState().setLocalFallbackProvider(null);
+    useSettingsStore
+      .getState()
+      .applyStoredSettings({ localFallbackProviderId: 'codex-cli' });
+    expect(useSettingsStore.getState().localFallbackProviderId).toBe(
+      'codex-cli',
+    );
+  });
+
+  it('ignores a stored provider the protocol does not know', () => {
+    useSettingsStore
+      .getState()
+      .applyStoredSettings({ localFallbackProviderId: 'rm-rf' });
+    expect(useSettingsStore.getState().localFallbackProviderId).toBeNull();
   });
 
   it('advances the local revision when another extension context changes theme', () => {

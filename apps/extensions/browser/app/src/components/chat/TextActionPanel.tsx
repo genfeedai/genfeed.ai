@@ -2,6 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import type { ReactElement } from 'react';
+import { RecoveryActions, RoutingNotice } from '~components/chat/ActionRouting';
 import type { UseTextActionReturn } from '~hooks/use-text-action';
 
 const MODE_LABELS = {
@@ -21,7 +22,8 @@ export function TextActionPanel({
   hasActions?: boolean;
   textAction: UseTextActionReturn;
 }): ReactElement {
-  const { error, mode, original, phase, result } = textAction;
+  const { error, mode, original, phase, recovery, result, routing } =
+    textAction;
   const isWorking = phase === 'working';
 
   return (
@@ -62,11 +64,21 @@ export function TextActionPanel({
         </p>
       ) : null}
 
+      {!result ? (
+        <RecoveryActions
+          recovery={recovery}
+          onRetry={() => {
+            void textAction.retry();
+          }}
+        />
+      ) : null}
+
       {result && (phase === 'preview' || phase === 'applied') ? (
         <div className="space-y-2 rounded-lg border border-border bg-background-secondary p-3">
           <p className="whitespace-pre-wrap text-sm text-foreground">
             {result.text}
           </p>
+          <RoutingNotice routing={routing} />
           {result.voiceHint ? (
             <p className="text-xs text-muted-foreground">{result.voiceHint}</p>
           ) : null}

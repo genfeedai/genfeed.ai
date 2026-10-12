@@ -416,6 +416,18 @@ genfeed credits usage
 genfeed posts list --platform twitter --status published
 ```
 
+### Local AI bridge for the browser extension
+
+```bash
+gf host install                      # register the native host with Chrome, Chromium, Brave and Edge
+gf host install --extension-id <id>  # also allow another extension ID (for example a Chrome Web Store build)
+gf host provider add openai-api --model <model>   # optional bring-your-own-key provider (key stays in ~/.gf/host)
+gf host status                       # where it is registered and which providers it finds (nothing is run)
+gf host uninstall [--purge]
+```
+
+The host only relays text actions from the Genfeed extension to your own Claude Code, Codex or Gemini CLI (or a saved API key). It never calls Genfeed and reads no Genfeed credentials. Genfeed cloud stays the default; the extension uses the host only for the fallback provider you choose in its settings.
+
 ## Options
 
 ### Global Options

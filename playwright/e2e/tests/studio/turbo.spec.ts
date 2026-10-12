@@ -100,7 +100,7 @@ test.describe('Persisted Turbo projects', () => {
       page.getByRole('button', { name: 'Approve', exact: true }),
     ).toBeVisible();
     await page.getByRole('link', { name: 'Open review inbox' }).click();
-    await expect(page).toHaveURL(/publishing\/review/);
+    await expect(page).toHaveURL(/publishing\/posts\?view=approvals/);
     await expect(
       page.getByText('Saved project output', { exact: true }).first(),
     ).toBeVisible();

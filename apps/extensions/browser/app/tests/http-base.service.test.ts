@@ -20,6 +20,7 @@ vi.mock('~services/workspace.service', () => ({
 vi.mock('~utils/logger.util', () => ({ logger: { error: vi.fn() } }));
 
 import { HTTPBaseService } from '~services/http-base.service';
+import { HttpRequestError } from '~services/http-request-error';
 
 class Service extends HTTPBaseService {
   constructor() {
@@ -78,5 +79,49 @@ describe('scoped Axios adapter', () => {
     );
     await expect(new Service().get()).rejects.toThrow('Forbidden');
     expect(mocks.request).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [429, '{"message":"Too many requests"}', 'http'],
+    [503, '{"message":["Down","Retry later"]}', 'http'],
+    [401, '{}', 'unauthorized'],
+  ])(
+    'tells callers the kind and status of a %i answer',
+    async (status, body, kind) => {
+      mocks.request.mockResolvedValue(new Response(body, { status }));
+
+      const failure = await new Service().get().catch((error) => error);
+
+      expect(failure).toBeInstanceOf(HttpRequestError);
+      expect(failure).toMatchObject({ kind, status });
+    },
+  );
+
+  it('keeps the readable message of an API answer', async () => {
+    mocks.request.mockResolvedValue(
+      new Response('{"message":["Down","Retry later"]}', { status: 503 }),
+    );
+    await expect(new Service().get()).rejects.toThrow('Down, Retry later');
+  });
+
+  it('reports a lost connection and a timeout without a status', async () => {
+    mocks.request.mockRejectedValue(new TypeError('Failed to fetch'));
+    const lost = await new Service().get().catch((error) => error);
+    expect(lost).toMatchObject({ kind: 'network', status: null });
+
+    const timeout = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockImplementation(() => AbortSignal.abort(new Error('timed out')));
+    mocks.request.mockImplementation(
+      (_url: string, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          const signal = options.signal as AbortSignal;
+          if (signal.aborted) return reject(signal.reason);
+          signal.addEventListener('abort', () => reject(signal.reason));
+        }),
+    );
+    const slow = await new Service().get().catch((error) => error);
+    timeout.mockRestore();
+    expect(slow).toMatchObject({ kind: 'timeout', status: null });
   });
 });

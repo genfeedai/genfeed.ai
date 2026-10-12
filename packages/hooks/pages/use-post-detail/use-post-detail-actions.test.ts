@@ -44,6 +44,7 @@ const POST = {
 describe('usePostDetailActions', () => {
   const mockServiceDelete = vi.fn();
   const mockServiceEnhance = vi.fn();
+  const mockServiceDraftThread = vi.fn();
   const mockGetPostsService = vi.fn();
   const mockEnsureFromPost = vi.fn();
   const mockScheduleTarget = vi.fn();
@@ -57,22 +58,16 @@ describe('usePostDetailActions', () => {
   const mockRouter = { push: vi.fn(), replace: vi.fn() };
   const mockFetchPost = vi.fn();
   const mockUpdateActivePost = vi.fn();
-  const mockHandleUpdateChild = vi.fn();
-  const mockUpdateDescriptionRefs = vi.fn();
-  const mockSetPost = vi.fn();
-  const mockSetDescriptionDraft = vi.fn();
   const mockSetIsSavingDescription = vi.fn();
   const mockSetIsSavingSchedule = vi.fn();
   const mockSetEnhancingPostId = vi.fn();
   const mockSetEnhancingAction = vi.fn();
-  const mockSetChildDescriptions = vi.fn();
 
   const baseProps = {
     descriptionDraft: 'Draft description',
     fetchPost: mockFetchPost,
     getPostsService: mockGetPostsService,
     getReleaseGroupsService: mockGetReleaseGroupsService,
-    handleUpdateChild: mockHandleUpdateChild,
     isContentDirty: false,
     isDescriptionDirty: false,
     isLabelDirty: false,
@@ -82,15 +77,11 @@ describe('usePostDetailActions', () => {
     post: POST,
     router: mockRouter as never,
     scheduleDraft: '',
-    setChildDescriptions: mockSetChildDescriptions,
-    setDescriptionDraft: mockSetDescriptionDraft,
     setEnhancingAction: mockSetEnhancingAction,
     setEnhancingPostId: mockSetEnhancingPostId,
     setIsSavingDescription: mockSetIsSavingDescription,
     setIsSavingSchedule: mockSetIsSavingSchedule,
-    setPost: mockSetPost,
     updateActivePost: mockUpdateActivePost,
-    updateDescriptionRefs: mockUpdateDescriptionRefs,
   };
 
   beforeEach(() => {
@@ -104,8 +95,10 @@ describe('usePostDetailActions', () => {
     });
     mockGetPostsService.mockResolvedValue({
       delete: mockServiceDelete,
+      draftThread: mockServiceDraftThread,
       enhance: mockServiceEnhance,
     });
+    mockServiceDraftThread.mockResolvedValue(['Reply one', 'Reply two']);
     mockEnsureFromPost.mockResolvedValue({ id: 'group-1' });
     mockScheduleTarget.mockResolvedValue({ id: 'group-1' });
     mockPublishNow.mockResolvedValue({ id: 'group-1' });
@@ -350,18 +343,25 @@ describe('usePostDetailActions', () => {
         usePostDetailActions({ ...baseProps, post: null }),
       );
 
+      let draft: string | null = 'unset';
       await act(async () => {
-        await result.current.handleQuickAction('post-1', 'prompt', 'boost');
+        draft = await result.current.handleQuickAction(
+          'post-1',
+          'prompt',
+          'boost',
+        );
       });
 
+      expect(draft).toBeNull();
       expect(mockServiceEnhance).not.toHaveBeenCalled();
     });
 
-    it('enhances the parent post and updates drafts', async () => {
+    it('requests an unsaved draft and returns the proposed text', async () => {
       const { result } = renderHook(() => usePostDetailActions(baseProps));
 
+      let draft: string | null = null;
       await act(async () => {
-        await result.current.handleQuickAction(
+        draft = await result.current.handleQuickAction(
           'post-1',
           'make it pop',
           'boost',
@@ -369,58 +369,38 @@ describe('usePostDetailActions', () => {
         );
       });
 
+      expect(draft).toBe('Enhanced text');
       expect(mockSetEnhancingPostId).toHaveBeenNthCalledWith(1, 'post-1');
       expect(mockSetEnhancingAction).toHaveBeenNthCalledWith(1, 'boost');
       expect(mockServiceEnhance).toHaveBeenCalledWith(
         'post-1',
         'make it pop',
         'viral',
+        { isDraft: true },
       );
-      expect(mockSetDescriptionDraft).toHaveBeenCalledWith('Enhanced text');
-      expect(mockUpdateDescriptionRefs).toHaveBeenCalledWith(
-        'post-1',
-        'Enhanced text',
-      );
-      expect(mockSetPost).toHaveBeenCalled();
-      expect(mockNotificationsService.success).toHaveBeenCalledWith(
-        'Tweet enhanced',
-      );
+      expect(mockNotificationsService.success).not.toHaveBeenCalled();
       expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
       expect(mockSetEnhancingAction).toHaveBeenLastCalledWith(null);
     });
 
-    it('enhances a child post through handleUpdateChild', async () => {
-      mockServiceEnhance.mockResolvedValue({
-        description: 'Child enhanced',
-        id: 'child-1',
-      });
-      const { result } = renderHook(() => usePostDetailActions(baseProps));
-
-      await act(async () => {
-        await result.current.handleQuickAction('child-1', 'prompt', 'boost');
-      });
-
-      expect(mockHandleUpdateChild).toHaveBeenCalledWith('child-1', {
-        description: 'Child enhanced',
-      });
-      expect(mockSetChildDescriptions).toHaveBeenCalledWith(
-        'child-1',
-        'Child enhanced',
-      );
-      expect(mockSetPost).not.toHaveBeenCalled();
-    });
-
-    it('notifies when the quick action fails', async () => {
+    it('returns null and notifies when the rewrite fails', async () => {
       mockServiceEnhance.mockRejectedValue(new Error('boom'));
       const { result } = renderHook(() => usePostDetailActions(baseProps));
 
+      let draft: string | null = 'unset';
       await act(async () => {
-        await result.current.handleQuickAction('post-1', 'prompt', 'boost');
+        draft = await result.current.handleQuickAction(
+          'post-1',
+          'prompt',
+          'boost',
+        );
       });
 
+      expect(draft).toBeNull();
       expect(mockNotificationsService.error).toHaveBeenCalledWith(
-        'Failed to enhance tweet',
+        'Failed to rewrite. Try again.',
       );
+      expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
     });
   });
 
@@ -437,52 +417,75 @@ describe('usePostDetailActions', () => {
       expect(mockServiceEnhance).not.toHaveBeenCalled();
     });
 
-    it('enhances the parent post', async () => {
-      const { result } = renderHook(() => usePostDetailActions(baseProps));
-
-      await act(async () => {
-        await result.current.handlePerTweetEnhance(
-          'post-1',
-          'prompt',
-          'casual',
-        );
-      });
-
-      expect(mockServiceEnhance).toHaveBeenCalledWith(
-        'post-1',
-        'prompt',
-        'casual',
-      );
-      expect(mockSetDescriptionDraft).toHaveBeenCalledWith('Enhanced text');
-      expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
-    });
-
-    it('enhances a child post', async () => {
+    it('requests an unsaved draft for any post in the thread', async () => {
       mockServiceEnhance.mockResolvedValue({
         description: 'Child enhanced',
         id: 'child-1',
       });
       const { result } = renderHook(() => usePostDetailActions(baseProps));
 
+      let draft: string | null = null;
       await act(async () => {
-        await result.current.handlePerTweetEnhance('child-1', 'prompt');
+        draft = await result.current.handlePerTweetEnhance(
+          'child-1',
+          'prompt',
+          'casual',
+        );
       });
 
-      expect(mockHandleUpdateChild).toHaveBeenCalledWith('child-1', {
-        description: 'Child enhanced',
-      });
+      expect(draft).toBe('Child enhanced');
+      expect(mockServiceEnhance).toHaveBeenCalledWith(
+        'child-1',
+        'prompt',
+        'casual',
+        { isDraft: true },
+      );
     });
 
-    it('notifies when enhancement fails', async () => {
-      mockServiceEnhance.mockRejectedValue(new Error('boom'));
+    it('returns null when the draft has no text', async () => {
+      mockServiceEnhance.mockResolvedValue({ description: '', id: 'post-1' });
       const { result } = renderHook(() => usePostDetailActions(baseProps));
 
+      let draft: string | null = 'unset';
       await act(async () => {
-        await result.current.handlePerTweetEnhance('post-1', 'prompt');
+        draft = await result.current.handlePerTweetEnhance('post-1', 'prompt');
       });
 
+      expect(draft).toBeNull();
+    });
+  });
+
+  describe('handleDraftThread', () => {
+    it('returns proposed replies without saving', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      let draft: string[] | null = null;
+      await act(async () => {
+        draft = await result.current.handleDraftThread('post-1', 'casual');
+      });
+
+      expect(draft).toEqual(['Reply one', 'Reply two']);
+      expect(mockServiceDraftThread).toHaveBeenCalledWith(
+        'post-1',
+        4,
+        'casual',
+      );
+      expect(mockSetEnhancingPostId).toHaveBeenNthCalledWith(1, 'post-1');
+      expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+    });
+
+    it('returns null and notifies when drafting fails', async () => {
+      mockServiceDraftThread.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      let draft: string[] | null = ['unset'];
+      await act(async () => {
+        draft = await result.current.handleDraftThread('post-1');
+      });
+
+      expect(draft).toBeNull();
       expect(mockNotificationsService.error).toHaveBeenCalledWith(
-        'Failed to enhance tweet',
+        'Failed to draft the thread. Try again.',
       );
     });
   });

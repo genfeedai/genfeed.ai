@@ -135,6 +135,21 @@ export interface IOrganizationSetting extends IBaseEntity {
   moduleOverrides?: OrganizationModuleOverrides;
   /** Founder release preview; only platform admins change it (#5502). */
   isReleasePreviewEnabled?: boolean;
+  /**
+   * Own-account breakout responses (#6526). Off: a detected breakout enqueues and spends
+   * nothing, and a response already in flight holds. Owners and admins change it.
+   */
+  isBreakoutResponsesEnabled?: boolean;
+  /**
+   * Lets a breakout response that passed every check schedule itself (#6526). Off: every
+   * response output stays review-only. Owners and admins change it.
+   */
+  isBreakoutAutoPublishEnabled?: boolean;
+  /**
+   * Paid provider reading of branded visuals (#6727). Off: no provider is called and the
+   * visual checks stay unknown. The platform switch is the master kill switch.
+   */
+  isBrandVisionChecksEnabled?: boolean;
   /** Read-only server runtime hint for presentation; admission always rechecks. */
   readonly hasOrganizationBilling?: boolean;
   /** Read-only fresh paid eligibility; null means the grant could not be verified. */

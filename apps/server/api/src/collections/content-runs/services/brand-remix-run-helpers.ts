@@ -189,6 +189,30 @@ export function remixSourcePlatform(value: unknown): BrandRemixSourcePlatform {
   });
 }
 
+const IMPORTED_SOURCE_HOST_PLATFORMS: ReadonlyArray<
+  readonly [RegExp, BrandRemixSourcePlatform]
+> = [
+  [/(^|\.)(x|twitter)\.com$/i, BrandRemixOrganicPlatform.X],
+  [/(^|\.)(youtube\.com|youtu\.be)$/i, BrandRemixOrganicPlatform.YOUTUBE],
+  [/(^|\.)instagram\.com$/i, BrandRemixOrganicPlatform.INSTAGRAM],
+  [/(^|\.)tiktok\.com$/i, BrandRemixOrganicPlatform.TIKTOK],
+];
+
+/**
+ * The remix platform a saved browser source starts from. Sites with no remix
+ * platform of their own (articles, newsletters, podcasts, Reddit) start from
+ * X copy; the organic target stays editable before any generation.
+ */
+export function remixImportedSourcePlatform(
+  host: string,
+): BrandRemixSourcePlatform {
+  return (
+    IMPORTED_SOURCE_HOST_PLATFORMS.find(([pattern]) =>
+      pattern.test(host),
+    )?.[1] ?? BrandRemixOrganicPlatform.X
+  );
+}
+
 export function remixOrganicPlatform(
   platform: BrandRemixSourcePlatform,
 ): BrandRemixOrganicPlatform {

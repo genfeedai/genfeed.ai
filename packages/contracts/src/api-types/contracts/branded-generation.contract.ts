@@ -730,7 +730,22 @@ export const brandArtifactValidationCheckV1Schema = z
     proof: brandArtifactProofV1Schema.optional(),
   })
   .superRefine((v, ctx) => {
-    if (v.proof) {
+    if (v.proof?.kind === 'fact') {
+      const { claims } = v.proof;
+      const isContradicted = claims.some((c) => c.verdict === 'contradicted');
+      const isUnverified = claims.some((c) => c.verdict === 'unverified');
+      if (
+        v.category !== 'fact' ||
+        v.method !== 'semantic_evaluator' ||
+        !['pass', 'fail', 'unknown'].includes(v.result) ||
+        (v.result === 'fail') !== isContradicted ||
+        (v.result === 'pass' &&
+          (isUnverified ||
+            !v.proof.isTextComplete ||
+            v.proof.mediaKind !== 'text'))
+      )
+        issue(ctx, 'Fact proof must match the semantic fact check it records');
+    } else if (v.proof) {
       if (
         !['pass', 'fail'].includes(v.result) ||
         v.method !== 'deterministic_render' ||

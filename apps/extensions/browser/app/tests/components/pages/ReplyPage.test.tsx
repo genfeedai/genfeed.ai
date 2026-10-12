@@ -7,6 +7,7 @@ import {
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReplyPage } from '~components/pages/ReplyPage';
+import { usePanelNavigationStore } from '~store/use-panel-navigation-store';
 import { usePlatformStore } from '~store/use-platform-store';
 
 const RESULT = {
@@ -257,5 +258,95 @@ describe('ReplyPage', () => {
 
     await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
     expect(generateRequest().requestKey).not.toBe(first);
+  });
+
+  it('says a local provider wrote the options', async () => {
+    const notice =
+      'Genfeed was unavailable, so this was written locally with Codex CLI, using your approved brand voice.';
+    reply({
+      result: RESULT,
+      routing: {
+        hasBrandVoice: true,
+        notice,
+        providerId: 'codex-cli',
+        providerLabel: 'Codex CLI',
+        reason: 'service_unavailable',
+        voiceSource: 'live',
+      },
+      success: true,
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /Generate replies/ }));
+
+    expect((await screen.findByRole('status')).textContent).toBe(notice);
+  });
+
+  it('keeps the post and offers a local-only Retry with the same key after a host failure', async () => {
+    usePanelNavigationStore.setState({ requestedTab: null });
+    reply({
+      error: 'The Genfeed local bridge is not reachable.',
+      recovery: {
+        canOpenProviderSettings: true,
+        canRetry: true,
+        kind: 'host_unreachable',
+        retryTarget: 'local',
+      },
+      success: false,
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Generate replies/ }));
+    await screen.findByText('The Genfeed local bridge is not reachable.');
+    const firstKey = generateRequest().requestKey;
+    expect(
+      (screen.getByLabelText('Post to reply to') as HTMLTextAreaElement).value,
+    ).toBe('We just launched our public API.');
+
+    send.mockClear();
+    reply({ result: RESULT, success: true });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Retry with local provider' }),
+    );
+
+    await screen.findByText('Great launch, congrats!');
+    expect(generateRequest()).toEqual({
+      event: 'generateReplyVariants',
+      platform: 'twitter',
+      postAuthor: '@ada',
+      postContent: 'We just launched our public API.',
+      requestKey: firstKey,
+      retry: true,
+      tone: 'add-value',
+    });
+  });
+
+  it('opens the provider settings from a failure', async () => {
+    usePanelNavigationStore.setState({ requestedTab: null });
+    reply({
+      error: 'The local provider took too long.',
+      recovery: {
+        canOpenProviderSettings: true,
+        canRetry: true,
+        kind: 'host_failed',
+        retryTarget: 'local',
+      },
+      success: false,
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Generate replies/ }));
+    await screen.findByText('The local provider took too long.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Provider settings' }));
+
+    expect(usePanelNavigationStore.getState().requestedTab).toBe('settings');
+  });
+
+  it('starts a new request after an ordinary error without retrying', async () => {
+    reply({ error: 'Not enough credits.', success: false });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Generate replies/ }));
+    await screen.findByText('Not enough credits.');
+
+    expect(screen.queryByRole('button', { name: /Retry/ })).toBeNull();
   });
 });

@@ -193,4 +193,92 @@ describe('useTextAction', () => {
 
     expect(result.current).toMatchObject({ phase: 'idle', result: null });
   });
+
+  it('carries the routing notice of a locally written suggestion', async () => {
+    const routing = {
+      hasBrandVoice: true,
+      notice: 'Written locally.',
+      providerId: 'claude-cli',
+      providerLabel: 'Claude Code',
+      reason: 'credit_limit',
+      voiceSource: 'live',
+    };
+    route({
+      CAPTURE_COMPOSER_TEXT: CAPTURED,
+      refineText: { result: RESULT, routing, success: true },
+    });
+    const { result } = renderHook(useTextAction);
+
+    await act(() => result.current.start('rewrite'));
+
+    expect(result.current).toMatchObject({ phase: 'preview', routing });
+  });
+
+  it('retries a recoverable failure with the same key, draft and capture', async () => {
+    const recovery = {
+      canOpenProviderSettings: true,
+      canRetry: true,
+      kind: 'host_unreachable',
+      retryTarget: 'local',
+    };
+    route({
+      CAPTURE_COMPOSER_TEXT: CAPTURED,
+      refineText: { error: 'Bridge not reachable', recovery, success: false },
+    });
+    const { result } = renderHook(useTextAction);
+    await act(() => result.current.start('rewrite'));
+    expect(result.current).toMatchObject({
+      error: 'Bridge not reachable',
+      phase: 'idle',
+      recovery,
+    });
+    const first = send.mock.calls.find(
+      ([message]) => (message as { event?: string }).event === 'refineText',
+    )?.[0] as unknown as { requestKey: string };
+
+    route({
+      CAPTURE_COMPOSER_TEXT: CAPTURED,
+      refineText: { result: RESULT, success: true },
+    });
+    send.mockClear();
+    await act(() => result.current.retry());
+
+    expect(send).toHaveBeenCalledExactlyOnceWith({
+      event: 'refineText',
+      mode: 'rewrite',
+      platform: 'twitter',
+      requestKey: first.requestKey,
+      retry: true,
+      text: 'Teh launch is live',
+    });
+    expect(result.current).toMatchObject({
+      error: null,
+      phase: 'preview',
+      recovery: null,
+      snapshotId: 'snapshot-1',
+    });
+  });
+
+  it('keeps no request to retry when the failure offers no retry', async () => {
+    route({
+      CAPTURE_COMPOSER_TEXT: CAPTURED,
+      refineText: {
+        error: 'Sign in again.',
+        recovery: {
+          canOpenProviderSettings: false,
+          canRetry: false,
+          kind: 'recovery_required',
+          retryTarget: null,
+        },
+        success: false,
+      },
+    });
+    const { result } = renderHook(useTextAction);
+
+    await act(() => result.current.start('rewrite'));
+    send.mockClear();
+    await act(() => result.current.retry());
+
+    expect(send).not.toHaveBeenCalled();
+  });
 });

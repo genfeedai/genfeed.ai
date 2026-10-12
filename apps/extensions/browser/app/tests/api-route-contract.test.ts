@@ -30,8 +30,12 @@ const apiRoutes = new Set(
   sourceFiles(resolve(root, 'apps/server/api/src')).flatMap((file) => {
     if (!file.endsWith('.controller.ts')) return [];
     const source = readFileSync(file, 'utf8');
-    const prefix = source.match(/@Controller\(['"`]([^'"`]+)['"`]\)/)?.[1];
-    if (!prefix) return [];
+    // `@Controller()` with no prefix spells the whole path in each route.
+    const controller = source.match(
+      /@Controller\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/,
+    );
+    if (!controller) return [];
+    const prefix = controller[1] ?? '';
     return Array.from(
       source.matchAll(
         /@(Get|Post|Put|Patch|Delete)\((?:['"`]([^'"`]*)['"`])?\)/g,
@@ -65,8 +69,18 @@ if (
 const routes = [
   ['POST', 'agent-tools/:name/execute'],
   ['POST', 'knowledge-sources'],
-  ['POST', 'social-sources/import-post'],
-  ['GET', 'source-posts'],
+  ['POST', 'brands/:id/imported-sources'],
+  ['GET', 'brands/:id/imported-sources'],
+  ['POST', 'brands/:id/imported-sources/:id/recaptures'],
+  ['POST', 'brands/:id/imported-sources/:id/media'],
+  ['GET', 'brands/:id/imported-sources/:id/media'],
+  ['POST', 'brands/:id/imported-sources/:id/media/retry'],
+  ['POST', 'brands/:id/content-runs/remixes'],
+  ['GET', 'content-runs/:id/remix'],
+  ['PATCH', 'content-runs/:id/remix'],
+  ['POST', 'content-runs/:id/remix/generation/quote'],
+  ['POST', 'content-runs/:id/remix/generation/execute'],
+  ['GET', 'models'],
   ['GET', 'brands/:id'],
   ['GET', 'organizations'],
   ['POST', 'posts'],
@@ -124,14 +138,15 @@ describe('extension API route contract', () => {
       'services/publication-capture.service.ts',
       'services/publication-insights.service.ts',
       'services/theme-settings.service.ts',
-      'services/social-post-import.service.ts',
+      'services/imported-source.service.ts',
+      'services/source-remix.service.ts',
       'components/settings/ConnectedAccounts.tsx',
     ];
     for (const file of files) {
       const source = readFileSync(resolve(extensionRoot, file), 'utf8');
       const endpoints = Array.from(
         source.matchAll(
-          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|social-sources|source-posts|organizations)[^'"`]*)['"`]/g,
+          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|organizations|content-runs|models)[^'"`]*)['"`]/g,
         ),
         (match) => normalizeRoute(match[1]),
       );
@@ -150,14 +165,23 @@ describe('extension API route contract', () => {
         '/clip-projects/analyze',
         '/videos/create',
         '/auth/validate',
+        // The legacy source-import routes were hard-cut for Imported sources (#5859).
+        '/social-sources',
+        '/source-posts',
       ]) {
         expect(source, file).not.toContain(route);
       }
     }
-    const remix = readFileSync(
-      resolve(extensionRoot, 'components/pages/RemixPage.tsx'),
-      'utf8',
-    );
-    expect(remix).not.toContain('/ingredients');
+    // Remix now never calls a provider route; generation is the quote/execute pair.
+    for (const file of sourceFiles(
+      resolve(extensionRoot, 'components/pages'),
+    )) {
+      const source = readFileSync(file, 'utf8');
+      if (/Remix/.test(file)) {
+        expect(source, file).not.toContain('/ingredients');
+        expect(source, file).not.toContain('/images');
+        expect(source, file).not.toContain('/videos');
+      }
+    }
   });
 });

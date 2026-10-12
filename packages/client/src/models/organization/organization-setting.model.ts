@@ -26,6 +26,9 @@ export class OrganizationSetting
   declare public isGenerateImagesEnabled: boolean;
   declare public isGenerateMusicEnabled: boolean;
   declare public isAutoEvaluateEnabled: boolean;
+  declare public isBreakoutResponsesEnabled?: boolean;
+  declare public isBreakoutAutoPublishEnabled?: boolean;
+  declare public isBrandVisionChecksEnabled?: boolean;
   declare public isFleetNsfwVisible: boolean;
 
   declare public isWebhookEnabled: boolean;

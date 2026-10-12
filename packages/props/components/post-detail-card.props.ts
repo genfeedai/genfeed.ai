@@ -1,9 +1,5 @@
 import type { CredentialPlatform, PageScope } from '@genfeedai/contracts';
-import type {
-  IIngredient,
-  IPost,
-  PostQuickActionKey,
-} from '@genfeedai/contracts/interfaces';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { MutableRefObject } from 'react';
@@ -15,6 +11,8 @@ export interface PostDetailCardProps {
   scope: PageScope;
   platform: CredentialPlatform;
   isDraggable?: boolean;
+  /** Shows the thread position marker; a single post has no numbering. */
+  isThread?: boolean;
   focusedPostId: string | null;
   setFocusedPostId: (postId: string | null) => void;
   descriptionValue: string;
@@ -34,20 +32,8 @@ export interface PostDetailCardProps {
   getPostsService: () => Promise<PostsService>;
   onUpdateChild: (childId: string, updates: Partial<IPost>) => void;
   notificationsService: NotificationsService;
-  /** Twitter only */
-  canAddThread?: boolean;
-  onAddToThread?: () => void;
-  isLast?: boolean;
   /** Only for children */
   onDeleteChild?: (childId: string) => void;
-  onQuickAction?: (
-    postId: string,
-    prompt: string,
-    actionKey: PostQuickActionKey,
-  ) => Promise<void>;
-  onPromptEnhance?: (postId: string, prompt: string) => Promise<void>;
-  enhancingPostId?: string | null;
-  enhancingAction?: PostQuickActionKey | null;
   performAutoSaveForPost?: (postId: string) => Promise<void>;
   currentDescriptionsRef: MutableRefObject<Map<string, string>>;
   currentLabelsRef: MutableRefObject<Map<string, string>>;

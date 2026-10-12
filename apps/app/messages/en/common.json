@@ -895,6 +895,29 @@
       },
       "samplePrompt": "Help me explore a small {channel} example for the skill named {name}."
     },
+    "organizationAutomation": {
+      "title": "Breakouts and brand checks",
+      "description": "Opt in to paid and automatic work. Everything here is off until an owner or admin turns it on.",
+      "adminOnly": "Only owners and admins can change these settings.",
+      "loading": "Loading settings…",
+      "saving": "Saving…",
+      "saved": "Setting saved.",
+      "saveFailed": "Could not save the setting. Try again.",
+      "breakoutResponses": {
+        "label": "Breakout responses",
+        "description": "When one of your posts takes off, draft responses while it is still hot. Spends credits within your strategy budgets. Drafts wait for review."
+      },
+      "breakoutAutoPublish": {
+        "label": "Breakout auto-publish",
+        "description": "Let a response that passes every check schedule itself. That includes your brand rules, the quality gate and the fact check. Off keeps every response as a draft for review.",
+        "requiresResponses": "Turn on breakout responses first."
+      },
+      "brandVision": {
+        "label": "Brand vision checks",
+        "description": "Read your images and videos for required text, logos and products before they can be approved.",
+        "cost": "Costs about $0.005 per image, charged in credits."
+      }
+    },
     "organizationCustomModels": {
       "title": "Custom Models",
       "description": "Your organization's dedicated models for consistent, on-brand generation.",

@@ -420,6 +420,21 @@ async function openConfiguration(page: Page, section: string) {
     .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
 }
+// #6775: per-model Crun controls live in the setup popover's Output section
+// (Advanced mode), not in the prompt-bar toolbar.
+async function openOutputControls(page: Page) {
+  const setup = page.getByRole('button', { name: /^Generation setup:/ });
+  await setup.click();
+  await openConfiguration(page, 'Output');
+}
+async function closeGenerationSetup(page: Page) {
+  // Two layers: the Output submenu, then the setup popover itself.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('button', { name: 'Configure Output', exact: true }),
+  ).toHaveCount(0);
+}
 async function expectSubmitTooltip(page: Page, statusName: string) {
   const generate = page
     .getByTestId('studio-playground-composer-shell')
@@ -498,26 +513,27 @@ for (const key of [klingKey, veoKey]) {
     authenticatedPage: page,
   }) => {
     const fixture = await installFixture(page, key);
-    await expect(
-      fixture.composer.getByRole('combobox', { name: 'Duration', exact: true }),
-    ).toHaveCount(1);
+    await openOutputControls(page);
+    const durationControl = page.getByRole('combobox', {
+      name: 'Duration',
+      exact: true,
+    });
+    await expect(durationControl).toHaveCount(1);
     if (key === klingKey) {
       await selectValue(page, 'Duration', '10s');
-      await fixture.composer
+      await page
         .getByRole('textbox', { name: 'Negative prompt', exact: true })
         .fill(' blur ');
-      await fixture.composer
+      await page
         .getByRole('spinbutton', { name: 'Guidance', exact: true })
         .fill('0');
     } else {
-      await fixture.composer
-        .getByRole('combobox', { name: 'Duration', exact: true })
-        .click();
+      await durationControl.click();
       await expect(page.getByRole('option', { name: /4s/ })).toBeDisabled();
       await expect(page.getByRole('option', { name: /6s/ })).toBeDisabled();
       await page.keyboard.press('Escape');
       await selectValue(page, 'Resolution', '4k');
-      await fixture.composer
+      await page
         .getByRole('checkbox', { name: 'Translate prompt', exact: true })
         .uncheck();
       await expect(
@@ -528,6 +544,7 @@ for (const key of [klingKey, veoKey]) {
       ).toHaveCount(0);
     }
     await selectValue(page, 'Aspect ratio', '9:16');
+    await closeGenerationSetup(page);
     await expectSubmitTooltip(page, '3 credits');
     const generate = fixture.composer.getByRole('button', {
       name: 'Generate',
@@ -586,12 +603,13 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
   expect(fixture.previews.at(-1)?.crunControls).not.toHaveProperty(
     'aspectRatio',
   );
-  await expect(
-    fixture.composer.getByText('Aspect ratio comes from the frames', {
-      exact: true,
-    }),
-  ).toBeVisible();
   await openGenerationSetup(page, 'Kling 2.5 Turbo Pro · 16:9 · 5s');
+  await openConfiguration(page, 'Output');
+  await expect(
+    page.getByText('Aspect ratio comes from the frames', { exact: true }),
+  ).toBeVisible();
+  // Close the Output submenu before opening Model's.
+  await page.keyboard.press('Escape');
   await openConfiguration(page, 'Model');
   await page.getByRole('option', { name: /Veo 3.1 Fast/ }).click();
   await page.keyboard.press('Escape');

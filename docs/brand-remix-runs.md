@@ -20,6 +20,7 @@ active organization and brand are allowed to use.
 | --- | --- | --- |
 | Trends | Captured TikTok trend or followed post | Trend reference or source-post ID |
 | Organic research | Imported, followed, or owned post | Source-post or owned-post ID |
+| Browser extension | A page, post, image, video or podcast the user saved as an Imported source | Imported-source ID |
 | Ads research | Captured public Meta, Google/YouTube, or TikTok ad | Public-ad snapshot ID |
 | Connected ads | Ad from an authorized connected account | Credential, account, and ad IDs |
 
@@ -111,6 +112,19 @@ and activates the campaign in Ads Manager.
 Public Meta research remains eligible for creative prefill, but it cannot be
 used as authority to write to an ad account. A paid handoff therefore requires
 the stable credential, ad-account, and ad IDs from a connected source.
+
+## Saved browser sources
+
+A source saved from the browser extension (`/brands/:brandId/imported-sources`)
+is remixed by its Imported-source ID only. The server reads the stored,
+organization- and brand-scoped snapshot; the client sends no text, URL or media.
+Hosts without a remix platform of their own (articles, newsletters, podcasts,
+Reddit) start from X copy, and the organic target stays editable before any
+quote. Only media the user explicitly prepared becomes an analysis asset;
+embedded players stay pattern-only. Each Library output records the saved source
+(and its prepared media) in its `sources` lineage, so the original is never
+changed and the output stays linked to it. Copy and image remixes can be quoted
+and approved from the extension; video and avatar remixes continue in Studio.
 
 ## Security invariants
 
