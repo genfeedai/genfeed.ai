@@ -1,11 +1,11 @@
+import { describe, expect, it } from 'vitest';
 import {
   createTextActionGate,
   extractProtectedTokens,
   findDroppedTokens,
   measureChannelText,
   resolveTextActionLimit,
-} from '@api/endpoints/ai-actions/text-action-text.util';
-import { describe, expect, it } from 'vitest';
+} from './text-action-text.helper';
 
 describe('text action text utilities', () => {
   it('extracts mentions, hashtags and links without trailing punctuation', () => {

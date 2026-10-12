@@ -2,7 +2,7 @@ import {
   measureChannelText,
   type TextActionGate,
   type TextActionRejection,
-} from '@api/endpoints/ai-actions/text-action-text.util';
+} from './text-action-text.helper';
 
 /** A line holding only this separates the variants in the model answer and in the saved artifact. */
 const VARIANT_SEPARATOR = /^[ \t]*-{3,}[ \t]*$/mu;

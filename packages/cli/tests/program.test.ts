@@ -12,6 +12,7 @@ describe('terminal program', () => {
         'brand',
         'credits',
         'gen',
+        'host',
         'job',
         'login',
         'signup',

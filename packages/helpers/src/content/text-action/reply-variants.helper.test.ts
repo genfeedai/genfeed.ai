@@ -1,11 +1,11 @@
+import { describe, expect, it } from 'vitest';
 import {
   createReplyVariantsGate,
   joinReplyVariants,
   parseReplyVariants,
   splitReplyVariants,
   truncateToChannelLimit,
-} from '@api/endpoints/ai-actions/reply-variants.util';
-import { describe, expect, it } from 'vitest';
+} from './reply-variants.helper';
 
 describe('reply variants', () => {
   describe('parseReplyVariants', () => {

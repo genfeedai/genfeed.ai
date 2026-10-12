@@ -1,9 +1,9 @@
+import { REPLY_VARIANT_TONES } from '@genfeedai/contracts/constants';
+import { describe, expect, it } from 'vitest';
 import {
   buildReplyVariantsPrompt,
   REPLY_TONE_INSTRUCTIONS,
-} from '@api/endpoints/ai-actions/reply-variants-prompt.util';
-import { REPLY_VARIANT_TONES } from '@genfeedai/contracts/constants';
-import { describe, expect, it } from 'vitest';
+} from './reply-variants-prompt.helper';
 
 const base = {
   hasBrandVoice: true,

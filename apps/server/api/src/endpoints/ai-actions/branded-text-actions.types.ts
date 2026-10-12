@@ -1,5 +1,4 @@
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
-import type { TextActionGate } from '@api/endpoints/ai-actions/text-action-text.util';
 import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   ReplyVariantsResult,
@@ -7,6 +6,7 @@ import type {
   TextActionMode,
   TextActionResult,
 } from '@genfeedai/contracts/interfaces';
+import type { TextActionGate } from '@genfeedai/helpers/content/text-action/text-action-text.helper';
 
 export interface TextActionRequestV1 {
   actor: BrandAccessActor;

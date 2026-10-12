@@ -1,5 +1,5 @@
-import { buildTextActionPrompt } from '@api/endpoints/ai-actions/text-action-prompt.util';
 import { describe, expect, it } from 'vitest';
+import { buildTextActionPrompt } from './text-action-prompt.helper';
 
 const base = {
   hasBrandVoice: true,
