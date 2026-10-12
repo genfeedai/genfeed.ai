@@ -56,6 +56,8 @@ export const platformSettingAttributes = createEntityAttributes([
   'isAgentContextCompressionEnabled',
   'isAgentTokenStreamingEnabled',
   'isBrandVisualAnalysisEnabled',
+  'brandVisionOcrModelKey',
+  'brandVisionDetectModelKey',
   'systemEventsEnabledAt',
   'isEmailVerificationRequired',
   'isEmailDeliveryConfigured',

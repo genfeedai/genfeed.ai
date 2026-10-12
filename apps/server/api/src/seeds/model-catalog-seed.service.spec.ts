@@ -2,6 +2,10 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelLifecycle } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_MODEL_KEYS,
+  BRAND_DETECTION_CAPABILITY,
+  BRAND_OCR_CAPABILITY,
+  BRAND_VISION_DETECT_MODEL_KEY,
+  BRAND_VISION_OCR_MODEL_KEY,
   getModelCatalogForDeployment,
   LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
@@ -515,6 +519,37 @@ describe('ModelCatalogSeedService', () => {
       providerCostUsd: 0.13,
     });
   });
+
+  it.each([
+    [BRAND_VISION_OCR_MODEL_KEY, BRAND_OCR_CAPABILITY, 0.000975],
+    [BRAND_VISION_DETECT_MODEL_KEY, BRAND_DETECTION_CAPABILITY, 0.000225],
+  ])(
+    'registers %s with its pinned version, capability tag and per-second price (#6727)',
+    async (key, capability, providerCostUsd) => {
+      await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+      const call = callForKey(key);
+      const expected = {
+        capabilities: [capability],
+        category: 'text',
+        isActive: true,
+        pricingType: 'per-second',
+        provider: 'replicate',
+        providerCostUsd,
+      };
+      expect(call?.create).toMatchObject({
+        ...expected,
+        isDefault: false,
+        isPublic: false,
+      });
+      expect(call?.update).toMatchObject(expected);
+      // The pin reaches existing rows too, so a catalog version bump lands.
+      expect(call?.create.externalId).toMatch(
+        new RegExp(`^${key}:[0-9a-f]{64}$`),
+      );
+      expect(call?.update.externalId).toBe(call?.create.externalId);
+    },
+  );
 
   it('keeps collision-safe fal keys separate from provider endpoints', async () => {
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);

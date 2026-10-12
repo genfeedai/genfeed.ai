@@ -6,6 +6,10 @@ import type {
   ShadowCappedDecisionMode,
 } from '../interfaces/settings/platform-setting.interface';
 import {
+  BRAND_VISION_DETECT_MODEL_KEY,
+  BRAND_VISION_OCR_MODEL_KEY,
+} from './brand-vision-models.constant';
+import {
   DEFAULT_PLATFORM_FLAGS,
   parsePlatformFlags,
   resolvePlatformFlags,
@@ -89,6 +93,10 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     flags: DEFAULT_PLATFORM_FLAGS,
     isAgentContextCompressionEnabled: true,
     isAgentTokenStreamingEnabled: false,
+    // The registered catalog rows. The seed runs on every boot, and a key whose
+    // row is missing or unpriced leaves the analysis unavailable.
+    brandVisionDetectModelKey: BRAND_VISION_DETECT_MODEL_KEY,
+    brandVisionOcrModelKey: BRAND_VISION_OCR_MODEL_KEY,
     isBrandVisualAnalysisEnabled: false,
     isEmailVerificationRequired: false,
     isMediaPerceptionEnabled: true,
@@ -184,6 +192,16 @@ function pickRuntimeString<T extends string | null>(
     (!pattern || pattern.test(text))
     ? text
     : fallback;
+}
+
+/**
+ * A catalog model key. Absent resolves to the default; anything else that is
+ * not a usable key (null, empty, not text) is "no model", which fails closed.
+ */
+function pickModelKey(value: unknown, fallback: string | null): string | null {
+  if (value === undefined) return fallback;
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text && text.length <= 200 && !/[\r\n]/.test(text) ? text : null;
 }
 
 function pickTimestamp(value: unknown): string | null {
@@ -418,6 +436,14 @@ export function parsePlatformFeatureSettings(
     isAgentTokenStreamingEnabled: pickBoolean(
       row.isAgentTokenStreamingEnabled,
       defaults.isAgentTokenStreamingEnabled,
+    ),
+    brandVisionDetectModelKey: pickModelKey(
+      row.brandVisionDetectModelKey,
+      defaults.brandVisionDetectModelKey,
+    ),
+    brandVisionOcrModelKey: pickModelKey(
+      row.brandVisionOcrModelKey,
+      defaults.brandVisionOcrModelKey,
     ),
     isBrandVisualAnalysisEnabled: pickBoolean(
       row.isBrandVisualAnalysisEnabled,

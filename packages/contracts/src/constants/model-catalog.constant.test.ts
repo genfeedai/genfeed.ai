@@ -3,6 +3,7 @@ import {
   ModelCategory,
   ModelLifecycle,
   ModelProvider,
+  PricingType,
   QualityTier,
   SpeedTier,
 } from '..';
@@ -12,6 +13,12 @@ import {
   RETIRED_AGENT_CHAT_MODELS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
+import {
+  BRAND_DETECTION_CAPABILITY,
+  BRAND_OCR_CAPABILITY,
+  BRAND_VISION_DETECT_MODEL_KEY,
+  BRAND_VISION_OCR_MODEL_KEY,
+} from './brand-vision-models.constant';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -483,5 +490,80 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       expect(owners.get(identity), identity).toBeUndefined();
       owners.set(identity, entry.key);
     }
+  });
+});
+
+describe('brand vision catalog models (#6727)', () => {
+  const ocr = UNIFIED_MODEL_CATALOG.find(
+    (entry) => entry.key === BRAND_VISION_OCR_MODEL_KEY,
+  );
+  const detect = UNIFIED_MODEL_CATALOG.find(
+    (entry) => entry.key === BRAND_VISION_DETECT_MODEL_KEY,
+  );
+
+  it('registers the OCR model on Replicate with a pinned version and per-second L40S price', () => {
+    expect(ocr).toMatchObject({
+      capabilities: [BRAND_OCR_CAPABILITY],
+      isActive: true,
+      isDefault: false,
+      isPublic: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.000975,
+    });
+    expect(ocr?.externalId).toMatch(
+      /^lucataco\/florence-2-large:[0-9a-f]{64}$/,
+    );
+  });
+
+  it('registers the detector on Replicate with a pinned version and per-second T4 price', () => {
+    expect(detect).toMatchObject({
+      capabilities: [BRAND_DETECTION_CAPABILITY],
+      isActive: true,
+      isDefault: false,
+      isPublic: false,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.000225,
+    });
+    expect(detect?.externalId).toMatch(
+      /^adirik\/owlvit-base-patch32:[0-9a-f]{64}$/,
+    );
+  });
+
+  it('keeps both out of generation and agent routing', () => {
+    for (const row of [ocr, detect]) {
+      expect(row?.category).toBe(ModelCategory.TEXT);
+      expect(row?.capabilities).not.toContain(AGENT_CHAT_CAPABILITY);
+      // The router only routes RECOMMENDED rows.
+      expect(row?.lifecycle).not.toBe(ModelLifecycle.RECOMMENDED);
+    }
+    for (const catalog of [
+      getModelCatalogForDeployment(true),
+      getModelCatalogForDeployment(false),
+    ]) {
+      const textDefaults = catalog.filter(
+        (entry) =>
+          entry.category === ModelCategory.TEXT &&
+          entry.isDefault &&
+          !entry.capabilities?.includes(AGENT_CHAT_CAPABILITY),
+      );
+      expect(textDefaults).toEqual([]);
+    }
+  });
+
+  it('carries exactly one capability tag per job so a select can filter on it', () => {
+    expect(
+      UNIFIED_MODEL_CATALOG.filter((entry) =>
+        entry.capabilities?.includes(BRAND_OCR_CAPABILITY),
+      ).map((entry) => entry.key),
+    ).toEqual([BRAND_VISION_OCR_MODEL_KEY]);
+    expect(
+      UNIFIED_MODEL_CATALOG.filter((entry) =>
+        entry.capabilities?.includes(BRAND_DETECTION_CAPABILITY),
+      ).map((entry) => entry.key),
+    ).toEqual([BRAND_VISION_DETECT_MODEL_KEY]);
   });
 });

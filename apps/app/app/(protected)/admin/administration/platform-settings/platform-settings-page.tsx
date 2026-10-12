@@ -14,6 +14,7 @@ import {
   TYPED_DECISION_PROVIDER_NAMES,
 } from '@genfeedai/contracts/constants';
 import type {
+  IBrandVisionModelOptions,
   IPlatformFeatureSettings,
   TypedDecisionProviderName,
 } from '@genfeedai/contracts/interfaces';
@@ -53,6 +54,12 @@ import PlatformFeatureSettingsFields from './platform-feature-settings-fields';
 import PlatformNumberSettingField from './platform-number-setting-field';
 import PlatformSettingsGroup from './platform-settings-group';
 import SystemNotificationsPanel from './system-notifications-panel';
+
+const NO_BRAND_VISION_MODELS: IBrandVisionModelOptions = {
+  detect: [],
+  id: 'brand-vision-models',
+  ocr: [],
+};
 
 /** Settings tabs, in display order. Every tab's fields save together. */
 const TABS: readonly PlatformSettingsTab[] = [
@@ -184,6 +191,8 @@ export default function PlatformSettingsPage() {
     useState<TypedDecisionProviderName>(parseTypedDecisionProvider(undefined));
   const [featureSettings, setFeatureSettings] =
     useState<IPlatformFeatureSettings>(DEFAULT_PLATFORM_FEATURE_SETTINGS);
+  const [brandVisionModels, setBrandVisionModels] =
+    useState<IBrandVisionModelOptions>(NO_BRAND_VISION_MODELS);
   const [invalidFeatureFieldIds, setInvalidFeatureFieldIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -222,7 +231,17 @@ export default function PlatformSettingsPage() {
     async (signal: AbortSignal) => {
       try {
         const service = await getPlatformSettingsService();
-        const data = await service.getSettings(signal);
+        const [data, models] = await Promise.all([
+          service.getSettings(signal),
+          // The model choices are a convenience: without them the selects
+          // keep showing the stored choice and the rest of the page works.
+          service.getBrandVisionModels(signal).catch((error: unknown) => {
+            if (!signal.aborted) {
+              logger.error('Failed to load brand vision models', error);
+            }
+            return NO_BRAND_VISION_MODELS;
+          }),
+        ]);
 
         if (!signal.aborted) {
           const mode = parseMarginInputMode(data.marginInputMode);
@@ -239,6 +258,7 @@ export default function PlatformSettingsPage() {
             parseTypedDecisionProvider(data.typedDecisionProvider),
           );
           setFeatureSettings(parsePlatformFeatureSettings(data));
+          setBrandVisionModels(models);
           setIsEmailDeliveryConfigured(
             data.isEmailDeliveryConfigured !== false,
           );
@@ -397,6 +417,7 @@ export default function PlatformSettingsPage() {
   );
 
   const featureFieldsProps = {
+    brandVisionModels,
     isDisabled: isSaving,
     isEmailDeliveryConfigured,
     onChange: setFeatureSettings,

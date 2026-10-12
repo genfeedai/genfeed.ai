@@ -1,4 +1,5 @@
 export * from '@serializers/configs/admin/announcement.config';
+export * from '@serializers/configs/admin/brand-vision-model-options.config';
 export * from '@serializers/configs/admin/business-analytics.config';
 export * from '@serializers/configs/admin/email-performance.config';
 export * from '@serializers/configs/admin/model-pricing-report.config';

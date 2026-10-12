@@ -1,4 +1,5 @@
 import type {
+  IBrandVisionModelOptions,
   IPlatformSetting,
   IUpdatePlatformSettingPayload,
 } from '@genfeedai/contracts/interfaces';
@@ -26,6 +27,17 @@ export class AdminPlatformSettingsService extends HTTPBaseService {
       signal,
     });
     return deserializeResource<IPlatformSetting>(response.data);
+  }
+
+  /** The catalog models eligible for brand OCR and brand detection, with their price. */
+  async getBrandVisionModels(
+    signal?: AbortSignal,
+  ): Promise<IBrandVisionModelOptions> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      'brand-vision-models',
+      { signal },
+    );
+    return deserializeResource<IBrandVisionModelOptions>(response.data);
   }
 
   async updateSettings(

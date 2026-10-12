@@ -1,12 +1,16 @@
 import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto/update-platform-setting.dto';
 import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { PlatformSettingSerializer } from '@genfeedai/serializers';
+import {
+  BrandVisionModelOptionsSerializer,
+  PlatformSettingSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -20,6 +24,7 @@ export class PlatformSettingsController {
     private readonly platformSettingsService: PlatformSettingsService,
     private readonly loggerService: LoggerService,
     private readonly notificationsService: NotificationsService,
+    private readonly brandVisionModels: BrandVisionModelCatalogService,
   ) {}
 
   @Get()
@@ -37,6 +42,27 @@ export class PlatformSettingsController {
         error,
         this.loggerService,
         'getPlatformSettings',
+      );
+    }
+  }
+
+  @Get('brand-vision-models')
+  @ApiOperation({
+    summary:
+      'Catalog models an operator can pick for brand OCR and brand detection, with their per-second price',
+  })
+  async getBrandVisionModels(@Req() request: Request) {
+    try {
+      return serializeSingle(
+        request,
+        BrandVisionModelOptionsSerializer,
+        await this.brandVisionModels.list(),
+      );
+    } catch (error) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'getBrandVisionModels',
       );
     }
   }

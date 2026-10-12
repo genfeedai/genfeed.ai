@@ -12,8 +12,14 @@
  * start from this list; provider discovery adds drafts on top. These constants
  * are seed *input* only — never a parallel runtime allowlist.
  */
-import type { CostTier, QualityTier, SpeedTier } from '..';
-import { ModelCategory, ModelLifecycle, ModelProvider } from '..';
+import type { QualityTier } from '..';
+import {
+  CostTier,
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+  SpeedTier,
+} from '..';
 import {
   AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
@@ -23,6 +29,7 @@ import {
   HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
   RETIRED_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
+import { BRAND_VISION_MODELS } from './brand-vision-models.constant';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -52,6 +59,8 @@ export interface ModelCatalogSeedEntry {
   durations?: readonly number[];
   /** Exact provider endpoint when the collision-safe public key is prefixed. */
   endpoint?: string;
+  /** Pinned provider identifier, e.g. a Replicate `owner/name:version`. */
+  externalId?: string;
   hasAudioToggle?: boolean;
   hasDurationEditing?: boolean;
   hasEndFrame?: boolean;
@@ -320,6 +329,40 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
 }
 
 /**
+ * Brand visual analysis models (#6727) as TEXT registry rows tagged
+ * `brand-ocr` / `brand-detection`. They are platform tooling an operator picks
+ * in Admin → Platform settings: never public, never a category default and
+ * only AVAILABLE, so the router (which routes RECOMMENDED rows) and the agent
+ * picker (which needs the `agent-chat` tag) never offer them as generators.
+ */
+function buildBrandVisionCatalogEntries(): ModelCatalogSeedEntry[] {
+  return BRAND_VISION_MODELS.map((model) => ({
+    capabilities: [model.capability],
+    category: ModelCategory.TEXT,
+    config: model.providerConfig,
+    // Credits are display and legacy fallbacks only; the price bills from
+    // `providerCostUsd` per second of runtime, and this is never customer-billed.
+    cost: 1,
+    costPerUnit: 1,
+    costTier: CostTier.LOW,
+    description: model.description,
+    externalId: model.externalId,
+    isActive: true,
+    isDefault: false,
+    isHighlighted: false,
+    isPublic: false,
+    key: model.key,
+    label: model.label,
+    lifecycle: ModelLifecycle.AVAILABLE,
+    minCost: 1,
+    pricingType: model.pricingType,
+    provider: model.provider,
+    providerCostUsd: model.providerCostUsd,
+    speedTier: SpeedTier.FAST,
+  }));
+}
+
+/**
  * Retired chat keys as legacy rows carrying `succeededBy`.
  *
  * Persisted rows (org settings, brand agent config, thread bindings, scheduled
@@ -374,6 +417,9 @@ export const UNIFIED_MODEL_CATALOG: readonly ModelCatalogSeedEntry[] = (() => {
   for (const entry of buildAgentCatalogEntries()) {
     byKey.set(entry.key, entry);
     liveAgentKeys.add(entry.key);
+  }
+  for (const entry of buildBrandVisionCatalogEntries()) {
+    byKey.set(entry.key, entry);
   }
   for (const entry of buildRetiredAgentCatalogEntries()) {
     if (!liveAgentKeys.has(entry.key)) {

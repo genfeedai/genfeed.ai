@@ -77,6 +77,48 @@ describe('parsePlatformFeatureSettings', () => {
   });
 });
 
+describe('brand vision model selections (#6727)', () => {
+  it('defaults to the registered catalog rows while the analysis stays off', () => {
+    expect(DEFAULT_PLATFORM_FEATURE_SETTINGS).toMatchObject({
+      brandVisionDetectModelKey: 'adirik/owlvit-base-patch32',
+      brandVisionOcrModelKey: 'lucataco/florence-2-large',
+      isBrandVisualAnalysisEnabled: false,
+    });
+    expect(parsePlatformFeatureSettings({})).toMatchObject({
+      brandVisionDetectModelKey: 'adirik/owlvit-base-patch32',
+      brandVisionOcrModelKey: 'lucataco/florence-2-large',
+    });
+  });
+
+  it('keeps a stored key, trimmed', () => {
+    expect(
+      parsePlatformFeatureSettings({
+        brandVisionDetectModelKey: ' acme/owl ',
+        brandVisionOcrModelKey: 'acme/florence',
+      }),
+    ).toMatchObject({
+      brandVisionDetectModelKey: 'acme/owl',
+      brandVisionOcrModelKey: 'acme/florence',
+    });
+  });
+
+  it('treats an explicit null, blank or non-text value as no model, never the default', () => {
+    expect(
+      parsePlatformFeatureSettings({
+        brandVisionDetectModelKey: 7,
+        brandVisionOcrModelKey: null,
+      }),
+    ).toMatchObject({
+      brandVisionDetectModelKey: null,
+      brandVisionOcrModelKey: null,
+    });
+    expect(
+      parsePlatformFeatureSettings({ brandVisionOcrModelKey: '   ' })
+        .brandVisionOcrModelKey,
+    ).toBeNull();
+  });
+});
+
 describe('parseFeaturedWorkflowIds', () => {
   it('defaults to no pins, so Featured stays hidden until an admin pins one', () => {
     expect(DEFAULT_PLATFORM_FEATURE_SETTINGS.featuredWorkflowIds).toEqual([]);

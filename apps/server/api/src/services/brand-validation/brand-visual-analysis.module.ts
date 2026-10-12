@@ -3,7 +3,6 @@ import { BrandReplicateVisionProvider } from '@api/services/brand-validation/bra
 import { BrandVisualAnalysisService } from '@api/services/brand-validation/brand-visual-analysis.service';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
-import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
@@ -11,7 +10,6 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [BrandVisualAnalysisService],
   imports: [
-    ConfigModule,
     LoggerModule,
     MediaVendorCostModule,
     PlatformSettingsModule,

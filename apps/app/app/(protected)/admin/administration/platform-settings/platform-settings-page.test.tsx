@@ -36,6 +36,7 @@ const {
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
+  getBrandVisionModels: vi.fn(),
   getSettings: vi.fn(),
   success: vi.fn(),
   updateSettings: vi.fn(),
@@ -44,6 +45,7 @@ const mocks = vi.hoisted(() => ({
 
 const getPlatformSettingsService = vi.hoisted(() =>
   vi.fn(async () => ({
+    getBrandVisionModels: mocks.getBrandVisionModels,
     getSettings: mocks.getSettings,
     updateSettings: mocks.updateSettings,
   })),
@@ -268,9 +270,29 @@ async function openTab(name: string): Promise<void> {
   fireEvent.click(screen.getByRole('tab', { name }));
 }
 
+const OCR_OPTION = {
+  externalId: 'lucataco/florence-2-large:da53547e',
+  key: 'lucataco/florence-2-large',
+  label: 'Florence-2 Large (brand OCR)',
+  pricingType: 'per-second',
+  providerCostUsd: 0.000975,
+};
+const DETECT_OPTION = {
+  externalId: 'adirik/owlvit-base-patch32:5e899f15',
+  key: 'adirik/owlvit-base-patch32',
+  label: 'OWL-ViT base (brand detection)',
+  pricingType: 'per-second',
+  providerCostUsd: 0.000225,
+};
+
 describe('PlatformSettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getBrandVisionModels.mockResolvedValue({
+      detect: [DETECT_OPTION],
+      id: 'brand-vision-models',
+      ocr: [OCR_OPTION],
+    });
     mocks.getSettings.mockResolvedValue({
       id: 'platform-settings',
       marginInputMode: 'MARGIN',
@@ -744,6 +766,105 @@ describe('PlatformSettingsPage', () => {
       const startedAt = Date.parse(payload?.systemEventsEnabledAt ?? '');
       expect(startedAt).toBeGreaterThanOrEqual(before);
       expect(startedAt).toBeLessThanOrEqual(Date.now());
+    });
+
+    describe('brand vision models (#6727)', () => {
+      it('renders a select of the catalog models with each per-second price, defaulting to the registered rows', async () => {
+        render(<PlatformSettingsPage />);
+
+        await openTab('Media');
+
+        const ocr = screen.getByTestId('platform-brandVisionOcrModelKey');
+        expect(ocr).toHaveValue('lucataco/florence-2-large');
+        expect(
+          within(ocr).getByRole('option', {
+            name: 'Florence-2 Large (brand OCR) · $0.000975 per second',
+          }),
+        ).toBeInTheDocument();
+        const detect = screen.getByTestId('platform-brandVisionDetectModelKey');
+        expect(detect).toHaveValue('adirik/owlvit-base-patch32');
+        expect(
+          within(detect).getByRole('option', {
+            name: 'OWL-ViT base (brand detection) · $0.000225 per second',
+          }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Brand OCR model')).toBeInTheDocument();
+        expect(screen.getByText('Brand detection model')).toBeInTheDocument();
+      });
+
+      it('is a select, never a free-text input', async () => {
+        render(<PlatformSettingsPage />);
+
+        await openTab('Media');
+
+        for (const id of [
+          'platform-brandVisionOcrModelKey',
+          'platform-brandVisionDetectModelKey',
+        ]) {
+          expect(screen.getByTestId(id).tagName.toLowerCase()).toBe('select');
+          expect(screen.queryByRole('textbox', { name: id })).toBeNull();
+        }
+      });
+
+      it('saves a cleared selection as null with the other settings', async () => {
+        render(<PlatformSettingsPage />);
+
+        await openTab('Media');
+        fireEvent.change(
+          screen.getByTestId('platform-brandVisionOcrModelKey'),
+          {
+            target: { value: '__none__' },
+          },
+        );
+        fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+        await waitFor(() => {
+          expect(mocks.updateSettings).toHaveBeenCalledWith(
+            expect.objectContaining({
+              brandVisionDetectModelKey: 'adirik/owlvit-base-patch32',
+              brandVisionOcrModelKey: null,
+              isBrandVisualAnalysisEnabled: false,
+            }),
+          );
+        });
+      });
+
+      it('keeps a stored key that is no longer an eligible model visible as unavailable', async () => {
+        mocks.getSettings.mockResolvedValue({
+          brandVisionOcrModelKey: 'acme/retired-ocr',
+          id: 'platform-settings',
+          marginInputMode: 'MARGIN',
+          marginMultiplierAgentChat: 1.7,
+          marginMultiplierGeneration: 3.33,
+          typedDecisionProvider: 'jev',
+        });
+        render(<PlatformSettingsPage />);
+
+        await openTab('Media');
+
+        const ocr = screen.getByTestId('platform-brandVisionOcrModelKey');
+        expect(ocr).toHaveValue('acme/retired-ocr');
+        expect(
+          within(ocr).getByRole('option', {
+            name: 'acme/retired-ocr (not an active priced catalog model)',
+          }),
+        ).toBeInTheDocument();
+      });
+
+      it('still renders the page when the model choices cannot be loaded', async () => {
+        mocks.getBrandVisionModels.mockRejectedValue(new Error('offline'));
+        render(<PlatformSettingsPage />);
+
+        await openTab('Media');
+
+        expect(
+          screen.getByTestId('platform-brandVisionOcrModelKey'),
+        ).toHaveValue('lucataco/florence-2-large');
+        expect(mocks.error).toHaveBeenCalledWith(
+          'Failed to load brand vision models',
+          expect.any(Error),
+        );
+      });
     });
   });
 });

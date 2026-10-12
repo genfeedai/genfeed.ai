@@ -1,5 +1,6 @@
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
-  BRAND_VISION_DEFAULT_USD_PER_SECOND,
   BrandReplicateVisionProvider,
   readBrandDetections,
   readBrandOcrText,
@@ -7,13 +8,22 @@ import {
 } from '@api/services/brand-validation/brand-replicate-vision.provider';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
-import type { ConfigService } from '@libs/config/config.service';
+import {
+  BRAND_DETECTION_CAPABILITY,
+  BRAND_OCR_CAPABILITY,
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+} from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Prediction } from 'replicate';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const MODEL = 'acme/florence:abc123version';
+const OCR_KEY = 'acme/florence';
+const DETECT_KEY = 'acme/owl';
+/** What the catalog rows say; the provider must use these and nothing else. */
+const OCR_RATE = 0.001;
+const DETECT_RATE = 0.0004;
 const scope = { brandId: 'brand-a', organizationId: 'org-a' };
 const frame = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
 
@@ -34,7 +44,43 @@ function prediction(overrides: Partial<Prediction> = {}): Prediction {
   };
 }
 
-function setup(config: Record<string, unknown> = {}) {
+interface CatalogRow {
+  capabilities: string[];
+  externalId: string | null;
+  isActive: boolean;
+  key: string;
+  label: string;
+  pricingType: string | null;
+  providerCostUsd: number | null;
+}
+
+function catalogRow(overrides: Partial<CatalogRow> = {}): CatalogRow {
+  return {
+    capabilities: [BRAND_OCR_CAPABILITY],
+    externalId: `${OCR_KEY}:abc123version`,
+    isActive: true,
+    key: OCR_KEY,
+    label: 'Florence',
+    pricingType: 'per-second',
+    providerCostUsd: OCR_RATE,
+    ...overrides,
+  };
+}
+
+const DETECT_ROW = catalogRow({
+  capabilities: [BRAND_DETECTION_CAPABILITY],
+  externalId: `${DETECT_KEY}:def456version`,
+  key: DETECT_KEY,
+  label: 'Owl',
+  providerCostUsd: DETECT_RATE,
+});
+
+interface SetupOptions {
+  rows?: CatalogRow[];
+  settings?: Partial<IPlatformFeatureSettings>;
+}
+
+function setup({ rows, settings = {} }: SetupOptions = {}) {
   const predictions = {
     cancel: vi.fn(async () => prediction({ status: 'canceled' })),
     create: vi.fn(async () => prediction()),
@@ -42,18 +88,48 @@ function setup(config: Record<string, unknown> = {}) {
   };
   const ledger = { record: vi.fn(async () => undefined) };
   const logger = { warn: vi.fn() };
-  const values: Record<string, unknown> = {
-    BRAND_VISION_DETECT_REPLICATE_MODEL: 'acme/owl:def456version',
-    BRAND_VISION_REPLICATE_MODEL: MODEL,
-    ...config,
+  const catalogRows = rows ?? [catalogRow(), DETECT_ROW];
+  // A fake of the one Prisma query the catalog service makes: an active,
+  // platform-owned Replicate row with this key and capability.
+  const prisma = {
+    model: {
+      findFirst: vi.fn(
+        async ({
+          where,
+        }: {
+          where: {
+            capabilities: { has: string };
+            isActive: boolean;
+            key: string;
+            organizationId: null;
+            provider: string;
+          };
+        }) =>
+          catalogRows.find(
+            (row) =>
+              row.key === where.key &&
+              row.isActive === where.isActive &&
+              row.capabilities.includes(where.capabilities.has),
+          ) ?? null,
+      ),
+    },
+  };
+  const platformSettings = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      brandVisionDetectModelKey: DETECT_KEY,
+      brandVisionOcrModelKey: OCR_KEY,
+      ...settings,
+    })),
   };
   const provider = new BrandReplicateVisionProvider(
     { client: { predictions } } as unknown as ReplicateService,
-    { get: (key: string) => values[key] } as unknown as ConfigService,
+    platformSettings as unknown as PlatformSettingsService,
+    new BrandVisionModelCatalogService(prisma as never),
     ledger as unknown as MediaVendorCostLedgerService,
     logger as unknown as LoggerService,
   );
-  return { ledger, logger, predictions, provider };
+  return { ledger, logger, platformSettings, predictions, prisma, provider };
 }
 
 describe('readBrandOcrText', () => {
@@ -98,8 +174,8 @@ describe('BrandReplicateVisionProvider', () => {
       version: 'abc123version',
     });
   });
-  it('prices the prediction from its reported runtime and records it for the brand', async () => {
-    const { ledger, provider } = setup({ BRAND_VISION_USD_PER_SECOND: 0.001 });
+  it('prices the prediction from its reported runtime at the selected catalog model price and records it for the brand', async () => {
+    const { ledger, provider } = setup();
     await provider.extractText({ frames: [frame], scope });
     expect(ledger.record).toHaveBeenCalledWith({
       brandId: 'brand-a',
@@ -109,9 +185,10 @@ describe('BrandReplicateVisionProvider', () => {
       model: 'acme/florence',
       organizationId: 'org-a',
       pricingSnapshot: {
+        modelKey: OCR_KEY,
         predictionId: 'pred-1',
         pricingType: 'per-second',
-        providerCostUsd: 0.001,
+        providerCostUsd: OCR_RATE,
         status: 'succeeded',
         version: 'abc123version',
       },
@@ -121,14 +198,25 @@ describe('BrandReplicateVisionProvider', () => {
       vendorCostMicros: 2000,
     });
   });
-  it('falls back to the L40S rate when none is configured', async () => {
-    const { ledger, provider } = setup();
-    await provider.extractText({ frames: [frame], scope });
+  it('follows the catalog: another selected model runs its version at its own price', async () => {
+    const other = catalogRow({
+      externalId: 'acme/other-ocr:fedcba987',
+      key: 'acme/other-ocr',
+      providerCostUsd: 0.01,
+    });
+    const { ledger, predictions, provider } = setup({
+      rows: [catalogRow(), other],
+      settings: { brandVisionOcrModelKey: 'acme/other-ocr' },
+    });
+    const result = await provider.extractText({ frames: [frame], scope });
+    expect(predictions.create).toHaveBeenCalledWith(
+      expect.objectContaining({ version: 'fedcba987' }),
+    );
+    expect(result.provider.model).toBe('acme/other-ocr');
     expect(ledger.record).toHaveBeenCalledWith(
       expect.objectContaining({
-        vendorCostMicros: Math.round(
-          2 * BRAND_VISION_DEFAULT_USD_PER_SECOND * 1_000_000,
-        ),
+        model: 'acme/other-ocr',
+        vendorCostMicros: 20_000,
       }),
     );
   });
@@ -233,15 +321,59 @@ describe('BrandReplicateVisionProvider', () => {
     await settled;
     expect(predictions.cancel).toHaveBeenCalledWith('pred-1');
   });
-  it('fails closed without a configured model and calls nothing', async () => {
-    const { ledger, predictions, provider } = setup({
-      BRAND_VISION_REPLICATE_MODEL: '',
+  it.each([
+    ['no model is selected', { settings: { brandVisionOcrModelKey: null } }],
+    [
+      'the selected key is not in the catalog',
+      { settings: { brandVisionOcrModelKey: 'acme/unknown' } },
+    ],
+    [
+      'the selected model is inactive',
+      { rows: [catalogRow({ isActive: false })] },
+    ],
+    [
+      'the selected model lacks the OCR capability',
+      { rows: [catalogRow({ capabilities: [BRAND_DETECTION_CAPABILITY] })] },
+    ],
+    [
+      'the selected model names no version',
+      { rows: [catalogRow({ externalId: null })] },
+    ],
+    [
+      'the selected model is not pinned to a version',
+      { rows: [catalogRow({ externalId: OCR_KEY })] },
+    ],
+    [
+      'the selected model is not priced per second',
+      { rows: [catalogRow({ pricingType: 'flat' })] },
+    ],
+    [
+      'the selected model has no price',
+      { rows: [catalogRow({ providerCostUsd: null })] },
+    ],
+    [
+      'the selected model has a zero price',
+      { rows: [catalogRow({ providerCostUsd: 0 })] },
+    ],
+  ] satisfies Array<[string, SetupOptions]>)(
+    'fails closed and calls nothing when %s',
+    async (_name, options) => {
+      const { ledger, predictions, provider } = setup(options);
+      await expect(
+        provider.extractText({ frames: [frame], scope }),
+      ).rejects.toThrow('brand_vision_model_unconfigured');
+      expect(predictions.create).not.toHaveBeenCalled();
+      expect(ledger.record).not.toHaveBeenCalled();
+    },
+  );
+  it('has no environment fallback: a missing selection stays unavailable', async () => {
+    const { platformSettings, provider } = setup({
+      settings: { brandVisionOcrModelKey: null },
     });
     await expect(
       provider.extractText({ frames: [frame], scope }),
     ).rejects.toThrow('brand_vision_model_unconfigured');
-    expect(predictions.create).not.toHaveBeenCalled();
-    expect(ledger.record).not.toHaveBeenCalled();
+    expect(platformSettings.getFeatureSettings).toHaveBeenCalledTimes(1);
   });
   it('does not fail the read when the ledger write fails', async () => {
     const { ledger, logger, provider } = setup();
@@ -382,14 +514,14 @@ describe('BrandReplicateVisionProvider detection', () => {
       expect.objectContaining({
         category: 'brand-validation-vision',
         model: 'acme/owl',
-        vendorCostMicros: Math.round(
-          2 * BRAND_VISION_DEFAULT_USD_PER_SECOND * 1_000_000,
-        ),
+        vendorCostMicros: Math.round(2 * DETECT_RATE * 1_000_000),
       }),
     );
   });
   it('fails closed without a detector model, on an unreadable frame or an unreadable answer', async () => {
-    const unconfigured = setup({ BRAND_VISION_DETECT_REPLICATE_MODEL: '' });
+    const unconfigured = setup({
+      settings: { brandVisionDetectModelKey: null },
+    });
     await expect(
       unconfigured.provider.detectRegions({
         frames: [await png(60, 40)],

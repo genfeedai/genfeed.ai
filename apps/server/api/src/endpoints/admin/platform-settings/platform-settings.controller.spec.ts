@@ -24,6 +24,7 @@ describe('PlatformSettingsController', () => {
   let notificationsService: {
     isEmailDeliveryConfigured: ReturnType<typeof vi.fn>;
   };
+  let brandVisionModels: { list: ReturnType<typeof vi.fn> };
   let controller: PlatformSettingsController;
 
   beforeEach(() => {
@@ -32,10 +33,12 @@ describe('PlatformSettingsController', () => {
       updateSingleton: vi.fn().mockResolvedValue(row),
     };
     notificationsService = { isEmailDeliveryConfigured: vi.fn() };
+    brandVisionModels = { list: vi.fn() };
     controller = new PlatformSettingsController(
       platformSettingsService as never,
       { error: vi.fn() } as never,
       notificationsService as never,
+      brandVisionModels as never,
     );
   });
 
@@ -65,5 +68,26 @@ describe('PlatformSettingsController', () => {
     );
 
     expect(attributes.isEmailDeliveryConfigured).toBe(false);
+  });
+
+  it('serves the catalog models an operator can pick, with their price', async () => {
+    const option = {
+      externalId: 'acme/florence:abc123',
+      key: 'acme/florence',
+      label: 'Florence',
+      pricingType: 'per-second',
+      providerCostUsd: 0.000975,
+    };
+    brandVisionModels.list.mockResolvedValue({
+      detect: [],
+      id: 'brand-vision-models',
+      ocr: [option],
+    });
+
+    const attributes = attributesOf(
+      await controller.getBrandVisionModels(request),
+    );
+
+    expect(attributes).toEqual({ detect: [], ocr: [option] });
   });
 });

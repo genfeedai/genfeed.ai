@@ -146,6 +146,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         ? { defaultDuration: entry.defaultDuration }
         : {}),
       ...(entry.durations ? { durations: [...entry.durations] } : {}),
+      ...(entry.externalId ? { externalId: entry.externalId } : {}),
       ...(entry.hasAudioToggle != null
         ? { hasAudioToggle: entry.hasAudioToggle }
         : {}),

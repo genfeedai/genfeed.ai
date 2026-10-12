@@ -1880,6 +1880,10 @@ model PlatformSetting {
   isAgentContextCompressionEnabled Boolean   @default(true)
   isAgentTokenStreamingEnabled     Boolean   @default(false)
   isBrandVisualAnalysisEnabled     Boolean   @default(false)
+  // Catalog models (`models.key`) that read text from and detect logo or product
+  // regions in branded visuals (#6727). Null leaves the analysis unavailable.
+  brandVisionOcrModelKey           String?   @default("lucataco/florence-2-large")
+  brandVisionDetectModelKey        String?   @default("adirik/owlvit-base-patch32")
   // Signup and billing system-event recording starts here; null = disabled.
   systemEventsEnabledAt            DateTime?
   isEmailVerificationRequired      Boolean   @default(false)

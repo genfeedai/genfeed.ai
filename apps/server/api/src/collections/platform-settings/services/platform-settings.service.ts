@@ -2,10 +2,13 @@ import { CreatePlatformSettingDto } from '@api/collections/platform-settings/dto
 import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto/update-platform-setting.dto';
 import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/collections/platform-settings/platform-settings.constants';
 import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
 import { isTypedDecisionProviderAvailable } from '@api/services/typed-decisions/typed-decision-provider.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
+  BRAND_VISION_CAPABILITY_BY_KIND,
+  type BrandVisionModelKind,
   PLATFORM_SETTING_KEY,
   type PlatformFlagKey,
   parseFeaturedWorkflowIds,
@@ -46,6 +49,8 @@ type InternalCreatePlatformSettingPayload = CreatePlatformSettingDto & {
  * storage conversion and are handled apart.
  */
 const NULLABLE_RUNTIME_KEYS = [
+  'brandVisionOcrModelKey',
+  'brandVisionDetectModelKey',
   'linkedinTrendSourceUrls',
   'agentContextCompressionModel',
   'elevenlabsModel',
@@ -140,6 +145,7 @@ export class PlatformSettingsService
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
+    private readonly brandVisionModels: BrandVisionModelCatalogService,
   ) {
     super(prisma, 'platformSetting', logger);
   }
@@ -300,6 +306,7 @@ export class PlatformSettingsService
     this.assertModerationProviderAvailable(dto);
 
     const current = await this.getSingleton();
+    await this.assertBrandVisionModelsSelectable(dto, current);
     const patchData: Prisma.PlatformSettingUpdateInput = {
       ...(dto.marginMultiplierGeneration === undefined
         ? {}
@@ -420,6 +427,42 @@ export class PlatformSettingsService
           : new Date(dto.systemEventsEnabledAt);
     }
     return patch;
+  }
+
+  /**
+   * Refuse a brand vision model that is not a usable catalog row for its job.
+   * Clearing a selection is always allowed, and a key left as it already is
+   * never blocks an unrelated save (the model may have been disabled since).
+   */
+  private async assertBrandVisionModelsSelectable(
+    dto: UpdatePlatformSettingDto,
+    current: PlatformSettingDocument,
+  ): Promise<void> {
+    const selections: Array<{
+      kind: BrandVisionModelKind;
+      next: string | null | undefined;
+      stored: string | null;
+    }> = [
+      {
+        kind: 'ocr',
+        next: dto.brandVisionOcrModelKey,
+        stored: current.brandVisionOcrModelKey ?? null,
+      },
+      {
+        kind: 'detect',
+        next: dto.brandVisionDetectModelKey,
+        stored: current.brandVisionDetectModelKey ?? null,
+      },
+    ];
+    for (const { kind, next, stored } of selections) {
+      const key = next?.trim();
+      if (!key || key === stored) continue;
+      if (!(await this.brandVisionModels.resolve(kind, key))) {
+        throw new BadRequestException(
+          `${key} is not an active catalog model with a pinned version and per-second price tagged ${BRAND_VISION_CAPABILITY_BY_KIND[kind]}`,
+        );
+      }
+    }
   }
 
   /**

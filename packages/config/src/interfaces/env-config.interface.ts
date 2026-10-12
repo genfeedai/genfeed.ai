@@ -119,9 +119,6 @@ export interface IEnvConfig {
   REPLICATE_KEY?: string;
   REPLICATE_WEBHOOK_SIGNING_SECRET?: string;
   REPLICATE_OWNER?: string;
-  BRAND_VISION_REPLICATE_MODEL?: string;
-  BRAND_VISION_DETECT_REPLICATE_MODEL?: string;
-  BRAND_VISION_USD_PER_SECOND?: number;
 
   // === KlingAI ===
   KLINGAI_KEY?: string;

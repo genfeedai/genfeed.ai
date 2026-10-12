@@ -5717,6 +5717,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'agentAutoRoutingDecisionMode',
       'agentContextCompressionModel',
       'agentContextWindowSize',
+      'brandVisionDetectModelKey',
+      'brandVisionOcrModelKey',
       'createdAt',
       'customModelCreditsCost',
       'discordBotAvatarUrl',

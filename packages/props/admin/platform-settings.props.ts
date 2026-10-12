@@ -1,4 +1,5 @@
 import type {
+  IBrandVisionModelOptions,
   IPlatformFeatureSettings,
   TypedDecisionMode,
 } from '@genfeedai/contracts/interfaces';
@@ -50,6 +51,8 @@ export type PlatformNumericFeatureSettingKey = {
 
 /** The product feature switches of one /admin platform settings tab (#5407). */
 export interface PlatformFeatureSettingsFieldsProps {
+  /** Catalog models an operator can pick for brand OCR and brand detection. */
+  brandVisionModels: IBrandVisionModelOptions;
   /** The deployment has an email provider; email verification needs one. */
   isEmailDeliveryConfigured: boolean;
   isDisabled: boolean;

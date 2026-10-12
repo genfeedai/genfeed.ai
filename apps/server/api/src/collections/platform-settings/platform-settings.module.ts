@@ -6,14 +6,15 @@
  * platform superadmins.
  */
 
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [],
-  exports: [PlatformSettingsService],
+  exports: [BrandVisionModelCatalogService, PlatformSettingsService],
   imports: [ConfigModule],
-  providers: [PlatformSettingsService],
+  providers: [BrandVisionModelCatalogService, PlatformSettingsService],
 })
 export class PlatformSettingsModule {}

@@ -65,6 +65,8 @@ export class PlatformSettingEntity
   declare readonly isAgentContextCompressionEnabled: boolean;
   declare readonly isAgentTokenStreamingEnabled: boolean;
   declare readonly isBrandVisualAnalysisEnabled: boolean;
+  declare readonly brandVisionOcrModelKey: string | null;
+  declare readonly brandVisionDetectModelKey: string | null;
   declare readonly systemEventsEnabledAt: Date | null;
   declare readonly isEmailVerificationRequired: boolean;
   declare readonly flags: Prisma.JsonValue;

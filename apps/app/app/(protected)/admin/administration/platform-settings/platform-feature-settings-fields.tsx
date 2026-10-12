@@ -8,7 +8,10 @@ import {
   SHADOW_CAPPED_DECISION_MODES,
   TYPED_DECISION_MODES,
 } from '@genfeedai/contracts/constants';
-import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrandVisionModelOption,
+  IPlatformFeatureSettings,
+} from '@genfeedai/contracts/interfaces';
 import type {
   PlatformFeatureSettingsFieldsProps,
   PlatformNullableTextFeatureSettingKey,
@@ -38,12 +41,20 @@ const { confidence, mediaPerceptionFrameCount, mediaPerceptionLookbackHours } =
 
 const MODERATION_CATEGORIES = Object.values(ModerationCategory);
 
+/** Select value for "no model"; a Select item cannot carry an empty value. */
+const NO_BRAND_VISION_MODEL = '__none__';
+
+type BrandVisionModelSettingKey =
+  | 'brandVisionDetectModelKey'
+  | 'brandVisionOcrModelKey';
+
 /**
  * Product feature switches (#5407): every operator decision that used to be
  * an env var, rendered one platform settings tab at a time. The page owns the
  * state and saves every tab together.
  */
 export default function PlatformFeatureSettingsFields({
+  brandVisionModels,
   isDisabled,
   isEmailDeliveryConfigured,
   onChange,
@@ -142,6 +153,58 @@ export default function PlatformFeatureSettingsFields({
           disabled={isDisabled}
           onChange={(event) => update(key, event.target.value)}
         />
+      </Field>
+    );
+  }
+
+  /**
+   * A brand visual analysis model: a select over the catalog models carrying
+   * the job's capability, each with the per-second price the cost ledger will
+   * record. A stored key that is no longer an eligible catalog model stays
+   * visible (marked unavailable) rather than silently showing another model.
+   */
+  function brandVisionModelField(
+    key: BrandVisionModelSettingKey,
+    options: readonly IBrandVisionModelOption[],
+    label: string,
+    helpText: string,
+  ) {
+    const selectedKey = settings[key];
+    const isKnown = options.some((option) => option.key === selectedKey);
+
+    return (
+      <Field label={label} htmlFor={`platform-${key}`} helpText={helpText}>
+        <Select
+          value={selectedKey ?? NO_BRAND_VISION_MODEL}
+          onValueChange={(next) =>
+            update(key, next === NO_BRAND_VISION_MODEL ? null : next)
+          }
+          disabled={isDisabled}
+        >
+          <SelectTrigger id={`platform-${key}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_BRAND_VISION_MODEL}>
+              {translate('media.brandVisionModelNone')}
+            </SelectItem>
+            {selectedKey && !isKnown ? (
+              <SelectItem value={selectedKey}>
+                {translate('media.brandVisionModelUnavailable', {
+                  key: selectedKey,
+                })}
+              </SelectItem>
+            ) : null}
+            {options.map((option) => (
+              <SelectItem key={option.key} value={option.key}>
+                {translate('media.brandVisionModelOption', {
+                  label: option.label,
+                  price: `$${option.providerCostUsd.toFixed(6)}`,
+                })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Field>
     );
   }
@@ -349,6 +412,18 @@ export default function PlatformFeatureSettingsFields({
               update('isBrandVisualAnalysisEnabled', isChecked)
             }
           />
+          {brandVisionModelField(
+            'brandVisionOcrModelKey',
+            brandVisionModels.ocr,
+            translate('media.brandVisionOcrModelLabel'),
+            translate('media.brandVisionOcrModelHelp'),
+          )}
+          {brandVisionModelField(
+            'brandVisionDetectModelKey',
+            brandVisionModels.detect,
+            translate('media.brandVisionDetectModelLabel'),
+            translate('media.brandVisionDetectModelHelp'),
+          )}
           <PlatformNumberSettingField
             id="platform-media-perception-frame-count"
             label={translate('media.frameCountLabel')}

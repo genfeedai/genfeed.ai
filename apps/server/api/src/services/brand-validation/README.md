@@ -78,12 +78,19 @@ every media receipt at `needs_review`.
 ## OCR literal checks (images and video, behind a switch)
 
 Mandatory and avoid literals of an image or video are read from the final pixels by
-a provider-backed vision model (a Florence-2 class model on Replicate), never from
-the generation prompt. The Admin platform setting `isBrandVisualAnalysisEnabled` is
-**off by default**; while it is off no provider is called, nothing is paid, and the
-checks are `unknown` (`visual_analysis_disabled`). The model is the pinned
-`owner/name:version` in `BRAND_VISION_REPLICATE_MODEL` (unset keeps the analysis
-unavailable) and its GPU price per second is `BRAND_VISION_USD_PER_SECOND`.
+a provider-backed vision model (Florence-2 on Replicate), never from the generation
+prompt. The Admin platform setting `isBrandVisualAnalysisEnabled` is **off by
+default**; while it is off no provider is called, nothing is paid, and the checks are
+`unknown` (`visual_analysis_disabled`).
+
+The model is an Admin-selected catalog model, not an environment variable. The
+platform setting `brandVisionOcrModelKey` holds the `Model.key` of an active,
+platform-owned Replicate row tagged `brand-ocr` (the seed registers
+`lucataco/florence-2-large`, the default). The provider runs that row's pinned
+`externalId` (`owner/name:version`) and records the row's `providerCostUsd` per second
+of reported runtime. A key that is unset, unknown, inactive, untagged, not pinned to a
+version or not priced per second leaves the analysis `unavailable` (fail closed); there
+is no fallback model or price.
 
 `validateBrandArtifact(input, { visualAnalysis })` takes the analysis port from its
 caller; `BrandValidationReceiptService` passes `BrandVisualAnalysisService`, and the
@@ -114,11 +121,12 @@ all visible text, which a reader that can miss text cannot establish.
 ## Logo and product placement (images and video, behind the same switch)
 
 An approved `logo` or `product` asset is looked for in the final pixels with an
-open-vocabulary detector (an OWL-ViT class model on Replicate, the pinned
-`owner/name:version` in `BRAND_VISION_DETECT_REPLICATE_MODEL`; unset keeps it
-unavailable). It uses the same port, the same off-by-default Admin setting
-`isBrandVisualAnalysisEnabled` and the same ledger path as OCR (category
-`brand-validation-vision`, priced from the reported runtime).
+open-vocabulary detector (OWL-ViT on Replicate). It uses the same port, the same
+off-by-default Admin setting `isBrandVisualAnalysisEnabled` and the same ledger path as
+OCR (category `brand-validation-vision`, priced from the reported runtime). The detector
+is the catalog row named by `brandVisionDetectModelKey` (tag `brand-detection`; the seed
+registers `adirik/owlvit-base-patch32`, the default), resolved and priced like the OCR
+model, and unavailable the same way when it is missing.
 
 A detector only says something logo-like or product-like is somewhere, so it is
 never trusted for identity. The validator asks for the query `logo` or `product`,

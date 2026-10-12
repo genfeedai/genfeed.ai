@@ -516,6 +516,28 @@ export class UpdatePlatformSettingDto {
 
   @ApiProperty({
     description:
+      '`Model.key` of the catalog model that reads text from branded visuals (capability `brand-ocr`). `null` leaves OCR unavailable.',
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  readonly brandVisionOcrModelKey?: string | null;
+
+  @ApiProperty({
+    description:
+      '`Model.key` of the catalog model that detects logo and product regions (capability `brand-detection`). `null` leaves detection unavailable.',
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  readonly brandVisionDetectModelKey?: string | null;
+
+  @ApiProperty({
+    description:
       'ISO timestamp from which signup and billing system events are recorded. `null` disables recording.',
     nullable: true,
     required: false,

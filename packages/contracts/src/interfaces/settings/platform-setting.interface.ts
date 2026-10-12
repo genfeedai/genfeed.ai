@@ -100,6 +100,18 @@ export interface IPlatformFeatureSettings {
    */
   isBrandVisualAnalysisEnabled: boolean;
   /**
+   * `Model.key` of the catalog model that reads text from branded visuals
+   * (capability `brand-ocr`). Defaults to the registered Florence-2 row; `null`
+   * (or a key that is not an active, priced catalog model) leaves the analysis
+   * unavailable.
+   */
+  brandVisionOcrModelKey: string | null;
+  /**
+   * `Model.key` of the catalog model that detects logo and product regions
+   * (capability `brand-detection`). Same rules as `brandVisionOcrModelKey`.
+   */
+  brandVisionDetectModelKey: string | null;
+  /**
    * ISO timestamp from which signup and billing system events are recorded;
    * `null` disables recording. Events that occurred earlier are never
    * recorded, so enabling never replays historical signups.
@@ -202,4 +214,22 @@ export interface IUpdatePlatformSettingPayload
   marginMultiplierAgentChat?: number;
   marginInputMode?: MarginInputMode;
   typedDecisionProvider?: TypedDecisionProviderName;
+}
+
+/** One catalog model an operator can pick for a brand visual analysis job. */
+export interface IBrandVisionModelOption {
+  /** Pinned `owner/name:version` the provider runs. */
+  externalId: string;
+  key: string;
+  label: string;
+  pricingType: string;
+  /** Provider USD per second of runtime, the price recorded in the cost ledger. */
+  providerCostUsd: number;
+}
+
+/** The catalog models eligible for each brand visual analysis job. */
+export interface IBrandVisionModelOptions {
+  id: string;
+  detect: IBrandVisionModelOption[];
+  ocr: IBrandVisionModelOption[];
 }

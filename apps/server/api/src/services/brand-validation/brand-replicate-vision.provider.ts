@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type {
   BrandDetectedRegion,
   BrandDetectionRequest,
@@ -11,14 +13,13 @@ import type {
 import { resolvePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
-import { ConfigService } from '@libs/config/config.service';
+import type { BrandVisionModelKind } from '@genfeedai/contracts/constants';
+import type { IBrandVisionModelOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import type { Prediction } from 'replicate';
 
-/** Replicate L40S GPU, USD per second of runtime, used until `BRAND_VISION_USD_PER_SECOND` says otherwise. */
-export const BRAND_VISION_DEFAULT_USD_PER_SECOND = 0.000975;
 const POLL_INTERVAL_MS = 1_000;
 const MAX_POLLS = 60;
 const CACHE_LIMIT = 256;
@@ -161,10 +162,13 @@ function modelSlug(identifier: string): string {
 }
 
 /**
- * OCR through an open-vocabulary vision model on Replicate (Florence-2 class).
- * Every prediction is recorded in the media vendor-cost ledger, priced from the
- * runtime the provider reports. Frames already read in this process are not
- * paid for again.
+ * OCR and region detection through vision models on Replicate (Florence-2 and
+ * OWL-ViT class). Both models are the catalog rows an operator picked in Admin
+ * → Platform settings: the provider runs the row's pinned version and records
+ * every prediction in the media vendor-cost ledger at the row's per-second
+ * price times the runtime Replicate reports. A job whose model is unset, unknown
+ * or unpriced fails closed. Frames already read in this process are not paid
+ * for again.
  */
 @Injectable()
 export class BrandReplicateVisionProvider implements BrandVisionProvider {
@@ -177,7 +181,8 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
 
   constructor(
     private readonly replicate: ReplicateService,
-    private readonly configService: ConfigService,
+    private readonly platformSettings: PlatformSettingsService,
+    private readonly modelCatalog: BrandVisionModelCatalogService,
     private readonly costLedger: MediaVendorCostLedgerService,
     private readonly logger: LoggerService,
   ) {}
@@ -185,14 +190,13 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
   async extractText(
     request: BrandOcrRequest,
   ): Promise<BrandVisionProviderOcrResult> {
-    const model = this.configService.get('BRAND_VISION_REPLICATE_MODEL');
-    if (!model) throw new Error('brand_vision_model_unconfigured');
+    const model = await this.resolveModel('ocr');
     const texts: string[] = [];
     let identity: BrandVisionModelIdentity | null = null;
     for (const frame of request.frames) {
       const read = await this.cached(
         this.reads,
-        `ocr:${model}`,
+        `ocr:${model.externalId}`,
         frame,
         request.scope,
         () =>
@@ -215,8 +219,7 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
   async detectRegions(
     request: BrandDetectionRequest,
   ): Promise<BrandVisionProviderDetectionResult> {
-    const model = this.configService.get('BRAND_VISION_DETECT_REPLICATE_MODEL');
-    if (!model) throw new Error('brand_vision_model_unconfigured');
+    const model = await this.resolveModel('detect');
     const frames: BrandDetectedRegion[][] = [];
     let identity: BrandVisionModelIdentity | null = null;
     for (const frame of request.frames) {
@@ -224,7 +227,7 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
       if (!size) throw new Error('brand_vision_frame_unreadable');
       const read = await this.cached(
         this.detections,
-        `detect:${model}:${request.query}`,
+        `detect:${model.externalId}:${request.query}`,
         frame,
         request.scope,
         () =>
@@ -246,6 +249,24 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
     }
     if (!identity) throw new Error('brand_vision_no_frames');
     return { frames, provider: identity };
+  }
+
+  /**
+   * The catalog row the operator selected for this job. Every way of not having
+   * a usable one (nothing selected, a key with no active row, an unpinned or
+   * unpriced row) is the same error, so nothing is called or paid.
+   */
+  private async resolveModel(
+    kind: BrandVisionModelKind,
+  ): Promise<IBrandVisionModelOption> {
+    const settings = await this.platformSettings.getFeatureSettings();
+    const key =
+      kind === 'ocr'
+        ? settings.brandVisionOcrModelKey
+        : settings.brandVisionDetectModelKey;
+    const model = await this.modelCatalog.resolve(kind, key);
+    if (!model) throw new Error('brand_vision_model_unconfigured');
+    return model;
   }
 
   /** One paid read per distinct frame, task and organization; failures are not remembered. */
@@ -270,7 +291,7 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
   }
 
   private async predict<T>(
-    model: string,
+    model: IBrandVisionModelOption,
     frame: Uint8Array,
     scope: BrandOcrRequest['scope'],
     category: string,
@@ -282,7 +303,7 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
     let prediction: Prediction | null = null;
     try {
       prediction = await client.predictions.create({
-        ...resolvePredictionTarget(model),
+        ...resolvePredictionTarget(model.externalId),
         input: { image, ...extraInput },
       });
       for (
@@ -304,7 +325,7 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
       return {
         identity: {
           id: 'replicate',
-          model: modelSlug(model),
+          model: modelSlug(model.externalId),
           version: prediction.version,
         },
         value,
@@ -316,19 +337,18 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
 
   /**
    * Spend is recorded whether or not the answer was usable. The price is the
-   * provider-reported runtime times the configured per-second rate; a prediction
-   * with no reported runtime lands as unknown cost so it can be reconciled.
+   * provider-reported runtime times the catalog row's per-second price; a
+   * prediction with no reported runtime lands as unknown cost so it can be
+   * reconciled.
    */
   private async recordSpend(
-    model: string,
+    model: IBrandVisionModelOption,
     prediction: Prediction | null,
     scope: BrandOcrRequest['scope'],
     category: string,
   ): Promise<void> {
     if (!prediction) return;
-    const rate =
-      Number(this.configService.get('BRAND_VISION_USD_PER_SECOND')) ||
-      BRAND_VISION_DEFAULT_USD_PER_SECOND;
+    const rate = model.providerCostUsd;
     const seconds = prediction.metrics?.predict_time;
     const isPriced = typeof seconds === 'number' && Number.isFinite(seconds);
     try {
@@ -337,9 +357,10 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
         category,
         costEvidence: isPriced ? 'calculated' : 'unknown',
         isByok: false,
-        model: modelSlug(model),
+        model: modelSlug(model.externalId),
         organizationId: scope.organizationId,
         pricingSnapshot: {
+          modelKey: model.key,
           predictionId: prediction.id,
           pricingType: 'per-second',
           providerCostUsd: rate,

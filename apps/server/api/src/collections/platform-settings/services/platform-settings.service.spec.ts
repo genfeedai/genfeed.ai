@@ -26,6 +26,7 @@ describe('PlatformSettingsService', () => {
     $executeRaw: vi.fn(),
     platformSetting: { updateMany: vi.fn() },
   };
+  const brandVisionModels = { resolve: vi.fn() };
   const logger: Partial<LoggerService> = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -42,6 +43,7 @@ describe('PlatformSettingsService', () => {
       {
         get: vi.fn((key: string) => env[key] ?? ''),
       } as unknown as ConfigService,
+      brandVisionModels as never,
     );
   }
 
@@ -586,6 +588,122 @@ describe('PlatformSettingsService', () => {
 
       expect(patch).toHaveBeenCalledWith('ps-1', {
         moderationProvider: 'none',
+      });
+    });
+  });
+
+  describe('brand vision models (#6727)', () => {
+    const row = {
+      brandVisionDetectModelKey: 'acme/owl',
+      brandVisionOcrModelKey: 'acme/florence',
+      id: 'ps-1',
+      key: PLATFORM_SETTING_KEY,
+      marginMultiplierAgentChat: 1.7,
+      marginMultiplierGeneration: 3.33,
+    };
+    const option = {
+      externalId: 'acme/other:abc123',
+      key: 'acme/other',
+      label: 'Other',
+      pricingType: 'per-second',
+      providerCostUsd: 0.001,
+    };
+
+    beforeEach(() => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
+    });
+
+    it('defaults both selections to the registered catalog rows and the switch to off', () => {
+      expect(DEFAULT_PLATFORM_FEATURE_SETTINGS).toMatchObject({
+        brandVisionDetectModelKey: 'adirik/owlvit-base-patch32',
+        brandVisionOcrModelKey: 'lucataco/florence-2-large',
+        isBrandVisualAnalysisEnabled: false,
+      });
+    });
+
+    it('stores a selected catalog model after resolving it for its job', async () => {
+      brandVisionModels.resolve.mockResolvedValue(option);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({ brandVisionOcrModelKey: ' acme/other ' });
+
+      expect(brandVisionModels.resolve).toHaveBeenCalledWith(
+        'ocr',
+        'acme/other',
+      );
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        brandVisionOcrModelKey: 'acme/other',
+      });
+    });
+
+    it('resolves the detector selection against the detection job', async () => {
+      brandVisionModels.resolve.mockResolvedValue(option);
+      vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({
+        brandVisionDetectModelKey: 'acme/other',
+      });
+
+      expect(brandVisionModels.resolve).toHaveBeenCalledWith(
+        'detect',
+        'acme/other',
+      );
+    });
+
+    it('refuses a key that is not a usable catalog model for the job', async () => {
+      brandVisionModels.resolve.mockResolvedValue(null);
+      const patch = vi.spyOn(service, 'patch');
+
+      await expect(
+        service.updateSingleton({ brandVisionOcrModelKey: 'acme/unknown' }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.updateSingleton({ brandVisionOcrModelKey: 'acme/unknown' }),
+      ).rejects.toThrow('brand-ocr');
+      expect(patch).not.toHaveBeenCalled();
+    });
+
+    it('clears a selection with null or an empty key without a catalog lookup', async () => {
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({
+        brandVisionDetectModelKey: null,
+        brandVisionOcrModelKey: '  ',
+      });
+
+      expect(brandVisionModels.resolve).not.toHaveBeenCalled();
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        brandVisionDetectModelKey: null,
+        brandVisionOcrModelKey: null,
+      });
+    });
+
+    it('does not block a save that leaves a stored selection as it is', async () => {
+      brandVisionModels.resolve.mockResolvedValue(null);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({
+        brandVisionOcrModelKey: 'acme/florence',
+        isBrandVisualAnalysisEnabled: true,
+      });
+
+      expect(brandVisionModels.resolve).not.toHaveBeenCalled();
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        brandVisionOcrModelKey: 'acme/florence',
+        isBrandVisualAnalysisEnabled: true,
+      });
+    });
+
+    it('round-trips a saved selection through the feature settings', async () => {
+      brandVisionModels.resolve.mockResolvedValue(option);
+      const saved = { ...row, brandVisionOcrModelKey: 'acme/other' };
+      vi.spyOn(service, 'patch').mockResolvedValue(saved as never);
+
+      await service.updateSingleton({ brandVisionOcrModelKey: 'acme/other' });
+
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        brandVisionDetectModelKey: 'acme/owl',
+        brandVisionOcrModelKey: 'acme/other',
       });
     });
   });
