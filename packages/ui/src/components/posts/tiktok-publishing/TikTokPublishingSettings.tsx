@@ -114,9 +114,14 @@ export default function TikTokPublishingSettings({
     allowStitch:
       capabilities?.stitchDisabled === false && settings.allowStitch === true,
   };
-  const isSaved = Object.entries(effectiveSettings).every(
-    ([key, value]) => post.targetSettings?.[key] === value,
-  );
+  const isSaved =
+    Object.entries(effectiveSettings).every(
+      ([key, value]) => post.targetSettings?.[key] === value,
+    ) &&
+    ['commercialContent', 'brandedContent', 'yourBrand'].every(
+      (key) =>
+        (post.targetSettings?.[key] === true) === (settings[key] === true),
+    );
   const isReady =
     !isLoading &&
     !isSaving &&

@@ -189,4 +189,44 @@ describe('TikTok publishing settings', () => {
     );
     expect(onSaved).toHaveBeenCalledOnce();
   });
+
+  it('blocks publishing when saved disclosure flags change after the form opens', async () => {
+    const onReadinessChange = vi.fn();
+    const savedSettings = {
+      privacyLevel: 'private',
+      musicUsageAccepted: true,
+      allowComments: false,
+      allowDuet: false,
+      allowStitch: false,
+    };
+    const { rerender } = render(
+      <TikTokPublishingSettings
+        post={{ ...post, targetSettings: savedSettings }}
+        onReadinessChange={onReadinessChange}
+      />,
+    );
+    await waitFor(() =>
+      expect(onReadinessChange).toHaveBeenLastCalledWith(true),
+    );
+    onReadinessChange.mockClear();
+
+    rerender(
+      <TikTokPublishingSettings
+        post={{
+          ...post,
+          targetSettings: {
+            ...savedSettings,
+            commercialContent: true,
+            yourBrand: true,
+          },
+        }}
+        onReadinessChange={onReadinessChange}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(onReadinessChange).toHaveBeenLastCalledWith(false),
+    );
+    expect(updateTarget).not.toHaveBeenCalled();
+  });
 });
