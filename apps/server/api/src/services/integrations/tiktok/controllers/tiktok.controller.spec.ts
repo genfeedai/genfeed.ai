@@ -168,13 +168,13 @@ describe('TiktokController', () => {
     });
 
     it('shows consent for an explicit account reconnection', async () => {
-      const result = (await controller.connect(mockRequest, mockUser, {
+      const result = await controller.connect(mockRequest, mockUser, {
         ...dto,
         credentialId: 'existing-credential',
-      })) as { url: string };
-      expect(new URL(result.url).searchParams.get('disable_auto_auth')).toBe(
-        '1',
-      );
+      });
+      expect(result).toEqual({
+        url: expect.stringContaining('&disable_auto_auth=1&state='),
+      });
     });
 
     it('should save unconnected credential', async () => {
