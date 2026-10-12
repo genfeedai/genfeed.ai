@@ -449,19 +449,12 @@ export class PostsGenerationController {
     }
 
     try {
-      const enhancedDescription =
-        await this.postGenerationService.enhanceDescription(
-          post,
-          dto,
-          user,
-          resolveByokApiKeyOverride(request),
-        );
-      // A draft is returned for review and saved only when the user accepts it.
-      const resultPost = dto.isDraft
-        ? { ...post, description: enhancedDescription }
-        : await this.postsService.patch(postId, {
-            description: enhancedDescription,
-          });
+      const resultPost = await this.postGenerationService.enhancePost(
+        post,
+        dto,
+        user,
+        resolveByokApiKeyOverride(request),
+      );
 
       return serializeSingle(request, this.serializer, resultPost);
     } catch (error: unknown) {
