@@ -24,6 +24,7 @@ const {
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => async () => ({
+    findDeliveries: vi.fn().mockResolvedValue([]),
     generateAccountContent: generateAccountContentMock,
   })),
 }));
