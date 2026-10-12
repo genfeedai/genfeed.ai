@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
 import { BrandRenderEvidenceModule } from '@api/services/brand-render-evidence/brand-render-evidence.module';
 import type { BrandRenderEvidenceService } from '@api/services/brand-render-evidence/brand-render-evidence.service';
+import type { BrandFactCheckService } from '@api/services/brand-validation/brand-fact-check.service';
 import { BrandValidationModule } from '@api/services/brand-validation/brand-validation.module';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
@@ -526,6 +527,120 @@ describe('brand validation receipt completion adapter', () => {
         (check) => check.ruleId === 'avoid-a',
       ),
     ).toMatchObject({ reasonCode: 'ocr_absence_unproven', result: 'unknown' });
+  });
+
+  describe('T3d: fact check (#6717)', () => {
+    const claim = (verdict: 'supported' | 'unverified' | 'contradicted') => ({
+      evidence:
+        verdict === 'unverified'
+          ? []
+          : [
+              {
+                evidenceId: 'fact:rule',
+                origin: 'brand_os' as const,
+                quote: 'Example Co plan',
+                ruleId: 'rule',
+              },
+            ],
+      id: 'claim-1',
+      origin: 'text' as const,
+      source: 'Example Co offers a plan.',
+      text: 'Example Co offers a plan',
+      verdict,
+    });
+    async function validateWith(
+      claims: ReturnType<typeof claim>[] | 'unavailable',
+    ) {
+      const f = fixture();
+      await bindPost(f);
+      const check = vi.fn(async () =>
+        claims === 'unavailable'
+          ? ({
+              reasonCode: 'fact_check_unavailable',
+              status: 'unavailable',
+            } as const)
+          : ({
+              claims,
+              knowledgeVersions: [],
+              models: ['judge-model'],
+              status: 'checked',
+            } as const),
+      );
+      const adapter = new BrandValidationReceiptService(
+        f.material,
+        f.receipts,
+        f.validator,
+        undefined,
+        undefined,
+        { check } as unknown as BrandFactCheckService,
+      );
+      return {
+        check,
+        result: await adapter.validateReceipt(actor, 'receipt-a'),
+      };
+    }
+
+    it('runs the check as the actor on the bound snapshot and lets a fully backed draft be ready', async () => {
+      const { check, result } = await validateWith([claim('supported')]);
+      expect(check).toHaveBeenCalledTimes(1);
+      const [calledActor, request] = check.mock.calls[0] as unknown as [
+        unknown,
+        { origin: string; snapshot: { contentHash: string }; text: string },
+      ];
+      expect(calledActor).toEqual(actor);
+      expect(request).toMatchObject({ origin: 'text' });
+      expect(request.snapshot.contentHash).toBe(
+        result.receipt.snapshot?.contentHash,
+      );
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        proof: { kind: 'fact' },
+        result: 'pass',
+        ruleId: 'system:factual_coverage',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'passed',
+        state: 'ready',
+      });
+    });
+
+    it('holds a draft with an unbacked claim for review', async () => {
+      const { result } = await validateWith([claim('unverified')]);
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        reasonCode: 'factual_claim_unverified',
+        result: 'unknown',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+    });
+
+    it('blocks a draft with a contradicted claim so it cannot be approved as is', async () => {
+      const { result } = await validateWith([
+        claim('supported'),
+        { ...claim('contradicted'), id: 'claim-2' },
+      ]);
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        reasonCode: 'factual_claim_contradicted',
+        result: 'fail',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'failed',
+        state: 'blocked',
+      });
+    });
+
+    it('never passes by default when the check cannot run', async () => {
+      const { result } = await validateWith('unavailable');
+      expect(result.receipt.validation?.checks.at(-1)).toMatchObject({
+        reasonCode: 'fact_check_unavailable',
+        result: 'unknown',
+      });
+      expect(result.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+    });
   });
 
   it('T3c: reads the render manifest against the pinned bytes of an image ingredient, still needs_review', async () => {

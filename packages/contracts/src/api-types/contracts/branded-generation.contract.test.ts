@@ -1099,6 +1099,128 @@ describe('blocked identity and canonical rule origin', () => {
       }).success,
     ).toBe(false);
   });
+  it('accepts a fact proof only on the semantic fact check it records', () => {
+    const evidence = {
+      evidenceId: 'fact:rule',
+      origin: 'brand_os' as const,
+      quote: 'Shipping takes: two days',
+      ruleId: 'rule',
+    };
+    const claim = (verdict: 'supported' | 'unverified' | 'contradicted') => ({
+      evidence: verdict === 'unverified' ? [] : [evidence],
+      id: `claim-${verdict}`,
+      origin: 'text' as const,
+      source: 'Orders ship in two days',
+      text: 'Orders ship in two days',
+      verdict,
+    });
+    const proofOf = (
+      claims: ReturnType<typeof claim>[],
+      overrides: Record<string, unknown> = {},
+    ) => ({
+      algorithm: 'fact-check-v1' as const,
+      artifactHash: hash,
+      claims,
+      claimsHash: hash,
+      isTextComplete: true,
+      kind: 'fact' as const,
+      knowledgeVersions: [],
+      mediaKind: 'text' as const,
+      models: ['judge'],
+      snapshotHash: hash,
+      textHash: hash,
+      ...overrides,
+    });
+    const check = (
+      result: 'pass' | 'fail' | 'unknown',
+      proof: ReturnType<typeof proofOf>,
+      overrides: Record<string, unknown> = {},
+    ) =>
+      brandArtifactValidationCheckV1Schema.safeParse({
+        category: 'fact',
+        evaluatorId: 'brand-fact-check',
+        evaluatorVersion: 1,
+        evidenceIds: ['fact:rule'],
+        method: 'semantic_evaluator',
+        proof,
+        ...(result === 'pass'
+          ? {}
+          : { reasonCode: 'factual_claim_unverified' }),
+        result,
+        ruleId: 'system:factual_coverage',
+        severity: 'hard',
+        ...overrides,
+      }).success;
+    expect(check('pass', proofOf([claim('supported')]))).toBe(true);
+    expect(check('pass', proofOf([]))).toBe(true);
+    expect(check('unknown', proofOf([claim('unverified')]))).toBe(true);
+    expect(
+      check('fail', proofOf([claim('contradicted'), claim('supported')])),
+    ).toBe(true);
+    // A pass cannot carry an unverified claim, a partial text or a visual.
+    expect(
+      check('pass', proofOf([claim('supported'), claim('unverified')])),
+    ).toBe(false);
+    expect(
+      check('pass', proofOf([claim('supported')], { isTextComplete: false })),
+    ).toBe(false);
+    expect(
+      check('pass', proofOf([claim('supported')], { mediaKind: 'image' })),
+    ).toBe(false);
+    // A fail needs a contradicted claim, and a contradiction cannot be unknown or pass.
+    expect(check('fail', proofOf([claim('supported')]))).toBe(false);
+    expect(check('unknown', proofOf([claim('contradicted')]))).toBe(false);
+    expect(check('pass', proofOf([claim('contradicted')]))).toBe(false);
+    // Only the semantic fact check may carry it.
+    expect(check('pass', proofOf([]), { method: 'deterministic_render' })).toBe(
+      false,
+    );
+    expect(check('pass', proofOf([]), { category: 'palette' })).toBe(false);
+    expect(check('pass', proofOf([]), { evidenceIds: [] })).toBe(false);
+    expect(check('pass', proofOf([]), { evaluatorId: undefined })).toBe(false);
+    // A supported or contradicted claim must cite evidence, and only those may.
+    expect(
+      check('pass', proofOf([{ ...claim('supported'), evidence: [] }])),
+    ).toBe(false);
+    expect(
+      check(
+        'unknown',
+        proofOf([{ ...claim('unverified'), evidence: [evidence] }]),
+      ),
+    ).toBe(false);
+    // Evidence has to name the Brand OS rule or Knowledge version it came from.
+    expect(
+      check(
+        'pass',
+        proofOf([
+          {
+            ...claim('supported'),
+            evidence: [{ ...evidence, ruleId: undefined }],
+          },
+        ]),
+      ),
+    ).toBe(false);
+    expect(
+      check(
+        'pass',
+        proofOf([
+          {
+            ...claim('supported'),
+            evidence: [
+              {
+                evidenceId: 'knowledge:s:v:abc',
+                origin: 'knowledge' as const,
+                quote: 'q',
+                sourceId: 's',
+                version: 1,
+                versionId: 'v',
+              } as unknown as typeof evidence,
+            ],
+          },
+        ]),
+      ),
+    ).toBe(true);
+  });
   it('accepts a proof only on a deterministic pass or fail', () => {
     const base = {
       ruleId: 'palette',

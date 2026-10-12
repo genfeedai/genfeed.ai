@@ -49,6 +49,9 @@ function literalOf(
  * - mandatory literal read in a frame: `pass`; not read: `unknown`
  * - avoid literal read in a frame: `fail`; not read: `unknown` (absence is unproven)
  *
+ * `onFrameTexts` receives the text of every frame when a read happened, so the
+ * factual coverage check reads the same text without a second paid call.
+ *
  * Nothing is called when no check is readable. A disabled or unavailable
  * analysis, an undecodable artifact or one that is not a single final visual
  * leaves every readable check `unknown`.
@@ -58,6 +61,7 @@ export async function proveBrandLiteralChecksFromOcr(
   checks: readonly BrandArtifactValidationCheckV1[],
   visual: BrandArtifactVisual,
   analysis: BrandVisualAnalysis | undefined,
+  onFrameTexts?: (texts: readonly string[]) => void,
 ): Promise<BrandArtifactValidationCheckV1[]> {
   if (
     input.artifact.mediaKind === 'text' ||
@@ -86,6 +90,7 @@ export async function proveBrandLiteralChecksFromOcr(
   if (outcome.texts.length !== encoded.frames.length)
     return settle('visual_analysis_unavailable');
   const frameTexts = outcome.texts.map(normalizeBrandLiteralText);
+  onFrameTexts?.(frameTexts);
   const frameTextHashes = frameTexts.map((text) =>
     hashBrandedGenerationTextV1(text),
   );

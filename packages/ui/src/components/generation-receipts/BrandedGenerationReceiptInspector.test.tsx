@@ -182,6 +182,39 @@ describe('shared saved receipt inspector', () => {
             swatches: [],
           },
         },
+        {
+          ruleId: 'system:factual_coverage',
+          category: 'fact',
+          severity: 'hard',
+          result: 'unknown',
+          method: 'semantic_evaluator',
+          evaluatorId: 'brand-fact-check',
+          evaluatorVersion: 1,
+          reasonCode: 'factual_claim_unverified',
+          evidenceIds: [],
+          proof: {
+            kind: 'fact',
+            algorithm: 'fact-check-v1',
+            artifactHash,
+            snapshotHash,
+            mediaKind: 'text',
+            textHash: artifactHash,
+            isTextComplete: true,
+            models: ['judge-model'],
+            knowledgeVersions: [],
+            claims: [
+              {
+                id: 'claim-1',
+                text: 'Ships in two days',
+                source: 'ships in two days',
+                origin: 'text',
+                verdict: 'unverified',
+                evidence: [],
+              },
+            ],
+            claimsHash: artifactHash,
+          },
+        },
       ],
       quality: {
         score: 1,
@@ -303,6 +336,7 @@ describe('shared saved receipt inspector', () => {
       screen.getByText('saved-fact · fact · hard · unknown'),
     ).toBeInTheDocument();
     expect(screen.getByText('proof.palette')).toBeInTheDocument();
+    expect(screen.getByText('proof.fact')).toBeInTheDocument();
     const savedDetails = Array.from(
       view.container.querySelectorAll('pre'),
     ).find((node) => node.textContent?.includes('saved-report'));

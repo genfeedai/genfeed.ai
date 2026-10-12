@@ -22,6 +22,8 @@ export async function proveBrandMediaChecks(
   options: {
     visualAnalysis?: BrandVisualAnalysis;
     renderEvidence?: BrandRenderEvidenceVerificationV1;
+    /** Receives the text read from the frames, when an OCR read happened. */
+    onFrameTexts?: (texts: readonly string[]) => void;
   },
 ): Promise<BrandArtifactValidationCheckV1[]> {
   const visual = new BrandArtifactVisual(input);
@@ -37,6 +39,7 @@ export async function proveBrandMediaChecks(
       ),
       visual,
       options.visualAnalysis,
+      options.onFrameTexts,
     ),
     visual,
     options.visualAnalysis,
