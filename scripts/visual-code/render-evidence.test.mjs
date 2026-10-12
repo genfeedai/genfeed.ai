@@ -61,8 +61,10 @@ function snapshotOf(elements, { extraDocuments = 0 } = {}) {
       style.visibility ?? 'visible',
       style.transform ?? 'none',
       style.background ?? 'none',
+      style.content ?? 'normal',
     ].map(id);
   let backend = 10;
+  const selectedSources = { index: [], value: [] };
   const add = (element, parent) => {
     const index = push(
       1,
@@ -71,6 +73,10 @@ function snapshotOf(elements, { extraDocuments = 0 } = {}) {
       backend++,
       element.attributes ?? [],
     );
+    if (element.currentSource !== undefined) {
+      selectedSources.index.push(index);
+      selectedSources.value.push(id(element.currentSource));
+    }
     layout.nodeIndex.push(index);
     layout.styles.push(styles(element.style ?? {}));
     layout.bounds.push(element.bounds ?? [0, 0, 100, 40]);
@@ -87,6 +93,8 @@ function snapshotOf(elements, { extraDocuments = 0 } = {}) {
     for (const child of element.children ?? []) add(child, index);
   };
   for (const element of elements) add(element, 0);
+  if (selectedSources.index.length > 0)
+    nodes.currentSourceURL = selectedSources;
   const documents = [{ nodes, layout }];
   for (let at = 0; at < extraDocuments; at++) documents.push({ nodes, layout });
   return { documents, strings };
@@ -237,6 +245,82 @@ test('reports visible text layers and placed assets with resolved style', () => 
   ]);
 });
 
+const placed = (elements, loaded = view.loaded) =>
+  analyzeSnapshot(snapshotOf(elements), { ...view, loaded }).placedAssets;
+const LOGO_ATTRIBUTE = ['src', LOGO_URL];
+const OTHER_URL = `${ORIGIN}/public/assets/other`;
+
+test('never credits a canvas with the asset its src attribute names', () => {
+  const [canvas] = placed([{ tag: 'CANVAS', attributes: [LOGO_ATTRIBUTE] }]);
+  assert.equal(canvas.role, 'image');
+  assert.equal(canvas.sourceKind, 'unknown');
+  assert.equal(canvas.assetId, null);
+  assert.equal(canvas.contentHash, null);
+});
+
+test('credits an img with the selected candidate, not its src attribute', () => {
+  const loaded = fetched(LOGO_URL);
+  const attributes = [LOGO_ATTRIBUTE, ['srcset', `${OTHER_URL} 2x`]];
+  // The browser painted OTHER_URL, which was never fetched: nothing is proven.
+  const [painted] = placed(
+    [{ tag: 'IMG', attributes, currentSource: OTHER_URL }],
+    loaded,
+  );
+  assert.equal(painted.sourceKind, 'external');
+  assert.equal(painted.assetId, null);
+  // With no selected candidate reported, the painted file cannot be named.
+  assert.equal(
+    placed([{ tag: 'IMG', attributes }], loaded)[0].sourceKind,
+    'unknown',
+  );
+  // When the selected candidate is the fetched staged asset it is credited.
+  const [credited] = placed(
+    [{ tag: 'IMG', attributes, currentSource: LOGO_URL }],
+    loaded,
+  );
+  assert.equal(credited.assetId, 'logo');
+  assert.equal(credited.contentHash, LOGO_HASH);
+});
+
+test('does not trust the src of an img inside a picture', () => {
+  const [image] = placed(
+    [
+      {
+        tag: 'PICTURE',
+        children: [{ tag: 'IMG', attributes: [LOGO_ATTRIBUTE] }],
+      },
+    ],
+    fetched(LOGO_URL),
+  );
+  assert.equal(image.sourceKind, 'unknown');
+});
+
+test('does not credit media that CSS content or a poster may replace', () => {
+  const styled = placed([
+    {
+      tag: 'IMG',
+      attributes: [LOGO_ATTRIBUTE],
+      style: { content: `url("${OTHER_URL}")` },
+    },
+  ]);
+  assert.equal(styled[0].sourceKind, 'unknown');
+  const video = placed([
+    { tag: 'VIDEO', attributes: [LOGO_ATTRIBUTE, ['poster', OTHER_URL]] },
+    { tag: 'VIDEO', attributes: [] },
+  ]);
+  assert.deepEqual(
+    video.map((entry) => [entry.role, entry.sourceKind]),
+    [
+      ['video', 'unknown'],
+      ['video', 'unknown'],
+    ],
+  );
+  assert.equal(
+    placed([{ tag: 'VIDEO', attributes: [LOGO_ATTRIBUTE] }])[0].assetId,
+    'logo',
+  );
+});
+
 test('leaves out text a viewer cannot see', () => {
   const analysis = analyzeSnapshot(
     snapshotOf([
@@ -383,12 +467,20 @@ test('captures at the screenshot of a requested frame and passes calls through',
   page.handlers.get('Network.requestWillBeSent')({
     requestId: 'r1',
     request: { url: `${ORIGIN}/public/assets/f` },
+    type: 'Font',
   });
   page.handlers.get('Network.responseReceived')({
+    type: 'Font',
     response: { url: `${ORIGIN}/public/assets/f`, status: 200 },
   });
   page.handlers.get('Network.responseReceived')({
+    type: 'Font',
     response: { url: `${ORIGIN}/public/assets/never`, status: 404 },
+  });
+  // A script's fetch() of a staged file proves nothing was painted from it.
+  page.handlers.get('Network.responseReceived')({
+    type: 'Fetch',
+    response: { url: `${ORIGIN}/public/assets/scripted`, status: 200 },
   });
   page.handlers.get('CSS.fontsUpdated')({
     font: {
