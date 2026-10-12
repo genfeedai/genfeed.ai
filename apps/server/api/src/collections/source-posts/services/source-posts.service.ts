@@ -114,7 +114,7 @@ type PrismaWithSourcePosts = Omit<
   }>;
   post: PrismaDelegate<{
     id: string;
-    ingredientLinks?: Array<{ ingredient: { id: string } }>;
+    ingredientLinks: Array<{ ingredient: { id: string } }>;
     label?: string | null;
     status?: string | null;
   }>;
