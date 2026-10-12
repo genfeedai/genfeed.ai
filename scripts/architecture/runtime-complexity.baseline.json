@@ -246,12 +246,6 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 209,
-    "file": "apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts",
-    "metric": "method-lines",
-    "symbol": "CronTiktokStatusService.checkPostStatus"
-  },
-  {
     "actual": 32,
     "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
     "metric": "constructor-dependencies",
