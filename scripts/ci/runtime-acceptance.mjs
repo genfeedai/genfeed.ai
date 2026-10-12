@@ -973,14 +973,15 @@ export function datasetChildEnvironment(url) {
 }
 export const PUBLISHER_CONTRACTS = [
   {
-    file: 'test/integration/batch-review-lock.integration.spec.ts',
+    file: 'test/integration/turbo-run-review-lock.integration.spec.ts',
     titles: [
-      'serializes overlapping batches on one connection and unlocks after the complete operation',
+      'serializes overlapping runs on one connection and unlocks after the complete operation',
       'releases every lock after a failed operation so another worker can recover',
-      'does not block an independent batch/organization: independent batch',
-      'does not block an independent batch/organization: independent organization',
+      'does not block an independent run/organization: independent run',
+      'does not block an independent run/organization: independent organization',
     ].map(
-      (title) => `Batch review advisory transactions (real Postgres) ${title}`,
+      (title) =>
+        `Turbo run review advisory transactions (real Postgres) ${title}`,
     ),
   },
   {
