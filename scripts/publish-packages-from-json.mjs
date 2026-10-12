@@ -632,7 +632,14 @@ export function assertCleanWorkingTree(root) {
   }
 }
 
-function assertMasterPublication(root, sourceSha) {
+// npm provenance attests the commit the Release workflow was dispatched at, so
+// only that commit may publish. Master may advance while Full Suite, Community,
+// and SaaS run against it; the verified commit must merely stay on master.
+export function assertMasterPublication(
+  root,
+  sourceSha,
+  { dispatchSha = process.env.GITHUB_SHA } = {},
+) {
   assertCleanWorkingTree(root);
   const headSha = run('git', ['rev-parse', 'HEAD'], {
     capture: true,
@@ -643,23 +650,32 @@ function assertMasterPublication(root, sourceSha) {
       `release plan was built from ${sourceSha}, but checkout is ${headSha}`,
     );
   }
-
-  const masterRef = run(
-    'git',
-    ['ls-remote', '--exit-code', 'origin', 'refs/heads/master'],
-    {
-      capture: true,
-      cwd: root,
-    },
-  );
-  const masterSha = masterRef.split(/\s+/)[0];
-  if (!masterSha) {
-    fail('could not resolve the current origin/master commit');
-  }
-  if (headSha !== masterSha) {
+  if (headSha !== dispatchSha) {
     fail(
-      `real package publication requires current origin/master (${masterSha}); checkout is ${headSha}`,
+      `real package publication requires the dispatched release commit (${dispatchSha || 'unset'}); checkout is ${headSha}`,
     );
+  }
+
+  run('git', ['fetch', '--quiet', '--no-tags', 'origin', 'refs/heads/master'], {
+    capture: true,
+    cwd: root,
+  });
+  const masterSha = run('git', ['rev-parse', 'FETCH_HEAD'], {
+    capture: true,
+    cwd: root,
+  });
+  const ancestry = spawnSync(
+    'git',
+    ['merge-base', '--is-ancestor', headSha, masterSha],
+    { cwd: root, stdio: 'pipe', timeout: RELEASE_COMMAND_TIMEOUT_MS },
+  );
+  if (ancestry.status === 1) {
+    fail(
+      `real package publication requires ${headSha} to remain on origin/master (${masterSha})`,
+    );
+  }
+  if (ancestry.status !== 0) {
+    fail(`could not verify ${headSha} against origin/master (${masterSha})`);
   }
 }
 

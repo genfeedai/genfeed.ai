@@ -120,9 +120,11 @@ Community `latest` and major.minor promotion still runs for `v0.2.3`, because
 the failed release skipped it, and only after the registry-drift plan succeeds
 and is empty.
 npm publication and making the draft public stay behind that same empty plan
-for both shapes. A normal release requires the pinned SHA to equal
-current `master`; a validated historical recovery requires the recovered SHA to
-remain an ancestor of current `master`. A validated historical recovery may
+for both shapes. Both a normal release and a validated historical recovery
+require the pinned SHA to remain an ancestor of current `master`, so merges
+that land while a release runs no longer fail its npm lane. A normal release
+also requires the pinned SHA to equal the dispatched workflow SHA, which npm
+provenance attests. A validated historical recovery may
 continue only when the registry-drift plan is empty; if any enrolled package
 would publish, the recovery fails closed and a new release must run from
 current `master`. This lets the `v0.1.66` recovery preserve truthful npm
