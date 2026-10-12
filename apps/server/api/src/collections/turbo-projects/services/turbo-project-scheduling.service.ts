@@ -1,3 +1,4 @@
+import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type {
@@ -259,10 +260,10 @@ export class TurboProjectSchedulingService {
           credentialId: true,
           description: true,
           id: true,
-          ingredients: {
-            select: { id: true },
-            where: { isDeleted: false, organizationId: scope.organizationId },
-          },
+          ingredientLinks: orderedPostIngredientLinks(
+            { select: { id: true } },
+            { isDeleted: false, organizationId: scope.organizationId },
+          ),
           targetExecutionState: true,
         },
         where: scopedWhere(scope.organizationId, {
@@ -288,7 +289,7 @@ export class TurboProjectSchedulingService {
         credentialId: post.credentialId,
         description: post.description,
         id: post.id,
-        ingredientIds: post.ingredients.map((ingredient) => ingredient.id),
+        ingredientIds: post.ingredientLinks.map((link) => link.ingredient.id),
         targetExecutionState: String(post.targetExecutionState),
       }),
     );

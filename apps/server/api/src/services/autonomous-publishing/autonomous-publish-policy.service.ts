@@ -112,7 +112,7 @@ export class AutonomousPublishPolicyService {
         ? await db.ingredient.findMany({
             select: { id: true },
             where: scopedWhere(input.organizationId, {
-              postIngredients: { some: { id: input.postId } },
+              postLinks: { some: { postId: input.postId } },
             }),
           })
         : [];
@@ -291,7 +291,7 @@ export class AutonomousPublishPolicyService {
     const attached = await this.prisma.ingredient.findMany({
       select: { id: true },
       where: scopedWhere(organizationId, {
-        postIngredients: { some: { id: postId } },
+        postLinks: { some: { postId } },
       }),
     });
     const assessment = await this.assessMediaForPolicy({

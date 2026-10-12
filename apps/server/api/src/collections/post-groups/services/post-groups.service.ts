@@ -15,6 +15,10 @@ import {
   InvalidChannelTargetScheduleException,
   toChannelTargetError,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import type { ScheduledPostWorkflowSource } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -288,10 +292,13 @@ export class PostGroupsService {
       throw new BadRequestException('postId is required.');
     }
 
-    const post = await this.prisma.post.findFirst({
-      include: { ingredients: { select: { id: true } } },
+    const row = await this.prisma.post.findFirst({
+      include: {
+        ingredientLinks: orderedPostIngredientLinks({ select: { id: true } }),
+      },
       where: scopedWhere(organizationId, { id: postId }),
     });
+    const post = row ? flattenPostIngredients(row) : null;
     if (!post) {
       throw new NotFoundException('Post', postId);
     }

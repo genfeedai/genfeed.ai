@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { AgentArtifactReferenceService } from '@api/agent-artifacts/agent-artifact-reference.service';
 import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
+import {
   buildApprovalProvenance,
   readApprovalOrigin,
 } from '@api/publish-approvals/publish-approval-action-origin';
@@ -909,13 +913,13 @@ export class PublishApprovalsService {
     postId: string,
     client: Pick<Prisma.TransactionClient, 'post'> = this.prisma,
   ): Promise<ApprovalPost> {
-    const post = (await client.post.findFirst({
+    const row = await client.post.findFirst({
       select: {
         agentContextVersion: true,
         brandId: true,
         credentialId: true,
         id: true,
-        ingredients: { select: { id: true } },
+        ingredientLinks: orderedPostIngredientLinks({ select: { id: true } }),
         isDeleted: true,
         organizationId: true,
         platform: true,
@@ -926,11 +930,11 @@ export class PublishApprovalsService {
         timezone: true,
       },
       where: scopedWhere(organizationId, { id: postId }),
-    })) as ApprovalPost | null;
-    if (!post) {
+    });
+    if (!row) {
       throw new PublishApprovalNotFoundException('Post', postId);
     }
-    return post;
+    return flattenPostIngredients(row) as unknown as ApprovalPost;
   }
 
   private getApprovalOrThrow(

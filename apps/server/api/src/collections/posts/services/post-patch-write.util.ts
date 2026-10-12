@@ -4,6 +4,7 @@ import {
   assertValidChannelTargetSchedule,
   assertVisibilitySupported,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import { replacePostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { PostUpdateInput } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -315,7 +316,10 @@ export async function preparePostPatchWrite(
     ...pickDefinedFields(dtoRecord, POST_SCALAR_FIELDS),
     ...(resolvedPlatform !== undefined && { platform: resolvedPlatform }),
     ...(ingredients !== undefined && {
-      ingredients: { set: ingredients.map((entryId) => ({ id: entryId })) },
+      ingredientLinks: replacePostIngredientLinks(
+        context.organizationId,
+        ingredients,
+      ),
     }),
     ...(tags !== undefined && {
       tags: { set: tags.map((entryId) => ({ id: entryId })) },

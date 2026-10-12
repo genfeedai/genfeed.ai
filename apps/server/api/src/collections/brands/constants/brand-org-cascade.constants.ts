@@ -780,8 +780,8 @@ const POST_PARENT: SecondOrderParentLink = {
  * `WorkflowNodeContinuation`) follow their execution, `WorkflowVersion` follows
  * its workflow (a pinned load fails on an org mismatch), `AgentThread` is
  * first-order and its event/snapshot/context children follow it, and the
- * publish receipt and finalization follow their post, so a retry sees the
- * `uncertain` receipt in the post's new organization.
+ * publish receipt, finalization and media links follow their post, so a retry
+ * sees the `uncertain` receipt in the post's new organization.
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
   {
@@ -857,6 +857,9 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
     'post_publish_finalizations',
     POST_PARENT,
   ),
+  // A post's ordered media links carry the post's organization; the link has
+  // no brand key of its own, so it follows the post.
+  secondOrderChild('postIngredient', 'post_ingredients', POST_PARENT),
   {
     delegate: 'taskComment',
     table: 'task_comments',

@@ -8,6 +8,7 @@ import {
   bindBrandedPostMaterialLayout,
   brandedPostMaterialSelect,
   describeBrandedPostMaterialLayout,
+  toBrandedPostMaterialRecord,
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import {
   PersistedReviewDecision,
@@ -306,7 +307,7 @@ export async function readBreakoutOutputRecovery(
     output.isDeleted
   )
     return { status: 'unavailable', reason: 'scope_mismatch' };
-  const post = await tx.post.findFirst({
+  const loadedPost = await tx.post.findFirst({
     where: {
       breakoutOutputId: outputId,
       organizationId,
@@ -325,6 +326,7 @@ export async function readBreakoutOutputRecovery(
       reviewVersionPinId: true,
     },
   });
+  const post = loadedPost ? toBrandedPostMaterialRecord(loadedPost) : null;
   const base = {
     status: 'available' as const,
     responseId,

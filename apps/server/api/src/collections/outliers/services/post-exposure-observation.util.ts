@@ -3,6 +3,7 @@ import {
   projectPostArtifactMaterial,
   readArtifactRecord,
 } from '@api/agent-artifacts/agent-artifact-material.util';
+import { flattenPostTreeIngredients } from '@api/collections/posts/services/post-ingredient-links.util';
 import {
   fromPrismaCredentialPlatform,
   IngredientCategory,
@@ -34,14 +35,22 @@ const ingredientSelect = {
   s3Key: true,
   version: true,
 } satisfies Prisma.IngredientSelect & { cdnUrl?: boolean }; // cdnUrl is a Prisma result extension
+const ingredientLinks = {
+  select: { ingredient: { select: ingredientSelect } },
+  orderBy: [{ ingredientId: 'asc' }],
+} satisfies Prisma.Post$ingredientLinksArgs;
 const postInclude = {
-  ingredients: { select: ingredientSelect },
+  ingredientLinks,
   children: {
     where: { isDeleted: false },
-    include: { ingredients: { select: ingredientSelect } },
+    include: { ingredientLinks },
   },
 } satisfies Prisma.PostInclude;
-type ExposurePost = Prisma.PostGetPayload<{ include: typeof postInclude }>;
+type ExposurePost = ReturnType<
+  typeof flattenPostTreeIngredients<
+    Prisma.PostGetPayload<{ include: typeof postInclude }>
+  >
+>;
 type PublicationClient = Pick<
   Prisma.TransactionClient,
   | 'post'
@@ -109,7 +118,7 @@ export async function loadPostExposurePublication(
     postId,
     externalId,
   } = input;
-  const post = await tx.post.findFirst({
+  const loaded = await tx.post.findFirst({
     where: {
       id: postId,
       organizationId,
@@ -119,6 +128,7 @@ export async function loadPostExposurePublication(
     },
     include: postInclude,
   });
+  const post = loaded ? flattenPostTreeIngredients(loaded) : null;
   if (
     !post ||
     post.id !== postId ||

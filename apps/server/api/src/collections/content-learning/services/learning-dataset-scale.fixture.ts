@@ -54,7 +54,6 @@ const postSelect = {
   ...learningPublicationPostSelect,
   agentContextVersion: true,
   status: true,
-  ingredients: { select: { id: true } },
 } satisfies Prisma.PostSelect;
 type PostRow = Prisma.PostGetPayload<{ select: typeof postSelect }>;
 const savedTables = [

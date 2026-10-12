@@ -255,7 +255,7 @@ export class VideosController {
         PopulatePatterns.organizationMinimal,
         { path: 'captions', where: scopedWhere(readScope.organizationId) },
         // Vote status is loaded via VotesService below. `votes` and `posts`
-        // are not Ingredient relations (`postIngredients` is the post link).
+        // are not Ingredient relations (`postLinks` is the post link).
       ],
     );
 

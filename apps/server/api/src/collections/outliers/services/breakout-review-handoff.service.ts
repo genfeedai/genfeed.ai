@@ -1,4 +1,5 @@
 import type { BreakoutGenerationAdmission } from '@api/collections/outliers/services/breakout-generation-admission.util';
+import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { ReviewTurboRunItemFormat } from '@api/services/turbo-run/constants/review-turbo-run-item-format.constant';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -63,8 +64,10 @@ export class BreakoutReviewHandoffService {
         reviewTurboRunId: true,
         promptUsed: true,
         // The first visual is the review preview; the extension is signed on read.
-        ingredients: {
-          select: { cdnUrl: true } as Prisma.IngredientSelect,
+        ingredientLinks: {
+          ...orderedPostIngredientLinks({
+            select: { cdnUrl: true } as Prisma.IngredientSelect,
+          }),
           take: 1,
         },
       },
@@ -73,7 +76,7 @@ export class BreakoutReviewHandoffService {
     if (!post) throw new ConflictException('breakout_review_draft_unavailable');
     if (post.reviewTurboRunId) return null;
     const previewUrl: unknown = Reflect.get(
-      post.ingredients[0] ?? {},
+      post.ingredientLinks[0]?.ingredient ?? {},
       'cdnUrl',
     );
     const run = await this.turboRuns.createManualReviewTurboRun(

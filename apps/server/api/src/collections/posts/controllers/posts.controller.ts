@@ -1,3 +1,4 @@
+import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 /**
  * PostsController - CRUD operations for posts
@@ -342,10 +343,10 @@ export class PostsController extends BaseCRUDController<
             isConnected: true,
           },
         },
-        ingredients: {
-          include: { metadata: true },
-          where: { organizationId: tenant.organizationId, isDeleted: false },
-        },
+        ingredientLinks: orderedPostIngredientLinks(
+          { include: { metadata: true } },
+          { organizationId: tenant.organizationId, isDeleted: false },
+        ),
       },
       where: {
         id: postId,

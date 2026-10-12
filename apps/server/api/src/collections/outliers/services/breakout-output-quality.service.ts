@@ -382,7 +382,9 @@ export class BreakoutOutputQualityService {
       // Each attached visual's judged address, in the post's own attachment order.
       const parts: BreakoutVisualPart[] = mediaEntries.map((entry) => {
         const url = Reflect.get(
-          post.ingredients.find((item) => item.s3Key === entry.id) ?? {},
+          post.ingredientLinks.find(
+            (link) => link.ingredient.s3Key === entry.id,
+          )?.ingredient ?? {},
           'cdnUrl',
         );
         if (typeof url !== 'string' || !url)

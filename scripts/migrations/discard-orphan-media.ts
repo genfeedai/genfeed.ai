@@ -208,7 +208,7 @@ async function collectReferencedIngredientIds(
           { bookmarkExtracted: { some: {} } },
           { bookmarkGenerated: { some: {} } },
           { postAnalyticsIngredients: { some: {} } },
-          { postIngredients: { some: {} } },
+          { postLinks: { some: {} } },
           { sourceOf: { some: {} } },
           { sources: { some: {} } },
           { tags: { some: {} } },

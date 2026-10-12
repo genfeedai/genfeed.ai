@@ -12,6 +12,7 @@ import {
   InvalidChannelTargetScheduleException,
   toChannelTargetError,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import { replacePostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { ScheduledPostWorkflowSource } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -584,9 +585,9 @@ export async function applyReleaseTargetUpdates(
   // the new media in the same write, or publishers would read the old kind
   // (e.g. an IMAGE target with its media removed).
   if (context.input.media !== undefined) {
-    const newIngredientIds = context.input.media.map((item) => ({
-      id: item.assetId,
-    }));
+    const newIngredientIds = dependencies.contractService.orderedMediaAssetIds(
+      context.input.media,
+    );
     const derivedCategory =
       await dependencies.persistenceService.resolveTargetCategory(
         tx,
@@ -600,7 +601,10 @@ export async function applyReleaseTargetUpdates(
       await tx.post.update({
         data: {
           category: categoryAfterMediaRewrite(target.category, derivedCategory),
-          ingredients: { set: newIngredientIds },
+          ingredientLinks: replacePostIngredientLinks(
+            context.organizationId,
+            newIngredientIds,
+          ),
         },
         where: scopedWhere(context.organizationId, { id: target.id }),
       });

@@ -5,6 +5,10 @@ import {
   InvalidChannelTargetScheduleException,
   postCategoryForIngredientCategories,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
+  orderedPostIngredientLinks,
+  replacePostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
@@ -208,11 +212,17 @@ function planBatchWrites(
       context.prisma.post.update({
         data: {
           ...data,
-          // `ingredients` is a many-to-many relation: a bare string[] is not
-          // a valid Prisma payload, it needs the nested-write envelope.
-          ingredients: { set: ingredientIds.map((id) => ({ id })) },
+          // The media are ordered links: a bare string[] is not a valid Prisma
+          // payload, and the array order is the slide order.
+          ingredientLinks: replacePostIngredientLinks(
+            organizationId,
+            ingredientIds,
+          ),
         } as Prisma.PostUpdateInput,
-        include: { credential: true, ingredients: true },
+        include: {
+          credential: true,
+          ingredientLinks: orderedPostIngredientLinks(),
+        },
         where: scopedWhere(organizationId, { id: postId }),
       }),
     );

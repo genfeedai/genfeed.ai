@@ -2,6 +2,10 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
+import {
   type CredentialDocument,
   type PublisherPostInput,
   SERVER_TOKENS,
@@ -104,7 +108,9 @@ export class ThreadCommentDeliveryService {
     );
 
     const children = await this.prisma.post.findMany({
-      include: { ingredients: { select: { id: true } } },
+      include: {
+        ingredientLinks: orderedPostIngredientLinks({ select: { id: true } }),
+      },
       orderBy: [{ parentId: 'asc' }, { order: 'asc' }],
       take: MAX_DUE_COMMENTS_PER_SWEEP,
       where: {
@@ -133,7 +139,9 @@ export class ThreadCommentDeliveryService {
       },
     });
 
-    return children as unknown as ThreadCommentChild[];
+    return children.map((child) =>
+      flattenPostIngredients(child),
+    ) as unknown as ThreadCommentChild[];
   }
 
   private async publishParentComments(
@@ -141,10 +149,15 @@ export class ThreadCommentDeliveryService {
     children: ThreadCommentChild[],
     url: string,
   ): Promise<void> {
-    const parent = (await this.prisma.post.findFirst({
-      include: { ingredients: { select: { id: true } } },
+    const loadedParent = await this.prisma.post.findFirst({
+      include: {
+        ingredientLinks: orderedPostIngredientLinks({ select: { id: true } }),
+      },
       where: { id: parentId, isDeleted: false },
-    })) as ThreadCommentParent | null;
+    });
+    const parent = (
+      loadedParent ? flattenPostIngredients(loadedParent) : null
+    ) as ThreadCommentParent | null;
 
     if (!parent?.externalId) {
       this.logger.warn(`${url} parent is not published yet`, { parentId });

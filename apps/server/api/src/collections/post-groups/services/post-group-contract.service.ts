@@ -4,6 +4,7 @@ import type {
   SchedulerPostTarget,
 } from '@api/collections/post-groups/services/post-group.types';
 import { toValidationMediaFromIngredients } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import { createPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import {
   CredentialPlatform,
   PostCategory,
@@ -594,15 +595,34 @@ export class PostGroupContractService {
       });
   }
 
-  buildIngredientConnect(
+  /**
+   * Asset ids in the slide order the release arranges them: the explicit
+   * `order` when given, the array position otherwise.
+   */
+  orderedMediaAssetIds(
     media: readonly ReleaseMediaReferenceInput[] | undefined,
-  ): { connect: Array<{ id: string }> } | undefined {
+  ): string[] {
+    return (media ?? [])
+      .map((item, index) => ({ index, item }))
+      .sort(
+        (left, right) =>
+          (left.item.order ?? left.index) - (right.item.order ?? right.index) ||
+          left.index - right.index,
+      )
+      .map(({ item }) => item.assetId);
+  }
+
+  buildIngredientLinks(
+    organizationId: string,
+    media: readonly ReleaseMediaReferenceInput[] | undefined,
+  ): ReturnType<typeof createPostIngredientLinks> | undefined {
     if (!media?.length) {
       return undefined;
     }
-    return {
-      connect: media.map((item) => ({ id: item.assetId })),
-    };
+    return createPostIngredientLinks(
+      organizationId,
+      this.orderedMediaAssetIds(media),
+    );
   }
 
   asMedia(value: Prisma.JsonValue): IReleaseMediaReference[] {

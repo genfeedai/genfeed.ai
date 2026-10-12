@@ -3,6 +3,7 @@ import {
   InvalidChannelTargetScheduleException,
   toChannelTargetError,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import { createPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { PublishApprovalsService } from '@api/index';
 import { ReleaseStatus, TargetExecutionState } from '@genfeedai/contracts';
 import {
@@ -24,12 +25,17 @@ const TERMINAL_RELEASE_STATES = new Set<string>([
 ]);
 
 type RecurrenceSourceGroup = Prisma.PostGroupGetPayload<Record<string, never>>;
+/** Slide order is carried by the links, so a clone keeps the source's order. */
+const sourceIngredientLinks = {
+  orderBy: [{ position: 'asc' }, { id: 'asc' }],
+  select: { ingredientId: true },
+} satisfies Prisma.Post$ingredientLinksArgs;
 type RecurrenceSourceTarget = Prisma.PostGetPayload<{
   include: {
     children: {
-      include: { ingredients: { select: { id: true } } };
+      include: { ingredientLinks: typeof sourceIngredientLinks };
     };
-    ingredients: { select: { id: true } };
+    ingredientLinks: typeof sourceIngredientLinks;
   };
 }>;
 
@@ -269,7 +275,7 @@ export class ReleaseRecurrenceMaterializerService {
       include: {
         children: {
           include: {
-            ingredients: { select: { id: true } },
+            ingredientLinks: sourceIngredientLinks,
           },
           orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
           where: {
@@ -277,7 +283,7 @@ export class ReleaseRecurrenceMaterializerService {
             organizationId,
           },
         },
-        ingredients: { select: { id: true } },
+        ingredientLinks: sourceIngredientLinks,
       },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
       where: {
@@ -379,7 +385,9 @@ export class ReleaseRecurrenceMaterializerService {
         caption: sourceTarget.description,
         category: sourceTarget.category,
         credentialId: sourceTarget.credentialId,
-        ingredients: sourceTarget.ingredients,
+        ingredients: sourceTarget.ingredientLinks.map(
+          (link) => link.ingredientId,
+        ),
         platform: sourceTarget.platform,
         publishMode: 'scheduled',
         settings: sourceTarget.targetSettings as Record<string, unknown> | null,
@@ -411,11 +419,12 @@ export class ReleaseRecurrenceMaterializerService {
         credentialId: sourceTarget.credentialId,
         description: sourceTarget.description,
         groupId: occurrenceId,
-        ...(sourceTarget.ingredients.length > 0
+        ...(sourceTarget.ingredientLinks.length > 0
           ? {
-              ingredients: {
-                connect: sourceTarget.ingredients.map(({ id }) => ({ id })),
-              },
+              ingredientLinks: createPostIngredientLinks(
+                context.input.organizationId,
+                sourceTarget.ingredientLinks.map((link) => link.ingredientId),
+              ),
             }
           : {}),
         label: sourceTarget.label,
@@ -494,11 +503,12 @@ export class ReleaseRecurrenceMaterializerService {
         credentialId: sourceChild.credentialId,
         description: sourceChild.description,
         groupId: occurrenceId,
-        ...(sourceChild.ingredients.length > 0
+        ...(sourceChild.ingredientLinks.length > 0
           ? {
-              ingredients: {
-                connect: sourceChild.ingredients.map(({ id }) => ({ id })),
-              },
+              ingredientLinks: createPostIngredientLinks(
+                context.input.organizationId,
+                sourceChild.ingredientLinks.map((link) => link.ingredientId),
+              ),
             }
           : {}),
         label: sourceChild.label,

@@ -1,4 +1,5 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { TargetExecutionState } from '@genfeedai/contracts';
@@ -101,14 +102,14 @@ export class ScheduledPostDiscoveryService {
           children: {
             include: {
               credential: true,
-              ingredients: true,
+              ingredientLinks: orderedPostIngredientLinks(),
             },
             where: {
               isDeleted: false,
               ...postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
             },
           },
-          ingredients: true,
+          ingredientLinks: orderedPostIngredientLinks(),
           publishApproval: {
             select: {
               artifactVersionPinId: true,

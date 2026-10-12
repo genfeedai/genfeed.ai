@@ -3,6 +3,10 @@ import {
   correctedCategoryForLinkedMedia,
   toValidationMediaFromIngredients,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import {
   SERVER_TOKENS,
@@ -444,10 +448,17 @@ export class PostLifecycleService {
       return undefined;
     }
 
-    const ingredientRow = await transaction.post.findFirst({
-      select: { ingredients: { select: { category: true, id: true } } },
+    const ingredientLinks = await transaction.post.findFirst({
+      select: {
+        ingredientLinks: orderedPostIngredientLinks({
+          select: { category: true, id: true },
+        }),
+      },
       where: scopedWhere(input.organizationId, { id: target.id }),
     });
+    const ingredientRow = ingredientLinks
+      ? flattenPostIngredients(ingredientLinks)
+      : null;
 
     assertValidChannelTargetSchedule({
       caption: this.mergedString(mutation.description, target.description),

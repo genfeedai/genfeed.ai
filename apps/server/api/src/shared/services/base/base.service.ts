@@ -191,6 +191,11 @@ export abstract class BaseService<
     return this.queryNormalizationAdapter.populateToInclude(populate);
   }
 
+  /** The Prisma relation argument one populate option selects. */
+  protected toRelationSelection(option: PopulateOption): unknown {
+    return this.queryNormalizationAdapter.toRelationSelection(option);
+  }
+
   /**
    * Stage-4 runtime guard: warn (never throw) when a normalized `where`
    * references a top-level field the Prisma model does not have. Catches the

@@ -18,6 +18,10 @@ import {
   toSyntheticReleaseGroup,
 } from '@api/collections/post-groups/services/post-group-release-projection.util';
 import { postCategoryForIngredientCategories } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -336,7 +340,8 @@ export class PostGroupPersistenceService {
             params.input.baseContent,
           ),
           groupId: context.group.id,
-          ingredients: this.contractService.buildIngredientConnect(
+          ingredientLinks: this.contractService.buildIngredientLinks(
+            params.organizationId,
             params.input.media,
           ),
           label: params.input.title,
@@ -783,19 +788,19 @@ export class PostGroupPersistenceService {
   ): Promise<SchedulerPostTarget> {
     const target = (await client.post.findFirst({
       include: {
-        ingredients: {
-          select: { category: true, id: true },
-          where: { isDeleted: false, organizationId },
-        },
+        ingredientLinks: orderedPostIngredientLinks(
+          { select: { category: true, id: true } },
+          { isDeleted: false, organizationId },
+        ),
       },
       where: scopedWhere(organizationId, { groupId, id: targetId }),
-    })) as SchedulerPostTarget | null;
+    })) as Parameters<typeof flattenPostIngredients>[0] | null;
 
     if (!target) {
       throw new NotFoundException('ChannelTarget', targetId);
     }
 
-    return target;
+    return flattenPostIngredients(target) as unknown as SchedulerPostTarget;
   }
 
   async getTargets(
