@@ -3,6 +3,7 @@ import {
   nativeHostVoiceSnapshotV1Schema,
 } from '@genfeedai/contracts/api-types/contracts/native-host.contract';
 import { NATIVE_HOST_VOICE_LIMITS } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces';
 import type { LocalVoiceSource } from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
 import { HttpRequestError } from '~services/http-request-error';
@@ -37,10 +38,6 @@ export interface LocalVoice {
 interface CachedVoice {
   savedAt: number;
   snapshot: unknown;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function text(value: unknown, max: number): string | undefined {
