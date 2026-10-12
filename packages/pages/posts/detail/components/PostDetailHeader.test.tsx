@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
@@ -37,6 +37,15 @@ vi.mock('next-intl', () => ({
       threadLengthPrompt: 'Select thread length',
       viewLivePost: 'View live post',
     })[key] ?? key,
+}));
+
+vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
+  default: ({ actions, title }: { actions?: ReactNode; title: string }) => (
+    <div data-testid="section-topbar">
+      <h1 className="sr-only">{title}</h1>
+      {actions}
+    </div>
+  ),
 }));
 
 // The overflow menu's real Radix internals need pointer events jsdom does not
@@ -277,5 +286,17 @@ describe('PostDetailHeader composer preview ownership', () => {
       screen.getByRole('button', { name: 'Publish now' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  describe('topbar placement', () => {
+    it('puts the actions in the section topbar and drops the in-page title', () => {
+      renderHeader({}, { placement: 'topbar' });
+
+      const topbar = screen.getByTestId('section-topbar');
+      expect(
+        within(topbar).getByRole('button', { name: 'Publish now' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Post detail')).not.toBeInTheDocument();
+    });
   });
 });

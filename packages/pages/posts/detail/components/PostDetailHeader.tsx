@@ -11,6 +11,7 @@ import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/co
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -45,6 +46,11 @@ export interface PostDetailHeaderProps {
   hasChildren: boolean;
   viewMode: 'edit' | 'preview';
   headingLevel?: 1 | 2;
+  /**
+   * `topbar` renders the actions in the shared section sub-topbar and drops the
+   * in-page title (the post title lives in the composer and the breadcrumb).
+   */
+  placement?: 'inline' | 'topbar';
   showViewModeToggle?: boolean;
   isExpandingToThread?: boolean;
   onViewModeChange: (mode: 'edit' | 'preview') => void;
@@ -84,6 +90,7 @@ export default function PostDetailHeader({
   hasChildren,
   viewMode,
   headingLevel = 2,
+  placement = 'inline',
   showViewModeToggle = true,
   isExpandingToThread = false,
   onViewModeChange,
@@ -258,6 +265,51 @@ export default function PostDetailHeader({
     viewMode,
   ]);
 
+  const actions = (
+    <CollectionItemActions overflow={overflow} primary={primary} />
+  );
+
+  const threadDialog = canExpandToThread ? (
+    <Dialog onOpenChange={setIsThreadDialogOpen} open={isThreadDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{translate('threadLengthPrompt')}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-1">
+          {THREAD_LENGTH_OPTIONS.map((count) => (
+            <Button
+              className="w-full justify-start text-left"
+              isDisabled={isExpandingToThread}
+              key={count}
+              onClick={() => {
+                setIsThreadDialogOpen(false);
+                onExpandToThread?.(count);
+              }}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            >
+              {translate('threadLengthOption', { count })}
+            </Button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  ) : null;
+
+  if (placement === 'topbar') {
+    return (
+      <>
+        <SectionTopbar
+          actions={actions}
+          forceVisible
+          title={getPostLabel(post)}
+          titleVisibility="sr-only"
+        />
+        {threadDialog}
+      </>
+    );
+  }
+
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
@@ -265,34 +317,8 @@ export default function PostDetailHeader({
         <Heading className="text-2xl font-bold">{getPostLabel(post)}</Heading>
       </div>
 
-      <CollectionItemActions overflow={overflow} primary={primary} />
-
-      {canExpandToThread ? (
-        <Dialog onOpenChange={setIsThreadDialogOpen} open={isThreadDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{translate('threadLengthPrompt')}</DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col gap-1">
-              {THREAD_LENGTH_OPTIONS.map((count) => (
-                <Button
-                  className="w-full justify-start text-left"
-                  isDisabled={isExpandingToThread}
-                  key={count}
-                  onClick={() => {
-                    setIsThreadDialogOpen(false);
-                    onExpandToThread?.(count);
-                  }}
-                  variant={ButtonVariant.SECONDARY}
-                  withWrapper={false}
-                >
-                  {translate('threadLengthOption', { count })}
-                </Button>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
-      ) : null}
+      {actions}
+      {threadDialog}
     </div>
   );
 }

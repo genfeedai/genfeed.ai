@@ -10,6 +10,7 @@ import type {
   IPost,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type {
@@ -49,10 +50,7 @@ export interface PublishingContentLibraryFilters {
 }
 
 function stripHtml(value?: string): string {
-  return (value ?? '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return stripHtmlToPlainText(value).replace(/\s+/g, ' ');
 }
 
 export function publishingContentTitle(value?: string): string {

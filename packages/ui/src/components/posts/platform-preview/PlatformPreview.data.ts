@@ -14,6 +14,7 @@ import {
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 
 import type {
   CaptionPreviewState,
@@ -232,19 +233,19 @@ export function buildPostTargets(
       name:
         post.credential?.externalName || post.credential?.label || accountName,
     },
-    caption: post.description ?? '',
+    caption: stripHtmlToPlainText(post.description),
     media,
     platform,
     threadSegments:
       children.length > 0
         ? [
             {
-              caption: post.description ?? '',
+              caption: stripHtmlToPlainText(post.description),
               id: post.id ?? 'post-1',
               label: 'Post 1',
             },
             ...children.map((child, index) => ({
-              caption: child.description ?? '',
+              caption: stripHtmlToPlainText(child.description),
               id: child.id ?? `reply-${index + 1}`,
               label: `Post ${index + 2}`,
             })),

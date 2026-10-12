@@ -397,11 +397,14 @@ export class PostsGenerationController {
           user,
           resolveByokApiKeyOverride(request),
         );
-      const updatedPost = await this.postsService.patch(postId, {
-        description: enhancedDescription,
-      });
+      // A draft is returned for review and saved only when the user accepts it.
+      const resultPost = dto.isDraft
+        ? { ...post, description: enhancedDescription }
+        : await this.postsService.patch(postId, {
+            description: enhancedDescription,
+          });
 
-      return serializeSingle(request, this.serializer, updatedPost);
+      return serializeSingle(request, this.serializer, resultPost);
     } catch (error: unknown) {
       const errorMessage = generationFailureMessage(error, 'Unknown error');
       const errorStack = error instanceof Error ? error.stack : undefined;

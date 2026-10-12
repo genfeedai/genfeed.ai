@@ -8,6 +8,7 @@ import type {
   TargetPreviewProps,
   TargetPreviewRelease,
 } from '@genfeedai/props/ui/previews.props';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import type { PlatformPreviewTarget } from '@ui/posts/platform-preview/PlatformPreview.types';
 
 /**
@@ -19,9 +20,12 @@ export function resolveTargetCaption(
   target: IChannelTarget,
 ): string {
   const override = target.settings?.caption;
-  return typeof override === 'string' && override.trim().length > 0
-    ? override
-    : (release.baseContent ?? '');
+  // Release content comes from stored post HTML; previews show plain text.
+  return stripHtmlToPlainText(
+    typeof override === 'string' && override.trim().length > 0
+      ? override
+      : release.baseContent,
+  );
 }
 
 function attachmentAppliesToTarget(

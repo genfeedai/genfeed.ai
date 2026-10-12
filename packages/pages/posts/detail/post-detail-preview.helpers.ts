@@ -14,13 +14,7 @@ import type {
   IReleaseMediaReference,
 } from '@genfeedai/contracts/interfaces';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
-
-function stripHtml(value?: string): string {
-  return (value ?? '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 
 function resolveIngredientMediaKind(
   category: IngredientCategory | undefined,
@@ -78,7 +72,7 @@ export function buildPostTargetPreview(
     return null;
   }
 
-  const caption = stripHtml(descriptionDraft || post.description);
+  const caption = stripHtmlToPlainText(descriptionDraft || post.description);
 
   return {
     credential: credential ?? {

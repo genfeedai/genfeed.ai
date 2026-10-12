@@ -294,3 +294,31 @@ export function stripHtmlToPlainText(value?: string | null): string {
 export function createMarkup(html: string): { __html: string } {
   return { __html: sanitizeHtml(html) };
 }
+
+const HTML_TAG_PATTERN = /<\/?[a-z][^>]*>/i;
+
+function escapeHtmlText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
+ * Turn AI or pasted text into editor HTML. Text that already carries markup is
+ * sanitized and kept; plain text becomes one paragraph per blank-line block,
+ * with single newlines as line breaks, so line structure survives the editor.
+ */
+export function plainTextToHtml(value?: string | null): string {
+  const text = (value ?? '').replace(/\r\n?/g, '\n').trim();
+  if (!text) {
+    return '';
+  }
+  if (HTML_TAG_PATTERN.test(text)) {
+    return sanitizeHtml(text);
+  }
+  return text
+    .split(/\n{2,}/)
+    .map((block) => `<p>${escapeHtmlText(block).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}

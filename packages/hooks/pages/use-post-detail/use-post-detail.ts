@@ -94,12 +94,12 @@ export interface UsePostDetailReturn {
     prompt: string,
     actionKey: PostQuickActionKey,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-  ) => Promise<void>;
+  ) => Promise<string | null>;
   handlePerTweetEnhance: (
     postId: string,
     prompt: string,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
-  ) => Promise<void>;
+  ) => Promise<string | null>;
   handleDragStart: (postId: string) => void;
   handleDragEnd: () => void;
   handleDrop: (targetPostId: string, targetOrder: number) => Promise<void>;
@@ -186,7 +186,6 @@ export function usePostDetail({
     fetchPost: state.fetchPost,
     getPostsService: state.getPostsService,
     getReleaseGroupsService: state.getReleaseGroupsService,
-    handleUpdateChild: state.handleUpdateChild,
     isContentDirty: drafts.isContentDirty,
     isDescriptionDirty: drafts.isDescriptionDirty,
     isLabelDirty: drafts.isLabelDirty,
@@ -196,15 +195,11 @@ export function usePostDetail({
     post: state.post,
     router: state.router,
     scheduleDraft: drafts.scheduleDraft,
-    setChildDescriptions: drafts.setChildDescription,
-    setDescriptionDraft: drafts.setDescriptionDraft,
     setEnhancingAction: state.setEnhancingAction,
     setEnhancingPostId: state.setEnhancingPostId,
     setIsSavingDescription: state.setIsSavingDescription,
     setIsSavingSchedule: state.setIsSavingSchedule,
-    setPost: state.setPost,
     updateActivePost: state.updateActivePost,
-    updateDescriptionRefs: state.updateDescriptionRefs,
   });
 
   // 5. Media operations (gallery, illustration)
