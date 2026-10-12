@@ -4,21 +4,15 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { MemberRole } from '@genfeedai/contracts';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import type {
+  AutomationSettingField,
+  AutomationSettingKey,
+} from '@props/settings/organization-automation-card.props';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-
-type AutomationSettingKey =
-  | 'isBreakoutResponsesEnabled'
-  | 'isBreakoutAutoPublishEnabled'
-  | 'isBrandVisionChecksEnabled';
-
-type AutomationSettingField = {
-  key: AutomationSettingKey;
-  messageKey: 'breakoutResponses' | 'breakoutAutoPublish' | 'brandVision';
-};
 
 const AUTOMATION_SETTING_FIELDS: AutomationSettingField[] = [
   { key: 'isBreakoutResponsesEnabled', messageKey: 'breakoutResponses' },
