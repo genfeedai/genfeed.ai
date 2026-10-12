@@ -871,6 +871,10 @@ export function createAIReplyButton(
   button.setAttribute('data-post-id', postId);
   button.setAttribute('data-platform', platform);
 
+  // After a failure that can be retried, the next click reruns the same
+  // request (same key) instead of starting a new one.
+  let retryKey: string | null = null;
+
   button.addEventListener('click', async () => {
     const originalContent = button.innerHTML;
     button.innerHTML = icons.spinner;
@@ -879,16 +883,22 @@ export function createAIReplyButton(
 
     try {
       const context = extractPostContext();
+      const requestKey = retryKey ?? crypto.randomUUID();
       const response = await chrome.runtime.sendMessage({
         event: 'generateReply',
         platform: platform,
         postAuthor: context.author,
         postContent: context.content,
         postId: postId,
+        requestKey,
+        ...(retryKey ? { retry: true } : {}),
         url: window.location.href,
       });
+      retryKey = response?.recovery?.canRetry ? requestKey : null;
 
       if (response?.success && response?.reply) {
+        // Say so when a local provider, not Genfeed cloud, wrote the reply.
+        if (response.routing?.notice) showGenfeedToast(response.routing.notice);
         // Find the reply textarea
         const replyBox = document.querySelector(replyTextareaSelector) as
           | HTMLTextAreaElement
@@ -916,6 +926,18 @@ export function createAIReplyButton(
       } else {
         button.innerHTML = icons.x;
         button.title = response?.error || 'Failed to generate reply';
+        if (response?.recovery) {
+          showGenfeedToast(
+            `${response.error} ${
+              response.recovery.canRetry ? 'Click the button to retry. ' : ''
+            }${
+              response.recovery.canOpenProviderSettings
+                ? 'Provider settings are in the Genfeed side panel.'
+                : ''
+            }`.trim(),
+            true,
+          );
+        }
       }
 
       setTimeout(() => {

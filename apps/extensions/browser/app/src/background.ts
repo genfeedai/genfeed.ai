@@ -44,6 +44,11 @@ import {
   SOURCE_REMIX_EVENTS,
 } from '~services/source-remix-message';
 import {
+  ActionRoutingError,
+  routeReplyVariants,
+  routeTextAction,
+} from '~services/text-action-router.service';
+import {
   assertWorkspace,
   loadWorkspace,
   requireWorkspace,
@@ -306,7 +311,13 @@ function sendError(
   error?: unknown,
 ): void {
   const errorMessage = error instanceof Error ? error.message : message;
-  sendResponse({ error: errorMessage, success: false });
+  sendResponse({
+    error: errorMessage,
+    ...(error instanceof ActionRoutingError
+      ? { recovery: error.recovery }
+      : {}),
+    success: false,
+  });
 }
 
 /**
@@ -507,6 +518,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'SHORTCUT_IDEA':
       handleShortcutMode('IDEA', request.payload, sendResponse);
       return true;
+
+    case 'openProviderSettings':
+      handleShortcutMode('SETTINGS', undefined, sendResponse);
+      return true;
   }
 });
 
@@ -623,10 +638,10 @@ async function captureCurrentTab(mode: CaptureMode = 'page', url?: string) {
   return prepareKnowledgeSnapshot(result[0].result);
 }
 
-/** Reply options for a source post, drafted by the catalog action (#4342). */
-async function draftReplyVariants(
+/** A reply request that names a post, a platform, a key and a known tone. */
+function readReplyVariantsRequest(
   request: Partial<ReplyVariantsRequest>,
-): Promise<ReplyVariantsResult> {
+): ReplyVariantsRequest {
   if (
     typeof request.postContent !== 'string' ||
     !request.postContent.trim() ||
@@ -638,24 +653,44 @@ async function draftReplyVariants(
   ) {
     throw new Error('Open a post to reply to first.');
   }
-  const token = await authService.getToken();
-  if (!token) throw new Error('Not authenticated');
-  return new AgentToolsService(token).generateReplyVariants({
+  return {
     platform: request.platform,
     postAuthor: request.postAuthor,
     postContent: request.postContent,
     requestKey: request.requestKey,
     tone: request.tone,
     variants: request.variants,
+  };
+}
+
+/** Reply options from Genfeed cloud only, for flows that attach media (#4342). */
+async function draftReplyVariants(
+  request: Partial<ReplyVariantsRequest>,
+): Promise<ReplyVariantsResult> {
+  const token = await authService.getToken();
+  if (!token) throw new Error('Not authenticated');
+  return new AgentToolsService(token).generateReplyVariants(
+    readReplyVariantsRequest(request),
+  );
+}
+
+/** Reply options cloud first; a configured local provider answers only after a confirmed cloud failure (#4346). */
+function routedReplyVariants(
+  request: Partial<ReplyVariantsRequest> & { retry?: boolean },
+) {
+  return routeReplyVariants({
+    ...readReplyVariantsRequest(request),
+    retry: request.retry === true,
   });
 }
 
 async function generateReplyVariants(
-  request: Partial<ReplyVariantsRequest>,
+  request: Partial<ReplyVariantsRequest> & { retry?: boolean },
   sendResponse: SendResponse,
 ): Promise<void> {
   try {
-    sendResponse({ result: await draftReplyVariants(request), success: true });
+    const { result, routing } = await routedReplyVariants(request);
+    sendResponse({ result, routing, success: true });
   } catch (error) {
     sendError(sendResponse, 'Failed to generate replies', error);
   }
@@ -663,24 +698,30 @@ async function generateReplyVariants(
 
 /** One reply in the default tone, for the single-click reply button. */
 async function generateSingleReply(
-  request: Partial<ReplyVariantsRequest>,
+  request: Partial<ReplyVariantsRequest> & { retry?: boolean },
   sendResponse: SendResponse,
 ): Promise<void> {
   try {
-    const { variants } = await draftReplyVariants({
+    const {
+      result: { variants },
+      routing,
+    } = await routedReplyVariants({
       ...request,
-      requestKey: crypto.randomUUID(),
+      requestKey:
+        typeof request.requestKey === 'string'
+          ? request.requestKey
+          : crypto.randomUUID(),
       tone: 'add-value',
       variants: 1,
     });
-    sendResponse({ reply: variants[0], success: true, variants });
+    sendResponse({ reply: variants[0], routing, success: true, variants });
   } catch (error) {
     sendError(sendResponse, 'Failed to generate reply', error);
   }
 }
 
 async function refineText(
-  request: Partial<TextActionRequest>,
+  request: Partial<TextActionRequest> & { retry?: boolean },
   sendResponse: SendResponse,
 ): Promise<void> {
   try {
@@ -694,15 +735,14 @@ async function refineText(
     ) {
       throw new Error('Select the text to edit first.');
     }
-    const token = await authService.getToken();
-    if (!token) throw new Error('Not authenticated');
-    const result = await new AgentToolsService(token).refineText({
+    const { result, routing } = await routeTextAction({
       mode: request.mode,
       platform: request.platform,
       requestKey: request.requestKey,
+      retry: request.retry === true,
       text: request.text,
     });
-    sendResponse({ result, success: true });
+    sendResponse({ result, routing, success: true });
   } catch (error) {
     sendError(sendResponse, 'Failed to edit the text', error);
   }

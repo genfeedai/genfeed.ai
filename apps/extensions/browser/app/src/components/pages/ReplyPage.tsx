@@ -3,11 +3,16 @@ import type {
   ReplyVariantsResult,
   ReplyVariantTone,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  ActionRecovery,
+  ActionRouting,
+} from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer } from 'react';
+import { RecoveryActions, RoutingNotice } from '~components/chat/ActionRouting';
 import { getPlatformForUrl } from '~platforms/config';
 import { usePlatformStore } from '~store/use-platform-store';
 import type { ReplyVariantsResponse } from '~types/extension';
@@ -47,13 +52,26 @@ const TONES: { value: ReplyVariantTone; label: string; description: string }[] =
     },
   ];
 
+/** A failed request the user can run again with the same key and inputs. */
+interface FailedReplyRequest {
+  author: string;
+  platform: string;
+  postContent: string;
+  requestKey: string;
+  tone: ReplyVariantTone;
+}
+
 interface ReplyState {
   author: string;
   error: string | null;
+  failedRequest: FailedReplyRequest | null;
   /** Variant whose text was last copied or inserted, and what happened. */
   feedback: { index: number; message: string; isError: boolean } | null;
   postContent: string;
+  recovery: ActionRecovery | null;
   result: ReplyVariantsResult | null;
+  /** Present when a local provider wrote the result. */
+  routing: ActionRouting | null;
   step: ReplyStep;
   tone: ReplyVariantTone;
 }
@@ -63,8 +81,17 @@ type ReplyAction =
   | { type: 'SET_AUTHOR'; payload: string }
   | { type: 'SET_TONE'; payload: ReplyVariantTone }
   | { type: 'LOADING' }
-  | { type: 'RESULT'; payload: ReplyVariantsResult }
-  | { type: 'FAILED'; payload: string }
+  | {
+      type: 'RESULT';
+      payload: ReplyVariantsResult;
+      routing: ActionRouting | null;
+    }
+  | {
+      type: 'FAILED';
+      payload: string;
+      failedRequest?: FailedReplyRequest;
+      recovery?: ActionRecovery;
+    }
   | { type: 'FEEDBACK'; payload: ReplyState['feedback'] }
   | { type: 'RESET_TO_INPUT' }
   | { type: 'SYNC_PROPS'; payload: { content: string; author: string } };
@@ -78,11 +105,29 @@ function replyReducer(state: ReplyState, action: ReplyAction): ReplyState {
     case 'SET_TONE':
       return { ...state, tone: action.payload };
     case 'LOADING':
-      return { ...state, error: null, feedback: null, step: 'loading' };
+      return {
+        ...state,
+        error: null,
+        failedRequest: null,
+        feedback: null,
+        recovery: null,
+        step: 'loading',
+      };
     case 'RESULT':
-      return { ...state, result: action.payload, step: 'result' };
+      return {
+        ...state,
+        result: action.payload,
+        routing: action.routing,
+        step: 'result',
+      };
     case 'FAILED':
-      return { ...state, error: action.payload, step: 'input' };
+      return {
+        ...state,
+        error: action.payload,
+        failedRequest: action.failedRequest ?? null,
+        recovery: action.recovery ?? null,
+        step: 'input',
+      };
     case 'FEEDBACK':
       return { ...state, feedback: action.payload };
     case 'RESET_TO_INPUT':
@@ -115,13 +160,27 @@ export function ReplyPage({
   const [state, dispatch] = useReducer(replyReducer, {
     author: initialAuthor,
     error: null,
+    failedRequest: null,
     feedback: null,
     postContent: initialContent,
+    recovery: null,
     result: null,
+    routing: null,
     step: 'input',
     tone: 'add-value',
   });
-  const { author, error, feedback, postContent, result, step, tone } = state;
+  const {
+    author,
+    error,
+    failedRequest,
+    feedback,
+    postContent,
+    recovery,
+    result,
+    routing,
+    step,
+    tone,
+  } = state;
 
   // A new source (shortcut or menu on another post) replaces the pasted one.
   useEffect(() => {
@@ -143,26 +202,49 @@ export function ReplyPage({
       });
       return;
     }
+    await requestReplies(
+      {
+        author,
+        platform,
+        postContent,
+        requestKey: crypto.randomUUID(),
+        tone,
+      },
+      false,
+    );
+  }
 
+  async function requestReplies(
+    request: FailedReplyRequest,
+    isRetry: boolean,
+  ): Promise<void> {
     dispatch({ type: 'LOADING' });
     try {
       const response: ReplyVariantsResponse | undefined =
         await chrome.runtime.sendMessage({
           event: 'generateReplyVariants',
-          platform,
-          postAuthor: author.trim() || undefined,
-          postContent,
-          requestKey: crypto.randomUUID(),
-          tone,
+          platform: request.platform,
+          postAuthor: request.author.trim() || undefined,
+          postContent: request.postContent,
+          requestKey: request.requestKey,
+          ...(isRetry ? { retry: true } : {}),
+          tone: request.tone,
         });
       if (!response || 'error' in response) {
-        throw new Error(
-          response && 'error' in response
-            ? response.error
-            : 'Failed to generate replies',
-        );
+        const failure = response && 'error' in response ? response : null;
+        dispatch({
+          failedRequest: failure?.recovery?.canRetry ? request : undefined,
+          payload: failure?.error ?? 'Failed to generate replies',
+          recovery: failure?.recovery,
+          type: 'FAILED',
+        });
+        return;
       }
-      dispatch({ payload: response.result, type: 'RESULT' });
+      dispatch({
+        payload: response.result,
+        routing: response.routing ?? null,
+        type: 'RESULT',
+      });
     } catch (err) {
       logger.error('Reply generation error', err);
       dispatch({
@@ -254,6 +336,8 @@ export function ReplyPage({
           {postContent}
         </div>
 
+        <RoutingNotice routing={routing} />
+
         {result.voiceHint ? (
           <p className="text-xs text-muted-foreground">{result.voiceHint}</p>
         ) : null}
@@ -335,6 +419,13 @@ export function ReplyPage({
           {error}
         </div>
       )}
+
+      <RecoveryActions
+        recovery={recovery}
+        onRetry={() => {
+          if (failedRequest) void requestReplies(failedRequest, true);
+        }}
+      />
 
       <div className="flex flex-col gap-1">
         <label

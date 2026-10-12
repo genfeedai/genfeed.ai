@@ -67,7 +67,8 @@
       "tabs",
       "scripting",
       "activeTab",
-      "sidePanel"
+      "sidePanel",
+      "nativeMessaging"
     ],
     "side_panel": {
       "default_path": "sidepanel.html"

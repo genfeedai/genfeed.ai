@@ -393,6 +393,107 @@ describe('UI Helpers', () => {
     });
   });
 
+  describe('createAIReplyButton fallback routing', () => {
+    function mount() {
+      document.body.innerHTML =
+        '<div data-testid="tweetTextarea_0" contenteditable="true"></div>';
+      Object.defineProperty(
+        document.querySelector('[data-testid="tweetTextarea_0"]'),
+        'isContentEditable',
+        { value: true },
+      );
+      const button = createAIReplyButton(
+        '123',
+        'twitter',
+        '[data-testid="tweetTextarea_0"]',
+      );
+      document.body.appendChild(button);
+      return button;
+    }
+
+    function generateCalls(sendMessage: { mock: { calls: unknown[][] } }) {
+      return sendMessage.mock.calls
+        .map(([message]) => message as Record<string, unknown>)
+        .filter((message) => message.event === 'generateReply');
+    }
+
+    it('says so when a local provider wrote the reply', async () => {
+      const sendMessage = vi
+        .spyOn(chrome.runtime, 'sendMessage')
+        .mockResolvedValue({
+          reply: 'A local reply',
+          routing: {
+            notice:
+              'Genfeed was unavailable, so this was written locally with Claude Code.',
+          },
+          success: true,
+        } as never);
+      const button = mount();
+
+      button.click();
+
+      await vi.waitFor(() =>
+        expect(document.querySelector('.genfeed-toast')?.textContent).toContain(
+          'written locally with Claude Code',
+        ),
+      );
+      expect(generateCalls(sendMessage)).toHaveLength(1);
+    });
+
+    it('retries a recoverable failure with the same request key, then starts fresh', async () => {
+      const recovery = {
+        canOpenProviderSettings: true,
+        canRetry: true,
+        kind: 'host_unreachable',
+        retryTarget: 'local',
+      };
+      const sendMessage = vi
+        .spyOn(chrome.runtime, 'sendMessage')
+        .mockResolvedValue({
+          error: 'The Genfeed local bridge is not reachable.',
+          recovery,
+          success: false,
+        } as never);
+      const button = mount();
+
+      button.click();
+      await vi.waitFor(() => expect(button.title).toContain('not reachable'));
+      expect(document.querySelector('.genfeed-toast')?.textContent).toContain(
+        'Click the button to retry',
+      );
+      expect(document.querySelector('.genfeed-toast')?.textContent).toContain(
+        'Provider settings',
+      );
+      await vi.waitFor(() => expect(button.disabled).toBe(false), {
+        timeout: 4000,
+      });
+
+      sendMessage.mockResolvedValue({
+        reply: 'Recovered',
+        success: true,
+      } as never);
+      button.click();
+      await vi.waitFor(() =>
+        expect(generateCalls(sendMessage)).toHaveLength(2),
+      );
+      const [first, second] = generateCalls(sendMessage);
+      expect(second.requestKey).toBe(first.requestKey);
+      expect(second.retry).toBe(true);
+      expect(first.retry).toBeUndefined();
+      await vi.waitFor(() => expect(button.disabled).toBe(false), {
+        timeout: 4000,
+      });
+
+      button.click();
+      await vi.waitFor(() =>
+        expect(generateCalls(sendMessage)).toHaveLength(3),
+      );
+      const third = generateCalls(sendMessage)[2];
+      expect(third.requestKey).not.toBe(first.requestKey);
+      expect(third.retry).toBeUndefined();
+    });
+  });
+
   describe('createGenFeedDropdown', () => {
     it('opens a brand-aware reply composer from the web page', async () => {
       vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({

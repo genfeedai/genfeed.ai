@@ -1,4 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AgentActionError } from '~services/agent-tools.service';
+import { HttpRequestError } from '~services/http-request-error';
 
 const mocks = vi.hoisted(() => ({
   publication: vi.fn().mockResolvedValue({ success: false, error: 'Rejected' }),
@@ -27,7 +29,8 @@ vi.mock('~services/error-tracking.service', () => ({
   initializeErrorTracking: vi.fn(),
   captureExtensionError: vi.fn(),
 }));
-vi.mock('~services/agent-tools.service', () => ({
+vi.mock('~services/agent-tools.service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~services/agent-tools.service')>()),
   AgentToolsService: class {
     execute = mocks.execute;
     generateText = mocks.generateText;
@@ -329,6 +332,224 @@ describe('background user action routing', () => {
         );
       },
     );
+  });
+
+  describe('local fallback', () => {
+    const key = '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c';
+    const refine = {
+      event: 'refineText',
+      mode: 'rewrite',
+      platform: 'twitter',
+      requestKey: key,
+      text: 'Teh launch is live',
+    };
+    const hostResult = {
+      hasBrandVoice: false,
+      isReplayed: false,
+      maxCharacters: 280,
+      mode: 'rewrite',
+      platform: 'twitter',
+      text: 'The launch is live',
+    };
+    const nativeMessage = vi.fn();
+    const sessionStore: Record<string, unknown> = {};
+
+    beforeEach(() => {
+      for (const stored of Object.keys(sessionStore))
+        delete sessionStore[stored];
+      nativeMessage
+        .mockReset()
+        .mockImplementation(
+          async (_host: string, request: { requestId: string }) => ({
+            action: 'refine_text',
+            providerId: 'claude-cli',
+            requestId: request.requestId,
+            result: hostResult,
+            type: 'generated',
+            version: 1,
+          }),
+        );
+      Object.assign(chrome.runtime, { sendNativeMessage: nativeMessage });
+      vi.mocked(chrome.storage.local.get).mockImplementation((async (
+        key: string,
+      ) =>
+        key === 'genfeed-settings'
+          ? { 'genfeed-settings': { localFallbackProviderId: 'claude-cli' } }
+          : {}) as never);
+      vi.mocked(chrome.storage.session.get).mockImplementation((async (
+        stored: string,
+      ) => ({
+        [stored]: sessionStore[stored],
+      })) as never);
+      vi.mocked(chrome.storage.session.set).mockImplementation((async (
+        items: Record<string, unknown>,
+      ) => {
+        Object.assign(sessionStore, items);
+      }) as never);
+      // A Response body can be read once, so every call gets its own.
+      mocks.fetch.mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({ message: 'brand_identity_unavailable' }),
+            {
+              status: 409,
+            },
+          ),
+      );
+    });
+
+    it('answers a confirmed credit-limit failure through the host, and says so', async () => {
+      mocks.refineText.mockRejectedValue(
+        new AgentActionError(
+          'Not enough credits to generate content.',
+          'insufficient_credits',
+        ),
+      );
+
+      const response = await dispatch(refine);
+
+      expect(response).toMatchObject({
+        result: { text: 'The launch is live' },
+        routing: {
+          hasBrandVoice: false,
+          providerId: 'claude-cli',
+          reason: 'credit_limit',
+          voiceSource: 'none',
+        },
+        success: true,
+      });
+      expect(response.routing.notice).toContain(
+        'written locally with Claude Code',
+      );
+      expect(mocks.refineText).toHaveBeenCalledTimes(1);
+      expect(nativeMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the request and the recovery when the host is missing, and retries the host only', async () => {
+      mocks.refineText.mockRejectedValue(
+        new AgentActionError(
+          'The text provider is unavailable.',
+          'provider_unavailable',
+        ),
+      );
+      nativeMessage.mockRejectedValueOnce(
+        new Error('Specified native messaging host not found.'),
+      );
+
+      const failed = await dispatch(refine);
+
+      expect(failed).toMatchObject({
+        error: expect.stringContaining('gf host install'),
+        recovery: {
+          canOpenProviderSettings: true,
+          canRetry: true,
+          kind: 'host_unreachable',
+          retryTarget: 'local',
+        },
+        success: false,
+      });
+
+      mocks.refineText.mockClear();
+      const retried = await dispatch({ ...refine, retry: true });
+
+      expect(retried).toMatchObject({
+        routing: { reason: 'service_unavailable' },
+        success: true,
+      });
+      expect(mocks.refineText).not.toHaveBeenCalled();
+    });
+
+    it('never falls back after an authorization failure', async () => {
+      mocks.refineText.mockRejectedValue(
+        new HttpRequestError('Forbidden', 'http', 403),
+      );
+
+      expect(await dispatch(refine)).toEqual({
+        error: 'Forbidden',
+        success: false,
+      });
+      expect(nativeMessage).not.toHaveBeenCalled();
+    });
+
+    it('routes the single-click reply through the host with the key the page sent', async () => {
+      mocks.generateReplyVariants.mockRejectedValue(
+        new HttpRequestError('Slow down', 'http', 429),
+      );
+      nativeMessage.mockImplementation(
+        async (_host: string, request: { requestId: string }) => ({
+          action: 'generate_reply_variants',
+          providerId: 'claude-cli',
+          requestId: request.requestId,
+          result: {
+            hasBrandVoice: false,
+            isReplayed: false,
+            maxCharacters: 280,
+            platform: 'twitter',
+            tone: 'add-value',
+            variants: ['A local reply'],
+          },
+          type: 'generated',
+          version: 1,
+        }),
+      );
+
+      const response = await dispatch({
+        event: 'generateReply',
+        platform: 'twitter',
+        postAuthor: '@ada',
+        postContent: 'We just launched.',
+        postId: '1',
+        requestKey: key,
+        url: 'https://x.com/ada/status/1',
+      });
+
+      expect(response).toMatchObject({
+        reply: 'A local reply',
+        routing: { reason: 'quota_exceeded' },
+        success: true,
+      });
+      expect(mocks.generateReplyVariants).toHaveBeenCalledWith(
+        expect.objectContaining({ requestKey: key, variants: 1 }),
+      );
+    });
+
+    it('keeps media replies on Genfeed cloud only', async () => {
+      mocks.generateReplyVariants.mockRejectedValue(
+        new HttpRequestError('Slow down', 'http', 429),
+      );
+
+      await dispatch({
+        event: 'generateReplyWithMedia',
+        mediaType: 'image',
+        platform: 'twitter',
+        postAuthor: '@ada',
+        postContent: 'We just launched.',
+        postId: '1',
+        url: 'https://x.com/ada/status/1',
+      });
+
+      expect(nativeMessage).not.toHaveBeenCalled();
+    });
+
+    it('opens the side panel on the settings tab for the provider settings', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+      try {
+        const respond = vi.fn();
+        expect(
+          backgroundListener({ event: 'openProviderSettings' }, {}, respond),
+        ).toBe(true);
+        await vi.advanceTimersByTimeAsync(500);
+
+        expect(respond).toHaveBeenCalledWith({ success: true });
+        expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 1 });
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+          payload: expect.objectContaining({ type: 'SETTINGS' }),
+          type: 'OPEN_MODE',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   it.each(['generatePostImage', 'generateImage'])(

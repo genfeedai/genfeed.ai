@@ -116,9 +116,29 @@ This document explains why the Genfeed Chrome Extension requests each permission
 
 ---
 
+### 6. `nativeMessaging`
+
+**Purpose:** Let the extension talk to the optional Genfeed local bridge (`gf host`) installed on your own computer.
+
+**Why Required:**
+
+- Only used when you choose a Local fallback provider in Settings
+- After Genfeed cloud definitively fails (service down, request limit, no credits), the same text action (proofread, rewrite, reply options) can run on your own Claude Code, Codex or Gemini CLI, or your own API key
+- Checking Settings lists which providers are installed; it never runs one or sends a prompt
+
+**Data Sent to the bridge (your computer only):**
+
+- The text being edited or the post being replied to, the platform, and your approved brand voice
+
+**Privacy Impact:** Low - the bridge is a program you install and run locally. It does not call Genfeed and your provider keys never reach the extension.
+
+**User Control:** Leave Local fallback on "Off", or remove the bridge with `gf host uninstall`.
+
+---
+
 ## Host Permissions
 
-### 6. `https://*.twitter.com/*` and `https://*.x.com/*`
+### 7. `https://*.twitter.com/*` and `https://*.x.com/*`
 
 **Purpose:** Access Twitter/X pages to inject UI elements and extract tweet content.
 
@@ -139,7 +159,7 @@ This document explains why the Genfeed Chrome Extension requests each permission
 
 ---
 
-### 7. `https://api.genfeed.ai/*`
+### 8. `https://api.genfeed.ai/*`
 
 **Purpose:** Communicate with Genfeed API for AI content generation and account management.
 
@@ -161,7 +181,7 @@ This document explains why the Genfeed Chrome Extension requests each permission
 
 ---
 
-### 8. Additional Host Permissions (YouTube, Instagram, etc.)
+### 9. Additional Host Permissions (YouTube, Instagram, etc.)
 
 **Purpose:** Content detection and quick actions for multiple platforms.
 
@@ -191,6 +211,7 @@ This document explains why the Genfeed Chrome Extension requests each permission
 | `cookies`           | OAuth authentication           | Auth cookies only        | Low            | Logout to revoke         |
 | `scripting`         | Inject UI elements             | Twitter/X DOM            | Low            | Only when using features |
 | `activeTab`         | Extract tweet content          | Tweet text (on click)    | Low            | Only when using features |
+| `nativeMessaging`   | Optional local fallback bridge | Draft text, brand voice  | Low            | Off unless you opt in    |
 | `twitter.com/x.com` | Core functionality             | Tweet content (on click) | Low            | Only when using features |
 | `api.genfeed.ai`    | AI generation                  | Generation prompts       | Medium         | Encrypted, authenticated |
 | Other platforms     | Content detection              | Page content (on click)  | Low            | Opt-in features          |

@@ -24,6 +24,7 @@ import { appDomain } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { loadWorkspace } from '~services/workspace.service';
 import { useChatStore } from '~store/use-chat-store';
+import { usePanelNavigationStore } from '~store/use-panel-navigation-store';
 import type { ExtensionMessage } from '~types/extension';
 
 import '~style.css';
@@ -73,6 +74,7 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
         IDEA: 'knowledge',
         REMIX: 'remix',
         REPLY: 'reply',
+        SETTINGS: 'settings',
         SOURCE: 'imported',
       };
 
@@ -219,6 +221,14 @@ function SidePanelContent() {
       dispatchPanel({ type: 'resetScope' });
     }
   }, [scopeRevision]);
+
+  // A component inside the panel asked for another tab (for example Provider settings).
+  const requestedTab = usePanelNavigationStore((s) => s.requestedTab);
+  useEffect(() => {
+    if (!requestedTab) return;
+    dispatchPanel({ activeTab: requestedTab, type: 'setActiveTab' });
+    usePanelNavigationStore.getState().clearRequest();
+  }, [requestedTab]);
 
   // Listen for OPEN_MODE messages from the background/content scripts
   useEffect(() => {

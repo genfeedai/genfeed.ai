@@ -23,6 +23,27 @@ export const NATIVE_HOST_PROVIDER_IDS = [
   'gemini-api',
 ] as const;
 
+export type NativeHostProviderIdValue =
+  (typeof NATIVE_HOST_PROVIDER_IDS)[number];
+
+/** What a person sees for each provider, in the extension and in the CLI. */
+export const NATIVE_HOST_PROVIDER_LABELS: Readonly<
+  Record<NativeHostProviderIdValue, string>
+> = {
+  'anthropic-api': 'Anthropic API key',
+  'claude-cli': 'Claude Code',
+  'codex-cli': 'Codex CLI',
+  'gemini-api': 'Gemini API key',
+  'gemini-cli': 'Gemini CLI',
+  'openai-api': 'OpenAI API key',
+};
+
+export function isNativeHostProviderId(
+  value: unknown,
+): value is NativeHostProviderIdValue {
+  return (NATIVE_HOST_PROVIDER_IDS as readonly unknown[]).includes(value);
+}
+
 /** Stable reasons a host stops a request; the message is safe to show a user. */
 export const NATIVE_HOST_FAILURE_CODES = [
   'invalid_request',

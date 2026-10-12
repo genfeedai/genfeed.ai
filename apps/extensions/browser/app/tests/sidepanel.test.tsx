@@ -56,7 +56,7 @@ vi.mock('~components/navigation/SidebarNav', () => ({
   SidebarNav: () => null,
 }));
 vi.mock('~components/settings/SettingsPanel', () => ({
-  SettingsPanel: () => null,
+  SettingsPanel: () => <div>Settings panel</div>,
 }));
 vi.mock('~store/use-settings-store', () => ({
   useSettingsStore: () => ({}),
@@ -86,6 +86,7 @@ vi.mock('~services/error-tracking.service', () => ({
 vi.mock('~store/use-chat-store', () => ({ useChatStore: () => false }));
 vi.mock('~style.css', () => ({}));
 
+import { usePanelNavigationStore } from '~store/use-panel-navigation-store';
 import SidePanel from '../src/sidepanel';
 
 beforeEach(() => {
@@ -178,6 +179,35 @@ describe('SidePanel', () => {
         url: 'https://www.reddit.com/r/a/comments/abc/title/',
       }),
     );
+  });
+
+  it('opens the settings tab when the page asks for provider settings', async () => {
+    auth.getAuthContext.mockResolvedValue({ organization: { id: 'org-1' } });
+    render(<SidePanel />);
+    expect(await screen.findByText('Composer ready')).toBeInTheDocument();
+
+    act(() => {
+      for (const [listener] of vi.mocked(chrome.runtime.onMessage.addListener)
+        .mock.calls) {
+        (listener as (message: unknown) => void)({
+          payload: { content: '', type: 'SETTINGS', url: '' },
+          type: 'OPEN_MODE',
+        });
+      }
+    });
+
+    expect(await screen.findByText('Settings panel')).toBeInTheDocument();
+  });
+
+  it('opens the settings tab when a component in the panel asks for it', async () => {
+    auth.getAuthContext.mockResolvedValue({ organization: { id: 'org-1' } });
+    render(<SidePanel />);
+    expect(await screen.findByText('Composer ready')).toBeInTheDocument();
+
+    act(() => usePanelNavigationStore.getState().requestTab('settings'));
+
+    expect(await screen.findByText('Settings panel')).toBeInTheDocument();
+    expect(usePanelNavigationStore.getState().requestedTab).toBeNull();
   });
 
   it('uses ThreadList for the history tab', () => {

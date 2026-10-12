@@ -2,6 +2,10 @@ import type {
   TextActionMode,
   TextActionResult,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  ActionRecovery,
+  ActionRouting,
+} from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
 import { applyContentThemeToElement } from '~theme/content-theme';
 
 export interface TextActionPreviewOptions {
@@ -12,6 +16,18 @@ export interface TextActionPreviewOptions {
   /** Restores the composer text; reports why it could not. */
   onUndo: () => { error?: string; success: boolean };
   result: TextActionResult;
+  /** Present when a local provider wrote the result; shown as a notice. */
+  routing?: ActionRouting | null;
+}
+
+export interface TextActionFailureOptions {
+  message: string;
+  mode: TextActionMode;
+  /** Runs the same request again; shown when the failure has a retry. */
+  onRetry: () => void;
+  /** Opens the extension's provider settings. */
+  onOpenProviderSettings: () => void;
+  recovery: ActionRecovery;
 }
 
 const HOST_ID = 'genfeed-text-action-preview';
@@ -93,6 +109,11 @@ export function showTextActionPreview(options: TextActionPreviewOptions): {
   status.hidden = true;
   const actions = element('div', 'actions');
   card.append(title, suggestion);
+  if (options.routing) {
+    const notice = element('p', 'hint', options.routing.notice);
+    notice.dataset.routing = options.routing.reason;
+    card.appendChild(notice);
+  }
   if (options.result.voiceHint) {
     card.appendChild(element('p', 'hint', options.result.voiceHint));
   }
@@ -143,6 +164,65 @@ export function showTextActionPreview(options: TextActionPreviewOptions): {
   }
   render(false);
 
+  document.addEventListener('keydown', onKeyDown, true);
+  document.body.appendChild(host);
+  return { dismiss };
+}
+
+/**
+ * Shows why a text action failed and what can be done next. The draft in the
+ * composer is untouched; Retry reruns the same request.
+ */
+export function showTextActionFailure(options: TextActionFailureOptions): {
+  dismiss: () => void;
+} {
+  document.getElementById(HOST_ID)?.remove();
+  const host = element('div');
+  host.id = HOST_ID;
+  applyContentThemeToElement(host);
+  const root = host.attachShadow({ mode: 'open' });
+  root.appendChild(element('style', undefined, STYLES));
+
+  const card = element('div', 'card');
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-label', 'Genfeed text suggestion');
+  const message = element('p', 'error', options.message);
+  message.setAttribute('role', 'alert');
+  card.append(
+    element(
+      'h2',
+      undefined,
+      options.mode === 'proofread' ? 'Proofread' : 'Rewrite in my voice',
+    ),
+    message,
+  );
+  const actions = element('div', 'actions');
+  const dismiss = (): void => {
+    document.removeEventListener('keydown', onKeyDown, true);
+    host.remove();
+  };
+  function onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') dismiss();
+  }
+  actions.append(actionButton('Dismiss', dismiss));
+  if (options.recovery.canOpenProviderSettings) {
+    actions.append(
+      actionButton('Provider settings', options.onOpenProviderSettings),
+    );
+  }
+  if (options.recovery.canRetry) {
+    actions.append(
+      actionButton(
+        options.recovery.retryTarget === 'local'
+          ? 'Retry with local provider'
+          : 'Retry',
+        options.onRetry,
+        true,
+      ),
+    );
+  }
+  card.appendChild(actions);
+  root.appendChild(card);
   document.addEventListener('keydown', onKeyDown, true);
   document.body.appendChild(host);
   return { dismiss };

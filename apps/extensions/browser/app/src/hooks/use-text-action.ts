@@ -2,24 +2,44 @@ import type {
   TextActionMode,
   TextActionResult,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  ActionRecovery,
+  ActionRouting,
+} from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
 import { useCallback, useReducer, useRef } from 'react';
 import { usePlatformStore } from '~store/use-platform-store';
 import type { TextActionResponse } from '~types/extension';
 
 export type TextActionPhase = 'idle' | 'working' | 'preview' | 'applied';
 
+/** A request that failed in a way the user can retry: same key, same draft. */
+interface FailedTextRequest {
+  mode: TextActionMode;
+  original: string;
+  platform: string;
+  requestKey: string;
+  snapshotId: string;
+}
+
 export interface TextActionState {
   error: string | null;
+  failedRequest: FailedTextRequest | null;
   mode: TextActionMode | null;
   original: string;
   phase: TextActionPhase;
+  /** What the user can do next after a failure, when there is something to offer. */
+  recovery: ActionRecovery | null;
   result: TextActionResult | null;
+  /** Present when a local provider wrote the result. */
+  routing: ActionRouting | null;
   snapshotId: string | null;
 }
 
 export interface UseTextActionReturn extends TextActionState {
   apply: () => Promise<void>;
   dismiss: () => void;
+  /** Runs the failed request again with its original key, draft and capture. */
+  retry: () => Promise<void>;
   start: (mode: TextActionMode) => Promise<void>;
   undo: () => Promise<void>;
 }
@@ -30,19 +50,28 @@ type TextActionEvent =
       type: 'previewed';
       original: string;
       result: TextActionResult;
+      routing: ActionRouting | null;
       snapshotId: string;
     }
   | { type: 'applied' }
   | { type: 'undone' }
-  | { type: 'failed'; error: string }
+  | {
+      type: 'failed';
+      error: string;
+      failedRequest?: FailedTextRequest;
+      recovery?: ActionRecovery;
+    }
   | { type: 'dismissed' };
 
 const INITIAL_STATE: TextActionState = {
   error: null,
+  failedRequest: null,
   mode: null,
   original: '',
   phase: 'idle',
+  recovery: null,
   result: null,
+  routing: null,
   snapshotId: null,
 };
 
@@ -56,9 +85,13 @@ function reduce(
     case 'previewed':
       return {
         ...state,
+        error: null,
+        failedRequest: null,
         original: event.original,
         phase: 'preview',
+        recovery: null,
         result: event.result,
+        routing: event.routing,
         snapshotId: event.snapshotId,
       };
     case 'applied':
@@ -69,7 +102,13 @@ function reduce(
       // A failed apply or undo keeps the suggestion; a failed start has none.
       return state.result
         ? { ...state, error: event.error }
-        : { ...INITIAL_STATE, error: event.error };
+        : {
+            ...INITIAL_STATE,
+            error: event.error,
+            failedRequest: event.failedRequest ?? null,
+            mode: event.failedRequest?.mode ?? null,
+            recovery: event.recovery ?? null,
+          };
     case 'dismissed':
       return INITIAL_STATE;
   }
@@ -102,6 +141,40 @@ export function useTextAction(): UseTextActionReturn {
   const [state, dispatch] = useReducer(reduce, INITIAL_STATE);
   const isWorking = useRef(false);
 
+  /** Sends one request to the background and dispatches its outcome. Callers hold the working guard. */
+  const submit = useCallback(
+    async (request: FailedTextRequest, isRetry: boolean) => {
+      const response: TextActionResponse | undefined =
+        await chrome.runtime.sendMessage({
+          event: 'refineText',
+          mode: request.mode,
+          platform: request.platform,
+          requestKey: request.requestKey,
+          ...(isRetry ? { retry: true } : {}),
+          text: request.original,
+        });
+      if (!response || 'error' in response) {
+        const failure = response && 'error' in response ? response : null;
+        dispatch({
+          error: failure?.error ?? 'Could not edit the text.',
+          // The same draft and key are kept only when there is a next step to offer.
+          failedRequest: failure?.recovery?.canRetry ? request : undefined,
+          recovery: failure?.recovery,
+          type: 'failed',
+        });
+        return;
+      }
+      dispatch({
+        original: request.original,
+        result: response.result,
+        routing: response.routing ?? null,
+        snapshotId: request.snapshotId,
+        type: 'previewed',
+      });
+    },
+    [],
+  );
+
   const start = useCallback(
     async (mode: TextActionMode) => {
       if (isWorking.current) return;
@@ -121,27 +194,16 @@ export function useTextAction(): UseTextActionReturn {
             captured?.error ?? 'Open the composer you want to edit first.',
           );
         }
-        const response: TextActionResponse | undefined =
-          await chrome.runtime.sendMessage({
-            event: 'refineText',
+        await submit(
+          {
             mode,
+            original: captured.text,
             platform,
             requestKey: crypto.randomUUID(),
-            text: captured.text,
-          });
-        if (!response || 'error' in response) {
-          throw new Error(
-            response && 'error' in response
-              ? response.error
-              : 'Could not edit the text.',
-          );
-        }
-        dispatch({
-          original: captured.text,
-          result: response.result,
-          snapshotId: captured.snapshotId,
-          type: 'previewed',
-        });
+            snapshotId: captured.snapshotId,
+          },
+          false,
+        );
       } catch (error) {
         dispatch({
           error:
@@ -152,8 +214,29 @@ export function useTextAction(): UseTextActionReturn {
         isWorking.current = false;
       }
     },
-    [platform],
+    [platform, submit],
   );
+
+  const retry = useCallback(async () => {
+    const failedRequest = state.failedRequest;
+    if (!failedRequest || isWorking.current) return;
+    isWorking.current = true;
+    dispatch({ mode: failedRequest.mode, type: 'started' });
+    try {
+      await submit(failedRequest, true);
+    } catch (error) {
+      dispatch({
+        error:
+          error instanceof Error ? error.message : 'Could not edit the text.',
+        failedRequest,
+        // The same request stays retryable when the extension itself failed to answer.
+        recovery: state.recovery ?? undefined,
+        type: 'failed',
+      });
+    } finally {
+      isWorking.current = false;
+    }
+  }, [state.failedRequest, state.recovery, submit]);
 
   const apply = useCallback(async () => {
     if (!state.result || !state.snapshotId) return;
@@ -187,5 +270,5 @@ export function useTextAction(): UseTextActionReturn {
 
   const dismiss = useCallback(() => dispatch({ type: 'dismissed' }), []);
 
-  return { ...state, apply, dismiss, start, undo };
+  return { ...state, apply, dismiss, retry, start, undo };
 }
