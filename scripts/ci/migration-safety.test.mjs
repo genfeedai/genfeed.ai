@@ -40,14 +40,14 @@ test('recognizes PostgreSQL contract syntax, qualified names, multiple actions, 
 test('treats table and column renames as contracts that retire the old name', () => {
   const { operations } = destructiveOperations(`
     ALTER TABLE "batches" RENAME TO "turbo_runs";
-    ALTER TABLE "posts" RENAME COLUMN "reviewBatchId" TO "reviewTurboRunId";
+    ALTER TABLE "posts" RENAME COLUMN "legacyReviewId" TO "currentReviewId";
     ALTER TABLE "posts" RENAME "legacy" TO "current";
     ALTER TABLE "posts" RENAME CONSTRAINT "a" TO "b";
     ALTER INDEX "x" RENAME TO "y";
   `);
   assert.deepEqual(operations, [
     { type: 'rename-table', table: 'batches' },
-    { type: 'rename-column', table: 'posts', column: 'reviewBatchId' },
+    { type: 'rename-column', table: 'posts', column: 'legacyReviewId' },
     { type: 'rename-column', table: 'posts', column: 'legacy' },
   ]);
   assert.throws(
