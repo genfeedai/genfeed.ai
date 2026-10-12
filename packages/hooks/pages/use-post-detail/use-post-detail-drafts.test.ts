@@ -123,6 +123,25 @@ describe('usePostDetailDrafts', () => {
       expect(result.current.isScheduleDirty).toBe(false);
     });
 
+    it('resyncs the selection when the saved slide order changes', () => {
+      const orderedPost = (ids: string[]) =>
+        ({
+          ...(loadedPost as object),
+          ingredients: ids.map((id) => ({ id })),
+        }) as never;
+      const { result, rerender } = renderHook(
+        ({ post }) => usePostDetailDrafts({ ...baseProps, post }),
+        { initialProps: { post: orderedPost(['ing-1', 'ing-2']) } },
+      );
+
+      rerender({ post: orderedPost(['ing-2', 'ing-1']) });
+
+      expect(result.current.selectedIngredients).toEqual([
+        { id: 'ing-2' },
+        { id: 'ing-1' },
+      ]);
+    });
+
     it('keeps an unscheduled post clean until a date is picked', () => {
       const { result } = renderLoaded({
         post: { ...(loadedPost as object), scheduledDate: undefined } as never,

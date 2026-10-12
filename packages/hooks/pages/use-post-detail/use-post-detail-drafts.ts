@@ -256,12 +256,13 @@ export function usePostDetailDrafts({
 
     const ingredients = post.ingredients || [];
     const current = selectedIngredientsRef.current;
-    const currentIngredientIds = new Set(current.map((ing) => ing.id));
-    const newIngredientIds = new Set(ingredients.map((ing) => ing.id));
 
+    // Slide order is part of the selection: a pure reorder must resync too.
     if (
       ingredients.length !== current.length ||
-      ![...currentIngredientIds].every((id) => newIngredientIds.has(id))
+      ingredients.some(
+        (ingredient, index) => ingredient.id !== current[index]?.id,
+      )
     ) {
       setSelectedIngredients(ingredients);
     }

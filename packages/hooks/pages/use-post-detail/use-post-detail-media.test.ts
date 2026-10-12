@@ -199,6 +199,34 @@ describe('usePostDetailMedia', () => {
     expect(mockSetIsSavingIngredients).toHaveBeenLastCalledWith(false);
   });
 
+  it('saves the slides in the order the user arranged them', async () => {
+    const { result } = renderHook(() => usePostDetailMedia(baseProps));
+
+    act(() => {
+      result.current.handleSelectMedia('post-1', []);
+    });
+
+    const options = mockOpenGallery.mock.calls[0][0] as GalleryOptions;
+
+    await act(async () => {
+      await options.onSelect([
+        { id: 'ing-3' },
+        { id: 'ing-1' },
+        { id: 'ing-3' },
+        { id: 'ing-2' },
+      ]);
+    });
+
+    expect(mockServicePatch).toHaveBeenCalledWith('post-1', {
+      ingredients: ['ing-3', 'ing-1', 'ing-2'],
+    });
+    expect(mockSetSelectedIngredients).toHaveBeenCalledWith([
+      { id: 'ing-3' },
+      { id: 'ing-1' },
+      { id: 'ing-2' },
+    ]);
+  });
+
   it('routes child selections through handleUpdateChild', async () => {
     const { result } = renderHook(() => usePostDetailMedia(baseProps));
 
