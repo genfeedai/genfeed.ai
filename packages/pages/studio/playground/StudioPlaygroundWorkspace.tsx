@@ -16,6 +16,7 @@ import {
   ButtonVariant,
   ComponentSize,
   IngredientCategory,
+  RouterPriority,
   SkillSurface,
   UploadStatus,
   ViewType,
@@ -781,8 +782,9 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     updateSettings,
   ]);
 
-  // Simple mode (Advanced off) hides model choice, so a concrete pick saved
-  // earlier must not keep applying unseen. An Agent handoff's pick is kept.
+  // Auto (Advanced off) hides model choice and always routes for top quality,
+  // so a concrete pick or priority saved earlier must not keep applying
+  // unseen. An Agent handoff's pick is kept.
   const { isAdvancedMode, isLoaded: isAdvancedModeLoaded } =
     useAdvancedModePreference();
   useEffect(() => {
@@ -791,17 +793,22 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       isAdvancedMode ||
       !capabilities.hasModelSelection ||
       handoffPayload ||
-      isAutoStudioModelKey(settings.modelKey)
+      (isAutoStudioModelKey(settings.modelKey) &&
+        settings.prioritize === RouterPriority.QUALITY)
     ) {
       return;
     }
-    updateSettings({ modelKey: AUTO_MODEL_OPTION_VALUE });
+    updateSettings({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
+    });
   }, [
     capabilities.hasModelSelection,
     handoffPayload,
     isAdvancedMode,
     isAdvancedModeLoaded,
     settings.modelKey,
+    settings.prioritize,
     updateSettings,
   ]);
 

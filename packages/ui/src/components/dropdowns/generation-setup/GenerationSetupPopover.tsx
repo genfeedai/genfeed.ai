@@ -7,6 +7,7 @@ import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupPopoverProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import GenerationSetupAutoTypePicker from '@ui/dropdowns/generation-setup/GenerationSetupAutoTypePicker';
 import GenerationSetupCustomizePanel from '@ui/dropdowns/generation-setup/GenerationSetupCustomizePanel';
 import GenerationSetupFrontDoor from '@ui/dropdowns/generation-setup/GenerationSetupFrontDoor';
 import GenerationSetupTrigger from '@ui/dropdowns/generation-setup/GenerationSetupTrigger';
@@ -71,6 +72,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   onSavePreset,
   onSetField,
   onTypeChange,
+  outputControls,
   presets,
   reasons,
   scopeKey: _scopeKey,
@@ -87,6 +89,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   );
   const [customizeSection, setCustomizeSection] =
     useState<GenerationSetupCustomizeSectionId>();
+  const isAutoMode = advancedMode?.isEnabled === false;
 
   function handleOpenChange(open: boolean): void {
     if (isDisabled) {
@@ -110,7 +113,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   function renderCustomizeSection(section: GenerationSetupCustomizeSectionId) {
     return (
       <GenerationSetupCustomizePanel
-        isAutoPriorityOnly={advancedMode?.isEnabled === false}
+        outputControls={outputControls}
         typeOptions={typeOptions}
         onTypeChange={onTypeChange}
         inputControls={inputControls}
@@ -207,7 +210,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                     <Button
                       key={String(isAdvanced)}
                       aria-pressed={advancedMode.isEnabled === isAdvanced}
-                      className="h-8 flex-1 text-xs"
+                      className="h-8 flex-1 justify-center text-xs"
                       isDisabled={isDisabled}
                       onClick={() => advancedMode.onChange(isAdvanced)}
                       size={ButtonSize.SM}
@@ -226,7 +229,19 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
               </div>
             ) : null}
 
-            {(!customizeSection || hasDesktopSubmenus) && imageEditing ? (
+            {isAutoMode ? (
+              <GenerationSetupAutoTypePicker
+                imageEditing={imageEditing}
+                isDisabled={isDisabled}
+                onTypeChange={onTypeChange}
+                setup={setup}
+                typeOptions={typeOptions}
+              />
+            ) : null}
+
+            {!isAutoMode &&
+            (!customizeSection || hasDesktopSubmenus) &&
+            imageEditing ? (
               <div className="shrink-0 border-b border-border px-3 py-2">
                 <Switch
                   aria-label={imageEditing.label}
@@ -238,14 +253,13 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
               </div>
             ) : null}
 
-            {!customizeSection || hasDesktopSubmenus ? (
+            {!isAutoMode && (!customizeSection || hasDesktopSubmenus) ? (
               <GenerationSetupFrontDoor
                 activeSection={customizeSection}
                 onCloseSection={() => setCustomizeSection(undefined)}
                 renderSection={
                   hasDesktopSubmenus ? renderCustomizeSection : undefined
                 }
-                isAutoPriorityOnly={advancedMode?.isEnabled === false}
                 showPresets={showPresets}
                 showEnhancementSettings={showEnhancementSettings}
                 capabilities={capabilities}
@@ -263,7 +277,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
               />
             ) : null}
 
-            {customizeSection && !hasDesktopSubmenus
+            {!isAutoMode && customizeSection && !hasDesktopSubmenus
               ? renderCustomizeSection(customizeSection)
               : null}
           </div>

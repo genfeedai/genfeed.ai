@@ -3,7 +3,11 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  RouterPriority,
+} from '@genfeedai/contracts';
 import {
   IMAGE_EDIT_CONTRACT_VERSION,
   LIBRARY_ASSETS_REFRESH_EVENT,
@@ -2171,6 +2175,33 @@ describe('StudioPlaygroundWorkspace', () => {
 
     expect(mocks.updateSettings).toHaveBeenCalledWith({
       modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
+    });
+  });
+
+  it('routes Auto for top quality in simple mode', async () => {
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: {
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        prioritize: RouterPriority.COST,
+      },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
     });
   });
 
@@ -2194,9 +2225,9 @@ describe('StudioPlaygroundWorkspace', () => {
       render(<StudioPlaygroundWorkspace />);
       await act(async () => {});
 
-      expect(mocks.updateSettings).not.toHaveBeenCalledWith({
-        modelKey: AUTO_MODEL_OPTION_VALUE,
-      });
+      expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+        expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+      );
     },
   );
 
@@ -2230,9 +2261,9 @@ describe('StudioPlaygroundWorkspace', () => {
     render(<StudioPlaygroundWorkspace />);
     await act(async () => {});
 
-    expect(mocks.updateSettings).not.toHaveBeenCalledWith({
-      modelKey: AUTO_MODEL_OPTION_VALUE,
-    });
+    expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+    );
   });
 
   it('does not request references after unmount while acquiring the service', async () => {

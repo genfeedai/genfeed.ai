@@ -17,6 +17,7 @@ import { isCloudDeployment } from '@genfeedai/config';
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  hasEndFrame,
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   MODEL_KEYS,
   SELF_HOSTED_MODELS,
@@ -165,6 +166,37 @@ describe('RouterService', () => {
       await expect(
         service.selectModel({ ...options, eligibleModelKeys: [] }),
       ).rejects.toThrow(ForbiddenException);
+    });
+    it('routes an attached end frame only to models that accept one', async () => {
+      const videoKeys = Object.values(MODEL_KEYS) as string[];
+      const withEndFrame = videoKeys.find((key) => hasEndFrame(key));
+      const withoutEndFrame = MODEL_KEYS.REPLICATE_GOOGLE_VEO_2;
+      expect(withEndFrame).toBeDefined();
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          category: ModelCategory.VIDEO,
+          key: withoutEndFrame,
+          qualityTier: 'ultra',
+        }),
+        createMockModel({
+          category: ModelCategory.VIDEO,
+          key: withEndFrame,
+          qualityTier: 'basic',
+        }),
+      ]);
+      const options: ModelSelectionOptions = {
+        category: ModelCategory.VIDEO,
+        prioritize: 'quality',
+        prompt: 'A slow dolly shot',
+      };
+
+      expect((await service.selectModel(options)).selectedModel).toBe(
+        withoutEndFrame,
+      );
+      expect(
+        (await service.selectModel({ ...options, requiresEndFrame: true }))
+          .selectedModel,
+      ).toBe(withEndFrame);
     });
     describe('admission quote filter', () => {
       it('skips an Auto candidate whose tariff admission would refuse', async () => {
