@@ -35,6 +35,7 @@ import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/out
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
+import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
@@ -124,6 +125,7 @@ import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentStrategyScheduleAuthorityService } from '@api/services/agent-orchestrator/tools/agent-strategy-schedule-authority.service';
+import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -230,6 +232,7 @@ import { Module } from '@nestjs/common';
     OrganizationsCoreModule,
     OutliersCoreModule,
     PersonasCoreModule,
+    PostGenerationModule,
     PostGroupsModule,
     PostsModule,
     QueuesModule,
@@ -289,6 +292,7 @@ import { Module } from '@nestjs/common';
     AgentDashboardToolHandler,
     AgentInstagramInspirationToolHandler,
     AgentXActionsToolHandler,
+    AgentThreadToolHandler,
     AgentMemoryGoalsToolHandler,
     AgentProactiveToolHandler,
     AgentPublishToolHandler,

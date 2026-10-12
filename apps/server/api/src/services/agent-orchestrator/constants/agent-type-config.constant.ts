@@ -145,6 +145,8 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       'list_x_account_activity',
       'draft_x_quote',
       'draft_x_repost',
+      'draft_thread',
+      'add_thread_posts',
       'ai_action',
       ...PREPARE_MEDIA_TOOLS,
       'create_workflow',
@@ -166,6 +168,7 @@ X-specific guidelines:
 - Keep posts under 280 characters unless creating a thread
 - Use 1-3 relevant hashtags max — no hashtag stuffing
 - For threads: hook in the first post, value in the middle, CTA at the end
+- To turn a saved X post into a thread, call draft_thread first, show the proposed replies, and call add_thread_posts only with the replies the user accepts
 - Prioritize engagement rate over raw impressions`,
   },
 
@@ -323,6 +326,7 @@ Writing guidelines:
       'generate_content',
       'generate_turbo_content',
       'create_post',
+      'add_first_comment',
       'schedule_post',
       'repurpose_post',
       'review_turbo_items',
@@ -398,6 +402,7 @@ Ad script guidelines:
       'generate_content',
       'generate_turbo_content',
       'create_post',
+      'add_first_comment',
       'schedule_post',
       'repurpose_post',
       'review_turbo_items',
@@ -469,6 +474,7 @@ CTA guidelines:
       'generate_content',
       'generate_turbo_content',
       'create_post',
+      'add_first_comment',
       'schedule_post',
       'repurpose_post',
       'ai_action',

@@ -39,6 +39,13 @@ because they create in-product review drafts rather than a headless publish.
   through a post id the agent already holds. MCP's native entry is
   `update_scheduled_release` with `scope: 'target'`, which carries the full target contract.
 
+- **`draft_thread`, `add_thread_posts`, `add_first_comment`** (#6809) — the X thread and first-comment
+  flow mirrors the post composer's review-before-save step. `draft_thread` proposes replies and saves
+  nothing; the two save tools are approval-required, so the in-app approval card is the review. MCP's
+  `create_post` is draft-only and has no equivalent card, so these stay agent-only. `add_first_comment`
+  is a companion tool rather than a `create_post` parameter: `create_post` already carries the publish,
+  proactive and MCP draft-only branches, and a first comment is a plain child draft.
+
 ## MCP only, by design
 
 The 14 Meta and Google ads reporting tools (`list_meta_*`, `get_meta_*`, `compare_meta_*`,
