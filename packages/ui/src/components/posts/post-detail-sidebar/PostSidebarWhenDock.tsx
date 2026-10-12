@@ -59,7 +59,7 @@ export default function PostSidebarWhenDock({
               <ClientDateTime
                 value={post.publicationDate}
                 format={(date) =>
-                  date.toLocaleString(undefined, {
+                  date.toLocaleString('en-US', {
                     timeZone: browserTimezone,
                   })
                 }

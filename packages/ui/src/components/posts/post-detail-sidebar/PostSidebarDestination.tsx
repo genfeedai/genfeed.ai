@@ -85,7 +85,7 @@ export default function PostSidebarDestination({
               : translate('scheduledPrefix')
           }
           format={(date) =>
-            date.toLocaleString(undefined, { timeZone: browserTimezone })
+            date.toLocaleString('en-US', { timeZone: browserTimezone })
           }
         />
       ),

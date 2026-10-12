@@ -103,7 +103,7 @@ export default function PostSidebarLineage({
                 <ClientDateTime
                   value={reviewSummary.reviewedAt}
                   format={(date) =>
-                    date.toLocaleString(undefined, {
+                    date.toLocaleString('en-US', {
                       timeZone: browserTimezone,
                     })
                   }
@@ -135,7 +135,7 @@ export default function PostSidebarLineage({
                     <ClientDateTime
                       value={event.reviewedAt}
                       format={(date) =>
-                        date.toLocaleString(undefined, {
+                        date.toLocaleString('en-US', {
                           timeZone: browserTimezone,
                         })
                       }
