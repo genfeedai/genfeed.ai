@@ -18,6 +18,10 @@ describe('breakout media format capability', () => {
     twitter: ['image', 'carousel', 'video'],
     linkedin: ['image', 'video'],
     beehiiv: [],
+    // Long-form blogs carry one featured image; Medium carries images inline only.
+    ghost: ['image'],
+    wordpress: ['image'],
+    medium: [],
   };
 
   it.each(
@@ -47,7 +51,6 @@ describe('breakout media format capability', () => {
     'reddit',
     'mastodon',
     'threads',
-    'medium',
     'not-a-platform',
   ])(
     'holds %s as a platform the scheduler does not publish for',

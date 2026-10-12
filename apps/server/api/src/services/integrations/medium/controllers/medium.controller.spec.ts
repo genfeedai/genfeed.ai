@@ -51,7 +51,6 @@ describe('MediumController', () => {
     exchangeAuthCodeForAccessToken: vi.fn(),
     generateAuthUrl: vi.fn(),
     getUserProfile: vi.fn(),
-    publishArticle: vi.fn(),
   };
   const loggerService = {
     error: vi.fn(),
@@ -213,32 +212,6 @@ describe('MediumController', () => {
           state: 'opaque-oauth-state',
         }),
       ).rejects.toThrow(HttpException);
-    });
-  });
-
-  describe('publishArticle', () => {
-    it('passes authenticated organization ownership to the service', async () => {
-      mediumService.publishArticle.mockResolvedValue({ id: 'medium-post-id' });
-
-      const result = await controller.publishArticle(
-        user,
-        'article-id',
-        brandId,
-        'draft',
-        undefined,
-      );
-
-      expect(mediumService.publishArticle).toHaveBeenCalledWith(
-        'article-id',
-        organizationId,
-        brandId,
-        'draft',
-        undefined,
-      );
-      expect(result).toEqual({
-        data: { id: 'medium-post-id' },
-        success: true,
-      });
     });
   });
 });

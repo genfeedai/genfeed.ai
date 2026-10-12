@@ -60,49 +60,6 @@ describe('Background Script Handlers', () => {
         success: false,
       });
     });
-
-    it('should call reply API with correct parameters', async () => {
-      mockAuthService.getToken.mockResolvedValue('test-token');
-
-      (global.fetch as MockedFunction<any>).mockResolvedValueOnce({
-        json: () => Promise.resolve({ reply: 'Generated reply text' }),
-        ok: true,
-      } as Response);
-
-      const expectedBody = {
-        data: {
-          attributes: {
-            length: 'medium',
-            tone: 'friendly',
-            tweetAuthor: '@testuser',
-            tweetContent: 'Test tweet',
-            tweetUrl: 'https://twitter.com/test/status/123',
-          },
-          type: 'tweet-reply',
-        },
-      };
-
-      // Simulate API call
-      const response = await fetch('https://api.genfeed.ai/prompts/tweet', {
-        body: JSON.stringify(expectedBody),
-        headers: {
-          Authorization: 'Bearer test-token',
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/prompts/tweet',
-        expect.objectContaining({
-          body: JSON.stringify(expectedBody),
-          method: 'POST',
-        }),
-      );
-      expect(data.reply).toBe('Generated reply text');
-    });
   });
 
   describe('generateReplyWithVideo message handler', () => {
@@ -180,36 +137,6 @@ describe('Background Script Handlers', () => {
       if (!response.ok) {
         expect(response.ok).toBe(false);
       }
-    });
-  });
-
-  describe('savePost message handler', () => {
-    it('should call save API with post data', async () => {
-      const { authService } = await import('~services/auth.service');
-      mockAuthService.makeAuthenticatedRequest.mockResolvedValue({
-        json: () => Promise.resolve({ id: 'saved-123' }),
-        ok: true,
-      } as Response);
-
-      const result = await authService.makeAuthenticatedRequest(
-        'https://api.genfeed.ai/posts/save',
-        {
-          body: JSON.stringify({
-            platform: 'twitter',
-            postId: '123',
-            url: 'https://twitter.com/test/status/123',
-          }),
-          method: 'POST',
-        },
-      );
-
-      expect(authService.makeAuthenticatedRequest).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/save',
-        expect.objectContaining({
-          method: 'POST',
-        }),
-      );
-      expect(result.ok).toBe(true);
     });
   });
 

@@ -190,7 +190,8 @@ export class BrandRemixSourceMediaService {
     const existingAssetId = input.source.sourceMedia?.existingAssetIds[0];
     if (
       !existingAssetId ||
-      input.source.snapshot.selector.kind !== 'owned_post'
+      (input.source.snapshot.selector.kind !== 'owned_post' &&
+        input.source.snapshot.selector.kind !== 'imported_source')
     ) {
       return { status: 'unavailable', reason: 'invalid_asset' };
     }

@@ -17,6 +17,7 @@ export class Newsletter {
   public approvedAt?: string;
   public publishedAt?: string;
   public scheduledFor?: string;
+  public externalUrl?: string | null;
   public createdAt!: string;
   public updatedAt!: string;
 

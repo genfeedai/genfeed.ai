@@ -97,6 +97,54 @@ describe('NewslettersService', () => {
     expect(result.status).toBe('published');
   });
 
+  it('delivers an issue to Beehiiv and reads its delivery targets', async () => {
+    mockInstance.post.mockResolvedValue({
+      data: {
+        data: {
+          attributes: { status: 'scheduled', title: 'Issue 1' },
+          id: 'release-1',
+          type: 'release-group',
+        },
+      },
+    });
+    mockInstance.get.mockResolvedValue({
+      data: {
+        data: [
+          {
+            attributes: {
+              executionState: 'published',
+              platform: 'beehiiv',
+              url: 'https://news.example.com/p/issue-1',
+            },
+            id: 'target-1',
+            type: 'channel-target',
+          },
+        ],
+      },
+    });
+
+    const release = await service.deliver('newsletter-1', {
+      credentialId: 'credential-1',
+      mode: 'draft',
+    });
+    const targets = await service.findDeliveries('newsletter-1');
+
+    expect(mockInstance.post).toHaveBeenCalledWith('newsletter-1/deliveries', {
+      credentialId: 'credential-1',
+      mode: 'draft',
+    });
+    expect(release.id).toBe('release-1');
+    expect(mockInstance.get).toHaveBeenCalledWith('newsletter-1/deliveries', {
+      signal: undefined,
+    });
+    expect(targets).toEqual([
+      expect.objectContaining({
+        id: 'target-1',
+        url: 'https://news.example.com/p/issue-1',
+      }),
+    ]);
+  });
+
   it('loads the expanded context payload for a newsletter', async () => {
     mockInstance.get.mockResolvedValue({
       data: {

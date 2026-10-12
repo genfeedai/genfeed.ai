@@ -2,19 +2,21 @@ import type { CuratedActionName } from '@genfeedai/actions';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
   AgentToolResult,
+  ReplyVariantsResult,
   TextActionResult,
 } from '@genfeedai/contracts/interfaces';
 import { apiEndpoint } from '~services/environment.service';
 import { HTTPBaseService } from '~services/http-base.service';
 import { assertWorkspace, requireWorkspace } from '~services/workspace.service';
-import type { TextActionRequest } from '~types/extension';
+import type { ReplyVariantsRequest, TextActionRequest } from '~types/extension';
 
 export type ExtensionToolAction =
   | 'analytics'
   | 'generate'
   | 'image'
   | 'post'
-  | 'refine';
+  | 'refine'
+  | 'replies';
 
 const TOOL_NAME_BY_ACTION: Record<ExtensionToolAction, CuratedActionName> = {
   analytics: 'get_analytics',
@@ -22,7 +24,24 @@ const TOOL_NAME_BY_ACTION: Record<ExtensionToolAction, CuratedActionName> = {
   image: 'generate',
   post: 'create_post',
   refine: 'refine_text',
+  replies: 'generate_reply_variants',
 };
+
+function readReplyVariantsResult(data: unknown): ReplyVariantsResult {
+  const record =
+    data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+  if (
+    !Array.isArray(record.variants) ||
+    record.variants.length === 0 ||
+    !record.variants.every(
+      (variant) => typeof variant === 'string' && variant.trim().length > 0,
+    ) ||
+    typeof record.hasBrandVoice !== 'boolean'
+  ) {
+    throw new Error('No replies returned from the action.');
+  }
+  return record as unknown as ReplyVariantsResult;
+}
 
 function readTextActionResult(data: unknown): TextActionResult {
   const record =
@@ -79,6 +98,28 @@ export class AgentToolsService extends HTTPBaseService {
     });
     assertWorkspace(workspace);
     return readTextActionResult(result.data);
+  }
+
+  /**
+   * Drafts reply options for a post. The server resolves the brand authority
+   * and the voice, and owns what each tone asks of the model; this sends the
+   * source post, platform, tone and the request key that makes a repeat free.
+   */
+  async generateReplyVariants(
+    request: ReplyVariantsRequest,
+  ): Promise<ReplyVariantsResult> {
+    const workspace = await requireWorkspace();
+    const result = await this.execute('replies', {
+      brandId: workspace.brandId,
+      platform: request.platform,
+      postAuthor: request.postAuthor || undefined,
+      postContent: request.postContent,
+      requestKey: request.requestKey,
+      tone: request.tone,
+      variants: request.variants,
+    });
+    assertWorkspace(workspace);
+    return readReplyVariantsResult(result.data);
   }
 
   async saveDraft(

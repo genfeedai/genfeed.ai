@@ -47,11 +47,24 @@ import {
   createAIReplyButton,
   createButtonContainer,
   createGenFeedDropdown,
-  createSaveButton,
   icons,
   injectGlobalStyles,
   watchContentTheme,
 } from '~platforms/ui-helpers';
+
+function showPostOnPage(): void {
+  document.body.innerHTML = `
+    <article>
+      <div data-testid="User-Name">Ada Lovelace</div>
+      <div data-testid="tweetText">We just launched our public API.</div>
+    </article>`;
+  vi.mocked(findElement).mockImplementation(((key: string) =>
+    document.querySelector(
+      key === 'tweetText'
+        ? '[data-testid="tweetText"]'
+        : '[data-testid="User-Name"]',
+    )) as never);
+}
 
 describe('UI Helpers', () => {
   beforeEach(() => {
@@ -274,52 +287,6 @@ describe('UI Helpers', () => {
     });
   });
 
-  describe('createSaveButton', () => {
-    it('should create a button element', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button).toBeInstanceOf(HTMLButtonElement);
-      expect(button.className).toContain('genfeed-btn');
-      expect(button.className).toContain('genfeed-save-btn');
-    });
-
-    it('should set data attributes', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button.getAttribute('data-post-id')).toBe('123');
-      expect(button.getAttribute('data-platform')).toBe('twitter');
-    });
-
-    it('should have bookmark icon', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button.innerHTML).toContain('svg');
-      expect(button.innerHTML).toContain(icons.bookmark);
-    });
-
-    it('should have title tooltip', () => {
-      const button = createSaveButton(
-        '123',
-        'twitter',
-        'https://twitter.com/test/status/123',
-      );
-
-      expect(button.title).toBe('Import post');
-    });
-  });
-
   describe('createAIReplyButton', () => {
     it('should create a button element', () => {
       const button = createAIReplyButton(
@@ -362,6 +329,37 @@ describe('UI Helpers', () => {
       );
 
       expect(button.title).toBe('Generate AI Reply');
+    });
+
+    it('sends the real post and author of the page, not empty strings', async () => {
+      showPostOnPage();
+      const sendMessage = vi
+        .spyOn(chrome.runtime, 'sendMessage')
+        .mockResolvedValue({
+          error: 'Not authenticated',
+          success: false,
+        } as never);
+      const button = createAIReplyButton(
+        '123',
+        'twitter',
+        '[data-testid="tweetTextarea_0"]',
+      );
+      document.body.appendChild(button);
+
+      button.click();
+
+      await vi.waitFor(() =>
+        expect(sendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            event: 'generateReply',
+            platform: 'twitter',
+            postAuthor: 'Ada Lovelace',
+            postContent: 'We just launched our public API.',
+            postId: '123',
+          }),
+        ),
+      );
+      await vi.waitFor(() => expect(button.title).toBe('Not authenticated'));
     });
 
     it('tells the background which text Genfeed wrote into the composer', async () => {
@@ -418,6 +416,48 @@ describe('UI Helpers', () => {
             }),
           }),
         ),
+      );
+    });
+
+    it('hands the reply composer the post author along with the post', async () => {
+      showPostOnPage();
+      vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
+        success: true,
+      } as never);
+      const dropdown = createGenFeedDropdown('123', 'twitter', {
+        postUrl: 'https://x.com/author/status/123',
+      });
+      const item = [...dropdown.querySelectorAll('button')].find((button) =>
+        button.textContent?.includes('Generate reply'),
+      );
+
+      item?.click();
+
+      await vi.waitFor(() =>
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+          event: 'SHORTCUT_REPLY',
+          payload: {
+            author: 'Ada Lovelace',
+            content: 'We just launched our public API.',
+            platform: 'twitter',
+            url: 'https://x.com/author/status/123',
+          },
+        }),
+      );
+    });
+
+    it('offers Proofread and Rewrite in my voice beside the reply actions', () => {
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      const labels = [...dropdown.querySelectorAll('.genfeed-menu-item')].map(
+        (item) => item.textContent?.trim(),
+      );
+
+      expect(labels).toEqual(
+        expect.arrayContaining([
+          'Proofread',
+          'Rewrite in my voice',
+          'Generate reply',
+        ]),
       );
     });
 

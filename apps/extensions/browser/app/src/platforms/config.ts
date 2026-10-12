@@ -15,6 +15,8 @@ export interface PlatformConfig {
     actionsContainer: string;
     // Selector for the reply/comment textarea
     replyTextarea: string;
+    // Selector of the control that opens a collapsed reply box, when there is one
+    replyActivator?: string;
     // Selector for the post/submit button
     submitButton?: string;
     // Selector to identify individual posts
@@ -234,6 +236,7 @@ export const platforms: Record<string, PlatformConfig> = {
         'div[slot="comment-actions"], div[data-testid="post-container"] button',
       postContainer: 'shreddit-post, div[data-testid="post-container"]',
       postIdentifier: 'shreddit-post, div.thing',
+      replyActivator: 'comment-composer-host faceplate-textarea-input',
       replyTextarea: 'div[contenteditable="true"], textarea[name="comment"]',
       submitButton: 'button[type="submit"]',
     },
@@ -348,6 +351,7 @@ export const platforms: Record<string, PlatformConfig> = {
       actionsContainer: '#toolbar',
       postContainer: 'ytd-comment-thread-renderer',
       postIdentifier: 'ytd-comment-thread-renderer, ytd-comment-renderer',
+      replyActivator: '#simplebox-placeholder',
       replyTextarea: '#contenteditable-root',
       submitButton: '#submit-button button',
     },
@@ -392,6 +396,22 @@ export function getCurrentPlatform(): PlatformConfig | null {
     }
   }
   return null;
+}
+
+// The platform a page URL belongs to, or null for a site Genfeed does not read
+export function getPlatformForUrl(url: string): Platform | null {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return null;
+  }
+  const match = Object.values(platforms).find((platform) =>
+    platform.hostnames.some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`),
+    ),
+  );
+  return match?.platform ?? null;
 }
 
 // Get platform name for API calls

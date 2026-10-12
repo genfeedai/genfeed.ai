@@ -1,11 +1,11 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { Button } from '@ui/primitives/button';
 import {
   BookOpen,
   History,
@@ -25,7 +25,7 @@ export type ActiveTab =
   | 'create'
   | 'remix'
   | 'reply'
-  | 'idea'
+  | 'imported'
   | 'knowledge'
   | 'settings';
 
@@ -38,7 +38,7 @@ const NAV_ITEMS = [
   { id: 'chat', label: 'Create', icon: MessageSquare },
   { id: 'reply', label: 'Reply', icon: Reply },
   { id: 'remix', label: 'Remix', icon: Shuffle },
-  { id: 'idea', label: 'Imported', icon: Import },
+  { id: 'imported', label: 'Imported', icon: Import },
   { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
   { id: 'history', label: 'History', icon: History },
   { id: 'create', label: 'Tools', icon: Plus },

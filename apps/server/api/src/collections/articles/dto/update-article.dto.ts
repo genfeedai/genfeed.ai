@@ -6,6 +6,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUrl,
   MaxLength,
 } from 'class-validator';
 
@@ -35,6 +36,18 @@ export class UpdateArticleDto extends PartialType(CreateArticleDto) {
   @IsString()
   @MaxLength(2000)
   generationPrompt?: string;
+
+  @ApiProperty({
+    description:
+      'Live URL of the article when it was published outside Genfeed. Send null to clear it.',
+    maxLength: 2048,
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
+  @MaxLength(2048)
+  externalUrl?: string | null;
 
   @ApiProperty({
     description:

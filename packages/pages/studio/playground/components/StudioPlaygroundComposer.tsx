@@ -250,6 +250,8 @@ export default function StudioPlaygroundComposer({
   const { presets: presetCatalog } = usePromptBarContext();
   const systemPresets = resolveStudioSystemPresets(presetCatalog, type);
   const isModelChoiceVisible = capabilities.hasModelSelection && isAdvancedMode;
+  // Auto: the user picks only the output type; routing picks the rest.
+  const isAutoView = capabilities.hasModelSelection && !isAdvancedMode;
   const handleAdvancedModeChange = useCallback(
     (next: boolean) => {
       void setAdvancedMode(next);
@@ -587,7 +589,7 @@ export default function StudioPlaygroundComposer({
     capabilities.hasOutputs ? `x${costPromptData.outputs ?? 1}` : undefined,
   ].filter(Boolean);
   const setupLabel =
-    setupParts.length > 0
+    !isAutoView && setupParts.length > 0
       ? setupParts.join(' · ')
       : typeOptions.find((option) => option.value === type)?.label;
 
@@ -633,8 +635,9 @@ export default function StudioPlaygroundComposer({
       inputControls.videoRules?.referenceMode === 'start-end')
   ) {
     addReferenceSource('startFrame', translateAssets('startFrame'), 'image/*');
+    // Auto routes to a model that accepts the end frame when one is attached.
     if (
-      !isAutoMode &&
+      isAutoMode ||
       (inputControls?.mediaKind === 'video'
         ? inputControls.videoRules?.referenceMode === 'start-end'
         : hasEndFrame(settings.modelKey))
@@ -653,6 +656,108 @@ export default function StudioPlaygroundComposer({
       );
     }
   }
+
+  // Model-specific controls live in the setup popover's Output section.
+  const outputControls =
+    inputControls?.mediaKind === 'image' ||
+    (inputControls?.mediaKind === 'video' && settings.crunControls) ? (
+      <>
+        {inputControls?.mediaKind === 'image' ? (
+          <PromptBarCrunControls
+            controls={inputControls}
+            value={settings.crunControls?.outputFormat}
+            isDisabled={isGenerating}
+            onChange={(outputFormat) =>
+              onSettingsChange({
+                crunControls: {
+                  modelKey: settings.modelKey,
+                  contractVersion: inputControls.version,
+                  outputFormat,
+                },
+              })
+            }
+          />
+        ) : null}
+        {inputControls?.mediaKind === 'video' && settings.crunControls ? (
+          <>
+            {(crunReferenceCount ?? 0) >
+              (inputControls.videoRules?.referenceMode === 'start-end'
+                ? 1
+                : 0) && (
+              <Label role="alert">
+                {translate('crun.videoReferencesUnsupported')}
+              </Label>
+            )}
+            <PromptBarCrunVideoControls
+              controls={inputControls}
+              value={{
+                modelKey: settings.crunControls.modelKey,
+                contractVersion: settings.crunControls.contractVersion,
+                prompt,
+                duration: settings.duration,
+                aspectRatio: settings.aspectRatio || undefined,
+                resolution: settings.resolution || undefined,
+                negativePrompt: settings.crunControls.negativePrompt,
+                guidanceScale: settings.crunControls.guidanceScale,
+                translatePrompt: settings.crunControls.translatePrompt,
+                startFrameId: crunStartFrameId,
+                endFrameId: crunEndFrameId,
+              }}
+              isDisabled={isGenerating || isUploading || isEnhancingPrompt}
+              labels={{
+                duration: translate('crun.duration'),
+                aspectRatio: translate('crun.aspectRatio'),
+                resolution: translate('crun.resolution'),
+                negativePrompt: translate('crun.negativePrompt'),
+                guidanceScale: translate('crun.guidanceScale'),
+                translatePrompt: translate('crun.translatePrompt'),
+                pricingReviewRequired: translate('crun.pricingReviewRequired'),
+                aspectFromFrames: translate('crun.aspectFromFrames'),
+                invalidContract: translate('crun.invalidContract'),
+                errorMessages: {
+                  required: translate('crun.fieldRequired'),
+                  unknown: translate('crun.fieldUnknown'),
+                  type: translate('crun.fieldType'),
+                  enum: translate('crun.fieldEnum'),
+                  bounds: translate('crun.fieldBounds'),
+                  uri: translate('crun.fieldUri'),
+                  reference_required: translate('crun.fieldReferenceRequired'),
+                  pricing_unavailable: translate('crun.pricingReviewRequired'),
+                  contract_mismatch: translate('crun.invalidContract'),
+                },
+              }}
+              onChange={(patch) =>
+                onSettingsChange({
+                  ...(Object.hasOwn(patch, 'duration')
+                    ? { duration: patch.duration }
+                    : {}),
+                  ...(Object.hasOwn(patch, 'aspectRatio')
+                    ? { aspectRatio: patch.aspectRatio ?? '' }
+                    : {}),
+                  ...(Object.hasOwn(patch, 'resolution')
+                    ? { resolution: patch.resolution ?? '' }
+                    : {}),
+                  crunControls: {
+                    ...settings.crunControls,
+                    modelKey: settings.modelKey,
+                    contractVersion: inputControls.version,
+                    ...(Object.hasOwn(patch, 'negativePrompt')
+                      ? { negativePrompt: patch.negativePrompt }
+                      : {}),
+                    ...(Object.hasOwn(patch, 'guidanceScale')
+                      ? { guidanceScale: patch.guidanceScale }
+                      : {}),
+                    ...(Object.hasOwn(patch, 'translatePrompt')
+                      ? { translatePrompt: patch.translatePrompt }
+                      : {}),
+                  },
+                })
+              }
+            />
+          </>
+        ) : null}
+      </>
+    ) : undefined;
 
   return (
     <PromptBarComposer
@@ -920,6 +1025,7 @@ export default function StudioPlaygroundComposer({
               onResetField={handleResetField}
               onSavePreset={handleSavePreset}
               onSetField={handleSetField}
+              outputControls={outputControls}
               onTypeChange={(nextType) => {
                 // The shared popover speaks GenerationSetupType; Studio only
                 // offers its own registry, so anything else is not a Studio pick.
@@ -953,107 +1059,6 @@ export default function StudioPlaygroundComposer({
                 setup={setupForComposer}
               />
             ) : null}
-            {inputControls?.mediaKind === 'image' ? (
-              <PromptBarCrunControls
-                controls={inputControls}
-                value={settings.crunControls?.outputFormat}
-                isDisabled={isGenerating}
-                onChange={(outputFormat) =>
-                  onSettingsChange({
-                    crunControls: {
-                      modelKey: settings.modelKey,
-                      contractVersion: inputControls.version,
-                      outputFormat,
-                    },
-                  })
-                }
-              />
-            ) : null}
-            {inputControls?.mediaKind === 'video' && settings.crunControls ? (
-              <>
-                {(crunReferenceCount ?? 0) >
-                  (inputControls.videoRules?.referenceMode === 'start-end'
-                    ? 1
-                    : 0) && (
-                  <Label role="alert">
-                    {translate('crun.videoReferencesUnsupported')}
-                  </Label>
-                )}
-                <PromptBarCrunVideoControls
-                  controls={inputControls}
-                  value={{
-                    modelKey: settings.crunControls.modelKey,
-                    contractVersion: settings.crunControls.contractVersion,
-                    prompt,
-                    duration: settings.duration,
-                    aspectRatio: settings.aspectRatio || undefined,
-                    resolution: settings.resolution || undefined,
-                    negativePrompt: settings.crunControls.negativePrompt,
-                    guidanceScale: settings.crunControls.guidanceScale,
-                    translatePrompt: settings.crunControls.translatePrompt,
-                    startFrameId: crunStartFrameId,
-                    endFrameId: crunEndFrameId,
-                  }}
-                  isDisabled={isGenerating || isUploading || isEnhancingPrompt}
-                  labels={{
-                    duration: translate('crun.duration'),
-                    aspectRatio: translate('crun.aspectRatio'),
-                    resolution: translate('crun.resolution'),
-                    negativePrompt: translate('crun.negativePrompt'),
-                    guidanceScale: translate('crun.guidanceScale'),
-                    translatePrompt: translate('crun.translatePrompt'),
-                    pricingReviewRequired: translate(
-                      'crun.pricingReviewRequired',
-                    ),
-                    aspectFromFrames: translate('crun.aspectFromFrames'),
-                    invalidContract: translate('crun.invalidContract'),
-                    errorMessages: {
-                      required: translate('crun.fieldRequired'),
-                      unknown: translate('crun.fieldUnknown'),
-                      type: translate('crun.fieldType'),
-                      enum: translate('crun.fieldEnum'),
-                      bounds: translate('crun.fieldBounds'),
-                      uri: translate('crun.fieldUri'),
-                      reference_required: translate(
-                        'crun.fieldReferenceRequired',
-                      ),
-                      pricing_unavailable: translate(
-                        'crun.pricingReviewRequired',
-                      ),
-                      contract_mismatch: translate('crun.invalidContract'),
-                    },
-                  }}
-                  onChange={(patch) =>
-                    onSettingsChange({
-                      ...(Object.hasOwn(patch, 'duration')
-                        ? { duration: patch.duration }
-                        : {}),
-                      ...(Object.hasOwn(patch, 'aspectRatio')
-                        ? { aspectRatio: patch.aspectRatio ?? '' }
-                        : {}),
-                      ...(Object.hasOwn(patch, 'resolution')
-                        ? { resolution: patch.resolution ?? '' }
-                        : {}),
-                      crunControls: {
-                        ...settings.crunControls,
-                        modelKey: settings.modelKey,
-                        contractVersion: inputControls.version,
-                        ...(Object.hasOwn(patch, 'negativePrompt')
-                          ? { negativePrompt: patch.negativePrompt }
-                          : {}),
-                        ...(Object.hasOwn(patch, 'guidanceScale')
-                          ? { guidanceScale: patch.guidanceScale }
-                          : {}),
-                        ...(Object.hasOwn(patch, 'translatePrompt')
-                          ? { translatePrompt: patch.translatePrompt }
-                          : {}),
-                      },
-                    })
-                  }
-                />
-              </>
-            ) : null}
-
             {capabilities.hasIdentity ? (
               <StudioIdentityFields
                 isDisabled={isGenerating}
@@ -1128,6 +1133,7 @@ export default function StudioPlaygroundComposer({
                 <StudioGenerationSummary
                   crunQuote={crunQuote}
                   estimate={estimate}
+                  isEstimateHidden={isAutoView}
                   model={selectedModel}
                   type={type}
                   isDisabled={isGenerating}

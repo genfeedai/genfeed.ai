@@ -1,4 +1,8 @@
 import {
+  REPLY_POST_MAX_INPUT_LENGTH,
+  REPLY_VARIANT_TONES,
+  REPLY_VARIANTS_DEFAULT,
+  REPLY_VARIANTS_MAX,
   TEXT_ACTION_MAX_INPUT_LENGTH,
   TEXT_ACTION_MODES,
 } from '@genfeedai/contracts/constants/text-action.constant';
@@ -221,6 +225,66 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
         },
       },
       required: ['mode', 'platform', 'requestKey', 'text'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: GENERATE_CONTENT_TEXT_CREDITS,
+    description:
+      "Write distinct reply options to a post the user is reading, for one platform and one tone, in the brand voice and inside that platform's comment length limit. Returns the variants as text only; nothing is posted or typed into a composer. A brand with no approved voice gets replies written without voice context and a hint on defining one. requestKey (a UUID per user request) makes a repeat return the first result without a new charge.",
+    name: 'generate_reply_variants',
+    parameters: {
+      properties: {
+        brandId: {
+          description:
+            'Brand whose voice applies. Authorized server-side against the caller.',
+          type: 'string',
+        },
+        platform: {
+          description: 'Platform the reply will be posted on',
+          enum: [
+            'twitter',
+            'linkedin',
+            'reddit',
+            'facebook',
+            'instagram',
+            'tiktok',
+            'youtube',
+          ],
+          type: 'string',
+        },
+        postAuthor: {
+          description:
+            'Name or handle of the author of the post being answered',
+          maxLength: 200,
+          type: 'string',
+        },
+        postContent: {
+          description: 'Text of the post being answered',
+          maxLength: REPLY_POST_MAX_INPUT_LENGTH,
+          minLength: 1,
+          type: 'string',
+        },
+        requestKey: {
+          description: 'UUID identifying this user request, for idempotency',
+          format: 'uuid',
+          type: 'string',
+        },
+        tone: {
+          description:
+            'How the replies take the post: agree, challenge respectfully, add value, funny or professional',
+          enum: [...REPLY_VARIANT_TONES],
+          type: 'string',
+        },
+        variants: {
+          description: `Number of distinct replies to return (1-${REPLY_VARIANTS_MAX}, default ${REPLY_VARIANTS_DEFAULT})`,
+          maximum: REPLY_VARIANTS_MAX,
+          minimum: 1,
+          type: 'integer',
+        },
+      },
+      required: ['platform', 'postContent', 'requestKey', 'tone'],
       type: 'object',
     },
     requiredRole: 'user',

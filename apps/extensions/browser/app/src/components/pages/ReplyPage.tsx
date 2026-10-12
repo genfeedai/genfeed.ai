@@ -1,82 +1,71 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import type {
+  ReplyVariantsResult,
+  ReplyVariantTone,
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ReactElement, useEffect, useReducer, useRef } from 'react';
-import { AgentToolsService } from '~services/agent-tools.service';
-import { authService } from '~services/auth.service';
-import type { ReplyTone } from '~types/extension';
+import { type ReactElement, useEffect, useReducer } from 'react';
+import { getPlatformForUrl } from '~platforms/config';
+import { usePlatformStore } from '~store/use-platform-store';
+import type { ReplyVariantsResponse } from '~types/extension';
 import { logger } from '~utils/logger.util';
 
 interface ReplyPageProps {
-  initialContent?: string;
-  initialUrl?: string;
   initialAuthor?: string;
-}
-
-interface ReplyOption {
-  text: string;
+  initialContent?: string;
+  initialPlatform?: string;
+  initialUrl?: string;
 }
 
 type ReplyStep = 'input' | 'loading' | 'result';
 
-const TONES: { value: ReplyTone; label: string; description: string }[] = [
-  {
-    description: "Support the author's view",
-    label: 'Agree',
-    value: 'agree',
-  },
-  {
-    description: 'Push back respectfully',
-    label: 'Challenge',
-    value: 'challenge',
-  },
-  {
-    description: 'Share a complementary insight',
-    label: 'Add Value',
-    value: 'add-value',
-  },
-  { description: 'Keep it light and fun', label: 'Funny', value: 'funny' },
-  {
-    description: 'Keep it business-focused',
-    label: 'Professional',
-    value: 'professional',
-  },
-];
-
-const TONE_PROMPT_MAP: Record<ReplyTone, string> = {
-  'add-value':
-    'Write a reply that adds valuable additional insight or information to this post.',
-  agree: "Write a reply that agrees with and supports the author's viewpoint.",
-  challenge:
-    'Write a reply that respectfully challenges the post with a counter-argument or different perspective.',
-  funny:
-    'Write a witty, light-hearted reply with humor appropriate for social media.',
-  professional:
-    'Write a professional, business-focused reply that adds credibility.',
-};
+const TONES: { value: ReplyVariantTone; label: string; description: string }[] =
+  [
+    {
+      description: "Support the author's view",
+      label: 'Agree',
+      value: 'agree',
+    },
+    {
+      description: 'Push back respectfully',
+      label: 'Challenge',
+      value: 'challenge',
+    },
+    {
+      description: 'Share a complementary insight',
+      label: 'Add Value',
+      value: 'add-value',
+    },
+    { description: 'Keep it light and fun', label: 'Funny', value: 'funny' },
+    {
+      description: 'Keep it business-focused',
+      label: 'Professional',
+      value: 'professional',
+    },
+  ];
 
 interface ReplyState {
-  postContent: string;
   author: string;
-  tone: ReplyTone;
-  step: ReplyStep;
-  replies: ReplyOption[];
   error: string | null;
-  copiedIndex: number | null;
+  /** Variant whose text was last copied or inserted, and what happened. */
+  feedback: { index: number; message: string; isError: boolean } | null;
+  postContent: string;
+  result: ReplyVariantsResult | null;
+  step: ReplyStep;
+  tone: ReplyVariantTone;
 }
 
 type ReplyAction =
   | { type: 'SET_POST_CONTENT'; payload: string }
   | { type: 'SET_AUTHOR'; payload: string }
-  | { type: 'SET_TONE'; payload: ReplyTone }
-  | { type: 'SET_STEP'; payload: ReplyStep }
-  | { type: 'SET_REPLIES'; payload: ReplyOption[] }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_COPIED_INDEX'; payload: number | null }
+  | { type: 'SET_TONE'; payload: ReplyVariantTone }
   | { type: 'LOADING' }
-  | { type: 'RESULT'; payload: ReplyOption[] }
+  | { type: 'RESULT'; payload: ReplyVariantsResult }
+  | { type: 'FAILED'; payload: string }
+  | { type: 'FEEDBACK'; payload: ReplyState['feedback'] }
   | { type: 'RESET_TO_INPUT' }
   | { type: 'SYNC_PROPS'; payload: { content: string; author: string } };
 
@@ -88,20 +77,16 @@ function replyReducer(state: ReplyState, action: ReplyAction): ReplyState {
       return { ...state, author: action.payload };
     case 'SET_TONE':
       return { ...state, tone: action.payload };
-    case 'SET_STEP':
-      return { ...state, step: action.payload };
-    case 'SET_REPLIES':
-      return { ...state, replies: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload };
-    case 'SET_COPIED_INDEX':
-      return { ...state, copiedIndex: action.payload };
     case 'LOADING':
-      return { ...state, step: 'loading', error: null };
+      return { ...state, error: null, feedback: null, step: 'loading' };
     case 'RESULT':
-      return { ...state, step: 'result', replies: action.payload };
+      return { ...state, result: action.payload, step: 'result' };
+    case 'FAILED':
+      return { ...state, error: action.payload, step: 'input' };
+    case 'FEEDBACK':
+      return { ...state, feedback: action.payload };
     case 'RESET_TO_INPUT':
-      return { ...state, step: 'input', replies: [] };
+      return { ...state, feedback: null, result: null, step: 'input' };
     case 'SYNC_PROPS':
       return {
         ...state,
@@ -113,100 +98,147 @@ function replyReducer(state: ReplyState, action: ReplyAction): ReplyState {
   }
 }
 
+/**
+ * Reply options for the post being read: tone in, distinct variants out, then
+ * Insert puts the chosen one in the page's reply box (never submitting) or
+ * Copy keeps it for composers the extension cannot type into.
+ */
 export function ReplyPage({
-  initialContent = '',
-  initialUrl = '',
   initialAuthor = '',
+  initialContent = '',
+  initialPlatform,
+  initialUrl = '',
 }: ReplyPageProps): ReactElement {
-  const urlRef = useRef<string>(initialUrl);
+  const detectedPlatform = usePlatformStore((s) => s.currentPlatform);
+  const platform =
+    initialPlatform || getPlatformForUrl(initialUrl) || detectedPlatform;
   const [state, dispatch] = useReducer(replyReducer, {
     author: initialAuthor,
-    copiedIndex: null,
     error: null,
+    feedback: null,
     postContent: initialContent,
-    replies: [],
+    result: null,
     step: 'input',
     tone: 'add-value',
   });
-  const { author, copiedIndex, error, postContent, replies, step, tone } =
-    state;
+  const { author, error, feedback, postContent, result, step, tone } = state;
 
-  // Sync props when triggered by keyboard shortcut (e.g. user activates extension on a new page)
+  // A new source (shortcut or menu on another post) replaces the pasted one.
   useEffect(() => {
-    urlRef.current = initialUrl;
     dispatch({
       payload: { author: initialAuthor, content: initialContent },
       type: 'SYNC_PROPS',
     });
-  }, [initialContent, initialUrl, initialAuthor]);
+  }, [initialContent, initialAuthor]);
 
   async function handleGenerate(): Promise<void> {
     if (!postContent.trim()) {
-      dispatch({ payload: 'Add a post to reply to first.', type: 'SET_ERROR' });
+      dispatch({ payload: 'Add a post to reply to first.', type: 'FAILED' });
+      return;
+    }
+    if (!platform) {
+      dispatch({
+        payload: 'Open a post on a supported site to reply to it.',
+        type: 'FAILED',
+      });
       return;
     }
 
     dispatch({ type: 'LOADING' });
-
     try {
-      const token = await authService.getToken();
-      if (!token) {
-        dispatch({
-          payload: 'Sign in first to generate replies.',
-          type: 'SET_ERROR',
+      const response: ReplyVariantsResponse | undefined =
+        await chrome.runtime.sendMessage({
+          event: 'generateReplyVariants',
+          platform,
+          postAuthor: author.trim() || undefined,
+          postContent,
+          requestKey: crypto.randomUUID(),
+          tone,
         });
-        dispatch({ payload: 'input', type: 'SET_STEP' });
-        return;
+      if (!response || 'error' in response) {
+        throw new Error(
+          response && 'error' in response
+            ? response.error
+            : 'Failed to generate replies',
+        );
       }
-
-      const currentUrl = urlRef.current;
-      const toneInstruction = TONE_PROMPT_MAP[tone];
-
-      const reply = await new AgentToolsService(token).generateText(
-        `${toneInstruction} Write a concise natural reply to ${author || 'the author'}. Return only the reply text.\nPost URL: ${currentUrl}\nPost: ${postContent}`,
-        detectPlatformFromUrl(currentUrl),
-      );
-      dispatch({ payload: [{ text: reply }], type: 'RESULT' });
+      dispatch({ payload: response.result, type: 'RESULT' });
     } catch (err) {
       logger.error('Reply generation error', err);
       dispatch({
         payload:
           err instanceof Error ? err.message : 'Failed to generate replies',
-        type: 'SET_ERROR',
+        type: 'FAILED',
       });
-      dispatch({ payload: 'input', type: 'SET_STEP' });
+    }
+  }
+
+  async function handleInsert(text: string, index: number): Promise<void> {
+    try {
+      const response: { error?: string; success?: boolean } | undefined =
+        await chrome.runtime.sendMessage({
+          event: 'RELAY_TO_CONTENT',
+          payload: { content: text, platform, type: 'INSERT_CONTENT' },
+        });
+      dispatch({
+        payload: response?.success
+          ? { index, isError: false, message: 'Added to the reply box' }
+          : {
+              index,
+              isError: true,
+              message:
+                response?.error ??
+                'Could not reach the page. Copy the reply instead.',
+            },
+        type: 'FEEDBACK',
+      });
+    } catch (err) {
+      logger.error('Failed to insert reply text', err);
+      dispatch({
+        payload: {
+          index,
+          isError: true,
+          message: 'Could not reach the page. Copy the reply instead.',
+        },
+        type: 'FEEDBACK',
+      });
     }
   }
 
   async function handleCopy(text: string, index: number): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
-      dispatch({ payload: index, type: 'SET_COPIED_INDEX' });
-      setTimeout(
-        () => dispatch({ payload: null, type: 'SET_COPIED_INDEX' }),
-        2000,
-      );
+      dispatch({
+        payload: { index, isError: false, message: 'Copied' },
+        type: 'FEEDBACK',
+      });
     } catch (err) {
       logger.error('Failed to copy reply text', err);
-      dispatch({ payload: 'Failed to copy reply text', type: 'SET_ERROR' });
+      dispatch({
+        payload: { index, isError: true, message: 'Could not copy' },
+        type: 'FEEDBACK',
+      });
     }
   }
 
   if (step === 'loading') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
+      <div
+        role="status"
+        className="flex h-full flex-col items-center justify-center gap-3"
+      >
         <Spinner className="size-8 text-primary" />
-        <p className="text-sm text-muted-foreground">Generating replies…</p>
+        <p className="text-sm text-muted-foreground">Writing reply options…</p>
       </div>
     );
   }
 
-  if (step === 'result' && replies.length > 0) {
+  if (step === 'result' && result) {
     return (
       <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">
-            Reply Options
+            Reply options
           </h2>
           <Button
             type="button"
@@ -218,35 +250,69 @@ export function ReplyPage({
           </Button>
         </div>
 
-        <div className="rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground line-clamp-3">
+        <div className="line-clamp-3 rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
           {postContent}
         </div>
 
-        <div className="flex flex-col gap-2">
-          {replies.map((reply, i) => (
-            <div
-              key={reply.text}
+        {result.voiceHint ? (
+          <p className="text-xs text-muted-foreground">{result.voiceHint}</p>
+        ) : null}
+
+        <ul className="flex flex-col gap-2">
+          {result.variants.map((variant, index) => (
+            <li
+              key={variant}
               className="rounded-xl border border-border bg-card p-3"
             >
-              <p className="mb-2 text-sm text-foreground">{reply.text}</p>
-              <Button
-                type="button"
-                variant={ButtonVariant.GHOST}
-                onClick={() => {
-                  void handleCopy(reply.text, i);
-                }}
-                className="w-full rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
-              >
-                {copiedIndex === i ? '✓ Copied' : 'Copy reply'}
-              </Button>
-            </div>
+              <p className="mb-2 whitespace-pre-wrap text-sm text-foreground">
+                {variant}
+              </p>
+              <p className="mb-2 text-2xs text-muted-foreground">
+                {variant.length}/{result.maxCharacters}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  className="flex-1 text-xs"
+                  onClick={() => {
+                    void handleInsert(variant, index);
+                  }}
+                >
+                  Insert in reply box
+                </Button>
+                <Button
+                  type="button"
+                  variant={ButtonVariant.SECONDARY}
+                  className="flex-1 text-xs"
+                  onClick={() => {
+                    void handleCopy(variant, index);
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+              {feedback?.index === index ? (
+                <p
+                  role={feedback.isError ? 'alert' : 'status'}
+                  className={
+                    feedback.isError
+                      ? 'mt-2 text-xs text-destructive'
+                      : 'mt-2 text-xs text-muted-foreground'
+                  }
+                >
+                  {feedback.message}
+                </p>
+              ) : null}
+            </li>
           ))}
-        </div>
+        </ul>
 
         <Button
           type="button"
           variant={ButtonVariant.SECONDARY}
-          onClick={() => dispatch({ type: 'RESET_TO_INPUT' })}
+          onClick={() => {
+            void handleGenerate();
+          }}
           className="mt-auto"
         >
           Generate more
@@ -258,11 +324,14 @@ export function ReplyPage({
   return (
     <div className="flex h-full flex-col gap-3 p-3">
       <h2 className="text-sm font-semibold text-foreground">
-        Generate a Reply
+        Generate a reply
       </h2>
 
       {error && (
-        <div className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div
+          role="alert"
+          className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
           {error}
         </div>
       )}
@@ -286,24 +355,22 @@ export function ReplyPage({
         />
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex flex-1 flex-col gap-1">
-          <label
-            className="text-xs font-medium text-muted-foreground"
-            htmlFor="reply-author"
-          >
-            Author (optional)
-          </label>
-          <Input
-            id="reply-author"
-            type="text"
-            value={author}
-            onChange={(e) =>
-              dispatch({ payload: e.target.value, type: 'SET_AUTHOR' })
-            }
-            placeholder="@username"
-          />
-        </div>
+      <div className="flex flex-col gap-1">
+        <label
+          className="text-xs font-medium text-muted-foreground"
+          htmlFor="reply-author"
+        >
+          Author (optional)
+        </label>
+        <Input
+          id="reply-author"
+          type="text"
+          value={author}
+          onChange={(e) =>
+            dispatch({ payload: e.target.value, type: 'SET_AUTHOR' })
+          }
+          placeholder="@username"
+        />
       </div>
 
       <div className="flex flex-col gap-1">
@@ -313,9 +380,10 @@ export function ReplyPage({
             <Button
               key={t.value}
               type="button"
+              aria-pressed={tone === t.value}
               variant={
                 tone === t.value
-                  ? ButtonVariant.SECONDARY
+                  ? ButtonVariant.DEFAULT
                   : ButtonVariant.SECONDARY
               }
               onClick={() => dispatch({ payload: t.value, type: 'SET_TONE' })}
@@ -331,7 +399,9 @@ export function ReplyPage({
       <Button
         type="button"
         variant={ButtonVariant.DEFAULT}
-        onClick={handleGenerate}
+        onClick={() => {
+          void handleGenerate();
+        }}
         disabled={!postContent.trim()}
         className="mt-auto"
       >
@@ -339,20 +409,4 @@ export function ReplyPage({
       </Button>
     </div>
   );
-}
-
-function detectPlatformFromUrl(url: string): string {
-  if (url.includes('twitter.com') || url.includes('x.com')) {
-    return 'twitter';
-  }
-  if (url.includes('linkedin.com')) {
-    return 'linkedin';
-  }
-  if (url.includes('instagram.com')) {
-    return 'instagram';
-  }
-  if (url.includes('tiktok.com')) {
-    return 'tiktok';
-  }
-  return 'twitter';
 }

@@ -1,9 +1,7 @@
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -36,13 +34,6 @@ describe('MediumService', () => {
         {
           provide: CredentialsService,
           useValue: credentialsMock,
-        },
-        {
-          provide: ArticlesService,
-          useValue: {
-            findOne: vi.fn(),
-            patch: vi.fn(),
-          },
         },
         {
           provide: HttpService,
@@ -102,10 +93,6 @@ describe('MediumService', () => {
             useValue: { findOne: vi.fn(), patch: vi.fn() },
           },
           {
-            provide: ArticlesService,
-            useValue: { findOne: vi.fn(), patch: vi.fn() },
-          },
-          {
             provide: HttpService,
             useValue: { delete: vi.fn(), get: vi.fn(), post: vi.fn() },
           },
@@ -128,22 +115,13 @@ describe('MediumService', () => {
       );
     });
   });
-  describe('publishArticle', () => {
-    it('loads and updates the article scoped to the organization', async () => {
-      const findOneArticle = vi.fn().mockResolvedValue({
-        content: '<p>Hello</p>',
-        id: 'article-1',
-        label: 'Hello',
-        posts: [],
-        slug: 'hello',
-      });
-      const patchOneWhere = vi.fn().mockResolvedValue(null);
+  describe('createPost', () => {
+    it('creates an HTML story for the given author with the bearer token', async () => {
       const post = vi.fn().mockReturnValue(
         of({
           data: {
             data: {
               id: 'medium-1',
-              publishedAt: 1_700_000_000_000,
               url: 'https://medium.com/p/medium-1',
             },
           },
@@ -153,19 +131,7 @@ describe('MediumService', () => {
         providers: [
           MediumService,
           { provide: ConfigService, useValue: { get: vi.fn(() => 'cfg') } },
-          {
-            provide: CredentialsService,
-            useValue: {
-              resolveBrandAccount: vi.fn().mockResolvedValue({
-                accessToken: 'plain-token',
-                externalId: 'medium-user',
-              }),
-            },
-          },
-          {
-            provide: ArticlesService,
-            useValue: { findOne: findOneArticle, patchOneWhere },
-          },
+          { provide: CredentialsService, useValue: {} },
           { provide: HttpService, useValue: { post } },
           {
             provide: LoggerService,
@@ -178,25 +144,29 @@ describe('MediumService', () => {
           },
         ],
       }).compile();
-      vi.spyOn(EncryptionUtil, 'decrypt').mockReturnValue('decrypted');
 
-      await module
+      const result = await module
         .get<MediumService>(MediumService)
-        .publishArticle('article-1', 'org-1', 'brand-1');
+        .createPost('token', 'medium user', {
+          contentHtml: '<p>Hello</p>',
+          publishStatus: 'public',
+          title: 'Hello',
+        });
 
-      expect(findOneArticle).toHaveBeenCalledWith({
-        id: 'article-1',
-        organizationId: 'org-1',
+      expect(result).toEqual({
+        id: 'medium-1',
+        url: 'https://medium.com/p/medium-1',
       });
-      expect(patchOneWhere).toHaveBeenCalledWith(
-        { id: 'article-1', isDeleted: false, organizationId: 'org-1' },
+      expect(post).toHaveBeenCalledWith(
+        'https://api.medium.com/v1/users/medium%20user/posts',
         {
-          posts: [
-            expect.objectContaining({
-              externalId: 'medium-1',
-              platform: 'medium',
-            }),
-          ],
+          content: '<p>Hello</p>',
+          contentFormat: 'html',
+          publishStatus: 'public',
+          title: 'Hello',
+        },
+        {
+          headers: expect.objectContaining({ Authorization: 'Bearer token' }),
         },
       );
     });

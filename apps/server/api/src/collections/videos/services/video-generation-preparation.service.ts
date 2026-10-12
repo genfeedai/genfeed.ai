@@ -952,6 +952,7 @@ export class VideoGenerationPreparationService {
         organizationId,
         prioritize: createVideoDto.prioritize || 'balanced',
         prompt: createVideoDto.text || '',
+        requiresEndFrame: Boolean(createVideoDto.endFrame),
         speech: createVideoDto.speech,
       });
       this.loggerService.log(

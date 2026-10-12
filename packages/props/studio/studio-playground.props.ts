@@ -273,6 +273,8 @@ export interface StudioGenerationSummaryProps {
   label: string;
   crunQuote?: UseCrunGenerationQuoteReturn;
   estimate: StudioGenerationCostEstimate;
+  /** Auto mode: the routed model is unknown, so only the balance is shown. */
+  isEstimateHidden?: boolean;
   model?: IModel;
   type: StudioPlaygroundType;
 }

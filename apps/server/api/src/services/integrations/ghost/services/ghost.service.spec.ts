@@ -222,6 +222,20 @@ describe('GhostService', () => {
       );
     });
 
+    it('should name HTML as the content source', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+      );
+
+      await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
+
+      expect(httpService.post).toHaveBeenCalledWith(
+        'https://myblog.ghost.io/ghost/api/admin/posts/',
+        expect.any(Object),
+        expect.objectContaining({ params: { source: 'html' } }),
+      );
+    });
+
     it('should log and rethrow on HTTP error', async () => {
       httpService.post.mockReturnValue(throwError(() => new Error('502')));
 

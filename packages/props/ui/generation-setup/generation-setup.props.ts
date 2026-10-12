@@ -96,6 +96,8 @@ export interface GenerationSetupPopoverProps {
    * Auto/Advanced button group; the surface decides what Advanced reveals.
    */
   advancedMode?: GenerationSetupAdvancedMode;
+  /** Surface-owned model controls rendered at the end of the Output section. */
+  outputControls?: ReactNode;
 }
 
 export interface GenerationSetupAdvancedMode {
@@ -143,7 +145,6 @@ export interface GenerationSetupFrontDoorProps {
   activeSection?: GenerationSetupCustomizeSectionId;
   onCloseSection?: () => void;
   renderSection?: (section: GenerationSetupCustomizeSectionId) => ReactNode;
-  isAutoPriorityOnly?: boolean;
   showPresets?: boolean;
   showEnhancementSettings?: boolean;
   capabilities: StudioPlaygroundCapabilities;
@@ -209,7 +210,6 @@ export type GenerationSetupCustomizeSectionId =
   | 'presets';
 
 export interface GenerationSetupCustomizePanelProps {
-  isAutoPriorityOnly?: boolean;
   typeOptions: readonly GenerationSetupTypeOption[];
   onTypeChange?: (type: GenerationSetupType) => void;
   inputControls?: CrunInputControls;
@@ -230,12 +230,12 @@ export interface GenerationSetupCustomizePanelProps {
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSavePreset: (label: string) => void;
   onSetField: GenerationSetupFieldSetter;
+  outputControls?: ReactNode;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
   setup: GenerationSetup;
 }
 
 export interface GenerationSetupModelSectionProps {
-  isAutoPriorityOnly?: boolean;
   capabilities: StudioPlaygroundCapabilities;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
@@ -255,6 +255,8 @@ export interface GenerationSetupLookSectionProps {
 }
 
 export interface GenerationSetupOutputSectionProps {
+  /** Surface-owned model controls rendered after the shared output fields. */
+  controls?: ReactNode;
   inputControls?: CrunInputControls;
   referenceCount?: number;
   capabilities: StudioPlaygroundCapabilities;
@@ -274,4 +276,12 @@ export interface GenerationSetupBrandSectionProps {
 export interface GenerationSetupSavePresetRowProps {
   isDisabled?: boolean;
   onSavePreset: (label: string) => void;
+}
+
+export interface GenerationSetupAutoTypePickerProps {
+  imageEditing?: GenerationSetupImageEditingMode;
+  isDisabled?: boolean;
+  onTypeChange?: (type: GenerationSetupType) => void;
+  setup: GenerationSetup;
+  typeOptions: readonly GenerationSetupTypeOption[];
 }

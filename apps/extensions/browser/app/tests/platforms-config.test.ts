@@ -27,6 +27,7 @@ vi.mock('@genfeedai/helpers', () => ({
 
 import {
   getCurrentPlatform,
+  getPlatformForUrl,
   getPlatformName,
   platforms,
 } from '../src/platforms/config';
@@ -76,6 +77,40 @@ describe('extension platform config', () => {
 
     expect(getCurrentPlatform()?.platform).toBe('tiktok');
     expect(platforms.tiktok.extractPostId()).toBe('9876543210');
+  });
+
+  it('maps a source URL to its platform without trusting the current page', () => {
+    stubLocation('https://example.com/');
+
+    expect(getPlatformForUrl('https://x.com/acme/status/1')).toBe('twitter');
+    expect(getPlatformForUrl('https://twitter.com/acme/status/1')).toBe(
+      'twitter',
+    );
+    expect(
+      getPlatformForUrl('https://www.reddit.com/r/a/comments/abc/t/'),
+    ).toBe('reddit');
+    expect(
+      getPlatformForUrl('https://old.reddit.com/r/a/comments/abc/t/'),
+    ).toBe('reddit');
+    expect(
+      getPlatformForUrl('https://www.youtube.com/watch?v=abcdefghijk'),
+    ).toBe('youtube');
+    expect(getPlatformForUrl('https://m.youtube.com/watch?v=abcdefghijk')).toBe(
+      'youtube',
+    );
+    expect(getPlatformForUrl('https://example.com/post')).toBeNull();
+    expect(getPlatformForUrl('not a url')).toBeNull();
+    expect(getPlatformForUrl('')).toBeNull();
+  });
+
+  it('knows which platforms hide the reply box until it is opened', () => {
+    expect(platforms.youtube.selectors.replyActivator).toBe(
+      '#simplebox-placeholder',
+    );
+    expect(platforms.reddit.selectors.replyActivator).toContain(
+      'comment-composer-host',
+    );
+    expect(platforms.twitter.selectors.replyActivator).toBeUndefined();
   });
 
   it('returns unknown when the hostname is not a supported platform', () => {

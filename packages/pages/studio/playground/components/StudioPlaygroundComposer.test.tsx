@@ -145,9 +145,12 @@ vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
   default: (props: Record<string, unknown>) => {
     generationSetupPopoverMocks.props = props;
     return (
-      <button type="button" aria-label="Setup">
-        {props.triggerLabel as string}
-      </button>
+      <>
+        <button type="button" aria-label="Setup">
+          {props.triggerLabel as string}
+        </button>
+        {props.outputControls as React.ReactNode}
+      </>
     );
   },
 }));
@@ -371,7 +374,7 @@ describe('StudioPlaygroundComposer', () => {
       advancedModeMocks.isAdvancedMode = true;
     });
 
-    it('keeps Auto priorities available while hiding the manual catalogue in simple mode', () => {
+    it('shows only the output type and no estimate in Auto', () => {
       advancedModeMocks.isAdvancedMode = false;
       render(
         <StudioPlaygroundComposer
@@ -383,8 +386,11 @@ describe('StudioPlaygroundComposer', () => {
         />,
       );
 
-      expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
-        '1:1 · 1K · x1',
+      expect(screen.getByRole('button', { name: 'Setup' }).textContent).toBe(
+        'Image',
+      );
+      expect(screen.getByTestId('studio-generation-summary').textContent).toBe(
+        '120',
       );
       expect(generationSetupPopoverMocks.props.models).toEqual([]);
       expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
@@ -1145,6 +1151,31 @@ describe('StudioPlaygroundComposer', () => {
     expect(
       screen.getByRole('button', { name: 'Generate' }),
     ).toBeInTheDocument();
+  });
+
+  it('offers start and end frames in Auto video', async () => {
+    advancedModeMocks.isAdvancedMode = false;
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        prompt="Continue the motion"
+        settings={{ ...settings, modelKey: AUTO_MODEL_OPTION_VALUE }}
+        type="video"
+      />,
+    );
+    advancedModeMocks.isAdvancedMode = true;
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Start frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'End frame' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitem', { name: 'Video reference' }),
+    ).not.toBeInTheDocument();
   });
 
   it('offers frame and video-reference slots from one add menu', async () => {

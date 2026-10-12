@@ -2,6 +2,7 @@ import { ArticleStatus, formatEnumLabel } from '@genfeedai/contracts';
 import type { ArticleSidebarProps } from '@props/edit/article-sidebar.props';
 import Card from '@ui/card/Card';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
+import ArticleDeliveryCard from './article-delivery-card';
 import ArticlePublicPageCard from './article-public-page-card';
 
 export default function ArticleSidebar({
@@ -11,6 +12,7 @@ export default function ArticleSidebar({
   isDirty = false,
   isScoringSeo = false,
   onScoreSeo,
+  delivery,
 }: ArticleSidebarProps) {
   return (
     <div className="space-y-4">
@@ -21,6 +23,17 @@ export default function ArticleSidebar({
           isPublished={form.status === ArticleStatus.PUBLISHED}
           summary={form.summary}
           title={form.label}
+        />
+      )}
+
+      {article && delivery && (
+        <ArticleDeliveryCard
+          article={article}
+          content={form.content}
+          isDirty={isDirty}
+          isSavingExternalUrl={delivery.isSavingExternalUrl}
+          onDelivered={delivery.onDelivered}
+          onSaveExternalUrl={delivery.onSaveExternalUrl}
         />
       )}
 

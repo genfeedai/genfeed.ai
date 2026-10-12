@@ -70,4 +70,5 @@ export enum PostCategory {
 export enum PostEntityModel {
   INGREDIENT = 'INGREDIENT',
   ARTICLE = 'ARTICLE',
+  NEWSLETTER = 'NEWSLETTER',
 }

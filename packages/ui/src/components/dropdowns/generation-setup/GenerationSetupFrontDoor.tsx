@@ -7,10 +7,7 @@ import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import {
-  AUTO_PRIORITY_LABELS,
-  isAutoGenerationModelKey,
-} from '@ui/dropdowns/model-selector/model-selector.constants';
+import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
 import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
@@ -49,7 +46,6 @@ export default function GenerationSetupFrontDoor({
   activeSection,
   onCloseSection,
   renderSection,
-  isAutoPriorityOnly = false,
   showPresets = true,
   showEnhancementSettings = false,
   capabilities,
@@ -128,10 +124,8 @@ export default function GenerationSetupFrontDoor({
   if (capabilities.hasModelSelection)
     sections.push({
       id: 'model',
-      label: translate(isAutoPriorityOnly ? 'qualityBudget' : 'model'),
-      value: isAutoPriorityOnly
-        ? AUTO_PRIORITY_LABELS[setup.values.prioritize]
-        : modelLabel,
+      label: translate('model'),
+      value: modelLabel,
     });
   if (
     capabilities.hasAspectRatio ||

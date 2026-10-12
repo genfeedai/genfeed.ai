@@ -29,9 +29,10 @@ vi.mock('~platforms/composer-helpers', () => ({
   getComposerState: () => ({ composeBoxAvailable: false }),
   insertContentIntoComposer: vi.fn(),
 }));
-vi.mock('~platforms/import-post-control', () => ({
-  attachImportMenuItem: vi.fn(),
-  attachViewedPostImport: vi.fn(),
+vi.mock('~platforms/source-capture-control', () => ({
+  attachSourceButton: vi.fn(),
+  attachSourceMenuItem: vi.fn(),
+  createImageSourceActions: vi.fn(() => []),
 }));
 vi.mock('~platforms/ui-helpers', () => ({
   createButtonContainer: vi.fn(),

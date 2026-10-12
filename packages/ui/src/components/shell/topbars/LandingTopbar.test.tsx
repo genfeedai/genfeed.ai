@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import type { AnchorHTMLAttributes } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import LandingTopbar from './LandingTopbar';
 
 vi.mock('next/link', () => ({
@@ -70,5 +70,71 @@ describe('LandingTopbar', () => {
       'href',
       '/sign-up',
     );
+  });
+
+  describe('hideActionWhileVisible', () => {
+    type ObserverCallback = (entries: { isIntersecting: boolean }[]) => void;
+    let notify: ObserverCallback = () => {};
+    const disconnect = vi.fn();
+
+    function stubObserver() {
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(callback: ObserverCallback) {
+            notify = callback;
+          }
+          observe = vi.fn();
+          disconnect = disconnect;
+        },
+      );
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      document.body.innerHTML = '';
+    });
+
+    it('hides the CTA below sm while the in-page CTA is on screen, then shows it', () => {
+      stubObserver();
+      document.body.innerHTML = '<div data-hero-cta></div>';
+      render(
+        <LandingTopbar
+          ctaHref="/sign-up"
+          ctaLabel="Start free"
+          hideActionWhileVisible="[data-hero-cta]"
+        />,
+      );
+      const group = screen.getByRole('link', { name: 'Start free' })
+        .parentElement?.parentElement as HTMLElement;
+      expect(group).toHaveClass('max-sm:invisible');
+
+      act(() => notify([{ isIntersecting: false }]));
+      expect(group).not.toHaveClass('max-sm:invisible');
+
+      act(() => notify([{ isIntersecting: true }]));
+      expect(group).toHaveClass('max-sm:invisible');
+    });
+
+    it('keeps the CTA when the in-page CTA is not on the page', () => {
+      stubObserver();
+      render(
+        <LandingTopbar
+          ctaHref="/sign-up"
+          ctaLabel="Start free"
+          hideActionWhileVisible="[data-hero-cta]"
+        />,
+      );
+      const group = screen.getByRole('link', { name: 'Start free' })
+        .parentElement?.parentElement as HTMLElement;
+      expect(group).not.toHaveClass('max-sm:invisible');
+    });
+
+    it('always shows the CTA without the option', () => {
+      render(<LandingTopbar ctaHref="/sign-up" ctaLabel="Start free" />);
+      const group = screen.getByRole('link', { name: 'Start free' })
+        .parentElement?.parentElement as HTMLElement;
+      expect(group).not.toHaveClass('max-sm:invisible');
+    });
   });
 });

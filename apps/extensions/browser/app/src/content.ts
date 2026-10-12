@@ -4,6 +4,7 @@ import { attachXPublicationObserver } from '~platforms/x-publication-observer';
 // Multi-platform content script for Genfeed Extension
 
 import {
+  activateComposer,
   captureComposerText,
   getComposerState,
   insertContentIntoComposer,
@@ -14,9 +15,10 @@ import {
   type PlatformConfig,
 } from '~platforms/config';
 import {
-  attachImportMenuItem,
-  attachViewedPostImport,
-} from '~platforms/import-post-control';
+  attachSourceButton,
+  attachSourceMenuItem,
+  createImageSourceActions,
+} from '~platforms/source-capture-control';
 import {
   findTextActionSession,
   registerTextActionSession,
@@ -79,7 +81,7 @@ function initializePlatformIntegration(): void {
       return;
     }
 
-    attachViewedPostImport(currentPlatform, platformName);
+    attachSourceButton(currentPlatform);
 
     const submitButton = platform.selectors.submitButton
       ? document.querySelector(platform.selectors.submitButton)
@@ -114,12 +116,7 @@ function initializePlatformIntegration(): void {
     const buttonContainer = createButtonContainer();
 
     const dropdown = createGenFeedDropdown(postId, platformName, { postUrl });
-    attachImportMenuItem({
-      dropdown,
-      platform: platformName,
-      postId,
-      postUrl,
-    });
+    attachSourceMenuItem({ dropdown, platform });
     dropdown.style.marginRight = '8px';
     buttonContainer.appendChild(dropdown);
 
@@ -374,22 +371,25 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'INSERT_CONTENT') {
-    const result = insertContentIntoComposer(
-      String(message.content ?? ''),
-      getCurrentPlatform(),
-    );
+    const platform = getCurrentPlatform();
+    const content = String(message.content ?? '');
+    // A collapsed reply box (YouTube, Reddit) is opened first; the text is
+    // only placed in it, never submitted.
+    void activateComposer(platform).then(() => {
+      const result = insertContentIntoComposer(content, platform);
 
-    chrome.runtime.sendMessage({
-      payload: {
-        // Lets the background know this text was written by the extension.
-        content: result.success ? String(message.content ?? '') : undefined,
-        error: result.error,
-        success: result.success,
-      },
-      type: 'CONTENT_INSERTED',
+      chrome.runtime.sendMessage({
+        payload: {
+          // Lets the background know this text was written by the extension.
+          content: result.success ? content : undefined,
+          error: result.error,
+          success: result.success,
+        },
+        type: 'CONTENT_INSERTED',
+      });
+
+      sendResponse(result);
     });
-
-    sendResponse(result);
     return true;
   }
 });
@@ -443,7 +443,9 @@ document.addEventListener('keydown', (event: KeyboardEvent) => {
     chrome.runtime.sendMessage({
       event: 'SHORTCUT_REPLY',
       payload: {
+        author: context.postAuthor,
         content: context.postContent ?? document.title,
+        platform: getPlatformName(),
         url: context.url,
       },
     });
@@ -577,6 +579,9 @@ function initializeTwitterImageHover(): void {
     });
 
     overlay.appendChild(promptButton);
+    for (const action of createImageSourceActions(image)) {
+      overlay.appendChild(action);
+    }
     container.appendChild(overlay);
 
     image.setAttribute(PROCESSED_ATTR, 'true');

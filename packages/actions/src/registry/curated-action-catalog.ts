@@ -200,6 +200,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'onboarding',
   },
+  { name: 'generate_reply_variants', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'generate_turbo_content',
     surfaces: ['agent', 'mcp'],

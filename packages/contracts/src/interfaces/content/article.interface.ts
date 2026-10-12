@@ -25,6 +25,8 @@ export interface IArticle extends IBaseEntity {
   category: ArticleCategory;
   status: ArticleStatus;
   publishedAt?: string;
+  /** Live URL recorded when the article was published outside Genfeed. */
+  externalUrl?: string | null;
   author?: string;
   readingTime?: number;
   wordCount?: number;

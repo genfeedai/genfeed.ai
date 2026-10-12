@@ -1,6 +1,11 @@
 import { type ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { ScoreSeoRequest } from '@genfeedai/contracts/interfaces';
+import type {
+  IArticleDeliveryRequest,
+  IChannelTarget,
+  IReleaseGroup,
+  ScoreSeoRequest,
+} from '@genfeedai/contracts/interfaces';
 import type { ArticlePreviewLink } from '@genfeedai/contracts/interfaces/content/article-preview-link.interface';
 import type {
   ArticleTraffic,
@@ -12,6 +17,10 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import {
+  deserializeResource,
+  extractCollection,
+} from '@services/core/json-api';
 
 export interface GenerateArticlesRequest {
   prompt: string;
@@ -117,6 +126,33 @@ export class ArticlesService extends BaseService<Article> {
    * article. Only Genfeed's own articles have one; treat the URL as a bearer
    * credential.
    */
+  /**
+   * Publish the article to a connected Ghost, WordPress or Medium account of
+   * its brand. Returns the queued one-target release.
+   */
+  public async deliver(
+    id: string,
+    data: IArticleDeliveryRequest,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `${id}/deliveries`,
+      data,
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /** Delivery targets of this article, newest first, with their live URLs. */
+  public async findDeliveries(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IChannelTarget[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `${id}/deliveries`,
+      { signal },
+    );
+    return extractCollection<IChannelTarget>(response.data);
+  }
+
   public async createPreviewLink(id: string): Promise<ArticlePreviewLink> {
     const response = await this.instance.get<ArticlePreviewLink>(
       `${id}/preview-links`,

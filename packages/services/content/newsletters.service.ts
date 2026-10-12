@@ -1,3 +1,8 @@
+import type {
+  IChannelTarget,
+  INewsletterDeliveryRequest,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import { Newsletter } from '@genfeedai/models/content/newsletter.model';
 import {
   buildSerializer,
@@ -7,6 +12,10 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import {
+  deserializeResource,
+  extractCollection,
+} from '@services/core/json-api';
 
 export interface GenerateNewsletterTopicsRequest {
   count?: number;
@@ -31,6 +40,7 @@ export interface UpdateNewsletterRequest {
   angle?: string;
   content?: string;
   contextNewsletterIds?: string[];
+  externalUrl?: string | null;
   label?: string;
   sourceRefs?: Array<{
     label: string;
@@ -89,6 +99,33 @@ export class NewslettersService extends BaseService<Newsletter> {
       action: 'publish',
     });
     return this.mapOne(response.data);
+  }
+
+  /**
+   * Deliver the issue to a connected Beehiiv publication: send now, create a
+   * Beehiiv draft, or schedule the send. Returns the queued release.
+   */
+  public async deliver(
+    id: string,
+    data: INewsletterDeliveryRequest,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `${id}/deliveries`,
+      data,
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /** Delivery targets of this issue, newest first, with their live URLs. */
+  public async findDeliveries(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IChannelTarget[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `${id}/deliveries`,
+      { signal },
+    );
+    return extractCollection<IChannelTarget>(response.data);
   }
 
   public async archive(id: string): Promise<Newsletter> {

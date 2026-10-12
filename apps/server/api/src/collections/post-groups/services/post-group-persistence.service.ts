@@ -1,6 +1,7 @@
 import type {
   CreateAttachmentPostsParams,
   CreatePostGroupParams,
+  LongFormDeliverySource,
   ReleaseGroupListQuery,
   ReleaseGroupListResult,
   SchedulerCredential,
@@ -22,6 +23,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   PostCategory,
+  PostEntityModel,
   ReleaseAttachmentKind,
   ReleaseStatus,
 } from '@genfeedai/contracts';
@@ -152,6 +154,9 @@ const SCHEDULER_POST_TARGET_SELECT = {
   visibility: true,
   workflowExecutionId: true,
 } satisfies Prisma.PostSelect;
+
+/** Delivery history shown in the article and newsletter editors. */
+const SOURCE_RELEASE_LIMIT = 20;
 
 @Injectable()
 export class PostGroupPersistenceService {
@@ -314,6 +319,14 @@ export class PostGroupPersistenceService {
           }),
           ...(params.provenance?.agentThreadId && {
             agentThreadId: params.provenance.agentThreadId,
+          }),
+          ...(params.provenance?.sourceArticleId && {
+            entityArticleId: params.provenance.sourceArticleId,
+            entityModel: PostEntityModel.ARTICLE,
+          }),
+          ...(params.provenance?.sourceNewsletterId && {
+            entityModel: PostEntityModel.NEWSLETTER,
+            entityNewsletterId: params.provenance.sourceNewsletterId,
           }),
           brandId: context.brandId,
           category,
@@ -870,6 +883,39 @@ export class PostGroupPersistenceService {
     }
 
     return analyticsByTarget;
+  }
+
+  /**
+   * Releases that deliver one Article or Newsletter to its connected
+   * long-form accounts (#6753), newest first. The link is the target Post's
+   * `entityArticleId` / `entityNewsletterId`, written at release creation.
+   */
+  async listSourceReleases(
+    client: Pick<SchedulerTx, '$queryRaw' | 'post' | 'postGroup'>,
+    organizationId: string,
+    source: LongFormDeliverySource,
+  ): Promise<IReleaseGroup[]> {
+    const rows = await client.post.findMany({
+      distinct: ['groupId'],
+      orderBy: { createdAt: 'desc' },
+      select: { groupId: true },
+      take: SOURCE_RELEASE_LIMIT,
+      where: scopedWhere(organizationId, {
+        ...('articleId' in source
+          ? { entityArticleId: source.articleId }
+          : { entityNewsletterId: source.newsletterId }),
+        groupId: { not: null },
+        parentId: null,
+      }),
+    });
+
+    return Promise.all(
+      rows.flatMap((row) =>
+        row.groupId
+          ? [this.hydrateWithDerivedStatus(client, organizationId, row.groupId)]
+          : [],
+      ),
+    );
   }
 
   async hydrateWithDerivedStatus(

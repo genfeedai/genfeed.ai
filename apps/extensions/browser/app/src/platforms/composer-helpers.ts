@@ -55,47 +55,55 @@ export function getComposerState(
   };
 }
 
+/**
+ * Opens a collapsed reply box (YouTube, Reddit) so there is something to type
+ * into. Returns whether a composer is on the page afterwards; it never submits.
+ */
+export async function activateComposer(
+  platform: PlatformConfig | null,
+  waitMs = 800,
+): Promise<boolean> {
+  if (findComposeBox(platform)) return true;
+  const selector = platform?.selectors.replyActivator;
+  const activator = selector
+    ? document.querySelector<HTMLElement>(selector)
+    : null;
+  if (!activator) return false;
+  activator.click();
+  const deadline = Date.now() + waitMs;
+  while (Date.now() < deadline) {
+    if (findComposeBox(platform)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return findComposeBox(platform) !== null;
+}
+
+/**
+ * Puts `content` in the page's reply box as the user would type it. Nothing is
+ * submitted: the user reads it and posts it themselves.
+ */
 export function insertContentIntoComposer(
   content: string,
   platform: PlatformConfig | null,
 ): ComposerActionResult {
   const composeBox = findComposeBox(platform);
+  const editable = composeBox ? resolveEditable(composeBox) : null;
 
-  if (!composeBox) {
+  if (!editable) {
     return {
-      error: 'Compose box not found on the active page.',
+      error: composeBox
+        ? 'Unsupported composer element type.'
+        : 'Compose box not found on the active page. Click Reply on the post first, or copy the text.',
       success: false,
     };
   }
 
-  composeBox.focus();
-
-  if (
-    composeBox instanceof HTMLTextAreaElement ||
-    composeBox instanceof HTMLInputElement
-  ) {
-    composeBox.value = content;
-    dispatchComposerInputEvents(composeBox);
-    return { success: true };
-  }
-
-  if (composeBox.getAttribute('contenteditable') === 'true') {
-    composeBox.textContent = '';
-
-    if (typeof document.execCommand === 'function') {
-      document.execCommand('insertText', false, content);
-    } else {
-      composeBox.textContent = content;
-    }
-
-    dispatchComposerInputEvents(composeBox);
-    return { success: true };
-  }
-
-  return {
-    error: 'Unsupported composer element type.',
-    success: false,
-  };
+  replaceWholeDraft(editable, content);
+  return collapseWhitespace(readDraft(editable)).includes(
+    collapseWhitespace(content),
+  )
+    ? { success: true }
+    : { error: EDIT_NOT_ACCEPTED, success: false };
 }
 
 // === Reading and replacing the user's own draft (text actions) ===

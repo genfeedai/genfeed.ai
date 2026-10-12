@@ -11,6 +11,7 @@ import { InstagramPublisherService } from '@api/services/integrations/publishers
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
+import { MediumPublisherService } from '@api/services/integrations/publishers/medium-publisher.service';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
@@ -119,6 +120,10 @@ describe('PublisherFactoryService', () => {
           useValue: mockPublisher(CredentialPlatform.MASTODON),
         },
         {
+          provide: MediumPublisherService,
+          useValue: mockPublisher(CredentialPlatform.MEDIUM),
+        },
+        {
           provide: GhostPublisherService,
           useValue: mockPublisher(CredentialPlatform.GHOST),
         },
@@ -189,6 +194,11 @@ describe('PublisherFactoryService', () => {
     it('should return the mastodon publisher for MASTODON platform', () => {
       const publisher = service.getPublisher(CredentialPlatform.MASTODON);
       expect(publisher?.platform).toBe(CredentialPlatform.MASTODON);
+    });
+
+    it('should return the medium publisher for MEDIUM platform', () => {
+      const publisher = service.getPublisher(CredentialPlatform.MEDIUM);
+      expect(publisher?.platform).toBe(CredentialPlatform.MEDIUM);
     });
 
     it('should return the beehiiv publisher for BEEHIIV platform', () => {
@@ -397,6 +407,7 @@ describe('PublisherFactoryService', () => {
       CredentialPlatform.GHOST,
       CredentialPlatform.SHOPIFY,
       CredentialPlatform.BEEHIIV,
+      CredentialPlatform.MEDIUM,
     ] as const;
 
     it.each(SUPPORTED)(
@@ -420,8 +431,8 @@ describe('PublisherFactoryService', () => {
       expect(Array.isArray(service.getSupportedPlatforms())).toBe(true);
     });
 
-    it('should include all 17 registered platforms', () => {
-      expect(service.getSupportedPlatforms()).toHaveLength(17);
+    it('should include all 18 registered platforms', () => {
+      expect(service.getSupportedPlatforms()).toHaveLength(18);
     });
 
     it('should include TWITTER', () => {

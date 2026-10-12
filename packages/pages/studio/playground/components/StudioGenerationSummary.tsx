@@ -20,6 +20,7 @@ import { useTranslations } from 'next-intl';
 export default function StudioGenerationSummary({
   children,
   isDisabled = false,
+  isEstimateHidden = false,
   label,
   estimate,
   crunQuote,
@@ -147,16 +148,20 @@ export default function StudioGenerationSummary({
           >
             {showCredits ? (
               <div className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums">
-                <span
-                  role="status"
-                  aria-label={estimateLabel}
-                  title={estimateLabel}
-                >
-                  {compactEstimate === '…' || compactEstimate === '—'
-                    ? estimateLabel
-                    : compactEstimate}
-                </span>
-                <span aria-hidden="true">/</span>
+                {isEstimateHidden ? null : (
+                  <>
+                    <span
+                      role="status"
+                      aria-label={estimateLabel}
+                      title={estimateLabel}
+                    >
+                      {compactEstimate === '…' || compactEstimate === '—'
+                        ? estimateLabel
+                        : compactEstimate}
+                    </span>
+                    <span aria-hidden="true">/</span>
+                  </>
+                )}
                 <span
                   role="status"
                   aria-label={balanceLabel}

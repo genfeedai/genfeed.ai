@@ -204,6 +204,7 @@ enum PostCategory {
 enum PostEntityModel {
   INGREDIENT
   ARTICLE
+  NEWSLETTER
 }
 
 enum CredentialPlatform {
@@ -2782,6 +2783,8 @@ learningCheckpoints ContentLearningCheckpoint[]
   entityIngredient    Ingredient?        @relation("post_entity_ingredient", fields: [entityIngredientId], references: [id])
   entityArticleId     String?
   entityArticle       Article?           @relation("post_entity_article", fields: [entityArticleId], references: [id])
+  entityNewsletterId  String?
+  entityNewsletter    Newsletter?        @relation("post_entity_newsletter", fields: [entityNewsletterId], references: [id])
   entityModel         PostEntityModel?
   credentialId        String?
   credential          Credential?        @relation(fields: [credentialId], references: [id])
@@ -2924,6 +2927,8 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([externalId])
   @@index([originalPostId])
   @@index([groupId])
+  @@index([organizationId, entityArticleId], map: "posts_org_entity_article_idx")
+  @@index([organizationId, entityNewsletterId], map: "posts_org_entity_newsletter_idx")
   @@index([contentRunId])
   @@index([variantId])
   @@index([generationId])
@@ -4070,6 +4075,8 @@ model Article {
   coverImageUrl  String?
   status         ArticleStatus @default(DRAFT)
   publishedAt    DateTime?
+  // Live URL recorded when the article was published outside Genfeed (#6753).
+  externalUrl    String?
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -4147,11 +4154,14 @@ model Newsletter {
   approvedAt           DateTime?
   publishedAt          DateTime?
   scheduledFor         DateTime?
+  // Live URL recorded when the issue was sent outside Genfeed (#6753).
+  externalUrl          String?
   isDeleted            Boolean            @default(false)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
   articles           Article[]    @relation("newsletter_articles")
+  postEntities       Post[]       @relation("post_entity_newsletter")
   contextNewsletters Newsletter[] @relation("newsletter_context")
   contextOf          Newsletter[] @relation("newsletter_context")
 

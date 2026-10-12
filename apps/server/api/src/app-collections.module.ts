@@ -65,6 +65,7 @@ import { InsightsModule } from '@api/collections/insights/insights.module';
 import { LaunchCopyModule } from '@api/collections/launch-copy/launch-copy.module';
 import { LinksModule } from '@api/collections/links/links.module';
 import { ListeningTopicsModule } from '@api/collections/listening-topics/listening-topics.module';
+import { LongFormDeliveriesModule } from '@api/collections/long-form-deliveries/long-form-deliveries.module';
 import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -198,6 +199,7 @@ import { Module } from '@nestjs/common';
     TasksModule,
     LinksModule,
     ListeningTopicsModule,
+    LongFormDeliveriesModule,
     OutliersModule,
     MarketplaceIntegrationModule,
     McpApprovalsModule,

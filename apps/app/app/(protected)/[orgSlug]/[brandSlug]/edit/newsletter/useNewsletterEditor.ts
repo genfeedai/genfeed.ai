@@ -63,6 +63,7 @@ export function useNewsletterEditor(
     createEditorState(null),
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingExternalUrl, setIsSavingExternalUrl] = useState(false);
   const [loadingAction, setLoadingAction] =
     useState<NewsletterEditorLoadingAction>(null);
   const actionInFlightRef = useRef(false);
@@ -299,6 +300,42 @@ export function useNewsletterEditor(
     ],
   );
 
+  const handleDelivered = useCallback(async () => {
+    try {
+      const service = await getService();
+      const data = await service.findOne(newsletterId);
+      applyNewsletter(data);
+      await loadContext(newsletterId);
+    } catch (error) {
+      logger.error('Failed to reload newsletter after delivery', error);
+    }
+  }, [applyNewsletter, getService, loadContext, newsletterId]);
+
+  const handleSaveExternalUrl = useCallback(
+    async (externalUrl: string | null) => {
+      if (!newsletter) {
+        return;
+      }
+
+      setIsSavingExternalUrl(true);
+      try {
+        const service = await getService();
+        // Only the live link changes; unsaved editor fields stay as typed.
+        const updated = await service.patch(newsletter.id, { externalUrl });
+        setNewsletter(updated);
+        notificationsService.success(
+          externalUrl ? 'Live link saved' : 'Live link removed',
+        );
+      } catch (error) {
+        logger.error('Failed to save newsletter live link', error);
+        notificationsService.error('Failed to save the live link');
+      } finally {
+        setIsSavingExternalUrl(false);
+      }
+    },
+    [getService, newsletter, notificationsService],
+  );
+
   const handleArchive = useCallback(
     async (id: string) => {
       if (!newsletter || !beginAction('archiving')) {
@@ -332,11 +369,14 @@ export function useNewsletterEditor(
     editorState,
     handleApprove,
     handleArchive,
+    handleDelivered,
     handleEditorChange,
     handlePublish,
     handleRegenerate,
     handleSave,
+    handleSaveExternalUrl,
     isLoading,
+    isSavingExternalUrl,
     loadingAction,
     newsletter,
   };

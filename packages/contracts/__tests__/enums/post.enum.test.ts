@@ -75,13 +75,14 @@ describe('post.enum', () => {
   });
 
   describe('PostEntityModel', () => {
-    it('should have 2 members', () => {
-      expect(Object.values(PostEntityModel)).toHaveLength(2);
+    it('should have 3 members', () => {
+      expect(Object.values(PostEntityModel)).toHaveLength(3);
     });
 
     it('should have correct values', () => {
       expect(PostEntityModel.INGREDIENT).toBe('INGREDIENT');
       expect(PostEntityModel.ARTICLE).toBe('ARTICLE');
+      expect(PostEntityModel.NEWSLETTER).toBe('NEWSLETTER');
     });
   });
 });

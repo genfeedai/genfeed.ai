@@ -534,32 +534,30 @@ describe('GenerationSetupPopover', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers quality/budget priorities without a model catalogue in Auto', async () => {
+  it('shows only the output types in Auto', async () => {
     const user = userEvent.setup();
-    const onSetField = vi.fn();
+    const onEditChange = vi.fn();
     renderPopover({
-      onSetField,
       advancedMode: { isEnabled: false, onChange: vi.fn() },
+      imageEditing: {
+        isEnabled: false,
+        label: 'Edit image',
+        onChange: onEditChange,
+      },
     });
     await openPopover(user);
-    await user.click(
-      screen.getByRole('button', { name: 'Configure Quality / budget' }),
+    const types = within(screen.getByRole('group', { name: 'Type' }));
+    expect(types.getByRole('button', { name: 'Image' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-    expect(
-      screen.queryByPlaceholderText('Search models…'),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
-    for (const name of ['Best Quality', 'Balanced', 'Fastest', 'Lowest Cost'])
-      expect(screen.getByRole('button', { name })).toBeVisible();
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Lowest Cost' }), {
-      button: 0,
-    });
-    expect(onSetField).toHaveBeenNthCalledWith(1, 'modelKey', '');
-    expect(onSetField).toHaveBeenNthCalledWith(
-      2,
-      'prioritize',
-      RouterPriority.COST,
-    );
+    for (const name of ['Model', 'Output', 'Look', 'Brand'])
+      expect(
+        screen.queryByRole('button', { name: `Configure ${name}` }),
+      ).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Edit image' })).toBeNull();
+    await user.click(types.getByRole('button', { name: 'Edit image' }));
+    expect(onEditChange).toHaveBeenCalledWith(true);
   });
 
   it('keeps model search and Auto priorities isolated from output, brand, and presets', async () => {

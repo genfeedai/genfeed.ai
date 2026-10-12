@@ -23,6 +23,8 @@ export interface ModelSelectionOptions {
   duration?: number;
   speech?: string;
   outputs?: number;
+  /** Restricts video routing to models that accept an end frame. */
+  requiresEndFrame?: boolean;
   /**
    * Makes org-private registry rows (customer trainings, BYO models) eligible
    * for selection. Omitted, only platform rows are considered.

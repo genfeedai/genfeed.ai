@@ -68,4 +68,8 @@ export interface UseNewsletterEditorReturn {
   handlePublish: (id: string) => Promise<void>;
   handleRegenerate: () => Promise<void>;
   handleSave: () => Promise<void>;
+  /** Reload the issue after a Beehiiv delivery changed its status. */
+  handleDelivered: () => Promise<void>;
+  handleSaveExternalUrl: (externalUrl: string | null) => Promise<void>;
+  isSavingExternalUrl: boolean;
 }

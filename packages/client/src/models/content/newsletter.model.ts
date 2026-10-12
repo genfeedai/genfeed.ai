@@ -33,6 +33,7 @@ export class Newsletter extends BaseEntity {
   declare public approvedAt?: string;
   declare public publishedAt?: string;
   declare public scheduledFor?: string;
+  declare public externalUrl?: string | null;
 
   constructor(data: Partial<Newsletter> = {}) {
     super(data);

@@ -1,14 +1,13 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import { renderNewsletterHtml } from '@api/collections/newsletters/utils/newsletter-html.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type {
   NewsletterFeedBrand,
   NewsletterImportRecord,
 } from '@genfeedai/contracts/interfaces';
-import { sanitizeHtml } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
-import { marked } from 'marked';
 import RSS from 'rss';
 
 const PUBLISHED_NEWSLETTER_STATUS = 'published';
@@ -236,6 +235,6 @@ export class NewsletterImportFeedService {
   }
 
   private renderContent(content: string): string {
-    return sanitizeHtml(marked.parse(content, { async: false }));
+    return renderNewsletterHtml(content);
   }
 }

@@ -12,6 +12,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
+import { MediumPublisherService } from '@api/services/integrations/publishers/medium-publisher.service';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
@@ -67,6 +68,7 @@ export class PublisherFactoryService
       [CredentialPlatform.GHOST, GhostPublisherService],
       [CredentialPlatform.SHOPIFY, ShopifyPublisherService],
       [CredentialPlatform.BEEHIIV, BeehiivPublisherService],
+      [CredentialPlatform.MEDIUM, MediumPublisherService],
     ];
     // All publishers are required providers of this module. Strict lookup
     // keeps a missing registration a boot error instead of a publish failure.

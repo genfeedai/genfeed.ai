@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -22,7 +28,23 @@ vi.mock('~services/auth.service', () => ({
 }));
 
 vi.mock('~components/chat/ChatContainer', () => ({
-  ChatContainer: () => <div>Composer ready</div>,
+  ChatContainer: (props: {
+    initialAuthor?: string;
+    initialContent?: string;
+    initialPlatform?: string;
+    initialUrl?: string;
+    mode?: string;
+  }) => (
+    <div
+      data-author={props.initialAuthor ?? ''}
+      data-content={props.initialContent ?? ''}
+      data-mode={props.mode ?? 'chat'}
+      data-platform={props.initialPlatform ?? ''}
+      data-url={props.initialUrl ?? ''}
+    >
+      Composer ready
+    </div>
+  ),
 }));
 vi.mock('~components/create/CreatePanel', () => ({
   CreatePanel: () => null,
@@ -52,8 +74,8 @@ vi.mock('~hooks/use-account-theme-sync', () => ({
 vi.mock('~components/settings/BrandSelector', () => ({
   BrandSelector: () => null,
 }));
-vi.mock('~components/pages/IdeaDraftPage', () => ({
-  IdeaDraftPage: () => null,
+vi.mock('~components/pages/ImportedSourcesPage', () => ({
+  ImportedSourcesPage: () => null,
 }));
 vi.mock('~components/pages/KnowledgeCapturePage', () => ({
   KnowledgeCapturePage: () => null,
@@ -125,6 +147,39 @@ describe('SidePanel', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('opens the reply tab with the source post, its author and its platform', async () => {
+    auth.getAuthContext.mockResolvedValue({ organization: { id: 'org-1' } });
+    render(<SidePanel />);
+    expect(await screen.findByText('Composer ready')).toBeInTheDocument();
+    const message = {
+      payload: {
+        author: '@ada',
+        content: 'We just launched.',
+        platform: 'reddit',
+        type: 'REPLY',
+        url: 'https://www.reddit.com/r/a/comments/abc/title/',
+      },
+      type: 'OPEN_MODE',
+    };
+
+    act(() => {
+      for (const [listener] of vi.mocked(chrome.runtime.onMessage.addListener)
+        .mock.calls) {
+        (listener as (message: unknown) => void)(message);
+      }
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Composer ready').dataset).toMatchObject({
+        author: '@ada',
+        content: 'We just launched.',
+        mode: 'reply',
+        platform: 'reddit',
+        url: 'https://www.reddit.com/r/a/comments/abc/title/',
+      }),
+    );
+  });
+
   it('uses ThreadList for the history tab', () => {
     const sidepanelPath = path.resolve(testDir, '../src/sidepanel.tsx');
     const source = readFileSync(sidepanelPath, 'utf8');
@@ -155,7 +210,7 @@ describe('SidePanel', () => {
     expect(source).toContain('KnowledgeCapturePage');
     expect(source).toContain("type: 'addToKnowledge'");
     expect(source).not.toContain('captureSave');
-    expect(source).not.toContain("event: 'savePost'");
+    expect(source).not.toContain("event: 'importedSourceSave'");
   });
 });
 

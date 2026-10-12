@@ -144,7 +144,10 @@ describe('AgentConnectDialog', () => {
     expect(within(dialog).getAllByRole('tab')).toHaveLength(3);
     expect(
       within(dialog).getByRole('link', { name: 'Open Claude Customize' }),
-    ).toHaveAttribute('href', 'https://claude.ai/customize/connectors');
+    ).toHaveAttribute(
+      'href',
+      'https://claude.ai/customize/connectors?modal=add-custom-connector',
+    );
     fireEvent.mouseDown(
       within(dialog).getByRole('tab', { name: 'Claude Cowork' }),
     );

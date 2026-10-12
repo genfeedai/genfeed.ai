@@ -291,6 +291,8 @@ function dispatchMediaFamily(
       return handlers.mediaGenerationHandler.generateContent(params, ctx);
     case 'refine_text':
       return handlers.mediaGenerationHandler.refineText(params, ctx);
+    case 'generate_reply_variants':
+      return handlers.mediaGenerationHandler.generateReplyVariants(params, ctx);
     case 'generate':
       return handlers.mediaGenerationHandler.generate(params, ctx);
     case 'transform_media':

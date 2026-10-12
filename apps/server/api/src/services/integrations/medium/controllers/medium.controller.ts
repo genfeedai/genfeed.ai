@@ -21,15 +21,7 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import {
-  Body,
-  Controller,
-  HttpException,
-  Param,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, HttpException, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -170,54 +162,6 @@ export class MediumController {
       }
 
       return returnInternalServerError('Failed to verify Medium OAuth');
-    }
-  }
-
-  /**
-   * Publish article to Medium
-   * POST /services/medium/publish/:articleId
-   */
-  @Post('publish/:articleId')
-  async publishArticle(
-    @CurrentUser() user: User,
-    @Param('articleId') articleId: string,
-    @Query('brandId') brandId: string,
-    @Query('publishStatus')
-    publishStatus: 'public' | 'draft' | 'unlisted' = 'public',
-    @Query('credentialId') credentialId?: string,
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    this.loggerService.log(url, { articleId, brandId, publishStatus });
-
-    try {
-      if (!brandId) {
-        return returnBadRequest({
-          detail: 'Missing brandId',
-          title: 'Invalid payload',
-        });
-      }
-
-      const mediumPost = await this.mediumService.publishArticle(
-        articleId,
-        user.organizationId,
-        brandId,
-        publishStatus,
-        credentialId,
-      );
-
-      return {
-        data: mediumPost,
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      return returnInternalServerError('Failed to publish article to Medium');
     }
   }
 }

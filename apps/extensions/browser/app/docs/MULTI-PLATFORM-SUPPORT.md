@@ -207,7 +207,7 @@ The extension communicates with the Genfeed API:
 - **Authentication**: JWT tokens via `authService`
 - **Endpoints Used**:
   - `POST /posts/save` - Save posts
-  - `POST /prompts/tweet` - Generate replies
+  - `POST /agent-tools/generate_reply_variants/execute` - Generate reply options
   - `POST /ai/improve-tweet` - Improve content
   - `POST /ai/generate-image` - Generate images
 

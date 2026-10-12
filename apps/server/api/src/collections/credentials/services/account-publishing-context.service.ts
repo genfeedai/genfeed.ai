@@ -9,6 +9,7 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import { isNewsletterDeliveryPlatform } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingConstraints,
   AccountPublishingContext,
@@ -263,11 +264,15 @@ export class AccountPublishingContextService {
       return 'copy_only';
     }
 
-    if (
-      surface === 'image' ||
-      surface === 'video' ||
-      surface === 'newsletter'
-    ) {
+    // A newsletter issue delivers to a connected Beehiiv publication (#6753);
+    // on every other account it stays copy-out.
+    if (surface === 'newsletter') {
+      return isNewsletterDeliveryPlatform(platform)
+        ? 'publishable'
+        : 'copy_only';
+    }
+
+    if (surface === 'image' || surface === 'video') {
       return 'copy_only';
     }
 

@@ -105,6 +105,9 @@ describe('SchedulesService', () => {
         CredentialPlatform.TWITTER,
         CredentialPlatform.LINKEDIN,
         CredentialPlatform.BEEHIIV,
+        CredentialPlatform.GHOST,
+        CredentialPlatform.WORDPRESS,
+        CredentialPlatform.MEDIUM,
       ]);
     });
 

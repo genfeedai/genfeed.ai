@@ -14,6 +14,7 @@ import {
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
+  PostEntityModel,
   PostVisibility,
   PublishApprovalStatus,
   ReleaseStatus,
@@ -556,6 +557,54 @@ describe('PostGroupsService', () => {
       total: 1,
     });
   });
+
+  it.each([
+    CredentialPlatform.GHOST,
+    CredentialPlatform.WORDPRESS,
+    CredentialPlatform.MEDIUM,
+  ])(
+    'schedules a long-form %s release linked to its source article',
+    async (platform) => {
+      prisma.credential.findMany.mockResolvedValue([
+        makeCredential({ id: 'cred-blog', platform }),
+      ]);
+
+      const result = await service.create(
+        'org-1',
+        'user-1',
+        {
+          baseContent: '<h2>Intro</h2><p>Long-form body</p>',
+          brandId: 'brand-1',
+          status: ReleaseStatus.SCHEDULED,
+          targets: [
+            {
+              credentialId: 'cred-blog',
+              platform,
+              scheduledDate: '2026-07-09T12:00:00.000Z',
+            },
+          ],
+          timezone: 'UTC',
+          title: 'Launch notes',
+        },
+        undefined,
+        { source: 'article', sourceArticleId: 'article-1' },
+      );
+
+      expect(prisma.post.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            entityArticleId: 'article-1',
+            entityModel: PostEntityModel.ARTICLE,
+            label: 'Launch notes',
+            platform,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+            targetValidationState: TargetValidationState.VALID,
+          }),
+        }),
+      );
+      expect(result.status).toBe(ReleaseStatus.SCHEDULED);
+    },
+  );
 
   it('sets each channel target category from the linked release media', async () => {
     prisma.ingredient.findMany.mockResolvedValue([

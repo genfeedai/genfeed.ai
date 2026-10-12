@@ -76,7 +76,7 @@ describe('platform installation contracts', () => {
     (slug) => {
       const installation = getAgentClient(slug).installation;
       expect(installation.destination).toBe(
-        'https://claude.ai/customize/connectors',
+        'https://claude.ai/customize/connectors?modal=add-custom-connector',
       );
       expect(installation.instruction).toContain('Customize → Connectors');
     },

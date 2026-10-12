@@ -3,7 +3,11 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  RouterPriority,
+} from '@genfeedai/contracts';
 import {
   IMAGE_EDIT_CONTRACT_VERSION,
   LIBRARY_ASSETS_REFRESH_EVENT,
@@ -2171,6 +2175,33 @@ describe('StudioPlaygroundWorkspace', () => {
 
     expect(mocks.updateSettings).toHaveBeenCalledWith({
       modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
+    });
+  });
+
+  it('routes Auto for top quality in simple mode', async () => {
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: {
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+        prioritize: RouterPriority.COST,
+      },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioPlaygroundWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+      prioritize: RouterPriority.QUALITY,
     });
   });
 
@@ -2194,9 +2225,9 @@ describe('StudioPlaygroundWorkspace', () => {
       render(<StudioPlaygroundWorkspace />);
       await act(async () => {});
 
-      expect(mocks.updateSettings).not.toHaveBeenCalledWith({
-        modelKey: AUTO_MODEL_OPTION_VALUE,
-      });
+      expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+        expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+      );
     },
   );
 
@@ -2230,9 +2261,9 @@ describe('StudioPlaygroundWorkspace', () => {
     render(<StudioPlaygroundWorkspace />);
     await act(async () => {});
 
-    expect(mocks.updateSettings).not.toHaveBeenCalledWith({
-      modelKey: AUTO_MODEL_OPTION_VALUE,
-    });
+    expect(mocks.updateSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: AUTO_MODEL_OPTION_VALUE }),
+    );
   });
 
   it('does not request references after unmount while acquiring the service', async () => {
@@ -2431,6 +2462,78 @@ describe('StudioPlaygroundWorkspace', () => {
       mocks.settings.mockReturnValue({
         resetSettings: vi.fn(),
         settings: { modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1 },
+        setType: mocks.setType,
+        type: 'video',
+        updateSettings: vi.fn(),
+      });
+      // Real hook timing: restored uploads land one render after the
+      // Library references.
+      mocks.attachments.mockImplementation(
+        (options: { initialAttachments?: unknown[] }) => {
+          const [items, setItems] = useState<unknown[]>([]);
+          useEffect(() => {
+            setItems(options.initialAttachments ?? []);
+          }, [options.initialAttachments]);
+          return {
+            addFiles: vi.fn(),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () => [],
+            isUploading: false,
+            removeAttachment: vi.fn(),
+          };
+        },
+      );
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [{ id: 'upload-start', role: 'startFrame' }],
+        droppedReferenceIds: [],
+        references: [{ id: 'library-end', role: 'endFrame' }],
+        type: 'video',
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/end.png',
+          id: 'library-end',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/start.png',
+          id: 'upload-start',
+        },
+      ]);
+
+      render(<StudioPlaygroundWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: 'upload-start', role: 'startFrame' }),
+            expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+          ]),
+        ),
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+        ]),
+      );
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'Unsupported frame or video references were cleared for the selected model.',
+      );
+    });
+
+    it('keeps a restored end frame in Auto, where the router picks a model that accepts it', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: AUTO_MODEL_OPTION_VALUE },
         setType: mocks.setType,
         type: 'video',
         updateSettings: vi.fn(),

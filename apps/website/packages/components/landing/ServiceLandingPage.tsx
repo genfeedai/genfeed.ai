@@ -35,6 +35,9 @@ export interface ServiceLandingPageProps {
   slug: string;
 }
 
+// Marks the hero CTA; the topbar hides its own on phones while this is on screen.
+const HERO_CTA_SELECTOR = '[data-landing-hero-cta]';
+
 const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
 
 // Product acquisition pages sell one path: connect the agent you already use.
@@ -98,6 +101,9 @@ export default function ServiceLandingPage({
             ? 'Book a call'
             : 'Start free'
       }
+      hideActionWhileVisible={
+        config.isAgentFirst ? HERO_CTA_SELECTOR : undefined
+      }
       secondaryCtaHref={
         config.isAgentFirst
           ? undefined
@@ -142,7 +148,15 @@ export default function ServiceLandingPage({
             </>
           }
           description={config.heroDescription}
-          heroActions={<LandingActions slug={slug} />}
+          heroActions={
+            config.isAgentFirst ? (
+              <div className="w-full sm:w-auto" data-landing-hero-cta>
+                <LandingActions slug={slug} />
+              </div>
+            ) : (
+              <LandingActions slug={slug} />
+            )
+          }
           heroDetails={
             isBookingPage ? (
               <div>

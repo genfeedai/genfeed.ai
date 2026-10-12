@@ -1,9 +1,14 @@
 import { IngredientStatus } from '@genfeedai/contracts';
-import { TEXT_ACTION_MODES } from '@genfeedai/contracts/constants/text-action.constant';
+import {
+  REPLY_VARIANT_TONES,
+  TEXT_ACTION_MODES,
+} from '@genfeedai/contracts/constants/text-action.constant';
 import type {
   AgentArtifactReference,
   ExtensionWorkspaceSnapshot,
+  ReplyVariantsResult,
 } from '@genfeedai/contracts/interfaces';
+import type { SourceCaptureRequest } from '~models/imported-source.model';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
@@ -14,7 +19,10 @@ import {
   isGenfeedAuthUrl,
 } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
-import { handleExtensionImportMessage } from '~services/extension-import-message';
+import {
+  handleImportedSourceMessage,
+  IMPORTED_SOURCE_EVENTS,
+} from '~services/imported-source-message';
 import {
   discardKnowledgeCapture,
   enqueueKnowledgeCapture,
@@ -32,12 +40,20 @@ import {
   registerExtensionWrittenText,
 } from '~services/publication-capture.service';
 import {
+  handleSourceRemixMessage,
+  SOURCE_REMIX_EVENTS,
+} from '~services/source-remix-message';
+import {
   assertWorkspace,
   loadWorkspace,
   requireWorkspace,
   scopedWorkspaceRequest,
 } from '~services/workspace.service';
-import type { ExtensionMessage, TextActionRequest } from '~types/extension';
+import type {
+  ExtensionMessage,
+  ReplyVariantsRequest,
+  TextActionRequest,
+} from '~types/extension';
 import {
   extractKnowledgeSnapshot,
   prepareKnowledgeSnapshot,
@@ -64,6 +80,7 @@ chrome.sidePanel
 
 const CONTEXT_MENU_REMIX = 'genfeed-remix';
 const CONTEXT_MENU_IDEA = 'genfeed-idea';
+const CONTEXT_MENU_SOURCE = 'genfeed-source';
 
 chrome.runtime.onInstalled.addListener(() => {
   // Remove stale items before recreating
@@ -75,23 +92,57 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 
     chrome.contextMenus.create({
+      contexts: ['selection', 'page', 'link', 'image', 'video', 'audio'],
+      id: CONTEXT_MENU_SOURCE,
+      title: 'Save source to Genfeed',
+    });
+
+    chrome.contextMenus.create({
       contexts: ['selection', 'page', 'link'],
       id: CONTEXT_MENU_IDEA,
-      title: 'Save to Genfeed',
+      title: 'Add to Genfeed Knowledge',
     });
   });
 });
+
+/** What a context-menu click asks to capture, from the element that was clicked. */
+function sourceCaptureFor(
+  info: chrome.contextMenus.OnClickData,
+  pageUrl: string,
+): SourceCaptureRequest {
+  const mediaType = info.mediaType;
+  if (
+    (mediaType === 'image' || mediaType === 'video' || mediaType === 'audio') &&
+    info.srcUrl
+  ) {
+    return {
+      mediaKind: mediaType,
+      pageUrl,
+      scope: 'media',
+      targetUrl: info.srcUrl,
+    };
+  }
+  if (info.selectionText) {
+    return { pageUrl, scope: 'selection' };
+  }
+  if (info.linkUrl) {
+    return { pageUrl, scope: 'link', targetUrl: info.linkUrl };
+  }
+  return { pageUrl, scope: 'page' };
+}
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab?.id) {
     return;
   }
 
+  const pageUrl = info.pageUrl ?? tab.url ?? '';
   const content =
-    info.menuItemId === CONTEXT_MENU_IDEA
+    info.menuItemId === CONTEXT_MENU_IDEA ||
+    info.menuItemId === CONTEXT_MENU_SOURCE
       ? ''
       : (info.selectionText ?? info.linkUrl ?? '');
-  const url = info.linkUrl ?? info.pageUrl ?? tab.url ?? '';
+  const url = info.linkUrl ?? pageUrl;
 
   let messageType: ExtensionMessage['type'] | null = null;
 
@@ -99,6 +150,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     messageType = 'REMIX';
   } else if (info.menuItemId === CONTEXT_MENU_IDEA) {
     messageType = 'IDEA';
+  } else if (info.menuItemId === CONTEXT_MENU_SOURCE) {
+    messageType = 'SOURCE';
   }
 
   if (!messageType) {
@@ -114,6 +167,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       : info.linkUrl
         ? 'link'
         : 'page',
+    ...(messageType === 'SOURCE'
+      ? { sourceCapture: sourceCaptureFor(info, pageUrl) }
+      : {}),
   };
 
   // Open side panel then forward the message
@@ -333,15 +389,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       );
     return true;
   }
+  if (IMPORTED_SOURCE_EVENTS.has(request.event)) {
+    handleImportedSourceMessage(request, sender, sendResponse);
+    return true;
+  }
+  if (SOURCE_REMIX_EVENTS.has(request.event)) {
+    handleSourceRemixMessage(request, sendResponse);
+    return true;
+  }
   switch (request.event) {
     case 'checkAuth':
       checkAuthentication(sendResponse);
-      return true;
-
-    case 'listImportedPosts':
-    case 'openImportedRemix':
-    case 'savePost':
-      handleExtensionImportMessage(request, sendResponse);
       return true;
 
     case 'saveBookmark':
@@ -351,16 +409,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'generateReply':
-      generateAIReply(
-        {
-          platform: request.platform || 'twitter',
-          postAuthor: request.postAuthor,
-          postContent: request.postContent,
-          postId: request.postId,
-          url: request.url,
-        },
-        sendResponse,
-      );
+      generateSingleReply(request, sendResponse);
+      return true;
+
+    case 'generateReplyVariants':
+      generateReplyVariants(request, sendResponse);
       return true;
 
     case 'createVideo':
@@ -463,6 +516,7 @@ async function handleShortcutMode(
   type: ExtensionMessage['type'],
   payload:
     | {
+        author?: string;
         content?: string;
         url?: string;
         platform?: string;
@@ -483,6 +537,7 @@ async function handleShortcutMode(
     }
 
     const message: ExtensionMessage = {
+      author: payload?.author,
       content: payload?.content ?? '',
       platform: payload?.platform,
       captureMode: payload?.captureMode,
@@ -568,42 +623,60 @@ async function captureCurrentTab(mode: CaptureMode = 'page', url?: string) {
   return prepareKnowledgeSnapshot(result[0].result);
 }
 
-interface GenerateReplyParams {
-  postId: string;
-  url: string;
-  postContent: string;
-  postAuthor: string;
-  platform?: string;
+/** Reply options for a source post, drafted by the catalog action (#4342). */
+async function draftReplyVariants(
+  request: Partial<ReplyVariantsRequest>,
+): Promise<ReplyVariantsResult> {
+  if (
+    typeof request.postContent !== 'string' ||
+    !request.postContent.trim() ||
+    typeof request.platform !== 'string' ||
+    !request.platform ||
+    typeof request.requestKey !== 'string' ||
+    !request.tone ||
+    !(REPLY_VARIANT_TONES as readonly string[]).includes(request.tone)
+  ) {
+    throw new Error('Open a post to reply to first.');
+  }
+  const token = await authService.getToken();
+  if (!token) throw new Error('Not authenticated');
+  return new AgentToolsService(token).generateReplyVariants({
+    platform: request.platform,
+    postAuthor: request.postAuthor,
+    postContent: request.postContent,
+    requestKey: request.requestKey,
+    tone: request.tone,
+    variants: request.variants,
+  });
 }
 
-async function generateAIReply(
-  { url, postContent, postAuthor }: GenerateReplyParams,
+async function generateReplyVariants(
+  request: Partial<ReplyVariantsRequest>,
   sendResponse: SendResponse,
 ): Promise<void> {
-  const body = JSON.stringify({
-    length: 'medium',
-    tone: 'friendly',
-    tweetAuthor: postAuthor || '',
-    tweetContent: postContent || 'No content found',
-    tweetUrl: url || '',
-  });
+  try {
+    sendResponse({ result: await draftReplyVariants(request), success: true });
+  } catch (error) {
+    sendError(sendResponse, 'Failed to generate replies', error);
+  }
+}
 
-  await executeAuthenticatedRequest<{ reply?: string; message?: string }>(
-    '/prompts/tweet',
-    { body, method: 'POST' },
-    sendResponse,
-    (data) => {
-      if (data.reply) {
-        sendResponse({ reply: data.reply, success: true });
-      } else {
-        sendResponse({
-          error: data.message || 'Failed to generate reply',
-          success: false,
-        });
-      }
-    },
-    'generate reply',
-  );
+/** One reply in the default tone, for the single-click reply button. */
+async function generateSingleReply(
+  request: Partial<ReplyVariantsRequest>,
+  sendResponse: SendResponse,
+): Promise<void> {
+  try {
+    const { variants } = await draftReplyVariants({
+      ...request,
+      requestKey: crypto.randomUUID(),
+      tone: 'add-value',
+      variants: 1,
+    });
+    sendResponse({ reply: variants[0], success: true, variants });
+  } catch (error) {
+    sendError(sendResponse, 'Failed to generate reply', error);
+  }
 }
 
 async function refineText(
@@ -755,7 +828,7 @@ async function saveBookmark(
 }
 
 interface ReplyRequest {
-  url: string;
+  platform: string;
   postContent: string;
   postAuthor: string;
 }
@@ -782,26 +855,22 @@ async function generateReplyText(
     'Content-Type': 'application/json',
   });
 
-  const replyBody = JSON.stringify({
-    length: 'medium',
-    tone: 'friendly',
-    tweetAuthor: request.postAuthor || '',
-    tweetContent: request.postContent || 'No content found',
-    tweetUrl: request.url || '',
-  });
-
-  const response = await workspaceFetch(`${API_BASE}/prompts/tweet`, {
-    body: replyBody,
-    headers,
-    method: 'POST',
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.reply) {
-    return { error: data.message || 'Failed to generate reply' };
+  try {
+    const { variants } = await draftReplyVariants({
+      platform: request.platform,
+      postAuthor: request.postAuthor,
+      postContent: request.postContent,
+      requestKey: crypto.randomUUID(),
+      tone: 'add-value',
+      variants: 1,
+    });
+    return { headers, reply: variants[0], token };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : 'Failed to generate reply',
+    };
   }
-
-  return { headers, reply: data.reply, token };
 }
 
 interface MediaReplyRequest {
