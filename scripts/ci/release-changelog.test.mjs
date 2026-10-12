@@ -737,10 +737,18 @@ test('draft titles must equal the single-line release tag before GITHUB_OUTPUT',
   );
 });
 
-test('RELEASING.md distinguishes normal SHA equality from historical recovery ancestry', () => {
+test('RELEASING.md requires master ancestry for every release and the dispatched SHA for normal npm publication', () => {
   assert.match(
     releasingGuide,
-    /A normal release requires the pinned SHA to equal\ncurrent `master`; a validated historical recovery requires the recovered SHA to\nremain an ancestor of current `master`\./,
+    /Both a normal release and a validated historical recovery\nrequire the pinned SHA to remain an ancestor of current `master`/,
+  );
+  assert.match(
+    releasingGuide,
+    /A normal release\nalso requires the pinned SHA to equal the dispatched workflow SHA, which npm\nprovenance attests\./,
+  );
+  assert.doesNotMatch(
+    releasingGuide,
+    /A normal release requires the pinned SHA to equal\ncurrent `master`/,
   );
   assert.match(
     releasingGuide,
