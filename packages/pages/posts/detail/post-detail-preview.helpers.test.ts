@@ -50,6 +50,18 @@ function makePost(overrides: Partial<IPost> = {}): IPost {
 }
 
 describe('buildPostTargetPreview', () => {
+  it('shows the saved privacy and publishing settings in the platform preview', () => {
+    const targetSettings = {
+      privacyLevel: 'private',
+      musicUsageAccepted: true,
+    };
+    const preview = buildPostTargetPreview(
+      makePost({ platform: Platform.TIKTOK, targetSettings }),
+      '',
+      undefined,
+    );
+    expect(preview?.target.settings).toEqual(targetSettings);
+  });
   it('returns null when the post has no resolved platform', () => {
     expect(
       buildPostTargetPreview(makePost({ platform: undefined }), '', undefined),

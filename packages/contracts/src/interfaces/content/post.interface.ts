@@ -44,6 +44,7 @@ export interface IPost extends IBaseEntity {
   tags?: ITag[];
   status: string;
   targetExecutionState: TargetExecutionState;
+  targetSettings?: Record<string, unknown> | null;
   visibility?: PostVisibility;
   scheduledDate?: string | null;
   uploadedAt: string;

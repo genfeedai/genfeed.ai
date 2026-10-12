@@ -159,6 +159,53 @@ describe('PostsController.buildFindAllQuery', () => {
   });
 });
 
+describe('PostsController editor media and account', () => {
+  it('loads the actual account and scoped video duration metadata for the editor', async () => {
+    const findAll = vi.fn().mockResolvedValue({ docs: [] });
+    const controller = new PostsController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { findAll } as never,
+      {} as never,
+    );
+    const request = {
+      headers: {},
+      get: vi.fn().mockReturnValue('localhost'),
+      path: '/posts/post-1',
+      protocol: 'https',
+    } as never;
+    await expect(
+      controller.findOne(request, makeUser(), 'post-1'),
+    ).rejects.toMatchObject({
+      status: 404,
+      response: { detail: 'Post not found' },
+    });
+    expect(findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'post-1', organizationId: 'org-1', isDeleted: false },
+        include: {
+          credential: {
+            select: expect.objectContaining({
+              externalName: true,
+              externalHandle: true,
+              id: true,
+            }),
+          },
+          ingredients: {
+            include: { metadata: true },
+            where: { organizationId: 'org-1', isDeleted: false },
+          },
+        },
+      }),
+      { pagination: false },
+    );
+  });
+});
+
 describe('PostsController.create account-health warmup gate', () => {
   const request = {
     get: vi.fn().mockReturnValue('localhost'),

@@ -7,6 +7,7 @@ import {
 import {
   ButtonSize,
   ButtonVariant,
+  CredentialPlatform,
   normalizeReviewDecision,
   type PageScope,
   PostRepurposeMode,
@@ -134,6 +135,42 @@ export default function PostDetail({
     refreshPost,
   } = hookData;
   const [isScoringSeo, setIsScoringSeo] = useState(false);
+  const [isTikTokPublishingReady, setIsTikTokPublishingReady] = useState(false);
+  const guardTikTokPublish = useCallback(
+    (action: () => Promise<void>) => {
+      return async () => {
+        if (
+          post?.platform === CredentialPlatform.TIKTOK &&
+          !isTikTokPublishingReady
+        ) {
+          notificationsService.error(
+            'Review and save the TikTok publishing settings before posting.',
+          );
+          return;
+        }
+        await handleContentSave();
+        await action();
+      };
+    },
+    [
+      handleContentSave,
+      isTikTokPublishingReady,
+      notificationsService,
+      post?.platform,
+    ],
+  );
+  const publishNow = useMemo(
+    () => guardTikTokPublish(handlePublishNow),
+    [guardTikTokPublish, handlePublishNow],
+  );
+  const publishViaTikTokApp = useMemo(
+    () => guardTikTokPublish(handlePublishViaTikTokApp),
+    [guardTikTokPublish, handlePublishViaTikTokApp],
+  );
+  const saveSchedule = useMemo(
+    () => guardTikTokPublish(handleScheduleSave),
+    [guardTikTokPublish, handleScheduleSave],
+  );
   const [isComposerPreview, setIsComposerPreview] = useState(false);
   const contextSidebar = useContextSidebar();
   const isStandalonePage = presentation === 'page' && !renderContextSidebar;
@@ -292,10 +329,12 @@ export default function PostDetail({
           analyticsStats={analyticsStats}
           reviewSummary={reviewSummary}
           onScheduleChange={handleScheduleChange}
-          onScheduleSave={handleScheduleSave}
-          onPublishNow={handlePublishNow}
-          onPublishViaTikTokApp={handlePublishViaTikTokApp}
+          onScheduleSave={saveSchedule}
+          onPublishNow={publishNow}
+          onPublishViaTikTokApp={publishViaTikTokApp}
           onScoreSeo={handleScoreSeo}
+          onSettingsSaved={() => refreshPost(true)}
+          onTikTokReadinessChange={setIsTikTokPublishingReady}
         />
         {!isStandalonePage && targetPreview ? (
           <TargetPreview {...targetPreview} />
@@ -310,10 +349,10 @@ export default function PostDetail({
     credential,
     descriptionDraft,
     handleScheduleChange,
-    handleScheduleSave,
-    handlePublishNow,
-    handlePublishViaTikTokApp,
     handleScoreSeo,
+    publishNow,
+    publishViaTikTokApp,
+    saveSchedule,
     isContentDirty,
     isPublished,
     isSavingSchedule,
@@ -321,6 +360,7 @@ export default function PostDetail({
     isScoringSeo,
     isStandalonePage,
     post,
+    refreshPost,
     reviewSummary,
     scheduleDraft,
   ]);
@@ -393,8 +433,8 @@ export default function PostDetail({
               onDuplicate={handleDuplicate}
               onExpandToThread={handleExpandToThread}
               onRepurpose={handleRepurpose}
-              onPublishNow={handlePublishNow}
-              onScheduleSave={handleScheduleSave}
+              onPublishNow={publishNow}
+              onScheduleSave={saveSchedule}
               isScheduleDirty={isScheduleDirty && scheduleDraft !== ''}
               isSavingSchedule={isSavingSchedule}
             />
@@ -409,7 +449,7 @@ export default function PostDetail({
             <PostDetailNeedsYou
               className="mb-6"
               isPublished={isPublished}
-              onPublishNow={handlePublishNow}
+              onPublishNow={publishNow}
               onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
               post={post}
             />

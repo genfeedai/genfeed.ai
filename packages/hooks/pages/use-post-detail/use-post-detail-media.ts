@@ -5,9 +5,10 @@ import {
   useGenerateIllustrationModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
-  type CredentialPlatform,
+  CredentialPlatform,
   IngredientCategory,
   type Platform,
+  PostCategory,
 } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
@@ -68,15 +69,18 @@ export function usePostDetailMedia({
         return;
       }
 
-      const ingredientCategory =
-        currentIngredients[0]?.category || IngredientCategory.IMAGE;
-
-      const platform = targetPost?.credential?.platform as
-        | CredentialPlatform
-        | undefined;
+      const platform = targetPost.platform ?? targetPost.credential?.platform;
+      const isVideoPlatform =
+        platform === CredentialPlatform.TIKTOK ||
+        platform === CredentialPlatform.YOUTUBE;
+      const ingredientCategory = isVideoPlatform
+        ? IngredientCategory.VIDEO
+        : currentIngredients[0]?.category || IngredientCategory.IMAGE;
 
       const carouselLimits = platform ? getCarouselLimits(platform) : null;
-      const maxSelectableItems = carouselLimits?.max ?? 35;
+      const maxSelectableItems = isVideoPlatform
+        ? 1
+        : (carouselLimits?.max ?? 35);
       const format = getFormatForPlatform(platform as Platform);
       const selectedIds = currentIngredients.map((ing) => ing.id);
 
@@ -97,6 +101,13 @@ export function usePostDetailMedia({
             const service = await getPostsService();
             await service.patch(targetPostId, {
               ingredients: uniqueIngredients.map((ing) => ing.id),
+              ...(isVideoPlatform
+                ? {
+                    category: uniqueIngredients.length
+                      ? PostCategory.VIDEO
+                      : PostCategory.TEXT,
+                  }
+                : {}),
             });
 
             if (isParentPost) {
@@ -104,6 +115,13 @@ export function usePostDetailMedia({
               setPost((prevPost) => ({
                 ...(prevPost || (post as IPost)),
                 ingredients: uniqueIngredients,
+                ...(isVideoPlatform
+                  ? {
+                      category: uniqueIngredients.length
+                        ? PostCategory.VIDEO
+                        : PostCategory.TEXT,
+                    }
+                  : {}),
               }));
             } else {
               handleUpdateChild(targetPostId, {

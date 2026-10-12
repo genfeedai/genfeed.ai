@@ -117,7 +117,7 @@ export function buildPostTargetPreview(
       platform: post.platform,
       releaseId: post.groupId ?? post.id,
       retryCount: 0,
-      settings: {},
+      settings: post.targetSettings ?? {},
       source: ReleaseTargetSource.MANUAL,
       timezone: 'UTC',
       updatedAt: post.updatedAt,

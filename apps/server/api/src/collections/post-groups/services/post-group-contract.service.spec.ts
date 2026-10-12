@@ -6,6 +6,8 @@ import type {
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import {
   CredentialPlatform,
+  IngredientCategory,
+  PostCategory,
   PostStatus,
   PostVisibility,
   ReleaseStatus,
@@ -496,6 +498,33 @@ describe('PostGroupContractService', () => {
   });
 
   describe('validateTargetUpdate (#5193)', () => {
+    it('validates the target video added after creating a media-less release', () => {
+      const validation = service.validateTargetUpdate(
+        makeGroup({ media: [] }),
+        makeTarget({
+          category: PostCategory.VIDEO,
+          ingredients: [{ id: 'video-1', category: IngredientCategory.VIDEO }],
+          platform: CredentialPlatform.YOUTUBE,
+          targetSettings: { privacyStatus: 'private' },
+        }),
+        { visibility: PostVisibility.PRIVATE },
+      );
+      expect(validation?.valid).toBe(true);
+    });
+
+    it('does not reuse release media after the target media was removed', () => {
+      expect(() =>
+        service.validateTargetUpdate(
+          makeGroup({ media: [{ assetId: 'video-1', kind: 'video' }] }),
+          makeTarget({
+            category: PostCategory.VIDEO,
+            ingredients: [],
+            platform: CredentialPlatform.YOUTUBE,
+          }),
+          { visibility: PostVisibility.PRIVATE },
+        ),
+      ).toThrow();
+    });
     it('does not re-run the channel contract when neither settings nor visibility change', () => {
       const validation = service.validateTargetUpdate(
         makeGroup(),

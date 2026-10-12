@@ -7,9 +7,12 @@ describe('resolveTikTokPrivacyLevel', () => {
     ).toBe('PUBLIC_TO_EVERYONE');
   });
 
-  it('falls back to the account-safe privacy level', () => {
-    expect(
+  it('rejects a missing or unavailable creator selection', () => {
+    expect(() =>
       resolveTikTokPrivacyLevel(['PUBLIC_TO_EVERYONE', 'SELF_ONLY'], 'friends'),
-    ).toBe('SELF_ONLY');
+    ).toThrow('Choose an available');
+    expect(() => resolveTikTokPrivacyLevel(['SELF_ONLY'])).toThrow(
+      'Choose an available',
+    );
   });
 });

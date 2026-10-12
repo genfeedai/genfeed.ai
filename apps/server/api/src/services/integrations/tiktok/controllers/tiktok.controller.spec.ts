@@ -343,6 +343,7 @@ describe('TiktokController', () => {
 
       expect(tiktokAuthorizedSignalsService.refresh).toHaveBeenCalledWith({
         credentialId,
+        force: true,
         organizationId: orgId,
       });
       expect(credentialsService.findOne).toHaveBeenCalledWith({

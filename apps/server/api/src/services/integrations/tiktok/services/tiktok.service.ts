@@ -19,6 +19,7 @@ import {
   type ChannelTargetSettings,
   readChannelSettingBoolean,
   readChannelSettingString,
+  validateTikTokPublishingSettings,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   ISocialTrend,
@@ -240,6 +241,11 @@ export class TiktokService {
     }
 
     const requestedPrivacy = readChannelSettingString(settings, 'privacyLevel');
+    const consentIssues = validateTikTokPublishingSettings(
+      settings,
+      availablePrivacyLevels,
+    );
+    if (consentIssues.length > 0) throw new Error(consentIssues.join(' '));
     const privacyLevel = resolveTikTokPrivacyLevel(
       availablePrivacyLevels,
       requestedPrivacy,
@@ -284,7 +290,7 @@ export class TiktokService {
     }
 
     const allowed = readChannelSettingBoolean(settings, key);
-    return allowed === undefined ? false : !allowed;
+    return allowed !== true;
   }
 
   /**
@@ -674,20 +680,25 @@ export class TiktokService {
         settings,
       );
 
-      const description =
-        htmlToText(post.description) || 'Check out this video! #fyp';
+      const description = htmlToText(post.description);
 
       const res = await firstValueFrom(
         this.httpService.post(
           `${this.endpoint}/post/publish/video/init/`,
           {
             post_info: {
+              brand_content_toggle:
+                settings.commercialContent === true &&
+                settings.brandedContent === true,
+              brand_organic_toggle:
+                settings.commercialContent === true &&
+                settings.yourBrand === true,
               description,
               disable_comment: disableOptions.comment,
               disable_duet: disableOptions.duet,
               disable_stitch: disableOptions.stitch,
               privacy_level: privacyLevel,
-              title: post.label || 'Check out this video!',
+              title: description || post.label || '',
             },
             source_info: {
               source: 'PULL_FROM_URL',
@@ -836,6 +847,12 @@ export class TiktokService {
             media_type: 'PHOTO',
             post_info: {
               auto_add_music: true,
+              brand_content_toggle:
+                settings.commercialContent === true &&
+                settings.brandedContent === true,
+              brand_organic_toggle:
+                settings.commercialContent === true &&
+                settings.yourBrand === true,
               description,
               disable_comment: disableOptions.comment,
               privacy_level: privacyLevel,

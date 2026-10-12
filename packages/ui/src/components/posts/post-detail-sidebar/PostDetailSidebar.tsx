@@ -21,6 +21,7 @@ import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import TikTokPublishingSettings from '@ui/posts/tiktok-publishing/TikTokPublishingSettings';
 import { Zap } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -44,6 +45,8 @@ export default function PostDetailSidebar({
   onPublishNow,
   onPublishViaTikTokApp,
   onScoreSeo,
+  onSettingsSaved,
+  onTikTokReadinessChange,
   className = '',
 }: PostDetailSidebarProps) {
   // Get browser timezone for consistent date display
@@ -88,6 +91,14 @@ export default function PostDetailSidebar({
   return (
     <div className={`space-y-3 ${className}`}>
       <PostSidebarPlatformCard post={post} credential={credential} />
+      {!isPublished && post.platform === CredentialPlatform.TIKTOK ? (
+        <TikTokPublishingSettings
+          key={post.id}
+          post={post}
+          onSaved={onSettingsSaved}
+          onReadinessChange={onTikTokReadinessChange}
+        />
+      ) : null}
 
       {isPublished && analyticsStats.length > 0 && (
         <PostSidebarAnalyticsCard analyticsStats={analyticsStats} />

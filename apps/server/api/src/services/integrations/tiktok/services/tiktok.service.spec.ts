@@ -146,6 +146,7 @@ describe('TiktokService', () => {
         'account-id',
         'http://video.url',
         mockPost,
+        { privacyLevel: 'private', musicUsageAccepted: true },
       );
 
       expect(res.data?.post_id).toEqual('post-123');
@@ -189,7 +190,7 @@ describe('TiktokService', () => {
         'account-id',
         'http://video.url',
         mockPost,
-        {},
+        { privacyLevel: 'private', musicUsageAccepted: true },
         'credential-42',
       );
 
@@ -233,6 +234,7 @@ describe('TiktokService', () => {
           'account-id',
           'http://video.url',
           mockPost,
+          { privacyLevel: 'private', musicUsageAccepted: true },
         ),
       ).rejects.toThrow('TikTok API returned non-200 status');
 
@@ -359,26 +361,62 @@ describe('TiktokService', () => {
         'account-id',
         'http://video.url',
         buildMockPost({ label: 'Test video' }),
-        { privacyLevel: 'public' },
+        { privacyLevel: 'public', musicUsageAccepted: true },
       );
 
       expect(postInfoOf().privacy_level).toBe('PUBLIC_TO_EVERYONE');
     });
 
-    it('falls back to the safe default when the account cannot offer the requested level', async () => {
-      // TikTok rejects the whole publish for a level missing from
-      // `privacy_level_options`, so an unavailable choice must degrade.
-      arrangeUpload({ privacy_level_options: ['SELF_ONLY'] });
+    it('requires the creator music confirmation before posting', async () => {
+      arrangeUpload();
+      await expect(
+        service.uploadVideo(
+          'org-id',
+          'account-id',
+          'http://video.url',
+          buildMockPost({ label: 'Test video' }),
+          { privacyLevel: 'private' },
+        ),
+      ).rejects.toThrow('Music Usage Confirmation');
+      expect(httpService.post).not.toHaveBeenCalled();
+    });
 
+    it('sends the creator caption and commercial disclosure without adding promotional text', async () => {
+      arrangeUpload();
       await service.uploadVideo(
         'org-id',
         'account-id',
         'http://video.url',
-        buildMockPost({ label: 'Test video' }),
-        { privacyLevel: 'public' },
+        buildMockPost({
+          description: '<p>My own caption</p>',
+          label: 'Internal title',
+        }),
+        {
+          privacyLevel: 'public',
+          musicUsageAccepted: true,
+          commercialContent: true,
+          yourBrand: true,
+        },
       );
+      expect(postInfoOf()).toMatchObject({
+        title: 'My own caption',
+        brand_content_toggle: false,
+        brand_organic_toggle: true,
+      });
+    });
 
-      expect(postInfoOf().privacy_level).toBe('SELF_ONLY');
+    it('rejects an unavailable privacy selection before initializing a post', async () => {
+      arrangeUpload({ privacy_level_options: ['SELF_ONLY'] });
+      await expect(
+        service.uploadVideo(
+          'org-id',
+          'account-id',
+          'http://video.url',
+          buildMockPost({ label: 'Test video' }),
+          { privacyLevel: 'public', musicUsageAccepted: true },
+        ),
+      ).rejects.toThrow('not available');
+      expect(httpService.post).not.toHaveBeenCalled();
     });
 
     it('disables the interactions the composer turned off', async () => {
@@ -389,7 +427,13 @@ describe('TiktokService', () => {
         'account-id',
         'http://video.url',
         buildMockPost({ label: 'Test video' }),
-        { allowComments: false, allowDuet: false, allowStitch: true },
+        {
+          privacyLevel: 'private',
+          musicUsageAccepted: true,
+          allowComments: false,
+          allowDuet: false,
+          allowStitch: true,
+        },
       );
 
       expect(postInfoOf()).toMatchObject({
@@ -408,13 +452,17 @@ describe('TiktokService', () => {
         'account-id',
         'http://video.url',
         buildMockPost({ label: 'Test video' }),
-        { allowComments: true },
+        {
+          privacyLevel: 'private',
+          musicUsageAccepted: true,
+          allowComments: true,
+        },
       );
 
       expect(postInfoOf().disable_comment).toBe(true);
     });
 
-    it('leaves interactions enabled when the composer set nothing', async () => {
+    it('keeps interactions disabled until the creator opts in', async () => {
       arrangeUpload();
 
       await service.uploadVideo(
@@ -422,12 +470,13 @@ describe('TiktokService', () => {
         'account-id',
         'http://video.url',
         buildMockPost({ label: 'Test video' }),
+        { privacyLevel: 'private', musicUsageAccepted: true },
       );
 
       expect(postInfoOf()).toMatchObject({
-        disable_comment: false,
-        disable_duet: false,
-        disable_stitch: false,
+        disable_comment: true,
+        disable_duet: true,
+        disable_stitch: true,
       });
     });
   });

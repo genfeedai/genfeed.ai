@@ -1,3 +1,4 @@
+import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { usePostDetailMedia } from '@hooks/pages/use-post-detail/use-post-detail-media';
 import { act, renderHook } from '@testing-library/react';
@@ -110,6 +111,25 @@ describe('usePostDetailMedia', () => {
     expect(typeof result.current.handleSelectMedia).toBe('function');
     expect(typeof result.current.handleGenerateIllustration).toBe('function');
   });
+
+  it.each([CredentialPlatform.TIKTOK, CredentialPlatform.YOUTUBE])(
+    'opens videos for an empty %s draft without a hydrated credential',
+    (platform) => {
+      const { result } = renderHook(() =>
+        usePostDetailMedia({
+          ...baseProps,
+          post: { ...PARENT_POST, credential: undefined, platform },
+        }),
+      );
+      act(() => result.current.handleSelectMedia('post-1', []));
+      expect(mockOpenGallery).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: IngredientCategory.VIDEO,
+          maxSelectableItems: 1,
+        }),
+      );
+    },
+  );
 
   it('opens the gallery with carousel limits and current selection', () => {
     const { result } = renderHook(() => usePostDetailMedia(baseProps));

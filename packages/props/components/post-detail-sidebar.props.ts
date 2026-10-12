@@ -36,5 +36,7 @@ export interface PostDetailSidebarProps {
   onPublishNow?: () => void;
   onPublishViaTikTokApp?: () => void;
   onScoreSeo?: () => void | Promise<void>;
+  onSettingsSaved?: () => Promise<void>;
+  onTikTokReadinessChange?: (isReady: boolean) => void;
   className?: string;
 }

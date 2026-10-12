@@ -308,6 +308,7 @@ export class TiktokController {
   ) {
     await this.tiktokAuthorizedSignalsService.refresh({
       credentialId,
+      force: true,
       organizationId: user.organizationId,
     });
 

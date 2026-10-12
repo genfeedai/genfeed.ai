@@ -16,7 +16,7 @@ import type {
   IReleaseGroup,
   PostGroupCreateProvenance,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import type { Ingredient, Prisma } from '@genfeedai/prisma';
 
 export type SchedulerTx = Prisma.TransactionClient;
 
@@ -82,6 +82,7 @@ export type SchedulerPostTarget = {
   id: string;
   isDeleted: boolean;
   description?: string;
+  ingredients?: Pick<Ingredient, 'id' | 'category'>[];
   label?: string | null;
   lastAttemptAt: Date | null;
   order: number;

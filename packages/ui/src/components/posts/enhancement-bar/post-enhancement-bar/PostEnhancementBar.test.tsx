@@ -26,6 +26,12 @@ function typePrompt(value: string): void {
 }
 
 describe('PostEnhancementBar', () => {
+  it('exposes media selection as a named visible action', () => {
+    const onSelectMedia = vi.fn();
+    renderBar({ onSelectMedia });
+    fireEvent.click(screen.getByRole('button', { name: 'Add media' }));
+    expect(onSelectMedia).toHaveBeenCalledOnce();
+  });
   afterEach(() => {
     vi.clearAllMocks();
   });

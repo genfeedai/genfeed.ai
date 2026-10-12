@@ -200,9 +200,7 @@ async function scheduleTargetInTransaction(
   const validation = validateChannelTargetSettings({
     caption: group.baseContent,
     credentialId: targetInput.credentialId,
-    media: dependencies.contractService.toValidationMedia(
-      dependencies.contractService.asMedia(group.media),
-    ),
+    media: dependencies.contractService.toTargetValidationMedia(group, target),
     platform: targetInput.platform,
     publishMode: isDueNow ? 'publish_now' : 'scheduled',
     settings: targetInput.settings ?? {},

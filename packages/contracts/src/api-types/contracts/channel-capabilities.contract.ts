@@ -14,6 +14,10 @@ import {
   TargetValidationState,
 } from '../..';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
+import {
+  TIKTOK_PRIVACY_OPTIONS,
+  validateTikTokPublishingSettings,
+} from './tiktok-publishing.contract';
 
 /**
  * Publish readiness of a scheduler channel.
@@ -369,34 +373,56 @@ const channelCapabilities = [
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [
       {
-        defaultValue: 'public',
         helper: 'tiktok.accounts',
         key: 'privacyLevel',
         label: 'Privacy',
-        options: [
-          { label: 'Public', value: 'public' },
-          { label: 'Friends', value: 'friends' },
-          { label: 'Private', value: 'private' },
-        ],
+        options: TIKTOK_PRIVACY_OPTIONS.map(({ label, value }) => ({
+          label,
+          value,
+        })),
         required: true,
         type: 'select',
       },
       {
-        defaultValue: true,
+        defaultValue: false,
         key: 'allowComments',
         label: 'Allow comments',
         type: 'boolean',
       },
       {
-        defaultValue: true,
+        defaultValue: false,
         key: 'allowDuet',
         label: 'Allow duet',
         type: 'boolean',
       },
       {
-        defaultValue: true,
+        defaultValue: false,
         key: 'allowStitch',
         label: 'Allow stitch',
+        type: 'boolean',
+      },
+      {
+        defaultValue: false,
+        key: 'commercialContent',
+        label: 'Disclose commercial content',
+        type: 'boolean',
+      },
+      {
+        defaultValue: false,
+        key: 'yourBrand',
+        label: 'Your brand',
+        type: 'boolean',
+      },
+      {
+        defaultValue: false,
+        key: 'brandedContent',
+        label: 'Branded content',
+        type: 'boolean',
+      },
+      {
+        defaultValue: false,
+        key: 'musicUsageAccepted',
+        label: 'Music Usage Confirmation',
         type: 'boolean',
       },
     ],
@@ -918,6 +944,21 @@ export function validateChannelTargetSettings(
   errors.push(...validateSettings(parsedInput.data, capability));
   errors.push(...validateVisibility(parsedInput.data, capability));
   errors.push(...validateProviderConstraints(parsedInput.data, capability));
+  if (
+    normalizedPlatform === CredentialPlatform.TIKTOK &&
+    parsedInput.data.publishMode !== 'draft'
+  ) {
+    const consentIssues = validateTikTokPublishingSettings(
+      parsedInput.data.settings ?? {},
+    );
+    if (consentIssues.length > 0)
+      errors.push({
+        code: 'channel_target.tiktok_consent_required',
+        field: 'settings',
+        message: consentIssues.join(' '),
+        severity: 'error',
+      });
+  }
   warnings.push(...collectMediaWarnings(parsedInput.data, capability));
 
   return {

@@ -327,8 +327,26 @@ export class PostsController extends BaseCRUDController<
       user,
       request,
     );
-    // Build findAll query to fetch post with ingredients, credential, and evaluation
+    // The editor needs the selected account and media metadata for preview
+    // and provider-specific duration checks.
     const pipeline = {
+      include: {
+        credential: {
+          select: {
+            id: true,
+            platform: true,
+            externalHandle: true,
+            externalName: true,
+            externalAvatar: true,
+            label: true,
+            isConnected: true,
+          },
+        },
+        ingredients: {
+          include: { metadata: true },
+          where: { organizationId: tenant.organizationId, isDeleted: false },
+        },
+      },
       where: {
         id: postId,
         organizationId: tenant.organizationId,

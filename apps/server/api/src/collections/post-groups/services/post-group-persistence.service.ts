@@ -769,6 +769,12 @@ export class PostGroupPersistenceService {
     targetId: string,
   ): Promise<SchedulerPostTarget> {
     const target = (await client.post.findFirst({
+      include: {
+        ingredients: {
+          select: { category: true, id: true },
+          where: { isDeleted: false, organizationId },
+        },
+      },
       where: scopedWhere(organizationId, { groupId, id: targetId }),
     })) as SchedulerPostTarget | null;
 

@@ -59,10 +59,13 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
 
   public async refreshAuthorizedSignals(
     credentialId: string,
+    signal?: AbortSignal,
   ): Promise<ICredential> {
     return await this.instance
       .post<JsonApiResponseDocument>(
         `${credentialId}/authorized-signals/refresh`,
+        undefined,
+        { signal },
       )
       .then((res) => res.data)
       .then(

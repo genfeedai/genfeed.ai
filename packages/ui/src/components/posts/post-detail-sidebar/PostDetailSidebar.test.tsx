@@ -37,6 +37,9 @@ vi.mock('next/link', () => ({
 vi.mock('@ui/evaluation/card/EvaluationCard', () => ({
   default: () => <div>Evaluation Card</div>,
 }));
+vi.mock('@ui/posts/tiktok-publishing/TikTokPublishingSettings', () => ({
+  default: () => <div>TikTok publishing settings</div>,
+}));
 
 const baseProps: PostDetailSidebarProps = {
   analyticsStats: [],

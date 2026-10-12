@@ -253,10 +253,13 @@ export default function PostEnhancementBar({
             {/* Media Button */}
             {onSelectMedia && (
               <Button
+                ariaLabel={
+                  hasMedia ? `Change media (${mediaCount})` : 'Add media'
+                }
+                label={hasMedia ? `Media (${mediaCount})` : 'Add media'}
                 tooltipPosition="top"
                 variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.ICON}
-                className={BTN_ICON_CLASS}
+                size={ButtonSize.SM}
                 onClick={onSelectMedia}
                 tooltip={hasMedia ? `Media (${mediaCount})` : 'Select media'}
                 isDisabled={isSavingMedia}

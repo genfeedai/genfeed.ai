@@ -323,7 +323,7 @@ export class PostsService extends BaseService<
     id: string,
     dto: PostUpdateInput,
     populate: PopulateInput = [
-      PopulatePatterns.ingredientsMinimal,
+      { path: 'ingredients', populate: PopulatePatterns.metadataBasic },
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
       PopulatePatterns.brandMinimal,

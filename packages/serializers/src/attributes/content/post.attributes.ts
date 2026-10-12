@@ -58,6 +58,7 @@ export const postAttributes = createEntityAttributes([
   'retryCount',
   'lastAttemptAt',
   'targetError',
+  'targetSettings',
   'parentId',
   'parent',
   'children',

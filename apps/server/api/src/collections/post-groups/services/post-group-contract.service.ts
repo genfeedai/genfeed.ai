@@ -3,6 +3,7 @@ import type {
   SchedulerPostGroup,
   SchedulerPostTarget,
 } from '@api/collections/post-groups/services/post-group.types';
+import { toValidationMediaFromIngredients } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   CredentialPlatform,
   PostCategory,
@@ -191,6 +192,18 @@ export class PostGroupContractService {
     }
   }
 
+  toTargetValidationMedia(
+    group: SchedulerPostGroup,
+    target: SchedulerPostTarget,
+  ): ChannelValidationMedia | undefined {
+    return target.ingredients !== undefined
+      ? (toValidationMediaFromIngredients(
+          target.ingredients,
+          target.category,
+        ) ?? [])
+      : this.toValidationMedia(this.asMedia(group.media));
+  }
+
   validateTargetUpdate(
     group: SchedulerPostGroup,
     existing: SchedulerPostTarget,
@@ -213,7 +226,7 @@ export class PostGroupContractService {
               group.baseContent,
             ),
             credentialId: existing.credentialId,
-            media: this.toValidationMedia(this.asMedia(group.media)),
+            media: this.toTargetValidationMedia(group, existing),
             platform: existing.platform,
             publishMode:
               existing.targetExecutionState === TargetExecutionState.DRAFT
