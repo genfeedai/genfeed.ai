@@ -393,7 +393,14 @@ describe('LongFormDeliveriesService', () => {
       ]);
 
       await expect(
-        service.listArticleDeliveries(ctx, 'article-1'),
+        service.listArticleDeliveries(
+          {
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            ownerUserId: 'user-1',
+          },
+          'article-1',
+        ),
       ).resolves.toEqual([{ id: 'target-2' }, { id: 'target-1' }]);
       expect(prisma.article.findFirst).toHaveBeenCalledWith({
         select: { id: true },
@@ -414,11 +421,33 @@ describe('LongFormDeliveriesService', () => {
       prisma.article.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.listArticleDeliveries(ctx, 'article-2'),
+        service.listArticleDeliveries(
+          {
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            ownerUserId: 'user-1',
+          },
+          'article-2',
+        ),
       ).rejects.toThrow(NotFoundException);
       expect(
         postGroupPersistenceService.listSourceReleases,
       ).not.toHaveBeenCalled();
+    });
+
+    it('lets a superadmin organization override read without the ownership filter', async () => {
+      await service.listArticleDeliveries(
+        { organizationId: 'org-2' },
+        'article-1',
+      );
+
+      expect(prisma.article.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { id: 'article-1', isDeleted: false, organizationId: 'org-2' },
+      });
+      expect(
+        postGroupPersistenceService.listSourceReleases,
+      ).toHaveBeenCalledWith(prisma, 'org-2', { articleId: 'article-1' });
     });
 
     it('returns 404 for a newsletter in another organization', async () => {

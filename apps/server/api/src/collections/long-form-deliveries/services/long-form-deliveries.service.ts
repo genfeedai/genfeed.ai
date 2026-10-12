@@ -32,6 +32,13 @@ export type LongFormDeliveryContext = {
   userId: string;
 };
 
+/** Unset `ownerUserId` reads every article of the organization (superadmin override). */
+export type ArticleDeliveryReadScope = {
+  brandId?: string;
+  organizationId: string;
+  ownerUserId?: string;
+};
+
 type DeliveryRelease = {
   baseContent: string;
   brandId: string;
@@ -215,25 +222,30 @@ export class LongFormDeliveriesService {
 
   /**
    * Delivery targets of an article, newest first. Readable exactly when the
-   * article is (`GET /articles/:id`): the caller's organization and brand, and
-   * their own or an organization-scoped article.
+   * article is (`GET /articles/:id`): the selected organization and brand, and
+   * the caller's own or an organization-scoped article. A superadmin
+   * organization override reads without the ownership filter, as it does there.
    */
   async listArticleDeliveries(
-    ctx: LongFormDeliveryContext,
+    scope: ArticleDeliveryReadScope,
     articleId: string,
   ): Promise<IChannelTarget[]> {
     const article = await this.prisma.article.findFirst({
       select: { id: true },
-      where: scopedWhere(ctx.organizationId, {
-        ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
+      where: scopedWhere(scope.organizationId, {
+        ...(scope.brandId ? { brandId: scope.brandId } : {}),
         id: articleId,
-        OR: [{ userId: ctx.userId }, { scope: 'ORGANIZATION' }],
+        ...(scope.ownerUserId
+          ? { OR: [{ userId: scope.ownerUserId }, { scope: 'ORGANIZATION' }] }
+          : {}),
       }),
     });
     if (!article) {
       throw new NotFoundException('Article', articleId);
     }
-    return this.listDeliveries(ctx.organizationId, { articleId: article.id });
+    return this.listDeliveries(scope.organizationId, {
+      articleId: article.id,
+    });
   }
 
   /** Delivery targets of a newsletter the caller's organization owns, newest first. */
