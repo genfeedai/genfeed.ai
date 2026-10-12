@@ -64,9 +64,10 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // onboarding). It never reads another user's rows. #5981 made handlers run
     // inside the tenant context, which turned this into a production 500.
     // #5502 moved this unchanged discovery call four lines for native-app imports.
+    // The member role-authority helpers moved it again, unchanged.
     {
       file: 'apps/server/api/src/collections/members/services/members.service.ts',
-      line: 133,
+      line: 177,
     },
     // #6120: hidden system-workflow mirror upsert. System-principal rows are
     // platform-global and owned by the system principal, not the request
@@ -323,7 +324,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organization-scoped serializable transaction.
     {
       file: 'apps/server/api/src/collections/credits/services/free-trial.service.ts',
-      line: 125,
+      line: 127,
     },
     // #6120: the signup welcome entitlement is user-scoped across the user's
     // owned organizations.

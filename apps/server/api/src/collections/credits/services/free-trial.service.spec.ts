@@ -382,7 +382,10 @@ describe('FreeTrialService', () => {
     });
 
     it.each([
-      ['a shared wallet', subject({ billingAccount: { organizations: [{ id: 'o' }] } })],
+      [
+        'a shared wallet',
+        subject({ billingAccount: { organizations: [{ id: 'o' }] } }),
+      ],
       ['a warm-up workspace', subject({ warmupAccounts: [{ id: 'w' }] })],
       ['an operator comp', subject({ creditTransactions: [{ id: 'comp' }] })],
     ])(

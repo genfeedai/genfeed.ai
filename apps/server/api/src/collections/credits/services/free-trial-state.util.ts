@@ -1,5 +1,8 @@
 import { isSelfHostedDeployment, usesMeteredCredits } from '@genfeedai/config';
-import { ActivitySource, CreditTransactionCategory } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  CreditTransactionCategory,
+} from '@genfeedai/contracts';
 import { resolveFreeTrialEndsAt } from '@genfeedai/contracts/constants';
 import type { IFreeTrialState } from '@genfeedai/contracts/interfaces/billing';
 import {

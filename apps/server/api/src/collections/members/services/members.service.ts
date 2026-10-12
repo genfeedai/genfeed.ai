@@ -86,6 +86,7 @@ export class MembersService extends BaseService<
     organizationId: string,
     where: Prisma.MemberWhereInput,
   ): Promise<string | null> {
+    // tenant-scope-ignore: organizationId is pinned last and cannot be overridden; callers state isDeleted, because a restore target is a soft-deleted membership.
     const member = await this.prisma.member.findFirst({
       select: { role: { select: { key: true } } },
       where: { ...where, organizationId },
