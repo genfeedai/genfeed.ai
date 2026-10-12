@@ -287,7 +287,10 @@ export function publicationCaptureAttemptAllowsUrl(
   const source = publicationCapturePageUrl(attempt.documentUrl);
   if (!url || url.origin !== source?.origin) return false;
   // LinkedIn's composers submit in place: leaving the page abandons the attempt.
-  if (attempt.surface.kind.startsWith('linkedin-'))
+  if (
+    attempt.surface.kind === 'linkedin-post' ||
+    attempt.surface.kind === 'linkedin-comment'
+  )
     return (
       url.pathname.replace(/\/$/, '') === source.pathname.replace(/\/$/, '')
     );
