@@ -5,14 +5,10 @@ import {
   LibraryShelf,
   TagMatchMode,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen } from '@testing-library/react';
-import {
-  type ComponentProps,
-  createContext,
-  type ReactNode,
-  useContext,
-} from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import LibraryActiveFilters from './library-active-filters';
 import LibraryBrowserToolbar, {
   LibraryBrowserIconActions,
 } from './library-browser-toolbar';
@@ -28,88 +24,6 @@ const { useFeatureFlag } = vi.hoisted(() => ({
 
 vi.mock('@hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
   useFeatureFlag,
-}));
-
-vi.mock('@ui/dropdowns/multiselect/DropdownMultiSelect', () => ({
-  default: ({
-    onChange,
-    options,
-    placeholder,
-    values,
-  }: {
-    onChange: (name: string, values: string[]) => void;
-    options: readonly { label: string; value: string }[];
-    placeholder: string;
-    values: string[];
-  }) => (
-    <div>
-      <span>{placeholder}</span>
-      {options.map((option) => (
-        <button
-          aria-pressed={values.includes(option.value)}
-          key={option.value}
-          onClick={() => {
-            const next = values.includes(option.value)
-              ? values.filter((value) => value !== option.value)
-              : [...values, option.value];
-            onChange('categories', next);
-          }}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  ),
-}));
-
-const SelectValueContext = createContext<(value: string) => void>(() => {});
-
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({
-    children,
-    onValueChange,
-    value,
-  }: {
-    children?: ReactNode;
-    onValueChange?: (value: string) => void;
-    value?: string;
-  }) => (
-    <SelectValueContext.Provider value={onValueChange ?? (() => {})}>
-      <div data-select-value={value} data-testid="select">
-        {children}
-      </div>
-    </SelectValueContext.Provider>
-  ),
-  SelectContent: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectItem: function SelectItemMock({
-    children,
-    value,
-  }: {
-    children?: ReactNode;
-    value: string;
-  }) {
-    const onValueChange = useContext(SelectValueContext);
-    return (
-      <button onClick={() => onValueChange(value)} type="button">
-        {children}
-      </button>
-    );
-  },
-  SelectTrigger: ({
-    'aria-label': ariaLabel,
-    children,
-  }: {
-    'aria-label'?: string;
-    children?: ReactNode;
-  }) => (
-    <button aria-label={ariaLabel} type="button">
-      {children}
-    </button>
-  ),
-  SelectValue: () => <span>Newest first</span>,
 }));
 
 vi.mock('@ui/tags/library-tag-picker/LibraryTagManagerDialog', () => ({
@@ -145,6 +59,11 @@ vi.mock('@ui/navigation/view-toggle/ViewToggle', () => ({
   ),
 }));
 
+const SORT_OPTIONS = [
+  { label: 'Newest first', value: 'createdAt: -1' },
+  { label: 'Oldest first', value: 'createdAt: 1' },
+];
+
 function renderToolbar(
   overrides: Partial<ComponentProps<typeof LibraryBrowserToolbar>> = {},
 ): void {
@@ -155,10 +74,7 @@ function renderToolbar(
       characters={[]}
       onCategoriesChange={vi.fn()}
       onCharactersChange={vi.fn()}
-      onClearCategories={vi.fn()}
-      onClearCharacters={vi.fn()}
-      onClearOrigins={vi.fn()}
-      onClearTags={vi.fn()}
+      onClearAllFilters={vi.fn()}
       onOriginsChange={vi.fn()}
       onPlaceChange={vi.fn()}
       onSortChange={vi.fn()}
@@ -168,7 +84,7 @@ function renderToolbar(
       origins={[]}
       onViewModeChange={vi.fn()}
       sort="createdAt: -1"
-      sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
+      sortOptions={SORT_OPTIONS}
       tagMatch={TagMatchMode.ANY}
       tagOptions={[]}
       tags={[]}
@@ -178,9 +94,40 @@ function renderToolbar(
   );
 }
 
+function openFilters(): void {
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+}
+
+const TAG_OPTIONS = [
+  { assetCount: 14, id: 't1', label: 'S1E12' },
+  { assetCount: 3, id: 't2', label: 'Launch' },
+  { id: 't3', label: 'Mood' },
+] as ComponentProps<typeof LibraryBrowserToolbar>['tagOptions'];
+
 describe('LibraryBrowserToolbar', () => {
   beforeEach(() => {
     useFeatureFlag.mockReturnValue(true);
+  });
+
+  it('puts every filter behind one Filters trigger and leaves the choices closed', () => {
+    renderToolbar();
+
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
+    expect(screen.queryByText('Origin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sort')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status')).not.toBeInTheDocument();
+  });
+
+  it('counts the applied filters on the trigger', () => {
+    renderToolbar({
+      categories: [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT],
+      origins: [IngredientOrigin.UPLOADED],
+      place: LibraryPlace.STARRED,
+    });
+
+    expect(screen.getByRole('button', { name: /^Filters/ })).toHaveTextContent(
+      '3',
+    );
   });
 
   it('offers shelves and Trash as one status filter and hides an idle Generating row', () => {
@@ -195,81 +142,62 @@ describe('LibraryBrowserToolbar', () => {
       },
       trashedCount: 4,
     });
+    openFilters();
 
     expect(
-      screen.queryByRole('button', { name: 'Generating' }),
+      screen.queryByRole('radio', { name: 'Generating' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Needs review (2)' }),
+      screen.getByRole('radio', { name: 'Needs review (2)' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Failed (3)' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Failed (3)' }));
     expect(onStatusChange).toHaveBeenCalledWith(LibraryShelf.FAILED);
-    fireEvent.click(screen.getByRole('button', { name: 'Trash (4)' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Trash (4)' }));
     expect(onStatusChange).toHaveBeenCalledWith('trash');
-    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'All' }));
     expect(onStatusChange).toHaveBeenCalledWith(null);
   });
 
-  it('filters Recent and Starred from the show control, not the nav (#5502)', () => {
+  it('filters Recent and Starred from the show choices, not the nav (#5502)', () => {
     const onPlaceChange = vi.fn();
 
     renderToolbar({ onPlaceChange, place: LibraryPlace.STARRED });
+    openFilters();
 
-    expect(
-      screen.getByRole('button', { name: 'Show' }).parentElement,
-    ).toHaveAttribute('data-select-value', 'starred');
-    fireEvent.click(screen.getByRole('button', { name: 'Recent' }));
+    const show = screen.getByRole('group', { name: 'Show' });
+    expect(within(show).getByRole('radio', { name: 'Starred' })).toBeChecked();
+    fireEvent.click(within(show).getByRole('radio', { name: 'Recent' }));
     expect(onPlaceChange).toHaveBeenCalledWith(LibraryPlace.RECENT);
-    fireEvent.click(screen.getByRole('button', { name: 'All assets' }));
+    fireEvent.click(within(show).getByRole('radio', { name: 'All assets' }));
     expect(onPlaceChange).toHaveBeenCalledWith(null);
   });
 
-  it('shows every asset in the show control while Trash is the status', () => {
+  it('shows every asset in the show choices while Trash is the status', () => {
     renderToolbar({ place: LibraryPlace.TRASH });
+    openFilters();
 
+    const show = screen.getByRole('group', { name: 'Show' });
     expect(
-      screen.getByRole('button', { name: 'Show' }).parentElement,
-    ).toHaveAttribute('data-select-value', 'all');
+      within(show).getByRole('radio', { name: 'All assets' }),
+    ).toBeChecked();
   });
 
   it('hides presentation toggles only for grouped failure recovery', () => {
     renderToolbar({ isRecoveryView: true });
+
     expect(screen.queryByTestId('view-toggle')).not.toBeInTheDocument();
-    expect(screen.getByText('Type')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   });
 
-  it('filters types from a multi-select dropdown with singular labels', () => {
+  it('filters types from multi-select choices with singular labels', () => {
     const onCategoriesChange = vi.fn();
 
-    render(
-      <LibraryBrowserToolbar
-        categories={[IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT]}
-        characterOptions={[]}
-        characters={[]}
-        onCategoriesChange={onCategoriesChange}
-        onCharactersChange={vi.fn()}
-        onClearCategories={vi.fn()}
-        onClearCharacters={vi.fn()}
-        onClearOrigins={vi.fn()}
-        onClearTags={vi.fn()}
-        onOriginsChange={vi.fn()}
-        onPlaceChange={vi.fn()}
-        onSortChange={vi.fn()}
-        onStatusChange={vi.fn()}
-        onTagMatchChange={vi.fn()}
-        onTagsChange={vi.fn()}
-        origins={[]}
-        onViewModeChange={vi.fn()}
-        sort="createdAt: -1"
-        sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
-        tagMatch={TagMatchMode.ANY}
-        tagOptions={[]}
-        tags={[]}
-        viewMode="list"
-      />,
-    );
+    renderToolbar({
+      categories: [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT],
+      onCategoriesChange,
+    });
+    openFilters();
 
-    expect(screen.getByText('Type')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Video' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -277,7 +205,6 @@ describe('LibraryBrowserToolbar', () => {
     expect(
       screen.queryByRole('button', { name: 'Videos' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Image' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Image' }));
 
@@ -289,15 +216,12 @@ describe('LibraryBrowserToolbar', () => {
     ]);
   });
 
-  it('filters origin from its own multi-select, beside type', () => {
+  it('filters origin beside type', () => {
     const onOriginsChange = vi.fn();
 
-    renderToolbar({
-      onOriginsChange,
-      origins: [IngredientOrigin.UPLOADED],
-    });
+    renderToolbar({ onOriginsChange, origins: [IngredientOrigin.UPLOADED] });
+    openFilters();
 
-    expect(screen.getByText('Origin')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Uploaded' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -306,9 +230,6 @@ describe('LibraryBrowserToolbar', () => {
       'aria-pressed',
       'false',
     );
-    expect(
-      screen.getByRole('button', { name: 'Imported' }),
-    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Imported' }));
 
@@ -318,13 +239,15 @@ describe('LibraryBrowserToolbar', () => {
     ]);
   });
 
-  it('hides the character filter when the brand has no characters', () => {
+  it('hides the character and tag sections when the brand has neither', () => {
     renderToolbar();
+    openFilters();
 
     expect(screen.queryByText('Character')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
   });
 
-  it('filters by character from a searchable multi-select beside origin', () => {
+  it('filters by character', () => {
     const onCharactersChange = vi.fn();
 
     renderToolbar({
@@ -335,8 +258,8 @@ describe('LibraryBrowserToolbar', () => {
       characters: ['c1'],
       onCharactersChange,
     });
+    openFilters();
 
-    expect(screen.getByText('Character')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Anna' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -359,6 +282,7 @@ describe('LibraryBrowserToolbar', () => {
       characters: characterOptions.slice(0, 25).map((option) => option.id),
       onCharactersChange,
     });
+    openFilters();
 
     expect(screen.getByRole('status')).toHaveTextContent(
       'Limit of 25 characters reached',
@@ -371,46 +295,33 @@ describe('LibraryBrowserToolbar', () => {
     expect(onCharactersChange.mock.calls[0][0]).not.toContain('c25');
   });
 
-  it('clears only the character filter, and keeps it clearable without options', () => {
-    const onClearCharacters = vi.fn();
-    const onClearOrigins = vi.fn();
+  it('searches long lists and keeps selected choices visible', () => {
+    const tagOptions = Array.from({ length: 12 }, (_, index) => ({
+      id: `t${index}`,
+      label: `Tag ${index}`,
+    })) as ComponentProps<typeof LibraryBrowserToolbar>['tagOptions'];
 
-    renderToolbar({
-      characters: ['gone'],
-      onClearCharacters,
-      onClearOrigins,
+    renderToolbar({ tagOptions, tags: ['t3'] });
+    openFilters();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search tags' }), {
+      target: { value: 'Tag 11' },
     });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Clear character filter' }),
-    );
-
-    expect(onClearCharacters).toHaveBeenCalledTimes(1);
-    expect(onClearOrigins).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Tag 11' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tag 3' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Tag 5' }),
+    ).not.toBeInTheDocument();
   });
 
   describe('tag filter', () => {
-    const tagOptions = [
-      { assetCount: 14, id: 't1', label: 'S1E12' },
-      { assetCount: 3, id: 't2', label: 'Launch' },
-      { id: 't3', label: 'Mood' },
-    ] as ComponentProps<typeof LibraryBrowserToolbar>['tagOptions'];
-
-    it('hides the tag filter when the brand has no tags', () => {
-      renderToolbar();
-
-      expect(screen.queryByText('Tags')).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Manage tags' }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('lists tags with their asset counts beside the other filters', () => {
+    it('lists tags with their asset counts', () => {
       const onTagsChange = vi.fn();
 
-      renderToolbar({ onTagsChange, tagOptions, tags: ['t1'] });
+      renderToolbar({ onTagsChange, tagOptions: TAG_OPTIONS, tags: ['t1'] });
+      openFilters();
 
-      expect(screen.getByText('Tags')).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'S1E12 (14)' }),
       ).toHaveAttribute('aria-pressed', 'true');
@@ -425,21 +336,12 @@ describe('LibraryBrowserToolbar', () => {
       expect(onTagsChange).toHaveBeenCalledWith(['t1', 't2']);
     });
 
-    it('keeps the filter clearable when its tags are gone', () => {
-      const onClearTags = vi.fn();
-
-      renderToolbar({ onClearTags, tags: ['deleted'] });
-
-      fireEvent.click(screen.getByRole('button', { name: 'Clear tag filter' }));
-
-      expect(onClearTags).toHaveBeenCalledTimes(1);
-    });
-
     it('offers the match mode only once several tags are selected', () => {
-      renderToolbar({ tagOptions, tags: ['t1'] });
+      renderToolbar({ tagOptions: TAG_OPTIONS, tags: ['t1'] });
+      openFilters();
 
       expect(
-        screen.queryByRole('button', { name: 'How the selected tags combine' }),
+        screen.queryByRole('radio', { name: 'Match all' }),
       ).not.toBeInTheDocument();
     });
 
@@ -449,19 +351,13 @@ describe('LibraryBrowserToolbar', () => {
       renderToolbar({
         onTagMatchChange,
         tagMatch: TagMatchMode.ANY,
-        tagOptions,
+        tagOptions: TAG_OPTIONS,
         tags: ['t1', 't2'],
       });
+      openFilters();
 
-      expect(
-        screen.getByRole('button', { name: 'How the selected tags combine' }),
-      ).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Match all' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Match all' }));
       expect(onTagMatchChange).toHaveBeenCalledWith(TagMatchMode.ALL);
-
-      fireEvent.click(screen.getByRole('button', { name: 'Match any' }));
-      expect(onTagMatchChange).toHaveBeenCalledWith(TagMatchMode.ANY);
     });
 
     it('caps the tag selection at the API limit and shows it', () => {
@@ -476,6 +372,7 @@ describe('LibraryBrowserToolbar', () => {
         tagOptions: manyTags,
         tags: manyTags.slice(0, 25).map((tag) => tag.id),
       });
+      openFilters();
 
       expect(screen.getByRole('status')).toHaveTextContent(
         'Limit of 25 tags reached',
@@ -496,33 +393,43 @@ describe('LibraryBrowserToolbar', () => {
     });
   });
 
-  it('keeps origin out of the type filter and clears only itself', () => {
-    const onClearOrigins = vi.fn();
-    const onClearCategories = vi.fn();
+  it('sorts from the popover and keeps sort out of the filter count', () => {
+    const onSortChange = vi.fn();
 
-    renderToolbar({
-      onClearCategories,
-      onClearOrigins,
-      origins: [IngredientOrigin.GENERATED],
-    });
+    renderToolbar({ onSortChange });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Clear origin filter' }),
-    );
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
 
-    expect(onClearOrigins).toHaveBeenCalledOnce();
-    expect(onClearCategories).not.toHaveBeenCalled();
+    openFilters();
+    const sort = screen.getByRole('group', { name: 'Sort' });
     expect(
-      screen.queryByRole('button', { name: 'Clear type filter' }),
+      within(sort).getByRole('radio', { name: 'Newest first' }),
+    ).toBeChecked();
+    fireEvent.click(within(sort).getByRole('radio', { name: 'Oldest first' }));
+
+    expect(onSortChange).toHaveBeenCalledWith('createdAt: 1');
+  });
+
+  it('hides the clear-all footer until a filter is applied', () => {
+    renderToolbar();
+    openFilters();
+
+    expect(
+      screen.queryByRole('button', { name: 'Clear all filters' }),
     ).not.toBeInTheDocument();
   });
 
-  it('hides the clear control when no origin is selected', () => {
-    renderToolbar();
+  it('clears every filter from the popover footer once one is applied', () => {
+    const onClearAllFilters = vi.fn();
 
-    expect(
-      screen.queryByRole('button', { name: 'Clear origin filter' }),
-    ).not.toBeInTheDocument();
+    renderToolbar({
+      onClearAllFilters,
+      origins: [IngredientOrigin.GENERATED],
+    });
+    openFilters();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(onClearAllFilters).toHaveBeenCalledOnce();
   });
 
   it('groups Upload in the shared ghost action slot, leaving Refresh to the topbar refresh slot', () => {
@@ -572,6 +479,122 @@ describe('LibraryBrowserToolbar', () => {
       'aria-pressed',
       'true',
     );
+  });
+});
+
+describe('LibraryActiveFilters', () => {
+  function renderActive(
+    overrides: Partial<ComponentProps<typeof LibraryActiveFilters>> = {},
+  ): void {
+    render(
+      <LibraryActiveFilters
+        categories={[]}
+        characterOptions={[]}
+        characters={[]}
+        onCategoriesChange={vi.fn()}
+        onCharactersChange={vi.fn()}
+        onClearAllFilters={vi.fn()}
+        onOriginsChange={vi.fn()}
+        onPlaceChange={vi.fn()}
+        onStatusChange={vi.fn()}
+        onTagMatchChange={vi.fn()}
+        onTagsChange={vi.fn()}
+        origins={[]}
+        tagMatch={TagMatchMode.ANY}
+        tagOptions={TAG_OPTIONS}
+        tags={[]}
+        {...overrides}
+      />,
+    );
+  }
+
+  it('renders nothing while no filter is applied', () => {
+    renderActive();
+
+    expect(screen.queryByTestId('library-active-filters')).toBeNull();
+  });
+
+  it('shows one removable chip per applied filter and removes only that one', () => {
+    const onOriginsChange = vi.fn();
+    const onTagsChange = vi.fn();
+    const onStatusChange = vi.fn();
+
+    renderActive({
+      onOriginsChange,
+      onStatusChange,
+      onTagsChange,
+      origins: [IngredientOrigin.GENERATED, IngredientOrigin.UPLOADED],
+      shelf: LibraryShelf.APPROVED,
+      tags: ['t1', 't2'],
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Uploaded filter' }),
+    );
+    expect(onOriginsChange).toHaveBeenCalledWith([IngredientOrigin.GENERATED]);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove S1E12 filter' }),
+    );
+    expect(onTagsChange).toHaveBeenCalledWith(['t2']);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Approved filter' }),
+    );
+    expect(onStatusChange).toHaveBeenCalledWith(null);
+  });
+
+  it('removes one grouped type without dropping the others', () => {
+    const onCategoriesChange = vi.fn();
+
+    renderActive({
+      categories: [
+        IngredientCategory.VIDEO,
+        IngredientCategory.VIDEO_EDIT,
+        IngredientCategory.IMAGE,
+        IngredientCategory.IMAGE_EDIT,
+      ],
+      onCategoriesChange,
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Video filter' }),
+    );
+
+    expect(onCategoriesChange).toHaveBeenCalledWith([
+      IngredientCategory.IMAGE,
+      IngredientCategory.IMAGE_EDIT,
+    ]);
+  });
+
+  it('keeps a filter removable when its option is gone', () => {
+    const onTagsChange = vi.fn();
+
+    renderActive({ onTagsChange, tags: ['deleted'] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Tags filter' }));
+
+    expect(onTagsChange).toHaveBeenCalledWith([]);
+  });
+
+  it('offers clear all only when several filters are applied', () => {
+    renderActive({ origins: [IngredientOrigin.GENERATED] });
+    expect(
+      screen.queryByRole('button', { name: 'Clear all filters' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears everything at once from the chip row', () => {
+    const onClearAllFilters = vi.fn();
+
+    renderActive({
+      onClearAllFilters,
+      origins: [IngredientOrigin.GENERATED],
+      place: LibraryPlace.RECENT,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(onClearAllFilters).toHaveBeenCalledOnce();
   });
 });
 

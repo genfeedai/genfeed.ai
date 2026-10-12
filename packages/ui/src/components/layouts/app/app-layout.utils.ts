@@ -5,6 +5,14 @@ export const SIDEBAR_MIN_WIDTH = 220;
 export const SIDEBAR_MAX_WIDTH = 420;
 export const SIDEBAR_DEFAULT_WIDTH = 280;
 
+/**
+ * One duration and curve for everything that moves with the rail: its width,
+ * the offsets that follow it, and the fade of what it holds. They share a
+ * clock, so nothing lands a frame before or after the rest.
+ */
+export const SIDEBAR_TRANSITION_DURATION_MS = 300;
+export const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
+
 function getSidebarCollapsedStorageKey(): string {
   if (typeof window === 'undefined') {
     return `${SIDEBAR_COLLAPSED_STORAGE_PREFIX}:anon`;
