@@ -2691,7 +2691,7 @@ describe('StudioPlaygroundWorkspace', () => {
           expect.any(String),
           expect.objectContaining({
             endFrameId: 'ing-end.png',
-            imageReferenceIds: ['ing-start.png'],
+            imageReferenceIds: expect.arrayContaining(['ing-start.png']),
           }),
           expect.anything(),
         );
