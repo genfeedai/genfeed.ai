@@ -532,17 +532,19 @@ describe('ModelCatalogSeedService', () => {
       const expected = {
         capabilities: [capability],
         category: 'text',
-        isActive: true,
         pricingType: 'per-second',
         provider: 'replicate',
         providerCostUsd,
       };
       expect(call?.create).toMatchObject({
         ...expected,
+        isActive: true,
         isDefault: false,
         isPublic: false,
       });
+      // Activation stays operator territory on an existing row.
       expect(call?.update).toMatchObject(expected);
+      expect(call?.update).not.toHaveProperty('isActive');
       // The pin reaches existing rows too, so a catalog version bump lands.
       expect(call?.create.externalId).toMatch(
         new RegExp(`^${key}:[0-9a-f]{64}$`),

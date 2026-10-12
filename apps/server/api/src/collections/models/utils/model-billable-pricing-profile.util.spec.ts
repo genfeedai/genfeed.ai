@@ -1,4 +1,6 @@
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { classifyModelRowPricingAttention } from '@api/collections/models/utils/model-pricing-attention.util';
+import { UNIFIED_MODEL_CATALOG } from '@genfeedai/contracts/constants';
 import {
   classifyModelPricingAttention,
   quoteModelBillablePricing,
@@ -464,6 +466,31 @@ describe('pending reviewed variant drift', () => {
         default: 'base',
       });
       expect(profile.rateVersion).toBe('rate-v1');
+    },
+  );
+});
+
+describe('brand vision catalog rows (#6727)', () => {
+  it.each(['lucataco/florence-2-large', 'adirik/owlvit-base-patch32'])(
+    'prices %s per second without a pricing alert for an operator',
+    (key) => {
+      const entry = UNIFIED_MODEL_CATALOG.find(
+        (candidate) => candidate.key === key,
+      );
+      expect(entry).toBeDefined();
+      const row = {
+        ...entry,
+        endpoint: entry?.endpoint ?? key,
+        isDeleted: false,
+        isFree: false,
+        minCost: entry?.minCost ?? null,
+        pendingProviderContractVersion: null,
+        reviewedProviderContractVersion: null,
+      } as unknown as Model;
+
+      expect(
+        classifyModelRowPricingAttention(row, [], 3.33, new Date()),
+      ).toEqual([]);
     },
   );
 });
