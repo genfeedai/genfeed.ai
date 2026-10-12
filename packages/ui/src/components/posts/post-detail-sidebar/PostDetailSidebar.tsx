@@ -4,9 +4,11 @@ import type { IEvaluation } from '@genfeedai/client/models';
 import {
   CredentialPlatform,
   PostCategory,
+  Status,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
@@ -14,21 +16,27 @@ import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
-import Card from '@ui/card/Card';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import TikTokPublishingSettings from '@ui/posts/tiktok-publishing/TikTokPublishingSettings';
-import { Zap } from 'lucide-react';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-import PostSidebarAnalyticsCard from './PostSidebarAnalyticsCard';
-import PostSidebarPlatformCard from './PostSidebarPlatformCard';
-import PostSidebarReviewCard from './PostSidebarReviewCard';
-import PostSidebarScheduleCard from './PostSidebarScheduleCard';
+import InspectorSection from './InspectorSection';
+import PostSidebarDestination from './PostSidebarDestination';
+import PostSidebarLineage, { formatReviewDecision } from './PostSidebarLineage';
+import PostSidebarWhenDock from './PostSidebarWhenDock';
+
+type InspectorTab = 'details' | 'preview';
+
+const INSPECTOR_TABS = [
+  { id: 'details', label: 'Details' },
+  { id: 'preview', label: 'Preview' },
+];
 
 export default function PostDetailSidebar({
   post,
@@ -40,6 +48,7 @@ export default function PostDetailSidebar({
   isSeoDirty = false,
   analyticsStats,
   reviewSummary,
+  preview,
   onScheduleChange,
   onScheduleSave,
   onPublishNow,
@@ -52,6 +61,8 @@ export default function PostDetailSidebar({
   // Get browser timezone for consistent date display
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const contentId = post?.id ?? '';
+  const [activeTab, setActiveTab] = useState<InspectorTab>('details');
+  const [isTikTokReady, setIsTikTokReady] = useState(false);
 
   const {
     evaluation: newEvaluation,
@@ -62,6 +73,16 @@ export default function PostDetailSidebar({
     contentId,
     contentType: 'post',
   });
+
+  // Track readiness locally (the dock gates publishing on it) and forward it
+  // to the page, which guards the publish handlers with the same signal.
+  const handleTikTokReadinessChange = useCallback(
+    (isReady: boolean) => {
+      setIsTikTokReady(isReady);
+      onTikTokReadinessChange?.(isReady);
+    },
+    [onTikTokReadinessChange],
+  );
 
   if (!post) {
     return null;
@@ -81,79 +102,159 @@ export default function PostDetailSidebar({
     Boolean(reviewSummary?.sourceWorkflowName) ||
     Boolean(reviewSummary?.sourceActionId) ||
     Boolean(reviewSummary?.generationId);
+  const isTikTok = post.platform === CredentialPlatform.TIKTOK;
   const canPublishViaTikTokApp =
     Boolean(onPublishViaTikTokApp) &&
-    post.platform === CredentialPlatform.TIKTOK &&
+    isTikTok &&
     (post.category === PostCategory.VIDEO ||
       post.category === PostCategory.REEL) &&
     post.ingredients.length > 0;
 
+  const evaluationScore =
+    evaluation?.data?.status === Status.COMPLETED
+      ? evaluation.data.overallScore
+      : undefined;
+  const checksSummary = [
+    typeof evaluationScore === 'number' ? `Quality ${evaluationScore}` : null,
+    typeof post.seoScore === 'number'
+      ? `SEO ${Math.round(post.seoScore)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const firstStat = analyticsStats[0];
+  const isPreviewActive = Boolean(preview) && activeTab === 'preview';
+
   return (
-    <div className={`space-y-3 ${className}`}>
-      <PostSidebarPlatformCard post={post} credential={credential} />
-      {!isPublished && post.platform === CredentialPlatform.TIKTOK ? (
-        <TikTokPublishingSettings
-          key={post.id}
-          post={post}
-          onSaved={onSettingsSaved}
-          onReadinessChange={onTikTokReadinessChange}
+    <div className={cn('flex flex-col', className)}>
+      {preview ? (
+        <Tabs
+          ariaLabel="Inspector view"
+          items={INSPECTOR_TABS}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as InspectorTab)}
+          fullWidth={false}
+          className="justify-start pb-3"
+          listClassName="ml-0"
         />
       ) : null}
 
-      {isPublished && analyticsStats.length > 0 && (
-        <PostSidebarAnalyticsCard analyticsStats={analyticsStats} />
-      )}
+      {isPreviewActive ? (
+        <div data-testid="post-inspector-preview">{preview}</div>
+      ) : null}
 
-      {hasReviewLineage && reviewSummary && (
-        <PostSidebarReviewCard
-          reviewSummary={reviewSummary}
+      {/* Stays mounted behind the Preview tab: unmounting TikTok settings would
+          report "not ready" and block publishing from the dock. */}
+      <div
+        className={cn('flex flex-col', isPreviewActive && 'hidden')}
+        data-testid="post-inspector-details"
+      >
+        <PostSidebarDestination
+          post={post}
+          credential={credential}
           browserTimezone={browserTimezone}
+          isPublished={isPublished}
         />
-      )}
 
-      {!isPublished && (
-        <PostSidebarScheduleCard
-          scheduleDraft={scheduleDraft}
-          isSavingSchedule={isSavingSchedule}
-          isScheduleDirty={isScheduleDirty}
-          browserTimezone={browserTimezone}
-          onScheduleChange={onScheduleChange}
-          onScheduleSave={onScheduleSave}
-          onPublishNow={onPublishNow}
-          {...(canPublishViaTikTokApp ? { onPublishViaTikTokApp } : {})}
-        />
-      )}
+        {!isPublished && isTikTok ? (
+          <InspectorSection
+            title="TikTok settings"
+            summary={isTikTokReady ? 'Ready' : 'Needs settings'}
+            isDefaultOpen
+            isMountedWhenClosed
+            testId="inspector-tiktok"
+          >
+            <TikTokPublishingSettings
+              key={post.id}
+              post={post}
+              isEmbedded
+              onSaved={onSettingsSaved}
+              onReadinessChange={handleTikTokReadinessChange}
+            />
+          </InspectorSection>
+        ) : null}
 
-      <EvaluationCard
-        contentId={post.id}
-        contentType="post"
-        evaluation={evaluation ?? undefined}
-        isEvaluating={isEvaluating}
-        isPublished={isPublished}
-        onEvaluate={async () => {
-          await evaluate();
-        }}
-      />
+        {isPublished && firstStat ? (
+          <InspectorSection
+            title="Performance"
+            summary={`${firstStat.value} ${firstStat.label}`}
+            isDefaultOpen
+            testId="inspector-performance"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              {analyticsStats.map((stat) => (
+                <div key={stat.label} className="flex items-center gap-3">
+                  <div className="flex-shrink-0 bg-secondary p-2 text-foreground">
+                    <stat.icon size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="mb-0.5 text-xs text-foreground/60">
+                      {stat.label}
+                    </p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">
+                      {stat.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </InspectorSection>
+        ) : null}
 
-      <SeoScorecard
-        score={post.seoScore}
-        scorecard={post.seoBreakdown}
-        contentTypeLabel="post"
-        isScoring={isScoringSeo}
-        hasUnsavedChanges={isSeoDirty}
-        onScore={onScoreSeo}
-      />
+        {hasReviewLineage && reviewSummary ? (
+          <InspectorSection
+            title="Lineage"
+            summary={
+              reviewSummary.reviewDecision
+                ? formatReviewDecision(reviewSummary.reviewDecision)
+                : (reviewSummary.sourceWorkflowName ?? undefined)
+            }
+            testId="inspector-lineage"
+          >
+            <PostSidebarLineage
+              reviewSummary={reviewSummary}
+              browserTimezone={browserTimezone}
+            />
+          </InspectorSection>
+        ) : null}
 
-      {isPublished && post.ingredients?.length > 0 && (
-        <Card>
-          <div className="flex items-center gap-2">
-            <Zap className="size-4 text-muted-foreground" />
-            <h3 className="font-semibold text-lg">
-              Ingredients ({post.ingredients?.length || 0})
-            </h3>
+        <InspectorSection
+          title="Checks"
+          summary={checksSummary || 'Not run'}
+          isDefaultOpen
+          testId="inspector-checks"
+        >
+          <div className="flex flex-col gap-4">
+            <EvaluationCard
+              variant="embedded"
+              contentId={post.id}
+              contentType="post"
+              evaluation={evaluation ?? undefined}
+              isEvaluating={isEvaluating}
+              isPublished={isPublished}
+              onEvaluate={async () => {
+                await evaluate();
+              }}
+            />
+
+            <SeoScorecard
+              variant="embedded"
+              score={post.seoScore}
+              scorecard={post.seoBreakdown}
+              contentTypeLabel="post"
+              isScoring={isScoringSeo}
+              hasUnsavedChanges={isSeoDirty}
+              onScore={onScoreSeo}
+            />
           </div>
+        </InspectorSection>
 
-          {post.ingredients && post.ingredients.length > 0 ? (
+        {isPublished && post.ingredients?.length > 0 ? (
+          <InspectorSection
+            title="Ingredients"
+            summary={String(post.ingredients.length)}
+            testId="inspector-ingredients"
+          >
             <div className="grid grid-cols-2 gap-4">
               {post.ingredients.map((ing) => {
                 if (isImageIngredient(ing)) {
@@ -183,13 +284,23 @@ export default function PostDetailSidebar({
                 return null;
               })}
             </div>
-          ) : (
-            <p className="text-sm text-foreground/70">
-              Ingredient details are unavailable for this post.
-            </p>
-          )}
-        </Card>
-      )}
+          </InspectorSection>
+        ) : null}
+      </div>
+
+      <PostSidebarWhenDock
+        post={post}
+        scheduleDraft={scheduleDraft}
+        isSavingSchedule={isSavingSchedule}
+        isScheduleDirty={isScheduleDirty}
+        isPublished={isPublished}
+        browserTimezone={browserTimezone}
+        isTikTokReady={isTikTokReady}
+        onScheduleChange={onScheduleChange}
+        onScheduleSave={onScheduleSave}
+        onPublishNow={onPublishNow}
+        {...(canPublishViaTikTokApp ? { onPublishViaTikTokApp } : {})}
+      />
     </div>
   );
 }

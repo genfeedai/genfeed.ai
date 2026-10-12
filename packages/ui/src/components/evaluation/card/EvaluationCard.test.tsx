@@ -4,7 +4,7 @@ import {
   IngredientCategory,
   Status,
 } from '@genfeedai/contracts';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -103,5 +103,71 @@ describe('EvaluationCard', () => {
     );
 
     expect(screen.queryByText('Persuasion')).not.toBeInTheDocument();
+  });
+
+  describe('embedded variant', () => {
+    it('renders one compact row without a card and offers Run when not run', () => {
+      const onEvaluate = vi.fn();
+      render(
+        <EvaluationCard
+          contentId="post-1"
+          contentType="post"
+          onEvaluate={onEvaluate}
+          variant="embedded"
+        />,
+      );
+
+      expect(screen.getByText('Quality evaluation')).toBeInTheDocument();
+      expect(screen.getByText('Not run')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Get AI-powered quality analysis for this post'),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Run evaluation' }));
+
+      expect(onEvaluate).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the score, offers Re-run, and expands details on demand', () => {
+      render(
+        <EvaluationCard
+          contentId="post-1"
+          contentType="post"
+          evaluation={buildEvaluation()}
+          onEvaluate={vi.fn()}
+          variant="embedded"
+        />,
+      );
+
+      expect(screen.getByText('82/100')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Re-run evaluation' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Persuasion')).not.toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Toggle evaluation details' }),
+      );
+
+      expect(screen.getByText('Persuasion')).toBeInTheDocument();
+    });
+
+    it('hides the run action for published posts', () => {
+      render(
+        <EvaluationCard
+          contentId="post-1"
+          contentType="post"
+          evaluation={buildEvaluation()}
+          isPublished
+          onEvaluate={vi.fn()}
+          variant="embedded"
+        />,
+      );
+
+      expect(screen.getByText('82/100')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /run evaluation/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

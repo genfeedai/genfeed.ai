@@ -144,6 +144,7 @@ export default function EvaluationCard({
   onEvaluate,
   isEvaluating = false,
   isPublished = false,
+  variant = 'card',
 }: EvaluationCardProps) {
   const evaluationData = evaluation?.data;
   const [isCardCollapsed, setIsCardCollapsed] = useState(
@@ -152,6 +153,7 @@ export default function EvaluationCard({
   const [isScoresCollapsed, setIsScoresCollapsed] = useState(false);
   const [isAnalysisCollapsed, setIsAnalysisCollapsed] = useState(false);
   const [isSuggestionsCollapsed, setIsSuggestionsCollapsed] = useState(true);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const contentTypeLabel = CONTENT_TYPE_LABELS[contentType] ?? 'Content';
 
@@ -234,6 +236,93 @@ export default function EvaluationCard({
       </div>
     );
   };
+
+  if (variant === 'embedded') {
+    const isRunning =
+      isEvaluating || evaluationData?.status === Status.PROCESSING;
+    const isCompleted = evaluationData?.status === Status.COMPLETED;
+    const isFailed = evaluationData?.status === Status.FAILED;
+    const hasRun = Boolean(evaluation) && !isFailed;
+    const overallScore = evaluationData?.overallScore ?? 0;
+
+    return (
+      <div className="flex flex-col gap-2" data-testid="evaluation-row">
+        <div className="flex items-center gap-3">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+            Quality evaluation
+          </span>
+          {isCompleted && !isRunning ? (
+            <span
+              className={cn(
+                'px-2 py-0.5 text-xs font-bold tabular-nums',
+                getScoreColors(overallScore).bg,
+              )}
+            >
+              {overallScore}/100
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {isRunning ? 'Running…' : isFailed ? 'Failed' : 'Not run'}
+            </span>
+          )}
+          {isPublished ? null : (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              icon={<ArrowUp />}
+              label={hasRun ? 'Re-run' : 'Run'}
+              ariaLabel={hasRun ? 'Re-run evaluation' : 'Run evaluation'}
+              onClick={onEvaluate}
+              isLoading={isRunning}
+              isDisabled={isRunning}
+            />
+          )}
+        </div>
+        {isCompleted && !isRunning ? (
+          <>
+            <Button
+              type="button"
+              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              ariaLabel="Toggle evaluation details"
+              className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ChevronDown
+                className={cn(
+                  'size-3.5 transition-transform',
+                  !isDetailsOpen && '-rotate-90',
+                )}
+              />
+              Details
+            </Button>
+            {isDetailsOpen ? (
+              <EvaluationCardContent
+                evaluation={evaluation}
+                contentTypeLabel={contentTypeLabel}
+                isEvaluating={isEvaluating}
+                isPublished={isPublished}
+                isCardCollapsed={false}
+                lowestScores={lowestScores}
+                isScoresCollapsed={isScoresCollapsed}
+                setIsScoresCollapsed={setIsScoresCollapsed}
+                isAnalysisCollapsed={isAnalysisCollapsed}
+                setIsAnalysisCollapsed={setIsAnalysisCollapsed}
+                isSuggestionsCollapsed={isSuggestionsCollapsed}
+                setIsSuggestionsCollapsed={setIsSuggestionsCollapsed}
+                onEvaluate={onEvaluate}
+              />
+            ) : null}
+          </>
+        ) : null}
+        {isFailed && !isRunning ? (
+          <p className="text-xs text-error">
+            Evaluation failed. Please try again.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <Card

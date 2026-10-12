@@ -13,12 +13,14 @@ import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { Separator } from '@ui/primitives/separator';
 import {
+  ChevronDown,
   CircleAlert,
   CircleCheck,
   CircleDot,
   Gauge,
   RefreshCw,
 } from 'lucide-react';
+import { useState } from 'react';
 
 const DETERMINISTIC_CHECK_IDS = [
   'title_length',
@@ -78,6 +80,8 @@ export interface SeoScorecardProps {
   hasUnsavedChanges?: boolean;
   onScore?: () => void | Promise<void>;
   className?: string;
+  /** `embedded` renders one compact row with expandable details, no Card. */
+  variant?: 'card' | 'embedded';
 }
 
 function getScoreTone(score: number): string {
@@ -145,6 +149,76 @@ function formatScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function SeoDimensionBars({ scorecard }: { scorecard: SeoScorecardSnapshot }) {
+  return (
+    <div className="space-y-2">
+      {SEO_DIMENSIONS.map((dimension) => {
+        const value = scorecard.breakdown?.[dimension] ?? 0;
+        const max = SEO_DIMENSION_MAX[dimension];
+        return (
+          <div key={dimension} className="space-y-1.5">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="font-medium text-foreground/70">
+                {DIMENSION_LABELS[dimension]}
+              </span>
+              <span className="text-foreground/50">
+                {value}/{max}
+              </span>
+            </div>
+            <Progress value={formatPercent(value, max)} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SeoChecks({ checks }: { checks: SeoCheck[] }) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold text-foreground/60 uppercase">
+        Checks
+      </h4>
+      <div className="flex flex-wrap gap-2">
+        {checks.map((check) => {
+          const state = getCheckState(check);
+          return (
+            <Badge
+              key={check.id}
+              variant={getCheckVariant(state)}
+              title={check.note}
+              className="inline-flex items-center gap-1.5"
+            >
+              {getCheckIcon(state)}
+              {check.label}
+            </Badge>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SeoSuggestions({ suggestions }: { suggestions: string[] }) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold text-foreground/60 uppercase">
+        Suggestions
+      </h4>
+      <ul className="space-y-1.5">
+        {suggestions.slice(0, 4).map((suggestion) => (
+          <li
+            key={suggestion}
+            className="text-xs leading-relaxed text-foreground/70"
+          >
+            {suggestion}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function SeoScorecard({
   score,
   scorecard,
@@ -154,7 +228,9 @@ export default function SeoScorecard({
   hasUnsavedChanges = false,
   onScore,
   className,
+  variant = 'card',
 }: SeoScorecardProps) {
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const resolvedScore =
     typeof score === 'number'
       ? formatScore(score)
@@ -191,6 +267,101 @@ export default function SeoScorecard({
       variant={ButtonVariant.DEFAULT}
     />
   ) : undefined;
+
+  if (variant === 'embedded') {
+    return (
+      <div className="flex flex-col gap-2" data-testid="seo-row">
+        <div className="flex items-center gap-3">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+            SEO score
+          </span>
+          {hasScore ? (
+            <span
+              className={cn(
+                'text-sm font-semibold tabular-nums',
+                getScoreTone(resolvedScore),
+              )}
+            >
+              {resolvedScore}
+              <span className="text-xs font-medium text-foreground/40">
+                /100
+              </span>
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">Not scored</span>
+          )}
+          {onScore ? (
+            <Button
+              ariaLabel={`${actionLabel} SEO`}
+              icon={<RefreshCw className="size-4" />}
+              isDisabled={scoreDisabled}
+              isLoading={isScoring}
+              label={isScoring ? 'Scoring' : actionLabel}
+              onClick={() => {
+                void onScore();
+              }}
+              size={ButtonSize.SM}
+              tooltip={
+                hasUnsavedChanges
+                  ? 'Save changes before scoring SEO'
+                  : `${actionLabel} SEO`
+              }
+              variant={ButtonVariant.SECONDARY}
+            />
+          ) : null}
+        </div>
+        {hasUnsavedChanges ? (
+          <p className="text-xs text-warning">
+            Save your changes before scoring.
+          </p>
+        ) : null}
+        {hasScore && scorecard ? (
+          <>
+            <Button
+              type="button"
+              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              ariaLabel="Toggle SEO details"
+              className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ChevronDown
+                className={cn(
+                  'size-3.5 transition-transform',
+                  !isDetailsOpen && '-rotate-90',
+                )}
+              />
+              Details
+            </Button>
+            {isDetailsOpen ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={resolvedScore >= 70 ? 'success' : 'warning'}>
+                    {RATING_LABELS[scorecard.rating] ?? scorecard.rating}
+                  </Badge>
+                  {scorecard.meta?.targetKeyword ? (
+                    <Badge variant="outline">
+                      {scorecard.meta.targetKeyword}
+                    </Badge>
+                  ) : null}
+                  <span className="text-xs text-foreground/60">
+                    {scorecard.meta?.wordCount ?? 0} words
+                  </span>
+                </div>
+                <SeoDimensionBars scorecard={scorecard} />
+                {deterministicChecks.length > 0 ? (
+                  <SeoChecks checks={deterministicChecks} />
+                ) : null}
+                {scorecard.suggestions.length > 0 ? (
+                  <SeoSuggestions suggestions={scorecard.suggestions} />
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    );
+  }
 
   if (!hasScore || !scorecard) {
     return (
@@ -262,71 +433,19 @@ export default function SeoScorecard({
 
       <Separator />
 
-      <div className="space-y-2">
-        {SEO_DIMENSIONS.map((dimension) => {
-          const value = scorecard.breakdown?.[dimension] ?? 0;
-          const max = SEO_DIMENSION_MAX[dimension];
-          return (
-            <div key={dimension} className="space-y-1.5">
-              <div className="flex items-center justify-between gap-3 text-xs">
-                <span className="font-medium text-foreground/70">
-                  {DIMENSION_LABELS[dimension]}
-                </span>
-                <span className="text-foreground/50">
-                  {value}/{max}
-                </span>
-              </div>
-              <Progress value={formatPercent(value, max)} />
-            </div>
-          );
-        })}
-      </div>
+      <SeoDimensionBars scorecard={scorecard} />
 
       {deterministicChecks.length > 0 ? (
         <>
           <Separator />
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-foreground/60 uppercase">
-              Checks
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {deterministicChecks.map((check) => {
-                const state = getCheckState(check);
-                return (
-                  <Badge
-                    key={check.id}
-                    variant={getCheckVariant(state)}
-                    title={check.note}
-                    className="inline-flex items-center gap-1.5"
-                  >
-                    {getCheckIcon(state)}
-                    {check.label}
-                  </Badge>
-                );
-              })}
-            </div>
-          </div>
+          <SeoChecks checks={deterministicChecks} />
         </>
       ) : null}
 
       {scorecard.suggestions.length > 0 ? (
         <>
           <Separator />
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-foreground/60 uppercase">
-              Suggestions
-            </h4>
-            <ul className="space-y-1.5">
-              {scorecard.suggestions.slice(0, 4).map((suggestion) => (
-                <li
-                  key={suggestion}
-                  className="text-xs leading-relaxed text-foreground/70"
-                >
-                  {suggestion}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <SeoSuggestions suggestions={scorecard.suggestions} />
         </>
       ) : null}
     </Card>
