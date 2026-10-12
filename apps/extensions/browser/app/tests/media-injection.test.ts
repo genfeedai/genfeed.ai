@@ -53,6 +53,20 @@ import {
   watchContentTheme,
 } from '~platforms/ui-helpers';
 
+function showPostOnPage(): void {
+  document.body.innerHTML = `
+    <article>
+      <div data-testid="User-Name">Ada Lovelace</div>
+      <div data-testid="tweetText">We just launched our public API.</div>
+    </article>`;
+  vi.mocked(findElement).mockImplementation(((key: string) =>
+    document.querySelector(
+      key === 'tweetText'
+        ? '[data-testid="tweetText"]'
+        : '[data-testid="User-Name"]',
+    )) as never);
+}
+
 describe('UI Helpers', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -365,11 +379,7 @@ describe('UI Helpers', () => {
     });
 
     it('sends the real post and author of the page, not empty strings', async () => {
-      document.body.innerHTML = `
-        <article>
-          <div data-testid="User-Name">Ada Lovelace</div>
-          <div data-testid="tweetText">We just launched our public API.</div>
-        </article>`;
+      showPostOnPage();
       const sendMessage = vi
         .spyOn(chrome.runtime, 'sendMessage')
         .mockResolvedValue({
@@ -457,11 +467,7 @@ describe('UI Helpers', () => {
     });
 
     it('hands the reply composer the post author along with the post', async () => {
-      document.body.innerHTML = `
-        <article>
-          <div data-testid="User-Name">Ada Lovelace</div>
-          <div data-testid="tweetText">We just launched our public API.</div>
-        </article>`;
+      showPostOnPage();
       vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
         success: true,
       } as never);
