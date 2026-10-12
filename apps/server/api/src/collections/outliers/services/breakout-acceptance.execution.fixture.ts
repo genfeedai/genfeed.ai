@@ -30,6 +30,7 @@ import {
 } from '@api/collections/outliers/services/breakout-acceptance.media.fixture';
 import type { AcceptanceWorld } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
 import { DAY_MS } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
+import { BreakoutAutoPublishService } from '@api/collections/outliers/services/breakout-auto-publish.service';
 import { BreakoutGenerationPlanService } from '@api/collections/outliers/services/breakout-generation-plan.service';
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutMediaOutputPreparationService } from '@api/collections/outliers/services/breakout-media-output-preparation.service';
@@ -536,6 +537,12 @@ export function buildExecutionHarness(
     planner,
     preparation,
     media,
+    new BreakoutAutoPublishService(
+      prisma,
+      posts,
+      new AutonomousPublishPolicyService(prisma, {} as Stub),
+      logger,
+    ),
   );
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const workflowService = new BreakoutResponseExecutionWorkflowService(
