@@ -47,8 +47,9 @@ export interface PostDetailHeaderProps {
   viewMode: 'edit' | 'preview';
   headingLevel?: 1 | 2;
   /**
-   * `topbar` renders the actions in the shared section sub-topbar and drops the
-   * in-page title (the post title lives in the composer and the breadcrumb).
+   * `topbar` renders the page actions in the shared section sub-topbar and
+   * drops the in-page title (the post title lives in the composer and the
+   * breadcrumb). Publishing stays with the schedule in the details sidebar.
    */
   placement?: 'inline' | 'topbar';
   showViewModeToggle?: boolean;
@@ -300,7 +301,7 @@ export default function PostDetailHeader({
     return (
       <>
         <SectionTopbar
-          actions={actions}
+          actions={<CollectionItemActions overflow={overflow} />}
           forceVisible
           title={getPostLabel(post)}
           titleVisibility="sr-only"

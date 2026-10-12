@@ -289,14 +289,22 @@ describe('PostDetailHeader composer preview ownership', () => {
   });
 
   describe('topbar placement', () => {
-    it('puts the actions in the section topbar and drops the in-page title', () => {
+    it('puts page actions in the section topbar and drops the in-page title', () => {
       renderHeader({}, { placement: 'topbar' });
 
       const topbar = screen.getByTestId('section-topbar');
       expect(
-        within(topbar).getByRole('button', { name: 'Publish now' }),
+        within(topbar).getByRole('button', { name: 'Delete' }),
       ).toBeInTheDocument();
       expect(screen.queryByText('Post detail')).not.toBeInTheDocument();
+    });
+
+    it('leaves publishing to the schedule in the sidebar', () => {
+      renderHeader({}, { placement: 'topbar' });
+
+      expect(
+        screen.queryByRole('button', { name: 'Publish now' }),
+      ).not.toBeInTheDocument();
     });
   });
 });
