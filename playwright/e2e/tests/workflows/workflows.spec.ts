@@ -16,7 +16,10 @@ import {
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
 import { executionsHistoryLocator } from '../../pages/workflow.page';
-import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
+import {
+  isPlaywrightAuthBypassed,
+  PLAYWRIGHT_AUTH_BYPASS_SKIP,
+} from '../../utils/playwright-auth-bypass';
 
 /**
  * The editor toolbar back-link renders `href(APP_ROUTES.AUTOMATION.WORKFLOWS)`
@@ -131,11 +134,17 @@ test.describe('Workflows', () => {
       executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
   });
+});
+
+// Outside the authenticated describe: its beforeEach shares the page with
+// `unauthenticatedPage`, so the authenticated shell's late requests tripped the
+// network guard (nightly shard 8). The skip must run before any fixture sets up.
+test.describe('Workflows (unauthenticated)', () => {
+  test.skip(isPlaywrightAuthBypassed(), PLAYWRIGHT_AUTH_BYPASS_SKIP);
 
   test('unauthenticated user is redirected away from workflow editor routes', async ({
     unauthenticatedPage,
   }) => {
-    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
@@ -149,7 +158,6 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow executions', async ({
     unauthenticatedPage,
   }) => {
-    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
