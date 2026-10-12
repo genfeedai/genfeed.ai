@@ -122,6 +122,8 @@ describe('PostSidebarWhenDock', () => {
     const { rerender } = render(
       <PostSidebarWhenDock {...baseProps} scheduleDraft="" />,
     );
+    // A real choice: leave the default, then come back to Now.
+    await user.click(screen.getByRole('tab', { name: 'Schedule' }));
     await user.click(screen.getByRole('tab', { name: 'Now' }));
 
     rerender(
