@@ -4754,7 +4754,10 @@ export async function mockReviewQueue(
     totalCount: 1,
   };
 
-  await routeApiPattern(page, '/batches**', async (route) => {
+  // The review queue lists runs from `GET /turbo-runs` (the Batch to Turbo
+  // hard cut, #6678). This broad pattern is registered first, so the per-run
+  // routes below take precedence for their own paths.
+  await routeApiPattern(page, '/turbo-runs**', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify(
