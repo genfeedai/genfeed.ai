@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
+  describeProviderCatalogError,
   type ProviderCatalogResponse,
   serializeProviderCatalog,
   throwProviderCatalogError,
@@ -72,7 +73,11 @@ export class HeyGenController {
         type: 'voices',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to fetch HeyGen voices', error);
     }
   }
@@ -103,7 +108,8 @@ export class HeyGenController {
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} getAvatarPage failed`,
-        error,
+        undefined,
+        describeProviderCatalogError(error),
       );
       throwProviderCatalogError('Failed to fetch HeyGen avatars', error);
     }
@@ -126,7 +132,11 @@ export class HeyGenController {
         type: 'avatars',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to fetch HeyGen avatars', error);
     }
   }
@@ -150,7 +160,11 @@ export class HeyGenController {
         type: 'service-status',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to check HeyGen status', error);
     }
   }

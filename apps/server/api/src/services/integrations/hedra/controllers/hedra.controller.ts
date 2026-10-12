@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
+  describeProviderCatalogError,
   type ProviderCatalogResponse,
   serializeProviderCatalog,
   throwProviderCatalogError,
@@ -73,7 +74,11 @@ export class HedraController {
         type: 'voices',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to fetch Hedra voices', error);
     }
   }
@@ -95,7 +100,11 @@ export class HedraController {
         type: 'avatars',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to fetch Hedra avatars', error);
     }
   }
@@ -122,7 +131,11 @@ export class HedraController {
         type: 'job-status',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to fetch job status', error);
     }
   }
@@ -152,7 +165,11 @@ export class HedraController {
         type: 'service-status',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to check Hedra status', error);
     }
   }
