@@ -180,7 +180,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       'Your product updates, customer questions and hard-earned lessons give you something worth sharing. Ask your connected agent to turn them into content for X. Choose relevant conversations, prepare replies that add something useful and review every draft. Genfeed keeps the content and publishing work in one workspace so you can keep building.',
     metaDescription:
       'Build an audience around what you ship on X. Use Genfeed with your agent for posts, threads, visuals and reply drafts, then review and schedule approved content.',
-    metaTitle: 'Grow Your X Account With Genfeed',
+    metaTitle: 'Grow Your X Account With Your Agent | Genfeed.ai',
     outcomes: [
       {
         description:
