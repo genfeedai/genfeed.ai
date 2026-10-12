@@ -407,6 +407,7 @@ describe('PublisherFactoryService', () => {
       CredentialPlatform.GHOST,
       CredentialPlatform.SHOPIFY,
       CredentialPlatform.BEEHIIV,
+      CredentialPlatform.MEDIUM,
     ] as const;
 
     it.each(SUPPORTED)(
@@ -430,8 +431,8 @@ describe('PublisherFactoryService', () => {
       expect(Array.isArray(service.getSupportedPlatforms())).toBe(true);
     });
 
-    it('should include all 17 registered platforms', () => {
-      expect(service.getSupportedPlatforms()).toHaveLength(17);
+    it('should include all 18 registered platforms', () => {
+      expect(service.getSupportedPlatforms()).toHaveLength(18);
     });
 
     it('should include TWITTER', () => {
