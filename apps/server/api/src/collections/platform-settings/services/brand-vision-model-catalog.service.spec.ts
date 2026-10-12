@@ -3,6 +3,8 @@ import {
   BRAND_DETECTION_CAPABILITY,
   BRAND_OCR_CAPABILITY,
 } from '@genfeedai/contracts/constants';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function row(overrides: Record<string, unknown> = {}) {
@@ -40,6 +42,7 @@ describe('BrandVisionModelCatalogService', () => {
     expect(prisma.model.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          AND: [],
           capabilities: { has: BRAND_OCR_CAPABILITY },
           isActive: true,
           isDeleted: false,
@@ -115,5 +118,39 @@ describe('BrandVisionModelCatalogService', () => {
         providerCostUsd: 0.000225,
       },
     ]);
+  });
+
+  it('passes the CLOUD tenant guard inside a request while staying platform-only', async () => {
+    prisma.model.findFirst.mockResolvedValue(row());
+    prisma.model.findMany.mockResolvedValue([]);
+
+    await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+      await service.resolve('ocr', 'acme/florence');
+      await service.list();
+    });
+
+    const queries = [
+      ...prisma.model.findFirst.mock.calls.map(([args]) => ({
+        args,
+        operation: 'findFirst',
+      })),
+      ...prisma.model.findMany.mock.calls.map(([args]) => ({
+        args,
+        operation: 'findMany',
+      })),
+    ];
+    expect(queries).toHaveLength(3);
+    for (const { args, operation } of queries) {
+      expect(() =>
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'Model',
+          operation,
+          tenantModelNames: new Set(['Model']),
+        }),
+      ).not.toThrow();
+      expect(args.where.organizationId).toBeNull();
+    }
   });
 });

@@ -7,6 +7,7 @@ import type {
   IBrandVisionModelOption,
   IBrandVisionModelOptions,
 } from '@genfeedai/contracts/interfaces';
+import { platformTenantProof } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 
 /** `owner/name:version`, the immutable Replicate version a prediction runs. */
@@ -104,8 +105,14 @@ export class BrandVisionModelCatalogService {
     });
   }
 
+  /**
+   * Platform rows only. The `AND` proof names the active tenant for the CLOUD
+   * tenant guard (a bare `organizationId: null` throws inside a request) and
+   * never widens the filter: `organizationId: null` still decides the rows.
+   */
   private eligibleWhere(kind: BrandVisionModelKind) {
     return {
+      AND: platformTenantProof(),
       capabilities: { has: BRAND_VISION_CAPABILITY_BY_KIND[kind] },
       isActive: true,
       isDeleted: false,
