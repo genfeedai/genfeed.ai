@@ -20,8 +20,14 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import type { Prediction } from 'replicate';
 
-const POLL_INTERVAL_MS = 1_000;
-const MAX_POLLS = 60;
+const POLL_INTERVAL_MS = 2_000;
+/**
+ * Replicate boots a cold community model for minutes, and the clock runs while a
+ * prediction is still `starting`. One prediction waits this long; the analysis
+ * runs in a background job (`brand-vision` queue), never on a request.
+ */
+export const BRAND_VISION_PREDICTION_TIMEOUT_MS = 300_000;
+const MAX_POLLS = BRAND_VISION_PREDICTION_TIMEOUT_MS / POLL_INTERVAL_MS;
 const CACHE_LIMIT = 256;
 const OCR_TASK = 'OCR';
 const OCR_COST_CATEGORY = 'brand-validation-ocr';
@@ -349,7 +355,12 @@ export class BrandReplicateVisionProvider implements BrandVisionProvider {
         polls++
       ) {
         if (polls >= MAX_POLLS) {
-          await client.predictions.cancel(prediction.id).catch(() => null);
+          // The cancelled prediction is the record of what ran, so any runtime it
+          // reports is priced.
+          const cancelled = await client.predictions
+            .cancel(prediction.id)
+            .catch(() => null);
+          if (cancelled) prediction = cancelled;
           throw new Error('brand_vision_timeout');
         }
         await delay(POLL_INTERVAL_MS);

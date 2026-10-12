@@ -58,6 +58,13 @@ describe('brand visual analysis switch', () => {
 });
 
 describe('BrandVisualAnalysisService', () => {
+  it('reports the platform switch, and throws when the setting cannot be read', async () => {
+    expect(await setup(true).service.isEnabled()).toBe(true);
+    expect(await setup(false).service.isEnabled()).toBe(false);
+    const { service, settings } = setup(true);
+    settings.getFeatureSettings.mockRejectedValueOnce(new Error('db down'));
+    await expect(service.isEnabled()).rejects.toThrow('db down');
+  });
   it('calls no provider while the platform setting is off', async () => {
     const { provider, service } = setup(false);
     expect(await service.extractText(request)).toEqual({ status: 'disabled' });

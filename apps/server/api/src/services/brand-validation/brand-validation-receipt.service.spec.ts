@@ -7,6 +7,7 @@ import { BrandValidationModule } from '@api/services/brand-validation/brand-vali
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
+import { BrandVisionQueueService } from '@api/services/brand-validation/brand-vision-queue.service';
 import { BrandVisualAnalysisModule } from '@api/services/brand-validation/brand-visual-analysis.module';
 import type { BrandVisualAnalysisService } from '@api/services/brand-validation/brand-visual-analysis.service';
 import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
@@ -35,6 +36,9 @@ import {
   StorageReadError,
   type VersionedStorageProvider,
 } from '@genfeedai/storage';
+import { LoggerModule } from '@libs/logger/logger.module';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { BullModule } from '@nestjs/bullmq';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -487,45 +491,185 @@ describe('brand validation receipt completion adapter', () => {
     expect(f.rows[0].projection).toEqual(result.receipt);
   });
 
-  it('T3b: persists a media receipt with OCR proof when an analysis is configured, still needs_review', async () => {
-    const f = fixture();
-    await bindImage(f);
-    const analysis = {
+  describe('T3b: OCR and placement readings run in a background job', () => {
+    function wired(
+      analysis: Record<string, unknown>,
+      f: ReturnType<typeof fixture>,
+    ) {
+      const queue = { enqueue: vi.fn(async () => undefined) };
+      const logger = { warn: vi.fn() };
+      const adapter = new BrandValidationReceiptService(
+        f.material,
+        f.receipts,
+        f.validator,
+        analysis as unknown as BrandVisualAnalysisService,
+        undefined,
+        queue as unknown as BrandVisionQueueService,
+        logger as unknown as LoggerService,
+      );
+      return { adapter, logger, queue };
+    }
+    const readAnalysis = () => ({
       detectRegions: vi.fn(async () => ({ status: 'unavailable' as const })),
       extractText: vi.fn(async () => ({
         provider: { id: 'replicate', model: 'acme/ocr', version: 'v1' },
         status: 'read' as const,
         texts: ['Example Co'],
       })),
-    };
-    const adapter = new BrandValidationReceiptService(
-      f.material,
-      f.receipts,
-      f.validator,
-      analysis as unknown as BrandVisualAnalysisService,
-    );
-    const result = await adapter.validateReceipt(actor, 'receipt-a');
-    expect(analysis.extractText).toHaveBeenCalledTimes(1);
-    expect(result.receipt).toMatchObject({
-      state: 'needs_review',
-      compliance: 'unverified',
+      isEnabled: vi.fn(async () => true),
     });
-    expect(
+    const checkOf = (
+      result: { receipt: BrandedGenerationReceiptV1 },
+      ruleId: string,
+    ) =>
       result.receipt.validation?.checks.find(
-        (check) => check.ruleId === 'mandatory-a',
-      ),
-    ).toMatchObject({
-      result: 'pass',
-      proof: {
-        kind: 'ocr',
-        artifactHash: result.receipt.artifact?.contentHash,
-      },
+        (check) => check.ruleId === ruleId,
+      );
+
+    it('leaves the readable checks pending, reads nothing and queues one job', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      const { adapter, queue } = wired(analysis, f);
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(analysis.extractText).not.toHaveBeenCalled();
+      expect(result.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+      expect(checkOf(result, 'mandatory-a')).toMatchObject({
+        reasonCode: 'visual_analysis_pending',
+        result: 'unknown',
+      });
+      expect(checkOf(result, 'avoid-a')).toMatchObject({
+        reasonCode: 'visual_analysis_pending',
+        result: 'unknown',
+      });
+      expect(queue.enqueue).toHaveBeenCalledTimes(1);
+      expect(queue.enqueue).toHaveBeenCalledWith({
+        actorId: actor.actorId,
+        brandId: actor.brandId,
+        organizationId: actor.organizationId,
+        receiptId: 'receipt-a',
+      });
     });
-    expect(
-      result.receipt.validation?.checks.find(
-        (check) => check.ruleId === 'avoid-a',
-      ),
-    ).toMatchObject({ reasonCode: 'ocr_absence_unproven', result: 'unknown' });
+
+    it('queues nothing while the platform switch is off', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      analysis.isEnabled.mockResolvedValue(false);
+      const { adapter, queue } = wired(analysis, f);
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(checkOf(result, 'mandatory-a')).toMatchObject({
+        reasonCode: 'visual_analysis_disabled',
+      });
+      expect(queue.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('does not defer, or call the provider, without a queue', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      const adapter = new BrandValidationReceiptService(
+        f.material,
+        f.receipts,
+        f.validator,
+        analysis as unknown as BrandVisualAnalysisService,
+      );
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(analysis.extractText).not.toHaveBeenCalled();
+      expect(checkOf(result, 'mandatory-a')).toMatchObject({
+        reasonCode: 'text_coverage_incomplete',
+      });
+    });
+
+    it('keeps the receipt validated when the job cannot be queued', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const { adapter, logger, queue } = wired(readAnalysis(), f);
+      queue.enqueue.mockRejectedValueOnce(new Error('redis down'));
+      const result = await adapter.validateReceipt(actor, 'receipt-a');
+      expect(result.receipt.state).toBe('needs_review');
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('proves the literals when the job completes, still needs_review, and never pays twice', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      const { adapter } = wired(analysis, f);
+      await adapter.validateReceipt(actor, 'receipt-a');
+      const done = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(done?.replayed).toBe(false);
+      expect(analysis.extractText).toHaveBeenCalledTimes(1);
+      expect(done?.receipt).toMatchObject({
+        compliance: 'unverified',
+        state: 'needs_review',
+      });
+      expect(done && checkOf(done, 'mandatory-a')).toMatchObject({
+        proof: {
+          artifactHash: done?.receipt.artifact?.contentHash,
+          kind: 'ocr',
+        },
+        result: 'pass',
+      });
+      expect(done && checkOf(done, 'avoid-a')).toMatchObject({
+        reasonCode: 'ocr_absence_unproven',
+        result: 'unknown',
+      });
+      const again = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(again?.replayed).toBe(true);
+      expect(analysis.extractText).toHaveBeenCalledTimes(1);
+    });
+
+    it('blocks the receipt when the job reads a forbidden literal', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      analysis.extractText.mockResolvedValue({
+        provider: { id: 'replicate', model: 'acme/ocr', version: 'v1' },
+        status: 'read' as const,
+        texts: ['Example Co Guaranteed returns'],
+      });
+      const { adapter } = wired(analysis, f);
+      await adapter.validateReceipt(actor, 'receipt-a');
+      const done = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(done?.receipt.state).toBe('blocked');
+      expect(done && checkOf(done, 'avoid-a')).toMatchObject({
+        reasonCode: 'forbidden_literal_present',
+        result: 'fail',
+      });
+    });
+
+    it('records a reading that could not complete as unavailable, failing closed', async () => {
+      const f = fixture();
+      await bindImage(f);
+      const analysis = readAnalysis();
+      analysis.extractText.mockResolvedValue({
+        status: 'unavailable',
+      } as never);
+      const { adapter } = wired(analysis, f);
+      await adapter.validateReceipt(actor, 'receipt-a');
+      const done = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(done?.receipt.state).toBe('needs_review');
+      expect(done && checkOf(done, 'mandatory-a')).toMatchObject({
+        reasonCode: 'visual_analysis_unavailable',
+        result: 'unknown',
+      });
+      // No pending check is left, so the job is not offered again.
+      const again = await adapter.completeVisionChecks(actor, 'receipt-a');
+      expect(again?.replayed).toBe(true);
+      expect(analysis.extractText).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing without an analysis', async () => {
+      const f = fixture();
+      await bindImage(f);
+      await expect(
+        f.adapter.completeVisionChecks(actor, 'receipt-a'),
+      ).resolves.toBeNull();
+    });
   });
 
   it('T3c: reads the render manifest against the pinned bytes of an image ingredient, still needs_review', async () => {
@@ -711,13 +855,15 @@ describe('brand validation receipt completion adapter', () => {
       BrandVisualAnalysisModule,
       BrandRenderEvidenceModule,
       BrandedGenerationReceiptsModule,
+      expect.objectContaining({ module: BullModule }),
+      LoggerModule,
     ]);
     expect(
       Reflect.getMetadata(
         MODULE_METADATA.PROVIDERS,
         BrandValidationReceiptModule,
       ),
-    ).toEqual([BrandValidationReceiptService]);
+    ).toEqual([BrandValidationReceiptService, BrandVisionQueueService]);
     expect(
       Reflect.getMetadata(
         MODULE_METADATA.EXPORTS,

@@ -282,7 +282,7 @@ describe('BrandReplicateVisionProvider', () => {
       )
       .mockResolvedValueOnce(prediction());
     const pending = provider.extractText({ frames: [frame], scope });
-    await vi.advanceTimersByTimeAsync(2_000);
+    await vi.advanceTimersByTimeAsync(4_000);
     expect((await pending).texts).toEqual(['Example Co']);
     expect(predictions.get).toHaveBeenCalledTimes(2);
   });
@@ -341,8 +341,25 @@ describe('BrandReplicateVisionProvider', () => {
     ).rejects.toThrow('brand_vision_output_unrecognized');
     expect(ledger.record).toHaveBeenCalledTimes(1);
   });
-  it('cancels a prediction that never finishes', async () => {
+  it('waits through a cold start of several minutes', async () => {
     const { predictions, provider } = setup();
+    const starting = prediction({
+      metrics: undefined,
+      output: undefined,
+      status: 'starting',
+    });
+    predictions.create.mockResolvedValueOnce(starting);
+    predictions.get.mockResolvedValue(starting);
+    const pending = provider.extractText({ frames: [frame], scope });
+    await vi.advanceTimersByTimeAsync(4 * 60_000);
+    expect(predictions.get).toHaveBeenCalled();
+    predictions.get.mockResolvedValue(prediction());
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect((await pending).texts).toEqual(['Example Co']);
+    expect(predictions.cancel).not.toHaveBeenCalled();
+  });
+  it('cancels a prediction that never finishes after five minutes and prices what it ran', async () => {
+    const { ledger, predictions, provider } = setup();
     const unfinished = prediction({
       metrics: undefined,
       output: undefined,
@@ -350,11 +367,23 @@ describe('BrandReplicateVisionProvider', () => {
     });
     predictions.create.mockResolvedValueOnce(unfinished);
     predictions.get.mockResolvedValue(unfinished);
+    predictions.cancel.mockResolvedValueOnce(
+      prediction({ metrics: { predict_time: 3 }, status: 'canceled' }),
+    );
     const pending = provider.extractText({ frames: [frame], scope });
     const settled = expect(pending).rejects.toThrow('brand_vision_timeout');
-    await vi.advanceTimersByTimeAsync(61_000);
+    await vi.advanceTimersByTimeAsync(299_000);
+    expect(predictions.cancel).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(4_000);
     await settled;
     expect(predictions.cancel).toHaveBeenCalledWith('pred-1');
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        costEvidence: 'calculated',
+        pricingSnapshot: expect.objectContaining({ status: 'canceled' }),
+        units: 3,
+      }),
+    );
   });
   it.each([
     ['no model is selected', { settings: { brandVisionOcrModelKey: null } }],
@@ -587,9 +616,10 @@ describe('BrandReplicateVisionProvider detection', () => {
 });
 
 // Shapes recorded against Replicate on 2026-10-12 (#6727, lane Z). The schema
-// files are the pinned versions' own openapi_schema; the OCR answer is one live
-// prediction; the detector answer is the model owner's published example for the
-// pinned version (our live detector prediction timed out in a cold start).
+// files are the pinned versions' own openapi_schema; the OCR answer and the
+// detector's empty answer are live predictions; the detector's boxes come from the
+// model owner's published example for the pinned version (our live prediction on a
+// synthetic logo found no region, so no live box has been seen).
 const readFixture = async <T>(file: string): Promise<T> =>
   JSON.parse(
     await readFile(
@@ -616,6 +646,12 @@ interface LiveOcrRecording {
   ledger: { units: number; vendorCostMicros: number };
   metrics: { predict_time: number };
   output: { img: string | null; text: string };
+  version: string;
+}
+interface LiveDetectionRecording {
+  ledger: { units: number; vendorCostMicros: number };
+  metrics: { predict_time: number };
+  output: { json_data: { objects: unknown[] }; result_image: string | null };
   version: string;
 }
 interface PublishedDetectionExample {
@@ -736,6 +772,38 @@ describe('Replicate vision models as verified against the live API', () => {
     });
     expect(ledger.record).toHaveBeenCalledWith(
       expect.objectContaining({
+        costEvidence: 'calculated',
+        units: recording.ledger.units,
+        vendorCostMicros: recording.ledger.vendorCostMicros,
+      }),
+    );
+  });
+
+  it('reads the live OWL-ViT answer with no region as an empty list and prices it from the reported runtime', async () => {
+    const recording = await readFixture<LiveDetectionRecording>(
+      'owlvit-base-patch32.detect.live.json',
+    );
+    const { ledger, predictions, provider } = setup({
+      rows: realRows,
+      settings: realSettings,
+    });
+    predictions.create.mockResolvedValueOnce(
+      prediction({
+        metrics: recording.metrics,
+        output: recording.output,
+        version: recording.version,
+      }),
+    );
+    const result = await provider.detectRegions({
+      frames: [await png(800, 600)],
+      query: 'logo',
+      scope,
+    });
+    expect(result.frames).toEqual([[]]);
+    expect(result.provider.version).toBe(recording.version);
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'brand-validation-vision',
         costEvidence: 'calculated',
         units: recording.ledger.units,
         vendorCostMicros: recording.ledger.vendorCostMicros,
