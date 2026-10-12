@@ -6,6 +6,7 @@ import {
 import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { ImportedSourceSnapshotInput } from '@genfeedai/contracts/api-types/contracts/imported-source.contract';
 import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -258,7 +259,7 @@ describe('BrandRemixSourceResolverService', () => {
       };
       const digest = importedSourceIdentityDigest(
         scope,
-        stored as Parameters<typeof importedSourceIdentityDigest>[1],
+        stored as unknown as ImportedSourceSnapshotInput,
       );
       const id = importedSourceRootId(digest);
       return {
