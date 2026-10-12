@@ -51,9 +51,6 @@ const recordingEnabled = (settings: unknown): boolean =>
   typeof settings.recordOwnPublications === 'boolean'
     ? settings.recordOwnPublications
     : true;
-const RECORDING_FAILED =
-  'Published on X; recording failed. Retry in Genfeed Settings.';
-
 export function attachXPublicationObserver(): () => void {
   if (!isXPublicationPage(location.href)) return () => undefined;
   let context: Extract<
@@ -82,15 +79,12 @@ export function attachXPublicationObserver(): () => void {
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;
   async function send(request: unknown): Promise<PublicationCaptureReply> {
     try {
-      // The worker may close the channel without replying.
-      return (
-        (await chrome.runtime.sendMessage(request)) ?? {
-          success: false,
-          error: RECORDING_FAILED,
-        }
-      );
+      return await chrome.runtime.sendMessage(request);
     } catch {
-      return { success: false, error: RECORDING_FAILED };
+      return {
+        success: false,
+        error: 'Published on X; recording failed. Retry in Genfeed Settings.',
+      };
     }
   }
   function cancel(message?: string) {
