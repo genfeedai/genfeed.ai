@@ -1,11 +1,7 @@
 'use client';
 
 import { CredentialPlatform, PageScope, Platform } from '@genfeedai/contracts';
-import type {
-  IIngredient,
-  IPost,
-  PostQuickActionKey,
-} from '@genfeedai/contracts/interfaces';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import PostDetailCard from '@pages/posts/detail/components/PostDetailCard';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
@@ -23,23 +19,17 @@ export interface PostDetailPostListProps {
   selectedIngredients: IIngredient[];
   focusedPostId: string | null;
   dragOverDividerIndex: number | null;
-  enhancingPostId: string | null;
-  enhancingAction: PostQuickActionKey | null;
   isSavingIngredients: boolean;
   isSavingDescription: boolean;
   carouselValidation: { valid: boolean; errors: string[] };
   publishedDisplay: string;
   isContentDirty: boolean;
-  canAddThread: boolean;
-  isLastChildGrokTweet: boolean;
-  hasChildren: boolean;
   setDescriptionDraft: (value: string) => void;
   setLabelDraft: (value: string) => void;
   setChildDescription: (childId: string, value: string) => void;
   setFocusedPostId: (id: string | null) => void;
   setDragOverDividerIndex: (index: number | null) => void;
   handleContentSave: () => Promise<void>;
-  handleAddToThread: () => Promise<void>;
   handleDeleteChild: (childId: string) => void;
   handleSelectMedia: (
     targetPostId: string,
@@ -50,15 +40,6 @@ export interface PostDetailPostListProps {
     prompt: string,
     platform?: Platform,
   ) => void;
-  handleQuickAction: (
-    postId: string,
-    prompt: string,
-    actionKey: PostQuickActionKey,
-  ) => Promise<string | null>;
-  handlePerTweetEnhance: (
-    postId: string,
-    prompt: string,
-  ) => Promise<string | null>;
   handleDragStart: (postId: string) => void;
   handleDragEnd: () => void;
   handleDrop: (targetPostId: string, targetOrder: number) => Promise<void>;
@@ -85,28 +66,20 @@ export default function PostDetailPostList({
   selectedIngredients,
   focusedPostId,
   dragOverDividerIndex,
-  enhancingPostId,
-  enhancingAction,
   isSavingIngredients,
   isSavingDescription,
   carouselValidation,
   publishedDisplay,
   isContentDirty,
-  canAddThread,
-  isLastChildGrokTweet,
-  hasChildren,
   setDescriptionDraft,
   setLabelDraft,
   setChildDescription,
   setFocusedPostId,
   setDragOverDividerIndex,
   handleContentSave,
-  handleAddToThread,
   handleDeleteChild,
   handleSelectMedia,
   handleGenerateIllustration,
-  handleQuickAction,
-  handlePerTweetEnhance,
   handleDragStart,
   handleDragEnd,
   handleDrop,
@@ -125,15 +98,6 @@ export default function PostDetailPostList({
     <>
       {allPosts.map((currentPost, index) => {
         const isParent = index === 0;
-        const isLastPost = index === allPosts.length - 1;
-        const isSecondToLast = index === allPosts.length - 2;
-
-        const isGrokTweet =
-          currentPost.description?.trim().startsWith('@grok') ?? false;
-        const shouldShowAdd = isParent
-          ? !hasChildren
-          : (isLastPost && !isGrokTweet) ||
-            (isSecondToLast && isLastChildGrokTweet);
 
         return (
           <div key={currentPost.id}>
@@ -174,6 +138,7 @@ export default function PostDetailPostList({
               scope={scope}
               platform={platform}
               isDraggable={!isParent}
+              isThread={allPosts.length > 1}
               focusedPostId={focusedPostId}
               setFocusedPostId={setFocusedPostId}
               descriptionValue={
@@ -227,14 +192,7 @@ export default function PostDetailPostList({
               getPostsService={getPostsService}
               onUpdateChild={handleUpdateChild}
               notificationsService={notificationsService}
-              canAddThread={canAddThread}
-              onAddToThread={handleAddToThread}
-              isLast={shouldShowAdd}
               onDeleteChild={!isParent ? handleDeleteChild : undefined}
-              onQuickAction={handleQuickAction}
-              onPromptEnhance={handlePerTweetEnhance}
-              enhancingPostId={enhancingPostId}
-              enhancingAction={enhancingAction}
               performAutoSaveForPost={performAutoSaveForPost}
               currentDescriptionsRef={autoSaveRefs.currentDescriptions}
               currentLabelsRef={autoSaveRefs.currentLabels}

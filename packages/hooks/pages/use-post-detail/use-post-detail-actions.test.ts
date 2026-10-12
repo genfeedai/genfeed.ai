@@ -44,6 +44,7 @@ const POST = {
 describe('usePostDetailActions', () => {
   const mockServiceDelete = vi.fn();
   const mockServiceEnhance = vi.fn();
+  const mockServiceDraftThread = vi.fn();
   const mockGetPostsService = vi.fn();
   const mockEnsureFromPost = vi.fn();
   const mockScheduleTarget = vi.fn();
@@ -94,8 +95,10 @@ describe('usePostDetailActions', () => {
     });
     mockGetPostsService.mockResolvedValue({
       delete: mockServiceDelete,
+      draftThread: mockServiceDraftThread,
       enhance: mockServiceEnhance,
     });
+    mockServiceDraftThread.mockResolvedValue(['Reply one', 'Reply two']);
     mockEnsureFromPost.mockResolvedValue({ id: 'group-1' });
     mockScheduleTarget.mockResolvedValue({ id: 'group-1' });
     mockPublishNow.mockResolvedValue({ id: 'group-1' });
@@ -449,6 +452,41 @@ describe('usePostDetailActions', () => {
       });
 
       expect(draft).toBeNull();
+    });
+  });
+
+  describe('handleDraftThread', () => {
+    it('returns proposed replies without saving', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      let draft: string[] | null = null;
+      await act(async () => {
+        draft = await result.current.handleDraftThread('post-1', 'casual');
+      });
+
+      expect(draft).toEqual(['Reply one', 'Reply two']);
+      expect(mockServiceDraftThread).toHaveBeenCalledWith(
+        'post-1',
+        4,
+        'casual',
+      );
+      expect(mockSetEnhancingPostId).toHaveBeenNthCalledWith(1, 'post-1');
+      expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+    });
+
+    it('returns null and notifies when drafting fails', async () => {
+      mockServiceDraftThread.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      let draft: string[] | null = ['unset'];
+      await act(async () => {
+        draft = await result.current.handleDraftThread('post-1');
+      });
+
+      expect(draft).toBeNull();
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'Failed to draft the thread. Try again.',
+      );
     });
   });
 });

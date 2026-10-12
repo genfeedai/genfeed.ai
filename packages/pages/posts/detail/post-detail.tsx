@@ -85,7 +85,6 @@ export default function PostDetail({
     isSavingSchedule,
     isSavingIngredients,
     enhancingPostId,
-    enhancingAction,
     isTogglingGrok,
     isTogglingFirstComment,
     isExpandingToThread,
@@ -94,7 +93,6 @@ export default function PostDetail({
     carouselValidation,
     canAddThread,
     canAddFirstComment,
-    hasFirstComment,
     firstCommentPost,
     isLastChildGrokTweet,
     hasChildren,
@@ -108,6 +106,9 @@ export default function PostDetail({
     handlePublishNow,
     handlePublishViaTikTokApp,
     handleAddToThread,
+    handleAddThreadPosts,
+    handleDraftThread,
+    handleSetGrokQuestion,
     handleDeletePost,
     handleDeleteChild,
     handleSelectMedia,
@@ -524,7 +525,6 @@ export default function PostDetail({
                     draggedPostId={draggedPostId}
                     dragOverDividerIndex={dragOverDividerIndex}
                     enhancingPostId={enhancingPostId}
-                    enhancingAction={enhancingAction}
                     isSavingIngredients={isSavingIngredients}
                     isSavingDescription={isSavingDescription}
                     isTogglingGrok={isTogglingGrok}
@@ -534,10 +534,8 @@ export default function PostDetail({
                     isContentDirty={isContentDirty}
                     canAddThread={canAddThread}
                     canAddFirstComment={canAddFirstComment}
-                    hasFirstComment={hasFirstComment}
                     firstCommentPost={firstCommentPost}
                     isLastChildGrokTweet={isLastChildGrokTweet}
-                    hasChildren={hasChildren}
                     setDescriptionDraft={setDescriptionDraft}
                     setLabelDraft={setLabelDraft}
                     setChildDescription={setChildDescription}
@@ -545,15 +543,18 @@ export default function PostDetail({
                     setDragOverDividerIndex={setDragOverDividerIndex}
                     handleContentSave={handleContentSave}
                     handleAddToThread={handleAddToThread}
+                    handleAddThreadPosts={handleAddThreadPosts}
                     handleDeleteChild={handleDeleteChild}
                     handleSelectMedia={handleSelectMedia}
                     handleGenerateIllustration={handleGenerateIllustration}
                     handleQuickAction={handleQuickAction}
                     handlePerTweetEnhance={handlePerTweetEnhance}
+                    handleDraftThread={handleDraftThread}
                     handleDragStart={handleDragStart}
                     handleDragEnd={handleDragEnd}
                     handleDrop={handleDrop}
                     handleToggleGrokFeedback={handleToggleGrokFeedback}
+                    handleSetGrokQuestion={handleSetGrokQuestion}
                     handleToggleFirstComment={handleToggleFirstComment}
                     handleUpdateChild={handleUpdateChild}
                     autoSaveRefs={autoSaveRefs}

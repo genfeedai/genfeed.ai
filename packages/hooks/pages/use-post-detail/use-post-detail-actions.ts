@@ -62,6 +62,10 @@ export interface UsePostDetailActionsReturn {
     prompt: string,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
   ) => Promise<string | null>;
+  handleDraftThread: (
+    postId: string,
+    tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+  ) => Promise<string[] | null>;
 }
 
 function requirePostId(post: IPost): string {
@@ -360,8 +364,43 @@ export function usePostDetailActions({
     [requestRewriteDraft],
   );
 
+  // Proposed X replies; nothing is saved until the user adds them.
+  const handleDraftThread = useCallback(
+    async (
+      draftPostId: string,
+      tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+    ): Promise<string[] | null> => {
+      if (!post) {
+        return null;
+      }
+
+      setEnhancingPostId(draftPostId);
+      setEnhancingAction(null);
+
+      try {
+        const service = await getPostsService();
+        const replies = await service.draftThread(draftPostId, 4, tone);
+        return replies.length > 0 ? replies : null;
+      } catch (err) {
+        logger.error('Thread draft failed', err);
+        notificationsService.error('Failed to draft the thread. Try again.');
+        return null;
+      } finally {
+        setEnhancingPostId(null);
+      }
+    },
+    [
+      post,
+      getPostsService,
+      notificationsService,
+      setEnhancingPostId,
+      setEnhancingAction,
+    ],
+  );
+
   return {
     handleContentSave,
+    handleDraftThread,
     handleDeletePost,
     handlePerTweetEnhance,
     handlePublishNow,
