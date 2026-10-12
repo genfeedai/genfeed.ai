@@ -67,17 +67,36 @@ export function createPostIngredientLinks(
   return { create: postIngredientLinkRows(organizationId, ids) };
 }
 
-/** Nested write that replaces a post's links with `ids`, in the order given. */
+/**
+ * Nested write that replaces a post's links with `ids`, in the order given.
+ *
+ * Prisma does not promise an order between the operations of one nested write,
+ * so each is safe in any order: links that left the list are deleted, links
+ * that stay get their new position, and links that are new are inserted with
+ * `skipDuplicates` (a stayed link is never inserted twice, so a reorder cannot
+ * trip the (post, ingredient) unique key).
+ */
 export function replacePostIngredientLinks(
   organizationId: string,
   ids: readonly string[],
 ): {
-  create: Prisma.PostIngredientUncheckedCreateWithoutPostInput[];
-  deleteMany: Record<string, never>;
+  createMany: {
+    data: Prisma.PostIngredientCreateManyPostInput[];
+    skipDuplicates: true;
+  };
+  deleteMany: Prisma.PostIngredientScalarWhereInput;
+  updateMany: Prisma.PostIngredientUpdateManyWithWhereWithoutPostInput[];
 } {
+  const rows = postIngredientLinkRows(organizationId, ids);
   return {
-    create: postIngredientLinkRows(organizationId, ids),
-    deleteMany: {},
+    createMany: { data: rows, skipDuplicates: true },
+    deleteMany: {
+      ingredientId: { notIn: rows.map((row) => row.ingredientId) },
+    },
+    updateMany: rows.map((row) => ({
+      data: { position: row.position },
+      where: { ingredientId: row.ingredientId },
+    })),
   };
 }
 

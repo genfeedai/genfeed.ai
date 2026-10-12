@@ -95,6 +95,10 @@ describe.skipIf(!connectionString)(
                SELECT a.attname FROM pg_attribute a
                WHERE a.attrelid = '"${schema}"."${table}"'::regclass
                  AND a.attnum > 0 AND NOT a.attisdropped AND a.attnotnull AND NOT a.atthasdef
+                 AND NOT EXISTS (
+                   SELECT 1 FROM pg_index i
+                   WHERE i.indrelid = a.attrelid AND i.indisprimary
+                     AND a.attnum = ANY (i.indkey))
              LOOP
                EXECUTE format('ALTER TABLE %I.%I ALTER COLUMN %I DROP NOT NULL', '${schema}', '${table}', col.attname);
              END LOOP;

@@ -46,18 +46,26 @@ describe('post ingredient links', () => {
 
     it('replaces the existing links, so a reorder rewrites every position', () => {
       expect(replacePostIngredientLinks('org-1', ['b', 'a'])).toEqual({
-        create: [
-          { ingredientId: 'b', organizationId: 'org-1', position: 0 },
-          { ingredientId: 'a', organizationId: 'org-1', position: 1 },
+        createMany: {
+          data: [
+            { ingredientId: 'b', organizationId: 'org-1', position: 0 },
+            { ingredientId: 'a', organizationId: 'org-1', position: 1 },
+          ],
+          skipDuplicates: true,
+        },
+        deleteMany: { ingredientId: { notIn: ['b', 'a'] } },
+        updateMany: [
+          { data: { position: 0 }, where: { ingredientId: 'b' } },
+          { data: { position: 1 }, where: { ingredientId: 'a' } },
         ],
-        deleteMany: {},
       });
     });
 
     it('clears every link when the arrangement is empty', () => {
       expect(replacePostIngredientLinks('org-1', [])).toEqual({
-        create: [],
-        deleteMany: {},
+        createMany: { data: [], skipDuplicates: true },
+        deleteMany: { ingredientId: { notIn: [] } },
+        updateMany: [],
       });
     });
   });
