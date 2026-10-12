@@ -135,7 +135,9 @@ describe('PostComposerPromptBar', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Shorten' }));
 
-    const proposal = await screen.findByRole('region', { name: 'AI rewrite' });
+    // The region exists while the rewrite is pending; wait for the result.
+    await screen.findByText('Shorter text');
+    const proposal = screen.getByRole('region', { name: 'AI rewrite' });
     expect(props.onRewrite).toHaveBeenCalledWith(
       expect.stringContaining('shorter'),
       'shorten',
