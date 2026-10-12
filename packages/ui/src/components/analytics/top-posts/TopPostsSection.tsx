@@ -3,9 +3,9 @@
 import { CardVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Eye, Heart, ImageIcon, MessageSquare } from 'lucide-react';
