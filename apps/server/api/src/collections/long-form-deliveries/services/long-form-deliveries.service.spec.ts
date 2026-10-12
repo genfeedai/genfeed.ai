@@ -1,6 +1,7 @@
 import type { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { LongFormDeliveriesService } from '@api/collections/long-form-deliveries/services/long-form-deliveries.service';
 import type { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import type { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import type { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -50,8 +51,10 @@ describe('LongFormDeliveriesService', () => {
   };
   let postGroupsService: {
     create: ReturnType<typeof vi.fn>;
-    listSourceReleases: ReturnType<typeof vi.fn>;
     publishNow: ReturnType<typeof vi.fn>;
+  };
+  let postGroupPersistenceService: {
+    listSourceReleases: ReturnType<typeof vi.fn>;
   };
   let articlesService: { update: ReturnType<typeof vi.fn> };
   let newslettersService: {
@@ -77,11 +80,13 @@ describe('LongFormDeliveriesService', () => {
       create: vi
         .fn()
         .mockResolvedValue({ id: 'release-1', status: ReleaseStatus.DRAFT }),
-      listSourceReleases: vi.fn().mockResolvedValue([]),
       publishNow: vi.fn().mockResolvedValue({
         id: 'release-1',
         status: ReleaseStatus.SCHEDULED,
       }),
+    };
+    postGroupPersistenceService = {
+      listSourceReleases: vi.fn().mockResolvedValue([]),
     };
     articlesService = { update: vi.fn().mockResolvedValue({}) };
     newslettersService = {
@@ -91,6 +96,7 @@ describe('LongFormDeliveriesService', () => {
     service = new LongFormDeliveriesService(
       prisma as unknown as PrismaService,
       postGroupsService as unknown as PostGroupsService,
+      postGroupPersistenceService as unknown as PostGroupPersistenceService,
       articlesService as unknown as ArticlesService,
       newslettersService as unknown as NewslettersService,
     );
@@ -381,7 +387,7 @@ describe('LongFormDeliveriesService', () => {
 
   describe('list deliveries', () => {
     it('flattens the targets of every release linked to the article', async () => {
-      postGroupsService.listSourceReleases.mockResolvedValue([
+      postGroupPersistenceService.listSourceReleases.mockResolvedValue([
         { targets: [{ id: 'target-2' }] },
         { targets: [{ id: 'target-1' }] },
       ]);
@@ -389,10 +395,9 @@ describe('LongFormDeliveriesService', () => {
       await expect(
         service.listArticleDeliveries('org-1', 'article-1'),
       ).resolves.toEqual([{ id: 'target-2' }, { id: 'target-1' }]);
-      expect(postGroupsService.listSourceReleases).toHaveBeenCalledWith(
-        'org-1',
-        { articleId: 'article-1' },
-      );
+      expect(
+        postGroupPersistenceService.listSourceReleases,
+      ).toHaveBeenCalledWith(prisma, 'org-1', { articleId: 'article-1' });
     });
 
     it('returns 404 for a newsletter in another organization', async () => {
@@ -409,7 +414,9 @@ describe('LongFormDeliveriesService', () => {
           organizationId: 'org-1',
         },
       });
-      expect(postGroupsService.listSourceReleases).not.toHaveBeenCalled();
+      expect(
+        postGroupPersistenceService.listSourceReleases,
+      ).not.toHaveBeenCalled();
     });
   });
 });

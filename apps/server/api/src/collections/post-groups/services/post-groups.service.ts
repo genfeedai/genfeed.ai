@@ -1,8 +1,5 @@
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
-import type {
-  LongFormDeliverySource,
-  SchedulerPostGroup,
-} from '@api/collections/post-groups/services/post-group.types';
+import type { SchedulerPostGroup } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
@@ -51,9 +48,6 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-
-/** Delivery history shown in the article and newsletter editors. */
-const SOURCE_RELEASE_LIMIT = 20;
 
 function publishingCapabilityForReleaseStatus(
   status: ReleaseStatus,
@@ -167,44 +161,6 @@ export class PostGroupsService {
       group,
       targets,
       analyticsByTarget,
-    );
-  }
-
-  /**
-   * Releases that deliver one Article or Newsletter to its connected
-   * long-form accounts (#6753), newest first. The link is the target Post's
-   * `entityArticleId` / `entityNewsletterId`, written at release creation.
-   */
-  async listSourceReleases(
-    organizationId: string,
-    source: LongFormDeliverySource,
-  ): Promise<IReleaseGroup[]> {
-    const rows = await this.prisma.post.findMany({
-      distinct: ['groupId'],
-      orderBy: { createdAt: 'desc' },
-      select: { groupId: true },
-      take: SOURCE_RELEASE_LIMIT,
-      where: scopedWhere(organizationId, {
-        ...('articleId' in source
-          ? { entityArticleId: source.articleId }
-          : { entityNewsletterId: source.newsletterId }),
-        groupId: { not: null },
-        parentId: null,
-      }),
-    });
-
-    return Promise.all(
-      rows.flatMap((row) =>
-        row.groupId
-          ? [
-              this.persistenceService.hydrateWithDerivedStatus(
-                this.prisma,
-                organizationId,
-                row.groupId,
-              ),
-            ]
-          : [],
-      ),
     );
   }
 

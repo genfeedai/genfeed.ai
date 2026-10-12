@@ -606,37 +606,6 @@ describe('PostGroupsService', () => {
     },
   );
 
-  it('lists the hydrated releases linked to one newsletter, newest first', async () => {
-    prisma.post.findMany
-      .mockResolvedValueOnce([{ groupId: 'group-2' }, { groupId: 'group-1' }])
-      .mockResolvedValue([]);
-    prisma.postGroup.findFirst.mockImplementation(({ where }) =>
-      Promise.resolve(makeGroup({ id: where.id })),
-    );
-
-    const releases = await service.listSourceReleases('org-1', {
-      newsletterId: 'newsletter-1',
-    });
-
-    expect(prisma.post.findMany).toHaveBeenNthCalledWith(1, {
-      distinct: ['groupId'],
-      orderBy: { createdAt: 'desc' },
-      select: { groupId: true },
-      take: 20,
-      where: {
-        entityNewsletterId: 'newsletter-1',
-        groupId: { not: null },
-        isDeleted: false,
-        organizationId: 'org-1',
-        parentId: null,
-      },
-    });
-    expect(releases.map((release) => release.id)).toEqual([
-      'group-2',
-      'group-1',
-    ]);
-  });
-
   it('sets each channel target category from the linked release media', async () => {
     prisma.ingredient.findMany.mockResolvedValue([
       { category: IngredientCategory.VIDEO },

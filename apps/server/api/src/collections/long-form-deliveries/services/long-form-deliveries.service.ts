@@ -4,6 +4,7 @@ import type { CreateNewsletterDeliveryDto } from '@api/collections/long-form-del
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { renderNewsletterHtml } from '@api/collections/newsletters/utils/newsletter-html.util';
 import type { LongFormDeliverySource } from '@api/collections/post-groups/services/post-group.types';
+import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
@@ -57,6 +58,7 @@ export class LongFormDeliveriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly postGroupsService: PostGroupsService,
+    private readonly postGroupPersistenceService: PostGroupPersistenceService,
     private readonly articlesService: ArticlesService,
     private readonly newslettersService: NewslettersService,
   ) {}
@@ -247,7 +249,8 @@ export class LongFormDeliveriesService {
     organizationId: string,
     source: LongFormDeliverySource,
   ): Promise<IChannelTarget[]> {
-    const releases = await this.postGroupsService.listSourceReleases(
+    const releases = await this.postGroupPersistenceService.listSourceReleases(
+      this.prisma,
       organizationId,
       source,
     );
