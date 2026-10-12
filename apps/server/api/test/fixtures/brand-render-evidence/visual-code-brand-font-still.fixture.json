@@ -1,5 +1,5 @@
 {
-  "description": "Observations and PNG bytes from a real Remotion 4.0.530 export in Chrome/156.0.8078.4 (macOS arm64) with a staged brand font: scripts/visual-code/render-evidence.fixture.mjs brandFontInput, frame 2. The font asset is Zodiak-Regular.woff2 declared by the renderer as the family Brand Display, weight 400.",
+  "description": "Observations and PNG bytes from a real Remotion 4.0.530 export in Chrome/156.0.8078.4 (macOS arm64) with a staged brand font: scripts/visual-code/render-evidence.fixture.mjs brandFontInput, frame 2. The font asset is Zodiak-Regular.woff2 declared by the renderer as the family Zodiak, weight 400.",
   "frame": 2,
   "width": 320,
   "height": 256,
@@ -23,7 +23,7 @@
               "width": 190.359375,
               "height": 114
             },
-            "fontFamily": "\"Brand Display\", serif",
+            "fontFamily": "Zodiak, serif",
             "fontSizePx": 44,
             "fontWeight": "400",
             "fontStyle": "normal",
@@ -50,7 +50,7 @@
               "width": 264.640625,
               "height": 79
             },
-            "fontFamily": "\"Brand Display\", serif",
+            "fontFamily": "Zodiak, serif",
             "fontSizePx": 30,
             "fontWeight": "400",
             "fontStyle": "normal",
@@ -74,7 +74,7 @@
     ],
     "fontFaces": [
       {
-        "family": "Brand Display",
+        "family": "Zodiak",
         "style": "normal",
         "weight": "400",
         "platformFamily": "Zodiak",
