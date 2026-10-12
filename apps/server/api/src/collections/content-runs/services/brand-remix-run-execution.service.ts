@@ -9,6 +9,7 @@ import {
   remixErrorMessage,
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
+import { bindPlaceholderToRemix } from '@api/collections/content-runs/services/brand-remix-run-placeholder';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
 import { BrandRemixRunProviderDispatchService } from '@api/collections/content-runs/services/brand-remix-run-provider-dispatch.service';
@@ -880,25 +881,14 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
         brandId: params.brandId,
         config: params.config,
         onPlaceholderCreated: async (ingredientId) => {
-          const tagged = await this.prisma.ingredient.updateMany({
-            data: { templateVersion: params.recipeRevision },
-            where: scopedWhere(params.organizationId, {
-              brandId: params.brandId,
-              groupId: params.runId,
-              groupIndex,
-              id: ingredientId,
-            }),
-          });
-          if (tagged.count !== 1) {
-            throw new ConflictException(
-              'The generated placeholder could not be bound to this remix revision.',
-            );
-          }
-          await this.linkImportedSourceLineage({
+          await bindPlaceholderToRemix(this.prisma, {
             brandId: params.brandId,
             config: params.config,
+            groupIndex,
             ingredientId,
             organizationId: params.organizationId,
+            recipeRevision: params.recipeRevision,
+            runId: params.runId,
           });
           await this.state.patchGeneratingVariant({
             organizationId: params.organizationId,
@@ -952,45 +942,6 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       });
       throw error;
     }
-  }
-
-  /**
-   * A Library output made from a saved browser source records that source (and
-   * its prepared media) in the existing `sources` lineage, so the Library can
-   * show where the output came from. The original stays unchanged.
-   */
-  private async linkImportedSourceLineage(params: {
-    brandId: string;
-    config: BrandRemixRunConfig;
-    ingredientId: string;
-    organizationId: string;
-  }): Promise<void> {
-    const { selector, media } = params.config.sourceSnapshot;
-    if (selector.kind !== 'imported_source') return;
-    const sourceIds = [
-      selector.importedSourceId,
-      ...(media?.status === 'saved' ? [media.assetId] : []),
-    ];
-    const sources = await this.prisma.ingredient.findMany({
-      select: { id: true },
-      where: scopedWhere(params.organizationId, {
-        brandId: params.brandId,
-        id: { in: sourceIds },
-      }),
-    });
-    if (!sources.some((source) => source.id === selector.importedSourceId)) {
-      throw new ConflictException(
-        'The imported source is no longer available for this remix.',
-      );
-    }
-    await this.prisma.ingredient.update({
-      data: { sources: { connect: sources.map(({ id }) => ({ id })) } },
-      where: {
-        id: params.ingredientId,
-        isDeleted: false,
-        organizationId: params.organizationId,
-      },
-    });
   }
 
   private async adoptOrphanedPlaceholders(params: {
