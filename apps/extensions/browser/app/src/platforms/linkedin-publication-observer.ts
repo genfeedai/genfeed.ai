@@ -66,7 +66,13 @@ export function attachLinkedInPublicationObserver(): () => void {
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;
   async function send(request: unknown): Promise<PublicationCaptureReply> {
     try {
-      return await chrome.runtime.sendMessage(request);
+      // The worker may close the channel without replying.
+      return (
+        (await chrome.runtime.sendMessage(request)) ?? {
+          success: false,
+          error: RECORDING_FAILED,
+        }
+      );
     } catch {
       return { success: false, error: RECORDING_FAILED };
     }
