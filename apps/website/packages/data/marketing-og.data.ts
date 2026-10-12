@@ -8,6 +8,26 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 
 export const MARKETING_OG_SIZE = { height: 630, width: 1200 };
 
+/**
+ * Social growth cards reuse the landing hero (one source image per platform;
+ * the hero ships it as WebP, Satori needs this JPEG twin). The artwork sits on
+ * the right behind a fade, so the headline and Genfeed mark own the left.
+ */
+function socialGrowthCard(
+  slug: string,
+  headline: readonly string[],
+): MarketingOgDefinition {
+  return {
+    artwork: cdnAsset(`/assets/branding/website/editorial/page-${slug}-v2.jpg`),
+    artworkPlacement: 'right',
+    headline,
+    headlineFontSize:
+      Math.max(...headline.map((line) => line.length)) > 7 ? 88 : 104,
+    headlineTop: 200,
+    headlineWidth: 470,
+  };
+}
+
 // Artwork carries branding only. Copy edits are rendered by the OG routes.
 const SOCIAL_OG_CARDS = {
   default: {
@@ -17,80 +37,20 @@ const SOCIAL_OG_CARDS = {
     headlineTop: 134,
     headlineWidth: 480,
   },
-  x: {
-    artwork: cdnAsset('/assets/cards/marketing/social-growth-20260930/x.jpg'),
-    headline: ['Grow on X'],
-    headlineFontSize: 108,
-    headlineTop: 190,
-    headlineWidth: 600,
-  },
-  linkedin: {
-    artwork: cdnAsset(
-      '/assets/cards/marketing/social-growth-20260930/linkedin.jpg',
-    ),
-    headline: ['Grow on', 'LinkedIn'],
-    headlineFontSize: 94,
-    headlineTop: 144,
-    headlineWidth: 540,
-  },
-  instagram: {
-    artwork: cdnAsset(
-      '/assets/cards/marketing/social-growth-20260930/instagram.jpg',
-    ),
-    headline: ['Grow on', 'Instagram'],
-    headlineFontSize: 94,
-    headlineTop: 144,
-    headlineWidth: 540,
-  },
-  tiktok: {
-    artwork: cdnAsset(
-      '/assets/cards/marketing/social-growth-20260930/tiktok.jpg',
-    ),
-    headline: ['Grow on', 'TikTok'],
-    headlineFontSize: 104,
-    headlineTop: 144,
-    headlineWidth: 540,
-  },
-  youtube: {
-    artwork: cdnAsset(
-      '/assets/cards/marketing/social-growth-20260930/youtube.jpg',
-    ),
-    headline: ['Grow on', 'YouTube'],
-    headlineFontSize: 104,
-    headlineTop: 144,
-    headlineWidth: 540,
-  },
-  threads: {
-    artwork: cdnAsset(
-      '/assets/cards/marketing/social-growth-20260930/threads.jpg',
-    ),
-    headline: ['Grow on', 'Threads'],
-    headlineFontSize: 104,
-    headlineTop: 144,
-    headlineWidth: 540,
-  },
-  facebook: {
-    artwork: cdnAsset(
-      '/assets/cards/marketing/social-growth-20260930/facebook.jpg',
-    ),
-    headline: ['Grow on', 'Facebook'],
-    headlineFontSize: 94,
-    headlineTop: 144,
-    headlineWidth: 540,
-  },
-  pinterest: {
-    artwork: cdnAsset(
-      '/assets/cards/marketing/social-growth-20260930/pinterest.jpg',
-    ),
-    headline: ['Grow on', 'Pinterest'],
-    headlineFontSize: 94,
-    headlineTop: 144,
-    headlineWidth: 540,
-  },
-} as const;
+  x: socialGrowthCard('x', ['Grow on', 'X']),
+  linkedin: socialGrowthCard('linkedin', ['Grow on', 'LinkedIn']),
+  instagram: socialGrowthCard('instagram', ['Grow on', 'Instagram']),
+  tiktok: socialGrowthCard('tiktok', ['Grow on', 'TikTok']),
+  youtube: socialGrowthCard('youtube', ['Grow on', 'YouTube']),
+  threads: socialGrowthCard('threads', ['Grow on', 'Threads']),
+  facebook: socialGrowthCard('facebook', ['Grow on', 'Facebook']),
+  pinterest: socialGrowthCard('pinterest', ['Grow on', 'Pinterest']),
+} as const satisfies Record<string, MarketingOgDefinition>;
 
 export interface MarketingOgDefinition {
   artwork: string | null;
+  /** `full` (default) covers the card; `right` fades in behind the headline. */
+  artworkPlacement?: 'full' | 'right';
   headline: readonly string[];
   headlineFontSize: number;
   headlineTop: number;

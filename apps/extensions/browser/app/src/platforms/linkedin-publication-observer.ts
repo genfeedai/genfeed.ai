@@ -66,7 +66,11 @@ export function attachLinkedInPublicationObserver(): () => void {
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;
   async function send(request: unknown): Promise<PublicationCaptureReply> {
     try {
-      return await chrome.runtime.sendMessage(request);
+      // sendMessage resolves undefined when no listener replies (background
+      // restarting, extension reloaded); treat that like a failed send.
+      const reply: PublicationCaptureReply | undefined =
+        await chrome.runtime.sendMessage(request);
+      return reply ?? { success: false, error: RECORDING_FAILED };
     } catch {
       return { success: false, error: RECORDING_FAILED };
     }

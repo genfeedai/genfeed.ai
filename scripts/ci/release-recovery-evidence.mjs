@@ -176,6 +176,56 @@ export const NPM_SOURCE_NOOP_CURRENT_FULL_SUITE_JOBS = [
   'Full Suite / Master SHA Verdict',
 ];
 
+// v0.2.6 added the conditional MCP Auth Runtime job to the sharded layout.
+export const NPM_SOURCE_NOOP_MCP_AUTH_FULL_SUITE_JOBS = [
+  'Full Suite / Build & Boot Check / Build & Boot Check',
+  'Full Suite / Build & Boot Check / Server Bundle Boot Check',
+  'Full Suite / Build & Boot Check / Server Image / Build & Push Server Image',
+  'Full Suite / Build & Boot Check / Server Image / Resolve server image inputs',
+  'Full Suite / CI Gate / Build',
+  'Full Suite / CI Gate / Cloud Tenant Guard Sweep',
+  'Full Suite / CI Gate / MCP Auth Runtime',
+  'Full Suite / CI Gate / Plan',
+  'Full Suite / CI Gate / Spec Typecheck (pool-1)',
+  'Full Suite / CI Gate / Spec Typecheck (pool-2)',
+  'Full Suite / CI Gate / Spec Typecheck (pool-3)',
+  'Full Suite / CI Gate / Static Checks',
+  'Full Suite / CI Gate / Test API (shard 1/4)',
+  'Full Suite / CI Gate / Test API (shard 2/4)',
+  'Full Suite / CI Gate / Test API (shard 3/4)',
+  'Full Suite / CI Gate / Test API (shard 4/4)',
+  'Full Suite / CI Gate / Test App (shard 1/4)',
+  'Full Suite / CI Gate / Test App (shard 2/4)',
+  'Full Suite / CI Gate / Test App (shard 3/4)',
+  'Full Suite / CI Gate / Test App (shard 4/4)',
+  'Full Suite / CI Gate / Test Workspaces (browser-extension)',
+  'Full Suite / CI Gate / Test Workspaces (packages-1/4)',
+  'Full Suite / CI Gate / Test Workspaces (packages-2/4)',
+  'Full Suite / CI Gate / Test Workspaces (packages-3/4)',
+  'Full Suite / CI Gate / Test Workspaces (packages-4/4)',
+  'Full Suite / CI Gate / Test Workspaces (server)',
+  'Full Suite / CI Gate / Test Workspaces (web)',
+  'Full Suite / Connected Visual Acceptance / Actual runsc rendering and isolation',
+  'Full Suite / Connected Visual Acceptance / Connected runsc rendering and Library acceptance',
+  'Full Suite / E2E Suite / API E2E Full',
+  'Full Suite / E2E Suite / API E2E Full Gate',
+  'Full Suite / E2E Suite / API E2E Tests',
+  'Full Suite / E2E Suite / BRAND Receipt and Relocation Acceptance',
+  'Full Suite / E2E Suite / E2E Gate (all shards)',
+  'Full Suite / E2E Suite / E2E Route Reference Inventory',
+  'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 1/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 2/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 3/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 4/4)',
+  'Full Suite / E2E Suite / Isolated Publish E2E',
+  'Full Suite / E2E Suite / Merge E2E Reports',
+  'Full Suite / E2E Suite / Proactive Production Turn Acceptance',
+  'Full Suite / E2E Suite / Serial Runtime Acceptance',
+  'Full Suite / Final Connected Acceptance',
+  'Full Suite / Master SHA Verdict',
+];
+
 const NPM_SOURCE_NOOP_JOB_PROFILES = Object.freeze({
   'ci-packages-single-v1': Object.freeze({
     fullSuiteJobs: Object.freeze([...NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS]),
@@ -183,6 +233,14 @@ const NPM_SOURCE_NOOP_JOB_PROFILES = Object.freeze({
   }),
   'ci-packages-sharded-v1': Object.freeze({
     fullSuiteJobs: Object.freeze([...NPM_SOURCE_NOOP_CURRENT_FULL_SUITE_JOBS]),
+    skippedJobs: Object.freeze([
+      ...NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS,
+      `Full Suite / CI Gate / Setup Benchmark (\${{ matrix.mode }})`,
+      'Verify recovered release assets',
+    ]),
+  }),
+  'ci-packages-sharded-v2': Object.freeze({
+    fullSuiteJobs: Object.freeze([...NPM_SOURCE_NOOP_MCP_AUTH_FULL_SUITE_JOBS]),
     skippedJobs: Object.freeze([
       ...NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS,
       `Full Suite / CI Gate / Setup Benchmark (\${{ matrix.mode }})`,

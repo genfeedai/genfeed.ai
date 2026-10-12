@@ -126,6 +126,13 @@ jobs:
           git fetch --no-tags origin master
           MASTER_SHA="$(git rev-parse origin/master)"
 
+          # Master may advance while the release gates run against the pinned
+          # SHA; that verified SHA only has to stay on master.
+          if ! git merge-base --is-ancestor "${HEAD_SHA}" "${MASTER_SHA}"; then
+            echo "::error::The pinned release SHA ${HEAD_SHA} is no longer an ancestor of current master ${MASTER_SHA}."
+            exit 1
+          fi
+
           if [ "${VALIDATED_HISTORICAL_RECOVERY}" = 'true' ]; then
             if [ "${TRUSTED_RELEASE_CALL}" != 'true' ] || [ "${DRY_RUN}" != 'false' ]; then
               echo "::error::Historical package recovery requires a trusted real Release workflow call."
@@ -135,17 +142,15 @@ jobs:
               echo "::error::Historical package recovery requires a positive recovery_run_id."
               exit 1
             fi
-            if ! git merge-base --is-ancestor "${HEAD_SHA}" "${MASTER_SHA}"; then
-              echo "::error::The recovered release SHA must remain an ancestor of current master."
-              exit 1
-            fi
           else
             if [ -n "${RECOVERY_RUN_ID}" ]; then
               echo "::error::recovery_run_id is only valid with validated_historical_recovery=true."
               exit 1
             fi
-            if [ "${HEAD_SHA}" != "${MASTER_SHA}" ]; then
-              echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
+            # npm provenance attests the dispatched commit, so a real publish
+            # must build exactly that commit.
+            if [ "${HEAD_SHA}" != "${GITHUB_SHA}" ]; then
+              echo "::error::Real package publishes require the dispatched release SHA ${GITHUB_SHA}; checked out ${HEAD_SHA}."
               exit 1
             fi
           fi
@@ -298,11 +303,16 @@ jobs:
             exit 1
           fi
 
+          if [ "${HEAD_SHA}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Real package publishes require the dispatched release SHA ${GITHUB_SHA}; checked out ${HEAD_SHA}."
+            exit 1
+          fi
+
           git fetch --no-tags origin master
           MASTER_SHA="$(git rev-parse origin/master)"
 
-          if [ "${HEAD_SHA}" != "${MASTER_SHA}" ]; then
-            echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
+          if ! git merge-base --is-ancestor "${HEAD_SHA}" "${MASTER_SHA}"; then
+            echo "::error::The pinned release SHA ${HEAD_SHA} is no longer an ancestor of current master ${MASTER_SHA}."
             exit 1
           fi
 

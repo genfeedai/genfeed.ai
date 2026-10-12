@@ -183,6 +183,12 @@ describe('package and worktree review follow-ups', () => {
     expect(planJob).toContain(
       `git merge-base --is-ancestor "${dollar}{HEAD_SHA}" "${dollar}{MASTER_SHA}"`,
     );
+    expect(planJob).toContain(
+      `[ "${dollar}{HEAD_SHA}" != "${dollar}{GITHUB_SHA}" ]`,
+    );
+    expect(planJob).not.toContain(
+      `[ "${dollar}{HEAD_SHA}" != "${dollar}{MASTER_SHA}" ]`,
+    );
     expect(planJob).toContain('- name: Checkout current release controller');
     expect(planJob).toContain(`ref: ${dollar}{{ github.sha }}`);
     expect(planJob).toContain('path: .release-controller');
@@ -202,11 +208,16 @@ describe('package and worktree review follow-ups', () => {
     expect(publishJob).toContain(
       `[ "${dollar}{HEAD_SHA}" != "${dollar}{CHECKOUT_REF}" ]`,
     );
+    expect(publishJob).toContain(
+      `[ "${dollar}{HEAD_SHA}" != "${dollar}{GITHUB_SHA}" ]`,
+    );
     expect(publishJob).toContain('git fetch --no-tags origin master');
     expect(publishJob).toContain(
+      `git merge-base --is-ancestor "${dollar}{HEAD_SHA}" "${dollar}{MASTER_SHA}"`,
+    );
+    expect(publishJob).not.toContain(
       `[ "${dollar}{HEAD_SHA}" != "${dollar}{MASTER_SHA}" ]`,
     );
-    expect(publishJob).not.toContain('git merge-base --is-ancestor');
     expect(publishJob).not.toContain('validated historical recovery');
 
     expect(releaseWorkflow).toContain(

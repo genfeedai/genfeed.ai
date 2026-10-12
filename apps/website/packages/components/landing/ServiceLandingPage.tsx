@@ -7,7 +7,6 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import PublicShell from '@ui/shell/PublicShell';
 import LandingTopbar from '@ui/shell/topbars/LandingTopbar';
-import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
@@ -38,13 +37,20 @@ export interface ServiceLandingPageProps {
 
 const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
 
-// Product acquisition pages lead with the connected agent. Service offers keep
-// self-serve and direct booking links.
+// Product acquisition pages sell one path: connect the agent you already use.
+// Most of their traffic is a bio link opened on a phone, so a second button
+// only splits the tap. Service offers keep self-serve and direct booking links.
 function LandingActions({
   slug,
 }: ServiceLandingActionsProps): React.ReactElement {
   if (serviceLandingConfigBySlug[slug]?.isAgentFirst) {
-    return <AgentFirstActions trackingName={`${slug}_landing_click`} />;
+    return (
+      <ConnectAgentButton
+        className="w-full sm:w-auto"
+        label="Connect your agent"
+        trackingName={`${slug}_landing_click`}
+      />
+    );
   }
   const isBookingPage = slug === BOOKING_PAGE_SLUG;
 
@@ -93,11 +99,15 @@ export default function ServiceLandingPage({
             : 'Start free'
       }
       secondaryCtaHref={
-        config.isAgentFirst || isBookingPage ? SIGN_UP_HREF : BOOKING_HREF
+        config.isAgentFirst
+          ? undefined
+          : isBookingPage
+            ? SIGN_UP_HREF
+            : BOOKING_HREF
       }
       secondaryCtaLabel={
         config.isAgentFirst
-          ? 'Start for $0'
+          ? undefined
           : isBookingPage
             ? 'Start free'
             : 'Book a call'
