@@ -114,26 +114,32 @@ export function assertEvidenceObservations(assert, evidence, expected) {
 
 // A brand font staged by the API: the renderer declares the face itself, so the
 // composition names the family and carries no @font-face or asset id of its own.
+// The default family is the file's own name (what a brand that extracted its font
+// from a website records); a different name is the brand's alias for the file.
 export const BRAND_FONT_ASSET_ID = 'cbrandfont000000000000001';
-export const BRAND_FONT_FAMILY = 'Brand Display';
-export const BRAND_FONT_COMPOSITION = `
+export const BRAND_FONT_FAMILY = 'Zodiak';
+export const brandFontComposition = (family) => `
 import React from 'react';
 import {AbsoluteFill} from 'remotion';
 export const VisualComposition = () => (
   <AbsoluteFill style={{background: '#102030'}}>
-    <div style={{position: 'absolute', left: 20, top: 20, fontFamily: "'Brand Display', serif", fontSize: 44, color: '#FFCC00'}}>Brand headline</div>
-    <div style={{position: 'absolute', left: 20, top: 120, fontFamily: "'Brand Display', serif", fontWeight: 400, fontSize: 30, color: '#FFFFFF'}}>Brand supporting line</div>
+    <div style={{position: 'absolute', left: 20, top: 20, fontFamily: "'${family}', serif", fontSize: 44, color: '#FFCC00'}}>Brand headline</div>
+    <div style={{position: 'absolute', left: 20, top: 120, fontFamily: "'${family}', serif", fontWeight: 400, fontSize: 30, color: '#FFFFFF'}}>Brand supporting line</div>
   </AbsoluteFill>
 );`;
 
 export async function brandFontInput(
   outputs,
   id = 'brand-font-fixture',
-  { path = EVIDENCE_FONT_PATH, mime = 'font/woff2' } = {},
+  {
+    path = EVIDENCE_FONT_PATH,
+    mime = 'font/woff2',
+    family = BRAND_FONT_FAMILY,
+  } = {},
 ) {
   return {
     id,
-    sourceCode: BRAND_FONT_COMPOSITION,
+    sourceCode: brandFontComposition(family),
     settings: EVIDENCE_SETTINGS,
     props: {},
     assets: [
@@ -141,7 +147,7 @@ export async function brandFontInput(
         id: BRAND_FONT_ASSET_ID,
         mime,
         bytes: (await readFile(path)).toString('base64'),
-        faces: [{ family: BRAND_FONT_FAMILY, weight: 400, style: 'normal' }],
+        faces: [{ family, weight: 400, style: 'normal' }],
       },
     ],
     outputs,
@@ -155,6 +161,7 @@ export async function brandFontInput(
  * and hash, never to a URL the composition wrote.
  */
 export function assertBrandFontObservations(assert, evidence, expected) {
+  const family = expected.family ?? BRAND_FONT_FAMILY;
   const [capture] = evidence.captures;
   assert.equal(capture.frame, expected.frame);
   assert.deepEqual(capture.textLayers.map((layer) => layer.text).sort(), [
@@ -166,9 +173,7 @@ export function assertBrandFontObservations(assert, evidence, expected) {
     assert.equal(layer.platformFonts[0].isCustomFont, true);
     assert.equal(layer.platformFonts[0].familyName, expected.platformFamily);
   }
-  const faces = evidence.fontFaces.filter(
-    (f) => f.family === BRAND_FONT_FAMILY,
-  );
+  const faces = evidence.fontFaces.filter((f) => f.family === family);
   assert.equal(faces.length, 1, JSON.stringify(evidence.fontFaces));
   assert.deepEqual(faces[0].source, {
     kind: 'asset',

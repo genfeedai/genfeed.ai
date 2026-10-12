@@ -137,7 +137,7 @@ test('a staged brand font is declared by the renderer and attributed to its asse
   });
 });
 
-test('a staged OpenType brand font is used the same way', {
+test('a staged OpenType brand font under a brand alias is used the same way', {
   skip: !browser,
   timeout: 240_000,
 }, async () => {
@@ -147,9 +147,11 @@ test('a staged OpenType brand font is used the same way', {
     brandFontInput([{ format: 'png', frame: 1 }], 'brand-font-otf', {
       mime: 'font/otf',
       path,
+      family: 'Brand Display',
     }),
   );
   assertBrandFontObservations(assert, media.evidence, {
+    family: 'Brand Display',
     frame: 1,
     fontHash: sha256Prefixed(await readFile(path)),
     platformFamily: 'Zodiak',
