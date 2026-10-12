@@ -140,36 +140,6 @@ describe('Background Script Handlers', () => {
     });
   });
 
-  describe('savePost message handler', () => {
-    it('should call save API with post data', async () => {
-      const { authService } = await import('~services/auth.service');
-      mockAuthService.makeAuthenticatedRequest.mockResolvedValue({
-        json: () => Promise.resolve({ id: 'saved-123' }),
-        ok: true,
-      } as Response);
-
-      const result = await authService.makeAuthenticatedRequest(
-        'https://api.genfeed.ai/posts/save',
-        {
-          body: JSON.stringify({
-            platform: 'twitter',
-            postId: '123',
-            url: 'https://twitter.com/test/status/123',
-          }),
-          method: 'POST',
-        },
-      );
-
-      expect(authService.makeAuthenticatedRequest).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/posts/save',
-        expect.objectContaining({
-          method: 'POST',
-        }),
-      );
-      expect(result.ok).toBe(true);
-    });
-  });
-
   describe('checkAuth message handler', () => {
     it('should return authentication state', async () => {
       mockAuthService.isAuthenticated.mockResolvedValue({

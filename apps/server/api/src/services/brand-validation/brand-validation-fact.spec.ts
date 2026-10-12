@@ -195,7 +195,7 @@ describe('brand fact check: system:factual_coverage', () => {
         textHash: hashBrandedGenerationTextV1(DRAFT),
       },
     });
-    const proof = factualOf(report) as {
+    const proof = factualOf(report) as unknown as {
       proof: { knowledgeVersions: unknown[] };
     };
     expect(proof.proof.knowledgeVersions).toEqual([

@@ -30,6 +30,7 @@ import {
 } from '@api/collections/outliers/services/breakout-acceptance.media.fixture';
 import type { AcceptanceWorld } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
 import { DAY_MS } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
+import { BreakoutAutoPublishService } from '@api/collections/outliers/services/breakout-auto-publish.service';
 import { BreakoutGenerationPlanService } from '@api/collections/outliers/services/breakout-generation-plan.service';
 import { BreakoutMediaOutputGenerationService } from '@api/collections/outliers/services/breakout-media-output-generation.service';
 import { BreakoutMediaOutputPreparationService } from '@api/collections/outliers/services/breakout-media-output-preparation.service';
@@ -56,6 +57,7 @@ import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util
 import { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import { PublishApprovalsService } from '@api/publish-approvals/publish-approvals.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import type { BrandFactCheckService } from '@api/services/brand-validation/brand-fact-check.service';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
@@ -239,6 +241,15 @@ export type ExecutionHarness = CollectionHarness & {
   turboReview: TurboRunReviewService;
 };
 
+/** What a scenario may change in the graph; nothing by default. */
+export type ExecutionHarnessOptions = {
+  /**
+   * The brand fact check (#6717). None by default, so factual coverage stays unknown as it
+   * does where no check is wired; a scenario passes a fake to pin the claim verdicts.
+   */
+  factCheck?: Pick<BrandFactCheckService, 'check'>;
+};
+
 type Stub = never;
 
 /**
@@ -252,6 +263,7 @@ export function buildExecutionHarness(
   prisma: PrismaService,
   logger: LoggerService,
   world: AcceptanceWorld,
+  options: ExecutionHarnessOptions = {},
 ): ExecutionHarness {
   const brandAccess = new BrandAccessService(prisma);
   const balances = new CreditBalanceService(prisma, logger);
@@ -375,6 +387,11 @@ export function buildExecutionHarness(
     material,
     receipts,
     validator,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    options.factCheck as BrandFactCheckService | undefined,
   );
   const generation = new BrandedTextGenerationService(
     receipts,
@@ -536,6 +553,12 @@ export function buildExecutionHarness(
     planner,
     preparation,
     media,
+    new BreakoutAutoPublishService(
+      prisma,
+      posts,
+      new AutonomousPublishPolicyService(prisma, {} as Stub),
+      logger,
+    ),
   );
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const workflowService = new BreakoutResponseExecutionWorkflowService(

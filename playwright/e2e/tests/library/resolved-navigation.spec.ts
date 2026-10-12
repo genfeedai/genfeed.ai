@@ -48,14 +48,13 @@ test('library list navigation preserves resolved tenant parameters', async ({
     'brand-1',
     APP_ROUTES.LIBRARY.ASSETS,
   );
-  const link = authenticatedPage.getByRole('link', {
-    name: 'Recent',
-    exact: true,
-  });
-  await expect(link).toBeVisible();
+  // #5502: Recent is the asset browser toolbar's Show filter, not a nav link.
+  const show = authenticatedPage.getByRole('combobox', { name: 'Show' });
+  await expect(show).toBeVisible();
   await expectResolvedLinks(authenticatedPage);
   await test.step('navigate to the recent list', async () => {
-    await link.click();
+    await show.click();
+    await authenticatedPage.getByRole('option', { name: 'Recent' }).click();
     // Place presets preserve the Images type preset's category filters.
     await authenticatedPage.waitForURL(
       (url) =>
@@ -70,9 +69,7 @@ test('library list navigation preserves resolved tenant parameters', async ({
       'IMAGE',
       'IMAGE_EDIT',
     ]);
-    await expect(
-      authenticatedPage.getByRole('heading', { name: 'Recent', exact: true }),
-    ).toBeVisible();
+    await expect(show).toContainText('Recent');
   });
   await expectResolvedLinks(authenticatedPage);
   expect(placeholderRequests).toEqual([]);

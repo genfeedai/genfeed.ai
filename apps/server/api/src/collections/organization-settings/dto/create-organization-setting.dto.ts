@@ -202,6 +202,36 @@ export class CreateOrganizationSettingDto {
   })
   readonly isReleasePreviewEnabled?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Own-account breakout responses (#6526). Off by default; owners and admins may change it.',
+    required: false,
+  })
+  readonly isBreakoutResponsesEnabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Lets a breakout response that passed every check schedule itself (#6526). Off by default; owners and admins may change it.',
+    required: false,
+  })
+  readonly isBreakoutAutoPublishEnabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Paid provider reading of branded visuals (#6727). Off by default; owners and admins may change it.',
+    required: false,
+  })
+  readonly isBrandVisionChecksEnabled?: boolean;
+
   @ValidateNested({ each: true })
   @Type(() => OnboardingJourneyMissionStateDto)
   @IsOptional()

@@ -12,6 +12,7 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   AGENT_TURN_QUEUE,
+  BRAND_VISION_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -195,6 +196,15 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: { age: 30 * 60 },
         },
         name: MEDIA_MODERATION_QUEUE,
+      },
+      {
+        // A reading is paid, so a job runs once and a failure leaves the checks unknown.
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: true,
+          removeOnFail: { age: 60 * 60 },
+        },
+        name: BRAND_VISION_QUEUE,
       },
       {
         defaultJobOptions: {

@@ -1,5 +1,6 @@
 import { normalizeBrandLiteralText } from '@api/services/brand-validation/brand-validation-rules.util';
 import type { BrandArtifactVisual } from '@api/services/brand-validation/brand-validation-visual.util';
+import { BRAND_VISION_PENDING_REASON } from '@api/services/brand-validation/brand-vision-pending.util';
 import type {
   BrandOcrOutcome,
   BrandVisualAnalysis,
@@ -52,7 +53,7 @@ function literalOf(
  * `onFrameTexts` receives the text of every frame when a read happened, so the
  * factual coverage check reads the same text without a second paid call.
  *
- * Nothing is called when no check is readable. A disabled or unavailable
+ * Nothing is called when no check is readable. A disabled, pending or unavailable
  * analysis, an undecodable artifact or one that is not a single final visual
  * leaves every readable check `unknown`.
  */
@@ -85,6 +86,7 @@ export async function proveBrandLiteralChecksFromOcr(
     },
   });
   if (outcome.status === 'disabled') return settle('visual_analysis_disabled');
+  if (outcome.status === 'pending') return settle(BRAND_VISION_PENDING_REASON);
   if (outcome.status === 'unavailable')
     return settle('visual_analysis_unavailable');
   if (outcome.texts.length !== encoded.frames.length)

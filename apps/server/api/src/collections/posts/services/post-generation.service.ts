@@ -692,6 +692,28 @@ export class PostGenerationService {
     );
   }
 
+  /**
+   * Rewrites the post description. A draft (`dto.isDraft`) is returned for
+   * review without saving; otherwise the rewrite is saved on the post.
+   */
+  async enhancePost(
+    post: PostDocument,
+    dto: EnhancePostDto,
+    identity: Pick<AuthenticatedUser, 'organizationId'>,
+    byokApiKeyOverride?: string,
+  ): Promise<PostDocument> {
+    const description = await this.enhanceDescription(
+      post,
+      dto,
+      identity,
+      byokApiKeyOverride,
+    );
+    if (dto.isDraft) {
+      return { ...post, description };
+    }
+    return this.postsService.patch(String(post.id), { description });
+  }
+
   async enhanceDescription(
     post: Pick<PostDocument, 'description' | 'platform'>,
     dto: EnhancePostDto,

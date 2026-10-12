@@ -1,9 +1,5 @@
 import { SubscriptionStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  ISubscription,
-  JsonApiSingleResponse,
-} from '@genfeedai/contracts/interfaces';
 import {
   mockActiveSubscription,
   mockExpiredSubscription,
@@ -97,20 +93,14 @@ test.describe('Billing Settings', () => {
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
-      await mockExpiredSubscription(authenticatedPage);
-      const subscriptionResponse = authenticatedPage
-        .waitForResponse(
-          (response) =>
-            new URL(response.url()).pathname ===
-            '/v1/organizations/mock-org-id-e2e-test/subscription',
-        )
-        .then(
-          (response) =>
-            response.json() as Promise<JsonApiSingleResponse<ISubscription>>,
-        );
+      const { servedOrganizationSubscriptions } =
+        await mockExpiredSubscription(authenticatedPage);
 
       await settingsPage.goToBilling();
-      const subscriptionDocument = await subscriptionResponse;
+      await expect
+        .poll(() => servedOrganizationSubscriptions.length)
+        .toBeGreaterThan(0);
+      const subscriptionDocument = servedOrganizationSubscriptions[0];
       expect(subscriptionDocument.data?.attributes.status).toBe(
         SubscriptionStatus.CANCELLED,
       );

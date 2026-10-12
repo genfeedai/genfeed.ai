@@ -1195,7 +1195,9 @@ describe('blocked identity and canonical rule origin', () => {
         proofOf([
           {
             ...claim('supported'),
-            evidence: [{ ...evidence, ruleId: undefined }],
+            evidence: [
+              { ...evidence, ruleId: undefined } as unknown as typeof evidence,
+            ],
           },
         ]),
       ),

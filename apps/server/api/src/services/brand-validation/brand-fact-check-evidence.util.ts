@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import type { BrandFactTextOrigin } from '@api/services/brand-validation/brand-fact-check.types';
+import type {
+  BrandFactEvidenceItem,
+  BrandFactTextOrigin,
+} from '@api/services/brand-validation/brand-fact-check.types';
 import type {
   FactExtraction,
   FactJudgment,

@@ -4,6 +4,7 @@ import PostDetailCard from '@pages/posts/detail/components/PostDetailCard';
 import type { PostDetailCardProps } from '@props/components/post-detail-card.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockOpenDeleteConfirm = vi.fn();
@@ -26,8 +27,11 @@ vi.mock('@pages/posts/detail/components/usePostDetailCard', () => ({
   usePostDetailCard: () => hookResult,
 }));
 
+// The body owns the composer surface; the enhancement bar renders as its footer.
 vi.mock('@pages/posts/detail/components/PostDetailCardBody', () => ({
-  default: () => <div data-testid="card-body" />,
+  default: ({ footer }: { footer?: ReactNode }) => (
+    <div data-testid="card-body">{footer}</div>
+  ),
 }));
 
 vi.mock(

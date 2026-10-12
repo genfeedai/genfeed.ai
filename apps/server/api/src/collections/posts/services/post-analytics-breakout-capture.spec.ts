@@ -99,6 +99,9 @@ function harness() {
       postAnalytics: { findFirst: vi.fn(async () => null), upsert },
       credential: { findFirst: vi.fn(async () => ({ platform: 'TWITTER' })) },
       breakoutResponse: { findFirst: findResponse },
+      organizationSetting: {
+        findFirst: vi.fn(async () => ({ isBreakoutResponsesEnabled: true })),
+      },
       agentStrategy: { findMany: findStrategies },
     } as unknown as PrismaService,
     { log: vi.fn(), error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,

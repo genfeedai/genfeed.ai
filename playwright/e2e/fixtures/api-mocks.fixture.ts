@@ -28,6 +28,8 @@ import type {
   ILibrarySummary,
   ISocialSource,
   ISourcePost,
+  ISubscription,
+  JsonApiSingleResponse,
   SocialSourcesResponse,
 } from '@genfeedai/contracts/interfaces';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
@@ -872,9 +874,17 @@ export async function mockInsufficientCredits(page: Page): Promise<void> {
 }
 
 /**
- * Mock for expired subscription
+ * Mock for expired subscription.
+ *
+ * Returns every organization subscription document it served. Assert on these
+ * instead of `response.json()`: a response read after the page navigated away
+ * (billing redirects to credits) has no body left to fetch.
  */
-export async function mockExpiredSubscription(page: Page): Promise<void> {
+export async function mockExpiredSubscription(page: Page): Promise<{
+  servedOrganizationSubscriptions: JsonApiSingleResponse<ISubscription>[];
+}> {
+  const servedOrganizationSubscriptions: JsonApiSingleResponse<ISubscription>[] =
+    [];
   const handleSubscriptionRead = async (route: Route): Promise<void> => {
     const body = buildSubscriptionMockBody(
       route.request().url(),
@@ -891,6 +901,15 @@ export async function mockExpiredSubscription(page: Page): Promise<void> {
       await route.fallback();
       return;
     }
+    if (
+      /^\/organizations\/[^/]+\/subscription$/.test(
+        new URL(route.request().url()).pathname.replace(/^\/v1(?=\/)/, ''),
+      )
+    ) {
+      servedOrganizationSubscriptions.push(
+        body as JsonApiSingleResponse<ISubscription>,
+      );
+    }
     await route.fulfill({
       body: JSON.stringify(body),
       contentType: 'application/json',
@@ -903,6 +922,7 @@ export async function mockExpiredSubscription(page: Page): Promise<void> {
     '/organizations/*/subscription',
     handleSubscriptionRead,
   );
+  return { servedOrganizationSubscriptions };
 }
 
 // ----------------------------------------------------------------------------
@@ -3889,6 +3909,51 @@ export async function mockLibraryData(page: Page): Promise<void> {
 
   await page.route('**/api.genfeed.ai/v1/ingredients**', fulfillIngredients);
   await page.route('**/v1/ingredients**', fulfillIngredients);
+
+  // `GET /ingredients/summary` is a plain `ILibrarySummary`, not a JSON:API
+  // list. The `/ingredients**` handlers above also match this path, so answer
+  // it here (registered last, so it wins) or the Library Overview and browser
+  // read `byShelf` off a list document. Counts mirror `libraryIngredients`;
+  // shelves overlap on purpose (see `ILibrarySummary`).
+  const libraryCategoryCounts: Partial<Record<IngredientCategory, number>> = {};
+  for (const { category } of libraryIngredients) {
+    libraryCategoryCounts[category] =
+      (libraryCategoryCounts[category] ?? 0) + 1;
+  }
+  const librarySummary: ILibrarySummary = {
+    byCategory: libraryCategoryCounts,
+    byShelf: {
+      [LibraryShelf.APPROVED]: 0,
+      [LibraryShelf.ARCHIVED]: 0,
+      [LibraryShelf.FAILED]: 0,
+      [LibraryShelf.GENERATING]: 0,
+      [LibraryShelf.NEEDS_REVIEW]: 2,
+      [LibraryShelf.REFERENCES]: 0,
+      [LibraryShelf.REJECTED]: 0,
+      [LibraryShelf.UNSORTED]: libraryIngredients.length,
+    },
+    starredCount: 0,
+    storageBytes: 0,
+    total: libraryIngredients.length,
+    trashedCount: 0,
+  };
+  const fulfillLibrarySummary = async (route: Route): Promise<void> => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      body: JSON.stringify(librarySummary),
+      contentType: 'application/json',
+      status: 200,
+    });
+  };
+  await page.route(
+    '**/api.genfeed.ai/v1/ingredients/summary**',
+    fulfillLibrarySummary,
+  );
+  await page.route('**/v1/ingredients/summary**', fulfillLibrarySummary);
 
   await page.route('**/api.genfeed.ai/v1/scenes**', async (route) => {
     if (route.request().method() === 'GET') {

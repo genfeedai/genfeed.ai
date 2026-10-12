@@ -1,0 +1,23 @@
+{
+  "source": "One live prediction through BrandReplicateVisionProvider on 2026-10-12. Input: a synthetic 800x600 PNG holding the text \"GENFEED SALE\" and a red circle logo.",
+  "model": "lucataco/florence-2-large",
+  "version": "da53547e17d45b9cfb48174b2f18af8b83ca020fa76db62136bf9c6616762595",
+  "status": "succeeded",
+  "inputKeys": ["image", "task_input"],
+  "metrics": {
+    "predict_time": 0.162594204,
+    "total_time": 0.200162365
+  },
+  "output": {
+    "img": null,
+    "text": "{'<OCR>': 'GENFEED SALE\\n'}"
+  },
+  "ledger": {
+    "category": "brand-validation-ocr",
+    "costEvidence": "calculated",
+    "model": "lucataco/florence-2-large",
+    "pricingType": "per-second",
+    "units": 0.162594204,
+    "vendorCostMicros": 159
+  }
+}

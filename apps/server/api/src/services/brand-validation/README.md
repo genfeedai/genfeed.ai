@@ -83,7 +83,12 @@ Mandatory and avoid literals of an image or video are read from the final pixels
 a provider-backed vision model (Florence-2 on Replicate), never from the generation
 prompt. The Admin platform setting `isBrandVisualAnalysisEnabled` is **off by
 default**; while it is off no provider is called, nothing is paid, and the checks are
-`unknown` (`visual_analysis_disabled`).
+`unknown` (`visual_analysis_disabled`). It is the master kill switch. Each organization
+also has its own **Brand vision checks** setting (`isBrandVisionChecksEnabled`, off by
+default; owners and admins turn it on and pay for readings in credits). A reading runs
+only when both are on, and `BrandVisualAnalysisService.isEnabled(organizationId)` is the one
+place that reads them: the request path defers on it and the background job re-checks it
+before every paid prediction. The platform switch overrides an organization that turned it on.
 
 The model is an Admin-selected catalog model, not an environment variable. The
 platform setting `brandVisionOcrModelKey` holds the `Model.key` of an active,
@@ -102,6 +107,27 @@ frames) no wider than 1280 px, attributed to the snapshot's organization and bra
 Each prediction is recorded in the media vendor-cost ledger
 (`brand-validation-ocr`), priced from the runtime Replicate reports, and a frame
 already read by this process is not paid for again.
+
+### The reading runs in a background job (cold starts)
+
+A community model on Replicate boots cold for minutes (a live OWL-ViT prediction took
+138 s from request to answer, of which 1.6 s was runtime), so no reading happens in a
+request. `BrandValidationReceiptService.validateReceipt` validates the visual at once
+with the readable OCR and placement checks left `unknown`
+(`visual_analysis_pending`) and, when the platform switch is on, queues one job on
+`brand-vision` (deduplicated by receipt). The workers' `BrandVisionProcessor` calls
+`completeVisionChecks`, which reads the pixels (each prediction waits up to 5 minutes,
+then is cancelled and its reported runtime priced) and revalidates the receipt:
+
+- a proof or a forbidden literal moves the receipt to `ready`, `needs_review` or
+  `blocked`, which the publication gates read live;
+- a reading that cannot complete (timeout, provider error) is recorded as
+  `visual_analysis_unavailable`, fails closed, and the spend is in the ledger;
+- a receipt with no pending check is left alone, so a duplicate job pays nothing, and a
+  job runs once (a failed job leaves the checks pending, never a second reading).
+
+A breakout output with a pending visual is queued for a member's review until the
+check finishes. Without a queue nothing is deferred and no reading is made.
 
 Matching is the text path's exact, case-sensitive NFC/LF comparison, per frame (a
 literal never joins across frames). A reader can miss text but not invent a literal,
@@ -145,7 +171,7 @@ placement has no fail:
 | `unknown` `placement_not_found` | nothing detected at or above the minimum score |
 | `unknown` `placement_unmatched` | regions were detected and none matches the asset |
 | `unknown` `reference_unavailable` | no hash-verified reference bytes (no call is made) |
-| `unknown` `visual_analysis_disabled` / `visual_analysis_unavailable` | switch off, provider error or an answer for the wrong number of frames |
+| `unknown` `visual_analysis_disabled` / `visual_analysis_pending` / `visual_analysis_unavailable` | switch off, reading queued in the background, or provider error / timeout / an answer for the wrong number of frames |
 | `unknown` `artifact_undecodable` / `visual_composite_unproven` / `visual_part_unavailable` | as for OCR |
 
 The `placement` proof records the artifact and part hashes, the model identity and
@@ -366,6 +392,17 @@ fact check gets the old always-unknown behavior.
    LLM dispatcher and context services, which record the vendor cost in the LLM
    vendor cost ledger for the actor's organization and brand. No credits are
    charged for the check itself. Each validation or revalidation runs it again.
+
+**With the background vision job.** The request path defers the paid reading of a
+visual (`visual_analysis_pending`), so no text has been read and the fact check does
+not run for it yet: a text draft is fact-checked in the request path, a visual not at
+all. The `brand-vision` job (`completeVisionChecks`) revalidates only receipts with
+pending vision checks, so only visuals; that revalidation reads the pixels, hands the
+read text to the fact check (the same `onFrameTexts` hook) and records the result with
+the OCR and placement proofs in one report. A contradicted claim in a visual's read
+text therefore blocks the receipt when the job finishes, exactly like a forbidden
+literal, and a text receipt is never revalidated by the job, so its fact check runs
+once. A job that finds nothing pending pays nothing, and neither does its fact check.
 
 The claims are a model's reading of the draft: a claim the extractor misses is not
 checked, so a pass means that no claim the extractor found lacked evidence.

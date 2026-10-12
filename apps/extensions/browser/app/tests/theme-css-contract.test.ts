@@ -114,9 +114,9 @@ describe('browser extension theme CSS contract', () => {
     expect(readSource('src/components/ui/EmptyState.tsx')).not.toContain(
       'zinc-',
     );
-    expect(readSource('src/components/pages/IdeasPage.tsx')).not.toContain(
-      'zinc-',
-    );
+    expect(
+      readSource('src/components/pages/ImportedSourcesPage.tsx'),
+    ).not.toContain('zinc-');
     expect(readSource('src/components/ui/Icons.tsx')).not.toContain('zinc-');
   });
 });

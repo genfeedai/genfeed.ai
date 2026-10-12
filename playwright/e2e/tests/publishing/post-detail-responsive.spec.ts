@@ -53,9 +53,11 @@ for (const viewport of [
       (editorBounds?.x ?? 0) + (editorBounds?.width ?? 0),
     ).toBeLessThanOrEqual(viewport.width);
 
-    const prompt = canvas.getByPlaceholder(
-      'Describe how to enhance this tweet...',
-    );
+    // #6783: the rewrite prompt is labelled, and its placeholder is an example.
+    const prompt = canvas.getByRole('textbox', {
+      exact: true,
+      name: 'Rewrite instruction',
+    });
     await expect(prompt).toBeVisible();
     const promptBounds = await prompt.boundingBox();
     expect(promptBounds?.width).toBeGreaterThanOrEqual(120);

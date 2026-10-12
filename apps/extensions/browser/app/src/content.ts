@@ -15,9 +15,10 @@ import {
   type PlatformConfig,
 } from '~platforms/config';
 import {
-  attachImportMenuItem,
-  attachViewedPostImport,
-} from '~platforms/import-post-control';
+  attachSourceButton,
+  attachSourceMenuItem,
+  createImageSourceActions,
+} from '~platforms/source-capture-control';
 import {
   findTextActionSession,
   registerTextActionSession,
@@ -80,7 +81,7 @@ function initializePlatformIntegration(): void {
       return;
     }
 
-    attachViewedPostImport(currentPlatform, platformName);
+    attachSourceButton(currentPlatform);
 
     const submitButton = platform.selectors.submitButton
       ? document.querySelector(platform.selectors.submitButton)
@@ -115,12 +116,7 @@ function initializePlatformIntegration(): void {
     const buttonContainer = createButtonContainer();
 
     const dropdown = createGenFeedDropdown(postId, platformName, { postUrl });
-    attachImportMenuItem({
-      dropdown,
-      platform: platformName,
-      postId,
-      postUrl,
-    });
+    attachSourceMenuItem({ dropdown, platform });
     dropdown.style.marginRight = '8px';
     buttonContainer.appendChild(dropdown);
 
@@ -583,6 +579,9 @@ function initializeTwitterImageHover(): void {
     });
 
     overlay.appendChild(promptButton);
+    for (const action of createImageSourceActions(image)) {
+      overlay.appendChild(action);
+    }
     container.appendChild(overlay);
 
     image.setAttribute(PROCESSED_ATTR, 'true');

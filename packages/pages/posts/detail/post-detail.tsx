@@ -392,6 +392,31 @@ export default function PostDetail({
     );
   }
 
+  const headerProps = post
+    ? {
+        hasChildren,
+        headingLevel: isPagePresentation ? (1 as const) : (2 as const),
+        isExpandingToThread,
+        isPublished,
+        isSavingSchedule,
+        isScheduleDirty: isScheduleDirty && scheduleDraft !== '',
+        onCreateRemix: isSourcePostVariationPlatform(post.platform)
+          ? handleCreateRemix
+          : undefined,
+        onDelete: handleDeletePost,
+        onDuplicate: handleDuplicate,
+        onExpandToThread: handleExpandToThread,
+        onPublishNow: publishNow,
+        onRepurpose: handleRepurpose,
+        onScheduleSave: saveSchedule,
+        onViewModeChange: setViewMode,
+        post,
+        scope,
+        showViewModeToggle: !isStandalonePage,
+        viewMode,
+      }
+    : null;
+
   return (
     <>
       {renderContextSidebar && sidebar
@@ -411,33 +436,15 @@ export default function PostDetail({
           </div>
         </ContextSidebarPanel>
       ) : null}
+      {headerProps && isStandalonePage ? (
+        <PostDetailHeader {...headerProps} placement="topbar" />
+      ) : null}
       <div className={wrapperClassName}>
         {post ? (
           <>
-            <PostDetailHeader
-              headingLevel={isPagePresentation ? 1 : 2}
-              showViewModeToggle={!isStandalonePage}
-              post={post}
-              scope={scope}
-              isPublished={isPublished}
-              hasChildren={hasChildren}
-              viewMode={viewMode}
-              isExpandingToThread={isExpandingToThread}
-              onViewModeChange={setViewMode}
-              onDelete={handleDeletePost}
-              onCreateRemix={
-                isSourcePostVariationPlatform(post.platform)
-                  ? handleCreateRemix
-                  : undefined
-              }
-              onDuplicate={handleDuplicate}
-              onExpandToThread={handleExpandToThread}
-              onRepurpose={handleRepurpose}
-              onPublishNow={publishNow}
-              onScheduleSave={saveSchedule}
-              isScheduleDirty={isScheduleDirty && scheduleDraft !== ''}
-              isSavingSchedule={isSavingSchedule}
-            />
+            {headerProps && !isStandalonePage ? (
+              <PostDetailHeader {...headerProps} />
+            ) : null}
 
             {!isStandalonePage ? (
               <RecordFactLine

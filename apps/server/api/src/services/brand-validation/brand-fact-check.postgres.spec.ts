@@ -120,6 +120,7 @@ describe.skipIf(!connectionString)(
           observedAt: new Date(),
           organizationId: world.organizationId,
           processingState: 'READY',
+          provenance: { url: 'https://example.test/about' },
           retrievalState: options.retrievalState ?? 'ACTIVE',
           retentionState: 'RETAINED',
           sourceId: source.id,
@@ -337,6 +338,7 @@ describe.skipIf(!connectionString)(
           userId: world.owner.id,
         },
       });
+      const own = await seedPassage(world, 'Example Co sells widgets.');
       const sibling = await seedPassage(
         world,
         'The CEO is Jane Doe, said brand C.',

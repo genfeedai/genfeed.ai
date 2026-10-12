@@ -99,10 +99,11 @@ export class PostsService extends BaseService<
     id: string,
     prompt: string,
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous',
+    options: { isDraft?: boolean } = {},
   ): Promise<Post> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/enhancements`,
-      { prompt, tone },
+      { isDraft: options.isDraft, prompt, tone },
     );
     return this.mapOne(response.data);
   }

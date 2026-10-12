@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   PageScope,
 } from '@genfeedai/contracts';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import { useWinnerPosts } from '@hooks/data/analytics/use-winner-posts/use-winner-posts';
@@ -159,7 +160,8 @@ export default function AnalyticsPostsList() {
   const items: PostsListItem[] = useMemo(
     () =>
       topPosts.reduce<PostsListItem[]>((acc, post) => {
-        const label = post.label || post.description || '';
+        const label =
+          post.label || stripHtmlToPlainText(post.description) || '';
         const normalizedSearch = search.trim().toLowerCase();
         if (
           normalizedSearch &&
@@ -173,7 +175,10 @@ export default function AnalyticsPostsList() {
         acc.push({
           brandName: post.brandName || 'Unknown brand',
           engagementRate: post.engagementRate || 0,
-          label: post.label || post.description || 'Untitled Post',
+          label:
+            post.label ||
+            stripHtmlToPlainText(post.description) ||
+            'Untitled Post',
           platform: post.platform,
           postId: post.postId,
           totalEngagement: post.totalEngagement || 0,

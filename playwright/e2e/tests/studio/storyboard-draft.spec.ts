@@ -499,7 +499,7 @@ test('creates an unpaid brief draft and saves added shots through the real route
         kind: 'brief',
         brief: 'A new coffee story',
       });
-      expect(input.planSettings.runtimeBudgetSeconds).toBe(10);
+      expect(input.planSettings.runtimeBudgetSeconds).toBe(15);
       created = {
         ...run,
         id: 'new-coffee',
@@ -560,7 +560,11 @@ test('creates an unpaid brief draft and saves added shots through the real route
   });
   await page.goto(`${base}/new`);
   await page.getByLabel('Brief', { exact: true }).fill('A new coffee story');
-  await page.getByLabel('Runtime budget (seconds)', { exact: true }).fill('10');
+  // Runtime budget is a quick-pick select (15/30/45/60s), not a number input.
+  await page
+    .getByRole('combobox', { name: 'Runtime budget (seconds)', exact: true })
+    .click();
+  await page.getByRole('option', { name: '15s', exact: true }).click();
   await page
     .getByRole('button', { name: 'Save storyboard', exact: true })
     .click();
@@ -726,13 +730,15 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   const title = page.getByLabel('Title', { exact: true });
   await expect(title).toHaveValue(run.config.plan.title);
   await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+  // Studio no longer has its own nav column (#6693); the app rail's Library
+  // link is the routed sidebar navigation that leaves the storyboard page.
   const sidebar = page
-    .locator('a[href="/test-org/brand-1/studio/playground"]')
-    .first();
+    .getByRole('navigation', { name: 'Apps' })
+    .getByRole('link', { name: 'Library' });
   await expect(sidebar).toBeVisible();
   await title.fill('Saved through sidebar navigation');
   await sidebar.click();
-  await expect(page).toHaveURL(/\/studio\/playground/);
+  await expect(page).toHaveURL(/\/library\/assets/);
   await expect
     .poll(() => current.config.plan.title)
     .toBe('Saved through sidebar navigation');
@@ -747,7 +753,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     .toBe('First in-flight title');
   await title.fill('Latest edit while saving');
   await sidebar.click();
-  await expect(page).toHaveURL(/\/studio\/playground$/);
+  await expect(page).toHaveURL(/\/library\/assets$/);
   release?.();
   await expect
     .poll(() => current.config.plan.title)
@@ -786,7 +792,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   const writesBeforeReopen = mutations.length;
   await page.getByRole('radio', { name: 'Your edit', exact: true }).click();
   await sidebar.click();
-  await expect(page).toHaveURL(/\/studio\/playground$/);
+  await expect(page).toHaveURL(/\/library\/assets$/);
   await page.goBack();
   await expect(
     page.getByText('Review concurrent edits', { exact: true }),

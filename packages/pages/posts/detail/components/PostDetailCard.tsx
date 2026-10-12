@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  plainTextToHtml,
+  stripHtmlToPlainText,
+} from '@helpers/security/sanitize-html.helper';
 import type { PostDetailCardProps } from '@props/components/post-detail-card.props';
 import PostEnhancementBar from '@ui/posts/enhancement-bar/post-enhancement-bar/PostEnhancementBar';
 import PostDetailCardBody from './PostDetailCardBody';
@@ -74,6 +78,78 @@ export default function PostDetailCard({
     performAutoSaveForPost,
   });
 
+  const applyDescription = (value: string) => {
+    const html = plainTextToHtml(value);
+    onDescriptionChange(html);
+    if (post?.id) {
+      currentDescriptionsRef.current.set(post.id, html);
+    }
+  };
+
+  const footerBar =
+    isEditable && onQuickAction && onPromptEnhance ? (
+      <PostEnhancementBar
+        key={post.id}
+        postId={post.id}
+        onQuickAction={onQuickAction}
+        onPromptEnhance={onPromptEnhance}
+        isEnhancing={enhancingPostId === post.id}
+        enhancingAction={
+          enhancingPostId === post.id ? (enhancingAction ?? null) : null
+        }
+        hasContent={!!descriptionValue.trim()}
+        placeholder={
+          isTwitter
+            ? isParent
+              ? 'Ask AI to rewrite this tweet…'
+              : `Ask AI to rewrite tweet ${index + 1}…`
+            : undefined
+        }
+        currentContent={descriptionValue}
+        onApplyProposal={applyDescription}
+        selectedMedia={isParent ? selectedMedia : localIngredients}
+        onSelectMedia={
+          onSelectMedia
+            ? () =>
+                onSelectMedia(
+                  post.id,
+                  isParent ? selectedMedia : localIngredients,
+                )
+            : undefined
+        }
+        isSavingMedia={isParent ? isSavingMedia : isSavingLocal}
+        onSave={isParent ? onSave : handleSaveDescription}
+        isDirty={
+          isParent
+            ? isDirty
+            : (() => {
+                const currentDescFromRef = currentDescriptionsRef.current.get(
+                  post.id,
+                );
+                const currentDesc =
+                  currentDescFromRef ?? descriptionValue ?? '';
+                return currentDesc !== post.description;
+              })()
+        }
+        isSaving={isParent ? isSaving : isSavingLocal}
+        showAddPost={isLast && canAddThread && !isGrokTweet}
+        onAddPost={onAddToThread}
+        showDelete={!isParent}
+        onDelete={!isParent ? openDeleteConfirm : undefined}
+        onGenerateIllustration={
+          onGenerateIllustration
+            ? () => onGenerateIllustration(post.id, descriptionValue)
+            : undefined
+        }
+        postContent={stripHtmlToPlainText(descriptionValue)}
+        postPlatform={platform}
+        onInsertHashtag={(hashtag: string) =>
+          applyDescription(appendToHtml(descriptionValue, hashtag))
+        }
+        onAcceptCaption={applyDescription}
+      />
+    ) : null;
+
   return (
     <div
       draggable={isEditable && isDraggable && !isGrokTweet}
@@ -134,79 +210,21 @@ export default function PostDetailCard({
         publishedDisplay={publishedDisplay}
         hasAnalytics={hasAnalytics}
         showAnalytics={showAnalytics}
+        isThread={!(isLast && index === 0)}
+        footer={footerBar}
       />
-
-      {/* Enhancement bar - only shown in Publishing scope */}
-      {isEditable && onQuickAction && onPromptEnhance && (
-        <PostEnhancementBar
-          key={post.id}
-          postId={post.id}
-          onQuickAction={onQuickAction}
-          onPromptEnhance={onPromptEnhance}
-          isEnhancing={enhancingPostId === post.id}
-          enhancingAction={
-            enhancingPostId === post.id ? (enhancingAction ?? null) : null
-          }
-          hasContent={!!descriptionValue.trim()}
-          placeholder={
-            isParent
-              ? 'Describe how to enhance this tweet...'
-              : `Describe how to enhance tweet ${index + 1}...`
-          }
-          className=""
-          selectedMedia={isParent ? selectedMedia : localIngredients}
-          onSelectMedia={
-            onSelectMedia
-              ? () =>
-                  onSelectMedia(
-                    post.id,
-                    isParent ? selectedMedia : localIngredients,
-                  )
-              : undefined
-          }
-          isSavingMedia={isParent ? isSavingMedia : isSavingLocal}
-          onSave={isParent ? onSave : handleSaveDescription}
-          isDirty={
-            isParent
-              ? isDirty
-              : (() => {
-                  const currentDescFromRef = currentDescriptionsRef.current.get(
-                    post.id,
-                  );
-                  const currentDesc =
-                    currentDescFromRef ?? descriptionValue ?? '';
-                  return currentDesc !== post.description;
-                })()
-          }
-          isSaving={isParent ? isSaving : isSavingLocal}
-          showAddPost={isLast && canAddThread && !isGrokTweet}
-          onAddPost={onAddToThread}
-          showDelete={!isParent}
-          onDelete={!isParent ? openDeleteConfirm : undefined}
-          onGenerateIllustration={
-            onGenerateIllustration
-              ? () => onGenerateIllustration(post.id, descriptionValue)
-              : undefined
-          }
-          postContent={descriptionValue}
-          postPlatform={platform}
-          onInsertHashtag={(hashtag: string) => {
-            const newValue = descriptionValue
-              ? `${descriptionValue} ${hashtag}`
-              : hashtag;
-            onDescriptionChange(newValue);
-            if (post?.id) {
-              currentDescriptionsRef.current.set(post.id, newValue);
-            }
-          }}
-          onAcceptCaption={(caption: string) => {
-            onDescriptionChange(caption);
-            if (post?.id) {
-              currentDescriptionsRef.current.set(post.id, caption);
-            }
-          }}
-        />
-      )}
     </div>
   );
+}
+
+/** Add text to the end of the last paragraph so it stays in the editor's HTML. */
+function appendToHtml(html: string, text: string): string {
+  const trimmed = html.trim();
+  if (!trimmed) {
+    return text;
+  }
+  if (trimmed.endsWith('</p>')) {
+    return `${trimmed.slice(0, -4)} ${text}</p>`;
+  }
+  return `${trimmed} ${text}`;
 }

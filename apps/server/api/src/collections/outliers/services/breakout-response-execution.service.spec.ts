@@ -47,6 +47,13 @@ function fixture(
   const prisma = {
     $transaction: vi.fn(),
     $queryRaw: vi.fn(async () => []),
+    organizationSetting: {
+      findFirst: vi.fn(async () => ({
+        isBrandVisionChecksEnabled: false,
+        isBreakoutAutoPublishEnabled: false,
+        isBreakoutResponsesEnabled: true,
+      })),
+    },
     breakoutResponse: {
       findFirst: vi.fn(async () => ({
         outputPlanFingerprint: 'immutable-plan',
@@ -131,13 +138,34 @@ function fixture(
       };
     }),
   };
+  const autoPublish = {
+    schedule: vi.fn(
+      async (
+        _input: unknown,
+      ): Promise<
+        | { status: 'scheduled'; postId: string }
+        | { status: 'review_only'; reason: string }
+      > => ({ status: 'review_only', reason: 'org_auto_publish_disabled' }),
+    ),
+  };
   const service = Reflect.construct(BreakoutResponseExecutionService, [
     prisma,
     planner,
     text,
     media,
+    autoPublish,
   ]) as BreakoutResponseExecutionService;
-  return { request, rows, first, prisma, planner, text, media, service };
+  return {
+    autoPublish,
+    request,
+    rows,
+    first,
+    prisma,
+    planner,
+    text,
+    media,
+    service,
+  };
 }
 beforeEach(() => {
   vi.clearAllMocks();
@@ -328,6 +356,129 @@ describe('bounded actual breakout response execution', () => {
     });
     expect(h.prisma.$transaction).not.toHaveBeenCalled();
     expect(h.text.generate).not.toHaveBeenCalled();
+  });
+
+  describe('the organization opt-in (#6526)', () => {
+    const off = {
+      isBrandVisionChecksEnabled: false,
+      isBreakoutAutoPublishEnabled: false,
+      isBreakoutResponsesEnabled: false,
+    };
+
+    it('holds with org_breakout_disabled before it plans, reserves or spends anything', async () => {
+      const h = fixture();
+      h.prisma.organizationSetting.findFirst.mockResolvedValue(off);
+      expect(await h.service.execute(h.request)).toEqual({
+        status: 'held',
+        responseId: 'response-a',
+        reason: 'org_breakout_disabled',
+        outputs: [],
+      });
+      expect(h.prisma.organizationSetting.findFirst).toHaveBeenCalledWith({
+        select: expect.objectContaining({ isBreakoutResponsesEnabled: true }),
+        where: { organizationId: 'org-a' },
+      });
+      expect(h.planner.prepare).not.toHaveBeenCalled();
+      expect(h.prisma.$transaction).not.toHaveBeenCalled();
+      expect(h.text.generate).not.toHaveBeenCalled();
+      expect(h.media.generate).not.toHaveBeenCalled();
+      expect(h.autoPublish.schedule).not.toHaveBeenCalled();
+    });
+
+    it('holds an organization without a settings row', async () => {
+      const h = fixture();
+      h.prisma.organizationSetting.findFirst.mockResolvedValue(
+        null as unknown as typeof off,
+      );
+      expect(await h.service.execute(h.request)).toMatchObject({
+        status: 'held',
+        reason: 'org_breakout_disabled',
+      });
+      expect(h.planner.prepare).not.toHaveBeenCalled();
+    });
+
+    it('holds mid-flight when the setting is turned off after the first output', async () => {
+      const h = fixture();
+      // Start, then the first output's gate, then the second output's gate finds it off.
+      h.prisma.organizationSetting.findFirst
+        .mockResolvedValueOnce({
+          ...off,
+          isBreakoutResponsesEnabled: true,
+        })
+        .mockResolvedValueOnce({
+          ...off,
+          isBreakoutResponsesEnabled: true,
+        })
+        .mockResolvedValue(off);
+      expect(await h.service.execute(h.request)).toMatchObject({
+        status: 'held',
+        reason: 'org_breakout_disabled',
+        outputs: [{ outputId: 'output-1' }],
+      });
+      expect(h.text.generate).toHaveBeenCalledOnce();
+      expect(h.rows[1]?.workflowExecutionId).toBeNull();
+    });
+
+    it('re-reads the setting for every execution instead of caching it', async () => {
+      const h = fixture();
+      await h.service.execute(h.request);
+      h.prisma.organizationSetting.findFirst.mockResolvedValue(off);
+      h.text.generate.mockClear();
+      expect(await h.service.execute(h.request)).toMatchObject({
+        status: 'held',
+        reason: 'org_breakout_disabled',
+      });
+      expect(h.text.generate).not.toHaveBeenCalled();
+    });
+
+    it('offers each finished output to auto-publish, which keeps it a draft while that is off', async () => {
+      const h = fixture();
+      expect(await h.service.execute(h.request)).toMatchObject({
+        status: 'completed',
+        outputs: h.rows.map((row) => ({
+          outputId: row.id,
+          recovery: { state: 'draft' },
+        })),
+      });
+      expect(h.autoPublish.schedule).toHaveBeenCalledTimes(5);
+      expect(h.autoPublish.schedule).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          outputId: 'output-1',
+          responseId: 'response-a',
+          strategyId: 'strategy-a',
+          scope: expect.objectContaining({ organizationId: 'org-a' }),
+        }),
+      );
+    });
+
+    it('never offers a held output to auto-publish', async () => {
+      const h = fixture();
+      h.text.generate.mockResolvedValueOnce({
+        kind: 'stopped',
+        reasonCode: 'quality_or_brand_blocked',
+      });
+      await h.service.execute(h.request);
+      expect(h.autoPublish.schedule).not.toHaveBeenCalled();
+    });
+
+    it('reads the recovery again once an output was scheduled, so the report shows the schedule', async () => {
+      const kept = fixture(['text']);
+      vi.mocked(readBreakoutOutputRecovery).mockClear();
+      await kept.service.execute(kept.request);
+      const readsWhenKept = vi.mocked(readBreakoutOutputRecovery).mock.calls
+        .length;
+      const scheduled = fixture(['text']);
+      scheduled.autoPublish.schedule.mockResolvedValueOnce({
+        status: 'scheduled',
+        postId: 'draft-a',
+      });
+      vi.mocked(readBreakoutOutputRecovery).mockClear();
+      await scheduled.service.execute(scheduled.request);
+      expect(
+        vi.mocked(readBreakoutOutputRecovery).mock.calls.length,
+      ).toBeGreaterThan(readsWhenKept);
+    });
   });
 
   describe('visual outputs', () => {

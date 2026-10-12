@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import Spinner from '@ui/primitives/spinner';
+import OrganizationAutomationCard from './organization-automation-card';
 import OrganizationGenerationDefaultsCard from './organization-generation-defaults-card';
 import OrganizationIdentityDefaultsCard from './organization-identity-defaults-card';
 import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
@@ -22,6 +23,7 @@ export default function SettingsOrganizationDefaultsPage() {
       <OrganizationIdentityDefaultsCard />
       <OrganizationGenerationDefaultsCard />
       <OrganizationPublishingCapsCard />
+      <OrganizationAutomationCard />
     </div>
   );
 }

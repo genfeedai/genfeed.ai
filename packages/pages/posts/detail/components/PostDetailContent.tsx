@@ -68,8 +68,11 @@ export interface PostDetailContentProps {
     postId: string,
     prompt: string,
     actionKey: PostQuickActionKey,
-  ) => Promise<void>;
-  handlePerTweetEnhance: (postId: string, prompt: string) => Promise<void>;
+  ) => Promise<string | null>;
+  handlePerTweetEnhance: (
+    postId: string,
+    prompt: string,
+  ) => Promise<string | null>;
   handleDragStart: (postId: string) => void;
   handleDragEnd: () => void;
   handleDrop: (targetPostId: string, targetOrder: number) => Promise<void>;

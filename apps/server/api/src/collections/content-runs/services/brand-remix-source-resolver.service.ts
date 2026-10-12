@@ -1,5 +1,6 @@
 import {
   remixCredentialPlatform,
+  remixImportedSourcePlatform,
   remixIsVideoMedia,
   remixMediaUrl,
   remixMediaUrls,
@@ -22,15 +23,18 @@ import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
+import { readImportedSourceEnvelope } from '@api/collections/imported-sources/services/imported-source-state';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import { parseImportedSourceMediaBinding } from '@api/services/agent-source-ingest/agent-imported-source-ingest.state';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixAdPlatform,
   type BrandRemixSourceSelector,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { ImportedSourceSnapshot } from '@genfeedai/contracts/api-types/contracts/imported-source.contract';
 import {
   type AdsResearchDetail,
   isAdsChannel,
@@ -55,6 +59,8 @@ export class BrandRemixSourceResolverService {
     switch (selector.kind) {
       case 'source_post':
         return this.resolveSourcePost(organizationId, brandId, selector);
+      case 'imported_source':
+        return this.resolveImportedSource(organizationId, brandId, selector);
       case 'owned_post':
         return this.resolveOwnedPost(organizationId, brandId, selector);
       case 'trend_reference':
@@ -151,6 +157,112 @@ export class BrandRemixSourceResolverService {
         videoUrls: hasVideo ? mediaUrls : [],
       }),
     };
+  }
+
+  /**
+   * A snapshot the user saved from the browser. The tenant-scoped stored
+   * snapshot is the only input; the selector carries an id and nothing else.
+   * Like every other source, only abstract signals reach the creative brief.
+   */
+  private async resolveImportedSource(
+    organizationId: string,
+    brandId: string,
+    selector: Extract<BrandRemixSourceSelector, { kind: 'imported_source' }>,
+  ): Promise<ResolvedSource> {
+    const record = await this.prisma.ingredient.findFirst({
+      select: {
+        brandId: true,
+        createdAt: true,
+        id: true,
+        isDeleted: true,
+        organizationId: true,
+        providerData: true,
+        sourceActionId: true,
+        updatedAt: true,
+        version: true,
+      },
+      where: scopedWhere(organizationId, {
+        brandId,
+        category: IngredientCategory.TEXT,
+        id: selector.importedSourceId,
+        sourceActionId: { startsWith: 'imported-source:v1:' },
+      }),
+    });
+    if (!record) {
+      throw new NotFoundException('Imported source', selector.importedSourceId);
+    }
+    const { snapshot } = readImportedSourceEnvelope(record);
+    const media = snapshot.selectedMedia;
+    const hasVideo = snapshot.kind === 'video' || media?.kind === 'video';
+    const platform = remixImportedSourcePlatform(snapshot.host);
+    const title = remixTruncate(snapshot.title);
+    const text = [snapshot.title, snapshot.capturedText.slice(0, 2_000)]
+      .filter(Boolean)
+      .join(' ');
+    return {
+      recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
+      snapshot: {
+        authorHandle: remixText(snapshot.authorHandle),
+        canonicalUrl: remixPublicUrl(snapshot.canonicalUrl),
+        capturedAt: this.runtime.now().toISOString(),
+        evidence: [title],
+        metrics: {},
+        pattern: remixPatternFromText(text, hasVideo ? 'video' : 'image'),
+        platform,
+        selector,
+        sourceId: record.id,
+        title,
+      },
+      sourceMedia: await this.importedSourceMedia(
+        organizationId,
+        brandId,
+        record.providerData,
+        media,
+      ),
+    };
+  }
+
+  /**
+   * Media the user explicitly prepared is an existing Library asset. A media
+   * choice that was never prepared, or cannot be copied, stays pattern-only.
+   */
+  private async importedSourceMedia(
+    organizationId: string,
+    brandId: string,
+    providerData: Parameters<typeof parseImportedSourceMediaBinding>[0],
+    media: ImportedSourceSnapshot['selectedMedia'],
+  ): Promise<ResolvedSourceMedia> {
+    if (!media) {
+      return this.sourceMedia({});
+    }
+    const binding = parseImportedSourceMediaBinding(providerData);
+    if (
+      binding &&
+      media.kind !== 'audio' &&
+      media.availability !== 'embed_only' &&
+      media.availability !== 'unavailable'
+    ) {
+      const asset = await this.prisma.ingredient.findFirst({
+        select: { id: true },
+        where: scopedWhere(organizationId, {
+          brandId,
+          id: binding.mediaIngredientId,
+          status: { in: [...GENERATION_READY_STATUSES] as IngredientStatus[] },
+        }),
+      });
+      if (asset) {
+        return this.sourceMedia({ existingAssetIds: [asset.id] });
+      }
+      return this.sourceMedia({});
+    }
+    if (media.availability === 'embed_only') {
+      return this.sourceMedia({
+        importPolicy: 'embed_only',
+        imageUrls: media.kind === 'image' ? [media.url] : [],
+        videoUrls: media.kind === 'image' ? [] : [media.url],
+      });
+    }
+    return this.sourceMedia({});
   }
 
   private async resolveOwnedPost(
