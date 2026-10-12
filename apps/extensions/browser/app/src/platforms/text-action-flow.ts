@@ -52,8 +52,9 @@ export async function runPageTextAction(
   }
   if (!response || 'error' in response) {
     hooks.notify(
-      response?.error ??
-        'Could not reach Genfeed. Reload the page and try again.',
+      response && 'error' in response
+        ? response.error
+        : 'Could not reach Genfeed. Reload the page and try again.',
       true,
     );
     return;

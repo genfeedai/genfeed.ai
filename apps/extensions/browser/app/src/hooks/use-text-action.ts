@@ -130,7 +130,11 @@ export function useTextAction(): UseTextActionReturn {
             text: captured.text,
           });
         if (!response || 'error' in response) {
-          throw new Error(response?.error ?? 'Could not edit the text.');
+          throw new Error(
+            response && 'error' in response
+              ? response.error
+              : 'Could not edit the text.',
+          );
         }
         dispatch({
           original: captured.text,
