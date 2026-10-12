@@ -118,6 +118,7 @@
     "destinationsDescription": "Pick one or more accounts, or choose Article or Newsletter to write it in its own editor.",
     "noAccounts": "No connected accounts yet. Save a draft now and connect an account later.",
     "draftOnly": "No account selected. This saves as a draft.",
+    "editorsHeading": "Or write in its own editor",
     "article": "Article",
     "articleHint": "genfeed.ai blog",
     "newsletter": "Newsletter",

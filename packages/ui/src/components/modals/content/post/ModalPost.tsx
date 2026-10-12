@@ -36,6 +36,9 @@ import ModalPostSimpleHeader from './ModalPostSimpleHeader';
 
 const EMPTY_ARRAY: never[] = [];
 
+/** Connected for livestream chat only; there is no publish path, so never offer it as a post target. */
+const NON_POSTING_PLATFORMS: ReadonlySet<string> = new Set([Platform.RESTREAM]);
+
 /** X accepts up to 280 characters per post; longer text publishes as long-form. */
 const X_STANDARD_POST_LIMIT = 280;
 
@@ -48,7 +51,7 @@ export default function ModalPost({
   ingredient,
   modalId,
   credential,
-  credentials = EMPTY_ARRAY,
+  credentials: allCredentials = EMPTY_ARRAY,
   parentPost,
   defaultPlatform,
   isComposer = false,
@@ -58,6 +61,13 @@ export default function ModalPost({
   showViewDetailsButton = false,
   onViewDetails,
 }: ModalPostProps) {
+  const credentials = useMemo(
+    () =>
+      allCredentials.filter(
+        (account) => !NON_POSTING_PLATFORMS.has(account.platform.toLowerCase()),
+      ),
+    [allCredentials],
+  );
   const { brandId } = useBrand();
   const notificationsService = NotificationsService.getInstance();
   const composerTranslate = useTranslations('ui.postComposer');

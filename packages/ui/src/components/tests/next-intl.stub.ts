@@ -475,6 +475,7 @@ const UI_TEST_MESSAGES = {
       noAccounts:
         'No connected accounts yet. Save a draft now and connect an account later.',
       draftOnly: 'No account selected. This saves as a draft.',
+      editorsHeading: 'Or write in its own editor',
       article: 'Article',
       articleHint: 'genfeed.ai blog',
       newsletter: 'Newsletter',

@@ -230,6 +230,27 @@ describe('ModalPost', () => {
       expect(screen.queryByText('Channel')).not.toBeInTheDocument();
     });
 
+    it('does not offer Restream as a post target', () => {
+      const restreamAccount = {
+        id: 'cred-rs',
+        label: 'Acme Restream',
+        platform: 'restream',
+      } as unknown as ICredential;
+      render(
+        <ModalPost
+          isComposer
+          credentials={[xAccount, restreamAccount]}
+          modalId={ModalEnum.POST_COMPOSE}
+        />,
+      );
+      expect(
+        screen.getByRole('button', { name: 'Acme on X' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Acme Restream' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('creates one post per selected account', async () => {
       const user = userEvent.setup();
       renderComposer();
