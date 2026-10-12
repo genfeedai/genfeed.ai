@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { PublicationCaptureAttempt } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
@@ -26,7 +26,9 @@ const fixture = (name: string, extra: Record<string, string> = {}) =>
   Object.entries({ ...ids, ...extra }).reduce(
     (html, [token, value]) => html.replaceAll(`{{${token}}}`, value),
     readFileSync(
-      resolve(process.cwd(), `tests/fixtures/publication-capture/${name}`),
+      fileURLToPath(
+        new URL(`./fixtures/publication-capture/${name}`, import.meta.url),
+      ),
       'utf8',
     ),
   );
