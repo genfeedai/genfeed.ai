@@ -386,11 +386,11 @@ describe('StudioPlaygroundComposer', () => {
         />,
       );
 
-      expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
-        /^Image$/,
+      expect(screen.getByRole('button', { name: 'Setup' }).textContent).toBe(
+        'Image',
       );
-      expect(screen.getByTestId('studio-generation-summary')).toHaveTextContent(
-        /^120$/,
+      expect(screen.getByTestId('studio-generation-summary').textContent).toBe(
+        '120',
       );
       expect(generationSetupPopoverMocks.props.models).toEqual([]);
       expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
