@@ -899,3 +899,76 @@ test('recovered assets reject original or post-download timestamp drift', () => 
     }
   }
 });
+
+test('the reviewed v0.2.6 qualification is found and freezes its original asset timestamps', () => {
+  const qualification = QUALIFICATIONS.find(
+    (record) => record.releaseTag === 'v0.2.6',
+  );
+  assert.ok(qualification, 'v0.2.6 qualification is present');
+  const byName = (name) =>
+    qualification.assets.find((candidate) => candidate.name === name);
+  const changelog = byName('CHANGELOG.md');
+  const archive = byName('genfeed-selfhosted.tar.gz');
+  const checksum = byName('genfeed-selfhosted.tar.gz.sha256');
+  const draftBody = 'frozen v0.2.6 notes\n';
+  const expected = {
+    archiveAssetDigest: archive.digest,
+    archiveAssetId: String(archive.id),
+    archiveAssetSize: String(archive.size),
+    changelogAssetDigest: changelog.digest,
+    changelogAssetId: String(changelog.id),
+    changelogAssetSize: String(changelog.size),
+    checksumAssetDigest: checksum.digest,
+    checksumAssetId: String(checksum.id),
+    checksumAssetSize: String(checksum.size),
+    draftBodySha256: sha256(draftBody),
+    draftId: qualification.draftId,
+    draftTitle: qualification.draftTitle,
+    imageDigest: qualification.imageDigest,
+    imageTag: '0.2.6',
+    releaseSha: qualification.releaseSha,
+    releaseTag: qualification.releaseTag,
+    repository: qualification.repository,
+  };
+  const release = {
+    assets: qualification.assets.map((value) => ({
+      ...value,
+      state: 'uploaded',
+    })),
+    body: draftBody,
+    draft: true,
+    id: Number(qualification.draftId),
+    name: qualification.draftTitle,
+    published_at: null,
+    tag_name: qualification.releaseTag,
+    target_commitish: qualification.releaseSha,
+  };
+  const verify = (candidate) =>
+    verifyRecoveredReleaseAssets({
+      archiveBytes: Buffer.from('not the reviewed archive'),
+      changelogBytes: Buffer.from('not the reviewed changelog'),
+      checksumBytes: Buffer.from('not the reviewed checksum'),
+      expected,
+      imageConfig: {},
+      manifestDigest: qualification.imageDigest,
+      release: candidate,
+      releaseAfter: structuredClone(candidate),
+      remoteTagPresent: false,
+    });
+  // Wrong bytes stop later checks, proving the reviewed identity itself passed.
+  assert.throws(
+    () => verify(release),
+    (error) =>
+      !/timestamps do not match|exactly one reviewed release qualification/.test(
+        error.message,
+      ),
+  );
+  for (const field of ['created_at', 'updated_at']) {
+    const drifted = structuredClone(release);
+    drifted.assets[1][field] = '2026-10-12T07:12:17Z';
+    assert.throws(
+      () => verify(drifted),
+      /timestamps do not match the reviewed identity/,
+    );
+  }
+});

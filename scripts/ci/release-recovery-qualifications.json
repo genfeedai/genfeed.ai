@@ -74,6 +74,43 @@
           "updated_at": "2026-10-08T13:37:30Z"
         }
       ]
+    },
+    {
+      "repository": "genfeedai/genfeed.ai",
+      "runId": "38211433340",
+      "releaseTag": "v0.2.6",
+      "releaseSha": "ebc15294606d87bba715c2b204ac2a2ab508af6d",
+      "draftId": "410113048",
+      "draftTitle": "v0.2.6",
+      "draftBodySha256": "9a024560d8dd0c56db26af80d2792c2aaa02cd862faaafcbf799d5e834089da6",
+      "imageDigest": "sha256:cd4f54c99cdb5af47d07105d6a3586287c81e9fea3f661eaec687f70dce28104",
+      "jobProfile": "ci-packages-sharded-v2",
+      "assets": [
+        {
+          "id": 632865057,
+          "name": "CHANGELOG.md",
+          "size": 490951,
+          "digest": "sha256:7208f8555dfef0432027b475f018602ecfd6e601df36df0e6704f83f76473620",
+          "created_at": "2026-10-12T06:14:24Z",
+          "updated_at": "2026-10-12T06:14:24Z"
+        },
+        {
+          "id": 632989960,
+          "name": "genfeed-selfhosted.tar.gz",
+          "size": 2080,
+          "digest": "sha256:e56c4ca15d8b4ac642d1476dc1544a0ffc6e54ad2ad80522f45122b13b63531c",
+          "created_at": "2026-10-12T07:12:18Z",
+          "updated_at": "2026-10-12T07:12:19Z"
+        },
+        {
+          "id": 632989955,
+          "name": "genfeed-selfhosted.tar.gz.sha256",
+          "size": 92,
+          "digest": "sha256:5cd0d66576f747f06291f4b2d5c03c465aafbfbe31ed777e99b7b8c3622f3b85",
+          "created_at": "2026-10-12T07:12:18Z",
+          "updated_at": "2026-10-12T07:12:19Z"
+        }
+      ]
     }
   ]
 }
