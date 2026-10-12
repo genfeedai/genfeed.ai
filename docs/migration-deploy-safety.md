@@ -22,11 +22,12 @@ Use expand/contract for schema retirement:
 
 The CI Static Checks guard validates every newly added migration in the diff.
 `DROP COLUMN` (including PostgreSQL's shorthand), `DROP TABLE`, `RENAME COLUMN`,
-table `RENAME TO`, and `SET NOT NULL` require exactly one marker (a rename retires
-the old name; split it as add-new/dual-write, then contract the old name). Enum
-type and constraint renames are not classified by this guard. The named release must be published, stable, and an
-ancestor of the diff base. Its Prisma schema must exclude **every** dropped
-field/table and require every column tightened to `NOT NULL` on an existing
+table `RENAME TO`, enum type `ALTER TYPE ... RENAME TO`, and `SET NOT NULL` require
+exactly one marker (a rename retires the old name; split it as
+add-new/dual-write, then contract the old name). Enum value, constraint, and
+index renames are not classified by this guard. The named release must be
+published, stable, and an ancestor of the diff base. Its Prisma schema must exclude **every** dropped
+field/table/renamed enum type and require every column tightened to `NOT NULL` on an existing
 model. A marker cannot excuse a second incompatible operation in the same file.
 Schema-qualified operations support `public`; dynamic `EXECUTE` migrations fail
 closed because concatenated SQL cannot be proved by this guard. Review raw SQL

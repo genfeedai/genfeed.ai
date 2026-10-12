@@ -144,6 +144,16 @@ export function destructiveOperations(sql) {
         index++;
       } while (index < tokens.length);
     }
+    if (keyword(i, 'ALTER') && keyword(i + 1, 'TYPE')) {
+      // Renaming a type retires its old name for every client built before it
+      // (Prisma casts enum parameters by type name). RENAME VALUE/ATTRIBUTE
+      // and ADD VALUE are not classified.
+      const parsed = tableAt(i + 2);
+      if (keyword(parsed.index, 'RENAME') && keyword(parsed.index + 1, 'TO')) {
+        operations.push({ type: 'rename-enum', enumName: parsed.table });
+      }
+      continue;
+    }
     if (!keyword(i, 'ALTER') || !keyword(i + 1, 'TABLE')) continue;
     let index = i + 2;
     if (keyword(index, 'IF') && keyword(index + 1, 'EXISTS')) index += 2;
@@ -243,6 +253,20 @@ export function prismaTables(schema) {
   return tables;
 }
 
+// Database type names of Prisma enums: `@@map` overrides the enum name.
+export function prismaEnums(schema) {
+  const enums = new Set();
+  const clean = schema
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/[^\n]*/g, '');
+  for (const block of clean.matchAll(
+    /^\s*enum\s+(\w+)\s*\{([\s\S]*?)^\s*\}/gm,
+  )) {
+    enums.add(block[2].match(/@@map\("([^"]+)"\)/)?.[1] ?? block[1]);
+  }
+  return enums;
+}
+
 export function validateContract(sql, releaseSchema) {
   const { operations, markers } = destructiveOperations(sql);
   if (!operations.length) return null;
@@ -253,7 +277,16 @@ export function validateContract(sql, releaseSchema) {
   }
   if (releaseSchema !== undefined) {
     const tables = prismaTables(releaseSchema);
+    const enums = prismaEnums(releaseSchema);
     for (const operation of operations) {
+      if (operation.type === 'rename-enum') {
+        if (enums.has(operation.enumName)) {
+          throw new Error(
+            `${markers[0]} Prisma client is incompatible with ${operation.type} ${operation.enumName}`,
+          );
+        }
+        continue;
+      }
       const fields = tables.get(operation.table);
       const label = `${operation.table}${operation.column ? `.${operation.column}` : ''}`;
       if (
