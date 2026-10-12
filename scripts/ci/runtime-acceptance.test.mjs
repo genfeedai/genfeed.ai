@@ -103,6 +103,7 @@ import {
   verifyFrozenSources,
   verifyVisualRuntimeProbe,
   verifyVisualScenarioSources,
+  visualProtocolFiles,
   visualSelection,
   workBudget,
 } from './runtime-acceptance.mjs';
@@ -1998,6 +1999,35 @@ test('actual TAP totals require complete unique nonzero unskipped original succe
     assert.throws(() =>
       parseProtocolTotals(tapSummary(), { ...child, ...failure }),
     );
+});
+test('visual protocol stage runs every file it lists to completion with no skip', async () => {
+  const repoRoot = await realpath(new URL('../..', import.meta.url));
+  const directory = path.join(repoRoot, 'scripts/visual-code');
+  const entries = await readdir(directory);
+  const files = visualProtocolFiles(entries);
+  // Host-browser suites skip by design here; the runsc image covers their cases.
+  assert.ok(entries.includes('render-evidence.browser.test.mjs'));
+  assert.ok(files.includes('scripts/visual-code/render-evidence.test.mjs'));
+  assert.ok(files.includes('scripts/visual-code/protocol.test.mjs'));
+  assert.deepEqual(
+    files.filter((file) => file.endsWith('.browser.test.mjs')),
+    [],
+  );
+  const environment = { ...process.env };
+  delete environment.NODE_TEST_CONTEXT;
+  delete environment.VISUAL_CODE_EVIDENCE_BROWSER;
+  const run = spawnSync(
+    process.execPath,
+    ['--test', '--test-reporter=tap', ...files],
+    { cwd: repoRoot, encoding: 'utf8', env: environment },
+  );
+  assert.equal(run.status, 0, run.stderr);
+  const totals = parseProtocolTotals(run.stdout, {
+    exitCode: run.status,
+    signal: run.signal,
+    timedOut: false,
+  });
+  assert.ok(totals.pass > 0);
 });
 test('renderer deletion names require exact private manifest hash ownership', () => {
   const id = randomBytes(20).toString('hex');

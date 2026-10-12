@@ -42,6 +42,7 @@ import {
   WORKFLOW_ENGINE_ADAPTER,
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -167,6 +168,11 @@ export class ProactiveAgentRuntimeFixture {
   readonly processing: TurboRunProcessingService;
   autopilot: AgentAutopilotWorkflowService;
   readonly credits = { getOrganizationCreditsBalance: async () => 1000 };
+  // The runner and the queue admit work through the same module-access service.
+  // This fixture seeds no organization settings, so admission is a recorded
+  // pass-through rather than a second settings reader.
+  readonly moduleAccess: Pick<OrganizationModuleAccessService, 'assertAccess'> =
+    { assertAccess: vi.fn().mockResolvedValue(undefined) };
   readonly schedules: PlatformWorkflowSchedulesService;
   readonly cache: CacheService;
   readonly databaseUrl: string;
@@ -238,7 +244,7 @@ export class ProactiveAgentRuntimeFixture {
       this.queues[3],
       this.queues[4],
       this.logger as never,
-      { assertAccess: vi.fn().mockResolvedValue(undefined) } as never,
+      this.moduleAccess as never,
     );
     this.publishQueue = new ScheduledPostWorkflowQueueService(
       this.queueService,
@@ -276,6 +282,7 @@ export class ProactiveAgentRuntimeFixture {
           };
         if (token === WorkflowExecutionsService) return this.executions;
         if (token === WorkflowExecutionQueueService) return this.queueService;
+        if (token === OrganizationModuleAccessService) return this.moduleAccess;
         throw new Error(
           `Unexpected runtime fixture dependency: ${String(token)}`,
         );

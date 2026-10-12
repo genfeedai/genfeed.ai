@@ -12,6 +12,8 @@ import {
   type WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import {
   AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
@@ -216,6 +218,8 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         LearningScopeStateService,
         LearningPolicyService,
         WorkflowExecutionQueueService,
+        OrganizationModuleAccessService,
+        OrganizationPaidAccessService,
         ...[
           WORKFLOW_EXECUTION_QUEUE,
           PLATFORM_SYSTEM_WORKFLOW_QUEUE,

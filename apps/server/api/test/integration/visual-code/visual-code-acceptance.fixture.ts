@@ -19,6 +19,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
@@ -58,6 +59,7 @@ import {
   WORKFLOW_ENGINE_ADAPTER,
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
@@ -1129,6 +1131,7 @@ export async function createVisualCodeAcceptanceFixture(
         VisualProjectRendererClientService,
         AgentChatModelRegistryService,
         AgentModelAccessService,
+        OrganizationModuleAccessService,
         OrganizationPaidAccessService,
         IngredientsService,
         MembersService,
@@ -1139,6 +1142,7 @@ export async function createVisualCodeAcceptanceFixture(
         CreditBalanceService,
         CreditReservationService,
         CreditTransactionsService,
+        FreeTrialService,
         TransactionUtil,
         SystemWorkflowRunnerService,
         WorkflowExecutionQueueService,
@@ -1761,6 +1765,11 @@ export async function seedVisualCodeAcceptanceActor(
       organizationId,
       defaultModel: modelId,
       enabledModelIds: [modelId],
+      // Motion is a founder-only module that is off by default: a cloud
+      // organization reaches it only on release preview with the module
+      // enabled (#5502), so the acceptance tenant opts into both.
+      isReleasePreviewEnabled: true,
+      moduleOverrides: { motion: true },
       subscriptionTier: paid ? 'pro' : 'free',
     }),
   });

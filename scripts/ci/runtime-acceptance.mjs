@@ -2983,6 +2983,24 @@ export function validateVisualSelection(report, index, child) {
         );
   return validateReport(report, [selection], child);
 }
+/**
+ * The strict protocol stage accepts only suites that run to completion with no
+ * skips. `*.browser.test.mjs` suites need a host Chromium plus the pinned
+ * Remotion install, which this stage does not provide, so every case in them
+ * skips by design (`VISUAL_CODE_EVIDENCE_BROWSER` unset). Their still, video
+ * and font cases run for real inside the fixed runsc image in the
+ * `visual-isolation` stage that follows; the unit suites listed here carry the
+ * rest of the protocol.
+ */
+export function visualProtocolFiles(entries) {
+  return entries
+    .filter(
+      (file) =>
+        file.endsWith('.test.mjs') && !file.endsWith('.browser.test.mjs'),
+    )
+    .sort()
+    .map((file) => `scripts/visual-code/${file}`);
+}
 export function parseProtocolTotals(output, child) {
   requireThat(
     child.exitCode === 0 &&
@@ -5835,11 +5853,9 @@ export async function execution(identity, env) {
           identity.repo,
           privateEnv,
         );
-        const protocolFiles = (
-          await readdir(path.join(identity.repo, 'scripts/visual-code'))
-        )
-          .filter((file) => file.endsWith('.test.mjs'))
-          .map((file) => `scripts/visual-code/${file}`);
+        const protocolFiles = visualProtocolFiles(
+          await readdir(path.join(identity.repo, 'scripts/visual-code')),
+        );
         requireThat(protocolFiles.length > 0, 'MISSING_VISUAL_PROTOCOL');
         phaseDeadline = identity.startedAt + 480000;
         const protocol = await run(
