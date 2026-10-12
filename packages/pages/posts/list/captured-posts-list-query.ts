@@ -59,7 +59,7 @@ export interface CapturedPostsQueryInput {
 }
 
 /** Query accepted by `GET /posts` (`PostsQueryDto`), always source-filtered. */
-export interface CapturedPostsApiQuery {
+export type CapturedPostsApiQuery = {
   brandId?: string;
   campaignId?: string;
   limit: number;
@@ -69,7 +69,7 @@ export interface CapturedPostsApiQuery {
   search?: string;
   sort: CapturedPostsSort;
   source: PostsSourceFilter;
-}
+};
 
 /**
  * Maps the Publish filters onto the posts API. Every captured publication is

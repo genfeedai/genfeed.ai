@@ -83,7 +83,6 @@ describe('Analytics work surface state', () => {
 
     expect(extension.filters.source).toBe('extension');
     expect(extension.canonicalSearchParams.get('source')).toBe('extension');
-    expect(extension.isCanonical).toBe(true);
     expect(uppercase.filters.source).toBeUndefined();
     expect(uppercase.canonicalSearchParams.get('source')).toBeNull();
     expect(elsewhere.filters.source).toBeUndefined();

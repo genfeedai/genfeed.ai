@@ -3,6 +3,7 @@ import {
   PageScope,
   PostVisibility,
 } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -13,6 +14,11 @@ import CapturedPostsList from './captured-posts-list';
 const findAllPageMock = vi.fn();
 const setRefreshMock = vi.fn();
 const onPageChange = vi.fn();
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   useCollectionScope: () => ({
@@ -55,7 +61,7 @@ function page(posts: unknown[]) {
     hasPrevious: false,
     items: posts,
     page: 1,
-    pageSize: 12,
+    pageSize: ITEMS_PER_PAGE,
     total: posts.length,
     totalPages: 1,
   };
@@ -99,7 +105,7 @@ describe('CapturedPostsList', () => {
     expect(findAllPageMock).toHaveBeenCalledOnce();
     expect(findAllPageMock.mock.calls[0][0]).toEqual({
       brandId: 'brand-1',
-      limit: 12,
+      limit: ITEMS_PER_PAGE,
       organizationId: 'org-1',
       page: 1,
       platform: CredentialPlatform.TWITTER,
