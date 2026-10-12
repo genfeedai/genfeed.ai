@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { BrandRemixOrganicPlatform } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -108,7 +109,7 @@ export function SourceRemixDraftView({
             onEdit({
               target: {
                 kind: 'organic',
-                platform: value as 'instagram' | 'tiktok' | 'x' | 'youtube',
+                platform: value as BrandRemixOrganicPlatform,
               },
             })
           }

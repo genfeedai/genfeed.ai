@@ -1,3 +1,4 @@
+import { BrandRemixOrganicPlatform } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { BrandRemixRunView } from '~models/source-remix.model';
 
 export type SourceRemixStage =
@@ -25,12 +26,12 @@ export const REMIX_ASPECT_RATIOS: readonly string[] = [
 ];
 export const REMIX_TARGET_PLATFORMS: readonly {
   label: string;
-  value: string;
+  value: BrandRemixOrganicPlatform;
 }[] = [
-  { label: 'X', value: 'x' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'TikTok', value: 'tiktok' },
-  { label: 'YouTube', value: 'youtube' },
+  { label: 'X', value: BrandRemixOrganicPlatform.X },
+  { label: 'Instagram', value: BrandRemixOrganicPlatform.INSTAGRAM },
+  { label: 'TikTok', value: BrandRemixOrganicPlatform.TIKTOK },
+  { label: 'YouTube', value: BrandRemixOrganicPlatform.YOUTUBE },
 ];
 
 /** Video and avatar remixes use the scene plan in Studio, which has its own quotes. */
