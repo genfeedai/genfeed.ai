@@ -90,7 +90,7 @@ describe('TextActionPanel', () => {
       />,
     );
 
-    expect(screen.getByRole('status').textContent).toContain('Proofreading');
+    expect(screen.getByText('Proofreading your draft…')).toBeTruthy();
     expect(
       (screen.getByRole('button', { name: 'Proofread' }) as HTMLButtonElement)
         .disabled,
