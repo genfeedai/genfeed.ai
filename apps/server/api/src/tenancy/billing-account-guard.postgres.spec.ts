@@ -149,8 +149,13 @@ describe.skipIf(!connectionString)(
       const db = database();
       await db.user.create({ data: { handle: userId, id: userId } });
 
-      const role = await db.role.create({
-        data: { key: `bag-pg-role-${suffix}`, label: 'Owner' },
+      // Authorization reads `Member.roleId -> Role.key`, so the actor holds
+      // the real owner role. Roles are shared by key across suites: upsert,
+      // never delete.
+      const role = await db.role.upsert({
+        create: { key: MemberRole.OWNER, label: 'Owner' },
+        update: {},
+        where: { key: MemberRole.OWNER },
       });
       actorMemberRoleId = role.id;
 
@@ -232,7 +237,6 @@ describe.skipIf(!connectionString)(
       await db.billingAccount.deleteMany({
         where: { id: { in: billingAccountIds } },
       });
-      await db.role.delete({ where: { id: actorMemberRoleId } });
       await db.user.deleteMany({ where: { id: userId } });
     });
 
@@ -336,8 +340,13 @@ describe.skipIf(!connectionString)(
       // pass the billing-account-admin check on its billing account); only
       // the org-admin-on-target check, reachable only inside the explicit
       // cross-org tenant-context switch, should reject this.
+      const userRole = await database().role.upsert({
+        create: { key: MemberRole.USER, label: 'User' },
+        update: {},
+        where: { key: MemberRole.USER },
+      });
       await database().member.updateMany({
-        data: { roleKey: MemberRole.USER },
+        data: { roleId: userRole.id, roleKey: MemberRole.USER },
         where: { organizationId: organizationIds[1], userId },
       });
 
