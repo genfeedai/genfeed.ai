@@ -120,7 +120,7 @@ export default function MenuItem({
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <span
           className={cn(
-            'min-w-0 truncate text-sm font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200',
+            'min-w-0 truncate text-sm font-medium capitalize tracking-[-0.01em] text-foreground/88 transition-colors duration-200',
             isActive && 'text-foreground font-semibold',
           )}
         >
