@@ -148,6 +148,25 @@ test('a font is refused when its type, bytes or faces do not hold', () => {
   for (const [name, assets] of Object.entries(cases))
     assert.throws(() => validateInput({ ...input, assets }), undefined, name);
 });
+test('every font type is checked against its own signature', () => {
+  for (const mime of Object.keys(FONT_FILES))
+    for (const other of Object.keys(FONT_FILES)) {
+      if (mime === other) continue;
+      const assets = [
+        {
+          id: 'f',
+          mime,
+          bytes: FONT_FILES[other].toString('base64'),
+          faces: [brandFace],
+        },
+      ];
+      assert.throws(
+        () => validateInput({ ...input, assets }),
+        undefined,
+        `${mime} label on ${other} bytes`,
+      );
+    }
+});
 test('media and brand fonts are capped separately', () => {
   const images = (count) =>
     Array.from({ length: count }, (_, index) => imageAsset(index));
