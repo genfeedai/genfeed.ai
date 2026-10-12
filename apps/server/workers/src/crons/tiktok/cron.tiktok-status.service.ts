@@ -13,6 +13,7 @@ import {
   CredentialPlatform,
   PostVisibility,
   TargetExecutionState,
+  TikTokPublishStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
@@ -304,16 +305,20 @@ export class CronTiktokStatusService implements OnModuleInit {
         status: statusData?.status,
       });
 
-      // Check if moderation complete and post_id available
-      if (statusData?.status === 'PUBLISH_COMPLETE' && hasPostId) {
-        const postId = String(statusData.publicly_available_post_id?.[0]);
-        const postUrl = `https://www.tiktok.com/@${credential.externalHandle}/video/${postId}`;
+      // Completion is independent of public availability.
+      if (statusData?.status === TikTokPublishStatus.PUBLISH_COMPLETE) {
+        const postId = String(
+          statusData.publicly_available_post_id?.[0] ?? publishId,
+        );
+        const postUrl = hasPostId
+          ? `https://www.tiktok.com/@${credential.externalHandle}/video/${postId}`
+          : '';
 
-        // Update post with real post_id and mark as PUBLIC
+        // Retain the publish ID when TikTok withholds a public video ID.
         const transitioned = await this.applyStatusTransition(
           post,
           'published',
-          `TikTok moderation completed - post ${postId} is live`,
+          `TikTok publish completed${hasPostId ? ` - post ${postId}` : ''}`,
           { externalPostId: postId, postUrl },
           provenance,
         );
@@ -337,18 +342,6 @@ export class CronTiktokStatusService implements OnModuleInit {
 
       // Note: If status === 'FAILED', getPublishStatus() throws an error which is caught
       // in the catch block below and handled by markPostFailed()
-
-      // If PUBLISH_COMPLETE but no post_id, log and wait for next cron run
-      if (statusData?.status === 'PUBLISH_COMPLETE' && !hasPostId) {
-        const pendingSince = new Date(post.updatedAt);
-        const hoursPending = Math.round(
-          (now.getTime() - pendingSince.getTime()) / (60 * 60 * 1000),
-        );
-        this.logger.log(
-          `${url} post ${post.id} is PUBLISH_COMPLETE but no post_id yet - will retry next cron run`,
-          { hoursPending, publishId },
-        );
-      }
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error, { fallback: () => '' });
       this.logger.error(`${url} failed for post ${post.id}`, {
@@ -540,7 +533,7 @@ export class CronTiktokStatusService implements OnModuleInit {
             publicationDate: publishedAt,
             publishedAt,
             url: String(input.postUrl ?? ''),
-            visibility: PostVisibility.PUBLIC,
+            visibility: post.visibility ?? PostVisibility.PUBLIC,
             workflowExecutionId: provenance.executionId,
           }
         : {

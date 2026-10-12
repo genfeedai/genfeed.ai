@@ -376,6 +376,20 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
+    youtubePublishing: {
+      sectionLabel: 'YouTube publishing settings',
+      title: 'Post to YouTube',
+      privacy: 'Privacy',
+      choosePrivacy: 'Choose privacy',
+      private: 'Private',
+      unlisted: 'Unlisted',
+      public: 'Public',
+      madeForKids: 'Made for kids',
+      save: 'Save YouTube settings',
+      saving: 'Saving…',
+      saved: 'YouTube settings saved',
+      saveFailed: 'Could not save YouTube settings.',
+    },
     tiktokPublishing: {
       connectAccount: 'Connect a TikTok account before posting.',
       capabilitiesUnavailable:

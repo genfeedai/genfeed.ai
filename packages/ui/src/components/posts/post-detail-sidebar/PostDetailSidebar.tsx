@@ -22,6 +22,7 @@ import {
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
 import TikTokPublishingSettings from '@ui/posts/tiktok-publishing/TikTokPublishingSettings';
+import YouTubePublishingSettings from '@ui/posts/youtube-publishing/YouTubePublishingSettings';
 import { Zap } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -91,6 +92,13 @@ export default function PostDetailSidebar({
   return (
     <div className={`space-y-3 ${className}`}>
       <PostSidebarPlatformCard post={post} credential={credential} />
+      {!isPublished && post.platform === CredentialPlatform.YOUTUBE ? (
+        <YouTubePublishingSettings
+          key={post.id}
+          post={post}
+          onSaved={onSettingsSaved}
+        />
+      ) : null}
       {!isPublished && post.platform === CredentialPlatform.TIKTOK ? (
         <TikTokPublishingSettings
           key={post.id}

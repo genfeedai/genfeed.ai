@@ -495,5 +495,19 @@
     "privacyFollowers": "Followers",
     "privacyFriends": "Friends",
     "privacyPrivate": "Only me"
+  },
+  "youtubePublishing": {
+    "sectionLabel": "YouTube publishing settings",
+    "title": "Post to YouTube",
+    "privacy": "Privacy",
+    "choosePrivacy": "Choose privacy",
+    "private": "Private",
+    "unlisted": "Unlisted",
+    "public": "Public",
+    "madeForKids": "Made for kids",
+    "save": "Save YouTube settings",
+    "saving": "Saving…",
+    "saved": "YouTube settings saved",
+    "saveFailed": "Could not save YouTube settings."
   }
 }

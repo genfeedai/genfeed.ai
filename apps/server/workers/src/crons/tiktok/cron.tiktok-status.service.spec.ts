@@ -2,7 +2,11 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
 
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import {
   buildTiktokStatusReconcileDefinition,
@@ -133,6 +137,34 @@ async function reconcile(
 }
 
 describe('CronTiktokStatusService', () => {
+  it('finalizes a completed private post without inventing a public URL or changing its audience', async () => {
+    const harness = createHarness();
+    const post = makeTiktokPost({ visibility: PostVisibility.PRIVATE });
+    harness.postsService.findOne.mockResolvedValue(post);
+    harness.tiktokService.getPublishStatus.mockResolvedValue({
+      status: 'PUBLISH_COMPLETE',
+    });
+    harness.schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    await reconcile(harness.registeredActions);
+    expect(
+      harness.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      post,
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'publish-1',
+        url: '',
+        visibility: PostVisibility.PRIVATE,
+      }),
+      expect.any(String),
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(
+      harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
+    ).toHaveBeenCalledOnce();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
