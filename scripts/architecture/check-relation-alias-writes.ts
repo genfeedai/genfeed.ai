@@ -13,6 +13,15 @@ const COMPUTED_RESULT_FIELDS: Record<string, ReadonlySet<string>> = {
   Ingredient: new Set(['cdnUrl']),
 };
 
+/**
+ * Service populate paths that are not schema relations but are translated by the
+ * owning service. `PostsService` turns the `ingredients` path into the ordered
+ * `ingredientLinks` join (#6740) and flattens it back to `post.ingredients`.
+ */
+const SERVICE_POPULATE_VIRTUAL_PATHS: Record<string, ReadonlySet<string>> = {
+  Post: new Set(['ingredients']),
+};
+
 const IGNORE_GLOBS = [
   '**/*.spec.ts',
   '**/*.test.ts',
@@ -286,7 +295,10 @@ function inspectPopulateExpression(
       continue;
     }
     const field = pathNode.text.split('.')[0];
-    if (!metadata.relationFields.has(field)) {
+    if (
+      !metadata.relationFields.has(field) &&
+      !(SERVICE_POPULATE_VIRTUAL_PATHS[model]?.has(field) ?? false)
+    ) {
       violations.push({
         alias: field,
         end: pathNode.getEnd(),

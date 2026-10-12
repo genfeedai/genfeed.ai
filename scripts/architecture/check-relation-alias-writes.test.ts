@@ -162,6 +162,18 @@ describe('computed result fields', () => {
     );
     expect(violations[0]?.type).not.toBe('unknown-projection');
   });
+
+  it('accepts the virtual Post ingredients populate path but flags unknown ones', () => {
+    writeService([
+      '  update(id: string) {',
+      "    return this.patch(id, {}, [{ path: 'ingredients', select: ['id'] }, { path: 'media' }]);",
+      '  }',
+    ]);
+
+    const violations = runCheckRelationAliasWrites().violations;
+    expect(violations.map(({ alias }) => alias)).toEqual(['media']);
+    expect(violations[0]?.type).toBe('unknown-projection');
+  });
 });
 
 function writeService(body: string[]): void {
