@@ -217,6 +217,26 @@ describe.skipIf(!connectionString)(
         status: 'checked',
       }),
     });
+    /**
+     * A world whose strategy and brand both let the agent publish without a member, so only
+     * the brand receipt can hold a draft back.
+     */
+    const autonomous = async (
+      factCheck: NonNullable<DetectOptions['factCheck']>,
+    ) => {
+      const detected = await detectBreakout(env, {
+        factCheck,
+        world: {
+          config: { ...ONE_OUTPUT.config, autonomyMode: 'AUTO_PUBLISH' },
+          policies: { autoPublishEnabled: true },
+        },
+      });
+      await db.brand.update({
+        data: { agentConfig: { autoPublish: { enabled: true } } },
+        where: { id: detected.world.brandId },
+      });
+      return detected;
+    };
     const draftStates = async (organizationId: string) =>
       (
         await db.post.findMany({
@@ -248,10 +268,9 @@ describe.skipIf(!connectionString)(
     });
 
     it('auto-publishes only a draft whose every claim is supported (#6717)', async () => {
-      const { harness, jobId, world } = await detectBreakout(env, {
-        factCheck: factCheckOf(['supported', 'supported']),
-        world: ONE_OUTPUT,
-      });
+      const { harness, jobId, world } = await autonomous(
+        factCheckOf(['supported', 'supported']),
+      );
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       expect(run.result.status).toBe('completed');
       expect(await receiptStates(world.organizationId)).toContain('ready');
@@ -261,10 +280,9 @@ describe.skipIf(!connectionString)(
     });
 
     it('holds a draft with an unverified claim for a member review, even with auto-publish on (#6717)', async () => {
-      const { harness, jobId, world } = await detectBreakout(env, {
-        factCheck: factCheckOf(['supported', 'unverified']),
-        world: ONE_OUTPUT,
-      });
+      const { harness, jobId, world } = await autonomous(
+        factCheckOf(['supported', 'unverified']),
+      );
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       expect(run.result).toMatchObject({
         reason: 'brand_review_required',
@@ -279,10 +297,9 @@ describe.skipIf(!connectionString)(
     });
 
     it('blocks a draft with a contradicted claim and never publishes it (#6717)', async () => {
-      const { harness, jobId, world } = await detectBreakout(env, {
-        factCheck: factCheckOf(['supported', 'contradicted']),
-        world: ONE_OUTPUT,
-      });
+      const { harness, jobId, world } = await autonomous(
+        factCheckOf(['supported', 'contradicted']),
+      );
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       expect(run.result.status).toBe('held');
       expect(await receiptStates(world.organizationId)).toContain('blocked');
