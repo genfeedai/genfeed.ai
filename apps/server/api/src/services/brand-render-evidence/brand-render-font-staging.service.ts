@@ -172,7 +172,8 @@ export class BrandRenderFontStagingService {
         !row.cloudObjectKey
       )
         throw unavailable();
-      const key = this.safeKey(row.cloudObjectKey);
+      const key = row.cloudObjectKey;
+      this.assertSafeKey(key);
       let bytes: Buffer;
       try {
         bytes = await storage.readBytes(key, {
@@ -200,9 +201,9 @@ export class BrandRenderFontStagingService {
     return { assets, totalBytes };
   }
 
-  private safeKey(key: string): string {
+  private assertSafeKey(key: string): void {
     try {
-      return assertSafeObjectKey(key, () => new Error('unsafe_key'));
+      assertSafeObjectKey(key, () => new Error('unsafe_key'));
     } catch {
       throw unavailable();
     }

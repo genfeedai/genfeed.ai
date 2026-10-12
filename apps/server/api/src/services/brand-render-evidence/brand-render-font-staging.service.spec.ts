@@ -161,7 +161,7 @@ function fixture(rows: AssetRow[], snapshot: BrandIdentitySnapshotV1) {
 function serve(files: Record<string, Buffer>) {
   storage.readBytes.mockImplementation(async (key: string) => {
     const found = files[key];
-    if (!found) throw new Error('missing object');
+    if (!found) throw new Error(`missing object ${key}`);
     return found;
   });
 }
@@ -171,7 +171,9 @@ const bold = fontBytes(2);
 const keyOf = (id: string) =>
   `brand-fonts/${scope.organizationId}/${scope.brandId}/${id}/file.woff2`;
 
-beforeEach(() => storage.readBytes.mockReset());
+beforeEach(() => {
+  storage.readBytes.mockReset();
+});
 
 describe('approved brand fonts', () => {
   it('stages the fonts the approved revision owns, with the faces to declare', async () => {
