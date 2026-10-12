@@ -354,6 +354,79 @@ describe('useMasonryGrid', () => {
       expect(tiles[2].style.top).toBe('108px');
     });
 
+    it('measures every tile at its target width, with no easing left running', () => {
+      const { container } = mountObservedContainer([100, 200, 100, 100], {
+        columns: { desktop: 5, mobile: 1, tablet: 3 },
+        gap: 8,
+        minColumnWidth: 240,
+      });
+      // A repack that eases the slide leaves transitions running on the tiles.
+      reportResize();
+      const tiles = Array.from(container.children) as HTMLElement[];
+      expect(tiles[0].style.transition).toContain('0.3s');
+      const seenAtMeasure: string[] = [];
+      for (const tile of tiles) {
+        Object.defineProperty(tile, 'offsetHeight', {
+          configurable: true,
+          get: () => {
+            seenAtMeasure.push(`${tile.style.transition}|${tile.style.width}`);
+            return 100;
+          },
+        });
+        tile.getBoundingClientRect = () => ({ height: 0 }) as DOMRect;
+      }
+      Object.defineProperty(container, 'clientWidth', {
+        configurable: true,
+        value: 620,
+      });
+      reportResize();
+
+      expect(seenAtMeasure).toHaveLength(tiles.length);
+      for (const seen of seenAtMeasure) {
+        expect(seen).toBe('none|306px');
+      }
+    });
+
+    it('does not ease the width of a tile, only its slide', () => {
+      const { container } = mountObservedContainer([100, 200], {
+        columns: { desktop: 5, mobile: 1, tablet: 3 },
+        gap: 8,
+        minColumnWidth: 240,
+      });
+      reportResize();
+
+      const tile = container.children[0] as HTMLElement;
+      expect(tile.style.transition).toContain('left');
+      expect(tile.style.transition).not.toContain('width');
+    });
+
+    it('re-packs on the next frame while the container itself resizes', () => {
+      const { container } = mountObservedContainer([100, 200, 100, 100], {
+        columns: { desktop: 5, mobile: 1, tablet: 3 },
+        gap: 8,
+        minColumnWidth: 240,
+      });
+      const observer = MockResizeObserver.instances.at(-1);
+      Object.defineProperty(container, 'clientWidth', {
+        configurable: true,
+        value: 620,
+      });
+
+      // No timers advance: a debounced pass would not have run yet.
+      act(() => {
+        observer?.callback(
+          [{ target: container } as unknown as ResizeObserverEntry],
+          observer as unknown as ResizeObserver,
+        );
+      });
+
+      const tiles = Array.from(container.children) as HTMLElement[];
+      expect(tiles[0].style.width).toBe('306px');
+      expect(tiles[1].style.left).toBe('314px');
+      // Live tracking never eases, so tiles cannot lag behind the panel.
+      expect(tiles[0].style.transition).toBe('none');
+    });
+
     it('observes tiles and repacks when intrinsic media heights arrive later', () => {
       const { container, result } = mountObservedContainer([100, 200, 50], {
         columns: { desktop: 2, mobile: 1, tablet: 2 },

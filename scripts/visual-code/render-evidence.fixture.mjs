@@ -111,3 +111,80 @@ export function assertEvidenceObservations(assert, evidence, expected) {
   assert.ok(evidence.browser.product);
   assert.deepEqual(evidence.diagnostics, []);
 }
+
+// A brand font staged by the API: the renderer declares the face itself, so the
+// composition names the family and carries no @font-face or asset id of its own.
+// The default family is the file's own name (what a brand that extracted its font
+// from a website records); a different name is the brand's alias for the file.
+export const BRAND_FONT_ASSET_ID = 'cbrandfont000000000000001';
+export const BRAND_FONT_FAMILY = 'Zodiak';
+export const brandFontComposition = (family) => `
+import React from 'react';
+import {AbsoluteFill} from 'remotion';
+export const VisualComposition = () => (
+  <AbsoluteFill style={{background: '#102030'}}>
+    <div style={{position: 'absolute', left: 20, top: 20, fontFamily: "'${family}', serif", fontSize: 44, color: '#FFCC00'}}>Brand headline</div>
+    <div style={{position: 'absolute', left: 20, top: 120, fontFamily: "'${family}', serif", fontWeight: 400, fontSize: 30, color: '#FFFFFF'}}>Brand supporting line</div>
+  </AbsoluteFill>
+);`;
+
+export async function brandFontInput(
+  outputs,
+  id = 'brand-font-fixture',
+  {
+    path = EVIDENCE_FONT_PATH,
+    mime = 'font/woff2',
+    family = BRAND_FONT_FAMILY,
+  } = {},
+) {
+  return {
+    id,
+    sourceCode: brandFontComposition(family),
+    settings: EVIDENCE_SETTINGS,
+    props: {},
+    assets: [
+      {
+        id: BRAND_FONT_ASSET_ID,
+        mime,
+        bytes: (await readFile(path)).toString('base64'),
+        faces: [{ family, weight: 400, style: 'normal' }],
+      },
+    ],
+    outputs,
+    mode: 'export',
+  };
+}
+
+/**
+ * What a render with a staged brand font must show: every text layer drawn by the
+ * engine with the custom font, and the face attributed to the staged asset by id
+ * and hash, never to a URL the composition wrote.
+ */
+export function assertBrandFontObservations(assert, evidence, expected) {
+  const family = expected.family ?? BRAND_FONT_FAMILY;
+  const [capture] = evidence.captures;
+  assert.equal(capture.frame, expected.frame);
+  assert.deepEqual(capture.textLayers.map((layer) => layer.text).sort(), [
+    'Brand headline',
+    'Brand supporting line',
+  ]);
+  for (const layer of capture.textLayers) {
+    assert.equal(layer.platformFonts.length, 1, JSON.stringify(layer));
+    assert.equal(layer.platformFonts[0].isCustomFont, true);
+    assert.equal(layer.platformFonts[0].familyName, expected.platformFamily);
+  }
+  const faces = evidence.fontFaces.filter((f) => f.family === family);
+  assert.equal(faces.length, 1, JSON.stringify(evidence.fontFaces));
+  assert.deepEqual(faces[0].source, {
+    kind: 'asset',
+    assetId: BRAND_FONT_ASSET_ID,
+    contentHash: expected.fontHash,
+  });
+  assert.equal(faces[0].platformFamily, expected.platformFamily);
+  assert.equal(faces[0].weight, '400');
+  assert.equal(faces[0].style, 'normal');
+  assert.deepEqual(evidence.assets, [
+    { id: BRAND_FONT_ASSET_ID, contentHash: expected.fontHash },
+  ]);
+  assert.deepEqual(evidence.diagnostics, []);
+}

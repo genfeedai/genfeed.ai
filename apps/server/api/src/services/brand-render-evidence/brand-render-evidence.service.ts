@@ -43,6 +43,11 @@ export interface VisualRenderScope {
   userId: string;
   /** Asset IDs the API authorised and staged for this render. */
   sourceAssetIds: unknown;
+  /**
+   * Brand font asset IDs the API may have staged beside the source assets. A
+   * font the renderer reports under any other ID is never credited to an asset.
+   */
+  brandFontAssetIds?: readonly string[];
   rendererVersion: string;
 }
 
@@ -112,9 +117,10 @@ export class BrandRenderEvidenceService {
    * at most once and only when an output carries observations.
    */
   forRender(scope: VisualRenderScope) {
-    const authorizedAssetIds = new Set(
-      z.array(z.string()).parse(scope.sourceAssetIds),
-    );
+    const authorizedAssetIds = new Set([
+      ...z.array(z.string()).parse(scope.sourceAssetIds),
+      ...(scope.brandFontAssetIds ?? []),
+    ]);
     let snapshot: Promise<BrandRenderEvidenceSnapshotV1> | undefined;
     return {
       manifestFor: async (

@@ -6,6 +6,7 @@ import {
   renderStill,
   selectComposition,
 } from '@remotion/renderer';
+import { collectBrandFontFaces, rootSource } from './brand-fonts.mjs';
 import { validateEvidence } from './protocol.mjs';
 import { attachRenderEvidence, sha256Prefixed } from './render-evidence.mjs';
 
@@ -39,7 +40,11 @@ export async function renderVisualComposition(
     }
     await writeFile(
       `${root}/index.tsx`,
-      `import React from 'react';\nimport {Composition,registerRoot} from 'remotion';\nimport {VisualComposition} from './VisualComposition';\nregisterRoot(() => <Composition id="VisualComposition" component={VisualComposition} width={${input.settings.width}} height={${input.settings.height}} fps={${input.settings.fps}} durationInFrames={${input.settings.durationFrames}} defaultProps={${JSON.stringify(input.props)}}/>);`,
+      rootSource({
+        settings: input.settings,
+        props: input.props,
+        faces: collectBrandFontFaces(input.assets),
+      }),
     );
     log('visual-stage:bundle-start\n');
     const serveUrl = await bundle({

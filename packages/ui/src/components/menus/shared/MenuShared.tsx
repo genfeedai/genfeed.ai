@@ -28,7 +28,6 @@ export default function MenuShared({
   backLabel,
   currentApp,
   sectionLabel,
-  isCollapsed,
   showPrimaryItems = true,
   conversationActions,
   renderFooterSlot,
@@ -144,7 +143,7 @@ export default function MenuShared({
     </>
   );
 
-  /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ──
+  /* ── Single DOM tree: the parent rail clips and fades it on collapse ──
      Fill the DesktopSidebar rail (CSS-var width). Do not pin a React pixel
      width here — drag updates `--desktop-sidebar-width` without re-cloning
      this tree. `sidebarWidth` remains for mobile drawer / story hosts. */
@@ -177,26 +176,15 @@ export default function MenuShared({
             <TopbarLogo logoHref={config.logoHref} size="compact" />
           </div>
           {headerSlot ? (
-            <div
-              className={cn(
-                'min-w-0 flex-1 transition-opacity duration-200',
-                isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
-              )}
-            >
-              {headerSlot}
-            </div>
+            <div className="min-w-0 flex-1">{headerSlot}</div>
           ) : (
             <div className="flex-1" />
           )}
         </div>
 
-        {/* Body — fades out when collapsed, pointer-events disabled */}
-        <div
-          className={cn(
-            'flex-1 flex flex-col min-h-0 transition-opacity duration-200',
-            isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
-          )}
-        >
+        {/* Body. The rail (DesktopSidebar) clips and fades this whole tree on
+            collapse, so nothing here animates on its own clock. */}
+        <div className="flex-1 flex flex-col min-h-0">
           {topSlotContent ? (
             <div className="px-3 pt-2">{topSlotContent}</div>
           ) : null}

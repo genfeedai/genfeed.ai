@@ -25,6 +25,10 @@ export function useMasonryGrid<T extends MasonryItem>(
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const layoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const layoutAnimationFrameRef = useRef<number | null>(null);
+  // The container itself changed width (sidebar, inspector, window). Tiles
+  // follow it every frame with no easing; easing a tile that is already
+  // being re-packed is what made them lag behind and overlap.
+  const isLiveResizeRef = useRef(false);
   const gap = useMemo(() => options.gap ?? 16, [options.gap]);
   const layoutSignature = useMemo(() => {
     if (itemsCount === 0) {
@@ -125,15 +129,29 @@ export function useMasonryGrid<T extends MasonryItem>(
       return;
     }
 
-    const positions: IItemPosition[] = [];
+    const isLive = isLiveResizeRef.current;
+    isLiveResizeRef.current = false;
 
-    masonryItems.forEach((item, index) => {
+    // Measure at the target width, not at wherever a running width transition
+    // has got to: a tile's height follows its width (aspect-ratio media), so a
+    // height read mid-transition packs the next tile into the wrong slot.
+    // Write every width first, then read every height, so the browser lays
+    // out once instead of once per tile.
+    for (const item of masonryItems) {
+      item.style.transition = 'none';
       item.style.width = `${itemWidth}px`;
-      const itemHeight =
+    }
+
+    const itemHeights = masonryItems.map(
+      (item) =>
         item.getBoundingClientRect().height ||
         item.offsetHeight ||
-        item.scrollHeight;
+        item.scrollHeight,
+    );
 
+    const positions: IItemPosition[] = [];
+
+    itemHeights.forEach((itemHeight, index) => {
       // First row: maintain horizontal ordering, subsequent: find shortest column
       const targetColumn =
         index < columnCount
@@ -151,17 +169,19 @@ export function useMasonryGrid<T extends MasonryItem>(
 
     masonryItems.forEach((item, index) => {
       const position = positions[index];
-      const shouldAnimate = isLayoutReady && item.style.position === 'absolute';
+      const shouldAnimate =
+        !isLive && isLayoutReady && item.style.position === 'absolute';
 
       item.style.position = 'absolute';
       item.style.left = `${position.x}px`;
       item.style.top = `${position.y}px`;
       item.style.width = `${position.width}px`;
+      // Width is already at its target (set above), so only the slide is eased.
       item.style.transition = shouldAnimate
-        ? 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        ? 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         : 'none';
       item.style.transformOrigin = 'top left';
-      item.style.willChange = shouldAnimate ? 'left, top, width' : 'auto';
+      item.style.willChange = shouldAnimate ? 'left, top' : 'auto';
     });
 
     const maxHeight = Math.max(...columnHeights) - gap;
@@ -248,14 +268,24 @@ export function useMasonryGrid<T extends MasonryItem>(
       return;
     }
 
-    resizeObserverRef.current = new ResizeObserver(() => {
+    const container = containerRef.current;
+    resizeObserverRef.current = new ResizeObserver((entries) => {
+      // The panel the grid lives in resizes (sidebar toggle, inspector): track
+      // it frame by frame. Tile size changes (media loading) still debounce.
+      if (entries.some((entry) => entry.target === container)) {
+        isLiveResizeRef.current = true;
+        scheduleLayout(0);
+        return;
+      }
+      // A frame-synced pass is already queued; a debounce would replace it.
+      if (isLiveResizeRef.current) {
+        return;
+      }
       scheduleLayout(50);
     });
 
-    resizeObserverRef.current.observe(containerRef.current);
-    for (const item of containerRef.current.querySelectorAll(
-      ':scope > .masonry-item',
-    )) {
+    resizeObserverRef.current.observe(container);
+    for (const item of container.querySelectorAll(':scope > .masonry-item')) {
       resizeObserverRef.current.observe(item);
     }
 

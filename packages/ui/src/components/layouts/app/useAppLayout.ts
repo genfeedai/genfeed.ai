@@ -24,6 +24,8 @@ import {
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
 } from './app-layout.utils';
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
@@ -34,8 +36,6 @@ export const APP_RAIL_WIDTH = SHELL_CONTROL_SIZE + SHELL_CONTROL_INSET * 2;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 /** Window-left edge to just past the macOS traffic lights (see main.ts). */
 const DESKTOP_TRAFFIC_LIGHTS_WIDTH = 76;
-const SIDEBAR_TRANSITION_DURATION_MS = 300;
-const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 type UseAppLayoutParams = Pick<
   AppLayoutProps,

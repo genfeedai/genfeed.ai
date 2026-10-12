@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
+  describeProviderCatalogError,
   type ProviderCatalogResponse,
   serializeProviderCatalog,
   throwProviderCatalogError,
@@ -91,7 +92,11 @@ export class OpusProController {
         type: 'service-status',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to check Opus Pro status', error);
     }
   }
@@ -117,7 +122,11 @@ export class OpusProController {
         type: 'templates',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to fetch Opus Pro templates', error);
     }
   }
@@ -148,7 +157,11 @@ export class OpusProController {
         type: 'video-generation',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to generate Opus Pro video', error);
     }
   }
@@ -175,7 +188,11 @@ export class OpusProController {
         type: 'video-status',
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        undefined,
+        describeProviderCatalogError(error),
+      );
       throwProviderCatalogError('Failed to check Opus Pro video status', error);
     }
   }

@@ -12,11 +12,11 @@ import {
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
+  SIDEBAR_TRANSITION_DURATION_MS,
+  SIDEBAR_TRANSITION_EASING,
 } from './app-layout.utils';
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
-const SIDEBAR_TRANSITION_DURATION_MS = 300;
-const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 type DesktopSidebarProps = {
   ariaLabel?: string;
@@ -38,6 +38,10 @@ type DesktopSidebarProps = {
 /**
  * Left nav rail. Expanded width is driven by `--desktop-sidebar-width` on the
  * layout root so drag can update the var without re-rendering MenuShared.
+ *
+ * Collapsing is a curtain: the rail's width animates, but its content keeps
+ * the expanded width and is clipped, so labels never re-wrap mid-animation.
+ * The content fades on the rail's own clock (see `app-layout.utils`).
  */
 export default function DesktopSidebar({
   ariaLabel,
@@ -55,18 +59,22 @@ export default function DesktopSidebar({
   const widthStyle = isCollapsed
     ? collapsedWidth
     : 'var(--desktop-sidebar-width)';
+  // The var flips to the collapsed width the instant the rail toggles, so the
+  // content pins to the expanded `width` prop while collapsed and follows the
+  // var (live while dragging) when open. Both read the same px at the switch.
+  const contentWidth = isCollapsed ? width : 'var(--desktop-sidebar-width)';
 
   return (
     <aside
       aria-label={ariaLabel}
       data-testid="desktop-sidebar-rail"
       className={cn(
-        // One step off the page (gray-100 on pure black). The right border is
-        // the divider. Omitted while collapsed so a 1px line does not survive
-        // at width 0.
+        // One step off the page (gray-100 on pure black). The right edge is
+        // the divider, painted inside the clip so it rides the curtain and is
+        // gone at width 0 instead of popping out as a border would.
         'hidden flex-col overflow-hidden bg-gray-100 md:flex',
+        'after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-px after:bg-border',
         embedded ? 'relative h-full min-h-0 shrink-0' : 'fixed bottom-0 z-30',
-        !isCollapsed && 'border-r border-border',
       )}
       style={{
         minWidth: widthStyle,
@@ -83,7 +91,20 @@ export default function DesktopSidebar({
             }),
       }}
     >
-      {children}
+      <div
+        className="flex h-full min-h-0 shrink-0 flex-col"
+        data-testid="desktop-sidebar-content"
+        inert={isCollapsed}
+        style={{
+          opacity: isCollapsed ? 0 : 1,
+          transition: isResizing
+            ? 'none'
+            : `opacity ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
+          width: contentWidth,
+        }}
+      >
+        {children}
+      </div>
       {canResize ? (
         <Button
           aria-orientation="vertical"

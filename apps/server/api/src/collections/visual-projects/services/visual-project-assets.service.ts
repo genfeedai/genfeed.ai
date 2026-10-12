@@ -10,6 +10,7 @@ import {
   BrandRenderEvidenceService,
   RENDER_EVIDENCE_KEY,
 } from '@api/services/brand-render-evidence/brand-render-evidence.service';
+import { BrandRenderFontStagingService } from '@api/services/brand-render-evidence/brand-render-font-staging.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
@@ -41,6 +42,8 @@ const mimeByExtension: Record<string, string> = {
   MP3: 'audio/mpeg',
   WAV: 'audio/wav',
 };
+/** What the renderer takes in staged media and fonts together, before base64. */
+const VISUAL_CODE_STAGED_BYTES = 48 * 1024 * 1024;
 const allowedCategories = new Set<string>([
   IngredientCategory.IMAGE,
   IngredientCategory.VIDEO,
@@ -73,6 +76,7 @@ export class VisualProjectAssetsService {
     private readonly authorization: VisualProjectAuthorizationService,
     private readonly ingredients: IngredientsService,
     private readonly renderEvidence: BrandRenderEvidenceService,
+    private readonly brandFonts: BrandRenderFontStagingService,
   ) {}
   async authorize(user: AuthenticatedUser, brandId: string, ids: string[]) {
     await this.authorization.authorizeBrand(user, brandId);
@@ -129,7 +133,7 @@ export class VisualProjectAssetsService {
         const target = join(directory, id);
         await storage.download(row.s3Key, target, directory);
         total += (await stat(target)).size;
-        if (total > 48 * 1024 * 1024)
+        if (total > VISUAL_CODE_STAGED_BYTES)
           throw new UnprocessableEntityException(
             'visual_source_assets_too_large',
           );
@@ -139,7 +143,20 @@ export class VisualProjectAssetsService {
           bytes: (await readFile(target)).toString('base64'),
         });
       }
-      return results;
+      // The approved brand fonts travel beside the media, so a composition can use
+      // a brand family by name and the render evidence can credit it to its asset.
+      const fonts = await this.brandFonts.stage({
+        organizationId: user.organizationId,
+        brandId: revision.brandId,
+        userId: user.userId,
+      });
+      if (fonts.assets.some((font) => ids.includes(font.id)))
+        throw new ConflictException('visual_brand_font_id_collision');
+      if (total + fonts.totalBytes > VISUAL_CODE_STAGED_BYTES)
+        throw new UnprocessableEntityException(
+          'visual_source_assets_too_large',
+        );
+      return [...results, ...fonts.assets];
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -235,6 +252,24 @@ export class VisualProjectAssetsService {
       },
     };
   }
+  /**
+   * Fonts are only credited to an asset when this render's brand was allowed to
+   * stage them, so the IDs are resolved again from the approved revision. Output
+   * the renderer did not observe needs none.
+   */
+  private async brandFontAssetIds(
+    user: AuthenticatedUser,
+    revision: VisualRevision,
+    media: IVisualSandboxMedia[],
+  ): Promise<string[]> {
+    if (media.every((item) => item.evidence === undefined)) return [];
+    const fonts = await this.brandFonts.approvedFonts({
+      organizationId: revision.organizationId,
+      brandId: revision.brandId,
+      userId: user.userId,
+    });
+    return fonts.map((font) => font.assetId);
+  }
   async commit(
     user: AuthenticatedUser,
     revision: VisualRevision,
@@ -250,7 +285,10 @@ export class VisualProjectAssetsService {
     );
     const storage = createStorageProvider();
     const outputs: IVisualCodeMedia[] = [];
-    const evidence = this.renderEvidence.forRender(revision);
+    const evidence = this.renderEvidence.forRender({
+      ...revision,
+      brandFontAssetIds: await this.brandFontAssetIds(user, revision, media),
+    });
     for (const [index, item] of media.entries()) {
       const bytes = Buffer.from(item.bytes, 'base64');
       if (bytes.length > VISUAL_CODE_LIMITS.resultBytes)

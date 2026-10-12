@@ -203,11 +203,35 @@ describe('useLibraryBrowser', () => {
     state.search = '?characters=c1&origins=UPLOADED';
 
     const { result } = renderHook(() => useLibraryBrowser({}));
-    act(() => result.current.handleClearCharacters());
+    act(() => result.current.handleCharactersChange([]));
 
     const next = new URLSearchParams(lastPushedSearch());
     expect(next.has('characters')).toBe(false);
     expect(next.getAll('origins')).toEqual(['UPLOADED']);
+  });
+
+  it('clears every filter at once and keeps sort, view, folder and search', () => {
+    state.search =
+      '?categories=VIDEO&origins=UPLOADED&characters=c1&tags=t1&shelf=approved&place=starred&folder=f1&search=hero&sort=label%3A+1&view=list';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+    act(() => result.current.handleClearAllFilters());
+
+    const next = new URLSearchParams(lastPushedSearch());
+    for (const key of [
+      'categories',
+      'origins',
+      'characters',
+      'tags',
+      'shelf',
+      'place',
+    ]) {
+      expect(next.has(key)).toBe(false);
+    }
+    expect(next.get('folder')).toBe('f1');
+    expect(next.get('search')).toBe('hero');
+    expect(next.get('sort')).toBe('label: 1');
+    expect(next.get('view')).toBe('list');
   });
 
   it('writes origin to the URL without dropping the other axes', () => {
@@ -243,7 +267,7 @@ describe('useLibraryBrowser', () => {
 
     state.search = '?categories=VIDEO&origins=UPLOADED';
     const { result: second } = renderHook(() => useLibraryBrowser({}));
-    act(() => second.current.handleClearOrigins());
+    act(() => second.current.handleOriginsChange([]));
 
     const cleared = new URLSearchParams(lastPushedSearch());
     expect(cleared.has('origins')).toBe(false);
@@ -346,7 +370,7 @@ describe('useLibraryBrowser', () => {
 
       state.search = '?categories=VIDEO&tags=t1&tags=t2&tagMatch=all';
       const { result: second } = renderHook(() => useLibraryBrowser({}));
-      act(() => second.current.handleClearTags());
+      act(() => second.current.handleTagsChange([]));
 
       const cleared = new URLSearchParams(lastPushedSearch());
       expect(cleared.has('tags')).toBe(false);

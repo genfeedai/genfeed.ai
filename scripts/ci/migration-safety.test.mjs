@@ -37,6 +37,41 @@ test('recognizes PostgreSQL contract syntax, qualified names, multiple actions, 
   ]);
 });
 
+test('treats table and column renames as contracts that retire the old name', () => {
+  const { operations } = destructiveOperations(`
+    ALTER TABLE "batches" RENAME TO "turbo_runs";
+    ALTER TABLE "posts" RENAME COLUMN "legacyReviewId" TO "currentReviewId";
+    ALTER TABLE "posts" RENAME "legacy" TO "current";
+    ALTER TABLE "posts" RENAME CONSTRAINT "a" TO "b";
+    ALTER INDEX "x" RENAME TO "y";
+  `);
+  assert.deepEqual(operations, [
+    { type: 'rename-table', table: 'batches' },
+    { type: 'rename-column', table: 'posts', column: 'legacyReviewId' },
+    { type: 'rename-column', table: 'posts', column: 'legacy' },
+  ]);
+  assert.throws(
+    () => validateContract('ALTER TABLE "examples" RENAME COLUMN "a" TO "b";'),
+    /requires exactly one/,
+  );
+  for (const sql of [
+    'ALTER TABLE "examples" RENAME TO "renamed";',
+    'ALTER TABLE "examples" RENAME COLUMN "oldField" TO "newField";',
+  ]) {
+    assert.throws(
+      () => validateContract(marker + sql, schema),
+      /Prisma client is incompatible/,
+    );
+  }
+  assert.equal(
+    validateContract(
+      marker + 'ALTER TABLE "examples" RENAME COLUMN "retired" TO "x";',
+      schema,
+    ),
+    'v0.2.0',
+  );
+});
+
 test('comments, string literals, defaults, and constraints do not invent contracts or markers', () => {
   assert.equal(
     validateContract(`-- DROP TABLE "x";

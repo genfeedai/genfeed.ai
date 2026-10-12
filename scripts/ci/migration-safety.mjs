@@ -176,6 +176,20 @@ export function destructiveOperations(sql) {
           column: identifier(column),
         });
       }
+      if (isAction && keyword(j, 'RENAME') && !keyword(j + 1, 'CONSTRAINT')) {
+        // A rename retires the old name for every client built before it.
+        if (keyword(j + 1, 'TO')) {
+          operations.push({ type: 'rename-table', table });
+        } else {
+          let column = j + 1;
+          if (keyword(column, 'COLUMN')) column++;
+          operations.push({
+            type: 'rename-column',
+            table,
+            column: identifier(column),
+          });
+        }
+      }
       if (isAction && keyword(j, 'ALTER')) {
         let column = j + 1;
         if (keyword(column, 'COLUMN')) column++;
@@ -243,9 +257,10 @@ export function validateContract(sql, releaseSchema) {
       const fields = tables.get(operation.table);
       const label = `${operation.table}${operation.column ? `.${operation.column}` : ''}`;
       if (
-        operation.type === 'drop-table'
+        operation.type === 'drop-table' || operation.type === 'rename-table'
           ? fields
-          : operation.type === 'drop-column'
+          : operation.type === 'drop-column' ||
+              operation.type === 'rename-column'
             ? fields?.has(operation.column)
             : fields &&
               (!fields.has(operation.column) ||

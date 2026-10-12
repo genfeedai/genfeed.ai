@@ -18,6 +18,12 @@ The model selector uses your organization's available text models and default. M
 
 Limits are 256–1920 even dimensions, at most 1920×1080 pixels, 24 or 30 fps, 900 frames and 30 seconds, 12 source assets and 8 outputs. One MP4 per request is supported. Prompts are bounded to 8 KiB, source to 256 KiB and props JSON to 16 KiB. Use frame-driven Remotion animation rather than wall-clock or CSS timing. Only the preinstalled React and Remotion packages are available.
 
+## Brand fonts
+
+Motion loads the fonts your approved Brand OS revision owns. In the composition, name the family in `fontFamily` at the weight and style the typography rule declares, for example `fontFamily: "'Brand Display', serif"`. Do not declare `@font-face` or `staticFile` for it: the renderer declares the face from the brand's own file and waits for it to load. Authored revisions are told which families are available.
+
+Only fonts that a typography rule of the approved revision owns are loaded, up to 8 files of 4 MiB each in WOFF2, WOFF, TTF or OTF, and only your own brand's files. A file whose bytes do not match the hash the revision approved stops the render with `visual_brand_font_hash_mismatch`. A brand without an approved revision renders without brand fonts. The saved render evidence records which file drew each line of text, so a font check can pass for a still in an approved font.
+
 ## Revisions and recovery
 
 Every request creates an immutable numbered revision. Prompt changes amend retained source; source changes replace it; props changes reuse it. An empty props object is a valid change. Revisions retain settings, assets and output requests. Use a separate export request to change output formats without another authoring call.
