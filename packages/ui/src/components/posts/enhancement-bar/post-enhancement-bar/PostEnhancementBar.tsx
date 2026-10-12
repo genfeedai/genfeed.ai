@@ -36,6 +36,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { QUICK_ACTIONS, TONE_OPTIONS } from './post-enhancement-bar.helpers';
@@ -69,7 +70,7 @@ export default function PostEnhancementBar({
   currentContent = '',
   isEnhancing,
   hasContent = true,
-  placeholder = 'Ask AI to rewrite, e.g. “open with the result”',
+  placeholder,
   className = '',
   onSelectMedia,
   onGenerateIllustration,
@@ -89,6 +90,8 @@ export default function PostEnhancementBar({
   onInsertHashtag,
   onAcceptCaption,
 }: PostEnhancementBarProps) {
+  const translate = useTranslations('ui.postEnhancementBar');
+  const customLabel = translate('yourInstruction');
   const [localTone, setLocalTone] = useState<TweetTone>(selectedTone);
   const [proposal, setProposal] = useState<RewriteProposal | null>(null);
   const [pendingLabel, setPendingLabel] = useState<string | null>(null);
@@ -138,7 +141,7 @@ export default function PostEnhancementBar({
       isEnhancing: isEnhancing || pendingLabel !== null,
       onSubmit: async (trimmedPrompt: string) => {
         const isOk = await requestRewrite({
-          label: 'Your instruction',
+          label: customLabel,
           run: () => onPromptEnhance(postId, trimmedPrompt, currentTone),
         });
         if (!isOk) {
@@ -188,7 +191,7 @@ export default function PostEnhancementBar({
       {(proposal || pendingLabel) && (
         <section
           aria-live="polite"
-          aria-label="AI rewrite"
+          aria-label={translate('aiRewrite')}
           className="mx-3 mb-3 overflow-hidden rounded-lg border border-border-strong bg-tertiary"
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2 pl-3 pr-2">
@@ -196,20 +199,22 @@ export default function PostEnhancementBar({
               <Sparkles className="size-3.5" />
               <span>{proposal?.label ?? pendingLabel}</span>
               <span className="font-normal text-muted-foreground">
-                {pendingLabel ? '· Rewriting…' : `· ${toneLabelFor(proposal)}`}
+                {pendingLabel
+                  ? `· ${translate('rewriting')}`
+                  : `· ${toneLabelFor(proposal)}`}
               </span>
             </p>
             {proposal && !pendingLabel && (
               <div className="flex flex-wrap items-center gap-1.5">
                 <Button
-                  label="Discard"
+                  label={translate('discard')}
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.SM}
                   textTransform="none"
                   onClick={() => setProposal(null)}
                 />
                 <Button
-                  label="Try again"
+                  label={translate('tryAgain')}
                   icon={<RefreshCw className="size-3.5" />}
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
@@ -218,7 +223,7 @@ export default function PostEnhancementBar({
                   onClick={handleRetry}
                 />
                 <Button
-                  label="Replace text"
+                  label={translate('replaceText')}
                   icon={<Check className="size-3.5" />}
                   variant={ButtonVariant.DEFAULT}
                   size={ButtonSize.SM}
@@ -252,7 +257,7 @@ export default function PostEnhancementBar({
       <div className="flex flex-col gap-2.5 border-t border-border p-3">
         <div
           role="group"
-          aria-label="AI rewrite"
+          aria-label={translate('aiRewrite')}
           className="flex flex-wrap items-center gap-1.5"
         >
           {QUICK_ACTIONS.map((action) => {
@@ -290,7 +295,7 @@ export default function PostEnhancementBar({
           )}
 
           <span className="ml-auto text-2xs text-muted-foreground">
-            1 credit per rewrite
+            {translate('creditPerRewrite')}
           </span>
         </div>
 
@@ -303,13 +308,15 @@ export default function PostEnhancementBar({
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 textTransform="none"
-                ariaLabel={`Tone: ${toneLabel}`}
+                ariaLabel={translate('toneAria', { tone: toneLabel })}
                 className="flex-row-reverse"
                 isDisabled={isBusy}
               />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top">
-              <DropdownMenuLabel>Tone for rewrites</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {translate('toneForRewrites')}
+              </DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={currentTone}
                 onValueChange={handleToneChange}
@@ -328,21 +335,21 @@ export default function PostEnhancementBar({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={placeholder ?? translate('placeholder')}
             isDisabled={isBusy}
-            aria-label="Rewrite instruction"
+            aria-label={translate('rewriteInstruction')}
             className="h-8 min-h-0 min-w-0 flex-1"
           />
 
           <Button
-            ariaLabel="Enhance"
+            ariaLabel={translate('enhance')}
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.ICON}
             icon={<ArrowUp />}
-            isLoading={isBusy && pendingLabel === 'Your instruction'}
+            isLoading={isBusy && pendingLabel === customLabel}
             isDisabled={isSubmitDisabled}
             onClick={handleSubmit}
-            tooltip="Rewrite"
+            tooltip={translate('rewrite')}
             tooltipPosition="top"
           />
         </div>
@@ -354,9 +361,15 @@ export default function PostEnhancementBar({
             {onSelectMedia && (
               <Button
                 ariaLabel={
-                  hasMedia ? `Change media (${mediaCount})` : 'Add media'
+                  hasMedia
+                    ? translate('changeMedia', { count: mediaCount })
+                    : translate('addMedia')
                 }
-                label={hasMedia ? `Media (${mediaCount})` : 'Add media'}
+                label={
+                  hasMedia
+                    ? translate('media', { count: mediaCount })
+                    : translate('addMedia')
+                }
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
                 textTransform="none"
@@ -388,7 +401,7 @@ export default function PostEnhancementBar({
 
             {onGenerateIllustration && (
               <Button
-                label="Generate illustration"
+                label={translate('generateIllustration')}
                 icon={<Sparkles className="size-4" />}
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
@@ -399,7 +412,7 @@ export default function PostEnhancementBar({
 
             {showAddPost && onAddPost && (
               <Button
-                label="Add to thread"
+                label={translate('addToThread')}
                 icon={<Plus className="size-4" />}
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
@@ -410,11 +423,11 @@ export default function PostEnhancementBar({
 
             {showDelete && onDelete && (
               <Button
-                ariaLabel="Delete post"
+                ariaLabel={translate('deletePost')}
                 icon={<Trash2 className="size-4" />}
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
-                tooltip="Delete post"
+                tooltip={translate('deletePost')}
                 tooltipPosition="top"
                 onClick={onDelete}
               />
@@ -438,11 +451,15 @@ export default function PostEnhancementBar({
                         : 'bg-success',
                   )}
                 />
-                {isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : 'Saved'}
+                {isSaving
+                  ? translate('saving')
+                  : isDirty
+                    ? translate('unsaved')
+                    : translate('saved')}
               </p>
               {isDirty && (
                 <Button
-                  label="Save"
+                  label={translate('save')}
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   textTransform="none"
