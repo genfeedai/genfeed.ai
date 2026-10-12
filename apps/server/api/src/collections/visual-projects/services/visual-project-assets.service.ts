@@ -252,6 +252,24 @@ export class VisualProjectAssetsService {
       },
     };
   }
+  /**
+   * Fonts are only credited to an asset when this render's brand was allowed to
+   * stage them, so the IDs are resolved again from the approved revision. Output
+   * the renderer did not observe needs none.
+   */
+  private async brandFontAssetIds(
+    user: AuthenticatedUser,
+    revision: VisualRevision,
+    media: IVisualSandboxMedia[],
+  ): Promise<string[]> {
+    if (media.every((item) => item.evidence === undefined)) return [];
+    const fonts = await this.brandFonts.approvedFonts({
+      organizationId: revision.organizationId,
+      brandId: revision.brandId,
+      userId: user.userId,
+    });
+    return fonts.map((font) => font.assetId);
+  }
   async commit(
     user: AuthenticatedUser,
     revision: VisualRevision,
@@ -267,20 +285,9 @@ export class VisualProjectAssetsService {
     );
     const storage = createStorageProvider();
     const outputs: IVisualCodeMedia[] = [];
-    // Fonts are only credited to an asset when this render's brand was allowed to
-    // stage them, so the IDs are resolved again from the approved revision.
-    const brandFontAssetIds = media.some((item) => item.evidence !== undefined)
-      ? (
-          await this.brandFonts.approvedFonts({
-            organizationId: revision.organizationId,
-            brandId: revision.brandId,
-            userId: user.userId,
-          })
-        ).map((font) => font.assetId)
-      : [];
     const evidence = this.renderEvidence.forRender({
       ...revision,
-      brandFontAssetIds,
+      brandFontAssetIds: await this.brandFontAssetIds(user, revision, media),
     });
     for (const [index, item] of media.entries()) {
       const bytes = Buffer.from(item.bytes, 'base64');
