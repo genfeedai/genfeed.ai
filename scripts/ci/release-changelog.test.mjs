@@ -2389,6 +2389,8 @@ test('the v0.2.6 profile adds exactly the MCP Auth Runtime gate to the sharded l
     ...PUBLIC_SAAS_JOBS,
     'Deploy hosted SaaS / Deploy hosted SaaS / Promote verified server image',
     ARTIFACT_JOB_NAME,
+    'Publish Community / Self-Hosted Build Verify / Build & Boot Check (Self-Hosted)',
+    'Publish Community / Build & Push Self-Hosted Image',
     'Validate release and create draft',
   ]);
   const unqualified = V026_NPM_JOB_RECEIPTS.filter(
