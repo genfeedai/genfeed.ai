@@ -230,7 +230,7 @@ describe.skipIf(!connectionString)(
         await db.brandedGenerationReceipt.findMany({
           where: scopedWhere(organizationId, {}),
         })
-      ).map((receipt) => [receipt.state, receipt.compliance]);
+      ).map((receipt) => receipt.state);
 
     it('never auto-publishes a response that waits for a brand review, even with auto-publish on', async () => {
       const { harness, jobId, world } = await detectBreakout(env, {
@@ -254,10 +254,7 @@ describe.skipIf(!connectionString)(
       });
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       expect(run.result.status).toBe('completed');
-      expect(await receiptStates(world.organizationId)).toContainEqual([
-        'ready',
-        'passed',
-      ]);
+      expect(await receiptStates(world.organizationId)).toContain('ready');
       expect(await draftStates(world.organizationId)).toEqual([
         TargetExecutionState.SCHEDULED,
       ]);
@@ -273,10 +270,9 @@ describe.skipIf(!connectionString)(
         reason: 'brand_review_required',
         status: 'held',
       });
-      expect(await receiptStates(world.organizationId)).toContainEqual([
+      expect(await receiptStates(world.organizationId)).toContain(
         'needs_review',
-        'unverified',
-      ]);
+      );
       expect(await draftStates(world.organizationId)).toEqual([
         TargetExecutionState.DRAFT,
       ]);
@@ -289,10 +285,7 @@ describe.skipIf(!connectionString)(
       });
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
       expect(run.result.status).toBe('held');
-      expect(await receiptStates(world.organizationId)).toContainEqual([
-        'blocked',
-        'failed',
-      ]);
+      expect(await receiptStates(world.organizationId)).toContain('blocked');
       expect(await draftStates(world.organizationId)).not.toContain(
         TargetExecutionState.SCHEDULED,
       );

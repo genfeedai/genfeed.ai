@@ -779,6 +779,8 @@ describe('brand validation receipt completion adapter', () => {
         f.validator,
         undefined,
         undefined,
+        undefined,
+        undefined,
         { check } as unknown as BrandFactCheckService,
       );
       return {
