@@ -48,7 +48,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
         credentialId: 'credential-1',
         description: 'First comment',
         id: 'child-1',
-        ingredients: [{ id: 'asset-2' }],
+        ingredientLinks: [{ ingredientId: 'asset-2' }],
         label: 'Comment',
         order: 0,
         organizationId: 'org-1',
@@ -66,7 +66,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     credentialId: 'credential-1',
     description: 'Evergreen release',
     id: 'target-1',
-    ingredients: [{ id: 'asset-1' }],
+    ingredientLinks: [{ ingredientId: 'asset-1' }],
     label: 'Evergreen release',
     order: 0,
     organizationId: 'org-1',
@@ -191,6 +191,11 @@ describe('ReleaseRecurrenceMaterializerService', () => {
         data: expect.objectContaining({
           groupId: 'release-2',
           originalPostId: 'target-1',
+          ingredientLinks: {
+            create: [
+              { ingredientId: 'asset-1', organizationId: 'org-1', position: 0 },
+            ],
+          },
           organizationId: 'org-1',
           scheduledDate: new Date('2026-07-21T09:15:00.000Z'),
           targetSettings: sourceTarget.targetSettings,
@@ -205,6 +210,11 @@ describe('ReleaseRecurrenceMaterializerService', () => {
         data: expect.objectContaining({
           groupId: 'release-2',
           originalPostId: 'child-1',
+          ingredientLinks: {
+            create: [
+              { ingredientId: 'asset-2', organizationId: 'org-1', position: 0 },
+            ],
+          },
           organizationId: 'org-1',
           parentId: 'target-2',
           scheduledDate: new Date('2026-07-21T09:20:00.000Z'),

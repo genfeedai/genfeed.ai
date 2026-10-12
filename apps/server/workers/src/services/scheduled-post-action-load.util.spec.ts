@@ -14,7 +14,7 @@ const input = { organizationId: 'org-1', postId: 'post-1' } as Parameters<
   typeof loadScheduledActionPost
 >[1];
 
-const link = (id: string, category = 'image') => ({
+const link = (id: string, category = 'IMAGE') => ({
   ingredient: { category, id },
   ingredientId: id,
 });
@@ -86,7 +86,7 @@ describe('loadScheduledActionPost', () => {
       category: 'TEXT',
       children: [],
       id: 'post-1',
-      ingredientLinks: [link('ing-1', 'video')],
+      ingredientLinks: [link('ing-1', 'VIDEO')],
     });
 
     const post = await loadScheduledActionPost(
