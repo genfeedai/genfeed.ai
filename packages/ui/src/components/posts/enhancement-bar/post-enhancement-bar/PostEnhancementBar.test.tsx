@@ -10,6 +10,11 @@ import type { PostEnhancementBarProps } from '@ui/posts/enhancement-bar/PostEnha
 import PostEnhancementBar from '@ui/posts/enhancement-bar/post-enhancement-bar/PostEnhancementBar';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const POST_ID = 'post_1';
 const PROMPT_LABEL = 'Rewrite instruction';
 
