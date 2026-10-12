@@ -4,7 +4,7 @@ import { breakoutPublicationState } from '@api/collections/outliers/services/bre
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import {
-  type BrandedPostMaterialRecord,
+  type BrandedPostMaterialSource,
   bindBrandedPostMaterialLayout,
   brandedPostMaterialSelect,
   describeBrandedPostMaterialLayout,
@@ -31,7 +31,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 /** Compare complete retained material; this does not acquire or authorize new provider work. */
 function matchesPostArtifact(
   scope: Readonly<BreakoutOutputRecoveryInput>,
-  post: BrandedPostMaterialRecord,
+  post: BrandedPostMaterialSource,
   artifact: BrandGenerationArtifactV1 | null,
   format: string,
 ): boolean {

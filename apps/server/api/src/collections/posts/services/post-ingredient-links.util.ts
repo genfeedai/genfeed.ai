@@ -81,53 +81,56 @@ export function replacePostIngredientLinks(
   };
 }
 
-type WithIngredientLinks = {
-  ingredientLinks?: readonly { ingredient?: unknown }[] | null;
-};
+type IngredientLinkRow = { ingredient: unknown };
 
-type FlattenedIngredients<P extends WithIngredientLinks> = Omit<
-  P,
-  'ingredientLinks'
-> & {
-  ingredients: NonNullable<
-    NonNullable<P['ingredientLinks']>[number]
-  >['ingredient'][];
-};
+/**
+ * A loaded post with its `ingredientLinks` replaced by the ordered
+ * `ingredients`; a row type without links is unchanged.
+ */
+export type WithFlattenedIngredients<P> = P extends {
+  ingredientLinks: infer L extends readonly IngredientLinkRow[];
+}
+  ? Omit<P, 'ingredientLinks'> & { ingredients: L[number]['ingredient'][] }
+  : P;
+
+type WithFlattenedPostTree<P> = P extends {
+  children: infer C extends readonly object[];
+}
+  ? Omit<WithFlattenedIngredients<P>, 'children'> & {
+      children: WithFlattenedIngredients<C[number]>[];
+    }
+  : WithFlattenedIngredients<P>;
 
 /**
  * Replaces a loaded post's `ingredientLinks` with the ordered `ingredients`
  * array the API contract exposes. A row loaded without its links is returned
  * unchanged.
  */
-export function flattenPostIngredients<P extends WithIngredientLinks>(
+export function flattenPostIngredients<P extends object>(
   post: P,
-): FlattenedIngredients<P> {
-  const { ingredientLinks, ...rest } = post;
+): WithFlattenedIngredients<P> {
+  const { ingredientLinks, ...rest } = post as P & {
+    ingredientLinks?: readonly Partial<IngredientLinkRow>[] | null;
+  };
   if (!Array.isArray(ingredientLinks)) {
-    return post as unknown as FlattenedIngredients<P>;
+    return post as WithFlattenedIngredients<P>;
   }
   return {
     ...rest,
     ingredients: ingredientLinks
       .map((link) => link.ingredient)
       .filter((ingredient) => ingredient !== undefined && ingredient !== null),
-  } as unknown as FlattenedIngredients<P>;
+  } as unknown as WithFlattenedIngredients<P>;
 }
-
-type FlattenedPostTree<
-  P extends WithIngredientLinks & { children: readonly WithIngredientLinks[] },
-> = Omit<FlattenedIngredients<P>, 'children'> & {
-  children: FlattenedIngredients<P['children'][number]>[];
-};
 
 /** `flattenPostIngredients` for a post and each of its loaded child posts. */
 export function flattenPostTreeIngredients<
-  P extends WithIngredientLinks & { children: readonly WithIngredientLinks[] },
->(post: P): FlattenedPostTree<P> {
+  P extends { children: readonly object[] },
+>(post: P): WithFlattenedPostTree<P> {
   return {
     ...flattenPostIngredients(post),
     children: post.children.map((child) => flattenPostIngredients(child)),
-  } as unknown as FlattenedPostTree<P>;
+  } as unknown as WithFlattenedPostTree<P>;
 }
 
 /**
@@ -138,7 +141,7 @@ export function flattenLoadedPostIngredients(document: unknown): unknown {
   if (document === null || typeof document !== 'object') {
     return document;
   }
-  const flattened = flattenPostIngredients(document as WithIngredientLinks);
+  const flattened = flattenPostIngredients(document);
   const children = (flattened as { children?: unknown }).children;
   return Array.isArray(children)
     ? { ...flattened, children: children.map(flattenLoadedPostIngredients) }
