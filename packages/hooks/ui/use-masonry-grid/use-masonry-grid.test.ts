@@ -360,8 +360,9 @@ describe('useMasonryGrid', () => {
         gap: 8,
         minColumnWidth: 240,
       });
+      // A repack that eases the slide leaves transitions running on the tiles.
+      reportResize();
       const tiles = Array.from(container.children) as HTMLElement[];
-      // A second pass while tiles carry the first pass's easing.
       expect(tiles[0].style.transition).toContain('0.3s');
       const seenAtMeasure: string[] = [];
       for (const tile of tiles) {
