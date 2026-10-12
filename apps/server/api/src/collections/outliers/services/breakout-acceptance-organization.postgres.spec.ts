@@ -230,7 +230,9 @@ describe.skipIf(!connectionString)(
         factCheck,
         world: {
           config: { ...ONE_OUTPUT.config, autonomyMode: 'AUTO_PUBLISH' },
-          policies: { autoPublishEnabled: true },
+          policies: {
+            publishPolicy: { autoPublishEnabled: true, minPostScore: 70 },
+          },
         },
       });
       await db.brand.update({
