@@ -10,7 +10,11 @@ const mocks = vi.hoisted(() => ({
   getToken: vi.fn(),
   fetch: vi.fn(),
   addListener: vi.fn(),
+  executeScript: vi.fn(),
   openPanel: vi.fn().mockResolvedValue(undefined),
+  contextMenuListener: undefined as
+    | ((info: object, tab: chrome.tabs.Tab) => void)
+    | undefined,
 }));
 vi.mock('~services/publication-capture.service', () => ({
   initializePublicationCapture: vi.fn(),
@@ -50,7 +54,14 @@ beforeAll(async () => {
       onMessage: { addListener: mocks.addListener },
       sendMessage: vi.fn().mockResolvedValue(undefined),
     },
-    contextMenus: { onClicked: { addListener: vi.fn() } },
+    scripting: { executeScript: mocks.executeScript },
+    contextMenus: {
+      onClicked: {
+        addListener: vi.fn((listener) => {
+          mocks.contextMenuListener = listener;
+        }),
+      },
+    },
     tabs: {
       create: vi.fn().mockResolvedValue({ id: 4 }),
       onUpdated: { addListener: vi.fn() },
@@ -346,113 +357,236 @@ describe('background user action routing', () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('imports a supported post for the selected brand without generation or Knowledge', async () => {
+  const xCapture = {
+    author: 'Author',
+    authorHandle: 'author',
+    canonicalUrl: 'https://x.com/author/status/123',
+    externalIdentity: '123',
+    host: 'x',
+    isSelection: false,
+    media: [],
+    scope: 'page',
+    text: 'Original post',
+    title: 'Original post',
+    typeHints: [],
+    url: 'https://x.com/author/status/123',
+  };
+
+  function sourceResource(deduplicated: boolean) {
+    return {
+      data: {
+        id: 'csource00000001',
+        type: 'imported-source',
+        attributes: {
+          brandId: 'cbrand000000001',
+          createdAt: '2026-10-12T00:00:00.000Z',
+          deduplicated,
+          identityDigest: 'a'.repeat(64),
+          recordVersion: 1,
+          snapshot: {
+            authorDisplayName: 'Author',
+            authorHandle: 'author',
+            canonicalUrl: 'https://x.com/author/status/123',
+            capturedAt: '2026-10-12T00:00:00.000Z',
+            capturedText: 'Original post',
+            captureSurface: 'extension',
+            contentBasis: 'visible_page',
+            evidenceAuthority: 'client_reported',
+            externalIdentity: '123',
+            host: 'x.com',
+            kind: 'social',
+            provenance: 'imported',
+            title: 'Original post',
+          },
+          updatedAt: '2026-10-12T00:00:00.000Z',
+        },
+      },
+    };
+  }
+
+  it('saves a post as an Imported source for the selected brand without generation or Knowledge', async () => {
     mocks.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({
-        deduplicated: false,
-        post: {
-          id: 'source-post-1',
-          authorDisplayName: 'Author',
-          authorHandle: 'author',
-          platform: 'twitter',
-          sourceUrl: 'https://x.com/author/status/123',
-          text: 'Original post',
-          collectedAt: '2026-09-24T00:00:00.000Z',
-        },
-        source: { id: 'container-1', sourceType: 'post' },
-      }),
+      json: async () => sourceResource(false),
     });
     const result = await dispatch({
-      brandId: 'brand-a',
-      event: 'savePost',
-      platform: 'twitter',
-      postId: '123',
-      url: 'https://x.com/author/status/123',
+      brandId: 'cbrand000000001',
+      event: 'importedSourceSave',
+      raw: xCapture,
     });
     expect(result).toMatchObject({
-      deduplicated: false,
+      data: { deduplicated: false, source: { id: 'csource00000001' } },
       success: true,
-      post: { authorHandle: 'author', id: 'source-post-1' },
     });
-    expect(mocks.fetch).toHaveBeenCalledWith(
-      'https://api.genfeed.ai/v1/social-sources/import-post?brandId=brand-a',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ url: 'https://x.com/author/status/123' }),
-      }),
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mocks.fetch.mock.calls[0];
+    expect(url).toBe(
+      'https://api.genfeed.ai/v1/brands/cbrand000000001/imported-sources',
     );
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body).snapshot).toMatchObject({
+      authorHandle: 'author',
+      canonicalUrl: 'https://x.com/author/status/123',
+      contentBasis: 'visible_page',
+      externalIdentity: '123',
+      kind: 'social',
+    });
     const requestedUrls = mocks.fetch.mock.calls.map((call) => String(call[0]));
-    expect(requestedUrls.some((url) => url.includes('knowledge-sources'))).toBe(
-      false,
-    );
+    for (const legacy of [
+      'knowledge-sources',
+      'social-sources',
+      'source-posts',
+      '/videos',
+    ]) {
+      expect(requestedUrls.some((item) => item.includes(legacy))).toBe(false);
+    }
     expect(mocks.generateText).not.toHaveBeenCalled();
     expect(mocks.execute).not.toHaveBeenCalled();
-    expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 1 });
   });
 
-  it('does not import when the post URL is unsupported', async () => {
+  it('opens the panel for a save started on the page and reports an existing source honestly', async () => {
+    mocks.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => sourceResource(true),
+    });
+    const respond = vi.fn();
+    expect(
+      backgroundListener(
+        {
+          brandId: 'brand-1',
+          event: 'importedSourceSave',
+          raw: xCapture,
+        },
+        { tab: { id: 7 } },
+        respond,
+      ),
+    ).toBe(true);
+    await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+    expect(respond.mock.calls[0][0]).toMatchObject({
+      data: { deduplicated: true },
+      success: true,
+    });
+    expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 7 });
+  });
+
+  it('does not save a malformed capture', async () => {
     const result = await dispatch({
-      brandId: 'brand-a',
-      event: 'savePost',
-      url: 'https://example.com/not-a-post',
+      brandId: 'brand-1',
+      event: 'importedSourceSave',
+      raw: { text: 'No URL', title: 'Broken' },
     });
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/X, Instagram, or TikTok/);
+    expect(result.error).toMatch(/Capture a page/);
     expect(mocks.fetch).not.toHaveBeenCalled();
-    expect(mocks.generateText).not.toHaveBeenCalled();
   });
 
-  it('opens the selected brand remix handoff without collecting or generating', async () => {
-    mocks.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: {
-            attributes: { slug: 'moonrise' },
-            id: 'brand-a',
-            type: 'brand',
-          },
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [
-          { id: 'org-1', isActive: true, label: 'Acme', slug: 'acme' },
-        ],
-      });
-
-    const result = await dispatch({
-      brandId: 'brand-a',
-      event: 'openImportedRemix',
-      platform: 'twitter',
-      postId: 'post-1',
-    });
-
-    expect(result).toMatchObject({
-      success: true,
-      url: 'https://app.genfeed.ai/acme/moonrise/publishing/remix?platform=twitter&sourcePostId=post-1',
-    });
-    expect(chrome.tabs.create).toHaveBeenCalledWith({
-      url: 'https://app.genfeed.ai/acme/moonrise/publishing/remix?platform=twitter&sourcePostId=post-1',
-    });
-    const requestedUrls = mocks.fetch.mock.calls.map((call) => String(call[0]));
-    expect(requestedUrls.some((url) => url.includes('knowledge-sources'))).toBe(
-      false,
-    );
-    expect(requestedUrls.some((url) => url.includes('/videos'))).toBe(false);
-    expect(mocks.generateText).not.toHaveBeenCalled();
-    expect(mocks.execute).not.toHaveBeenCalled();
-  });
-
-  it('asks for a brand instead of importing into another brand', async () => {
+  it('asks for a brand instead of saving into another brand', async () => {
     mocks.workspaceBrand = null;
     const result = await dispatch({
-      event: 'savePost',
-      url: 'https://x.com/author/status/123',
+      event: 'importedSourceSave',
+      raw: xCapture,
     });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Select a brand/);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  it('offers the explicit recapture of a deleted source instead of recreating it', async () => {
+    mocks.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        code: 'IMPORTED_SOURCE_DELETED',
+        deletedIngredientId: 'cdeleted0000001',
+        message: 'Source was deleted. Use its explicit recapture route.',
+      }),
+    });
+    const result = await dispatch({
+      brandId: 'brand-1',
+      event: 'importedSourceSave',
+      raw: xCapture,
+    });
+    expect(result).toMatchObject({
+      code: 'IMPORTED_SOURCE_DELETED',
+      deletedSourceId: 'cdeleted0000001',
+      success: false,
+    });
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('captures the active tab on request and returns it for review, saving nothing', async () => {
+    mocks.executeScript.mockResolvedValueOnce([
+      { frameId: 0, result: xCapture },
+    ]);
+    const result = await dispatch({
+      capture: {
+        pageUrl: 'https://x.com/author/status/123',
+        scope: 'page',
+      },
+      event: 'importedSourceCapture',
+    });
+    expect(result).toMatchObject({ data: { host: 'x' }, success: true });
+    expect(mocks.executeScript).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: [expect.objectContaining({ scope: 'page' })],
+        target: { tabId: 1 },
+      }),
+    );
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  it('refuses to capture a different page than the one the user chose', async () => {
+    mocks.executeScript.mockClear();
+    const result = await dispatch({
+      capture: { pageUrl: 'https://x.com/other/status/9', scope: 'page' },
+      event: 'importedSourceCapture',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/active page changed/);
+    expect(mocks.executeScript).not.toHaveBeenCalled();
+  });
+
+  it('says so when the page does not allow capture', async () => {
+    mocks.executeScript.mockResolvedValueOnce([
+      { frameId: 0, result: undefined },
+    ]);
+    const result = await dispatch({
+      capture: { scope: 'page' },
+      event: 'importedSourceCapture',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/does not allow capture/);
+  });
+
+  it('opens a source review for a right-clicked image without saving it', async () => {
+    expect(mocks.contextMenuListener).toBeTypeOf('function');
+    mocks.contextMenuListener?.(
+      {
+        editable: false,
+        mediaType: 'image',
+        menuItemId: 'genfeed-source',
+        pageUrl: 'https://blog.example.com/a',
+        srcUrl: 'https://cdn.example.com/photo.jpg',
+      },
+      { id: 5, url: 'https://blog.example.com/a' } as chrome.tabs.Tab,
+    );
+    await vi.waitFor(() =>
+      expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 5 }),
+    );
+    await vi.waitFor(() =>
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+        payload: expect.objectContaining({
+          sourceCapture: {
+            mediaKind: 'image',
+            pageUrl: 'https://blog.example.com/a',
+            scope: 'media',
+            targetUrl: 'https://cdn.example.com/photo.jpg',
+          },
+          type: 'SOURCE',
+        }),
+        type: 'OPEN_MODE',
+      }),
+    );
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 

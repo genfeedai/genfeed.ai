@@ -88,12 +88,12 @@ export default function HashtagGeneratorButton({
       maxWidth="360px"
       trigger={
         <Button
-          icon={<Hash className="size-4" />}
+          icon={<Hash className="size-3.5" />}
+          label="Hashtags"
           variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.ICON}
-          className={`size-9 min-h-0 p-0 ${className}`}
-          tooltip="Generate hashtags"
-          tooltipPosition="top"
+          size={ButtonSize.SM}
+          textTransform="none"
+          className={className}
           isDisabled={isDisabled || !content.trim()}
         />
       }

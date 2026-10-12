@@ -390,18 +390,14 @@ export class PostsGenerationController {
     }
 
     try {
-      const enhancedDescription =
-        await this.postGenerationService.enhanceDescription(
-          post,
-          dto,
-          user,
-          resolveByokApiKeyOverride(request),
-        );
-      const updatedPost = await this.postsService.patch(postId, {
-        description: enhancedDescription,
-      });
+      const resultPost = await this.postGenerationService.enhancePost(
+        post,
+        dto,
+        user,
+        resolveByokApiKeyOverride(request),
+      );
 
-      return serializeSingle(request, this.serializer, updatedPost);
+      return serializeSingle(request, this.serializer, resultPost);
     } catch (error: unknown) {
       const errorMessage = generationFailureMessage(error, 'Unknown error');
       const errorStack = error instanceof Error ? error.stack : undefined;

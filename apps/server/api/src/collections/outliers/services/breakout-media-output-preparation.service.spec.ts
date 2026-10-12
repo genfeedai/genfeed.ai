@@ -155,6 +155,7 @@ function fixture(
         calls.push('brand');
         return {
           isBlocked: false,
+          isVisionPending: false,
           states: visuals.map(() => 'needs_review' as const),
         };
       },
@@ -206,6 +207,7 @@ describe('visual breakout output pipeline', () => {
     const h = fixture('image');
     h.visualBrand.validate.mockResolvedValueOnce({
       isBlocked: true,
+      isVisionPending: false,
       states: ['blocked'],
     });
     expect(await h.service.generate(h.request)).toEqual({
@@ -321,6 +323,30 @@ describe('visual breakout output pipeline', () => {
       'caption:generation-a:caption',
       'media:generation-a:media:1',
       'brand',
+      'compose',
+      'review',
+      'quality',
+    ]);
+    expect(h.review.queue).toHaveBeenCalledWith(h.admission, {
+      postId: 'caption-post',
+      generationKey: 'generation-a',
+    });
+  });
+
+  it('queues a post whose visual reading is still running in the background, still generates and scores it', async () => {
+    const h = fixture('image');
+    h.visualBrand.validate.mockResolvedValueOnce({
+      isBlocked: false,
+      isVisionPending: true,
+      states: ['needs_review'],
+    });
+    expect(await h.service.generate(h.request)).toMatchObject({
+      kind: 'completed',
+    });
+    expect(h.calls).toEqual([
+      'preflight',
+      'caption:generation-a:caption',
+      'media:generation-a:media:1',
       'compose',
       'review',
       'quality',

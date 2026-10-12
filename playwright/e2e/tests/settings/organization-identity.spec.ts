@@ -20,7 +20,7 @@ test.describe('Organization Identity Defaults', () => {
   }) => {
     const settingsPage = new SettingsPage(authenticatedPage);
 
-    await settingsPage.goToOrganization();
+    await settingsPage.goToOrganizationPreferences();
 
     await expect(settingsPage.orgIdentityCard).toBeVisible({ timeout: 30000 });
     await expect(

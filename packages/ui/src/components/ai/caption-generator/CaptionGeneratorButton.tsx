@@ -102,12 +102,12 @@ export default function CaptionGeneratorButton({
       maxWidth="420px"
       trigger={
         <Button
-          icon={<Sparkles className="size-4" />}
+          icon={<Sparkles className="size-3.5" />}
+          label="Optimize caption"
           variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.ICON}
-          className={`size-9 min-h-0 p-0 ${className}`}
-          tooltip="Optimize caption"
-          tooltipPosition="top"
+          size={ButtonSize.SM}
+          textTransform="none"
+          className={className}
           isDisabled={isDisabled || !content.trim()}
         />
       }

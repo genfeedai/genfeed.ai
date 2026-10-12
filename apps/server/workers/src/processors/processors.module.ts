@@ -40,6 +40,7 @@ import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/ag
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AiInfluencerModule } from '@api/services/ai-influencer/ai-influencer.module';
+import { BrandValidationReceiptModule } from '@api/services/brand-validation/brand-validation-receipt.module';
 import { CampaignModule } from '@api/services/campaign/campaign.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
@@ -72,6 +73,7 @@ import { BackgroundSystemWorkflowProcessor } from '@workers/processors/api/colle
 import { PlatformSystemWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/platform-system-workflow.processor';
 import { ScheduledPublishWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/scheduled-publish-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
+import { BrandVisionProcessor } from '@workers/processors/api/queues/brand-vision/brand-vision.processor';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { MediaDeliveryProcessor } from '@workers/processors/api/queues/media-delivery.processor';
@@ -141,6 +143,8 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     MediaPerceptionModule,
     MediaUrlsModule,
     ModerationModule,
+    // Owns the brand vision queue's consumer dependencies: receipt revalidation.
+    BrandValidationReceiptModule,
     MediaVisionEvaluationModule,
     MediaTextDecisionsModule,
     forwardRef(() => NotificationsModule),
@@ -168,6 +172,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     MediaPerceptionProcessor,
     MediaDeliveryProcessor,
     MediaModerationProcessor,
+    BrandVisionProcessor,
 
     // --- services/ processors ---
     WebhookClientProcessor,

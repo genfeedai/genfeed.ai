@@ -18,6 +18,7 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
@@ -110,14 +111,7 @@ function getStatusPresentation(status: string): {
 }
 
 function stripHtml(value?: string): string {
-  if (!value) {
-    return '';
-  }
-
-  return value
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return stripHtmlToPlainText(value).replace(/\s+/g, ' ');
 }
 
 function getPostTitle(post: IPost): string {

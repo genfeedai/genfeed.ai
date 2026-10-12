@@ -315,6 +315,7 @@ describe('logo and product placement from detected regions', () => {
   });
   it.each([
     ['disabled', 'visual_analysis_disabled'],
+    ['pending', 'visual_analysis_pending'],
     ['unavailable', 'visual_analysis_unavailable'],
   ] as const)(
     'stays unknown when the analysis is %s',

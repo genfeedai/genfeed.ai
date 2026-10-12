@@ -3,9 +3,10 @@
 import {
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   IngredientCategory,
 } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
 import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-submission/use-prompt-bar-submission';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CaptionGeneratorButton from '@ui/ai/caption-generator/CaptionGeneratorButton';
@@ -15,44 +16,61 @@ import type {
   TweetTone,
 } from '@ui/posts/enhancement-bar/PostEnhancementBar.props';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
-import Spinner from '@ui/primitives/spinner';
-import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import {
   ArrowUp,
   Check,
   ChevronDown,
-  CircleAlert,
   ImageIcon,
   Plus,
+  RefreshCw,
   Sparkles,
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
 
 import { QUICK_ACTIONS, TONE_OPTIONS } from './post-enhancement-bar.helpers';
 
 const EMPTY_ARRAY: never[] = [];
 
-const _DEFAULT_TEXT_MODEL_COST = EnvironmentService.TEXT_MODEL_DEFAULT_COST;
+interface RewriteProposal {
+  label: string;
+  text: string;
+  tone: TweetTone;
+}
 
-// Consistent button sizing
-const BTN_ICON_CLASS = 'size-9 min-h-0 p-0';
+interface RewriteRequest {
+  label: string;
+  run: () => Promise<string | null>;
+}
 
 /**
- * Unified enhancement bar for post enhancement.
- * Combines quick actions (Shorten, Simplify, Boost) with custom prompt input and tone selector.
- * Positioned as sticky bar below the post card for better visibility.
+ * Assist and action area of the post composer.
+ *
+ * Renders inside the composer surface (no surface of its own): labeled AI
+ * rewrite chips, a prompt row with a tone menu, and the media / thread / save
+ * footer. AI output is shown as a proposal and only replaces the text when the
+ * user accepts it.
  */
 export default function PostEnhancementBar({
   postId,
   onQuickAction,
   onPromptEnhance,
+  onApplyProposal,
+  currentContent = '',
   isEnhancing,
-  enhancingAction,
   hasContent = true,
-  placeholder = 'Describe how to enhance this post…',
+  placeholder,
   className = '',
   onSelectMedia,
   onGenerateIllustration,
@@ -72,7 +90,12 @@ export default function PostEnhancementBar({
   onInsertHashtag,
   onAcceptCaption,
 }: PostEnhancementBarProps) {
+  const translate = useTranslations('ui.postEnhancementBar');
+  const customLabel = translate('yourInstruction');
   const [localTone, setLocalTone] = useState<TweetTone>(selectedTone);
+  const [proposal, setProposal] = useState<RewriteProposal | null>(null);
+  const [pendingLabel, setPendingLabel] = useState<string | null>(null);
+  const lastRequestRef = useRef<RewriteRequest | null>(null);
 
   // Sync localTone with selectedTone prop when it changes (only when not controlled)
   useEffect(() => {
@@ -82,7 +105,12 @@ export default function PostEnhancementBar({
   }, [selectedTone, onToneChange]);
 
   const currentTone = onToneChange ? selectedTone : localTone;
-  const handleToneChange = (tone: TweetTone) => {
+  const toneLabel =
+    TONE_OPTIONS.find((option) => option.key === currentTone)?.label ??
+    currentTone;
+
+  const handleToneChange = (value: string) => {
+    const tone = value as TweetTone;
     if (onToneChange) {
       onToneChange(tone);
     } else {
@@ -90,182 +118,266 @@ export default function PostEnhancementBar({
     }
   };
 
+  const requestRewrite = async (request: RewriteRequest): Promise<boolean> => {
+    lastRequestRef.current = request;
+    setPendingLabel(request.label);
+
+    try {
+      const text = await request.run();
+      if (!text) {
+        return false;
+      }
+      setProposal({ label: request.label, text, tone: currentTone });
+      return true;
+    } finally {
+      setPendingLabel(null);
+    }
+  };
+
   // Trim, in-flight guard, clear-on-success and Enter-to-submit are shared with
   // every other prompt bar; only the tone-aware payload is local to this surface.
   const { handleKeyDown, handleSubmit, isSubmitDisabled, prompt, setPrompt } =
     usePromptBarSubmission({
-      isEnhancing,
-      onSubmit: (trimmedPrompt: string) =>
-        onPromptEnhance(postId, trimmedPrompt, currentTone),
+      isEnhancing: isEnhancing || pendingLabel !== null,
+      onSubmit: async (trimmedPrompt: string) => {
+        const isOk = await requestRewrite({
+          label: customLabel,
+          run: () => onPromptEnhance(postId, trimmedPrompt, currentTone),
+        });
+        if (!isOk) {
+          // Rejecting keeps the prompt so the user can retry.
+          throw new Error('Rewrite failed');
+        }
+      },
     });
 
+  const handleQuickAction = (action: (typeof QUICK_ACTIONS)[number]) => {
+    void requestRewrite({
+      label: action.label,
+      run: () => onQuickAction(postId, action.prompt, action.key, currentTone),
+    });
+  };
+
+  const handleAccept = () => {
+    if (!proposal) {
+      return;
+    }
+    onApplyProposal?.(proposal.text);
+    setProposal(null);
+  };
+
+  const handleRetry = () => {
+    if (lastRequestRef.current) {
+      void requestRewrite(lastRequestRef.current);
+    }
+  };
+
+  const isBusy = isEnhancing || pendingLabel !== null;
   const mediaCount = selectedMedia.length;
   const hasMedia = mediaCount > 0;
   const firstMedia = selectedMedia[0];
+  const hasFooter = !!(
+    onSelectMedia ||
+    onGenerateIllustration ||
+    onSave ||
+    showAddPost ||
+    showDelete
+  );
+  const beforeText = stripHtmlToPlainText(currentContent);
+  const proposedText = proposal ? stripHtmlToPlainText(proposal.text) : '';
 
   return (
-    <div
-      className={`sticky top-4 z-10 mt-4 flex min-w-0 flex-wrap items-center gap-2 bg-card p-2 shadow-border ${className}`}
-    >
-      {/* Quick Actions - Icon only */}
-      <div className="flex max-w-full flex-wrap items-center gap-1">
-        {QUICK_ACTIONS.map((action) => {
-          const isThisActionEnhancing =
-            isEnhancing && enhancingAction === action.key;
-          const Icon = action.icon;
-
-          return (
-            <Button
-              key={action.key}
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.ICON}
-              className={BTN_ICON_CLASS}
-              tooltip={action.tooltip}
-              tooltipPosition="top"
-              isDisabled={isEnhancing || !hasContent}
-              onClick={() =>
-                onQuickAction(postId, action.prompt, action.key, currentTone)
-              }
-              icon={
-                isThisActionEnhancing ? (
-                  <Spinner size={ComponentSize.XS} />
-                ) : (
-                  <Icon size={16} />
-                )
-              }
-            />
-          );
-        })}
-
-        {/* AI Generator Buttons */}
-        {onInsertHashtag && postContent && postPlatform && (
-          <HashtagGeneratorButton
-            content={postContent}
-            platform={postPlatform}
-            onInsert={onInsertHashtag}
-            isDisabled={isEnhancing}
-          />
-        )}
-
-        {onAcceptCaption && postContent && (
-          <CaptionGeneratorButton
-            content={postContent}
-            platform={postPlatform}
-            onAccept={onAcceptCaption}
-            isDisabled={isEnhancing}
-          />
-        )}
-      </div>
-
-      <PromptBarDivider />
-
-      {/* Tone Selector */}
-      <div className="relative group">
-        <Button
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          className="inline-flex items-center justify-center border border-input bg-secondary/50 text-secondary-foreground text-sm h-9 min-h-0 gap-1 px-2 hover:bg-secondary/70"
+    <div className={cn('flex min-w-0 flex-col', className)}>
+      {(proposal || pendingLabel) && (
+        <section
+          aria-live="polite"
+          aria-label={translate('aiRewrite')}
+          className="mx-3 mb-3 overflow-hidden rounded-lg border border-border-strong bg-tertiary"
         >
-          <span className="text-xs capitalize">{currentTone}</span>
-          <ChevronDown size={14} />
-        </Button>
-
-        <ul className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-secondary z-50 w-36 p-2 shadow-dropdown">
-          {TONE_OPTIONS.map((option) => (
-            <li key={option.key}>
-              <Button
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                className={`w-full text-left text-sm px-3 py-2 hover:bg-accent ${currentTone === option.key ? 'bg-primary/10 text-primary' : ''}`}
-                onClick={() => handleToneChange(option.key)}
-              >
-                {option.label}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <PromptBarDivider />
-
-      {/* Custom Prompt Input + Enhance Button */}
-      <div className="flex min-w-[12rem] flex-1 items-center gap-2">
-        <Input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          isDisabled={isEnhancing}
-          className="h-9 min-h-0 min-w-0 flex-1"
-        />
-
-        <Button
-          ariaLabel="Enhance"
-          variant={ButtonVariant.DEFAULT}
-          icon={<ArrowUp />}
-          isLoading={isEnhancing && !enhancingAction}
-          isDisabled={isSubmitDisabled}
-          onClick={handleSubmit}
-          tooltip="Enhance"
-          tooltipPosition="top"
-          size={ButtonSize.SM}
-          className="h-9 min-h-0 px-3"
-        />
-      </div>
-
-      {/* Action Buttons */}
-      {(onSelectMedia || onSave || showAddPost || showDelete) && (
-        <>
-          <PromptBarDivider />
-
-          <div className="flex items-center gap-1">
-            {/* Delete Button - separated from other actions */}
-            {showDelete && onDelete && (
-              <>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2 pl-3 pr-2">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-agent">
+              <Sparkles className="size-3.5" />
+              <span>{proposal?.label ?? pendingLabel}</span>
+              <span className="font-normal text-muted-foreground">
+                {pendingLabel
+                  ? `· ${translate('rewriting')}`
+                  : `· ${toneLabelFor(proposal)}`}
+              </span>
+            </p>
+            {proposal && !pendingLabel && (
+              <div className="flex flex-wrap items-center gap-1.5">
                 <Button
-                  icon={<Trash2 className="size-4" />}
-                  variant={ButtonVariant.DESTRUCTIVE}
-                  size={ButtonSize.ICON}
-                  className={BTN_ICON_CLASS}
-                  tooltip="Delete post"
-                  tooltipPosition="top"
-                  onClick={onDelete}
+                  label={translate('discard')}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.SM}
+                  textTransform="none"
+                  onClick={() => setProposal(null)}
                 />
-                <PromptBarDivider />
-              </>
+                <Button
+                  label={translate('tryAgain')}
+                  icon={<RefreshCw className="size-3.5" />}
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  textTransform="none"
+                  isDisabled={isBusy}
+                  onClick={handleRetry}
+                />
+                <Button
+                  label={translate('replaceText')}
+                  icon={<Check className="size-3.5" />}
+                  variant={ButtonVariant.DEFAULT}
+                  size={ButtonSize.SM}
+                  textTransform="none"
+                  onClick={handleAccept}
+                />
+              </div>
             )}
+          </div>
 
-            {/* Add Post Button */}
-            {showAddPost && onAddPost && (
+          {pendingLabel ? (
+            <div className="grid gap-2 p-3" aria-hidden="true">
+              <div className="h-3 w-11/12 animate-pulse rounded bg-hover" />
+              <div className="h-3 w-3/4 animate-pulse rounded bg-hover" />
+            </div>
+          ) : (
+            <div className="grid gap-2 p-3">
+              {beforeText && (
+                <p className="line-clamp-3 whitespace-pre-wrap text-xs text-muted-foreground line-through decoration-border-strong">
+                  {beforeText}
+                </p>
+              )}
+              <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+                {proposedText}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="flex flex-col gap-2.5 border-t border-border p-3">
+        <div
+          role="group"
+          aria-label={translate('aiRewrite')}
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {QUICK_ACTIONS.map((action) => {
+            const Icon = action.icon;
+            return (
               <Button
-                label="Add"
-                icon={<Plus className="size-3.5" />}
+                key={action.key}
+                label={action.label}
+                icon={<Icon className="size-3.5" />}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
-                className="h-9 min-h-0 px-2 gap-1"
-                onClick={onAddPost}
-                tooltip="Add post to thread"
-                tooltipPosition="top"
+                textTransform="none"
+                isDisabled={isBusy || !hasContent}
+                onClick={() => handleQuickAction(action)}
               />
-            )}
+            );
+          })}
 
-            {/* Media Button */}
+          {onInsertHashtag && postContent && postPlatform && (
+            <HashtagGeneratorButton
+              content={postContent}
+              platform={postPlatform}
+              onInsert={onInsertHashtag}
+              isDisabled={isBusy}
+            />
+          )}
+
+          {onAcceptCaption && postContent && (
+            <CaptionGeneratorButton
+              content={postContent}
+              platform={postPlatform}
+              onAccept={onAcceptCaption}
+              isDisabled={isBusy}
+            />
+          )}
+
+          <span className="ml-auto text-2xs text-muted-foreground">
+            {translate('creditPerRewrite')}
+          </span>
+        </div>
+
+        <div className="flex min-w-0 items-center gap-1.5">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                label={toneLabel}
+                icon={<ChevronDown className="size-3.5" />}
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+                textTransform="none"
+                ariaLabel={translate('toneAria', { tone: toneLabel })}
+                className="flex-row-reverse"
+                isDisabled={isBusy}
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top">
+              <DropdownMenuLabel>
+                {translate('toneForRewrites')}
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={currentTone}
+                onValueChange={handleToneChange}
+              >
+                {TONE_OPTIONS.map((option) => (
+                  <DropdownMenuRadioItem key={option.key} value={option.key}>
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder ?? translate('placeholder')}
+            isDisabled={isBusy}
+            aria-label={translate('rewriteInstruction')}
+            className="h-8 min-h-0 min-w-0 flex-1"
+          />
+
+          <Button
+            ariaLabel={translate('enhance')}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.ICON}
+            icon={<ArrowUp />}
+            isLoading={isBusy && pendingLabel === customLabel}
+            isDisabled={isSubmitDisabled}
+            onClick={handleSubmit}
+            tooltip={translate('rewrite')}
+            tooltipPosition="top"
+          />
+        </div>
+      </div>
+
+      {hasFooter && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
+          <div className="flex flex-wrap items-center gap-1">
             {onSelectMedia && (
               <Button
                 ariaLabel={
-                  hasMedia ? `Change media (${mediaCount})` : 'Add media'
+                  hasMedia
+                    ? translate('changeMedia', { count: mediaCount })
+                    : translate('addMedia')
                 }
-                label={hasMedia ? `Media (${mediaCount})` : 'Add media'}
-                tooltipPosition="top"
-                variant={ButtonVariant.SECONDARY}
+                label={
+                  hasMedia
+                    ? translate('media', { count: mediaCount })
+                    : translate('addMedia')
+                }
+                variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
+                textTransform="none"
                 onClick={onSelectMedia}
-                tooltip={hasMedia ? `Media (${mediaCount})` : 'Select media'}
                 isDisabled={isSavingMedia}
                 icon={
                   hasMedia && firstMedia ? (
-                    <div className="relative size-5 overflow-hidden">
+                    <div className="relative size-5 shrink-0 overflow-hidden rounded-sm">
                       <Image
                         src={
                           firstMedia.category === IngredientCategory.VIDEO
@@ -273,22 +385,12 @@ export default function PostEnhancementBar({
                               `${EnvironmentService.ingredientsEndpoint}/videos/${firstMedia.id}`
                             : `${EnvironmentService.ingredientsEndpoint}/images/${firstMedia.id}`
                         }
-                        alt="Media"
+                        alt=""
                         className="size-full object-cover outline-media"
                         width={20}
                         height={20}
                         sizes="20px"
-                        priority
                       />
-                      {mediaCount > 1 && (
-                        <div
-                          className={
-                            'absolute inset-0 flex items-center justify-center bg-black/50 text-2xs font-bold text-white tabular-nums' /* design-system-allow-content-color -- media overlay */
-                          }
-                        >
-                          {mediaCount}
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <ImageIcon className="size-4" />
@@ -297,44 +399,85 @@ export default function PostEnhancementBar({
               />
             )}
 
-            {/* Generate Illustration Button */}
             {onGenerateIllustration && (
               <Button
-                tooltipPosition="top"
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.ICON}
-                className={BTN_ICON_CLASS}
-                onClick={onGenerateIllustration}
-                tooltip="Generate illustration"
+                label={translate('generateIllustration')}
                 icon={<Sparkles className="size-4" />}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.SM}
+                textTransform="none"
+                onClick={onGenerateIllustration}
               />
             )}
 
-            {/* Save Button - shows check when saved, save icon when dirty */}
-            {onSave && (
+            {showAddPost && onAddPost && (
               <Button
-                icon={
-                  isDirty ? (
-                    <CircleAlert className="size-4" />
-                  ) : (
-                    <Check className="size-4" />
-                  )
-                }
-                variant={
-                  isDirty ? ButtonVariant.DEFAULT : ButtonVariant.DEFAULT
-                }
+                label={translate('addToThread')}
+                icon={<Plus className="size-4" />}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.SM}
+                textTransform="none"
+                onClick={onAddPost}
+              />
+            )}
+
+            {showDelete && onDelete && (
+              <Button
+                ariaLabel={translate('deletePost')}
+                icon={<Trash2 className="size-4" />}
+                variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
-                className={`${BTN_ICON_CLASS} ${isDirty ? 'bg-warning text-warning-foreground hover:bg-warning/90' : 'bg-success text-success-foreground hover:bg-success/90'}`}
-                isLoading={isSaving}
-                isDisabled={!isDirty || isSaving}
-                onClick={onSave}
-                tooltip={isDirty ? 'Save changes' : 'Saved'}
+                tooltip={translate('deletePost')}
                 tooltipPosition="top"
+                onClick={onDelete}
               />
             )}
           </div>
-        </>
+
+          {onSave && (
+            <div className="flex items-center gap-2">
+              <p
+                role="status"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'size-1.5 rounded-full',
+                    isSaving
+                      ? 'animate-pulse bg-muted-foreground'
+                      : isDirty
+                        ? 'bg-warning'
+                        : 'bg-success',
+                  )}
+                />
+                {isSaving
+                  ? translate('saving')
+                  : isDirty
+                    ? translate('unsaved')
+                    : translate('saved')}
+              </p>
+              {isDirty && (
+                <Button
+                  label={translate('save')}
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  textTransform="none"
+                  isLoading={isSaving}
+                  onClick={onSave}
+                />
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+function toneLabelFor(proposal: RewriteProposal | null): string {
+  const tone = proposal?.tone;
+  return (
+    TONE_OPTIONS.find((option) => option.key === tone)?.label ?? 'Professional'
   );
 }

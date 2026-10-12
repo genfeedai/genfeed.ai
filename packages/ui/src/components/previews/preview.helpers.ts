@@ -3,6 +3,7 @@ import type {
   IChannelTarget,
   IReleaseAttachment,
 } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@genfeedai/helpers/security/sanitize-html.helper';
 import type {
   TargetPreviewCredential,
   TargetPreviewProps,
@@ -19,9 +20,12 @@ export function resolveTargetCaption(
   target: IChannelTarget,
 ): string {
   const override = target.settings?.caption;
-  return typeof override === 'string' && override.trim().length > 0
-    ? override
-    : (release.baseContent ?? '');
+  // Release content comes from stored post HTML; previews show plain text.
+  return stripHtmlToPlainText(
+    typeof override === 'string' && override.trim().length > 0
+      ? override
+      : release.baseContent,
+  );
 }
 
 function attachmentAppliesToTarget(

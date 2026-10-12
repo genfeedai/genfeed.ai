@@ -778,6 +778,10 @@ export function injectGlobalStyles() {
       position: absolute;
       right: 8px;
       bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease;
@@ -852,64 +856,6 @@ export function injectGlobalStyles() {
     }
   `;
   document.head.appendChild(style);
-}
-
-// Create a save button
-export function createSaveButton(
-  postId: string,
-  platform: string,
-  postUrl: string,
-): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.className = 'genfeed-btn genfeed-save-btn';
-  button.title = 'Import post';
-  button.innerHTML = icons.bookmark;
-  button.setAttribute('data-post-id', postId);
-  button.setAttribute('data-platform', platform);
-
-  button.addEventListener('click', async () => {
-    const originalContent = button.innerHTML;
-    button.innerHTML = icons.spinner;
-    button.disabled = true;
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        event: 'savePost',
-        platform: platform,
-        postId: postId,
-        url: postUrl,
-      });
-
-      if (response?.success) {
-        button.innerHTML = icons.check;
-        button.title = response.deduplicated ? 'Already imported' : 'Imported';
-        setTimeout(() => {
-          button.innerHTML = originalContent;
-          button.title = 'Import post';
-          button.disabled = false;
-        }, 3000);
-      } else {
-        button.innerHTML = icons.x;
-        button.title = response?.error || 'Import failed';
-        setTimeout(() => {
-          button.innerHTML = originalContent;
-          button.title = 'Import post';
-          button.disabled = false;
-        }, 2000);
-      }
-    } catch (error) {
-      logger.error('Error saving post', error);
-      button.innerHTML = icons.x;
-      button.title = 'Import failed';
-      setTimeout(() => {
-        button.innerHTML = originalContent;
-        button.title = 'Import post';
-        button.disabled = false;
-      }, 2000);
-    }
-  });
-
-  return button;
 }
 
 // Create an AI reply button

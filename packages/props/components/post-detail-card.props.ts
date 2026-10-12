@@ -44,8 +44,8 @@ export interface PostDetailCardProps {
     postId: string,
     prompt: string,
     actionKey: PostQuickActionKey,
-  ) => Promise<void>;
-  onPromptEnhance?: (postId: string, prompt: string) => Promise<void>;
+  ) => Promise<string | null>;
+  onPromptEnhance?: (postId: string, prompt: string) => Promise<string | null>;
   enhancingPostId?: string | null;
   enhancingAction?: PostQuickActionKey | null;
   performAutoSaveForPost?: (postId: string) => Promise<void>;

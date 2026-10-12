@@ -27,10 +27,18 @@ export class BrandVisualAnalysisService implements BrandVisualAnalysis {
     private readonly logger: LoggerService,
   ) {}
 
+  /**
+   * Whether the platform switch lets a reading run now. Throws when the setting
+   * cannot be read, so a caller that defers a reading can fail closed.
+   */
+  async isEnabled(): Promise<boolean> {
+    const settings = await this.platformSettings.getFeatureSettings();
+    return settings.isBrandVisualAnalysisEnabled;
+  }
+
   async extractText(request: BrandOcrRequest): Promise<BrandOcrOutcome> {
     try {
-      const settings = await this.platformSettings.getFeatureSettings();
-      if (!settings.isBrandVisualAnalysisEnabled) return { status: 'disabled' };
+      if (!(await this.isEnabled())) return { status: 'disabled' };
       const result = await this.provider.extractText(request);
       if (
         result.texts.length !== request.frames.length ||
@@ -55,8 +63,7 @@ export class BrandVisualAnalysisService implements BrandVisualAnalysis {
     request: BrandDetectionRequest,
   ): Promise<BrandDetectionOutcome> {
     try {
-      const settings = await this.platformSettings.getFeatureSettings();
-      if (!settings.isBrandVisualAnalysisEnabled) return { status: 'disabled' };
+      if (!(await this.isEnabled())) return { status: 'disabled' };
       const result = await this.provider.detectRegions(request);
       if (result.frames.length !== request.frames.length)
         return { status: 'unavailable' };

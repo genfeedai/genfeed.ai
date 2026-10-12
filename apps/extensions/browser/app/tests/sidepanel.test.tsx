@@ -74,8 +74,8 @@ vi.mock('~hooks/use-account-theme-sync', () => ({
 vi.mock('~components/settings/BrandSelector', () => ({
   BrandSelector: () => null,
 }));
-vi.mock('~components/pages/IdeaDraftPage', () => ({
-  IdeaDraftPage: () => null,
+vi.mock('~components/pages/ImportedSourcesPage', () => ({
+  ImportedSourcesPage: () => null,
 }));
 vi.mock('~components/pages/KnowledgeCapturePage', () => ({
   KnowledgeCapturePage: () => null,
@@ -210,7 +210,7 @@ describe('SidePanel', () => {
     expect(source).toContain('KnowledgeCapturePage');
     expect(source).toContain("type: 'addToKnowledge'");
     expect(source).not.toContain('captureSave');
-    expect(source).not.toContain("event: 'savePost'");
+    expect(source).not.toContain("event: 'importedSourceSave'");
   });
 });
 

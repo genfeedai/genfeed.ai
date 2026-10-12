@@ -16,22 +16,32 @@ export interface PostEnhancementBarProps {
    */
   postId: string;
   /**
-   * Handler called when a quick action is triggered
+   * Handler called when a quick action is triggered.
+   * Resolves to the proposed text, or null when the rewrite failed.
    */
   onQuickAction: (
     postId: string,
     prompt: string,
     actionKey: PostQuickActionKey,
     tone?: TweetTone,
-  ) => Promise<void>;
+  ) => Promise<string | null>;
   /**
-   * Handler called when user submits a custom enhancement prompt
+   * Handler called when user submits a custom enhancement prompt.
+   * Resolves to the proposed text, or null when the rewrite failed.
    */
   onPromptEnhance: (
     postId: string,
     prompt: string,
     tone?: TweetTone,
-  ) => Promise<void>;
+  ) => Promise<string | null>;
+  /**
+   * Called when the user accepts a proposed rewrite
+   */
+  onApplyProposal?: (text: string) => void;
+  /**
+   * Current description (HTML or plain), shown beside a proposal as the "before"
+   */
+  currentContent?: string;
   /**
    * Selected tone for enhancement
    */
