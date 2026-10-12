@@ -20,3 +20,9 @@ paths = [
   '''\.spec\.ts$''',
   '''\.test\.ts$''',
 ]
+# The public half of a Chrome extension manifest key (a DER SubjectPublicKeyInfo for RSA-2048)
+# is not a secret. The prefix is the fixed header of that public structure; a private key
+# starts differently, so this cannot hide one.
+regexes = [
+  '''^MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA''',
+]
