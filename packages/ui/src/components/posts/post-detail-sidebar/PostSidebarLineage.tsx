@@ -29,7 +29,7 @@ export default function PostSidebarLineage({
   const translate = useTranslations('ui.postDetailInspector');
   const formatReviewDecision = (decision?: ReviewDecision) =>
     translate(`decisions.${getReviewDecisionKey(decision)}`);
-  const reviewEvents = (reviewSummary.reviewEvents ?? []).toSorted(
+  const reviewEvents = [...(reviewSummary.reviewEvents ?? [])].sort(
     (left, right) => right.reviewedAt.localeCompare(left.reviewedAt),
   );
 
