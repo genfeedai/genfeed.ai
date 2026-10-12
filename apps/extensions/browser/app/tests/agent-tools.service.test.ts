@@ -30,6 +30,7 @@ describe('AgentToolsService', () => {
     ['generate', 'generate_content', { topic: 'Launch update', type: 'post' }],
     ['image', 'generate', { prompt: 'Launch artwork', type: 'image' }],
     ['post', 'create_post', { content: 'Draft' }],
+    ['refine', 'refine_text', { mode: 'rewrite', text: 'Draft' }],
   ] as const)(
     'executes %s with one catalog request',
     async (action, tool, parameters) => {
@@ -59,6 +60,72 @@ describe('AgentToolsService', () => {
       },
       context: { brandId: 'brand-1' },
     });
+  });
+
+  it('refines text through the catalog with only the draft, platform, mode, brand and request key', async () => {
+    const data = {
+      hasBrandVoice: true,
+      isReplayed: false,
+      maxCharacters: 280,
+      mode: 'rewrite',
+      platform: 'twitter',
+      text: 'Rewritten',
+    };
+    post.mockResolvedValue({ data: { creditsUsed: 2, data, success: true } });
+
+    await expect(
+      new AgentToolsService('token').refineText({
+        mode: 'rewrite',
+        platform: 'twitter',
+        requestKey: 'key-1',
+        text: 'Draft',
+      }),
+    ).resolves.toEqual(data);
+    expect(post).toHaveBeenCalledExactlyOnceWith(
+      '/agent-tools/refine_text/execute',
+      {
+        parameters: {
+          brandId: 'brand-1',
+          mode: 'rewrite',
+          platform: 'twitter',
+          requestKey: 'key-1',
+          text: 'Draft',
+        },
+        context: { brandId: 'brand-1' },
+      },
+    );
+  });
+
+  it.each([[{ hasBrandVoice: true, text: '  ' }], [{ text: 'No flag' }], [{}]])(
+    'rejects a malformed text action result',
+    async (data) => {
+      post.mockResolvedValue({ data: { data, success: true } });
+      await expect(
+        new AgentToolsService('token').refineText({
+          mode: 'proofread',
+          platform: 'twitter',
+          requestKey: 'key-2',
+          text: 'Draft',
+        }),
+      ).rejects.toThrow('No text returned');
+    },
+  );
+
+  it('surfaces a stopped text action instead of a result', async () => {
+    post.mockResolvedValue({
+      data: {
+        error: 'This request is already running.',
+        success: false,
+      },
+    });
+    await expect(
+      new AgentToolsService('token').refineText({
+        mode: 'rewrite',
+        platform: 'twitter',
+        requestKey: 'key-3',
+        text: 'Draft',
+      }),
+    ).rejects.toThrow('already running');
   });
 
   it('surfaces action failures even when HTTP succeeds', async () => {

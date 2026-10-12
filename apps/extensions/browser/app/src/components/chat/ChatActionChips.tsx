@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { TextActionMode } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
@@ -6,7 +7,14 @@ import { usePlatformStore } from '~store/use-platform-store';
 
 interface ChatActionChipsProps {
   onChipClick: (prompt: string) => void;
+  /** Proofread or rewrite the draft in the page's composer. */
+  onTextAction: (mode: TextActionMode) => void;
 }
+
+const TEXT_ACTION_CHIPS: { label: string; mode: TextActionMode }[] = [
+  { label: 'Proofread', mode: 'proofread' },
+  { label: 'Rewrite in my voice', mode: 'rewrite' },
+];
 
 interface ActionChip {
   label: string;
@@ -45,7 +53,6 @@ const PLATFORM_CHIPS: Record<string, ActionChip[]> = {
     { label: 'Write tweet', prompt: 'Write a tweet about' },
     { label: 'Reply', prompt: 'Write a reply to this post' },
     { label: 'Thread', prompt: 'Create a tweet thread about' },
-    { label: 'Improve draft', prompt: 'Improve this draft tweet' },
   ],
   youtube: [
     { label: 'Description', prompt: 'Write a YouTube video description about' },
@@ -55,11 +62,11 @@ const PLATFORM_CHIPS: Record<string, ActionChip[]> = {
 
 const DEFAULT_CHIPS: ActionChip[] = [
   { label: 'Write content', prompt: 'Write social media content about' },
-  { label: 'Improve text', prompt: 'Improve this text:' },
 ];
 
 export function ChatActionChips({
   onChipClick,
+  onTextAction,
 }: ChatActionChipsProps): ReactElement {
   const currentPlatform = usePlatformStore((s) => s.currentPlatform);
   const chips =
@@ -67,6 +74,17 @@ export function ChatActionChips({
 
   return (
     <div className="flex flex-wrap gap-2">
+      {TEXT_ACTION_CHIPS.map((chip) => (
+        <Button
+          key={chip.mode}
+          type="button"
+          variant={ButtonVariant.SECONDARY}
+          onClick={() => onTextAction(chip.mode)}
+          className="shrink-0 rounded-lg px-3 py-1.5 text-xs"
+        >
+          {chip.label}
+        </Button>
+      ))}
       {chips.map((chip) => (
         <Button
           key={chip.label}

@@ -1134,6 +1134,7 @@ describe('AgentToolExecutorService', () => {
         brandsService as never,
         membersService as never,
         textGenerationCredits as never,
+        {} as never,
       ),
       assetGenerationService,
       new AgentMediaTurboRunService(
@@ -6453,6 +6454,7 @@ describe('AgentToolExecutorService', () => {
           brandsService as never,
           membersService as never,
           textGenerationCredits as never,
+          {} as never,
         ),
         new AgentMediaAssetGenerationService(
           loggerService,

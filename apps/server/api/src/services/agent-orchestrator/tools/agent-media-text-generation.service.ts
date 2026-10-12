@@ -12,10 +12,12 @@ import {
   type AiActionResult,
   AiActionsService,
 } from '@api/endpoints/ai-actions/ai-actions.service';
+import { BrandedTextActionsService } from '@api/endpoints/ai-actions/branded-text-actions.service';
 import {
   AiActionType,
   type ExecuteAiActionDto,
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { parseTextActionParams } from '@api/endpoints/ai-actions/text-action-params.util';
 import {
   AGENT_GENERATION_GATEWAY,
   type IAgentGenerationGateway,
@@ -27,6 +29,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { resolveToolSchedulePrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import {
   ActivitySource,
   ContentIntelligencePlatform,
@@ -184,6 +187,7 @@ export class AgentMediaTextGenerationService {
     @Inject('AGENT_MEMBERS_SERVICE')
     private readonly membersService: ResolveGenerationBrandMembersServiceLike,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly brandedTextActions: BrandedTextActionsService,
   ) {}
 
   /**
@@ -262,6 +266,67 @@ export class AgentMediaTextGenerationService {
     return {
       creditsUsed: 1,
       data: { result: result.result, tokensUsed: result.tokensUsed },
+      success: true,
+    };
+  }
+
+  /**
+   * Proofreads or rewrites the user's own draft (#4343). Billing mirrors social
+   * generation: admitted up front, charged once after a new provider call, never
+   * for a replay of the same `requestKey` or a failed edit.
+   */
+  async refineText(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const parsed = parseTextActionParams(params);
+    if (!parsed.ok) {
+      return { creditsUsed: 0, error: parsed.error, success: false };
+    }
+    const brandId = await this.resolveBrandId(params, ctx);
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'A brand is required to edit text.',
+        success: false,
+      };
+    }
+    if (!(await this.hasTextGenerationCredits(ctx))) {
+      return INSUFFICIENT_TEXT_CREDITS_RESULT;
+    }
+    const outcome = await this.brandedTextActions.run({
+      actor: resolveToolSchedulePrincipal(ctx) ?? {
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      },
+      brandId,
+      mode: parsed.value.mode,
+      platform: parsed.value.platform,
+      requestKey: parsed.value.requestKey,
+      text: parsed.value.text,
+    });
+    if (outcome.kind === 'failed') {
+      return {
+        creditsUsed: 0,
+        data: {
+          code: outcome.code,
+          ...(outcome.receiptId ? { receiptId: outcome.receiptId } : {}),
+        },
+        error: outcome.message,
+        success: false,
+      };
+    }
+    if (outcome.hasNewDispatch) {
+      await this.chargeTextGeneration(
+        ctx,
+        brandId,
+        `Agent tool: refine_text (${parsed.value.mode})`,
+      );
+    }
+    return {
+      creditsUsed: outcome.hasNewDispatch ? TEXT_GENERATION_CREDITS : 0,
+      data: { ...outcome.result },
+      isBillingDelegated: true,
       success: true,
     };
   }

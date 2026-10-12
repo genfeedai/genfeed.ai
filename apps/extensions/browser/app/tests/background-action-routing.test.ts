@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   workspaceBrand: 'brand-1' as string | null,
   execute: vi.fn(),
   generateText: vi.fn(),
+  refineText: vi.fn(),
   getToken: vi.fn(),
   fetch: vi.fn(),
   addListener: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('~services/agent-tools.service', () => ({
   AgentToolsService: class {
     execute = mocks.execute;
     generateText = mocks.generateText;
+    refineText = mocks.refineText;
   },
 }));
 
@@ -64,6 +66,14 @@ beforeEach(() => {
   mocks.workspaceBrand = 'brand-1';
   mocks.getToken.mockResolvedValue('token');
   mocks.generateText.mockReset().mockResolvedValue('Generated text');
+  mocks.refineText.mockReset().mockResolvedValue({
+    hasBrandVoice: true,
+    isReplayed: false,
+    maxCharacters: 280,
+    mode: 'rewrite',
+    platform: 'twitter',
+    text: 'Edited text',
+  });
   mocks.execute.mockReset().mockResolvedValue({
     success: true,
     data: { id: 'image-id', url: 'https://cdn.example/image.png' },
@@ -87,19 +97,88 @@ async function dispatch(request: Record<string, unknown>) {
 }
 
 describe('background user action routing', () => {
-  it.each(['improvePost', 'autoModel'])(
-    'routes %s to text generation once',
-    async (event) => {
-      const response = await dispatch({
-        event,
-        postContent: 'Original',
-        content: 'Original',
+  it('routes autoModel to text generation once', async () => {
+    const response = await dispatch({
+      event: 'autoModel',
+      postContent: 'Original',
+      content: 'Original',
+    });
+    expect(response.success).toBe(true);
+    expect(mocks.generateText).toHaveBeenCalledTimes(1);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  it('no longer answers the removed improvePost event', () => {
+    const respond = vi.fn();
+    expect(
+      backgroundListener(
+        { event: 'improvePost', postContent: 'Original' },
+        {},
+        respond,
+      ),
+    ).toBeUndefined();
+    expect(respond).not.toHaveBeenCalled();
+    expect(mocks.generateText).not.toHaveBeenCalled();
+  });
+
+  it.each(['proofread', 'rewrite'])(
+    'routes the %s text action to the catalog once with the request key',
+    async (mode) => {
+      const request = {
+        event: 'refineText',
+        mode,
+        platform: 'twitter',
+        requestKey: '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c',
+        text: 'Original draft',
+      };
+      const response = await dispatch(request);
+      expect(response).toEqual({
+        result: expect.objectContaining({ text: 'Edited text' }),
+        success: true,
       });
-      expect(response.success).toBe(true);
-      expect(mocks.generateText).toHaveBeenCalledTimes(1);
+      expect(mocks.refineText).toHaveBeenCalledExactlyOnceWith({
+        mode,
+        platform: 'twitter',
+        requestKey: request.requestKey,
+        text: 'Original draft',
+      });
+      expect(mocks.generateText).not.toHaveBeenCalled();
       expect(mocks.fetch).not.toHaveBeenCalled();
     },
   );
+
+  it.each([
+    ['an unknown mode', { mode: 'summarize' }],
+    ['a blank draft', { text: '  ' }],
+    ['a missing request key', { requestKey: undefined }],
+  ])('rejects %s before any request', async (_label, patch) => {
+    const response = await dispatch({
+      event: 'refineText',
+      mode: 'rewrite',
+      platform: 'twitter',
+      requestKey: '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c',
+      text: 'Draft',
+      ...patch,
+    });
+    expect(response).toEqual({
+      error: 'Select the text to edit first.',
+      success: false,
+    });
+    expect(mocks.refineText).not.toHaveBeenCalled();
+  });
+
+  it('requires a signed-in user for a text action', async () => {
+    mocks.getToken.mockResolvedValue(null);
+    const response = await dispatch({
+      event: 'refineText',
+      mode: 'rewrite',
+      platform: 'twitter',
+      requestKey: '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c',
+      text: 'Draft',
+    });
+    expect(response).toEqual({ error: 'Not authenticated', success: false });
+    expect(mocks.refineText).not.toHaveBeenCalled();
+  });
 
   it.each(['generatePostImage', 'generateImage'])(
     'routes %s to the typed image generate action',
@@ -114,9 +193,15 @@ describe('background user action routing', () => {
   );
 
   it('surfaces generation errors without retrying a dead endpoint', async () => {
-    mocks.generateText.mockRejectedValue(new Error('Insufficient credits'));
+    mocks.refineText.mockRejectedValue(new Error('Insufficient credits'));
     expect(
-      await dispatch({ event: 'improvePost', postContent: 'Original' }),
+      await dispatch({
+        event: 'refineText',
+        mode: 'rewrite',
+        platform: 'twitter',
+        requestKey: '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c',
+        text: 'Original',
+      }),
     ).toEqual({ success: false, error: 'Insufficient credits' });
     expect(mocks.fetch).not.toHaveBeenCalled();
   });

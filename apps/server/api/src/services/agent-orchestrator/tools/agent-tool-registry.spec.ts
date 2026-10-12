@@ -146,6 +146,32 @@ describe('agent-tool-registry', () => {
     expect(getToolByName('create_post')?.creditCost).toBe(1);
   });
 
+  it('should register refine_text as one agent action billed like a social draft', () => {
+    const tool = getToolByName('refine_text');
+
+    expect(tool).toMatchObject({
+      creditCost: 2,
+      mutationPolicy: 'direct',
+      parameters: {
+        properties: {
+          mode: { enum: ['proofread', 'rewrite'] },
+          requestKey: { format: 'uuid' },
+        },
+        required: ['mode', 'platform', 'requestKey', 'text'],
+      },
+      surfaces: { agent: true, mcp: false },
+    });
+    expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
+      'brandId',
+      'mode',
+      'platform',
+      'requestKey',
+      'text',
+    ]);
+    expect(AGENT_CREDIT_COSTS.refine_text).toBe(2);
+    expect(getToolDefinitionByName('refine_text')).toBeDefined();
+  });
+
   it('should set non-zero credit costs for generation tools', () => {
     expect(AGENT_CREDIT_COSTS.draft_brand_voice_profile).toBe(1);
     expect(agentToolCreditFloor('generate', { type: 'image' })).toBe(50);

@@ -159,6 +159,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   rate_ingredient: 'direct',
   replace_storyboard_character: 'approval-required',
   reject_social_draft: 'direct',
+  refine_text: 'direct',
   rename_brand: 'approval-required',
   replicate_top_ingredient: 'direct',
   repurpose_post: 'direct',

@@ -7,8 +7,10 @@ import { type ReactElement, useEffect, useRef, useState } from 'react';
 import { ChatActionChips } from '~components/chat/ChatActionChips';
 import { ChatInput } from '~components/chat/ChatInput';
 import { ChatMessage } from '~components/chat/ChatMessage';
+import { TextActionPanel } from '~components/chat/TextActionPanel';
 import { useChat } from '~hooks/use-chat';
 import { usePlatformDetection } from '~hooks/use-platform-detection';
+import { useTextAction } from '~hooks/use-text-action';
 import { useBrandStore } from '~store/use-brand-store';
 import { useChatStore } from '~store/use-chat-store';
 import { usePlatformStore } from '~store/use-platform-store';
@@ -30,6 +32,7 @@ export function ChatContainer({
   const platform = usePlatformStore((s) => s.currentPlatform);
   const pageContext = usePlatformStore((s) => s.pageContext);
   const { sendMessage } = useChat();
+  const textAction = useTextAction();
   const endRef = useRef<HTMLDivElement>(null);
   const [suggestedPrompt, setSuggestedPrompt] = useState('');
   usePlatformDetection();
@@ -104,7 +107,12 @@ export function ChatContainer({
                 </p>
               </div>
             ) : null}
-            <ChatActionChips onChipClick={setSuggestedPrompt} />
+            <ChatActionChips
+              onChipClick={setSuggestedPrompt}
+              onTextAction={(mode) => {
+                void textAction.start(mode);
+              }}
+            />
           </div>
         ) : (
           <>
@@ -122,6 +130,10 @@ export function ChatContainer({
         )}
       </div>
       <div className="shrink-0 px-4 pb-4 pt-2">
+        <TextActionPanel
+          hasActions={messages.length > 0}
+          textAction={textAction}
+        />
         <ChatInput
           key={brandId ?? 'no-brand'}
           onSend={handleSend}

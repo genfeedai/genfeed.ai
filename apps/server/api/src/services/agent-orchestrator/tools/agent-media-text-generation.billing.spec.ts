@@ -33,6 +33,21 @@ function createService(options: { hasCredits?: boolean } = {}) {
       .mockResolvedValue(options.hasCredits ?? true),
     deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
   };
+  const brandedTextActions = {
+    run: vi.fn().mockResolvedValue({
+      hasNewDispatch: true,
+      kind: 'completed',
+      result: {
+        hasBrandVoice: true,
+        isReplayed: false,
+        maxCharacters: 280,
+        mode: 'rewrite',
+        platform: 'twitter',
+        receiptId: 'receipt-1',
+        text: 'Rewritten',
+      },
+    }),
+  };
   const service = new AgentMediaTextGenerationService(
     {} as never,
     contentGeneratorService as never,
@@ -41,8 +56,15 @@ function createService(options: { hasCredits?: boolean } = {}) {
     brandsService as never,
     membersService as never,
     credits as never,
+    brandedTextActions as never,
   );
-  return { contentGeneratorService, credits, generationGateway, service };
+  return {
+    brandedTextActions,
+    contentGeneratorService,
+    credits,
+    generationGateway,
+    service,
+  };
 }
 
 describe('AgentMediaTextGenerationService billing and brand scope', () => {
@@ -144,5 +166,126 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
       success: false,
     });
     expect(generationGateway.generateArticle).not.toHaveBeenCalled();
+  });
+
+  describe('refineText', () => {
+    const params = {
+      brandId: 'brand-1',
+      mode: 'rewrite',
+      platform: 'twitter',
+      requestKey: '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c',
+      text: 'Draft to rewrite',
+    };
+
+    it('runs the branded text action once and charges the new dispatch', async () => {
+      const { brandedTextActions, credits, service } = createService();
+
+      const result = await service.refineText(params, headless);
+
+      expect(result).toMatchObject({
+        creditsUsed: 2,
+        data: { hasBrandVoice: true, text: 'Rewritten' },
+        isBillingDelegated: true,
+        success: true,
+      });
+      expect(brandedTextActions.run).toHaveBeenCalledExactlyOnceWith({
+        actor: { organizationId: 'org-1', userId: 'user-1' },
+        brandId: 'brand-1',
+        mode: 'rewrite',
+        platform: 'twitter',
+        requestKey: params.requestKey,
+        text: 'Draft to rewrite',
+      });
+      expect(credits.deductCreditsFromOrganization).toHaveBeenCalledOnce();
+      expect(credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        2,
+        expect.stringContaining('refine_text'),
+        expect.anything(),
+        { brandId: 'brand-1' },
+      );
+    });
+
+    it('answers a replay from the receipt without charging', async () => {
+      const { brandedTextActions, credits, service } = createService();
+      brandedTextActions.run.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'completed',
+        result: { isReplayed: true, text: 'Rewritten' },
+      });
+
+      const result = await service.refineText(params, headless);
+
+      expect(result).toMatchObject({ creditsUsed: 0, success: true });
+      expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+    });
+
+    it('refuses without credits before any provider work', async () => {
+      const { brandedTextActions, credits, service } = createService({
+        hasCredits: false,
+      });
+
+      const result = await service.refineText(params, headless);
+
+      expect(result).toMatchObject({
+        error: 'Not enough credits to generate content.',
+        success: false,
+      });
+      expect(brandedTextActions.run).not.toHaveBeenCalled();
+      expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+    });
+
+    it('reports a stopped action without charging and keeps its code', async () => {
+      const { brandedTextActions, credits, service } = createService();
+      brandedTextActions.run.mockResolvedValue({
+        code: 'limit_exceeded',
+        kind: 'failed',
+        message: 'The result did not fit.',
+        receiptId: 'receipt-2',
+      });
+
+      const result = await service.refineText(params, headless);
+
+      expect(result).toEqual({
+        creditsUsed: 0,
+        data: { code: 'limit_exceeded', receiptId: 'receipt-2' },
+        error: 'The result did not fit.',
+        success: false,
+      });
+      expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['an unknown mode', { mode: 'summarize' }, 'mode'],
+      ['a missing request key', { requestKey: undefined }, 'requestKey'],
+      ['a blank draft', { text: '   ' }, 'text'],
+    ])('rejects %s', async (_label, patch, field) => {
+      const { brandedTextActions, service } = createService();
+
+      const result = await service.refineText(
+        { ...params, ...patch },
+        headless,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(field);
+      expect(brandedTextActions.run).not.toHaveBeenCalled();
+    });
+
+    it('requires a brand', async () => {
+      const { brandedTextActions, service } = createService();
+
+      const result = await service.refineText(
+        { ...params, brandId: undefined },
+        headless,
+      );
+
+      expect(result).toMatchObject({
+        error: 'A brand is required to edit text.',
+        success: false,
+      });
+      expect(brandedTextActions.run).not.toHaveBeenCalled();
+    });
   });
 });

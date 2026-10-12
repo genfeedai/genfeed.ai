@@ -9,6 +9,7 @@ import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/brand
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { resolveAccountlessLearningReceipt } from '@api/services/branded-text-generation/accountless-learning-receipt.util';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
 import { brandedReasonHttpStatus } from '@api/services/branded-text-generation/branded-text-generation-outcome.util';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
@@ -22,18 +23,13 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
-import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type {
   AccountPublishingContext,
   PostDraftGenerationInput,
   PostDraftGenerationResult,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningGenerationReceipt } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type GenerationMetadata = Pick<
   AuthenticatedUser,
@@ -342,46 +338,15 @@ export class PostDraftGenerationService {
       .filter((section): section is string => Boolean(section))
       .join('\n');
   }
-  private async resolveAccountlessLearningReceipt(
+  private resolveAccountlessLearningReceipt(
     dto: PostDraftGenerationInput,
     identity: GenerationMetadata,
     brandId: string,
   ): Promise<LearningGenerationReceipt> {
-    const resolution = await this.learningDecisionService.resolveForGeneration({
-      organizationId: identity.organizationId,
+    return resolveAccountlessLearningReceipt(this.learningDecisionService, {
       brandId,
-      format: 'text',
+      organizationId: identity.organizationId,
       originalPrompt: dto.prompt,
-      harnessEnabled: false,
-      compatible: false,
     });
-    if (
-      resolution.receipt.mode !== 'no_destination' ||
-      resolution.receipt.reason !== 'no_destination' ||
-      resolution.receipt.synthetic !== false ||
-      Object.keys(resolution.contribution).length !== 0 ||
-      Object.keys(resolution.receipt).some(
-        (key) =>
-          !['mode', 'reason', 'configVersion', 'synthetic'].includes(key),
-      )
-    )
-      throw new InternalServerErrorException(
-        'Accountless learning receipt integrity failed',
-      );
-    const parsed = learningGenerationReceiptSchema.safeParse({
-      ...resolution.receipt,
-      application: {
-        status: 'unavailable',
-        reasonCodes: ['no_destination'],
-        privatePolicyApplied: false,
-        sharedReleaseApplied: false,
-        revalidatedAt: new Date().toISOString(),
-      },
-    });
-    if (!parsed.success)
-      throw new InternalServerErrorException(
-        'Accountless learning receipt integrity failed',
-      );
-    return parsed.data;
   }
 }

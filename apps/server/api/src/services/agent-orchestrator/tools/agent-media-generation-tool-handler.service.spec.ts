@@ -59,6 +59,7 @@ function createHandler() {
       brandsService as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       textGenerationCredits as never,
+      {} as never,
     ),
     assetGeneration,
     new AgentMediaTurboRunService(

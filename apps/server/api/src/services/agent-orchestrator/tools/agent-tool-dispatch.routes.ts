@@ -289,6 +289,8 @@ function dispatchMediaFamily(
       return handlers.mediaGenerationHandler.aiAction(params, ctx);
     case 'generate_content':
       return handlers.mediaGenerationHandler.generateContent(params, ctx);
+    case 'refine_text':
+      return handlers.mediaGenerationHandler.refineText(params, ctx);
     case 'generate':
       return handlers.mediaGenerationHandler.generate(params, ctx);
     case 'transform_media':

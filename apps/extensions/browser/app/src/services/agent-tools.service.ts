@@ -1,18 +1,41 @@
 import type { CuratedActionName } from '@genfeedai/actions';
 import { TargetExecutionState } from '@genfeedai/contracts';
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentToolResult,
+  TextActionResult,
+} from '@genfeedai/contracts/interfaces';
 import { apiEndpoint } from '~services/environment.service';
 import { HTTPBaseService } from '~services/http-base.service';
 import { assertWorkspace, requireWorkspace } from '~services/workspace.service';
+import type { TextActionRequest } from '~types/extension';
 
-export type ExtensionToolAction = 'analytics' | 'generate' | 'image' | 'post';
+export type ExtensionToolAction =
+  | 'analytics'
+  | 'generate'
+  | 'image'
+  | 'post'
+  | 'refine';
 
 const TOOL_NAME_BY_ACTION: Record<ExtensionToolAction, CuratedActionName> = {
   analytics: 'get_analytics',
   generate: 'generate_content',
   image: 'generate',
   post: 'create_post',
+  refine: 'refine_text',
 };
+
+function readTextActionResult(data: unknown): TextActionResult {
+  const record =
+    data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+  if (
+    typeof record.text !== 'string' ||
+    !record.text.trim() ||
+    typeof record.hasBrandVoice !== 'boolean'
+  ) {
+    throw new Error('No text returned from the action.');
+  }
+  return record as unknown as TextActionResult;
+}
 
 /** Thin browser adapter over the canonical action-backed agent-tool endpoint. */
 export class AgentToolsService extends HTTPBaseService {
@@ -38,6 +61,24 @@ export class AgentToolsService extends HTTPBaseService {
       throw new Error('No content returned from the action.');
     }
     return content;
+  }
+
+  /**
+   * Proofreads or rewrites a draft. The server resolves the brand authority and
+   * the voice; this sends only the draft, the platform, the mode, the requested
+   * brand and the request key that makes a repeat free.
+   */
+  async refineText(request: TextActionRequest): Promise<TextActionResult> {
+    const workspace = await requireWorkspace();
+    const result = await this.execute('refine', {
+      brandId: workspace.brandId,
+      mode: request.mode,
+      platform: request.platform,
+      requestKey: request.requestKey,
+      text: request.text,
+    });
+    assertWorkspace(workspace);
+    return readTextActionResult(result.data);
   }
 
   async saveDraft(

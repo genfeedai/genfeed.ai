@@ -1,5 +1,6 @@
 // UI helper functions for creating buttons and icons
 
+import { runPageTextAction } from '~platforms/text-action-flow';
 import { findElement } from '~platforms/twitter-selectors';
 import { logoWhiteURL } from '~services/environment.service';
 import { applyContentThemeToElement } from '~theme/content-theme';
@@ -1380,6 +1381,32 @@ export function createGenFeedDropdown(
       }, 3000);
     }
   });
+
+  // Proofread / Rewrite act on the draft in the composer and only preview it.
+  const textActionItems = (
+    [
+      ['proofread', 'Proofread'],
+      ['rewrite', 'Rewrite in my voice'],
+    ] as const
+  ).map(([mode, label]) => {
+    const item = document.createElement('button');
+    item.className = 'genfeed-menu-item';
+    item.innerHTML = `${icons.sparkles}<span>${label}</span>`;
+    item.addEventListener('click', async () => {
+      menu.classList.remove('active');
+      item.disabled = true;
+      try {
+        await runPageTextAction(mode, {
+          markWritten: markWrittenByGenfeed,
+          notify: showGenfeedToast,
+        });
+      } finally {
+        item.disabled = false;
+      }
+    });
+    return item;
+  });
+  menu.append(...textActionItems);
 
   const replyItem = document.createElement('button');
   replyItem.className = 'genfeed-menu-item';

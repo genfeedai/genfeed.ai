@@ -25,6 +25,7 @@ vi.mock('~platforms/config', () => ({
   getPlatformName: () => null,
 }));
 vi.mock('~platforms/composer-helpers', () => ({
+  captureComposerText: vi.fn(),
   getComposerState: () => ({ composeBoxAvailable: false }),
   insertContentIntoComposer: vi.fn(),
 }));

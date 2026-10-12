@@ -195,6 +195,7 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.rate_ingredient',
   'agent.tool.read_knowledge_source',
   'agent.tool.record_external_publication',
+  'agent.tool.refine_text',
   'agent.tool.rename_brand',
   'agent.tool.render_dashboard',
   'agent.tool.replicate_top_ingredient',

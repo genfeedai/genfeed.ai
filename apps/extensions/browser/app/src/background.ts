@@ -1,4 +1,5 @@
 import { IngredientStatus } from '@genfeedai/contracts';
+import { TEXT_ACTION_MODES } from '@genfeedai/contracts/constants/text-action.constant';
 import type {
   AgentArtifactReference,
   ExtensionWorkspaceSnapshot,
@@ -36,7 +37,7 @@ import {
   requireWorkspace,
   scopedWorkspaceRequest,
 } from '~services/workspace.service';
-import type { ExtensionMessage } from '~types/extension';
+import type { ExtensionMessage, TextActionRequest } from '~types/extension';
 import {
   extractKnowledgeSnapshot,
   prepareKnowledgeSnapshot,
@@ -366,8 +367,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       createVideoFromPrompt(request.prompt, sendResponse);
       return true;
 
-    case 'improvePost':
-      improveTweetContent(request.postContent, sendResponse);
+    case 'refineText':
+      refineText(request, sendResponse);
       return true;
 
     case 'generatePostImage':
@@ -605,20 +606,32 @@ async function generateAIReply(
   );
 }
 
-async function improveTweetContent(
-  tweetContent: string,
+async function refineText(
+  request: Partial<TextActionRequest>,
   sendResponse: SendResponse,
 ): Promise<void> {
   try {
+    if (
+      !request.mode ||
+      !(TEXT_ACTION_MODES as readonly string[]).includes(request.mode) ||
+      typeof request.text !== 'string' ||
+      !request.text.trim() ||
+      typeof request.platform !== 'string' ||
+      typeof request.requestKey !== 'string'
+    ) {
+      throw new Error('Select the text to edit first.');
+    }
     const token = await authService.getToken();
     if (!token) throw new Error('Not authenticated');
-    const improvedTweet = await new AgentToolsService(token).generateText(
-      `Improve the following post while preserving its meaning. Return only the improved text.\n${tweetContent}`,
-      'twitter',
-    );
-    sendResponse({ improvedTweet, success: true });
+    const result = await new AgentToolsService(token).refineText({
+      mode: request.mode,
+      platform: request.platform,
+      requestKey: request.requestKey,
+      text: request.text,
+    });
+    sendResponse({ result, success: true });
   } catch (error) {
-    sendError(sendResponse, 'Failed to improve post', error);
+    sendError(sendResponse, 'Failed to edit the text', error);
   }
 }
 
