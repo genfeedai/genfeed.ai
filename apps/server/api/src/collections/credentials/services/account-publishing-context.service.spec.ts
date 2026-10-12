@@ -433,6 +433,33 @@ describe('AccountPublishingContextService', () => {
     );
   });
 
+  it('makes newsletters publishable only on a Beehiiv publication', async () => {
+    const twitterContext = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'newsletter',
+    });
+    expect(twitterContext.publishability).toBe('copy_only');
+
+    credentialsService.findOne.mockResolvedValueOnce({
+      accessToken: 'secret-token',
+      brandId,
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      organizationId,
+      platform: CredentialPlatform.BEEHIIV,
+    });
+    const beehiivContext = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'newsletter',
+    });
+    expect(beehiivContext.publishability).toBe('publishable');
+  });
+
   it('marks X Articles as copy-only rich-copy surfaces', async () => {
     const context = await service.resolve({
       brandId,

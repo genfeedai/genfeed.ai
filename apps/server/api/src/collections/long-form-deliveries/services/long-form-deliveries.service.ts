@@ -251,7 +251,7 @@ export class LongFormDeliveriesService {
       organizationId,
       source,
     );
-    return releases.flatMap((release) => release.targets);
+    return releases.flatMap((release) => release.targets ?? []);
   }
 
   /**
