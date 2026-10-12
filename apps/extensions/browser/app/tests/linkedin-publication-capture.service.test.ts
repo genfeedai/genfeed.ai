@@ -61,7 +61,7 @@ const POST = 'urn:li:activity:7100000000000000001';
 const COMMENT =
   'urn:li:comment:(activity:7100000000000000001,7100000000000000002)';
 const permalink = `${ORIGIN}/feed/update/${POST}/`;
-const commentLink = `${ORIGIN}/feed/update/${POST}/?commentUrn=${encodeURIComponent(COMMENT)}`;
+const commentLink = `${ORIGIN}/feed/update/${POST}/?${new URLSearchParams({ commentUrn: COMMENT })}`;
 const result = {
   postId: 'post',
   created: true,

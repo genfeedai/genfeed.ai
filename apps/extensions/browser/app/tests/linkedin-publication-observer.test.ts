@@ -254,7 +254,7 @@ it('rejects a toast that is not this new post', () => {
   expect(published(`https://example.com/feed/update/${postUrn}/`)).toEqual([]);
   expect(
     published(
-      `${postPermalink}?commentUrn=${encodeURIComponent(newCommentUrn)}`,
+      `${postPermalink}?${new URLSearchParams({ commentUrn: newCommentUrn })}`,
     ),
   ).toEqual([]);
   expect(published(`${ORIGIN}/in/own-author/`)).toEqual([]);
@@ -284,7 +284,7 @@ it('confirms a new comment under the parent post and nothing else', () => {
   expect(found).toEqual([
     {
       externalId: newCommentUrn,
-      url: `${ORIGIN}/feed/update/${parentUrn}/?commentUrn=${encodeURIComponent(newCommentUrn)}`,
+      url: `${ORIGIN}/feed/update/${parentUrn}/?${new URLSearchParams({ commentUrn: newCommentUrn })}`,
       authorHandle: 'own-author',
       publicationDate: new Date(startedAt + 3000).toISOString(),
     },
@@ -469,7 +469,7 @@ it('arms a reply under its post, then records the new comment', async () => {
   expect(calls('publicationCaptureComplete')[0][0]).toMatchObject({
     observation: {
       externalId: newCommentUrn,
-      url: `${ORIGIN}/feed/update/${parentUrn}/?commentUrn=${encodeURIComponent(newCommentUrn)}`,
+      url: `${ORIGIN}/feed/update/${parentUrn}/?${new URLSearchParams({ commentUrn: newCommentUrn })}`,
       authorHandle: 'own-author',
       description: 'Own reply',
     },

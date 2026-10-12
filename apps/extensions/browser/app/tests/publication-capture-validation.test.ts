@@ -200,7 +200,7 @@ const linkedInObservation = {
 const commentObservation = {
   ...linkedInObservation,
   externalId: COMMENT,
-  url: `${LINKEDIN}/feed/update/${POST}/?commentUrn=${encodeURIComponent(COMMENT)}`,
+  url: `${LINKEDIN}/feed/update/${POST}/?${new URLSearchParams({ commentUrn: COMMENT })}`,
   description: 'Own comment',
 };
 it('parses LinkedIn post and comment attempts and rejects a surface from another platform', () => {
@@ -309,7 +309,7 @@ it('validates a LinkedIn publication by its permalink, kind and time', () => {
       {
         ...commentObservation,
         externalId: other,
-        url: `${LINKEDIN}/feed/update/urn:li:activity:7100000000000000009/?commentUrn=${encodeURIComponent(other)}`,
+        url: `${LINKEDIN}/feed/update/urn:li:activity:7100000000000000009/?${new URLSearchParams({ commentUrn: other })}`,
       },
       now,
     ),
