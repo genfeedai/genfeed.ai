@@ -67,42 +67,46 @@ export function findDroppedTokens(
   ];
 }
 
-export type TextActionRejection = 'limit' | 'tokens';
+export type TextActionRejection = 'empty' | 'limit' | 'tokens';
 
-export interface TextActionAcceptance {
-  accept: (text: string) => boolean;
-  /** Why the last rejected text was rejected. */
+/**
+ * The deterministic gate on a provider answer. `normalize` returns the text to
+ * save for an accepted answer, or null to reject it; `rejection` says why the
+ * last answer was rejected.
+ */
+export interface TextActionGate {
+  normalize: (raw: string) => string | null;
   rejection: () => TextActionRejection | null;
 }
 
 /**
- * The deterministic gate on a provider answer: it must fit the channel and
+ * Gate for an edit of the user's own draft: the answer must fit the channel and
  * keep what the author wrote that an edit may not touch. Proofreading keeps
  * mentions, hashtags and links; rewriting keeps mentions and links.
  */
-export function createTextActionAcceptance(input: {
+export function createTextActionGate(input: {
   maxCharacters: number;
   mode: 'proofread' | 'rewrite';
   source: string;
   usesWeightedCharacters: boolean;
-}): TextActionAcceptance {
+}): TextActionGate {
   const kinds: ProtectedTokenKind[] =
     input.mode === 'proofread'
       ? ['mention', 'hashtag', 'link']
       : ['mention', 'link'];
   let reason: TextActionRejection | null = null;
   return {
-    accept: (text) => {
+    normalize: (text) => {
       const length = measureChannelText(text, input.usesWeightedCharacters);
       if (length === 0 || length > input.maxCharacters) {
         reason = 'limit';
-        return false;
+        return null;
       }
       if (findDroppedTokens(input.source, text, kinds).length > 0) {
         reason = 'tokens';
-        return false;
+        return null;
       }
-      return true;
+      return text;
     },
     rejection: () => reason,
   };

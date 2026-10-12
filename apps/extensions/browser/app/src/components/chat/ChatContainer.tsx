@@ -2,12 +2,13 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
-import { MessageSquare, PenLine, Shuffle } from 'lucide-react';
+import { PenLine, Shuffle } from 'lucide-react';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
 import { ChatActionChips } from '~components/chat/ChatActionChips';
 import { ChatInput } from '~components/chat/ChatInput';
 import { ChatMessage } from '~components/chat/ChatMessage';
 import { TextActionPanel } from '~components/chat/TextActionPanel';
+import { ReplyPage } from '~components/pages/ReplyPage';
 import { useChat } from '~hooks/use-chat';
 import { usePlatformDetection } from '~hooks/use-platform-detection';
 import { useTextAction } from '~hooks/use-text-action';
@@ -17,11 +18,15 @@ import { usePlatformStore } from '~store/use-platform-store';
 
 export function ChatContainer({
   mode = 'chat',
+  initialAuthor = '',
   initialContent = '',
+  initialPlatform = '',
   initialUrl = '',
 }: {
   mode?: 'chat' | 'reply' | 'remix';
+  initialAuthor?: string;
   initialContent?: string;
+  initialPlatform?: string;
   initialUrl?: string;
 }): ReactElement {
   const messages = useChatStore((s) => s.messages);
@@ -56,8 +61,7 @@ export function ChatContainer({
     const prompt = `${content}${platform ? `\nPlatform: ${platform}.` : ''}${source ? `\nSource content to ${mode === 'remix' ? 'remix' : 'reference'}:\n${source}` : ''}${url ? `\nSource URL: ${url}` : ''}`;
     return sendMessage(prompt, references, content);
   }
-  const Icon =
-    mode === 'reply' ? MessageSquare : mode === 'remix' ? Shuffle : PenLine;
+  const Icon = mode === 'remix' ? Shuffle : PenLine;
   return (
     <div className="flex h-full min-h-0 flex-col">
       {error ? (
@@ -76,25 +80,28 @@ export function ChatContainer({
         </div>
       ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && mode === 'reply' ? (
+          <ReplyPage
+            initialAuthor={initialAuthor}
+            initialContent={initialContent}
+            initialPlatform={initialPlatform}
+            initialUrl={initialUrl}
+          />
+        ) : messages.length === 0 ? (
           <div className="flex h-full flex-col justify-center gap-5 pb-8">
             <div className="flex size-10 items-center justify-center rounded-xl border border-border bg-background-secondary">
               <Icon className="size-5 text-muted-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-medium tracking-tight">
-                {mode === 'reply'
-                  ? 'Join the conversation'
-                  : mode === 'remix'
-                    ? 'Make it your own'
-                    : 'What are we creating?'}
+                {mode === 'remix'
+                  ? 'Make it your own'
+                  : 'What are we creating?'}
               </h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {mode === 'reply'
-                  ? 'Draft a reply in your brand voice, with assets from your Library.'
-                  : mode === 'remix'
-                    ? 'Turn inspiration into something that sounds and looks like your brand.'
-                    : 'Write a post, draft a comment, or remix inspiration from the page you’re browsing.'}
+                {mode === 'remix'
+                  ? 'Turn inspiration into something that sounds and looks like your brand.'
+                  : 'Write a post, draft a comment, or remix inspiration from the page you’re browsing.'}
               </p>
             </div>
             {initialContent ? (

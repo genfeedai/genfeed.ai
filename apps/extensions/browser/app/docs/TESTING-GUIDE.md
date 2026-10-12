@@ -309,7 +309,7 @@ Genfeed: Injecting buttons for [Platform], post ID: [ID]
 Verify these API calls:
 
 - `POST https://api.genfeed.ai/posts/save` - Save posts
-- `POST https://api.genfeed.ai/prompts/tweet` - Generate replies
+- `POST https://api.genfeed.ai/agent-tools/generate_reply_variants/execute` - Generate reply options
 
 ### DOM Inspection
 

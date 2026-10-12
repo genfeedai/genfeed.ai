@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
   generateText: vi.fn(),
   refineText: vi.fn(),
+  generateReplyVariants: vi.fn(),
   getToken: vi.fn(),
   fetch: vi.fn(),
   addListener: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('~services/agent-tools.service', () => ({
     execute = mocks.execute;
     generateText = mocks.generateText;
     refineText = mocks.refineText;
+    generateReplyVariants = mocks.generateReplyVariants;
   },
 }));
 
@@ -66,6 +68,14 @@ beforeEach(() => {
   mocks.workspaceBrand = 'brand-1';
   mocks.getToken.mockResolvedValue('token');
   mocks.generateText.mockReset().mockResolvedValue('Generated text');
+  mocks.generateReplyVariants.mockReset().mockResolvedValue({
+    hasBrandVoice: true,
+    isReplayed: false,
+    maxCharacters: 280,
+    platform: 'twitter',
+    tone: 'agree',
+    variants: ['First reply', 'Second reply'],
+  });
   mocks.refineText.mockReset().mockResolvedValue({
     hasBrandVoice: true,
     isReplayed: false,
@@ -178,6 +188,136 @@ describe('background user action routing', () => {
     });
     expect(response).toEqual({ error: 'Not authenticated', success: false });
     expect(mocks.refineText).not.toHaveBeenCalled();
+  });
+
+  describe('reply options', () => {
+    const requestKey = '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c';
+    const request = {
+      event: 'generateReplyVariants',
+      platform: 'reddit',
+      postAuthor: 'u/ada',
+      postContent: 'We just launched.',
+      requestKey,
+      tone: 'challenge',
+      variants: 4,
+    };
+
+    it('routes the request to the catalog action once, with the source post and tone', async () => {
+      const response = await dispatch(request);
+
+      expect(response).toEqual({
+        result: expect.objectContaining({
+          variants: ['First reply', 'Second reply'],
+        }),
+        success: true,
+      });
+      expect(mocks.generateReplyVariants).toHaveBeenCalledExactlyOnceWith({
+        platform: 'reddit',
+        postAuthor: 'u/ada',
+        postContent: 'We just launched.',
+        requestKey,
+        tone: 'challenge',
+        variants: 4,
+      });
+      expect(mocks.generateText).not.toHaveBeenCalled();
+      expect(mocks.fetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a blank post', { postContent: ' ' }],
+      ['an unknown tone', { tone: 'friendly' }],
+      ['a missing tone', { tone: undefined }],
+      ['a missing platform', { platform: undefined }],
+      ['a missing request key', { requestKey: undefined }],
+    ])('rejects %s before any request', async (_label, patch) => {
+      const response = await dispatch({ ...request, ...patch });
+
+      expect(response).toEqual({
+        error: 'Open a post to reply to first.',
+        success: false,
+      });
+      expect(mocks.generateReplyVariants).not.toHaveBeenCalled();
+    });
+
+    it('requires a signed-in user', async () => {
+      mocks.getToken.mockResolvedValue(null);
+
+      expect(await dispatch(request)).toEqual({
+        error: 'Not authenticated',
+        success: false,
+      });
+      expect(mocks.generateReplyVariants).not.toHaveBeenCalled();
+    });
+
+    it('answers the single-click reply button with one add-value reply and a fresh key', async () => {
+      mocks.generateReplyVariants.mockResolvedValue({
+        hasBrandVoice: true,
+        variants: ['Only reply'],
+      });
+
+      const response = await dispatch({
+        event: 'generateReply',
+        platform: 'twitter',
+        postAuthor: '@ada',
+        postContent: 'We just launched.',
+        postId: '1',
+        url: 'https://x.com/ada/status/1',
+      });
+
+      expect(response).toEqual({
+        reply: 'Only reply',
+        success: true,
+        variants: ['Only reply'],
+      });
+      expect(mocks.generateReplyVariants).toHaveBeenCalledExactlyOnceWith({
+        platform: 'twitter',
+        postAuthor: '@ada',
+        postContent: 'We just launched.',
+        requestKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        tone: 'add-value',
+        variants: 1,
+      });
+    });
+
+    it.each([
+      ['generateReplyWithMedia', { mediaType: 'image' }],
+      ['generateReplyWithVideo', { duration: 5 }],
+    ])(
+      'writes the reply text of %s through the same action, never /prompts/tweet',
+      async (event, extra) => {
+        mocks.generateReplyVariants.mockResolvedValue({
+          hasBrandVoice: true,
+          variants: ['Reply text'],
+        });
+        mocks.fetch.mockResolvedValue({
+          ok: false,
+          json: async () => ({}),
+        });
+
+        await dispatch({
+          event,
+          platform: 'twitter',
+          postAuthor: '@ada',
+          postContent: 'We just launched.',
+          postId: '1',
+          url: 'https://x.com/ada/status/1',
+          ...extra,
+        });
+
+        expect(mocks.generateReplyVariants).toHaveBeenCalledExactlyOnceWith({
+          platform: 'twitter',
+          postAuthor: '@ada',
+          postContent: 'We just launched.',
+          requestKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          tone: 'add-value',
+          variants: 1,
+        });
+        const requested = mocks.fetch.mock.calls.map((call) => String(call[0]));
+        expect(requested.some((url) => url.includes('prompts/tweet'))).toBe(
+          false,
+        );
+      },
+    );
   });
 
   it.each(['generatePostImage', 'generateImage'])(

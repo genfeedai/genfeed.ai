@@ -31,6 +31,7 @@ describe('AgentToolsService', () => {
     ['image', 'generate', { prompt: 'Launch artwork', type: 'image' }],
     ['post', 'create_post', { content: 'Draft' }],
     ['refine', 'refine_text', { mode: 'rewrite', text: 'Draft' }],
+    ['replies', 'generate_reply_variants', { tone: 'agree' }],
   ] as const)(
     'executes %s with one catalog request',
     async (action, tool, parameters) => {
@@ -126,6 +127,84 @@ describe('AgentToolsService', () => {
         text: 'Draft',
       }),
     ).rejects.toThrow('already running');
+  });
+
+  it('drafts reply options through the catalog with the source post, platform, tone and key', async () => {
+    const data = {
+      hasBrandVoice: true,
+      isReplayed: false,
+      maxCharacters: 280,
+      platform: 'twitter',
+      tone: 'agree',
+      variants: ['One', 'Two'],
+    };
+    post.mockResolvedValue({ data: { creditsUsed: 2, data, success: true } });
+
+    await expect(
+      new AgentToolsService('token').generateReplyVariants({
+        platform: 'twitter',
+        postAuthor: '@ada',
+        postContent: 'We launched.',
+        requestKey: 'key-4',
+        tone: 'agree',
+      }),
+    ).resolves.toEqual(data);
+    expect(post).toHaveBeenCalledExactlyOnceWith(
+      '/agent-tools/generate_reply_variants/execute',
+      {
+        parameters: {
+          brandId: 'brand-1',
+          platform: 'twitter',
+          postAuthor: '@ada',
+          postContent: 'We launched.',
+          requestKey: 'key-4',
+          tone: 'agree',
+          variants: undefined,
+        },
+        context: { brandId: 'brand-1' },
+      },
+    );
+  });
+
+  it('leaves out a blank author', async () => {
+    post.mockResolvedValue({
+      data: {
+        data: { hasBrandVoice: false, variants: ['One'] },
+        success: true,
+      },
+    });
+
+    await new AgentToolsService('token').generateReplyVariants({
+      platform: 'reddit',
+      postAuthor: '',
+      postContent: 'A post',
+      requestKey: 'key-5',
+      tone: 'funny',
+      variants: 2,
+    });
+
+    expect(post.mock.calls[0][1].parameters).toMatchObject({
+      postAuthor: undefined,
+      variants: 2,
+    });
+  });
+
+  it.each([
+    [{ hasBrandVoice: true, variants: [] }],
+    [{ hasBrandVoice: true, variants: ['  '] }],
+    [{ hasBrandVoice: true, variants: [1] }],
+    [{ variants: ['One'] }],
+    [{}],
+  ])('rejects a malformed reply options result', async (data) => {
+    post.mockResolvedValue({ data: { data, success: true } });
+    await expect(
+      new AgentToolsService('token').generateReplyVariants({
+        platform: 'twitter',
+        postContent: 'A post',
+        requestKey: 'key-6',
+        tone: 'agree',
+      }),
+    ).rejects.toThrow('No replies returned');
   });
 
   it('surfaces action failures even when HTTP succeeds', async () => {

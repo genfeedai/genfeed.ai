@@ -34,6 +34,18 @@ function createService(options: { hasCredits?: boolean } = {}) {
     deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
   };
   const brandedTextActions = {
+    draftReplyVariants: vi.fn().mockResolvedValue({
+      hasNewDispatch: true,
+      kind: 'completed',
+      result: {
+        hasBrandVoice: true,
+        isReplayed: false,
+        maxCharacters: 280,
+        platform: 'twitter',
+        tone: 'agree',
+        variants: ['One', 'Two'],
+      },
+    }),
     run: vi.fn().mockResolvedValue({
       hasNewDispatch: true,
       kind: 'completed',
@@ -286,6 +298,127 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
         success: false,
       });
       expect(brandedTextActions.run).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('generateReplyVariants', () => {
+    const params = {
+      brandId: 'brand-1',
+      platform: 'twitter',
+      postAuthor: '@ada',
+      postContent: 'We just launched.',
+      requestKey: '6f1c1b1e-1a0b-4e0f-9a3e-0c3d2f4b5a6c',
+      tone: 'agree',
+    };
+
+    it('drafts the replies once with the post, author and tone and charges one flat draft', async () => {
+      const { brandedTextActions, credits, service } = createService();
+
+      const result = await service.generateReplyVariants(params, headless);
+
+      expect(result).toMatchObject({
+        creditsUsed: 2,
+        data: { variants: ['One', 'Two'] },
+        isBillingDelegated: true,
+        success: true,
+      });
+      expect(
+        brandedTextActions.draftReplyVariants,
+      ).toHaveBeenCalledExactlyOnceWith({
+        actor: { organizationId: 'org-1', userId: 'user-1' },
+        brandId: 'brand-1',
+        platform: 'twitter',
+        postAuthor: '@ada',
+        postContent: 'We just launched.',
+        requestKey: params.requestKey,
+        tone: 'agree',
+        variants: 3,
+      });
+      expect(credits.deductCreditsFromOrganization).toHaveBeenCalledOnce();
+      expect(credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        2,
+        expect.stringContaining('generate_reply_variants'),
+        expect.anything(),
+        { brandId: 'brand-1' },
+      );
+    });
+
+    it('does not charge a replay of the same request key', async () => {
+      const { brandedTextActions, credits, service } = createService();
+      brandedTextActions.draftReplyVariants.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'completed',
+        result: { isReplayed: true, variants: ['One'] },
+      });
+
+      expect(
+        await service.generateReplyVariants(params, headless),
+      ).toMatchObject({ creditsUsed: 0, success: true });
+      expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+    });
+
+    it('refuses without credits before any model work', async () => {
+      const { brandedTextActions, service } = createService({
+        hasCredits: false,
+      });
+
+      expect(
+        await service.generateReplyVariants(params, headless),
+      ).toMatchObject({
+        error: 'Not enough credits to generate content.',
+        success: false,
+      });
+      expect(brandedTextActions.draftReplyVariants).not.toHaveBeenCalled();
+    });
+
+    it('reports a failed draft without charging', async () => {
+      const { brandedTextActions, credits, service } = createService();
+      brandedTextActions.draftReplyVariants.mockResolvedValue({
+        code: 'no_usable_reply',
+        kind: 'failed',
+        message: 'The model gave no usable reply. Try again.',
+      });
+
+      expect(await service.generateReplyVariants(params, headless)).toEqual({
+        creditsUsed: 0,
+        data: { code: 'no_usable_reply' },
+        error: 'The model gave no usable reply. Try again.',
+        success: false,
+      });
+      expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['an unknown tone', { tone: 'friendly' }, 'tone'],
+      ['too many variants', { variants: 9 }, 'variants'],
+      ['an empty post', { postContent: '' }, 'postContent'],
+    ])('rejects %s', async (_label, patch, field) => {
+      const { brandedTextActions, service } = createService();
+
+      const result = await service.generateReplyVariants(
+        { ...params, ...patch },
+        headless,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(field);
+      expect(brandedTextActions.draftReplyVariants).not.toHaveBeenCalled();
+    });
+
+    it('requires a brand', async () => {
+      const { service } = createService();
+
+      expect(
+        await service.generateReplyVariants(
+          { ...params, brandId: undefined },
+          headless,
+        ),
+      ).toMatchObject({
+        error: 'A brand is required to write replies.',
+        success: false,
+      });
     });
   });
 });

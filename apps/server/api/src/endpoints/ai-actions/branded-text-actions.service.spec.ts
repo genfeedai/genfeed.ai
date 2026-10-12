@@ -1,8 +1,12 @@
+import { BrandedTextActionsService } from '@api/endpoints/ai-actions/branded-text-actions.service';
+import type {
+  ReplyVariantsRequestV1,
+  TextActionRequestV1,
+} from '@api/endpoints/ai-actions/branded-text-actions.types';
 import {
-  BrandedTextActionsService,
+  BrandedTextRunnerService,
   NO_BRAND_VOICE_HINT,
-} from '@api/endpoints/ai-actions/branded-text-actions.service';
-import type { TextActionRequestV1 } from '@api/endpoints/ai-actions/branded-text-actions.types';
+} from '@api/endpoints/ai-actions/branded-text-runner.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
@@ -52,12 +56,16 @@ function createService() {
   };
   const logger = { error: vi.fn() };
   const service = new BrandedTextActionsService(
-    branded as never,
-    posts as never,
-    {} as never,
-    { resolveModelKey: vi.fn().mockResolvedValue('openai/mini-text') } as never,
-    openRouter as never,
-    logger as never,
+    new BrandedTextRunnerService(
+      branded as never,
+      posts as never,
+      {} as never,
+      {
+        resolveModelKey: vi.fn().mockResolvedValue('openai/mini-text'),
+      } as never,
+      openRouter as never,
+      logger as never,
+    ),
   );
   return { branded, logger, openRouter, posts, service };
 }
@@ -367,5 +375,210 @@ describe('BrandedTextActionsService', () => {
       await ctx.service.run({ ...request, platform: 'myspace' }),
     ).toMatchObject({ code: 'unsupported_platform', kind: 'failed' });
     expect(ctx.branded.generate).not.toHaveBeenCalled();
+  });
+
+  describe('draftReplyVariants', () => {
+    const reply: ReplyVariantsRequestV1 = {
+      actor: request.actor,
+      brandId: 'brand-1',
+      platform: 'twitter',
+      postAuthor: '@ada',
+      postContent: 'We just launched our public API.',
+      requestKey,
+      tone: 'add-value',
+      variants: 3,
+    };
+
+    function seamOf(): BrandedTextGenerationRequestV1 {
+      return ctx.branded.generate.mock
+        .calls[0][0] as BrandedTextGenerationRequestV1;
+    }
+
+    function completed(text: string | null, hasNewDispatch = true) {
+      ctx.branded.generate.mockResolvedValue({
+        hasNewDispatch,
+        kind: 'completed',
+        postId: 'post-1',
+        receipt: receipt(),
+        text,
+      });
+    }
+
+    it('asks the seam for a reply set with the real post, author and tone', async () => {
+      completed('One\n---\nTwo\n---\nThree');
+
+      await ctx.service.draftReplyVariants(reply);
+
+      const seam = seamOf();
+      expect(seam.input).toMatchObject({
+        brandId: 'brand-1',
+        candidateIndex: 0,
+        contentType: 'reply',
+        format: 'text',
+        mode: 'approved_brand',
+        platform: 'twitter',
+        requestKey,
+        surface: 'agent',
+      });
+      expect(seam.input.generationParameters).toMatchObject({
+        temperature: 0.9,
+      });
+      const prompt = seam.input.originalPrompt;
+      expect(prompt).toContain(
+        'Write 3 distinct replies to the X (Twitter) post',
+      );
+      expect(prompt).toContain('add something the post does not already say');
+      expect(prompt).toContain('The post was written by @ada.');
+      expect(prompt).toContain('at most 280 characters');
+      expect(prompt).toContain(
+        '<post>\nWe just launched our public API.\n</post>',
+      );
+    });
+
+    it('returns the distinct variants the seam saved', async () => {
+      completed('Great launch!\n---\nWhat about rate limits?\n---\nNice docs');
+
+      expect(await ctx.service.draftReplyVariants(reply)).toEqual({
+        hasNewDispatch: true,
+        kind: 'completed',
+        result: {
+          hasBrandVoice: true,
+          isReplayed: false,
+          maxCharacters: 280,
+          platform: 'twitter',
+          receiptId: 'receipt-1',
+          tone: 'add-value',
+          variants: ['Great launch!', 'What about rate limits?', 'Nice docs'],
+        },
+      });
+    });
+
+    it('saves the normalized variants as the receipt artifact and accepts what survives the gate', async () => {
+      completed('x');
+      await ctx.service.draftReplyVariants(reply);
+      const seam = seamOf();
+      const raw =
+        '1. "Great launch!"\n---\ngreat launch\n---\n' +
+        `${'word '.repeat(80)}\n---\nFour\n---\nFive`;
+
+      expect(seam.acceptText(raw)).toBe(true);
+      await seam.persistText(raw);
+
+      const saved = ctx.posts.create.mock.calls[0][0].description as string;
+      const variants = saved.split('\n---\n');
+      expect(variants).toHaveLength(3);
+      expect(variants[0]).toBe('Great launch!');
+      expect(variants[1].length).toBeLessThanOrEqual(280);
+      expect(variants[1].endsWith('…')).toBe(true);
+      expect(variants[2]).toBe('Four');
+      expect(ctx.posts.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'Extension reply options',
+          sourceActionId: requestKey,
+        }),
+      );
+      expect(seam.acceptText('---\n---')).toBe(false);
+    });
+
+    it.each([
+      ['tiktok', 150],
+      ['linkedin', 1250],
+      ['reddit', 10_000],
+      ['youtube', 10_000],
+      ['facebook', 8000],
+      ['instagram', 2200],
+    ])(
+      'holds %s replies to its comment limit of %i',
+      async (platform, limit) => {
+        completed('One');
+
+        const outcome = await ctx.service.draftReplyVariants({
+          ...reply,
+          platform,
+        });
+
+        expect(outcome).toMatchObject({ result: { maxCharacters: limit } });
+        expect(seamOf().input.originalPrompt).toContain(
+          `at most ${limit} characters`,
+        );
+      },
+    );
+
+    it('answers a replay from the saved variants without a new dispatch', async () => {
+      ctx.posts.findOne.mockResolvedValue({
+        description: 'Saved one\n---\nSaved two',
+      });
+      ctx.branded.generate.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'completed',
+        postId: 'post-1',
+        receipt: receipt({
+          artifact: {
+            version: hashBrandedGenerationTextV1('Saved one\n---\nSaved two'),
+          },
+        }),
+        text: null,
+      });
+
+      expect(await ctx.service.draftReplyVariants(reply)).toMatchObject({
+        hasNewDispatch: false,
+        result: { isReplayed: true, variants: ['Saved one', 'Saved two'] },
+      });
+    });
+
+    it('writes plain replies for a brand with no approved voice', async () => {
+      ctx.branded.generate.mockResolvedValue({
+        hasNewDispatch: false,
+        kind: 'stopped',
+        postId: null,
+        reasonCode: 'no_approved_revision',
+        receipt: receipt({ state: 'blocked' }),
+      });
+      ctx.openRouter.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Plain one\n---\nPlain two' } }],
+      });
+
+      expect(await ctx.service.draftReplyVariants(reply)).toEqual({
+        hasNewDispatch: true,
+        kind: 'completed',
+        result: {
+          hasBrandVoice: false,
+          isReplayed: false,
+          maxCharacters: 280,
+          platform: 'twitter',
+          tone: 'add-value',
+          variants: ['Plain one', 'Plain two'],
+          voiceHint: NO_BRAND_VOICE_HINT,
+        },
+      });
+      const prompt = ctx.openRouter.chatCompletion.mock.calls[0][0].messages[0]
+        .content as string;
+      expect(prompt).toContain('natural, friendly voice');
+      expect(prompt).not.toContain('brand voice');
+    });
+
+    it('reports an answer with no usable reply', async () => {
+      ctx.branded.generate.mockResolvedValue({
+        hasNewDispatch: true,
+        kind: 'stopped',
+        postId: null,
+        reasonCode: 'channel_limit_exceeded',
+        receipt: receipt({ state: 'failed' }),
+      });
+
+      expect(await ctx.service.draftReplyVariants(reply)).toEqual({
+        code: 'no_usable_reply',
+        kind: 'failed',
+        message: 'The model gave no usable reply. Try again.',
+        receiptId: 'receipt-1',
+      });
+    });
+
+    it('rejects an unknown platform before any model work', async () => {
+      expect(
+        await ctx.service.draftReplyVariants({ ...reply, platform: 'myspace' }),
+      ).toMatchObject({ code: 'unsupported_platform', kind: 'failed' });
+      expect(ctx.branded.generate).not.toHaveBeenCalled();
+    });
   });
 });

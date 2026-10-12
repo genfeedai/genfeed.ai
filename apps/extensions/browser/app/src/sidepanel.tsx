@@ -36,6 +36,7 @@ interface PanelState {
   activeTab: ActiveTab;
   pendingAuthor: string;
   pendingContent: string;
+  pendingPlatform: string;
   pendingUrl: string;
   captureMode?: CaptureMode;
 }
@@ -53,11 +54,12 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
         ...state,
         pendingAuthor: '',
         pendingContent: '',
+        pendingPlatform: '',
         pendingUrl: '',
         captureMode: undefined,
       };
     case 'openMode': {
-      const { type, content, url } = action.payload;
+      const { type, content, url, author, platform } = action.payload;
       const activeTabByMessage: Record<ExtensionMessage['type'], ActiveTab> = {
         IDEA: extensionIdeaTab(action.payload),
         REMIX: 'remix',
@@ -67,7 +69,9 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
       return {
         ...state,
         activeTab: activeTabByMessage[type],
+        pendingAuthor: author ?? '',
         pendingContent: content ?? '',
+        pendingPlatform: platform ?? '',
         pendingUrl: url ?? '',
         captureMode: action.payload.captureMode,
       };
@@ -89,7 +93,9 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
 
 function SidePanelRoute({
   activeTab,
+  pendingAuthor,
   pendingContent,
+  pendingPlatform,
   pendingUrl,
   captureMode,
   onActiveTabChange,
@@ -113,7 +119,9 @@ function SidePanelRoute({
       return (
         <ChatContainer
           mode="reply"
+          initialAuthor={pendingAuthor}
           initialContent={pendingContent}
+          initialPlatform={pendingPlatform}
           initialUrl={pendingUrl}
         />
       );
@@ -163,6 +171,7 @@ function SidePanelContent() {
     activeTab: 'chat',
     pendingAuthor: '',
     pendingContent: '',
+    pendingPlatform: '',
     pendingUrl: '',
   } satisfies PanelState);
 

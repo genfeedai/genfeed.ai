@@ -130,6 +130,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   list_x_account_activity: 'direct',
   generate_turbo_content: 'approval-required',
   generate_monthly_content: 'direct',
+  generate_reply_variants: 'direct',
   generate_onboarding_content: 'direct',
   onboard_brand: 'direct',
   scan_brand_url: 'direct',

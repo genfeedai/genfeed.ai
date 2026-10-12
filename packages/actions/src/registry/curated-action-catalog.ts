@@ -195,6 +195,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_clips', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'generate_content', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'generate_monthly_content', surfaces: ['agent'], toolset: 'content' },
+  { name: 'generate_reply_variants', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'generate_onboarding_content',
     surfaces: ['agent'],

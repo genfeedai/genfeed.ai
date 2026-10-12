@@ -1,4 +1,6 @@
 import type {
+  ReplyVariantsResult,
+  ReplyVariantTone,
   TextActionMode,
   TextActionResult,
 } from '@genfeedai/contracts/interfaces';
@@ -12,6 +14,8 @@ export interface ExtensionMessage {
   type: ExtensionMessageType;
   content: string;
   url: string;
+  /** Author of the source post, when the page showed one. */
+  author?: string;
   platform?: string;
   captureMode?: CaptureMode;
 }
@@ -23,12 +27,21 @@ export type SocialPlatform =
   | 'instagram'
   | 'youtube';
 
-export type ReplyTone =
-  | 'agree'
-  | 'challenge'
-  | 'add-value'
-  | 'funny'
-  | 'professional';
+/** What the page or the side panel sends the background to draft reply options. */
+export interface ReplyVariantsRequest {
+  platform: string;
+  postAuthor?: string;
+  postContent: string;
+  /** UUID per user request: a repeat is answered from the first result. */
+  requestKey: string;
+  tone: ReplyVariantTone;
+  /** How many options to return; the server defaults and caps it. */
+  variants?: number;
+}
+
+export type ReplyVariantsResponse =
+  | { success: true; result: ReplyVariantsResult }
+  | { success: false; error: string };
 
 /** What a page or the side panel sends the background to edit a draft. */
 export interface TextActionRequest {

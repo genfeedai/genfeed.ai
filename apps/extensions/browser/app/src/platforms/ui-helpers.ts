@@ -932,11 +932,12 @@ export function createAIReplyButton(
     button.title = 'Generating reply...';
 
     try {
+      const context = extractPostContext();
       const response = await chrome.runtime.sendMessage({
         event: 'generateReply',
         platform: platform,
-        postAuthor: '',
-        postContent: '',
+        postAuthor: context.author,
+        postContent: context.content,
         postId: postId,
         url: window.location.href,
       });
@@ -968,7 +969,7 @@ export function createAIReplyButton(
         }
       } else {
         button.innerHTML = icons.x;
-        button.title = 'Failed to generate reply';
+        button.title = response?.error || 'Failed to generate reply';
       }
 
       setTimeout(() => {
@@ -1420,6 +1421,7 @@ export function createGenFeedDropdown(
       const result = await chrome.runtime.sendMessage({
         event: 'SHORTCUT_REPLY',
         payload: {
+          author: context.author,
           content: context.content,
           platform,
           url: options.postUrl || window.location.href,

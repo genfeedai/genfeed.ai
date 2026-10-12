@@ -1,5 +1,5 @@
 import {
-  createTextActionAcceptance,
+  createTextActionGate,
   extractProtectedTokens,
   findDroppedTokens,
   measureChannelText,
@@ -47,7 +47,7 @@ describe('text action text utilities', () => {
     expect(findDroppedTokens(source, 'Hello', ['mention'])).toEqual(['@ada']);
   });
 
-  describe('createTextActionAcceptance', () => {
+  describe('createTextActionGate', () => {
     const base = {
       maxCharacters: 40,
       source: 'Thx @ada! #tag https://a.co',
@@ -55,34 +55,38 @@ describe('text action text utilities', () => {
     };
 
     it('accepts a proofread that keeps every protected token', () => {
-      const gate = createTextActionAcceptance({ ...base, mode: 'proofread' });
-      expect(gate.accept('Thanks @ada! #tag https://a.co')).toBe(true);
+      const gate = createTextActionGate({ ...base, mode: 'proofread' });
+      expect(gate.normalize('Thanks @ada! #tag https://a.co')).toBe(
+        'Thanks @ada! #tag https://a.co',
+      );
       expect(gate.rejection()).toBeNull();
     });
 
     it('rejects a proofread that changes a hashtag but lets a rewrite do it', () => {
-      const proofread = createTextActionAcceptance({
+      const proofread = createTextActionGate({
         ...base,
         mode: 'proofread',
       });
-      expect(proofread.accept('Thanks @ada! #Tag https://a.co')).toBe(false);
+      expect(proofread.normalize('Thanks @ada! #Tag https://a.co')).toBeNull();
       expect(proofread.rejection()).toBe('tokens');
-      const rewrite = createTextActionAcceptance({ ...base, mode: 'rewrite' });
-      expect(rewrite.accept('Big thanks @ada #Tag https://a.co')).toBe(true);
+      const rewrite = createTextActionGate({ ...base, mode: 'rewrite' });
+      expect(rewrite.normalize('Big thanks @ada #Tag https://a.co')).toBe(
+        'Big thanks @ada #Tag https://a.co',
+      );
     });
 
     it('rejects a rewrite that drops a mention or link', () => {
-      const gate = createTextActionAcceptance({ ...base, mode: 'rewrite' });
-      expect(gate.accept('Big thanks https://a.co')).toBe(false);
+      const gate = createTextActionGate({ ...base, mode: 'rewrite' });
+      expect(gate.normalize('Big thanks https://a.co')).toBeNull();
       expect(gate.rejection()).toBe('tokens');
-      expect(gate.accept('Big thanks @ada')).toBe(false);
+      expect(gate.normalize('Big thanks @ada')).toBeNull();
     });
 
     it('rejects empty and over-limit answers', () => {
-      const gate = createTextActionAcceptance({ ...base, mode: 'rewrite' });
-      expect(gate.accept('')).toBe(false);
+      const gate = createTextActionGate({ ...base, mode: 'rewrite' });
+      expect(gate.normalize('')).toBeNull();
       expect(gate.rejection()).toBe('limit');
-      expect(gate.accept(`@ada https://a.co ${'x'.repeat(40)}`)).toBe(false);
+      expect(gate.normalize(`@ada https://a.co ${'x'.repeat(40)}`)).toBeNull();
       expect(gate.rejection()).toBe('limit');
     });
   });

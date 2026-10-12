@@ -172,6 +172,36 @@ describe('agent-tool-registry', () => {
     expect(getToolDefinitionByName('refine_text')).toBeDefined();
   });
 
+  it('should register generate_reply_variants as one agent action billed like a social draft', () => {
+    const tool = getToolByName('generate_reply_variants');
+
+    expect(tool).toMatchObject({
+      creditCost: 2,
+      mutationPolicy: 'direct',
+      parameters: {
+        properties: {
+          tone: {
+            enum: ['agree', 'challenge', 'add-value', 'funny', 'professional'],
+          },
+          variants: { maximum: 5, minimum: 1 },
+        },
+        required: ['platform', 'postContent', 'requestKey', 'tone'],
+      },
+      surfaces: { agent: true, mcp: false },
+    });
+    expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
+      'brandId',
+      'platform',
+      'postAuthor',
+      'postContent',
+      'requestKey',
+      'tone',
+      'variants',
+    ]);
+    expect(AGENT_CREDIT_COSTS.generate_reply_variants).toBe(2);
+    expect(getToolDefinitionByName('generate_reply_variants')).toBeDefined();
+  });
+
   it('should set non-zero credit costs for generation tools', () => {
     expect(AGENT_CREDIT_COSTS.draft_brand_voice_profile).toBe(1);
     expect(agentToolCreditFloor('generate', { type: 'image' })).toBe(50);

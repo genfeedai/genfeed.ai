@@ -1,3 +1,4 @@
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import type {
   ResolveGenerationBrandMembersServiceLike,
   ResolveGenerationBrandServiceLike,
@@ -13,10 +14,12 @@ import {
   AiActionsService,
 } from '@api/endpoints/ai-actions/ai-actions.service';
 import { BrandedTextActionsService } from '@api/endpoints/ai-actions/branded-text-actions.service';
+import type { TextActionFailureV1 } from '@api/endpoints/ai-actions/branded-text-actions.types';
 import {
   AiActionType,
   type ExecuteAiActionDto,
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { parseReplyVariantsParams } from '@api/endpoints/ai-actions/reply-variants-params.util';
 import { parseTextActionParams } from '@api/endpoints/ai-actions/text-action-params.util';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -283,28 +286,83 @@ export class AgentMediaTextGenerationService {
     if (!parsed.ok) {
       return { creditsUsed: 0, error: parsed.error, success: false };
     }
-    const brandId = await this.resolveBrandId(params, ctx);
+    return this.runBrandedTextAction({
+      chargeLabel: `Agent tool: refine_text (${parsed.value.mode})`,
+      ctx,
+      missingBrandError: 'A brand is required to edit text.',
+      params,
+      run: (brandId, actor) =>
+        this.brandedTextActions.run({
+          actor,
+          brandId,
+          mode: parsed.value.mode,
+          platform: parsed.value.platform,
+          requestKey: parsed.value.requestKey,
+          text: parsed.value.text,
+        }),
+    });
+  }
+
+  /** Reply options to a post, one flat charge like any social draft (#4342). */
+  async generateReplyVariants(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const parsed = parseReplyVariantsParams(params);
+    if (!parsed.ok) {
+      return { creditsUsed: 0, error: parsed.error, success: false };
+    }
+    return this.runBrandedTextAction({
+      chargeLabel: `Agent tool: generate_reply_variants (${parsed.value.tone})`,
+      ctx,
+      missingBrandError: 'A brand is required to write replies.',
+      params,
+      run: (brandId, actor) =>
+        this.brandedTextActions.draftReplyVariants({
+          actor,
+          brandId,
+          platform: parsed.value.platform,
+          postAuthor: parsed.value.postAuthor,
+          postContent: parsed.value.postContent,
+          requestKey: parsed.value.requestKey,
+          tone: parsed.value.tone,
+          variants: parsed.value.variants,
+        }),
+    });
+  }
+
+  private async runBrandedTextAction(input: {
+    chargeLabel: string;
+    ctx: ToolExecutionContext;
+    missingBrandError: string;
+    params: Record<string, unknown>;
+    run: (
+      brandId: string,
+      actor: BrandAccessActor,
+    ) => Promise<
+      | { hasNewDispatch: boolean; kind: 'completed'; result: object }
+      | TextActionFailureV1
+    >;
+  }): Promise<AgentToolResult> {
+    const { ctx } = input;
+    const brandId = await this.resolveBrandId(input.params, ctx);
     if (!brandId) {
       return {
         creditsUsed: 0,
-        error: 'A brand is required to edit text.',
+        error: input.missingBrandError,
         success: false,
       };
     }
     if (!(await this.hasTextGenerationCredits(ctx))) {
       return INSUFFICIENT_TEXT_CREDITS_RESULT;
     }
-    const outcome = await this.brandedTextActions.run({
-      actor: resolveToolSchedulePrincipal(ctx) ?? {
+    const outcome = await input.run(
+      brandId,
+      resolveToolSchedulePrincipal(ctx) ?? {
         organizationId: ctx.organizationId,
         userId: ctx.userId,
       },
-      brandId,
-      mode: parsed.value.mode,
-      platform: parsed.value.platform,
-      requestKey: parsed.value.requestKey,
-      text: parsed.value.text,
-    });
+    );
     if (outcome.kind === 'failed') {
       return {
         creditsUsed: 0,
@@ -317,11 +375,7 @@ export class AgentMediaTextGenerationService {
       };
     }
     if (outcome.hasNewDispatch) {
-      await this.chargeTextGeneration(
-        ctx,
-        brandId,
-        `Agent tool: refine_text (${parsed.value.mode})`,
-      );
+      await this.chargeTextGeneration(ctx, brandId, input.chargeLabel);
     }
     return {
       creditsUsed: outcome.hasNewDispatch ? TEXT_GENERATION_CREDITS : 0,

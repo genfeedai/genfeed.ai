@@ -60,49 +60,6 @@ describe('Background Script Handlers', () => {
         success: false,
       });
     });
-
-    it('should call reply API with correct parameters', async () => {
-      mockAuthService.getToken.mockResolvedValue('test-token');
-
-      (global.fetch as MockedFunction<any>).mockResolvedValueOnce({
-        json: () => Promise.resolve({ reply: 'Generated reply text' }),
-        ok: true,
-      } as Response);
-
-      const expectedBody = {
-        data: {
-          attributes: {
-            length: 'medium',
-            tone: 'friendly',
-            tweetAuthor: '@testuser',
-            tweetContent: 'Test tweet',
-            tweetUrl: 'https://twitter.com/test/status/123',
-          },
-          type: 'tweet-reply',
-        },
-      };
-
-      // Simulate API call
-      const response = await fetch('https://api.genfeed.ai/prompts/tweet', {
-        body: JSON.stringify(expectedBody),
-        headers: {
-          Authorization: 'Bearer test-token',
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/prompts/tweet',
-        expect.objectContaining({
-          body: JSON.stringify(expectedBody),
-          method: 'POST',
-        }),
-      );
-      expect(data.reply).toBe('Generated reply text');
-    });
   });
 
   describe('generateReplyWithVideo message handler', () => {

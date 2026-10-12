@@ -73,7 +73,6 @@ const routes = [
   ['GET', 'posts/publication-insights'],
   ['GET', 'posts/:id/publication-insights'],
   ['POST', 'posts/:id/refresh-analytics'],
-  ['POST', 'prompts/tweet'],
   ['POST', 'images'],
   ['POST', 'videos'],
   ['GET', 'videos'],

@@ -60,6 +60,13 @@ export class AgentMediaGenerationToolHandler {
     return this.textGeneration.refineText(params, ctx);
   }
 
+  async generateReplyVariants(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return this.textGeneration.generateReplyVariants(params, ctx);
+  }
+
   /**
    * `generate` routes by `type` to the per-kind runtime. Voice and music
    * runtimes read the spoken or described text from `text`, so `prompt` is

@@ -141,4 +141,69 @@ describe('content script text actions for the side panel', () => {
       success: false,
     });
   });
+
+  it('places a chosen reply in the reply box without submitting and tells the background', async () => {
+    document.body.innerHTML = `
+      <textarea id="composer"></textarea>
+      <button id="submit" type="submit">Post</button>`;
+    const submit = vi.fn();
+    document.getElementById('submit')?.addEventListener('click', submit);
+    const respond = vi.fn();
+
+    expect(
+      handler(
+        { content: 'A chosen reply', type: 'INSERT_CONTENT' },
+        {},
+        respond,
+      ),
+    ).toBe(true);
+    await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+
+    expect(respond).toHaveBeenCalledWith({ success: true });
+    expect(composer().value).toBe('A chosen reply');
+    expect(submit).not.toHaveBeenCalled();
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+      payload: {
+        content: 'A chosen reply',
+        error: undefined,
+        success: true,
+      },
+      type: 'CONTENT_INSERTED',
+    });
+  });
+
+  it('explains a missing reply box instead of pretending to insert', async () => {
+    document.body.innerHTML = '';
+    const respond = vi.fn();
+
+    handler({ content: 'A chosen reply', type: 'INSERT_CONTENT' }, {}, respond);
+    await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+
+    expect(respond.mock.calls[0][0]).toMatchObject({ success: false });
+    expect(respond.mock.calls[0][0].error).toContain(
+      'Click Reply on the post first',
+    );
+  });
+
+  it('sends the post, its author and the platform with the reply shortcut', () => {
+    document.body.innerHTML = `
+      <article>
+        <div class="update-components-text">We just launched.</div>
+        <div class="update-components-actor__name">Ada</div>
+      </article>`;
+
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'y', metaKey: true, shiftKey: true }),
+    );
+
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+      event: 'SHORTCUT_REPLY',
+      payload: {
+        author: 'Ada',
+        content: 'We just launched.',
+        platform: 'linkedin',
+        url: 'https://www.linkedin.com/feed/',
+      },
+    });
+  });
 });

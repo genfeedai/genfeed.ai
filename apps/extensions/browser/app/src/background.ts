@@ -1,8 +1,12 @@
 import { IngredientStatus } from '@genfeedai/contracts';
-import { TEXT_ACTION_MODES } from '@genfeedai/contracts/constants/text-action.constant';
+import {
+  REPLY_VARIANT_TONES,
+  TEXT_ACTION_MODES,
+} from '@genfeedai/contracts/constants/text-action.constant';
 import type {
   AgentArtifactReference,
   ExtensionWorkspaceSnapshot,
+  ReplyVariantsResult,
 } from '@genfeedai/contracts/interfaces';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 import { AgentToolsService } from '~services/agent-tools.service';
@@ -37,7 +41,11 @@ import {
   requireWorkspace,
   scopedWorkspaceRequest,
 } from '~services/workspace.service';
-import type { ExtensionMessage, TextActionRequest } from '~types/extension';
+import type {
+  ExtensionMessage,
+  ReplyVariantsRequest,
+  TextActionRequest,
+} from '~types/extension';
 import {
   extractKnowledgeSnapshot,
   prepareKnowledgeSnapshot,
@@ -351,16 +359,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'generateReply':
-      generateAIReply(
-        {
-          platform: request.platform || 'twitter',
-          postAuthor: request.postAuthor,
-          postContent: request.postContent,
-          postId: request.postId,
-          url: request.url,
-        },
-        sendResponse,
-      );
+      generateSingleReply(request, sendResponse);
+      return true;
+
+    case 'generateReplyVariants':
+      generateReplyVariants(request, sendResponse);
       return true;
 
     case 'createVideo':
@@ -463,6 +466,7 @@ async function handleShortcutMode(
   type: ExtensionMessage['type'],
   payload:
     | {
+        author?: string;
         content?: string;
         url?: string;
         platform?: string;
@@ -483,6 +487,7 @@ async function handleShortcutMode(
     }
 
     const message: ExtensionMessage = {
+      author: payload?.author,
       content: payload?.content ?? '',
       platform: payload?.platform,
       captureMode: payload?.captureMode,
@@ -568,42 +573,60 @@ async function captureCurrentTab(mode: CaptureMode = 'page', url?: string) {
   return prepareKnowledgeSnapshot(result[0].result);
 }
 
-interface GenerateReplyParams {
-  postId: string;
-  url: string;
-  postContent: string;
-  postAuthor: string;
-  platform?: string;
+/** Reply options for a source post, drafted by the catalog action (#4342). */
+async function draftReplyVariants(
+  request: Partial<ReplyVariantsRequest>,
+): Promise<ReplyVariantsResult> {
+  if (
+    typeof request.postContent !== 'string' ||
+    !request.postContent.trim() ||
+    typeof request.platform !== 'string' ||
+    !request.platform ||
+    typeof request.requestKey !== 'string' ||
+    !request.tone ||
+    !(REPLY_VARIANT_TONES as readonly string[]).includes(request.tone)
+  ) {
+    throw new Error('Open a post to reply to first.');
+  }
+  const token = await authService.getToken();
+  if (!token) throw new Error('Not authenticated');
+  return new AgentToolsService(token).generateReplyVariants({
+    platform: request.platform,
+    postAuthor: request.postAuthor,
+    postContent: request.postContent,
+    requestKey: request.requestKey,
+    tone: request.tone,
+    variants: request.variants,
+  });
 }
 
-async function generateAIReply(
-  { url, postContent, postAuthor }: GenerateReplyParams,
+async function generateReplyVariants(
+  request: Partial<ReplyVariantsRequest>,
   sendResponse: SendResponse,
 ): Promise<void> {
-  const body = JSON.stringify({
-    length: 'medium',
-    tone: 'friendly',
-    tweetAuthor: postAuthor || '',
-    tweetContent: postContent || 'No content found',
-    tweetUrl: url || '',
-  });
+  try {
+    sendResponse({ result: await draftReplyVariants(request), success: true });
+  } catch (error) {
+    sendError(sendResponse, 'Failed to generate replies', error);
+  }
+}
 
-  await executeAuthenticatedRequest<{ reply?: string; message?: string }>(
-    '/prompts/tweet',
-    { body, method: 'POST' },
-    sendResponse,
-    (data) => {
-      if (data.reply) {
-        sendResponse({ reply: data.reply, success: true });
-      } else {
-        sendResponse({
-          error: data.message || 'Failed to generate reply',
-          success: false,
-        });
-      }
-    },
-    'generate reply',
-  );
+/** One reply in the default tone, for the single-click reply button. */
+async function generateSingleReply(
+  request: Partial<ReplyVariantsRequest>,
+  sendResponse: SendResponse,
+): Promise<void> {
+  try {
+    const { variants } = await draftReplyVariants({
+      ...request,
+      requestKey: crypto.randomUUID(),
+      tone: 'add-value',
+      variants: 1,
+    });
+    sendResponse({ reply: variants[0], success: true, variants });
+  } catch (error) {
+    sendError(sendResponse, 'Failed to generate reply', error);
+  }
 }
 
 async function refineText(
@@ -755,7 +778,7 @@ async function saveBookmark(
 }
 
 interface ReplyRequest {
-  url: string;
+  platform: string;
   postContent: string;
   postAuthor: string;
 }
@@ -782,26 +805,22 @@ async function generateReplyText(
     'Content-Type': 'application/json',
   });
 
-  const replyBody = JSON.stringify({
-    length: 'medium',
-    tone: 'friendly',
-    tweetAuthor: request.postAuthor || '',
-    tweetContent: request.postContent || 'No content found',
-    tweetUrl: request.url || '',
-  });
-
-  const response = await workspaceFetch(`${API_BASE}/prompts/tweet`, {
-    body: replyBody,
-    headers,
-    method: 'POST',
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.reply) {
-    return { error: data.message || 'Failed to generate reply' };
+  try {
+    const { variants } = await draftReplyVariants({
+      platform: request.platform,
+      postAuthor: request.postAuthor,
+      postContent: request.postContent,
+      requestKey: crypto.randomUUID(),
+      tone: 'add-value',
+      variants: 1,
+    });
+    return { headers, reply: variants[0], token };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : 'Failed to generate reply',
+    };
   }
-
-  return { headers, reply: data.reply, token };
 }
 
 interface MediaReplyRequest {

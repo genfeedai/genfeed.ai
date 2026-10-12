@@ -3,6 +3,7 @@ import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { AiActionsController } from '@api/endpoints/ai-actions/ai-actions.controller';
 import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
 import { BrandedTextActionsService } from '@api/endpoints/ai-actions/branded-text-actions.service';
+import { BrandedTextRunnerService } from '@api/endpoints/ai-actions/branded-text-runner.service';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { BrandedTextGenerationModule } from '@api/services/branded-text-generation/branded-text-generation.module';
@@ -26,6 +27,10 @@ import { Module } from '@nestjs/common';
     OpenRouterModule,
     PostsCoreModule,
   ],
-  providers: [AiActionsService, BrandedTextActionsService],
+  providers: [
+    AiActionsService,
+    BrandedTextActionsService,
+    BrandedTextRunnerService,
+  ],
 })
 export class AiActionsModule {}
