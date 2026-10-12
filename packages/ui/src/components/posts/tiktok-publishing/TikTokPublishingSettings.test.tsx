@@ -128,6 +128,24 @@ describe('TikTok publishing settings', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows its own title by default and drops it when embedded in a host section', async () => {
+    const { unmount } = render(<TikTokPublishingSettings post={post} />);
+    await screen.findByText('Test Creator');
+    expect(
+      screen.getByRole('heading', { name: 'Post to TikTok' }),
+    ).toBeInTheDocument();
+    unmount();
+
+    render(<TikTokPublishingSettings post={post} isEmbedded />);
+    await screen.findByText('Test Creator');
+    expect(
+      screen.queryByRole('heading', { name: 'Post to TikTok' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'TikTok publishing settings' }),
+    ).not.toHaveClass('border');
+  });
+
   it('refuses stale capabilities and keeps publishing unavailable', async () => {
     refresh.mockResolvedValue(credential('stale'));
     const onReadinessChange = vi.fn();

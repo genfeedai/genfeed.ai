@@ -3,6 +3,7 @@ import { ContentMentionsController } from '@api/collections/posts/controllers/co
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
+import { PostsThreadDraftController } from '@api/collections/posts/controllers/operations/posts-thread-draft.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
@@ -39,14 +40,15 @@ describe('Posts split controllers', () => {
     ).toBeUndefined();
   });
 
-  it.each([PostsOperationsController, PostsRetryController])(
-    'preserves the shared posts role guard on %s',
-    (controllerClass) => {
-      expect(Reflect.getMetadata(GUARDS_METADATA, controllerClass)).toContain(
-        RolesGuard,
-      );
-    },
-  );
+  it.each([
+    PostsOperationsController,
+    PostsRetryController,
+    PostsThreadDraftController,
+  ])('preserves the shared posts role guard on %s', (controllerClass) => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, controllerClass)).toContain(
+      RolesGuard,
+    );
+  });
 
   it('registers every static sibling before the wildcard CRUD controller', () => {
     expect(
@@ -55,6 +57,7 @@ describe('Posts split controllers', () => {
       ContentMentionsController,
       PostsAnalyticsController,
       PostsGenerationController,
+      PostsThreadDraftController,
       PostsOperationsController,
       PostsRetryController,
       PostsController,

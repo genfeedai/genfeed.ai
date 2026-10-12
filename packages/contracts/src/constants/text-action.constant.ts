@@ -42,3 +42,7 @@ export const REPLY_MAX_CHARACTERS: Readonly<Record<string, number>> = {
   twitter: 280,
   youtube: 10_000,
 };
+
+/** Shown when text was written without voice context, so the user can fix the cause. */
+export const NO_BRAND_VOICE_HINT =
+  'This brand has no approved voice yet, so the text was written without voice context. Set up and approve your brand voice in Genfeed to use it.';

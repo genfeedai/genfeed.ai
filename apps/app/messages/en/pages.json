@@ -2175,7 +2175,23 @@
       "tweetFieldLabel": "Post",
       "composerLabel": "Post composer",
       "contentLabel": "Content",
-      "choosePlatform": "Choose a platform to preview this post."
+      "choosePlatform": "Choose a platform to preview this post.",
+      "threadFooter": {
+        "ariaLabel": "Thread end",
+        "replyTab": "Reply",
+        "grokTab": "@grok",
+        "grokTabOn": "@grok · On",
+        "replyHint": "Replies post in order after your first post.",
+        "addReply": "Add reply",
+        "grokFeedbackLabel": "End the thread by asking @grok for feedback",
+        "grokQuestionAria": "Question for @grok",
+        "grokHint": "Posted as the last reply of the thread.",
+        "addFirstComment": "Add first comment",
+        "firstComment": "First comment",
+        "firstCommentHint": "Posted right after the post",
+        "remove": "Remove",
+        "firstCommentPlaceholder": "Add context, a link or a question…"
+      }
     },
     "list": {
       "captured": {

@@ -5,8 +5,6 @@ import {
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import {
-  ButtonSize,
-  ButtonVariant,
   CredentialPlatform,
   normalizeReviewDecision,
   type PageScope,
@@ -31,13 +29,11 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import TargetPreview from '@ui/previews/TargetPreview';
-import { Button } from '@ui/primitives/button';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
-import { Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
@@ -85,7 +81,6 @@ export default function PostDetail({
     isSavingSchedule,
     isSavingIngredients,
     enhancingPostId,
-    enhancingAction,
     isTogglingGrok,
     isTogglingFirstComment,
     isExpandingToThread,
@@ -94,7 +89,6 @@ export default function PostDetail({
     carouselValidation,
     canAddThread,
     canAddFirstComment,
-    hasFirstComment,
     firstCommentPost,
     isLastChildGrokTweet,
     hasChildren,
@@ -108,6 +102,9 @@ export default function PostDetail({
     handlePublishNow,
     handlePublishViaTikTokApp,
     handleAddToThread,
+    handleAddThreadPosts,
+    handleDraftThread,
+    handleSetGrokQuestion,
     handleDeletePost,
     handleDeleteChild,
     handleSelectMedia,
@@ -171,7 +168,6 @@ export default function PostDetail({
     () => guardTikTokPublish(handleScheduleSave),
     [guardTikTokPublish, handleScheduleSave],
   );
-  const [isComposerPreview, setIsComposerPreview] = useState(false);
   const contextSidebar = useContextSidebar();
   const isStandalonePage = presentation === 'page' && !renderContextSidebar;
   const reviewSummary: PostReviewSummary | undefined = post
@@ -313,12 +309,41 @@ export default function PostDetail({
       descriptionDraft,
       credential,
     );
+    // The standalone inspector shows every post of the thread as plain text,
+    // the way each platform will render it.
+    const threadPreview = isStandalonePage ? (
+      <div className="space-y-4">
+        {[post, ...sortedChildren].map((item, index) => {
+          const description =
+            index === 0
+              ? descriptionDraft
+              : (childDescriptions.get(item.id) ?? item.description ?? '');
+          const preview = buildPostTargetPreview(
+            {
+              ...item,
+              description,
+              ...(index === 0
+                ? { ingredients: selectedIngredients, label: labelDraft }
+                : {}),
+              platform: item.platform ?? post.platform,
+            },
+            description,
+            credential,
+          );
+          return preview ? <TargetPreview key={item.id} {...preview} /> : null;
+        })}
+        {!post.platform ? (
+          <p className="text-sm text-muted-foreground">
+            {translate('choosePlatform')}
+          </p>
+        ) : null}
+        {!isPublished ? <EngagementPreview post={post} /> : null}
+      </div>
+    ) : undefined;
     return (
       <div className="space-y-3">
-        {isStandalonePage ? (
-          <RecordFactLine facts={buildPostDetailFacts(post, isPublished)} />
-        ) : null}
         <PostDetailSidebar
+          preview={threadPreview}
           post={post}
           credential={credential}
           scheduleDraft={scheduleDraft}
@@ -346,8 +371,13 @@ export default function PostDetail({
     );
   }, [
     analyticsStats,
+    childDescriptions,
     credential,
     descriptionDraft,
+    labelDraft,
+    selectedIngredients,
+    sortedChildren,
+    translate,
     handleScheduleChange,
     handleScoreSeo,
     publishNow,
@@ -484,124 +514,57 @@ export default function PostDetail({
               aria-label={translate('composerLabel')}
               className="min-w-0"
             >
-              {isStandalonePage ? (
-                <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
-                  <h2 className="text-sm font-medium">
-                    {translate('contentLabel')}
-                  </h2>
-                  <Button
-                    aria-controls={`post-composer-content-${post.id} post-composer-preview-${post.id}`}
-                    aria-pressed={isComposerPreview}
-                    icon={<Eye className="size-4" />}
-                    onClick={() => setIsComposerPreview((current) => !current)}
-                    size={ButtonSize.SM}
-                    variant={
-                      isComposerPreview
-                        ? ButtonVariant.SECONDARY
-                        : ButtonVariant.GHOST
-                    }
-                    withWrapper={false}
-                  >
-                    {translate('header.preview')}
-                  </Button>
-                </div>
-              ) : null}
               <div className="min-w-0">
-                <div
-                  hidden={isStandalonePage && isComposerPreview}
-                  id={`post-composer-content-${post.id}`}
-                >
-                  <PostDetailContent
-                    post={post}
-                    sortedChildren={sortedChildren}
-                    scope={scope}
-                    viewMode={viewMode}
-                    descriptionDraft={descriptionDraft}
-                    labelDraft={labelDraft}
-                    childDescriptions={childDescriptions}
-                    selectedIngredients={selectedIngredients}
-                    focusedPostId={focusedPostId}
-                    draggedPostId={draggedPostId}
-                    dragOverDividerIndex={dragOverDividerIndex}
-                    enhancingPostId={enhancingPostId}
-                    enhancingAction={enhancingAction}
-                    isSavingIngredients={isSavingIngredients}
-                    isSavingDescription={isSavingDescription}
-                    isTogglingGrok={isTogglingGrok}
-                    isTogglingFirstComment={isTogglingFirstComment}
-                    carouselValidation={carouselValidation}
-                    publishedDisplay={publishedDisplay}
-                    isContentDirty={isContentDirty}
-                    canAddThread={canAddThread}
-                    canAddFirstComment={canAddFirstComment}
-                    hasFirstComment={hasFirstComment}
-                    firstCommentPost={firstCommentPost}
-                    isLastChildGrokTweet={isLastChildGrokTweet}
-                    hasChildren={hasChildren}
-                    setDescriptionDraft={setDescriptionDraft}
-                    setLabelDraft={setLabelDraft}
-                    setChildDescription={setChildDescription}
-                    setFocusedPostId={setFocusedPostId}
-                    setDragOverDividerIndex={setDragOverDividerIndex}
-                    handleContentSave={handleContentSave}
-                    handleAddToThread={handleAddToThread}
-                    handleDeleteChild={handleDeleteChild}
-                    handleSelectMedia={handleSelectMedia}
-                    handleGenerateIllustration={handleGenerateIllustration}
-                    handleQuickAction={handleQuickAction}
-                    handlePerTweetEnhance={handlePerTweetEnhance}
-                    handleDragStart={handleDragStart}
-                    handleDragEnd={handleDragEnd}
-                    handleDrop={handleDrop}
-                    handleToggleGrokFeedback={handleToggleGrokFeedback}
-                    handleToggleFirstComment={handleToggleFirstComment}
-                    handleUpdateChild={handleUpdateChild}
-                    autoSaveRefs={autoSaveRefs}
-                    performAutoSaveForPost={performAutoSaveForPost}
-                    getPostsService={getPostsService}
-                    notificationsService={notificationsService}
-                  />
-                </div>
-                {isStandalonePage ? (
-                  <div
-                    className="space-y-4"
-                    hidden={!isComposerPreview}
-                    id={`post-composer-preview-${post.id}`}
-                  >
-                    {[post, ...sortedChildren].map((item, index) => {
-                      const description =
-                        index === 0
-                          ? descriptionDraft
-                          : (childDescriptions.get(item.id) ??
-                            item.description ??
-                            '');
-                      const preview = buildPostTargetPreview(
-                        {
-                          ...item,
-                          description,
-                          ...(index === 0
-                            ? {
-                                ingredients: selectedIngredients,
-                                label: labelDraft,
-                              }
-                            : {}),
-                          platform: item.platform ?? post.platform,
-                        },
-                        description,
-                        credential,
-                      );
-                      return preview ? (
-                        <TargetPreview key={item.id} {...preview} />
-                      ) : null;
-                    })}
-                    {!post.platform ? (
-                      <p className="text-sm text-muted-foreground">
-                        {translate('choosePlatform')}
-                      </p>
-                    ) : null}
-                    {!isPublished ? <EngagementPreview post={post} /> : null}
-                  </div>
-                ) : null}
+                <PostDetailContent
+                  post={post}
+                  sortedChildren={sortedChildren}
+                  scope={scope}
+                  viewMode={viewMode}
+                  descriptionDraft={descriptionDraft}
+                  labelDraft={labelDraft}
+                  childDescriptions={childDescriptions}
+                  selectedIngredients={selectedIngredients}
+                  focusedPostId={focusedPostId}
+                  draggedPostId={draggedPostId}
+                  dragOverDividerIndex={dragOverDividerIndex}
+                  enhancingPostId={enhancingPostId}
+                  isSavingIngredients={isSavingIngredients}
+                  isSavingDescription={isSavingDescription}
+                  isTogglingGrok={isTogglingGrok}
+                  isTogglingFirstComment={isTogglingFirstComment}
+                  carouselValidation={carouselValidation}
+                  publishedDisplay={publishedDisplay}
+                  isContentDirty={isContentDirty}
+                  canAddThread={canAddThread}
+                  canAddFirstComment={canAddFirstComment}
+                  firstCommentPost={firstCommentPost}
+                  isLastChildGrokTweet={isLastChildGrokTweet}
+                  setDescriptionDraft={setDescriptionDraft}
+                  setLabelDraft={setLabelDraft}
+                  setChildDescription={setChildDescription}
+                  setFocusedPostId={setFocusedPostId}
+                  setDragOverDividerIndex={setDragOverDividerIndex}
+                  handleContentSave={handleContentSave}
+                  handleAddToThread={handleAddToThread}
+                  handleAddThreadPosts={handleAddThreadPosts}
+                  handleDeleteChild={handleDeleteChild}
+                  handleSelectMedia={handleSelectMedia}
+                  handleGenerateIllustration={handleGenerateIllustration}
+                  handleQuickAction={handleQuickAction}
+                  handlePerTweetEnhance={handlePerTweetEnhance}
+                  handleDraftThread={handleDraftThread}
+                  handleDragStart={handleDragStart}
+                  handleDragEnd={handleDragEnd}
+                  handleDrop={handleDrop}
+                  handleToggleGrokFeedback={handleToggleGrokFeedback}
+                  handleSetGrokQuestion={handleSetGrokQuestion}
+                  handleToggleFirstComment={handleToggleFirstComment}
+                  handleUpdateChild={handleUpdateChild}
+                  autoSaveRefs={autoSaveRefs}
+                  performAutoSaveForPost={performAutoSaveForPost}
+                  getPostsService={getPostsService}
+                  notificationsService={notificationsService}
+                />
               </div>
             </section>
 

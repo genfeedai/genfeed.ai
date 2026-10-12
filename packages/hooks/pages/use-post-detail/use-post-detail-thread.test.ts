@@ -160,7 +160,7 @@ describe('usePostDetailThread', () => {
         "What's happening?",
       );
       expect(notificationsService.success).toHaveBeenCalledWith(
-        'New tweet added to thread',
+        'New post added to thread',
       );
     });
 
@@ -178,14 +178,116 @@ describe('usePostDetailThread', () => {
       expect(mockServicePost).toHaveBeenCalledWith(
         expect.objectContaining({ order: 2 }),
       );
-      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', { order: 4 });
+      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', { order: 3 });
 
       const updater = mockSetPost.mock.calls[0][0] as (
         prev: IPost | null,
       ) => IPost | null;
       const next = updater(createPost({ children: [child, grok] }));
       const updatedGrok = next?.children?.find((c) => c.id === 'grok-1');
-      expect(updatedGrok?.order).toBe(4);
+      expect(updatedGrok?.order).toBe(3);
+      expect(next?.children?.at(-1)?.id).toBe('grok-1');
+    });
+
+    it('adds several drafted replies in order before a trailing grok tweet', async () => {
+      const child = createChild('child-1', 1);
+      const grok = createChild('grok-1', 2, '@grok what do you think?');
+      mockServicePost
+        .mockResolvedValueOnce(createChild('reply-a', 2, 'Reply A'))
+        .mockResolvedValueOnce(createChild('reply-b', 3, 'Reply B'));
+      const { result } = renderHook(() =>
+        usePostDetailThread(buildOptions({ sortedChildren: [child, grok] })),
+      );
+
+      await act(async () => {
+        await result.current.handleAddThreadPosts(['Reply A', 'Reply B']);
+      });
+
+      expect(mockServicePost).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ description: 'Reply A', order: 2 }),
+      );
+      expect(mockServicePost).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ description: 'Reply B', order: 3 }),
+      );
+      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', { order: 4 });
+
+      const updater = mockSetPost.mock.calls[0][0] as (
+        prev: IPost | null,
+      ) => IPost | null;
+      const next = updater(createPost({ children: [child, grok] }));
+      expect(next?.children?.map((c) => c.id)).toEqual([
+        'child-1',
+        'reply-a',
+        'reply-b',
+        'grok-1',
+      ]);
+      expect(notificationsService.success).toHaveBeenCalledWith(
+        'Added 2 posts to the thread',
+      );
+    });
+
+    it('reconciles saved replies, fixes the grok order and rethrows when a later reply fails', async () => {
+      const grok = createChild('grok-1', 1, '@grok what do you think?');
+      mockServicePost
+        .mockResolvedValueOnce(createChild('reply-a', 1, 'Reply A'))
+        .mockRejectedValueOnce(new Error('boom'));
+      const { result } = renderHook(() =>
+        usePostDetailThread(buildOptions({ sortedChildren: [grok] })),
+      );
+
+      await expect(
+        act(async () => {
+          await result.current.handleAddThreadPosts(['Reply A', 'Reply B']);
+        }),
+      ).rejects.toThrow('boom');
+
+      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', { order: 2 });
+      const updater = mockSetPost.mock.calls[0][0] as (
+        prev: IPost | null,
+      ) => IPost | null;
+      const next = updater(createPost({ children: [grok] }));
+      expect(next?.children?.map((c) => c.id)).toEqual(['reply-a', 'grok-1']);
+      expect(mockSetChildDescription).toHaveBeenCalledWith(
+        'reply-a',
+        'Reply A',
+      );
+      expect(notificationsService.error).toHaveBeenCalledWith(
+        'Failed to add to the thread',
+      );
+      expect(notificationsService.success).not.toHaveBeenCalled();
+    });
+
+    it('rejects without writing when the post has no publishing credential', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailThread(
+          buildOptions({
+            post: createPost({
+              credential: undefined,
+              credentialId: undefined,
+            }),
+          }),
+        ),
+      );
+
+      await expect(
+        act(async () => {
+          await result.current.handleAddThreadPosts(['Reply A']);
+        }),
+      ).rejects.toThrow();
+      expect(mockServicePost).not.toHaveBeenCalled();
+    });
+
+    it('does not reject for the single add button', async () => {
+      mockServicePost.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => usePostDetailThread(buildOptions()));
+
+      await expect(
+        act(async () => {
+          await result.current.handleAddToThread();
+        }),
+      ).resolves.toBeUndefined();
     });
 
     it('does nothing when adding is not allowed', async () => {
@@ -209,7 +311,7 @@ describe('usePostDetailThread', () => {
       });
 
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Failed to add tweet to thread',
+        'Failed to add to the thread',
       );
     });
 
@@ -226,7 +328,7 @@ describe('usePostDetailThread', () => {
 
       expect(mockServicePost).not.toHaveBeenCalled();
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Failed to add tweet to thread',
+        'Failed to add to the thread',
       );
     });
 
@@ -269,7 +371,7 @@ describe('usePostDetailThread', () => {
 
       expect(mockServicePost).not.toHaveBeenCalled();
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Failed to add tweet to thread',
+        'Failed to add to the thread',
       );
     });
 
@@ -288,7 +390,7 @@ describe('usePostDetailThread', () => {
 
       expect(mockServicePost).not.toHaveBeenCalled();
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Failed to add tweet to thread',
+        'Failed to add to the thread',
       );
     });
   });
@@ -486,6 +588,47 @@ describe('usePostDetailThread', () => {
         'Grok feedback request tweet added',
       );
       expect(mockSetIsTogglingGrok).toHaveBeenLastCalledWith(false);
+    });
+
+    it('uses the chosen question when one is given', async () => {
+      mockServicePost.mockResolvedValue(
+        createChild('grok-new', 1, "@grok What's your take on this?"),
+      );
+      const { result } = renderHook(() => usePostDetailThread(buildOptions()));
+
+      await act(async () => {
+        await result.current.handleToggleGrokFeedback(
+          true,
+          "@grok What's your take on this?",
+        );
+      });
+
+      expect(mockServicePost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: "@grok What's your take on this?",
+        }),
+      );
+    });
+
+    it('changes the question of the closing grok tweet', async () => {
+      const grok = createChild('grok-1', 1, '@grok old question');
+      const { result } = renderHook(() =>
+        usePostDetailThread(
+          buildOptions({ isLastChildGrokTweet: true, sortedChildren: [grok] }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleSetGrokQuestion('@grok new question');
+      });
+
+      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', {
+        description: '@grok new question',
+      });
+      expect(mockSetChildDescription).toHaveBeenCalledWith(
+        'grok-1',
+        '@grok new question',
+      );
     });
 
     it('removes the trailing grok tweet when unchecked', async () => {

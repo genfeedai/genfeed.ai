@@ -679,6 +679,21 @@ export class PostGenerationService {
     );
   }
 
+  /** Proposes thread replies for review; nothing is saved. */
+  async draftThread(
+    originalPost: PostDocument,
+    dto: ExpandToThreadDto,
+    identity: GenerationMetadata,
+    byokApiKeyOverride?: string,
+  ): Promise<string[]> {
+    return this.postThreadGenerationService.draftThread(
+      originalPost,
+      dto,
+      identity,
+      byokApiKeyOverride,
+    );
+  }
+
   /** Drafts a channel post from a topic; the caller persists the result. */
   async generateDraftText(
     dto: PostDraftGenerationInput,

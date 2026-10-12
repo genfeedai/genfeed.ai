@@ -34,12 +34,9 @@ vi.mock('@pages/posts/detail/components/PostDetailCardBody', () => ({
   ),
 }));
 
-vi.mock(
-  '@ui/posts/enhancement-bar/post-enhancement-bar/PostEnhancementBar',
-  () => ({
-    default: () => <div data-testid="enhancement-bar" />,
-  }),
-);
+vi.mock('@ui/posts/card-footer/PostCardFooter', () => ({
+  default: () => <div data-testid="card-footer" />,
+}));
 
 function buildProps(
   overrides: Partial<PostDetailCardProps> = {},
@@ -50,8 +47,6 @@ function buildProps(
     currentDescriptionsRef: { current: new Map<string, string>() },
     currentLabelsRef: { current: new Map<string, string>() },
     descriptionValue: 'hello world',
-    enhancingAction: null,
-    enhancingPostId: null,
     focusedPostId: null,
     getPostsService: vi.fn(),
     index: 0,
@@ -62,8 +57,6 @@ function buildProps(
     onDragEnd: vi.fn(),
     onDragStart: vi.fn(),
     onLabelChange: vi.fn(),
-    onPromptEnhance: vi.fn(),
-    onQuickAction: vi.fn(),
     onUpdateChild: vi.fn(),
     performAutoSaveForPost: vi.fn(),
     platform: Platform.TWITTER,
@@ -174,17 +167,17 @@ describe('PostDetailCard', () => {
     expect(container.firstChild).toHaveClass('opacity-100');
   });
 
-  it('renders the enhancement bar in an editable publisher scope', () => {
+  it('renders the card footer in an editable publisher scope', () => {
     render(<PostDetailCard {...buildProps()} />);
 
-    expect(screen.getByTestId('enhancement-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('card-footer')).toBeInTheDocument();
   });
 
-  it('hides the enhancement bar when the card is not editable', () => {
+  it('hides the card footer when the card is not editable', () => {
     hookResult = { ...hookResult, isEditable: false };
 
     render(<PostDetailCard {...buildProps()} />);
 
-    expect(screen.queryByTestId('enhancement-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('card-footer')).not.toBeInTheDocument();
   });
 });
