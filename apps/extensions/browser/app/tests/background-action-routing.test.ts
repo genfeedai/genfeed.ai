@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
   addListener: vi.fn(),
   openPanel: vi.fn().mockResolvedValue(undefined),
+  contextMenuListener: undefined as
+    | ((info: object, tab: chrome.tabs.Tab) => void)
+    | undefined,
 }));
 vi.mock('~services/publication-capture.service', () => ({
   initializePublicationCapture: vi.fn(),
@@ -50,7 +53,13 @@ beforeAll(async () => {
       onMessage: { addListener: mocks.addListener },
       sendMessage: vi.fn().mockResolvedValue(undefined),
     },
-    contextMenus: { onClicked: { addListener: vi.fn() } },
+    contextMenus: {
+      onClicked: {
+        addListener: vi.fn((listener) => {
+          mocks.contextMenuListener = listener;
+        }),
+      },
+    },
     tabs: {
       create: vi.fn().mockResolvedValue({ id: 4 }),
       onUpdated: { addListener: vi.fn() },
@@ -548,9 +557,8 @@ describe('background user action routing', () => {
   });
 
   it('opens a source review for a right-clicked image without saving it', async () => {
-    const listener = vi.mocked(chrome.contextMenus.onClicked.addListener).mock
-      .calls[0][0];
-    listener(
+    expect(mocks.contextMenuListener).toBeTypeOf('function');
+    mocks.contextMenuListener?.(
       {
         editable: false,
         mediaType: 'image',
