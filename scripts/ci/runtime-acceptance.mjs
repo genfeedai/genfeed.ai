@@ -962,6 +962,11 @@ export const SERIAL_BRAND_UNITS = [
   'branded-generation-receipt-access.service.spec.ts',
   'branded-generation-state.util.spec.ts',
 ].map((file) => `src/services/branded-generation-receipts/${file}`);
+// The dataset spec closure imports the `@api/index` barrel, so tsc loads the
+// whole API program (about 12k files). It allocated ~4.6 GB on the last green
+// release and ~4.7 GB after it, so a 4 GB heap aborted with SIGABRT. The
+// hosted runner has 16 GB; keep the cap well above the program's footprint.
+export const DATASET_TYPECHECK_HEAP_MB = 8192;
 export function datasetChildEnvironment(url) {
   return {
     LEARNING_DATASET_TEST_DATABASE_URL: url,
@@ -5600,14 +5605,16 @@ export async function execution(identity, env) {
             'dataset-typecheck',
             process.execPath,
             [
-              '--max-old-space-size=4096',
+              `--max-old-space-size=${DATASET_TYPECHECK_HEAP_MB}`,
               path.join(identity.repo, 'node_modules/typescript/bin/tsc'),
               '--noEmit',
               '-p',
               config,
             ],
             identity.repo,
-            { NODE_OPTIONS: '--max-old-space-size=4096' },
+            {
+              NODE_OPTIONS: `--max-old-space-size=${DATASET_TYPECHECK_HEAP_MB}`,
+            },
             correctnessDeadline - Date.now(),
           );
           completed.push({ stage: 'dataset-typecheck' });

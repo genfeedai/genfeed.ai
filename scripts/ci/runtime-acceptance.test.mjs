@@ -35,6 +35,7 @@ import {
   createFinalOwnedDatabase,
   createState,
   DEDICATED_BUDGETS,
+  DATASET_TYPECHECK_HEAP_MB,
   DELEGATED_API_FILES,
   databaseUrl,
   datasetChildEnvironment,
@@ -6596,6 +6597,32 @@ test('publisher requires both independent lock rows in addition to overlap and r
       );
     assert.throws(() => validateReport(negative, [contract], child));
   }
+});
+
+test('publisher contracts name specs that still exist with the exact collected titles', async () => {
+  for (const contract of PUBLISHER_CONTRACTS) {
+    const source = await readFile(
+      new URL(`../../apps/server/api/${contract.file}`, import.meta.url),
+      'utf8',
+    );
+    for (const title of contract.titles) {
+      const match = /^(.*?\)) (.+)$/.exec(title);
+      assert.ok(match, `${title} must be "<describe> <case>"`);
+      const [, suite, name] = match;
+      assert.ok(
+        source.includes(`describe('${suite}'`),
+        `${contract.file} no longer declares suite ${suite}`,
+      );
+      assert.ok(
+        source.includes(`'${name.split(': ')[0]}`),
+        `${contract.file} no longer declares case ${name}`,
+      );
+    }
+  }
+});
+
+test('dataset typecheck heap exceeds the whole-API program footprint', () => {
+  assert.ok(DATASET_TYPECHECK_HEAP_MB >= 8192);
 });
 
 for (const name of [
