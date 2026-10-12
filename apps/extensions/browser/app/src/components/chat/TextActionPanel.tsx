@@ -70,10 +70,9 @@ export function TextActionPanel({
           {result.voiceHint ? (
             <p className="text-xs text-muted-foreground">{result.voiceHint}</p>
           ) : null}
-          <details className="text-xs text-muted-foreground">
-            <summary>Original</summary>
-            <p className="mt-1 whitespace-pre-wrap">{original}</p>
-          </details>
+          <p className="line-clamp-3 whitespace-pre-wrap text-xs text-muted-foreground">
+            Original: {original}
+          </p>
           <div className="flex justify-end gap-2">
             {phase === 'applied' ? (
               <>

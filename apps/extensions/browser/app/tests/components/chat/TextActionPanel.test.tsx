@@ -63,7 +63,7 @@ describe('TextActionPanel', () => {
 
     expect(screen.getByText('The launch is live')).toBeTruthy();
     expect(screen.getByText(RESULT.voiceHint)).toBeTruthy();
-    expect(screen.getByText('Teh launch is live')).toBeTruthy();
+    expect(screen.getByText('Original: Teh launch is live')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(state.apply).toHaveBeenCalledOnce();
