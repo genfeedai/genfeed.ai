@@ -48,6 +48,12 @@ ALTER TABLE "post_ingredients"
     FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
     ON DELETE RESTRICT ON UPDATE CASCADE;
 
+-- Block writes to the old table (reads stay allowed) from before the backfill
+-- reads it until this migration commits, so an old task cannot commit a link
+-- change between the backfill and the bridge triggers below. The lock is held
+-- to the end of the migration's transaction, which also covers CREATE TRIGGER.
+LOCK TABLE "_post_ingredients" IN SHARE ROW EXCLUSIVE MODE;
+
 -- Existing carousels keep the order they publish in today: group index
 -- ascending (ungrouped last, as Postgres sorts NULLs), then ingredient id.
 -- In `_post_ingredients`, "A" is the ingredient and "B" the post.
@@ -81,8 +87,8 @@ ON CONFLICT ("postId", "ingredientId") DO NOTHING;
 --
 -- Contract: this bridge and `_post_ingredients` go away together, in a later
 -- migration, once no old task and no rollback target remains.
--- Installed after the backfill; the CREATE TRIGGER statements lock the old table
--- until this migration commits, so no old write can fall between the two steps.
+-- Installed after the backfill, under the write lock taken before it, so no old
+-- write can fall between the two steps.
 
 CREATE FUNCTION mirror_post_ingredient_link_to_positions() RETURNS TRIGGER LANGUAGE plpgsql SET search_path FROM CURRENT AS $$
 BEGIN
