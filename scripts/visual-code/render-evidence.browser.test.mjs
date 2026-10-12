@@ -5,7 +5,9 @@ import { dirname, join, resolve } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  assertBrandFontObservations,
   assertEvidenceObservations,
+  brandFontInput,
   EVIDENCE_FONT_PATH,
   EVIDENCE_PNG,
   evidenceInput,
@@ -21,11 +23,11 @@ import { sha256Prefixed } from './render-evidence.mjs';
 const browser = process.env.VISUAL_CODE_EVIDENCE_BROWSER;
 const here = dirname(fileURLToPath(import.meta.url));
 
-async function render(outputs) {
+async function render(outputs, input = evidenceInput(outputs)) {
   const { renderVisualComposition } = await import('./render.mjs');
   const root = await mkdtemp(join(tmpdir(), 'visual-evidence-'));
   try {
-    return await renderVisualComposition(await evidenceInput(outputs), {
+    return await renderVisualComposition(await input, {
       root,
       runtimeModules: resolve(here, 'node_modules'),
       browserExecutable: browser,
@@ -118,4 +120,58 @@ export const VisualComposition = () => (
     await rm(media, { recursive: true, force: true });
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('a staged brand font is declared by the renderer and attributed to its asset', {
+  skip: !browser,
+  timeout: 240_000,
+}, async () => {
+  const [media] = await render(
+    [{ format: 'png', frame: 2 }],
+    brandFontInput([{ format: 'png', frame: 2 }]),
+  );
+  assertBrandFontObservations(assert, media.evidence, {
+    frame: 2,
+    fontHash: sha256Prefixed(await readFile(EVIDENCE_FONT_PATH)),
+    platformFamily: 'Zodiak',
+  });
+});
+
+test('a staged OpenType brand font is used the same way', {
+  skip: !browser,
+  timeout: 240_000,
+}, async () => {
+  const path = EVIDENCE_FONT_PATH.replace(/\.woff2$/, '.otf');
+  const [media] = await render(
+    [{ format: 'png', frame: 1 }],
+    brandFontInput([{ format: 'png', frame: 1 }], 'brand-font-otf', {
+      mime: 'font/otf',
+      path,
+    }),
+  );
+  assertBrandFontObservations(assert, media.evidence, {
+    frame: 1,
+    fontHash: sha256Prefixed(await readFile(path)),
+    platformFamily: 'Zodiak',
+  });
+});
+
+test('a brand font whose file is unusable shows the fallback the engine used', {
+  skip: !browser,
+  timeout: 240_000,
+}, async () => {
+  const input = await brandFontInput([{ format: 'png', frame: 0 }]);
+  // Valid signature, but not a font the engine can decode.
+  const broken = Buffer.alloc(256, 1);
+  broken.write('wOF2', 0, 'ascii');
+  input.assets[0].bytes = broken.toString('base64');
+  const [media] = await render([{ format: 'png', frame: 0 }], input);
+  const [capture] = media.evidence.captures;
+  assert.ok(capture.textLayers.length > 0);
+  for (const layer of capture.textLayers)
+    assert.equal(
+      layer.platformFonts.some((font) => font.isCustomFont),
+      false,
+      'the engine must not claim the brand font drew the text',
+    );
 });

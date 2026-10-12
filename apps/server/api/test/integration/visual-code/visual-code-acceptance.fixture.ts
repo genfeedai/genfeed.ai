@@ -68,6 +68,7 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
 import { BrandRenderEvidenceService } from '@api/services/brand-render-evidence/brand-render-evidence.service';
+import { BrandRenderFontStagingService } from '@api/services/brand-render-evidence/brand-render-font-staging.service';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import type { ILlmCompletionRoute } from '@api/services/integrations/llm/dto/llm-completion-route.dto';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
@@ -1119,6 +1120,7 @@ export async function createVisualCodeAcceptanceFixture(
         VisualProjectWorkflowService,
         VisualProjectAssetsService,
         BrandRenderEvidenceService,
+        BrandRenderFontStagingService,
         {
           provide: BrandIdentitySnapshotService,
           useValue: {
