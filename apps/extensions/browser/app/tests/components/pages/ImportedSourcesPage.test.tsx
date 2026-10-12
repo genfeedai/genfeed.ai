@@ -72,13 +72,17 @@ const handlers = {
 };
 
 type Respond = (message: Record<string, unknown>) => unknown;
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value as Record<string, unknown>;
+}
 let respond: Respond;
 let sources: unknown[];
 
 function sent(event: string): Record<string, unknown>[] {
   return vi
     .mocked(chrome.runtime.sendMessage)
-    .mock.calls.map((call) => call[0] as Record<string, unknown>)
+    .mock.calls.map((call) => asRecord(call[0]))
     .filter((message) => message?.event === event);
 }
 
@@ -92,7 +96,7 @@ beforeEach(() => {
     const event = (message as { event?: string }).event;
     if (event === 'importedSourceList') return { data: sources, success: true };
     if (event === 'captureSetBrand') return { success: true };
-    return respond(message as Record<string, unknown>);
+    return respond(asRecord(message));
   });
 });
 

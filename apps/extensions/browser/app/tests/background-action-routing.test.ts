@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getToken: vi.fn(),
   fetch: vi.fn(),
   addListener: vi.fn(),
+  executeScript: vi.fn(),
   openPanel: vi.fn().mockResolvedValue(undefined),
   contextMenuListener: undefined as
     | ((info: object, tab: chrome.tabs.Tab) => void)
@@ -53,6 +54,7 @@ beforeAll(async () => {
       onMessage: { addListener: mocks.addListener },
       sendMessage: vi.fn().mockResolvedValue(undefined),
     },
+    scripting: { executeScript: mocks.executeScript },
     contextMenus: {
       onClicked: {
         addListener: vi.fn((listener) => {
@@ -513,7 +515,7 @@ describe('background user action routing', () => {
   });
 
   it('captures the active tab on request and returns it for review, saving nothing', async () => {
-    vi.mocked(chrome.scripting.executeScript).mockResolvedValueOnce([
+    mocks.executeScript.mockResolvedValueOnce([
       { frameId: 0, result: xCapture },
     ]);
     const result = await dispatch({
@@ -524,7 +526,7 @@ describe('background user action routing', () => {
       event: 'importedSourceCapture',
     });
     expect(result).toMatchObject({ data: { host: 'x' }, success: true });
-    expect(chrome.scripting.executeScript).toHaveBeenCalledWith(
+    expect(mocks.executeScript).toHaveBeenCalledWith(
       expect.objectContaining({
         args: [expect.objectContaining({ scope: 'page' })],
         target: { tabId: 1 },
@@ -534,18 +536,18 @@ describe('background user action routing', () => {
   });
 
   it('refuses to capture a different page than the one the user chose', async () => {
-    vi.mocked(chrome.scripting.executeScript).mockClear();
+    mocks.executeScript.mockClear();
     const result = await dispatch({
       capture: { pageUrl: 'https://x.com/other/status/9', scope: 'page' },
       event: 'importedSourceCapture',
     });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/active page changed/);
-    expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
+    expect(mocks.executeScript).not.toHaveBeenCalled();
   });
 
   it('says so when the page does not allow capture', async () => {
-    vi.mocked(chrome.scripting.executeScript).mockResolvedValueOnce([
+    mocks.executeScript.mockResolvedValueOnce([
       { frameId: 0, result: undefined },
     ]);
     const result = await dispatch({
