@@ -49,7 +49,9 @@ vi.mock('@pages/posts/detail/components/PostDetailContent', () => ({
 }));
 
 vi.mock('@ui/posts/post-detail-sidebar/PostDetailSidebar', () => ({
-  default: () => <div data-testid="post-sidebar" />,
+  default: ({ preview }: { preview?: ReactNode }) => (
+    <div data-testid="post-sidebar">{preview}</div>
+  ),
 }));
 
 vi.mock('@ui/posts/engagement-preview/EngagementPreview', () => ({
@@ -347,7 +349,7 @@ describe('PostDetail standalone composer', () => {
     );
   });
 
-  it('portals metadata into the shell inspector and keeps the preview in the composer', () => {
+  it('portals metadata and the thread preview into the shell inspector', () => {
     render(
       <ContextSidebarProvider>
         <PostDetail postId="post-1" scope={PageScope.PUBLISHING} />
@@ -358,14 +360,15 @@ describe('PostDetail standalone composer', () => {
 
     const inspector = screen.getByTestId('inspector-outlet');
     expect(within(inspector).getByTestId('post-sidebar')).toBeInTheDocument();
+    expect(within(inspector).getByTestId('target-preview')).toBeInTheDocument();
     expect(
-      within(inspector).queryByTestId('target-preview'),
+      within(
+        screen.getByRole('region', { name: 'Post composer' }),
+      ).queryByTestId('target-preview'),
     ).not.toBeInTheDocument();
     expect(
-      within(screen.getByRole('region', { name: 'Post composer' })).getByTestId(
-        'target-preview',
-      ),
-    ).not.toBeVisible();
+      screen.queryByRole('button', { name: 'Preview' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('post-1');
     expect(screen.getByTestId('sidebar-open')).toHaveTextContent('true');
   });
@@ -408,8 +411,7 @@ describe('PostDetail standalone composer', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('toggles a published preview without remounting the content or enabling edits', async () => {
-    const user = userEvent.setup();
+  it('shows a published preview beside the content without enabling edits', () => {
     const hookData = buildHookData({
       isPublished: true,
       post: buildPost({
@@ -420,26 +422,17 @@ describe('PostDetail standalone composer', () => {
     });
     mockUsePostDetail.mockReturnValue(hookData);
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-    const content = screen.getByTestId('post-content');
-    const button = screen.getByRole('button', { name: 'Preview' });
-    expect(content).toBeVisible();
-    await user.click(button);
-    expect(button).toHaveAttribute('aria-pressed', 'true');
-    expect(button).toHaveFocus();
-    expect(content).not.toBeVisible();
-    expect(screen.getByTestId('target-preview')).toBeVisible();
-    await user.keyboard('{Enter}');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
-    expect(button).toHaveFocus();
-    expect(screen.getByTestId('post-content')).toBe(content);
-    expect(content).toBeVisible();
+
+    expect(screen.getByTestId('post-content')).toBeVisible();
+    expect(
+      within(screen.getByTestId('post-sidebar')).getByTestId('target-preview'),
+    ).toBeVisible();
     expect(hookData.setViewMode).not.toHaveBeenCalled();
     expect(hookData.handleContentSave).not.toHaveBeenCalled();
     expect(hookData.performAutoSaveForPost).not.toHaveBeenCalled();
   });
 
-  it('previews the current parent and child drafts, including intentionally cleared text', async () => {
-    const user = userEvent.setup();
+  it('previews the current parent and child drafts, including intentionally cleared text', () => {
     mockUsePostDetail.mockReturnValue(
       buildHookData({
         childDescriptions: new Map([['reply-1', 'Updated reply']]),
@@ -454,22 +447,19 @@ describe('PostDetail standalone composer', () => {
       }),
     );
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-    await user.click(screen.getByRole('button', { name: 'Preview' }));
-    const previews = within(
-      screen.getByRole('region', { name: 'Post composer' }),
-    ).getAllByTestId('target-preview');
+    const previews = within(screen.getByTestId('post-sidebar')).getAllByTestId(
+      'target-preview',
+    );
     expect(previews).toHaveLength(2);
     expect(previews[0]).toHaveAttribute('data-content', '');
     expect(previews[1]).toHaveAttribute('data-content', 'Updated reply');
   });
 
-  it('keeps unresolved platform state inside the composer preview', async () => {
-    const user = userEvent.setup();
+  it('keeps unresolved platform state inside the inspector preview', () => {
     mockUsePostDetail.mockReturnValue(buildHookData());
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-    await user.click(screen.getByRole('button', { name: 'Preview' }));
     expect(
-      within(screen.getByRole('region', { name: 'Post composer' })).getByText(
+      within(screen.getByTestId('post-sidebar')).getByText(
         'Choose a platform to preview this post.',
       ),
     ).toBeVisible();
