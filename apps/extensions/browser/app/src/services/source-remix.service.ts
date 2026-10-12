@@ -1,9 +1,11 @@
 import {
+  executeBrandRemixGenerationSchema,
+  quoteBrandRemixGenerationSchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-generation.contract';
+import {
   type BrandRemixRunView,
   brandRemixRunViewSchema,
   createBrandRemixRunSchema,
-  executeBrandRemixGenerationSchema,
-  quoteBrandRemixGenerationSchema,
   reviseBrandRemixRunSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import {

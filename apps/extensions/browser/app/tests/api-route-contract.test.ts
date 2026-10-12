@@ -30,8 +30,12 @@ const apiRoutes = new Set(
   sourceFiles(resolve(root, 'apps/server/api/src')).flatMap((file) => {
     if (!file.endsWith('.controller.ts')) return [];
     const source = readFileSync(file, 'utf8');
-    const prefix = source.match(/@Controller\(['"`]([^'"`]+)['"`]\)/)?.[1];
-    if (!prefix) return [];
+    // `@Controller()` with no prefix spells the whole path in each route.
+    const controller = source.match(
+      /@Controller\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/,
+    );
+    if (!controller) return [];
+    const prefix = controller[1] ?? '';
     return Array.from(
       source.matchAll(
         /@(Get|Post|Put|Patch|Delete)\((?:['"`]([^'"`]*)['"`])?\)/g,
