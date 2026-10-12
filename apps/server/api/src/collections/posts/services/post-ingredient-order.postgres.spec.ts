@@ -92,9 +92,10 @@ describe.skipIf(!connectionString)(
       await prisma.$disconnect();
     });
 
-    const idsOf = (post: { ingredients?: unknown[] } | null): string[] =>
-      (post?.ingredients ?? []).map((item) =>
-        typeof item === 'string' ? item : (item as { id: string }).id,
+    const idsOf = (post: unknown): string[] =>
+      ((post as { ingredients?: unknown[] } | null)?.ingredients ?? []).map(
+        (item) =>
+          typeof item === 'string' ? item : (item as { id: string }).id,
       );
 
     async function storedOrder(postId: string): Promise<string[]> {
@@ -117,6 +118,7 @@ describe.skipIf(!connectionString)(
         brandId,
         category: PostCategory.IMAGE,
         description: 'A carousel',
+        label: 'Carousel',
         ingredients: [media.c, media.a, media.b],
         organizationId,
         userId,
@@ -140,6 +142,7 @@ describe.skipIf(!connectionString)(
         brandId,
         category: PostCategory.IMAGE,
         description: 'A carousel to reorder',
+        label: 'Carousel',
         ingredients: [media.a, media.b, media.c],
         organizationId,
         userId,
@@ -170,6 +173,7 @@ describe.skipIf(!connectionString)(
         brandId,
         category: PostCategory.IMAGE,
         description: 'Repeated media',
+        label: 'Carousel',
         ingredients: [media.b, media.a, media.b],
         organizationId,
         userId,
@@ -183,6 +187,7 @@ describe.skipIf(!connectionString)(
         brandId,
         category: PostCategory.IMAGE,
         description: 'Scheduled carousel',
+        label: 'Carousel',
         ingredients: [media.b, media.c, media.a],
         organizationId,
         userId,

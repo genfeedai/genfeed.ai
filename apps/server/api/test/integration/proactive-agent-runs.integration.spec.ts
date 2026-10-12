@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import {
+  createPostIngredientLinks,
+  flattenPostTreeIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
@@ -122,10 +127,10 @@ async function assertRuntimeMediaExtension(
       isDeleted: false,
     },
     include: {
-      ingredients: { select },
+      ingredientLinks: orderedPostIngredientLinks({ select }),
       children: {
         where: { isDeleted: false },
-        include: { ingredients: { select } },
+        include: { ingredientLinks: orderedPostIngredientLinks({ select }) },
       },
     },
   };
@@ -149,7 +154,9 @@ async function assertRuntimeMediaExtension(
           ...scope,
           id: parentId,
           description: 'Owned media probe parent',
-          ingredients: { connect: { id: ingredientId } },
+          ingredientLinks: createPostIngredientLinks(fixture.organizationId, [
+            ingredientId,
+          ]),
         },
       });
       await transaction.post.create({
@@ -158,10 +165,14 @@ async function assertRuntimeMediaExtension(
           id: childId,
           description: 'Owned media probe child',
           parentId,
-          ingredients: { connect: { id: ingredientId } },
+          ingredientLinks: createPostIngredientLinks(fixture.organizationId, [
+            ingredientId,
+          ]),
         },
       });
-      const parent = await transaction.post.findFirstOrThrow(query);
+      const parent = flattenPostTreeIngredients(
+        await transaction.post.findFirstOrThrow(query),
+      );
       const expected = {
         id: ingredientId,
         s3Key,

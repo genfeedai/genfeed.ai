@@ -66,10 +66,16 @@ function ingredient(
     cdnUrl: `https://cdn.test/${id}` as string | null,
   };
 }
+/** A post as the loader reads it: media sit in ordered links, not a flat list. */
+type LoadedMaterial = Omit<BrandedPostMaterialRecord, 'ingredients'> & {
+  ingredientLinks: Array<{
+    ingredient: BrandedPostMaterialRecord['ingredients'][number];
+  }>;
+};
 function material(
   ingredientIds: string[],
-  overrides: Partial<BrandedPostMaterialRecord> = {},
-): BrandedPostMaterialRecord {
+  overrides: Partial<LoadedMaterial> = {},
+): LoadedMaterial {
   return {
     id: input.postId,
     organizationId: 'org-a',
