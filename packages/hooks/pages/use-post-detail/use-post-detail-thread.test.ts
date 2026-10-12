@@ -178,14 +178,15 @@ describe('usePostDetailThread', () => {
       expect(mockServicePost).toHaveBeenCalledWith(
         expect.objectContaining({ order: 2 }),
       );
-      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', { order: 4 });
+      expect(mockServicePatch).toHaveBeenCalledWith('grok-1', { order: 3 });
 
       const updater = mockSetPost.mock.calls[0][0] as (
         prev: IPost | null,
       ) => IPost | null;
       const next = updater(createPost({ children: [child, grok] }));
       const updatedGrok = next?.children?.find((c) => c.id === 'grok-1');
-      expect(updatedGrok?.order).toBe(4);
+      expect(updatedGrok?.order).toBe(3);
+      expect(next?.children?.at(-1)?.id).toBe('grok-1');
     });
 
     it('adds several drafted replies in order before a trailing grok tweet', async () => {
@@ -265,7 +266,7 @@ describe('usePostDetailThread', () => {
 
       expect(mockServicePost).not.toHaveBeenCalled();
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Failed to add tweet to thread',
+        'Failed to add to the thread',
       );
     });
 
@@ -308,7 +309,7 @@ describe('usePostDetailThread', () => {
 
       expect(mockServicePost).not.toHaveBeenCalled();
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Failed to add tweet to thread',
+        'Failed to add to the thread',
       );
     });
 
@@ -327,7 +328,7 @@ describe('usePostDetailThread', () => {
 
       expect(mockServicePost).not.toHaveBeenCalled();
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Failed to add tweet to thread',
+        'Failed to add to the thread',
       );
     });
   });
