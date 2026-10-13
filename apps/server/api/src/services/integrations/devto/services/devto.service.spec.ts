@@ -1,17 +1,6 @@
-vi.mock('@libs/utils/encryption/encryption.util', () => ({
-  EncryptionUtil: {
-    decrypt: vi.fn((val: string) => `decrypted:${val}`),
-    encrypt: vi.fn((val: string) => `encrypted:${val}`),
-  },
-}));
-
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
@@ -20,8 +9,6 @@ describe('DevtoService', () => {
   let service: DevtoService;
   let httpGetMock: ReturnType<typeof vi.fn>;
   let httpPostMock: ReturnType<typeof vi.fn>;
-  let credentialsFindOneMock: ReturnType<typeof vi.fn>;
-  let articlesFindOneMock: ReturnType<typeof vi.fn>;
 
   const loggerMock = {
     error: vi.fn(),
@@ -34,15 +21,6 @@ describe('DevtoService', () => {
     name: 'Dev Founder',
     profile_image: 'https://dev.to/avatar.png',
     username: 'devfounder',
-  };
-
-  const mockArticle = {
-    id: 'article-1',
-    content: '# Hello dev.to\n\nBody in markdown.',
-    coverImageUrl: 'https://cdn.example.com/cover.png',
-    label: 'Hello dev.to',
-    slug: 'hello-devto',
-    summary: 'A short summary',
   };
 
   const mockDevtoArticle = {
@@ -60,8 +38,6 @@ describe('DevtoService', () => {
   beforeEach(async () => {
     httpGetMock = vi.fn();
     httpPostMock = vi.fn();
-    credentialsFindOneMock = vi.fn();
-    articlesFindOneMock = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -74,23 +50,6 @@ describe('DevtoService', () => {
         {
           provide: HttpService,
           useValue: { get: httpGetMock, post: httpPostMock },
-        },
-        {
-          provide: CredentialsService,
-          useValue: {
-            findOne: credentialsFindOneMock,
-            // Multi-account resolution routes through `resolveBrandAccount`;
-            // the double answers with whatever `findOne` is primed to return
-            // so the existing cases keep describing one connected account.
-            resolveBrandAccount: vi.fn(
-              (options: { credentialId?: string | null }) =>
-                (credentialsFindOneMock as vi.Mock)(options),
-            ),
-          },
-        },
-        {
-          provide: ArticlesService,
-          useValue: { findOne: articlesFindOneMock },
         },
       ],
     }).compile();
@@ -131,122 +90,65 @@ describe('DevtoService', () => {
     });
   });
 
-  describe('publishArticle', () => {
-    beforeEach(() => {
-      credentialsFindOneMock.mockResolvedValue({
-        accessToken: 'encrypted-token',
-        platform: CredentialPlatform.DEV_TO,
-      });
-      articlesFindOneMock.mockResolvedValue(mockArticle);
+  describe('createArticle', () => {
+    it('posts Markdown with the api key and omits empty tags', async () => {
       httpPostMock.mockReturnValue(of({ data: mockDevtoArticle }));
-    });
 
-    it('should publish an article with mapped fields and decrypted key', async () => {
-      const result = await service.publishArticle(
-        'article-1',
-        'org-1',
-        'brand-1',
-        {
-          published: true,
-          tags: ['typescript', 'webdev'],
-        },
-      );
+      const result = await service.createArticle('plain-api-key', {
+        bodyMarkdown: '## Intro\n\nHello',
+        published: true,
+        tags: [],
+        title: 'Hello dev.to',
+      });
 
       expect(result).toEqual(mockDevtoArticle);
-      expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('encrypted-token');
       expect(httpPostMock).toHaveBeenCalledWith(
         'https://dev.to/api/articles',
         {
           article: {
-            body_markdown: mockArticle.content,
-            description: mockArticle.summary,
-            main_image: mockArticle.coverImageUrl,
+            body_markdown: '## Intro\n\nHello',
             published: true,
-            tags: ['typescript', 'webdev'],
-            title: mockArticle.label,
+            title: 'Hello dev.to',
           },
         },
         expect.objectContaining({
           headers: expect.objectContaining({
-            'api-key': 'decrypted:encrypted-token',
+            'api-key': 'plain-api-key',
           }),
         }),
       );
     });
 
-    it('should load the article scoped to the organization', async () => {
-      await service.publishArticle('article-1', 'org-1', 'brand-1');
+    it('creates a draft and forwards tags when the publisher supplies them', async () => {
+      httpPostMock.mockReturnValue(
+        of({ data: { ...mockDevtoArticle, published: false } }),
+      );
 
-      expect(articlesFindOneMock).toHaveBeenCalledWith({
-        id: 'article-1',
-        organizationId: 'org-1',
-      });
-    });
-
-    it('should create a draft when published is false', async () => {
-      await service.publishArticle('article-1', 'org-1', 'brand-1', {
+      await service.createArticle('plain-api-key', {
+        bodyMarkdown: 'Draft',
         published: false,
+        tags: ['typescript'],
+        title: 'Hello dev.to',
       });
 
       const [, payload] = httpPostMock.mock.calls[0];
       expect(payload.article.published).toBe(false);
-    });
-
-    it('should only include canonical_url when explicitly provided', async () => {
-      await service.publishArticle('article-1', 'org-1', 'brand-1', {});
-      let [, payload] = httpPostMock.mock.calls[0];
+      expect(payload.article.tags).toEqual(['typescript']);
       expect(payload.article).not.toHaveProperty('canonical_url');
-
-      httpPostMock.mockClear();
-      await service.publishArticle('article-1', 'org-1', 'brand-1', {
-        canonicalUrl: 'https://mysite.dev/hello',
-      });
-      [, payload] = httpPostMock.mock.calls[0];
-      expect(payload.article.canonical_url).toBe('https://mysite.dev/hello');
     });
 
-    it('should throw when the credential is missing', async () => {
-      credentialsFindOneMock.mockResolvedValue(null);
+    it('should throw when the request fails', async () => {
+      httpPostMock.mockReturnValue(throwError(() => new Error('dev.to down')));
 
       await expect(
-        service.publishArticle('article-1', 'org-1', 'brand-1'),
-      ).rejects.toThrow('dev.to credential not found');
-    });
-
-    it('should throw when the article is not found', async () => {
-      articlesFindOneMock.mockResolvedValue(null);
-
-      await expect(
-        service.publishArticle('article-1', 'org-1', 'brand-1'),
-      ).rejects.toThrow('Article not found');
-    });
-  });
-
-  describe('getDecryptedApiKey', () => {
-    it('should return the decrypted api key', async () => {
-      credentialsFindOneMock.mockResolvedValue({
-        accessToken: 'encrypted-token',
-        platform: CredentialPlatform.DEV_TO,
-      });
-
-      const result = await service.getDecryptedApiKey('org-1', 'brand-1');
-
-      expect(result).toBe('decrypted:encrypted-token');
-      expect(credentialsFindOneMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId: 'brand-1',
-          organizationId: 'org-1',
-          platform: CredentialPlatform.DEV_TO,
+        service.createArticle('plain-api-key', {
+          bodyMarkdown: 'Hello',
+          published: true,
+          tags: [],
+          title: 'Hello',
         }),
-      );
-    });
-
-    it('should throw when credential has no access token', async () => {
-      credentialsFindOneMock.mockResolvedValue({ accessToken: null });
-
-      await expect(
-        service.getDecryptedApiKey('org-1', 'brand-1'),
-      ).rejects.toThrow('dev.to credential not found');
+      ).rejects.toThrow('dev.to down');
+      expect(loggerMock.error).toHaveBeenCalled();
     });
   });
 });

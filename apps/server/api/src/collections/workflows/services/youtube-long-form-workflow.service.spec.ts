@@ -274,6 +274,37 @@ describe('YoutubeLongFormWorkflowService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  it('stores a YouTube article as sanitized HTML', async () => {
+    prisma.article.create.mockResolvedValue({ id: 'article-1' });
+    prisma.prompt.create.mockResolvedValue({ id: 'prompt-1' });
+    const persist = actions.get(YOUTUBE_LONG_FORM_ACTION_IDS.PERSIST_OUTPUT);
+
+    await persist?.(
+      actionRequest(
+        {
+          brandId: 'brand-1',
+          document: {
+            ...DOCUMENT,
+            content:
+              '## Section\n\nHello **world**.\n\n<script>alert(1)</script>',
+            outputType: 'article',
+          },
+          persistence: 'account',
+        },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    );
+
+    const created = prisma.article.create.mock.calls[0]?.[0].data.content;
+    expect(created).toContain('<h2');
+    expect(created).toContain('Section');
+    expect(created).toContain('<strong>world</strong>');
+    expect(created).not.toContain('<script');
+    expect(created).not.toContain('alert(1)');
+    expect(created).not.toContain('## Section');
+    expect(prisma.newsletter.create).not.toHaveBeenCalled();
+  });
+
   it('persists the selected newsletter with real org, user, brand, and source reference', async () => {
     prisma.newsletter.create.mockResolvedValue({ id: 'newsletter-1' });
     const persist = actions.get(YOUTUBE_LONG_FORM_ACTION_IDS.PERSIST_OUTPUT);

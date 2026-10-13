@@ -1,6 +1,6 @@
 import type { NewsletterDeliveryMode } from '../../constants/long-form-delivery.constant';
 
-/** Publish an Article to a connected Ghost, WordPress or Medium account. */
+/** Publish an Article to a connected Ghost, WordPress, Medium or Dev.to account. */
 export interface IArticleDeliveryRequest {
   credentialId: string;
 }

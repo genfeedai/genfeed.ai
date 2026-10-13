@@ -38,8 +38,8 @@ function accountLabel(credential: ICredential): string {
 }
 
 /**
- * Article → connected Ghost / WordPress / Medium account. With no blog
- * connected, the article stays workspace-only and can be copied out.
+ * Article → connected Ghost / WordPress / Medium / Dev.to account. With no
+ * account connected, the article stays workspace-only and can be copied out.
  */
 export default function ArticleDeliveryCard({
   article,

@@ -1,5 +1,6 @@
 import type { IPublisher, ServerPublisherFactory } from '@api/index';
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
@@ -69,6 +70,7 @@ export class PublisherFactoryService
       [CredentialPlatform.SHOPIFY, ShopifyPublisherService],
       [CredentialPlatform.BEEHIIV, BeehiivPublisherService],
       [CredentialPlatform.MEDIUM, MediumPublisherService],
+      [CredentialPlatform.DEV_TO, DevtoPublisherService],
     ];
     // All publishers are required providers of this module. Strict lookup
     // keeps a missing registration a boot error instead of a publish failure.

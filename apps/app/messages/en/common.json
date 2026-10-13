@@ -2475,7 +2475,7 @@
     "title": "Delivery",
     "articleIntro": "Publish this article to a blog you connected. Genfeed records the live link here.",
     "newsletterIntro": "Send this issue through a Beehiiv publication you connected. Genfeed records the live link here.",
-    "noArticleAccounts": "No Ghost, WordPress or Medium account is connected to this brand. Connect one, or copy the article and publish it yourself.",
+    "noArticleAccounts": "No Ghost, WordPress, Medium or Dev.to account is connected to this brand. Connect one, or copy the article and publish it yourself.",
     "noNewsletterAccounts": "No Beehiiv publication is connected to this brand. Connect one, or copy the issue and send it yourself.",
     "connectAccounts": "Connect an account",
     "copyHtml": "Copy HTML",

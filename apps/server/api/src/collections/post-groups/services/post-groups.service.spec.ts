@@ -570,6 +570,7 @@ describe('PostGroupsService', () => {
     CredentialPlatform.GHOST,
     CredentialPlatform.WORDPRESS,
     CredentialPlatform.MEDIUM,
+    CredentialPlatform.DEV_TO,
   ])(
     'schedules a long-form %s release linked to its source article',
     async (platform) => {

@@ -25,8 +25,8 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 /**
- * Article → connected Ghost / WordPress / Medium account (#6753). Each
- * delivery is a one-target scheduler release linked to the article.
+ * Article → connected Ghost / WordPress / Medium / Dev.to account (#6753,
+ * #6764). Each delivery is a one-target scheduler release linked to the article.
  */
 @AutoSwagger()
 @ApiTags('Articles')
@@ -76,7 +76,12 @@ export class ArticleDeliveriesController {
   ) {
     assertApiKeyPublishingScope(user, 'publish');
     const release = await this.longFormDeliveriesService.deliverArticle(
-      extractRequestContext(user),
+      {
+        ...extractRequestContext(user),
+        apiKeyId: user.apiKeyId,
+        isApiKey: user.isApiKey,
+        scopes: user.scopes,
+      },
       articleId,
       dto,
     );

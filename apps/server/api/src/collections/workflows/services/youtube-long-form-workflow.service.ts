@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { renderNewsletterHtml } from '@api/collections/newsletters/utils/newsletter-html.util';
 import {
   YOUTUBE_LONG_FORM_ACTION_IDS,
   YOUTUBE_LONG_FORM_OUTPUT_TYPES,
@@ -450,13 +451,16 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         : document.outputType === 'linkedin-article'
           ? ArticleCategory.LINKEDIN_ARTICLE
           : ArticleCategory.ARTICLE;
+    // The model writes Markdown. Article.content stores HTML only, so convert
+    // at this edge the same way newsletter delivery renders Markdown.
+    const content = renderNewsletterHtml(document.content);
     const articleId = await this.prisma.$transaction(async (transaction) => {
       const article = await transaction.article.create({
         data: {
           generationCompletedAt: new Date(),
           ...(brandId ? { brandId } : {}),
           category,
-          content: document.content,
+          content,
           isDeleted: false,
           label: document.title,
           organizationId: request.context.organizationId,
@@ -485,7 +489,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       });
       return article.id;
     });
-    return { ...document, contentId: articleId, sourceArtifactId };
+    return { ...document, content, contentId: articleId, sourceArtifactId };
   }
 
   private async planSourceLibraryAssetAction(

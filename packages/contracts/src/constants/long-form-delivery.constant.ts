@@ -1,14 +1,15 @@
 import { CredentialPlatform } from '..';
 
 /**
- * Connected accounts an Article delivers to (#6753). Each one publishes the
- * article HTML through its scheduler publisher; genfeed.ai itself is never a
- * customer delivery target.
+ * Connected accounts an Article delivers to (#6753, #6764). Each one publishes
+ * through its scheduler publisher; genfeed.ai itself is never a customer
+ * delivery target. Dev.to receives Markdown converted from the stored HTML.
  */
 export const ARTICLE_DELIVERY_PLATFORMS = [
   CredentialPlatform.GHOST,
   CredentialPlatform.WORDPRESS,
   CredentialPlatform.MEDIUM,
+  CredentialPlatform.DEV_TO,
 ] as const;
 
 /**

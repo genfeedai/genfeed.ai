@@ -127,7 +127,7 @@ export class ArticlesService extends BaseService<Article> {
    * credential.
    */
   /**
-   * Publish the article to a connected Ghost, WordPress or Medium account of
+   * Publish the article to a connected Ghost, WordPress, Medium or Dev.to account of
    * its brand. Returns the queued one-target release.
    */
   public async deliver(
