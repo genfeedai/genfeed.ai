@@ -165,6 +165,14 @@ export default defineConfig({
         replacement: path.resolve(packageSrc('contracts'), 'constants/$1'),
       },
       {
+        find: /^@genfeedai\/contracts\/enums$/,
+        replacement: path.resolve(packageSrc('contracts'), 'enums/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/contracts\/enums\/(.*)$/,
+        replacement: path.resolve(packageSrc('contracts'), 'enums/$1'),
+      },
+      {
         find: /^@genfeedai\/contracts\/interfaces$/,
         replacement: path.resolve(
           packageSrc('contracts'),

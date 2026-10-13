@@ -4,7 +4,7 @@ import { PageScope } from '@genfeedai/contracts';
 import TrainingsList from '@pages/trainings/list/trainings-list';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
-import { Cpu } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 
 /**
@@ -39,7 +39,7 @@ export default function AdminTrainingsPage() {
     <Container
       label="Trainings"
       description="Create and manage model trainings."
-      icon={Cpu}
+      icon={GraduationCap}
       refresh={
         <ButtonRefresh
           onClick={() => {

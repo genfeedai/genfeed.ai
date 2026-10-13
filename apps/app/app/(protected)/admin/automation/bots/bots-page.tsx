@@ -13,7 +13,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Cpu } from 'lucide-react';
+import { Bot as BotIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 const BOT_SKELETON_KEYS = [
@@ -87,7 +87,7 @@ export default function BotsPage() {
     <Container
       label="Bots"
       description="Manage automation bots for X/Twitter, Twitch, and YouTube"
-      icon={Cpu}
+      icon={BotIcon}
       refresh={
         <ButtonRefresh
           onClick={() => loadBots(true)}
