@@ -1,7 +1,6 @@
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
-import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { toPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import { LinksService } from '@api/collections/links/services/links.service';
@@ -49,7 +48,6 @@ export class BrandPersistenceService {
     private readonly organizationsService: OrganizationsService,
     private readonly brandDataMapper: BrandDataMapper,
     private readonly brandAssetAutofillService: BrandAssetAutofillService,
-    private readonly brandOsRevisionsService: BrandOsRevisionsService,
   ) {}
 
   /**
@@ -268,29 +266,6 @@ export class BrandPersistenceService {
       organizationId,
       mergedConfig,
     );
-    await this.retireDefaultStyleKit(brandId, organizationId);
-  }
-
-  /**
-   * Website-derived guidance is the owner's own input, so it replaces the
-   * Genfeed default style kit for new resolutions. Best effort: the default
-   * stays in place when this fails.
-   */
-  private async retireDefaultStyleKit(
-    brandId: string,
-    organizationId: string,
-  ): Promise<void> {
-    try {
-      await this.brandOsRevisionsService.supersedeDefaultKit(
-        organizationId,
-        brandId,
-      );
-    } catch (error: unknown) {
-      this.loggerService.warn('Default style kit could not be retired', {
-        brandId,
-        error,
-      });
-    }
   }
 
   /**

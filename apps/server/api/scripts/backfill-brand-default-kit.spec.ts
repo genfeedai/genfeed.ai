@@ -16,6 +16,13 @@ const rows: BrandDefaultKitBackfillRow[] = [
     label: 'Beta',
     organizationId: 'org-2',
   },
+  {
+    agentConfig: { voice: { tone: 'Dry and technical' } },
+    description: null,
+    id: 'brand-3',
+    label: 'Gamma',
+    organizationId: 'org-1',
+  },
 ];
 
 function fakePrisma(options: { concurrentIds?: string[] } = {}) {
@@ -81,9 +88,10 @@ describe('brand default kit backfill', () => {
       dryRun: true,
     });
     expect(counts).toEqual({
-      brandsScanned: 2,
+      brandsScanned: 3,
       brandsSeeded: 0,
       brandsSkippedConcurrent: 0,
+      brandsWithOwnVoice: 1,
     });
     expect(created).toHaveLength(0);
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -96,9 +104,10 @@ describe('brand default kit backfill', () => {
       dryRun: false,
     });
     expect(counts).toEqual({
-      brandsScanned: 2,
+      brandsScanned: 3,
       brandsSeeded: 2,
       brandsSkippedConcurrent: 0,
+      brandsWithOwnVoice: 1,
     });
     expect(created.map((item) => item.brandId)).toEqual(['brand-1', 'brand-2']);
     expect(tx.$queryRaw).toHaveBeenCalledTimes(2);

@@ -1,6 +1,7 @@
 /**
  * Seed the Genfeed default style kit for brands that have no live Brand OS
- * revision.
+ * revision and no voice of their own. Brands with their own voice are counted
+ * and left alone: they start from their own fields on first use.
  *
  * Dry-run is the default. Pass `--live` to write. Brands are paged by stable id,
  * each write re-checks under the brand row lock that the brand still has no live
@@ -10,7 +11,10 @@
 
 import process from 'node:process';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
-import { buildGenfeedDefaultKitDraft } from '@genfeedai/helpers';
+import {
+  buildGenfeedDefaultKitDraft,
+  hasOwnBrandVoice,
+} from '@genfeedai/helpers';
 import { Prisma, PrismaClient, toPrismaJson } from '@genfeedai/prisma';
 import {
   createPrismaPgConfig,
@@ -23,6 +27,7 @@ const logger = new Logger('BrandDefaultKitBackfill');
 const DEFAULT_BATCH_SIZE = 100;
 
 export type BrandDefaultKitBackfillRow = {
+  agentConfig?: unknown;
   description: string | null;
   id: string;
   label: string | null;
@@ -31,6 +36,7 @@ export type BrandDefaultKitBackfillRow = {
 
 export type BrandDefaultKitBackfillCounts = {
   brandsScanned: number;
+  brandsWithOwnVoice: number;
   brandsSeeded: number;
   brandsSkippedConcurrent: number;
 };
@@ -113,13 +119,14 @@ export async function backfillBrandDefaultKit(
   const counts: BrandDefaultKitBackfillCounts = {
     brandsScanned: 0,
     brandsSeeded: 0,
+    brandsWithOwnVoice: 0,
     brandsSkippedConcurrent: 0,
   };
   let cursor = '';
   for (;;) {
     const rows = await prisma.$queryRaw<BrandDefaultKitBackfillRow[]>(
       Prisma.sql`
-        SELECT b."id", b."organizationId", b."label", b."description"
+        SELECT b."id", b."organizationId", b."label", b."description", b."agentConfig"
         FROM "brands" b
         WHERE b."id" > ${cursor}
           AND b."isDeleted" = false
@@ -136,6 +143,11 @@ export async function backfillBrandDefaultKit(
     if (rows.length === 0) break;
     for (const row of rows) {
       counts.brandsScanned += 1;
+      // A brand with its own voice starts from its own fields on first use.
+      if (hasOwnBrandVoice(row.agentConfig)) {
+        counts.brandsWithOwnVoice += 1;
+        continue;
+      }
       if (options.dryRun) continue;
       if (await seedBrand(prisma, row)) counts.brandsSeeded += 1;
       else counts.brandsSkippedConcurrent += 1;
@@ -193,9 +205,12 @@ async function main(): Promise<void> {
       return;
     }
     const remaining = await countBrandsWithoutRevision(prisma);
-    if (remaining > 0n || counts.brandsSkippedConcurrent > 0) {
+    if (
+      remaining > BigInt(counts.brandsWithOwnVoice) ||
+      counts.brandsSkippedConcurrent > 0
+    ) {
       throw new Error(
-        `Backfill did not converge: ${remaining} brands still without a revision, ${counts.brandsSkippedConcurrent} concurrent changes. Re-run safely.`,
+        `Backfill did not converge: ${remaining} brands still without a revision (${counts.brandsWithOwnVoice} keep their own voice), ${counts.brandsSkippedConcurrent} concurrent changes. Re-run safely.`,
       );
     }
   } finally {
