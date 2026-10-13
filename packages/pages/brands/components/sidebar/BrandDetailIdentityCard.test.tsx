@@ -224,6 +224,41 @@ describe('BrandDetailIdentityCard.tsx', () => {
     updateAgentConfigMock.mockResolvedValue(undefined);
   });
 
+  it('offers a reconnect link when HeyGen rejects the saved credentials', () => {
+    mockDefaults();
+    mockUseHeyGenCatalog.mockReturnValue({
+      avatars: [],
+      voices: [],
+      error:
+        'HeyGen rejected the saved credentials. Reconnect HeyGen in Integrations.',
+      isLoading: false,
+      isReconnectRequired: true,
+    });
+    render(<BrandDetailIdentityCard {...props} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Reconnect HeyGen');
+    expect(
+      screen.getByRole('link', { name: 'Reconnect HeyGen' }),
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('/settings/integrations'),
+    );
+  });
+
+  it('shows no reconnect link for a plain catalogue outage', () => {
+    mockDefaults();
+    mockUseHeyGenCatalog.mockReturnValue({
+      avatars: [],
+      voices: [],
+      error: 'HeyGen voices could not be loaded.',
+      isLoading: false,
+      isReconnectRequired: false,
+    });
+    render(<BrandDetailIdentityCard {...props} />);
+    expect(
+      screen.queryByRole('link', { name: 'Reconnect HeyGen' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('browses resources in the edited brand rather than the current URL brand', () => {
     mockDefaults();
     render(<BrandDetailIdentityCard {...props} />);

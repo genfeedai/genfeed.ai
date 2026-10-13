@@ -473,6 +473,38 @@ describe('HTTPBaseService (InterceptorService)', () => {
       });
     });
 
+    it('rejects a 502 HeyGen credentials failure with its error code and no auth flag', async () => {
+      const data = {
+        errors: [
+          {
+            code: 'HEYGEN_CREDENTIALS_INVALID',
+            detail: 'Reconnect the integration in Settings and try again.',
+            status: '502',
+          },
+        ],
+      };
+      const error: Partial<AxiosError> = {
+        config: {} as InternalAxiosRequestConfig,
+        isAxiosError: true,
+        message: 'Request failed with status code 502',
+        name: 'AxiosError',
+        response: {
+          config: {} as InternalAxiosRequestConfig,
+          data,
+          headers: {},
+          status: 502,
+          statusText: 'Bad Gateway',
+        },
+        toJSON: () => ({}),
+      };
+
+      const rejection = await service
+        .handleError(error as AxiosError)
+        .catch((caught: unknown) => caught);
+      expect(rejection).toEqual(data);
+      expect(rejection).not.toHaveProperty('isAuthError');
+    });
+
     it('sanitizes errors in production', async () => {
       vi.mocked(EnvironmentService.isProduction).mockReturnValue(true);
 
