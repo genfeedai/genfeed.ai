@@ -1,12 +1,9 @@
 import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { OAuthConnectContext } from '@props/auth/oauth-connect-context.props';
 
 /** sessionStorage key read by `/oauth/[platform]` to start a fresh connect. */
 export const OAUTH_CONNECT_CONTEXT_STORAGE_KEY = 'oauth_connect_context';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 export function rememberOAuthConnectContext(
   context: OAuthConnectContext,
