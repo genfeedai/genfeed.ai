@@ -89,14 +89,14 @@ test('treats table and column renames as contracts that retire the old name', ()
 
 test('treats enum type renames as contracts that retire the old type name', () => {
   const { operations } = destructiveOperations(`
-    ALTER TYPE "BatchStatus" RENAME TO "TurboRunStatus";
+    ALTER TYPE "LegacyStatus" RENAME TO "CurrentStatus";
     ALTER TYPE public.legacy_kind RENAME TO current_kind;
     ALTER TYPE "Status" RENAME VALUE 'OLD' TO 'NEW';
     ALTER TYPE "Status" ADD VALUE IF NOT EXISTS 'EXTRA';
     ALTER TYPE "Composite" RENAME ATTRIBUTE "a" TO "b";
   `);
   assert.deepEqual(operations, [
-    { type: 'rename-enum', enumName: 'BatchStatus' },
+    { type: 'rename-enum', enumName: 'LegacyStatus' },
     { type: 'rename-enum', enumName: 'legacy_kind' },
   ]);
 });
