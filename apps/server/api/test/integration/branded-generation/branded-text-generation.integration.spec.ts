@@ -583,7 +583,7 @@ describe('Branded text generation seam (real Postgres)', () => {
               operationKey: 'member-recovery-denied',
               expectedRevision: stuck.revision,
             },
-            'dispatch_window_expired',
+            'provider_attempt_ref_unavailable',
           ),
         ).rejects.toThrow('receipt_access_denied');
       }
