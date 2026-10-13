@@ -303,6 +303,7 @@ export function MessagesConversationSidebar({
   search,
   selectedId,
   view,
+  writeBlockedReason,
 }: MessagesConversationSidebarProps) {
   const translate = useTranslations('common.messages');
   const groups = groupMessageConversations(conversations);
@@ -322,10 +323,13 @@ export function MessagesConversationSidebar({
         ariaLabel={syncLabel}
         className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
         icon={<RefreshCw className="size-4" />}
-        isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+        isDisabled={
+          Boolean(writeBlockedReason) ||
+          (Boolean(busyAction) && busyAction !== 'sync')
+        }
         isLoading={busyAction === 'sync'}
         size={ButtonSize.ICON}
-        tooltip={syncLabel}
+        tooltip={writeBlockedReason ?? syncLabel}
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         onClick={onSync}
@@ -340,17 +344,19 @@ export function MessagesConversationSidebar({
         : 'No comments yet';
   // DMs are polled rather than pushed, so an empty DM surface is the expected
   // state until the first sync — say so instead of implying something is wrong.
-  const emptyStateBody = !hasConnectedAccounts
-    ? 'Bring comments and direct messages from every connected channel into one place.'
-    : !hasSyncableAccounts
-      ? 'Your connected TikTok account is read-only. New conversations will appear here when available.'
-      : conversationType === 'all'
-        ? 'Your accounts are connected. Sync now to collect the latest comments and direct messages.'
-        : isDmSurface
-          ? 'Direct messages are pulled in by sync. Sync now to fill this conversation list.'
-          : brandFilter === 'all'
-            ? 'Sync your connected accounts to pull comments into this inbox.'
-            : 'No comments for this brand yet. Sync or switch brands.';
+  const emptyStateBody =
+    writeBlockedReason ??
+    (!hasConnectedAccounts
+      ? 'Bring comments and direct messages from every connected channel into one place.'
+      : !hasSyncableAccounts
+        ? 'Your connected TikTok account is read-only. New conversations will appear here when available.'
+        : conversationType === 'all'
+          ? 'Your accounts are connected. Sync now to collect the latest comments and direct messages.'
+          : isDmSurface
+            ? 'Direct messages are pulled in by sync. Sync now to fill this conversation list.'
+            : brandFilter === 'all'
+              ? 'Sync your connected accounts to pull comments into this inbox.'
+              : 'No comments for this brand yet. Sync or switch brands.');
   const singleSectionLabel =
     view === 'resolved'
       ? translate('sidebar.views.resolved')
@@ -529,7 +535,10 @@ export function MessagesConversationSidebar({
               {hasSyncableAccounts ? (
                 <Button
                   ariaLabel={syncLabel}
-                  isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+                  isDisabled={
+                    Boolean(writeBlockedReason) ||
+                    (Boolean(busyAction) && busyAction !== 'sync')
+                  }
                   isLoading={busyAction === 'sync'}
                   onClick={onSync}
                   size={ButtonSize.SM}

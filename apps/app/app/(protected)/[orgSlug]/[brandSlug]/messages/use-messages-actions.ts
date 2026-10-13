@@ -36,6 +36,7 @@ export type { UseMessagesActionsParams } from '@genfeedai/props/messages/message
 
 export function useMessagesActions({
   canAttachReferences,
+  canWrite,
   conversationType,
   getMessagesService,
   loadConversations,
@@ -69,15 +70,19 @@ export function useMessagesActions({
   }, [canAttachReferences]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!canWrite || !selectedId) {
+      suggestionAbortRef.current = null;
+      return;
+    }
     const controller = new AbortController();
     suggestionAbortRef.current = controller;
     return () => controller.abort();
-  }, [selectedId]);
+  }, [canWrite, selectedId]);
 
   const handleSuggestedReply = useCallback(async () => {
     const controller = suggestionAbortRef.current;
     if (
+      !canWrite ||
       !selectedId ||
       !controller ||
       controller.signal.aborted ||
@@ -112,7 +117,7 @@ export function useMessagesActions({
         setBusyAction(null);
       }
     }
-  }, [getMessagesService, selectedId, translate]);
+  }, [canWrite, getMessagesService, selectedId, translate]);
 
   const refreshAfterAction = useCallback(async () => {
     try {
@@ -140,7 +145,7 @@ export function useMessagesActions({
 
   const handleAction = useCallback(
     async (action: 'draft' | 'dm' | 'reply') => {
-      if (!selectedId || !draft.trim()) {
+      if (!canWrite || !selectedId || !draft.trim()) {
         return;
       }
 
@@ -208,6 +213,7 @@ export function useMessagesActions({
       }
     },
     [
+      canWrite,
       draft,
       getMessagesService,
       onInboxReadStateChange,
@@ -219,7 +225,7 @@ export function useMessagesActions({
 
   const handleStatusChange = useCallback(
     async (nextStatus: SocialConversationStatus) => {
-      if (!selectedId) {
+      if (!canWrite || !selectedId) {
         return;
       }
 
@@ -259,6 +265,7 @@ export function useMessagesActions({
       }
     },
     [
+      canWrite,
       getMessagesService,
       loadConversations,
       onInboxReadStateChange,
@@ -269,7 +276,7 @@ export function useMessagesActions({
 
   const handleSync = useCallback(async () => {
     const action: MessagesActionKind = 'sync';
-    if (actionInFlightRef.current) {
+    if (!canWrite || actionInFlightRef.current) {
       captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
       return;
     }
@@ -327,11 +334,17 @@ export function useMessagesActions({
       }
       setBusyAction(null);
     }
-  }, [conversationType, getMessagesService, loadConversations, onLoadError]);
+  }, [
+    canWrite,
+    conversationType,
+    getMessagesService,
+    loadConversations,
+    onLoadError,
+  ]);
 
   const handleApproveDraft = useCallback(
     async (messageId: string) => {
-      if (!selectedId) {
+      if (!canWrite || !selectedId) {
         return;
       }
 
@@ -367,6 +380,7 @@ export function useMessagesActions({
       }
     },
     [
+      canWrite,
       getMessagesService,
       onInboxReadStateChange,
       onLoadError,
@@ -377,7 +391,7 @@ export function useMessagesActions({
 
   const handleRejectDraft = useCallback(
     async (messageId: string) => {
-      if (!selectedId) {
+      if (!canWrite || !selectedId) {
         return;
       }
 
@@ -411,7 +425,7 @@ export function useMessagesActions({
         setBusyAction(null);
       }
     },
-    [getMessagesService, onLoadError, refreshAfterAction, selectedId],
+    [canWrite, getMessagesService, onLoadError, refreshAfterAction, selectedId],
   );
 
   const conversationReference = useMemo(

@@ -1,3 +1,4 @@
+import type { OrganizationModulePreferenceInput } from '@genfeedai/contracts/constants';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import '@testing-library/jest-dom/vitest';
 import {
@@ -41,6 +42,11 @@ const mocks = vi.hoisted(() => ({
     credentialsLoading: false,
     isBrandScopeResolved: true,
     organizationId: 'org-1',
+    settings: {
+      hasOrganizationBilling: false,
+      moduleOverrides: {},
+    } as OrganizationModulePreferenceInput | null,
+    settingsLoading: false,
     selectedBrand: { id: 'brand-1', label: 'Demo Brand', slug: 'demo' },
   },
   getConversation: vi.fn(),
@@ -127,6 +133,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     brandSlug: 'demo',
     href: mocks.href,
+    orgHref: (path: string) => `/acme/~${path}`,
     orgSlug: 'acme',
   }),
 }));
@@ -255,15 +262,22 @@ vi.mock('@ui/primitives/select', async () => {
 
 vi.mock('@ui/primitives/textarea', () => ({
   Textarea: ({
+    'aria-label': ariaLabel,
     onChange,
     placeholder,
     value,
   }: {
+    'aria-label'?: string;
     onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
     placeholder?: string;
     value: string;
   }) => (
-    <textarea placeholder={placeholder} value={value} onChange={onChange} />
+    <textarea
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+    />
   ),
 }));
 
@@ -360,6 +374,11 @@ const messages = [
 describe('SocialMessagesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.brandContext.settings = {
+      hasOrganizationBilling: false,
+      moduleOverrides: {},
+    };
+    mocks.brandContext.settingsLoading = false;
     mocks.brandContext.brands = [
       {
         credentials: [
@@ -435,6 +454,96 @@ describe('SocialMessagesPage', () => {
     });
   });
 
+  it.each([
+    [
+      'unreleased',
+      {
+        hasOrganizationBilling: true,
+        moduleOverrides: { messages: true },
+        isReleasePreviewEnabled: false,
+      },
+      false,
+      'Messages is not released yet',
+    ],
+    [
+      'disabled',
+      { hasOrganizationBilling: false, moduleOverrides: { messages: false } },
+      false,
+      'Messages is disabled',
+    ],
+    ['unavailable', null, false, 'Module settings are unavailable'],
+    [
+      'loading',
+      { hasOrganizationBilling: false, moduleOverrides: {} },
+      true,
+      'Loading module settings',
+    ],
+    [
+      'subscription',
+      {
+        hasOrganizationBilling: true,
+        moduleOverrides: { messages: true },
+        isReleasePreviewEnabled: true,
+        hasPaidModuleSubscription: false,
+      },
+      false,
+      'Messages requires an active paid subscription',
+    ],
+  ] as const)(
+    'keeps saved conversations readable but blocks %s module work',
+    async (_state, settings, loading, _notice) => {
+      mocks.brandContext.settings = settings;
+      mocks.brandContext.settingsLoading = loading;
+      render(<SocialMessagesPage />);
+      expect(
+        await screen.findByText('Here is a drafted answer.'),
+      ).toBeInTheDocument();
+      const sync = await screen.findByRole('button', { name: 'Sync inbox' });
+      expect(sync).toBeDisabled();
+      fireEvent.click(sync);
+      expect(mocks.syncYoutube).not.toHaveBeenCalled();
+      expect(mocks.syncInstagram).not.toHaveBeenCalled();
+      expect(screen.getByTestId('messages-module-notice')).toHaveTextContent(
+        _notice,
+      );
+      expect(
+        screen.queryByRole('textbox', {
+          name: 'Social reply or direct message',
+        }),
+      ).toBeNull();
+      expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();
+    },
+  );
+
+  it('restores write controls when current module settings enable Messages', async () => {
+    mocks.brandContext.settings = {
+      hasOrganizationBilling: false,
+      moduleOverrides: { messages: false },
+    };
+    const rendered = render(<SocialMessagesPage />);
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Sync inbox' }),
+    ).toBeDisabled();
+    mocks.brandContext.settings = {
+      hasOrganizationBilling: false,
+      moduleOverrides: { messages: true },
+    };
+    rendered.rerender(<SocialMessagesPage />);
+    expect(
+      await screen.findByRole('button', { name: 'Sync inbox' }),
+    ).toBeEnabled();
+    expect(screen.queryByTestId('messages-module-notice')).toBeNull();
+    expect(
+      await screen.findByRole('textbox', {
+        name: 'Social reply or direct message',
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Sync inbox' }));
+    await waitFor(() => expect(mocks.syncYoutube).toHaveBeenCalledTimes(1));
+  });
   it('renders the inbox route, workflow automation link, and reply action', async () => {
     render(<SocialMessagesPage />);
 

@@ -15,6 +15,7 @@ import {
   APP_ROUTES,
   MESSAGES_CONVERSATION_QUERY_PARAM,
   MESSAGES_TYPE_QUERY_PARAM,
+  resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import type {
   SocialAutomationState,
@@ -116,6 +117,7 @@ function PlatformPill({ platform }: { platform: string }) {
 function MessageBubble({
   busyAction,
   canAttachReference,
+  canWrite,
   isReferenced,
   message,
   onApproveDraft,
@@ -124,6 +126,7 @@ function MessageBubble({
 }: {
   busyAction: string | null;
   canAttachReference?: boolean;
+  canWrite: boolean;
   isReferenced?: boolean;
   message: SocialMessageModel;
   onApproveDraft: (messageId: string) => void;
@@ -176,7 +179,7 @@ function MessageBubble({
             <Button
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
-              isDisabled={Boolean(busyAction)}
+              isDisabled={!canWrite || Boolean(busyAction)}
               isLoading={busyAction === `approve:${message.id}`}
               onClick={() => onApproveDraft(message.id)}
             >
@@ -185,7 +188,7 @@ function MessageBubble({
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              isDisabled={Boolean(busyAction)}
+              isDisabled={!canWrite || Boolean(busyAction)}
               isLoading={busyAction === `reject:${message.id}`}
               onClick={() => onRejectDraft(message.id)}
             >
@@ -221,14 +224,57 @@ function MessageBubble({
 
 export default function MessagesPage() {
   const translate = useTranslations('common.messages');
-  const { brandSlug, href } = useOrgUrl();
+  const { brandSlug, href, orgHref } = useOrgUrl();
+  const translateModules = useTranslations(
+    'common.settings.organizationModules',
+  );
   const {
     brandId,
     brands,
     credentialsLoading,
     isBrandScopeResolved,
     organizationId: scopedOrganizationId,
+    settings,
+    settingsLoading,
   } = useBrand();
+  const moduleAccess = resolveOrganizationModulePresentationAccess(
+    settingsLoading ? null : settings,
+    'messages',
+  );
+  const canWrite = Boolean(scopedOrganizationId && moduleAccess.isAllowed);
+  const writeBlockedReason = canWrite
+    ? undefined
+    : settingsLoading
+      ? translateModules('loading')
+      : !moduleAccess.isAllowed && moduleAccess.reason === 'unreleased'
+        ? translateModules('unreleasedTitle', {
+            module: translateModules('modules.messages.label'),
+          })
+        : !moduleAccess.isAllowed && moduleAccess.reason === 'disabled'
+          ? translateModules('disabledTitle', {
+              module: translateModules('modules.messages.label'),
+            })
+          : !moduleAccess.isAllowed &&
+              moduleAccess.reason === 'subscription-required'
+            ? translateModules('subscriptionTitle', {
+                module: translateModules('modules.messages.label'),
+              })
+            : translateModules('unavailable');
+  const blockedHelp =
+    !moduleAccess.isAllowed && moduleAccess.reason === 'disabled'
+      ? translateModules('disabledHelp')
+      : !moduleAccess.isAllowed &&
+          moduleAccess.reason === 'subscription-required'
+        ? translateModules('subscriptionHelp')
+        : !moduleAccess.isAllowed && moduleAccess.reason === 'unreleased'
+          ? translateModules('unreleasedHelp')
+          : undefined;
+  const blockedSettingsHref =
+    !moduleAccess.isAllowed && moduleAccess.reason === 'subscription-required'
+      ? orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)
+      : !moduleAccess.isAllowed && moduleAccess.reason === 'disabled'
+        ? orgHref(APP_ROUTES.SETTINGS.MODULES)
+        : undefined;
   const workspaceNavPanel = useWorkspaceNavPanel();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -409,6 +455,7 @@ export default function MessagesPage() {
     references,
   } = useMessagesActions({
     canAttachReferences,
+    canWrite,
     conversationType: filters.conversationType,
     getMessagesService,
     loadConversations,
@@ -474,20 +521,28 @@ export default function MessagesPage() {
   const isDmThread =
     selectedConversation?.conversationType === SocialConversationType.DM;
   const isTikTokReadOnly = selectedConversation?.platform === Platform.TIKTOK;
+  const isReadOnly = !canWrite || isTikTokReadOnly;
 
-  const availability = isTikTokReadOnly
+  const availability = !canWrite
     ? {
         canPostReply: false,
         canSendDm: false,
-        postReplyReason: 'TikTok conversations are read-only in Genfeed',
-        sendDmReason: 'TikTok conversations are read-only in Genfeed',
+        postReplyReason: writeBlockedReason,
+        sendDmReason: writeBlockedReason,
       }
-    : (selectedConversation?.availability ?? {
-        canPostReply: false,
-        canSendDm: false,
-        postReplyReason: 'Select a conversation before replying.',
-        sendDmReason: 'Select a conversation before sending a DM.',
-      });
+    : isTikTokReadOnly
+      ? {
+          canPostReply: false,
+          canSendDm: false,
+          postReplyReason: 'TikTok conversations are read-only in Genfeed',
+          sendDmReason: 'TikTok conversations are read-only in Genfeed',
+        }
+      : (selectedConversation?.availability ?? {
+          canPostReply: false,
+          canSendDm: false,
+          postReplyReason: 'Select a conversation before replying.',
+          sendDmReason: 'Select a conversation before sending a DM.',
+        });
   const advancedFilters = (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -575,6 +630,7 @@ export default function MessagesPage() {
       search={filters.search}
       selectedId={selectedId}
       view={filters.inboxView}
+      writeBlockedReason={writeBlockedReason}
     />
   );
   const isConversationNavProjected = Boolean(
@@ -583,6 +639,30 @@ export default function MessagesPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
       <h1 className="sr-only">{translate('title')}</h1>
+      {writeBlockedReason ? (
+        <div
+          role="status"
+          data-testid="messages-module-notice"
+          className="mx-4 mt-3 shrink-0 rounded border border-border bg-background-secondary px-3 py-2 text-sm"
+        >
+          <p>{writeBlockedReason}</p>
+          {blockedHelp ? (
+            <p className="mt-1 text-xs text-muted-foreground">{blockedHelp}</p>
+          ) : null}
+          {blockedSettingsHref ? (
+            <Button asChild size={ButtonSize.SM} variant={ButtonVariant.LINK}>
+              <Link href={blockedSettingsHref}>
+                {translateModules(
+                  !moduleAccess.isAllowed &&
+                    moduleAccess.reason === 'subscription-required'
+                    ? 'manageSubscription'
+                    : 'manageModules',
+                )}
+              </Link>
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {workspaceNavPanel?.portalTargets.map((target, index) =>
         createPortal(conversationNavPanel, target, `messages-nav-${index}`),
       )}
@@ -623,7 +703,7 @@ export default function MessagesPage() {
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <PlatformPill platform={selectedConversation.platform} />
                       <StatusPill status={selectedConversation.status} />
-                      {isTikTokReadOnly ? (
+                      {isReadOnly ? (
                         <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
                           <LockKeyhole aria-hidden="true" className="size-3" />
                           {translate('conversation.readOnly')}
@@ -677,7 +757,7 @@ export default function MessagesPage() {
                       <Button
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.SM}
-                        isDisabled={Boolean(busyAction)}
+                        isDisabled={!canWrite || Boolean(busyAction)}
                         isLoading={busyAction === 'status'}
                         onClick={() =>
                           handleStatusChange(
@@ -692,7 +772,7 @@ export default function MessagesPage() {
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.SM}
                         icon={<CircleCheck className="size-4" />}
-                        isDisabled={Boolean(busyAction)}
+                        isDisabled={!canWrite || Boolean(busyAction)}
                         isLoading={busyAction === 'status'}
                         onClick={() =>
                           handleStatusChange(
@@ -707,7 +787,7 @@ export default function MessagesPage() {
                       <Button
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.SM}
-                        isDisabled={Boolean(busyAction)}
+                        isDisabled={!canWrite || Boolean(busyAction)}
                         isLoading={busyAction === 'status'}
                         onClick={() =>
                           handleStatusChange(
@@ -739,6 +819,7 @@ export default function MessagesPage() {
                       message={message}
                       onApproveDraft={handleApproveDraft}
                       onRejectDraft={handleRejectDraft}
+                      canWrite={canWrite}
                       onToggleReference={
                         isAgentDockAvailable
                           ? handleAskAgentAboutMessage
@@ -779,7 +860,7 @@ export default function MessagesPage() {
                 ) : null}
               </div>
 
-              {isTikTokReadOnly ? (
+              {isReadOnly ? (
                 <div
                   className="flex shrink-0 items-center gap-3 border-t border-border bg-background-secondary px-5 py-4"
                   data-testid="messages-read-only-notice"
