@@ -244,6 +244,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule discovery handler (#4879); every tenant asset is perceived through the media-perception queue under its own organization.',
   },
   {
+    file: 'apps/server/workers/src/crons/branded-dispatch-recovery/cron.branded-dispatch-recovery.service.ts',
+    id: 'branded-dispatch-recovery',
+    methodName: 'recoverExpiredDispatches',
+    reason:
+      'Platform schedule handler that blocks branded generation receipts stuck in resolved past the #5786 dispatch window.',
+  },
+  {
     file: 'apps/server/workers/src/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service.ts',
     id: 'oauth-client-cleanup',
     methodName: 'deleteAbandonedClients',

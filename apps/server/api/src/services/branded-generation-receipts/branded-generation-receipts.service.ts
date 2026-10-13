@@ -33,7 +33,12 @@ import {
   parseBrandedGenerationCompilerRecipeV1,
 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
 import {
-  BRANDED_GENERATION_DISPATCH_WINDOW_MS,
+  blockExpiredDispatches,
+  dispatchWindowCutoff,
+  mutationSchema,
+  recordReceiptEvent,
+} from '@api/services/branded-generation-receipts/branded-generation-recovery.util';
+import {
   type BrandedGenerationOperationKindV1,
   canTransitionBrandedGenerationStateV1,
 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
@@ -61,7 +66,6 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { z } from 'zod';
 import {
   decodeBrandedGenerationReceiptCursorV1,
   encodeBrandedGenerationReceiptCursorV1,
@@ -83,19 +87,6 @@ import {
   withDiagnostic,
 } from './branded-generation-projection.util';
 
-const mutationSchema = z.strictObject({
-  operationKey: z
-    .string()
-    .min(1)
-    .max(256)
-    .refine((value) =>
-      [...value].every((char) => {
-        const code = char.charCodeAt(0);
-        return code > 31 && (code < 127 || code > 159);
-      }),
-    ),
-  expectedRevision: z.number().int().nonnegative().max(2147483647),
-});
 @Injectable()
 export class BrandedGenerationReceiptsService {
   constructor(
@@ -129,12 +120,15 @@ export class BrandedGenerationReceiptsService {
   private async lockBrand(
     tx: Prisma.TransactionClient,
     actor: BrandedGenerationActorV1,
+    isSystem = false,
   ) {
     const rows = await tx.$queryRaw<
       Array<{ id: string }>
     >`SELECT id FROM brands WHERE id=${actor.brandId} AND "organizationId"=${actor.organizationId} AND "isDeleted"=false FOR KEY SHARE`;
     if (!rows.length) throw new ForbiddenException('receipt_access_denied');
-    return this.access.assertBrand(actor, tx);
+    return isSystem
+      ? { isOwnerOrAdmin: true }
+      : this.access.assertBrand(actor, tx);
   }
   private async current(
     tx: Prisma.TransactionClient,
@@ -286,32 +280,15 @@ export class BrandedGenerationReceiptsService {
         'original',
         prepared,
       );
-      await this.event(tx, actor, receipt, 'create', requestHash, 'create');
+      await recordReceiptEvent(
+        tx,
+        actor,
+        receipt,
+        'create',
+        requestHash,
+        'create',
+      );
       return { receipt, replayed: false };
-    });
-  }
-  private async event(
-    tx: Prisma.TransactionClient,
-    actor: BrandedGenerationActorV1,
-    receipt: BrandedGenerationReceiptV1,
-    operationKey: string,
-    operationHash: string,
-    type: string,
-  ) {
-    await tx.brandedGenerationReceiptEvent.create({
-      data: {
-        id: randomUUID(),
-        receiptId: receipt.id,
-        organizationId: actor.organizationId,
-        brandId: actor.brandId,
-        actorId: actor.actorId,
-        operationKey,
-        operationHash,
-        revision: receipt.revision,
-        type,
-        projection: toPrismaJson(receipt),
-        isDeleted: receipt.isDeleted,
-      },
     });
   }
   async get(
@@ -431,6 +408,7 @@ export class BrandedGenerationReceiptsService {
       tx: Prisma.TransactionClient,
       receipt: BrandedGenerationReceiptV1,
     ) => Promise<BrandedGenerationReceiptV1>,
+    isSystem = false,
   ): Promise<BrandedGenerationMutationResultV1> {
     this.counter(value.expectedRevision);
     const mutation = mutationSchema.parse(value);
@@ -438,7 +416,7 @@ export class BrandedGenerationReceiptsService {
       throw new BadRequestException('receipt_operation_reserved');
     const operationHash = hashBrandedGenerationOperationV1(kind, body);
     return this.transaction(async (tx) => {
-      const permission = await this.lockBrand(tx, actor);
+      const permission = await this.lockBrand(tx, actor, isSystem);
       await tx.$queryRaw`SELECT id FROM branded_generation_receipts WHERE id=${id} AND "organizationId"=${actor.organizationId} AND "brandId"=${actor.brandId} FOR UPDATE`;
       // Scoped tombstone lookup is required solely for authorized exact delete replay.
       const row = await tx.brandedGenerationReceipt.findFirst({
@@ -517,7 +495,7 @@ export class BrandedGenerationReceiptsService {
           updatedAt: new Date(receipt.updatedAt),
         },
       });
-      await this.event(
+      await recordReceiptEvent(
         tx,
         actor,
         receipt,
@@ -789,10 +767,7 @@ export class BrandedGenerationReceiptsService {
     query: { limit: number; now?: Date },
   ): Promise<BrandedGenerationDispatchRecoveryV1> {
     this.limit(query.limit);
-    const cutoff = new Date(
-      (query.now ?? new Date()).getTime() -
-        BRANDED_GENERATION_DISPATCH_WINDOW_MS,
-    );
+    const cutoff = dispatchWindowCutoff(query.now);
     const rows = await this.transaction(async (tx) => {
       const permission = await this.access.assertBrand(actor, tx);
       return tx.brandedGenerationReceipt.findMany({
@@ -805,40 +780,68 @@ export class BrandedGenerationReceiptsService {
         take: query.limit,
       });
     });
-    const result: BrandedGenerationDispatchRecoveryV1 = {
-      blocked: [],
-      skipped: [],
-    };
-    for (const row of rows) {
-      try {
-        await this.mutate(
-          actor,
-          row.id,
-          {
-            operationKey: `dispatch-window-expired:${row.id}:${row.revision}`,
-            expectedRevision: row.revision,
-          },
-          'block',
-          { reasonCode: 'dispatch_window_expired' },
-          async (_tx, current) =>
-            projectBrandedGenerationExpiredDispatchV1(current, cutoff),
-        );
-        result.blocked.push(row.id);
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          [
-            'receipt_version_conflict',
-            'receipt_state_conflict',
-            'request_payload_conflict',
-            'receipt_deleted',
-          ].includes(error.message)
-        )
-          result.skipped.push(row.id);
-        else throw error;
-      }
-    }
-    return result;
+    return blockExpiredDispatches(rows, (row) =>
+      this.blockExpired(actor, row, cutoff, false),
+    );
+  }
+  /**
+   * Scheduled sweep: blocks every receipt that stayed `resolved` past the
+   * dispatch window, oldest first, without a member session. A receipt whose
+   * brand or actor was removed meanwhile is still recovered from its own
+   * scope. Never retries and never dispatches.
+   */
+  async recoverExpiredDispatchesSystem(query: {
+    /** Receipts a previous page already skipped, so they cannot starve the rest. */
+    excludeIds?: readonly string[];
+    limit: number;
+    now?: Date;
+  }): Promise<BrandedGenerationDispatchRecoveryV1> {
+    this.limit(query.limit);
+    const cutoff = dispatchWindowCutoff(query.now);
+    const rows = await this.prisma.brandedGenerationReceipt.findMany({
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      take: query.limit,
+      where: {
+        isDeleted: false,
+        state: 'resolved',
+        updatedAt: { lt: cutoff },
+        ...(query.excludeIds?.length
+          ? { id: { notIn: [...query.excludeIds] } }
+          : {}),
+      },
+    });
+    return blockExpiredDispatches(rows, (row) =>
+      this.blockExpired(
+        {
+          actorId: row.actorId,
+          brandId: row.brandId,
+          organizationId: row.organizationId,
+        },
+        row,
+        cutoff,
+        true,
+      ),
+    );
+  }
+  private async blockExpired(
+    actor: BrandedGenerationActorV1,
+    row: { id: string; revision: number },
+    cutoff: Date,
+    isSystem: boolean,
+  ): Promise<void> {
+    await this.mutate(
+      actor,
+      row.id,
+      {
+        operationKey: `dispatch-window-expired:${row.id}:${row.revision}`,
+        expectedRevision: row.revision,
+      },
+      'block',
+      { reasonCode: 'dispatch_window_expired' },
+      async (_tx, current) =>
+        projectBrandedGenerationExpiredDispatchV1(current, cutoff),
+      isSystem,
+    );
   }
   async bindArtifact(
     actor: BrandedGenerationActorV1,

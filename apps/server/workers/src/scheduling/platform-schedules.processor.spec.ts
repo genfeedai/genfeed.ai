@@ -31,6 +31,7 @@ describe('PlatformSchedulesProcessor', () => {
   const modelDeprecation = { deprecateSupersededModels: handler() };
   const replicateModels = { discoverNewModels: handler() };
   const notificationRecovery = { recover: handler() };
+  const brandedDispatchRecovery = { recoverExpiredDispatches: handler() };
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
   const posts = { publishScheduledPosts: handler() };
@@ -139,6 +140,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY,
         notificationRecovery.recover,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.BRANDED_DISPATCH_RECOVERY,
+        brandedDispatchRecovery.recoverExpiredDispatches,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP,
@@ -254,6 +259,7 @@ describe('PlatformSchedulesProcessor', () => {
       lifecycleEmails as never,
       threadComments as never,
       oauthClientCleanup as never,
+      brandedDispatchRecovery as never,
       workflowSchedules as never,
       xReplyWatch as never,
     );
