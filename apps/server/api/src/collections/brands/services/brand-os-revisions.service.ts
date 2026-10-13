@@ -11,6 +11,7 @@ import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,
   buildGenfeedDefaultKitDraft,
+  hasOwnBrandVoice,
   isGenfeedDefaultKitDraft,
   stripGenfeedDefaultKit,
 } from '@genfeedai/helpers';
@@ -150,9 +151,10 @@ export class BrandOsRevisionsService {
 
   /**
    * Returns the revision a branded generation should resolve for a brand,
-   * creating the starting DRAFT when none is live: the Genfeed default style kit
-   * for a brand with no revisions, or a draft of the brand's own fields once the
-   * default was superseded. Never touches existing live revisions.
+   * creating the starting DRAFT when none is live. A brand nobody has described
+   * starts from the Genfeed default style kit; a brand with its own voice starts
+   * from its own fields. The default is retired as soon as the brand gains its
+   * own voice. Never touches approved, scanned or owner-edited revisions.
    */
   async ensureBaselineDraft(
     organizationId: string,
@@ -167,13 +169,25 @@ export class BrandOsRevisionsService {
       const live = rows.filter(
         (row) => row.status !== BrandOsRevisionStatus.SUPERSEDED,
       );
-      const approved = live.find(
-        (row) => row.status === BrandOsRevisionStatus.APPROVED,
-      );
-      const existing = approved ?? live[0];
-      if (existing) return this.toRevision(existing);
+      const existing =
+        live.find((row) => row.status === BrandOsRevisionStatus.APPROVED) ??
+        live[0];
+      const hasOwnVoice = hasOwnBrandVoice(brand.agentConfig);
+      if (
+        existing &&
+        !(
+          existing.status === BrandOsRevisionStatus.DRAFT &&
+          isGenfeedDefaultKitDraft(
+            existing.content as unknown as IBrandKitDraft,
+          ) &&
+          hasOwnVoice
+        )
+      )
+        return this.toRevision(existing);
+      if (existing)
+        await this.supersedeDefaultKitRows(tx, organizationId, brandId);
       const content =
-        rows.length === 0
+        rows.length === 0 && !hasOwnVoice
           ? buildGenfeedDefaultKitDraft({
               description: brand.description,
               id: brandId,
@@ -188,22 +202,6 @@ export class BrandOsRevisionsService {
         this.normalize(content, organizationId, brandId),
       );
     });
-  }
-
-  /**
-   * Retires the Genfeed default style kit once the owner brings their own input.
-   * Earlier receipts keep the revision they were bound to.
-   */
-  async supersedeDefaultKit(
-    organizationId: string,
-    brandId: string,
-    transaction?: Prisma.TransactionClient,
-  ): Promise<void> {
-    const write = async (tx: Prisma.TransactionClient): Promise<void> => {
-      await this.lockBrand(tx, organizationId, brandId);
-      await this.supersedeDefaultKitRows(tx, organizationId, brandId);
-    };
-    await (transaction ? write(transaction) : this.prisma.$transaction(write));
   }
 
   async create(

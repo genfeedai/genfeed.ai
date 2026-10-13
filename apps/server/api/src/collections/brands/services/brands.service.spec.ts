@@ -16,7 +16,6 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import type { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import type { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
-import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import type { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -68,9 +67,6 @@ describe('BrandsService', () => {
   let brandOsPreviewService: {
     claimPreview: ReturnType<typeof vi.fn>;
     readClaimedPreview: ReturnType<typeof vi.fn>;
-  };
-  let brandOsRevisionsService: {
-    ensureBaselineDraft: ReturnType<typeof vi.fn>;
   };
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
@@ -162,10 +158,6 @@ describe('BrandsService', () => {
       organization: organizationDelegate,
     } as unknown as PrismaService;
 
-    brandOsRevisionsService = {
-      ensureBaselineDraft: vi.fn().mockResolvedValue({ id: 'revision-1' }),
-    };
-
     service = new BrandsService(
       prisma,
       loggerService,
@@ -199,7 +191,6 @@ describe('BrandsService', () => {
         voiceDefault: vi.fn(async (ref) => ref),
       } as never,
       brandAccessFixture(prisma as never),
-      brandOsRevisionsService as unknown as BrandOsRevisionsService,
     );
   });
 
@@ -354,50 +345,6 @@ describe('BrandsService', () => {
             agentConfig: { enabledSkills: ['content-writing'] },
           }),
         }),
-      );
-    });
-
-    it('seeds the Genfeed default style kit for the new brand', async () => {
-      delegate.create.mockResolvedValue({
-        ...createBrandDto,
-        id: 'brand-1',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
-
-      await service.create({
-        ...createBrandDto,
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
-
-      expect(brandOsRevisionsService.ensureBaselineDraft).toHaveBeenCalledWith(
-        'org-1',
-        'brand-1',
-      );
-    });
-
-    it('still creates the brand when the default style kit seed fails', async () => {
-      delegate.create.mockResolvedValue({
-        ...createBrandDto,
-        id: 'brand-1',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
-      brandOsRevisionsService.ensureBaselineDraft.mockRejectedValueOnce(
-        new Error('seed unavailable'),
-      );
-
-      const brand = await service.create({
-        ...createBrandDto,
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
-
-      expect(brand.id).toBe('brand-1');
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        'Default style kit seed failed; deferred to first use',
-        expect.objectContaining({ brandId: 'brand-1' }),
       );
     });
 
