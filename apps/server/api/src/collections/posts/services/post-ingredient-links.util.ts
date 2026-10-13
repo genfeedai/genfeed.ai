@@ -7,7 +7,11 @@ import type { Prisma } from '@genfeedai/prisma';
  * previews and edits in the order it was arranged.
  *
  * API consumers still see `post.ingredients` as an ordered array of media;
- * these helpers translate between that shape and the link rows.
+ * these helpers translate between that shape and the link rows. A legacy
+ * `_post_ingredients` delete is compacted by the database bridge (#6862) to
+ * this same 0..n-1 order. Legacy inserts and deletes serialize on
+ * `pg_advisory_xact_lock(hashtext('post_ingredients:' || postId))` before
+ * taking row locks.
  */
 
 /** Slide order: the arranged position, with the link id as a stable tiebreak. */
