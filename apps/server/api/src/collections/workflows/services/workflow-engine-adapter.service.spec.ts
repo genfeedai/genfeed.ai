@@ -418,6 +418,24 @@ describe('WorkflowEngineAdapterService', () => {
     });
   });
 
+  describe('executor registration logging', () => {
+    it('logs one summary at bootstrap instead of a line per registered executor', () => {
+      const executor = vi.fn();
+      loggerService.debug.mockClear();
+
+      service.registerExecutor('ai-enhance', executor);
+
+      expect(loggerService.debug).not.toHaveBeenCalled();
+
+      service.onApplicationBootstrap();
+
+      expect(loggerService.debug).toHaveBeenCalledTimes(1);
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        expect.stringMatching(/registered \d+ workflow executors$/),
+      );
+    });
+  });
+
   describe('registerExecutor', () => {
     it('should reject executors absent from the shared action catalog', () => {
       const executor = vi.fn().mockResolvedValue({});

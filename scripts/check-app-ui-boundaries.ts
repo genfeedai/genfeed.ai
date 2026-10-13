@@ -45,7 +45,6 @@ const LEGACY_BUTTON_IMPORT_ALLOWLIST = new Set([
   'apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx',
   'apps/app/app/(onboarding)/onboarding/(wizard)/success/success-content.tsx',
   'apps/app/app/(onboarding)/onboarding/post-signup/page.tsx',
-  'apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-content.tsx',
   'apps/app/app/(protected)/studio/clips/page.tsx',
   'apps/app/packages/components/research/ads/AdsResearchPageClient.tsx',
 ]);

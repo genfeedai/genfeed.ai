@@ -1,14 +1,25 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { HEYGEN_CREDENTIALS_INVALID_ERROR_CODE } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { HeyGenService } from '@services/ingredients/heygen.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+const RECONNECT_MESSAGE =
+  'HeyGen rejected the saved credentials. Reconnect HeyGen in Integrations.';
+
+function isCredentialsInvalid(error: unknown): boolean {
+  return (
+    getJsonApiErrorMember(error)?.code === HEYGEN_CREDENTIALS_INVALID_ERROR_CODE
+  );
+}
 
 /** Organization-bound pages; healthy sources remain usable during an outage. */
 export function useHeyGenCatalog() {
@@ -27,6 +38,7 @@ export function useHeyGenCatalog() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMoreAvatars, setIsLoadingMoreAvatars] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isReconnectRequired, setIsReconnectRequired] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const active = useRef<AbortController | null>(null);
   const activeOrganization = useRef<string | undefined>(undefined);
@@ -78,9 +90,11 @@ export function useHeyGenCatalog() {
     setCursors({ public: null, private: null });
     setIsLoadingMoreAvatars(false);
     setError(null);
+    setIsReconnectRequired(false);
     setIsLoading(Boolean(organizationId));
     async function load() {
       const failures: string[] = [];
+      let isCredentialsRejected = false;
       try {
         const service = await getService();
         if (abort.signal.aborted) return;
@@ -96,7 +110,7 @@ export function useHeyGenCatalog() {
                 throw new Error('Catalogue ownership mismatch');
               setCatalogOrganizationId(organizationId);
               acceptPage(page, false);
-            } catch {
+            } catch (caught) {
               if (abort.signal.aborted) return;
               failures.push(`${ownership} avatars`);
               setAvatars((previous) =>
@@ -104,8 +118,14 @@ export function useHeyGenCatalog() {
                   (avatar) => avatar.avatarRef.ownership !== ownership,
                 ),
               );
+              if (isCredentialsInvalid(caught)) {
+                isCredentialsRejected = true;
+                setIsReconnectRequired(true);
+              }
               setError(
-                `HeyGen ${failures.join(' and ')} could not be loaded. Retry or check your connection in Integrations.`,
+                isCredentialsRejected
+                  ? RECONNECT_MESSAGE
+                  : `HeyGen ${failures.join(' and ')} could not be loaded. Retry or check your connection in Integrations.`,
               );
             }
           }),
@@ -115,12 +135,18 @@ export function useHeyGenCatalog() {
               if (abort.signal.aborted) return;
               setCatalogOrganizationId(organizationId);
               setVoices(nextVoices);
-            } catch {
+            } catch (caught) {
               if (abort.signal.aborted) return;
               failures.push('voices');
               setVoices([]);
+              if (isCredentialsInvalid(caught)) {
+                isCredentialsRejected = true;
+                setIsReconnectRequired(true);
+              }
               setError(
-                `HeyGen ${failures.join(' and ')} could not be loaded. Retry or check your connection in Integrations.`,
+                isCredentialsRejected
+                  ? RECONNECT_MESSAGE
+                  : `HeyGen ${failures.join(' and ')} could not be loaded. Retry or check your connection in Integrations.`,
               );
             }
           })(),
@@ -205,6 +231,7 @@ export function useHeyGenCatalog() {
     isLoadingMoreAvatars,
     isLoading,
     error: matchesOrganization ? error : null,
+    isReconnectRequired: matchesOrganization && isReconnectRequired,
     retry,
   };
 }

@@ -2,6 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
+import { CronBrandedDispatchRecoveryService } from '@workers/crons/branded-dispatch-recovery/cron.branded-dispatch-recovery.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 import { CronCreditsService } from '@workers/crons/credits/cron.credits.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
@@ -82,6 +83,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly lifecycleEmails: CronLifecycleEmailsService,
     private readonly threadComments: ThreadCommentDeliveryService,
     private readonly oauthClientCleanup: CronOAuthClientCleanupService,
+    private readonly brandedDispatchRecovery: CronBrandedDispatchRecoveryService,
     private readonly workflowSchedules: PlatformWorkflowSchedulesService,
     private readonly xReplyWatch: CronXReplyWatchService,
   ) {
@@ -142,6 +144,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.modelDeprecation.deprecateSupersededModels(),
       [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: () =>
         this.notificationRecovery.recover(),
+      [PLATFORM_SCHEDULED_TASKS.BRANDED_DISPATCH_RECOVERY]: () =>
+        this.brandedDispatchRecovery.recoverExpiredDispatches(),
       [PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP]: () =>
         this.oauthClientCleanup.deleteAbandonedClients(),
       [PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION]: () =>

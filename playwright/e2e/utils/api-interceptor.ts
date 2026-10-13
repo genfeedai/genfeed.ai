@@ -499,35 +499,6 @@ function buildInstallReadinessPayload() {
   };
 }
 
-function buildProactiveWorkspacePayload() {
-  return {
-    brand: {
-      colors: ['#111827', '#f9fafb'],
-      id: 'brand-1',
-      name: 'Brand 1',
-      voiceTone: 'clear, direct, practical',
-    },
-    claimedAt: new Date().toISOString(),
-    organization: {
-      id: 'mock-org-id-e2e-test',
-      label: 'Test Organization',
-    },
-    outputs: [
-      {
-        description: 'A launch-ready social draft prepared for testing.',
-        id: 'post-1',
-        label: 'Launch draft',
-        platform: 'tiktok',
-      },
-    ],
-    prepPercent: 100,
-    prepStage: 'ready',
-    proactiveStatus: 'ready',
-    success: true,
-    summary: 'Your starter workspace is ready.',
-  };
-}
-
 function buildAnalyticsSummary() {
   return {
     avgEngagementRate: 4.2,
@@ -1818,18 +1789,6 @@ async function handleOnboardingRoute(route: Route): Promise<void> {
   if (url.includes('/install-readiness')) {
     await route.fulfill({
       body: JSON.stringify(buildInstallReadinessPayload()),
-      contentType: 'application/json',
-      status: 200,
-    });
-    return;
-  }
-
-  if (
-    url.includes('/proactive-workspace') ||
-    url.includes('/proactive-claim')
-  ) {
-    await route.fulfill({
-      body: JSON.stringify(buildProactiveWorkspacePayload()),
       contentType: 'application/json',
       status: 200,
     });

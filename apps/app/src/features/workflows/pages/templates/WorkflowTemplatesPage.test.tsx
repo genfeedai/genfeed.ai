@@ -138,10 +138,6 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 
-vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
-  usePageHelp: () => ({ body: 'Template help', title: 'Templates' }),
-}));
-
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
@@ -181,14 +177,6 @@ vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
       {leading}
       {actions}
     </header>
-  ),
-}));
-
-vi.mock('@ui/layout/help-popover/HelpPopover', () => ({
-  default: () => (
-    <button type="button" aria-label="Page help">
-      Help
-    </button>
   ),
 }));
 

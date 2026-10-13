@@ -13,7 +13,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@ui/primitives/hover-card';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 function LoadedPostPreview({
   postId,
@@ -61,6 +61,25 @@ function LoadedPostPreview({
       ) : null}
     </>
   );
+}
+
+/** Room a full preview wants; below this the card opens on the roomier side. */
+const PREVIEW_ROOM_PX = 440;
+
+type PreviewSide = 'bottom' | 'top';
+
+/**
+ * Picked once, when the card opens. Letting the card choose by itself is what
+ * made it jump: it opened below with the small loading placeholder, grew when
+ * the full post arrived, ran out of room and flipped above mid-view.
+ */
+function pickPreviewSide(trigger: HTMLElement | null): PreviewSide {
+  if (!trigger || typeof window === 'undefined') {
+    return 'bottom';
+  }
+  const { bottom, top } = trigger.getBoundingClientRect();
+  const roomBelow = window.innerHeight - bottom;
+  return roomBelow >= PREVIEW_ROOM_PX || roomBelow >= top ? 'bottom' : 'top';
 }
 
 type PublishingHoverPreview =
@@ -155,17 +174,40 @@ export default function PublishingPostHoverPreview({
   target?: PlatformPreviewTarget;
 }) {
   const preview = resolvePublishingHoverPreview({ post, release });
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [side, setSide] = useState<PreviewSide>('bottom');
 
   if (!preview && !postId && !target) {
     return children;
   }
 
   return (
-    <HoverCard openDelay={280} closeDelay={200}>
+    <HoverCard
+      closeDelay={200}
+      onOpenChange={(isOpen) => {
+        if (isOpen) {
+          setSide(pickPreviewSide(triggerRef.current));
+        }
+      }}
+      openDelay={280}
+    >
       <HoverCardTrigger asChild>
-        <div className={cn('min-w-0', className)}>{children}</div>
+        <div className={cn('min-w-0', className)} ref={triggerRef}>
+          {children}
+        </div>
       </HoverCardTrigger>
-      <HoverCardContent>
+      {/* The trigger is usually a full-width list row, so the default right
+          side has no room, flips left and lands on top of the sidebar. Open
+          above or below it, on whichever side has more room, and cap the card
+          to that room so it scrolls instead of being cut off. No flipping:
+          the side is already the roomy one. A plain fade, because a scale or
+          slide moves the card while it is still being measured. */}
+      <HoverCardContent
+        align="start"
+        avoidCollisions={false}
+        className="max-h-[min(32rem,calc(var(--radix-hover-card-content-available-height)-0.5rem))] duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+        side={side}
+      >
         {postId && !post ? (
           <LoadedPostPreview key={postId} postId={postId} fallback={target} />
         ) : preview?.kind === 'post' ? (

@@ -71,7 +71,6 @@ export function WorkflowEditorSectionTopbar({
   return (
     <SectionTopbar
       className="shrink-0"
-      help={null}
       title={title}
       titleVisibility="sr-only"
       leading={

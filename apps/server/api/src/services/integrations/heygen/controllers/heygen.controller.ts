@@ -9,6 +9,7 @@ import {
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { HeyGenAvatarPageDto } from '@api/services/integrations/heygen/dto/heygen-avatar-page.dto';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { HEYGEN_CREDENTIALS_INVALID_ERROR_CODE } from '@genfeedai/contracts/constants';
 import type {
   HeyGenAvatarCatalogPage,
   HeyGenCatalogAvatar,
@@ -17,6 +18,10 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Query } from '@nestjs/common';
+
+const HEYGEN_CATALOG_ERROR_OPTIONS = {
+  credentialsInvalidCode: HEYGEN_CREDENTIALS_INVALID_ERROR_CODE,
+} as const;
 
 type HeygenVoicesResponse = ProviderCatalogResponse<
   'voices',
@@ -78,7 +83,11 @@ export class HeyGenController {
         undefined,
         describeProviderCatalogError(error),
       );
-      throwProviderCatalogError('Failed to fetch HeyGen voices', error);
+      throwProviderCatalogError(
+        'Failed to fetch HeyGen voices',
+        error,
+        HEYGEN_CATALOG_ERROR_OPTIONS,
+      );
     }
   }
 
@@ -111,7 +120,11 @@ export class HeyGenController {
         undefined,
         describeProviderCatalogError(error),
       );
-      throwProviderCatalogError('Failed to fetch HeyGen avatars', error);
+      throwProviderCatalogError(
+        'Failed to fetch HeyGen avatars',
+        error,
+        HEYGEN_CATALOG_ERROR_OPTIONS,
+      );
     }
   }
 
@@ -137,7 +150,11 @@ export class HeyGenController {
         undefined,
         describeProviderCatalogError(error),
       );
-      throwProviderCatalogError('Failed to fetch HeyGen avatars', error);
+      throwProviderCatalogError(
+        'Failed to fetch HeyGen avatars',
+        error,
+        HEYGEN_CATALOG_ERROR_OPTIONS,
+      );
     }
   }
 
@@ -165,7 +182,11 @@ export class HeyGenController {
         undefined,
         describeProviderCatalogError(error),
       );
-      throwProviderCatalogError('Failed to check HeyGen status', error);
+      throwProviderCatalogError(
+        'Failed to check HeyGen status',
+        error,
+        HEYGEN_CATALOG_ERROR_OPTIONS,
+      );
     }
   }
 }

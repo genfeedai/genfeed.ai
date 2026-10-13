@@ -33,6 +33,7 @@ export interface ITikTokPublishResponse {
 export interface ITikTokPublishStatusData {
   status: TikTokPublishStatus | string;
   publicly_available_post_id?: string[];
+  publicaly_available_post_id?: string[];
   fail_reason?: string;
 }
 

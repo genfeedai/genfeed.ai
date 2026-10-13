@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Images, LayoutDashboard, ScanFace } from 'lucide-react';
+import { AtSign, Gauge, LibraryBig } from 'lucide-react';
 
 /**
  * Type-seeded entry points into the same asset browser.
@@ -37,8 +37,8 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
     isExactMatch: true,
     label: 'Overview',
     matchPaths: [APP_ROUTES.LIBRARY.OVERVIEW, APP_ROUTES.LIBRARY.ROOT],
-    outline: LayoutDashboard,
-    solid: LayoutDashboard,
+    outline: Gauge,
+    solid: Gauge,
   },
   {
     group: '',
@@ -47,15 +47,15 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
     // Type routes are the same browser with a chip pre-selected, so they light
     // up Assets rather than a nav row of their own.
     matchPaths: [...LIBRARY_ASSET_ROUTES],
-    outline: Images,
-    solid: Images,
+    outline: LibraryBig,
+    solid: LibraryBig,
   },
   {
     group: '',
     href: APP_ROUTES.LIBRARY.REFERENCES,
     label: 'References',
-    outline: ScanFace,
-    solid: ScanFace,
+    outline: AtSign,
+    solid: AtSign,
   },
 ];
 

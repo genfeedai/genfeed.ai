@@ -24,6 +24,7 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import TikTokPublishingSettings from '@ui/posts/tiktok-publishing/TikTokPublishingSettings';
+import YouTubePublishingSettings from '@ui/posts/youtube-publishing/YouTubePublishingSettings';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -100,6 +101,7 @@ export default function PostDetailSidebar({
     Boolean(reviewSummary?.sourceActionId) ||
     Boolean(reviewSummary?.generationId);
   const isTikTok = post.platform === CredentialPlatform.TIKTOK;
+  const isYouTube = post.platform === CredentialPlatform.YOUTUBE;
   const canPublishViaTikTokApp =
     Boolean(onPublishViaTikTokApp) &&
     isTikTok &&
@@ -158,6 +160,21 @@ export default function PostDetailSidebar({
           browserTimezone={browserTimezone}
           isPublished={isPublished}
         />
+
+        {!isPublished && isYouTube ? (
+          <InspectorSection
+            title={translate('youtubeSettings')}
+            isDefaultOpen
+            testId="inspector-youtube"
+          >
+            <YouTubePublishingSettings
+              key={post.id}
+              post={post}
+              isEmbedded
+              onSaved={onSettingsSaved}
+            />
+          </InspectorSection>
+        ) : null}
 
         {!isPublished && isTikTok ? (
           <InspectorSection

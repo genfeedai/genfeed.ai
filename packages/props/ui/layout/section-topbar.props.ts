@@ -1,6 +1,5 @@
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ReactNode } from 'react';
-import type { PageHelpContent } from './page-help.props';
 
 /**
  * Section topbar contract (reference: Studio's AssetControlsHeader).
@@ -42,11 +41,6 @@ export interface SectionTopbarProps {
    * - `visible`: always show the title row
    */
   titleVisibility?: 'auto' | 'visible' | 'sr-only';
-  /**
-   * Optional help popover, rendered first in the right-hand ghost icon cluster.
-   * Falls back to the route-level help supplied by `PageHelpProvider`.
-   */
-  help?: PageHelpContent | null;
   /**
    * Keep the bordered bar mounted even when title/leading/tabs/actions are
    * all empty on this render. `Container` sets this when a page has declared

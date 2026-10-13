@@ -19,8 +19,6 @@ import type {
   IBrandOsPreviewClaimRequest,
   IBrandOsRevision,
   IBrandOsRevisionUpdateRequest,
-  IBrandSetupRequest,
-  IBrandSetupResponse,
   IBrandSkillSelection,
   IGeneratedBrandProfile,
   IImage,
@@ -608,21 +606,6 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => res.data?.data ?? {});
   }
 
-  /**
-   * Scrape the brand's website/socials, analyze with AI, and populate canonical
-   * brand guidance. Backs `POST /brands/:id/scrape` (renamed from the dissolved
-   * `POST /onboarding/brand-setup`, REST audit #1354). Returns the plain
-   * orchestration envelope, not a JSON:API resource.
-   */
-  public async scrape(
-    id: string,
-    dto: IBrandSetupRequest,
-  ): Promise<IBrandSetupResponse> {
-    return await this.instance
-      .post<IBrandSetupResponse>(`/${id}/scrape`, dto)
-      .then((res) => res.data);
-  }
-
   public async updateWatermark(
     id: string,
     settings: Pick<
@@ -635,36 +618,6 @@ export class BrandsService extends BaseService<Brand> {
   ): Promise<Brand> {
     return this.instance
       .patch<JsonApiResponseDocument>(`/${id}`, settings)
-      .then((res) => this.mapOne(res.data));
-  }
-
-  /**
-   * Rename a brand and, during the first-login onboarding window, cascade the
-   * new name to the owning organization's label + slug. Backs the
-   * `syncOrganizationName` path of `PATCH /brands/:id` (dissolves
-   * `PATCH /onboarding/brand-name`, REST audit #1354).
-   */
-  public async renameWithOrganizationSync(
-    id: string,
-    label: string,
-    options: {
-      agentConfig?: {
-        voice?: {
-          audience?: string[];
-          tone?: string;
-        };
-      };
-      description?: string;
-      organizationLabel?: string;
-      text?: string;
-    } = {},
-  ): Promise<Brand> {
-    return await this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, {
-        ...options,
-        label,
-        syncOrganizationName: true,
-      })
       .then((res) => this.mapOne(res.data));
   }
 

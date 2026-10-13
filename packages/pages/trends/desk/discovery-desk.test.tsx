@@ -79,10 +79,6 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
 }));
 
-vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
-  usePageHelp: () => null,
-}));
-
 vi.mock('next/navigation', () => ({
   usePathname: () => '/org-1/brand-1/discovery/overview',
   useRouter: () => ({

@@ -672,6 +672,7 @@ describe('AppProtectedLayout', () => {
 
       expect(useAgentPageContext).toHaveBeenLastCalledWith(
         memberRole ?? undefined,
+        null,
       );
     },
   );
@@ -687,7 +688,10 @@ describe('AppProtectedLayout', () => {
         </AppProtectedLayout>,
       );
 
-      expect(useAgentPageContext).toHaveBeenLastCalledWith(role ?? undefined);
+      expect(useAgentPageContext).toHaveBeenLastCalledWith(
+        role ?? undefined,
+        null,
+      );
     },
   );
 
@@ -1125,7 +1129,7 @@ describe('AppProtectedLayout', () => {
     ['/discovery/overview', 'Overview'],
     ['/analytics', 'Overview'],
     ['/automation/runs', 'Runs'],
-    ['/admin', 'Dashboard'],
+    ['/admin', 'Overview'],
     ['/agent/new', 'New conversation'],
   ])(
     'feeds the active surface navigation to breadcrumbs on %s',
@@ -1562,7 +1566,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         items: expect.arrayContaining([
-          expect.objectContaining({ label: 'Dashboard' }),
+          expect.objectContaining({ label: 'Overview' }),
         ]),
       }),
     );

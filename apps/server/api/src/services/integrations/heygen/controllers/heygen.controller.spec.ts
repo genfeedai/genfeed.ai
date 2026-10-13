@@ -152,11 +152,30 @@ describe('HeyGenController', () => {
     expect(error.getResponse()).toMatchObject({ code: 'provider_timeout' });
   });
 
-  it('reports invalid or missing provider credentials as actionable', async () => {
-    heygenService.getVoices.mockRejectedValue(providerFailure({ status: 401 }));
-    const error = await controller.getVoices(mockUser).catch((e) => e);
-    expect(error.getStatus()).toBe(HttpStatus.FAILED_DEPENDENCY);
-    expect(error.getResponse()).toMatchObject({ code: 'provider_config' });
+  it.each([401, 403])(
+    'answers rejected HeyGen credentials (%i) with a 502 and a stable code',
+    async (providerStatus) => {
+      heygenService.getVoices.mockRejectedValue(
+        providerFailure({ status: providerStatus }),
+      );
+      const error = await controller.getVoices(mockUser).catch((e) => e);
+      expect(error.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      expect(error.getResponse()).toMatchObject({
+        code: 'HEYGEN_CREDENTIALS_INVALID',
+        title: 'Failed to fetch HeyGen voices',
+      });
+    },
+  );
+
+  it('uses the same stable code when avatars hit rejected credentials', async () => {
+    heygenService.getAvatars.mockRejectedValue(
+      providerFailure({ status: 401 }),
+    );
+    const error = await controller.getAvatars(mockUser).catch((e) => e);
+    expect(error.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect(error.getResponse()).toMatchObject({
+      code: 'HEYGEN_CREDENTIALS_INVALID',
+    });
   });
 
   it('surfaces a not-connected configuration failure as a client error', async () => {

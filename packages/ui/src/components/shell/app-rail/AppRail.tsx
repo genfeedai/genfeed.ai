@@ -20,6 +20,7 @@ import type {
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -63,6 +64,9 @@ function AppRailItem({
   const t = useTranslations('common.appRail');
   const Icon = app.icon;
   const intent = useNavigationIntentPrefetch(href);
+  const { hoverProps, icon: hoverIcon } = useHoverAnimatedIcon(
+    <Icon aria-hidden="true" className="size-4" />,
+  );
   const shortcutLabel = formatRailShortcut(shortcut);
   const hasBadge = !isLocked && badge !== undefined && badge.count > 0;
   const accessibleLabel = isLocked
@@ -81,11 +85,23 @@ function AppRailItem({
           aria-describedby={`app-rail-desc-${app.id}`}
           aria-label={accessibleLabel}
           data-testid={`app-rail-item-${app.id}`}
-          onBlur={intent.onBlur}
+          onBlur={(event) => {
+            intent.onBlur();
+            hoverProps.onBlur(event);
+          }}
           onClick={onNavigateStart}
-          onFocus={intent.onFocus}
-          onMouseEnter={intent.onMouseEnter}
-          onMouseLeave={intent.onMouseLeave}
+          onFocus={(event) => {
+            intent.onFocus();
+            hoverProps.onFocus(event);
+          }}
+          onMouseEnter={(event) => {
+            intent.onMouseEnter();
+            hoverProps.onMouseEnter(event);
+          }}
+          onMouseLeave={(event) => {
+            intent.onMouseLeave();
+            hoverProps.onMouseLeave(event);
+          }}
           className={cn(
             'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
@@ -97,7 +113,7 @@ function AppRailItem({
             isLocked && 'opacity-60',
           )}
         >
-          <Icon aria-hidden="true" className="size-4" />
+          {hoverIcon}
           {isLocked ? (
             <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-gray-100 text-foreground/70 shadow-border">
               <Lock aria-hidden="true" className="size-2.5" />

@@ -9357,6 +9357,7 @@ model BrandedGenerationReceipt {
   @@unique([id, organizationId, brandId])
   @@unique([organizationId, brandId, requestKey, candidateIndex], map: "branded_generation_receipts_request_key")
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "branded_generation_receipts_scope_idx")
+  @@index([state, updatedAt], map: "branded_generation_receipts_state_updated_idx")
   @@map("branded_generation_receipts")
 }
 model BrandedGenerationReceiptEvent {

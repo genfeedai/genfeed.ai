@@ -19,7 +19,6 @@ import {
   MEDIA_MODERATION_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
-  ONBOARDING_STARTER_ASSETS_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
   SCHEDULED_PUBLISH_QUEUE,
@@ -169,15 +168,6 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: REPLICATE_POLL_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 3000, type: 'exponential' },
-          removeOnComplete: true,
-          removeOnFail: true,
-        },
-        name: ONBOARDING_STARTER_ASSETS_QUEUE,
       },
       {
         defaultJobOptions: {

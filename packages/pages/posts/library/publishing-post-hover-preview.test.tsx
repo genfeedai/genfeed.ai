@@ -93,6 +93,62 @@ describe('PublishingPostHoverPreview lazy post details', () => {
     );
   });
 
+  it('opens below the row, not beside it where a full-width row has no room', async () => {
+    render(
+      <PublishingPostHoverPreview postId="post-1" target={fallback}>
+        <a href="/review">Review post</a>
+      </PublishingPostHoverPreview>,
+    );
+    fireEvent.focus(screen.getByRole('link', { name: 'Review post' }));
+    await screen.findByText('Full caption from the actual post');
+
+    const card = document.querySelector(
+      '[data-radix-popper-content-wrapper] [data-side]',
+    );
+    expect(card).toHaveAttribute('data-side', 'bottom');
+    expect(card).toHaveAttribute('data-align', 'start');
+  });
+
+  it('opens above a row near the bottom of the screen and stays there once the post loads', async () => {
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(768);
+    render(
+      <PublishingPostHoverPreview postId="post-1" target={fallback}>
+        <a href="/review">Review post</a>
+      </PublishingPostHoverPreview>,
+    );
+    const trigger = screen.getByRole('link', { name: 'Review post' })
+      .parentElement as HTMLElement;
+    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
+      bottom: 540,
+      top: 498,
+    } as DOMRect);
+
+    fireEvent.focus(screen.getByRole('link', { name: 'Review post' }));
+    await screen.findByText('Full caption from the actual post');
+
+    const card = document.querySelector(
+      '[data-radix-popper-content-wrapper] [data-side]',
+    );
+    expect(card).toHaveAttribute('data-side', 'top');
+  });
+
+  it('never lets the card flip or outgrow the room it was given', async () => {
+    render(
+      <PublishingPostHoverPreview postId="post-1" target={fallback}>
+        <a href="/review">Review post</a>
+      </PublishingPostHoverPreview>,
+    );
+    fireEvent.focus(screen.getByRole('link', { name: 'Review post' }));
+    await screen.findByText('Full caption from the actual post');
+
+    const card = document.querySelector(
+      '[data-radix-popper-content-wrapper] [data-side]',
+    );
+    expect(card?.className).toContain(
+      'var(--radix-hover-card-content-available-height)',
+    );
+  });
+
   it('shows the summary and an honest error when the full post cannot load', async () => {
     mocks.findOne.mockRejectedValueOnce(new Error('unavailable'));
     render(

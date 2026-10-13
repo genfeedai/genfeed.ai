@@ -920,12 +920,10 @@ function getAgentOnboardingOrgSlug(pathname: string): string | null {
 }
 
 // Wizard routes that stay reachable in every mode. `post-signup` owns the
-// provisioning handoff (including the managed-checkout return), `proactive`
-// is a standalone prompt surface rather than a step of the classic journey,
-// and the Expert Path steps run on every surface.
+// provisioning handoff (including the managed-checkout return), and the
+// Expert Path steps run on every surface.
 const MODE_AGNOSTIC_ONBOARDING_PATHS = [
   APP_ROUTES.ONBOARDING.POST_SIGNUP,
-  APP_ROUTES.ONBOARDING.PROACTIVE,
   APP_ROUTES.ONBOARDING.POSITIONING,
   APP_ROUTES.ONBOARDING.CORPUS,
   APP_ROUTES.ONBOARDING.FIRST_SYSTEM,

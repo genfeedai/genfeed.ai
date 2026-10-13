@@ -106,6 +106,36 @@ describe('TiktokService', () => {
     vi.clearAllMocks();
   });
 
+  describe('getPublishStatus', () => {
+    it('stops polling when a private post completes without a public ID', async () => {
+      (httpService.post as Mock).mockReturnValue(
+        of({ data: { data: { status: 'PUBLISH_COMPLETE' } } }),
+      );
+      expect(
+        await service.getPublishStatus('access', 'publish-private', 3, 0),
+      ).toEqual({ status: 'PUBLISH_COMPLETE' });
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('normalizes TikTok’s documented publicaly_available_post_id field', async () => {
+      (httpService.post as Mock).mockReturnValue(
+        of({
+          data: {
+            data: {
+              status: 'PUBLISH_COMPLETE',
+              publicaly_available_post_id: ['video-123'],
+            },
+          },
+        }),
+      );
+      expect(
+        await service.getPublishStatus('access', 'publish-public', 1, 0),
+      ).toEqual(
+        expect.objectContaining({ publicly_available_post_id: ['video-123'] }),
+      );
+    });
+  });
+
   describe('uploadVideo', () => {
     it('sends request and returns data', async () => {
       const mockPost = buildMockPost({ label: 'Test video' });

@@ -8,6 +8,7 @@ import type {
   ReactElement,
   ReactNode,
 } from 'react';
+import { HoverAnimatedIconSlot } from './animated-icons/hover-animated-icon-slot';
 import {
   type ButtonStyleProps,
   buttonVariants,
@@ -98,7 +99,13 @@ function Button({
     <>
       {/* The spinner is decorative: its "Loading" label must not join the
           button's accessible name while an action is pending. */}
-      {isLoading ? <Spinner aria-hidden="true" /> : icon}
+      {isLoading ? (
+        <Spinner aria-hidden="true" />
+      ) : icon ? (
+        // Button stays server-renderable: the hover animation lives in a
+        // client slot that listens to this button from inside it.
+        <HoverAnimatedIconSlot defaultSizeClassName="size-4" icon={icon} />
+      ) : null}
       {isLoading && !icon ? null : (children ?? label)}
     </>
   );

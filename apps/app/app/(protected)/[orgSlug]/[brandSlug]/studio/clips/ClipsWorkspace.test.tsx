@@ -1,10 +1,7 @@
-import { PageHelpProvider } from '@genfeedai/contexts/ui/page-help-context';
-import { DEFAULT_LOCALE } from '@genfeedai/contracts/constants';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { loadMessages } from '../../../../../../i18n/messages';
 import ClipsWorkspace from './ClipsWorkspace';
 
 const mocks = vi.hoisted(() => ({
@@ -48,7 +45,7 @@ vi.mock('next-intl', async () => {
 });
 
 // Opaque stand-ins: this suite verifies Container/SectionTopbar chrome
-// stability against the real PageHelpProvider, not the inner forms.
+// stability, not the inner forms.
 vi.mock('./components/ClipsInputForm', () => ({
   default: () => <div data-testid="clips-input-form" />,
 }));
@@ -81,21 +78,7 @@ function baseClipsPageState(overrides: Record<string, unknown> = {}) {
   };
 }
 
-// The route-level help content a real page load would resolve for
-// `/studio/clips` via `resolvePageHelpKey` + `PAGE_HELP_ROUTES` — sourced
-// from the actual English catalog, not a stand-in string, so this test
-// fails if that route's help copy is ever removed.
-const clipsHelp = loadMessages(DEFAULT_LOCALE).pages.help.studioClips;
-
-function renderWithRealPageHelp() {
-  return render(
-    <PageHelpProvider help={clipsHelp}>
-      <ClipsWorkspace />
-    </PageHelpProvider>,
-  );
-}
-
-describe('ClipsWorkspace with the real page-help provider', () => {
+describe('ClipsWorkspace chrome stability', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.useStudioClipsPage.mockReturnValue(baseClipsPageState());
@@ -108,7 +91,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       projects: [],
     });
 
-    renderWithRealPageHelp();
+    render(<ClipsWorkspace />);
 
     expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
     expect(screen.getByTestId('container')).toHaveAttribute(
@@ -124,7 +107,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       projects: [],
     });
 
-    renderWithRealPageHelp();
+    render(<ClipsWorkspace />);
 
     expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
     expect(screen.getByTestId('container')).toHaveAttribute(
@@ -140,7 +123,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       projects: [],
     });
 
-    const { rerender } = renderWithRealPageHelp();
+    const { rerender } = render(<ClipsWorkspace />);
     expect(screen.getByTestId('container')).toHaveAttribute(
       'data-module-chrome',
       'section-topbar',
@@ -151,11 +134,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       isLoading: false,
       projects: [],
     });
-    rerender(
-      <PageHelpProvider help={clipsHelp}>
-        <ClipsWorkspace />
-      </PageHelpProvider>,
-    );
+    rerender(<ClipsWorkspace />);
     expect(screen.getByTestId('container')).toHaveAttribute(
       'data-module-chrome',
       'section-topbar',
@@ -177,11 +156,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
         },
       ],
     });
-    rerender(
-      <PageHelpProvider help={clipsHelp}>
-        <ClipsWorkspace />
-      </PageHelpProvider>,
-    );
+    rerender(<ClipsWorkspace />);
     expect(screen.getByTestId('container')).toHaveAttribute(
       'data-module-chrome',
       'section-topbar',
@@ -199,7 +174,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       projects: [],
     });
 
-    renderWithRealPageHelp();
+    render(<ClipsWorkspace />);
 
     expect(screen.getByTestId('clips-empty-state')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'New project' })).toHaveAttribute(
@@ -229,11 +204,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
         step: 'review',
       }),
     );
-    render(
-      <PageHelpProvider help={clipsHelp}>
-        <ClipsWorkspace projectId="source-1" />
-      </PageHelpProvider>,
-    );
+    render(<ClipsWorkspace projectId="source-1" />);
     expect(screen.getByText('Downloading source media…')).toBeVisible();
     expect(screen.queryByText(/1-2 minutes/)).not.toBeInTheDocument();
     expect(
@@ -277,11 +248,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
           step: 'review',
         }),
       );
-      render(
-        <PageHelpProvider help={clipsHelp}>
-          <ClipsWorkspace projectId="source-1" />
-        </PageHelpProvider>,
-      );
+      render(<ClipsWorkspace projectId="source-1" />);
 
       expect(
         screen.getByText('Audio extraction job 7 failed: Source is unreadable'),
@@ -326,11 +293,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       }),
     );
 
-    render(
-      <PageHelpProvider help={clipsHelp}>
-        <ClipsWorkspace projectId="draft-1" />
-      </PageHelpProvider>,
-    );
+    render(<ClipsWorkspace projectId="draft-1" />);
 
     expect(screen.getByTestId('clips-source-preview')).toBeVisible();
     expect(

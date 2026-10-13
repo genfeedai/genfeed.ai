@@ -2465,14 +2465,6 @@
       "workspace": "api"
     },
     {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/onboarding/services/onboarding-preview.service.spec.ts",
-      "fingerprint": "6002063500ad7750de87",
-      "message": "Property 'brandId' is missing in type '{ id: string; organizationId: string; userId: string; }' but required in type 'AuthenticatedUser'.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
@@ -7894,14 +7886,6 @@
       "file": "packages/services/social/brands.service.http.test.ts",
       "fingerprint": "5be21c97b6ec8b55e728",
       "message": "Argument of type '{ draftId: string; }' is not assignable to parameter of type 'Omit<IBrandKitApplyRequest, \"brandId\">'.   Property 'fields' is missing in type '{ draftId: string; }' but required in type 'Omit<IBrandKitApplyRequest, \"brandId\">'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/services/social/brands.service.http.test.ts",
-      "fingerprint": "5a05e6b8b5c29a62440c",
-      "message": "Object literal may only specify known properties, and 'url' does not exist in type 'IBrandSetupRequest'.",
       "workspace": "services"
     },
     {
