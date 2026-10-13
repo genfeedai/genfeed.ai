@@ -652,9 +652,15 @@ describe('Agent onboarding first draft', () => {
 
   it('returns the receipt, discloses a provisional draft and links a regeneration to it', async () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
-    const { handler, postGenerationService } = createHandler({
-      brand: { id: 'brand-1', label: 'Acme' },
-    });
+    const { handler, postGenerationService, generationGateway } = createHandler(
+      { brand: { id: 'brand-1', label: 'Acme' } },
+    );
+    generationGateway.generateImage.mockResolvedValue({
+      data: {
+        id: undefined,
+        attributes: { url: 'https://cdn.example.com/first-post.png' },
+      },
+    } as never);
     const result = await handler.generateOnboardingContent(
       {},
       { ...CONTEXT, brandId: 'brand-1' },
