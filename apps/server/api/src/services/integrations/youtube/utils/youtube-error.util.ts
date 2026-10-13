@@ -86,6 +86,33 @@ export function getYoutubeErrorCode(error: unknown): number | undefined {
     : undefined;
 }
 
+const SAFE_YOUTUBE_PROVIDER_REASONS = new Set([
+  'accessNotConfigured',
+  'authError',
+  'dailyLimitExceeded',
+  'forbidden',
+  'insufficientPermissions',
+  'invalidCredentials',
+  'invalid_grant',
+  'quotaExceeded',
+  'rateLimitExceeded',
+  'unauthorized',
+  'userRateLimitExceeded',
+  'youtubeSignupRequired',
+]);
+
+/**
+ * First YouTube `reason` or OAuth error status that is safe to log.
+ * Free-form provider messages and response bodies are never returned.
+ */
+export function readSafeYoutubeProviderReason(
+  error: unknown,
+): string | undefined {
+  return getYoutubeErrorReasons(error).find((reason) =>
+    SAFE_YOUTUBE_PROVIDER_REASONS.has(reason),
+  );
+}
+
 function getYoutubeErrorReasons(error: unknown): string[] {
   const apiError = getYoutubeApiError(error);
   const reasons = (apiError?.errors ?? [])

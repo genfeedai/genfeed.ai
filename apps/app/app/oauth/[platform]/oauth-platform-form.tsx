@@ -4,6 +4,10 @@ import { clearClientProtectedBootstrapCache } from '@contexts/providers/protecte
 import { ButtonVariant } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  readOAuthConnectContext,
+  rememberOAuthConnectContext,
+} from '@hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import type {
   OAuthPlatformFormProps,
@@ -24,6 +28,10 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
 import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-return-to';
+import {
+  isHttpsAuthorizationUrl,
+  resolveOAuthPlatformVerifyFailure,
+} from './oauth-verify-error';
 
 const OAUTH1_PLATFORMS = ['x-ads'];
 
@@ -145,14 +153,18 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         completeSuccess();
       } catch (error) {
         logger.error(`${url} failed`, error);
-        const denied =
-          providerError === 'access_denied' || providerError === 'user_denied';
+        const failure = resolveOAuthPlatformVerifyFailure({
+          callbackSubmitted,
+          error,
+          platform,
+          providerError,
+        });
         setResult({
-          canRetry: !callbackSubmitted,
+          canRestart: failure.canRestart,
+          canRetry: failure.canRetry,
+          errorMessage: translate(failure.messageKey),
+          errorTitle: translate(failure.titleKey),
           status: 'error',
-          errorMessage: providerError
-            ? translate(denied ? 'error.denied' : 'error.failed')
-            : translate('error.description'),
         });
       }
     },
@@ -182,6 +194,70 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     setResult(INITIAL_STATE);
     void verify(true);
   }, [verify]);
+
+  const isRestarting = useRef(false);
+  const restartAuthorization = useCallback(async () => {
+    // The provider code is single-use. Start a new connect instead of verify.
+    if (isRestarting.current) {
+      return;
+    }
+    isRestarting.current = true;
+
+    const context = readOAuthConnectContext();
+    if (!context) {
+      const returnTo = resolveReturnTo();
+      clearStoredReturnTo();
+      push(returnTo);
+      return;
+    }
+
+    try {
+      const service = await getServicesService({ forceRefresh: true });
+      const credential = await service.postConnect({
+        brandId: context.brandId,
+        ...(context.credentialId ? { credentialId: context.credentialId } : {}),
+      });
+      if (!isHttpsAuthorizationUrl(credential.url)) {
+        throw new Error('Authorization URL missing');
+      }
+
+      const returnTo = resolveReturnTo();
+      try {
+        sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
+      } catch {
+        // ignore
+      }
+      rememberOAuthConnectContext({
+        brandId: context.brandId,
+        credentialId: credential.id || context.credentialId,
+      });
+      const separator = credential.url.includes('?') ? '&' : '?';
+      const opened = window.open(
+        `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
+        '_self',
+      );
+      if (!opened) {
+        isRestarting.current = false;
+      }
+    } catch {
+      isRestarting.current = false;
+      logger.error(`POST /services/${platform}/connect restart failed`);
+      setResult({
+        canRestart: true,
+        canRetry: false,
+        errorMessage: translate('error.restartFailed'),
+        errorTitle: translate('error.title'),
+        status: 'error',
+      });
+    }
+  }, [
+    clearStoredReturnTo,
+    getServicesService,
+    platform,
+    push,
+    resolveReturnTo,
+    translate,
+  ]);
 
   const platformLabel = platform.charAt(0).toUpperCase() + platform.slice(1);
   const platformBrand = resolvePlatformConnectionBrand(platform);
@@ -237,15 +313,22 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         {isSignedIn && result.status === 'error' && (
           <div className="space-y-4">
             <CircleX className="mx-auto text-5xl text-destructive" />
-            <h2 className="text-lg font-semibold">
-              {translate('error.title')}
-            </h2>
+            <h2 className="text-lg font-semibold">{result.errorTitle}</h2>
             <p className="text-sm text-muted-foreground">
               {result.errorMessage}
             </p>
             <div className="flex justify-center gap-2">
               {result.canRetry && (
                 <Button onClick={retry}>{translate('actions.retry')}</Button>
+              )}
+              {result.canRestart && (
+                <Button
+                  onClick={() => {
+                    void restartAuthorization();
+                  }}
+                >
+                  {translate('actions.restart')}
+                </Button>
               )}
               <Button asChild variant={ButtonVariant.LINK} withWrapper={false}>
                 <Link href={resolveReturnTo()} onClick={clearStoredReturnTo}>

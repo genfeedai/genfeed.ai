@@ -9,6 +9,7 @@ import { ServicesService } from '@services/external/services.service';
 import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { rememberOAuthConnectContext } from './oauth-connect-context';
 
 /** sessionStorage key read by `/oauth/[platform]` after provider redirect. */
 export const OAUTH_RETURN_TO_STORAGE_KEY = 'oauth_return_to';
@@ -71,6 +72,10 @@ export function usePlatformOAuthConnect(
           token,
         );
         const credential = await service.postConnect({ brandId });
+        rememberOAuthConnectContext({
+          brandId,
+          credentialId: credential.id,
+        });
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(
           `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,

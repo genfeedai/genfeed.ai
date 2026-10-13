@@ -325,6 +325,9 @@ describe('OAuthPlatformForm', () => {
     expect(
       screen.queryByRole('button', { name: 'Try again' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Restart authorization' }),
+    ).not.toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
   });
 
@@ -352,8 +355,130 @@ describe('OAuthPlatformForm', () => {
     expect(
       screen.queryByRole('button', { name: 'Try again' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Restart authorization' }),
+    ).toBeVisible();
     expect(mocks.push).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Restart authorization' }),
+    );
+    expect(mocks.push).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.postVerify).toHaveBeenCalledTimes(1);
   });
+
+  it('explains a missing YouTube channel and starts a fresh authorization', async () => {
+    const brandId = '11111111-1111-4111-8111-111111111111';
+    const credentialId = '22222222-2222-4222-8222-222222222222';
+    window.sessionStorage.setItem(
+      'oauth_connect_context',
+      JSON.stringify({ brandId, credentialId }),
+    );
+    const postConnect = vi.fn().mockResolvedValue({
+      id: credentialId,
+      url: 'https://accounts.google.com/o/oauth2/v2/auth?state=fresh',
+    });
+    mocks.getServicesService.mockResolvedValue({
+      postConnect,
+      postVerify: mocks.postVerify,
+    });
+    mocks.postVerify.mockRejectedValueOnce({
+      errors: [
+        {
+          code: 'youtube_channel_missing',
+          detail:
+            'No YouTube channel was found for the selected Google account.',
+          status: '400',
+          title: 'No YouTube channel found',
+        },
+      ],
+    });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(<OAuthPlatformForm platform="youtube" />);
+
+    expect(await screen.findByText('No YouTube channel found')).toBeVisible();
+    expect(
+      screen.getByText(
+        'No YouTube channel was found for the Google account you selected. Restart authorization and choose the YouTube channel or Brand Account, not only the Google identity.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText('Failed to verify your account. Please try again.'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Restart authorization' }),
+    );
+
+    await waitFor(() => {
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId,
+        credentialId,
+      });
+    });
+    expect(mocks.postVerify).toHaveBeenCalledTimes(1);
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://accounts.google.com/o/oauth2/v2/auth?state=fresh&return_to=%2Fsettings%2Fpublishing',
+      '_self',
+    );
+    const logged = JSON.stringify(mocks.loggerError.mock.calls);
+    expect(logged).not.toContain('code-1');
+    expect(logged).not.toContain('state-1');
+  });
+
+  it.each([
+    [
+      'youtube_token_exchange_failed',
+      'YouTube could not exchange this authorization. Restart the connection and try again.',
+    ],
+    [
+      'youtube_missing_scopes',
+      'YouTube did not grant the permissions this connection needs. Restart authorization and accept the requested access.',
+    ],
+    [
+      'youtube_provider_failure',
+      'YouTube could not verify this account. Restart the connection and try again.',
+    ],
+    [
+      'youtube_state_invalid',
+      'This YouTube connection session is no longer valid. Restart authorization to try again.',
+    ],
+    [
+      'youtube_access_denied',
+      'Authorization was denied. You can try connecting again.',
+    ],
+    ['youtube_unknown', 'Failed to verify your account. Please try again.'],
+  ])(
+    'keeps YouTube %s distinct from a missing channel',
+    async (code, message) => {
+      mocks.postVerify.mockRejectedValueOnce({
+        errors: [
+          {
+            code,
+            detail: `secret code=code-1 state=state-1 token=yt_access`,
+            status: '400',
+            title: 'Provider detail',
+          },
+        ],
+      });
+
+      render(<OAuthPlatformForm platform="youtube" />);
+
+      expect(await screen.findByText(message)).toBeVisible();
+      expect(
+        screen.queryByText('No YouTube channel found'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/code-1/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/yt_access/)).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Restart authorization' }),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: 'Try again' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('shows the Instagram account picker instead of redirecting when the connection needs selection', async () => {
     mocks.postVerify.mockResolvedValue({

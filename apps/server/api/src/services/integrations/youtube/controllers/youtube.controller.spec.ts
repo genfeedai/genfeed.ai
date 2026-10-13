@@ -20,6 +20,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { YoutubeController } from '@api/services/integrations/youtube/controllers/youtube.controller';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
+import { YoutubeOAuthVerifyErrorCode } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -57,6 +58,19 @@ describe('YoutubeController', () => {
   let credentialsService: YoutubeControllerCredentialsServiceMock;
   let youtubeService: YoutubeServiceMock;
   let youtubeAuthorizedSignalsService: YoutubeAuthorizedSignalsServiceMock;
+  const logger = {
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
+
+  function loggedText(): string {
+    return JSON.stringify([
+      logger.error.mock.calls,
+      logger.log.mock.calls,
+      logger.warn.mock.calls,
+    ]);
+  }
 
   const mockRequest = {} as unknown as Request;
   const brandId = 'test-object-id';
@@ -152,7 +166,7 @@ describe('YoutubeController', () => {
         },
         {
           provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+          useValue: logger,
         },
         { provide: BrandsService, useValue: brandsService },
         { provide: CredentialsService, useValue: credentialsService },
@@ -176,6 +190,9 @@ describe('YoutubeController', () => {
       .compile();
 
     controller = module.get<YoutubeController>(YoutubeController);
+    logger.error.mockClear();
+    logger.log.mockClear();
+    logger.warn.mockClear();
   });
 
   it('should be defined', () => {
@@ -214,6 +231,7 @@ describe('YoutubeController', () => {
       await controller.connect(mockRequest, mockUser, dto);
       expect(youtubeService.generateAuthUrl).toHaveBeenCalledWith(
         expect.objectContaining({
+          prompt: 'consent select_account',
           scope: [
             'https://www.googleapis.com/auth/youtube.force-ssl',
             'https://www.googleapis.com/auth/yt-analytics.readonly',
@@ -331,15 +349,34 @@ describe('YoutubeController', () => {
 
     it('marks the credential disconnected and rejects when channel lookup fails', async () => {
       youtubeService.getChannelDetails.mockRejectedValueOnce(
-        new Error('API Error'),
+        new Error(
+          'API Error code=google_auth_code state=opaque-oauth-state access_token=yt_access refresh_token=yt_refresh',
+        ),
       );
 
-      await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
-        HttpException,
+      const failure = await controller
+        .verify(mockRequest, dto)
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).getStatus()).toBe(
+        HttpStatus.BAD_GATEWAY,
+      );
+      expect((failure as HttpException).getResponse()).toEqual(
+        expect.objectContaining({
+          code: YoutubeOAuthVerifyErrorCode.PROVIDER_FAILURE,
+        }),
       );
       expect(credentialsService.patch).toHaveBeenCalledWith(credentialId, {
         isConnected: false,
       });
+      const serialized = loggedText();
+      expect(serialized).not.toContain('google_auth_code');
+      expect(serialized).not.toContain('opaque-oauth-state');
+      expect(serialized).not.toContain('yt_access');
+      expect(serialized).not.toContain('yt_refresh');
+      expect(serialized).toContain('provider_failure');
+      expect(serialized).toContain('channel_lookup');
     });
 
     it('marks the credential disconnected and rejects when no channel is returned', async () => {
@@ -353,9 +390,41 @@ describe('YoutubeController', () => {
       expect((failure as HttpException).getStatus()).toBe(
         HttpStatus.BAD_REQUEST,
       );
+      expect((failure as HttpException).getResponse()).toEqual(
+        expect.objectContaining({
+          code: YoutubeOAuthVerifyErrorCode.CHANNEL_MISSING,
+          title: 'No YouTube channel found',
+        }),
+      );
       expect(credentialsService.patch).toHaveBeenCalledWith(credentialId, {
         isConnected: false,
       });
+      expect(loggedText()).toContain('channel_selection');
+      expect(loggedText()).not.toContain('google_auth_code');
+      expect(loggedText()).not.toContain('opaque-oauth-state');
+    });
+
+    it('logs token exchange separately from a missing channel', async () => {
+      youtubeService.exchangeCodeForTokens.mockRejectedValueOnce(
+        new Error('invalid_grant code=google_auth_code'),
+      );
+      const request = {
+        headers: { 'x-request-id': 'req-verify-1' },
+      } as unknown as Request;
+
+      const failure = await controller
+        .verify(request, dto)
+        .catch((error: unknown) => error);
+
+      expect((failure as HttpException).getResponse()).toEqual(
+        expect.objectContaining({
+          code: YoutubeOAuthVerifyErrorCode.TOKEN_EXCHANGE_FAILED,
+        }),
+      );
+      expect(loggedText()).toContain('token_exchange');
+      expect(loggedText()).toContain('req-verify-1');
+      expect(loggedText()).not.toContain('channel_selection');
+      expect(loggedText()).not.toContain('google_auth_code');
     });
 
     it('should reactivate previously deleted credential', async () => {

@@ -134,6 +134,7 @@
     "platformCallback": {
       "actions": {
         "back": "Go back",
+        "restart": "Restart authorization",
         "retry": "Try again",
         "signIn": "Sign in to continue"
       },
@@ -146,7 +147,15 @@
         "denied": "Authorization was denied. You can try connecting again.",
         "description": "Failed to verify your account. Please try again.",
         "failed": "The provider rejected this authorization. Please try again.",
-        "title": "Connection Failed"
+        "restartFailed": "Could not restart the connection. Go back and connect again.",
+        "title": "Connection Failed",
+        "youtubeAuthorizationFailed": "YouTube could not finish this connection. Restart authorization and try again.",
+        "youtubeChannelMissing": "No YouTube channel was found for the Google account you selected. Restart authorization and choose the YouTube channel or Brand Account, not only the Google identity.",
+        "youtubeChannelMissingTitle": "No YouTube channel found",
+        "youtubeMissingScopes": "YouTube did not grant the permissions this connection needs. Restart authorization and accept the requested access.",
+        "youtubeProviderFailure": "YouTube could not verify this account. Restart the connection and try again.",
+        "youtubeStateInvalid": "This YouTube connection session is no longer valid. Restart authorization to try again.",
+        "youtubeTokenExchange": "YouTube could not exchange this authorization. Restart the connection and try again."
       },
       "success": {
         "description": "Redirecting you back…",

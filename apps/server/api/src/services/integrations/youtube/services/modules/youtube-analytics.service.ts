@@ -3,6 +3,10 @@ import {
   type YoutubeRequestAuth,
 } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import {
+  getYoutubeErrorCode,
+  readSafeYoutubeProviderReason,
+} from '@api/services/integrations/youtube/utils/youtube-error.util';
 import type { IYouTubeVideoStats } from '@genfeedai/contracts/interfaces';
 import {
   captureLearningMetrics,
@@ -123,7 +127,12 @@ export class YoutubeAnalyticsService {
 
       return channelDetails;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      const httpStatus = getYoutubeErrorCode(error);
+      const providerReason = readSafeYoutubeProviderReason(error);
+      this.loggerService.error(`${url} failed`, {
+        ...(httpStatus !== undefined ? { httpStatus } : {}),
+        ...(providerReason ? { providerReason } : {}),
+      });
       throw error;
     }
   }
@@ -241,7 +250,12 @@ export class YoutubeAnalyticsService {
 
       return results;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      const httpStatus = getYoutubeErrorCode(error);
+      const providerReason = readSafeYoutubeProviderReason(error);
+      this.loggerService.error(`${url} failed`, {
+        ...(httpStatus !== undefined ? { httpStatus } : {}),
+        ...(providerReason ? { providerReason } : {}),
+      });
       throw error;
     }
   }

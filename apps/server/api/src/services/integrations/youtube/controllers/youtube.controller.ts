@@ -12,8 +12,19 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
+import {
+  asYoutubeVerifyException,
+  buildYoutubeVerifyFailureLog,
+  buildYoutubeVerifyRequestLog,
+  readYoutubeVerifyCorrelationId,
+  YoutubeChannelMissingError,
+  type YoutubeOAuthVerifyProgress,
+} from '@api/services/integrations/youtube/utils/youtube-oauth-verify.util';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  YoutubeOAuthVerifyErrorCode,
+} from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
@@ -102,7 +113,9 @@ export class YoutubeController {
       const authUrl = this.youtubeService.generateAuthUrl({
         accessType: 'offline',
         includeGrantedScopes: false,
-        prompt: 'consent',
+        // select_account lets a Brand Account or channel be chosen again.
+        // consent alone can reuse the Google identity that has no channel.
+        prompt: 'consent select_account',
         // youtube.force-ssl covers every Data and Live API call Genfeed makes
         // (upload, playlists, comments, live chat); request nothing broader.
         scope: [
@@ -127,25 +140,43 @@ export class YoutubeController {
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const correlationId = readYoutubeVerifyCorrelationId(
+      request.headers as Record<string, unknown> | undefined,
+    );
+    const progress: YoutubeOAuthVerifyProgress = {
+      stage: 'request_validation',
+    };
 
-    this.loggerService.log(url, createCredentialVerifyDto);
+    this.loggerService.log(
+      url,
+      buildYoutubeVerifyRequestLog(createCredentialVerifyDto, correlationId),
+    );
 
     const { code, state } = createCredentialVerifyDto;
 
     try {
+      progress.stage = 'callback';
       await throwIfOAuthCallbackError(
         this.credentialsService,
         createCredentialVerifyDto,
         CredentialPlatform.YOUTUBE,
       );
 
+      progress.stage = 'request_validation';
       if (!code || !state) {
         throw new HttpException(
-          { detail: 'Missing code or identifiers', title: 'Invalid payload' },
+          {
+            code: state
+              ? YoutubeOAuthVerifyErrorCode.TOKEN_EXCHANGE_FAILED
+              : YoutubeOAuthVerifyErrorCode.STATE_INVALID,
+            detail: 'Missing code or identifiers',
+            title: 'Invalid payload',
+          },
           HttpStatus.BAD_REQUEST,
         );
       }
 
+      progress.stage = 'state_validation';
       const existingCredential =
         await this.credentialsService.findPendingOAuthCredential(
           state,
@@ -155,6 +186,7 @@ export class YoutubeController {
       if (!existingCredential) {
         throw new HttpException(
           {
+            code: YoutubeOAuthVerifyErrorCode.STATE_INVALID,
             detail: 'No pending credential found for this OAuth state',
             title: 'Credential not found',
           },
@@ -162,27 +194,30 @@ export class YoutubeController {
         );
       }
 
-      const { brandId, organizationId } = existingCredential;
+      progress.stage = 'token_exchange';
       const tokenResponse =
         await this.youtubeService.exchangeCodeForTokens(code);
       const tokens = this.isPlainObject(tokenResponse)
         ? ((tokenResponse.tokens ?? {}) as YoutubeOAuthTokens)
         : {};
 
-      // Log token details for debugging
       this.loggerService.log('Received tokens from Google', {
         accessTokenLength: tokens.access_token?.length || 0,
+        correlationId,
         expiryDate: tokens.expiry_date,
         hasAccessToken: !!tokens.access_token,
         hasRefreshToken: !!tokens.refresh_token,
+        platform: 'youtube',
         refreshTokenLength: tokens.refresh_token?.length || 0,
         scope: tokens.scope,
+        stage: progress.stage,
         tokenType: tokens.token_type,
       });
 
       if (!tokens.access_token) {
         throw new HttpException(
           {
+            code: YoutubeOAuthVerifyErrorCode.TOKEN_EXCHANGE_FAILED,
             detail: 'YouTube did not return an access token',
             title: 'Token exchange failed',
           },
@@ -190,8 +225,8 @@ export class YoutubeController {
         );
       }
 
-      // Update the credential with the access token
-      // If reconnecting the same channel, reactivate previously deleted credential
+      progress.stage = 'credential_persist';
+      // If reconnecting the same channel, reactivate a previously deleted row.
       let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
@@ -200,27 +235,32 @@ export class YoutubeController {
             ? new Date(tokens.expiry_date)
             : undefined,
           isConnected: true,
-          isDeleted: false, // Reactivate if previously disconnected
+          isDeleted: false,
           oauthState: null,
           oauthToken: null,
           oauthTokenSecret: null,
-          refreshToken: tokens.refresh_token || undefined, // Only save if present
+          refreshToken: tokens.refresh_token || undefined,
           ...buildGrantedScopesCredentialPatch(tokens.scope),
         },
       );
 
-      // Verify the credential was saved correctly
       const savedCredential = await this.credentialsService.findOne({
         id: credential.id,
       });
 
       if (!savedCredential?.refreshToken) {
         this.loggerService.error('Refresh token was not saved properly', {
+          correlationId,
           credentialId: credential.id,
           hadRefreshToken: !!tokens.refresh_token,
+          platform: 'youtube',
+          reason: 'credential_persist',
+          stage: progress.stage,
         });
+        await this.markCredentialDisconnected(credential.id);
         throw new HttpException(
           {
+            code: YoutubeOAuthVerifyErrorCode.AUTHORIZATION_FAILED,
             detail: 'Refresh token was not saved. Please try connecting again.',
             title: 'Failed to save credentials',
           },
@@ -229,26 +269,36 @@ export class YoutubeController {
       }
 
       credential = await this.updateChannelProfileAfterConnection({
-        brandId,
+        brandId: existingCredential.brandId,
         credential,
-        organizationId,
+        organizationId: existingCredential.organizationId,
+        progress,
         tokens,
       });
 
+      progress.stage = 'post_connection';
       credential = await this.finalizeConnection({
         accessToken: tokens.access_token,
         credential,
         grantedScopes: tokens.scope,
-        organizationId,
+        organizationId: existingCredential.organizationId,
         url,
       });
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
-      const response = (error as { response?: { data?: unknown } })?.response;
-      this.loggerService.error(`${url} failed`, response?.data || error);
+      const safeError = asYoutubeVerifyException(error, progress.stage);
+      this.loggerService.error(
+        `${url} failed`,
+        buildYoutubeVerifyFailureLog({
+          correlationId,
+          error,
+          safeError,
+          stage: progress.stage,
+        }),
+      );
 
-      throw error;
+      throw safeError;
     }
   }
 
@@ -256,10 +306,12 @@ export class YoutubeController {
     brandId: string;
     credential: Awaited<ReturnType<CredentialsService['patch']>>;
     organizationId: string;
+    progress: YoutubeOAuthVerifyProgress;
     tokens: YoutubeOAuthTokens;
   }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
-    const { brandId, credential, organizationId, tokens } = params;
+    const { brandId, credential, organizationId, progress, tokens } = params;
     try {
+      progress.stage = 'configuration';
       const clientId = this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
       const clientSecret = this.configService.get<string>(
         'GOOGLE_OAUTH_CLIENT_SECRET',
@@ -290,7 +342,12 @@ export class YoutubeController {
         expiry_date: tokens.expiry_date,
         refresh_token: tokens.refresh_token,
       });
-      let channelDetails:
+      progress.stage = 'channel_lookup';
+      const channelDetails = (await this.youtubeService.getChannelDetails(
+        organizationId,
+        brandId,
+        oauth2Client,
+      )) as
         | {
             customUrl?: string;
             id?: string;
@@ -301,36 +358,14 @@ export class YoutubeController {
             };
             title?: string;
           }
+        | null
         | undefined;
 
-      try {
-        channelDetails = (await this.youtubeService.getChannelDetails(
-          organizationId,
-          brandId,
-          oauth2Client,
-        )) as typeof channelDetails;
-      } catch (channelError: unknown) {
-        this.loggerService.error(
-          'Failed to fetch YouTube channel for connected account',
-          channelError,
-        );
-        channelDetails = undefined;
-      }
-
       if (!channelDetails?.id) {
-        await this.credentialsService.patch(credential.id, {
-          isConnected: false,
-        });
-        throw new HttpException(
-          {
-            detail:
-              'No YouTube channel is attached to this Google account. Sign in with the Google account that owns the channel, or create a channel first.',
-            title: 'No YouTube channel found',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new YoutubeChannelMissingError();
       }
 
+      progress.stage = 'profile_persist';
       return await this.credentialsService.updateExternalProfile(
         credential.id,
         organizationId,
@@ -348,14 +383,22 @@ export class YoutubeController {
         },
       );
     } catch (verifyError: unknown) {
-      if (verifyError instanceof HttpException) {
-        throw verifyError;
-      }
+      await this.markCredentialDisconnected(credential.id);
+      throw verifyError;
+    }
+  }
+
+  private async markCredentialDisconnected(
+    credentialId: string,
+  ): Promise<void> {
+    try {
+      await this.credentialsService.patch(credentialId, {
+        isConnected: false,
+      });
+    } catch {
       this.loggerService.error(
-        'Failed to verify YouTube connection',
-        verifyError,
+        'Failed to mark YouTube credential disconnected after verification failure',
       );
-      return credential;
     }
   }
 
