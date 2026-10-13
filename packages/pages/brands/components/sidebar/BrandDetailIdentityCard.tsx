@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
-import { VoiceProvider } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -29,7 +29,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -330,6 +332,18 @@ export default function BrandDetailIdentityCard({
           <p role="status" className="text-xs text-muted-foreground">
             {heygen.error}
           </p>
+        ) : null}
+        {heygen.isReconnectRequired ? (
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            className="w-fit"
+          >
+            <Link href={orgHref('/settings/integrations')}>
+              Reconnect HeyGen
+            </Link>
+          </Button>
         ) : null}
         {brand.agentConfig?.heygenAvatarId &&
         !brand.agentConfig.defaultAvatarRef ? (

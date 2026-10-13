@@ -92,7 +92,9 @@ const FAILURES: Record<
   provider_config: {
     detail:
       'The provider credentials are missing or invalid. Reconnect the integration in Settings and try again.',
-    status: HttpStatus.FAILED_DEPENDENCY,
+    // 502, never 401/403/424: the user's session is fine, the upstream
+    // credentials are not, and clients read auth statuses as a sign-out cue.
+    status: HttpStatus.BAD_GATEWAY,
   },
   provider_invalid_response: {
     detail:
@@ -180,6 +182,9 @@ export function classifyProviderCatalogError(
   // and status (e.g. "Connect HeyGen to load identities.").
   if (error instanceof HttpException && error.getStatus() < 500) {
     const status = error.getStatus();
+    if (status === HttpStatus.UNAUTHORIZED || status === HttpStatus.FORBIDDEN) {
+      return { category: 'provider_config', ...FAILURES.provider_config };
+    }
     return {
       category:
         status === HttpStatus.PAYMENT_REQUIRED
@@ -208,11 +213,23 @@ export function describeProviderCatalogError(
   };
 }
 
+export interface ThrowProviderCatalogErrorOptions {
+  /** Stable body code for rejected provider credentials (502), e.g. `HEYGEN_CREDENTIALS_INVALID`. */
+  credentialsInvalidCode?: string;
+}
+
 export function throwProviderCatalogError(
   title: string,
   error: unknown,
+  options: ThrowProviderCatalogErrorOptions = {},
 ): never {
   const { category, detail, status } = classifyProviderCatalogError(error);
+  const code =
+    category === 'provider_config' &&
+    status === HttpStatus.BAD_GATEWAY &&
+    options.credentialsInvalidCode
+      ? options.credentialsInvalidCode
+      : category;
 
-  throw new HttpException({ code: category, detail, title }, status);
+  throw new HttpException({ code, detail, title }, status);
 }
