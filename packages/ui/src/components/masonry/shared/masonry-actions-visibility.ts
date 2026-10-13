@@ -1,8 +1,5 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import {
-  hoverRevealClassName,
-  hoverRevealOpenClassName,
-} from '@ui/styles/hover-reveal';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 
 /**
  * Visibility and interactivity of a masonry tile's actions bar share one
@@ -15,7 +12,6 @@ import {
 export function getMasonryActionsBarClassName(isRevealed: boolean): string {
   return cn(
     'absolute top-2 right-2 z-50 overflow-visible transition-opacity duration-200',
-    hoverRevealClassName(),
-    isRevealed && hoverRevealOpenClassName(),
+    hoverRevealClassName({ isOpen: isRevealed }),
   );
 }

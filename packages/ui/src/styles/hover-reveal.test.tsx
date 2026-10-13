@@ -1,13 +1,8 @@
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { render, screen } from '@testing-library/react';
 import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import { describe, expect, it } from 'vitest';
 
-import {
-  hoverConcealClassName,
-  hoverRevealClassName,
-  hoverRevealOpenClassName,
-} from './hover-reveal';
+import { hoverConcealClassName, hoverRevealClassName } from './hover-reveal';
 
 describe('hoverRevealClassName', () => {
   it('stays visible without hover and hides only on a hover-capable pointer', () => {
@@ -32,14 +27,13 @@ describe('hoverRevealClassName', () => {
   });
 
   it('opens over the hover-capable hide without dropping the touch-visible classes', () => {
-    const merged = cn(hoverRevealClassName(), hoverRevealOpenClassName());
+    const open = hoverRevealClassName({ isOpen: true });
 
-    expect(merged).toContain('opacity-100');
-    expect(merged).toContain('pointer-events-auto');
-    expect(merged).toContain('[@media(hover:hover)]:opacity-100');
-    expect(merged).toContain('[@media(hover:hover)]:pointer-events-auto');
-    expect(merged).not.toContain('[@media(hover:hover)]:opacity-0');
-    expect(merged).not.toContain('[@media(hover:hover)]:pointer-events-none');
+    expect(open).toContain('opacity-100');
+    expect(open).toContain('pointer-events-auto');
+    expect(open).toContain('[@media(hover:hover)]:group-hover:opacity-100');
+    expect(open).not.toContain('[@media(hover:hover)]:opacity-0');
+    expect(open).not.toContain('[@media(hover:hover)]:pointer-events-none');
   });
 
   it('hides a resting label on touch and while its paired action is revealed', () => {

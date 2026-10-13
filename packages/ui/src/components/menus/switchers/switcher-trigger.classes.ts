@@ -1,7 +1,4 @@
-import {
-  hoverRevealClassName,
-  hoverRevealOpenClassName,
-} from '@ui/styles/hover-reveal';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 
 /**
  * Shared chrome for org + brand labeled switchers so the topbar / sidebar
@@ -45,7 +42,6 @@ export const SWITCHER_COMPOSITE_CLEAR_CLASSNAME = [
   'focus-visible:outline-none focus-visible:ring-0',
   'disabled:cursor-not-allowed disabled:opacity-50',
   'border-foreground/[0.08]',
-  hoverRevealClassName(),
   '[@media(hover:hover)]:border-transparent',
   '[@media(hover:hover)]:group-hover:border-foreground/[0.08]',
   '[@media(hover:hover)]:group-focus-within:border-foreground/[0.08]',
@@ -53,6 +49,6 @@ export const SWITCHER_COMPOSITE_CLEAR_CLASSNAME = [
 
 /** Force clear visible (e.g. dropdown open) on fine-pointer devices. */
 export const SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME = [
-  hoverRevealOpenClassName(),
+  hoverRevealClassName({ isOpen: true }),
   '[@media(hover:hover)]:border-foreground/[0.08]',
 ].join(' ');

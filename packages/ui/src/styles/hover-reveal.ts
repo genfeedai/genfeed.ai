@@ -31,6 +31,8 @@ export type HoverRevealOptions = {
    * take a hit; the caller keeps `pointer-events-none`.
    */
   isInteractive?: boolean;
+  /** Drop the hover-capable hide. Use while a menu or selection stays open. */
+  isOpen?: boolean;
 };
 
 export type HoverConcealOptions = {
@@ -73,6 +75,7 @@ export function hoverRevealClassName({
   focus = 'group',
   group,
   isInteractive = true,
+  isOpen = false,
 }: HoverRevealOptions = {}): string {
   const revealOnHover = groupVariant('hover', group);
   const revealOnFocus = focusUtility(focus, group);
@@ -82,9 +85,11 @@ export function hoverRevealClassName({
     classes.push('pointer-events-auto');
   }
 
-  classes.push(hoverCapable(at, 'opacity-0'));
-  if (isInteractive) {
-    classes.push(hoverCapable(at, 'pointer-events-none'));
+  if (!isOpen) {
+    classes.push(hoverCapable(at, 'opacity-0'));
+    if (isInteractive) {
+      classes.push(hoverCapable(at, 'pointer-events-none'));
+    }
   }
 
   classes.push(hoverCapable(at, `${revealOnHover}:opacity-100`));
@@ -99,21 +104,6 @@ export function hoverRevealClassName({
     }
   }
 
-  return classes.join(' ');
-}
-
-/** Drop the hover-capable hide (menu open, selection) while touch stays visible. */
-export function hoverRevealOpenClassName({
-  at,
-  isInteractive = true,
-}: Pick<HoverRevealOptions, 'at' | 'isInteractive'> = {}): string {
-  const classes = ['opacity-100', hoverCapable(at, 'opacity-100')];
-  if (isInteractive) {
-    classes.push(
-      'pointer-events-auto',
-      hoverCapable(at, 'pointer-events-auto'),
-    );
-  }
   return classes.join(' ');
 }
 

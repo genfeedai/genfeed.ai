@@ -23,6 +23,7 @@ import {
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
 import { Button } from '@ui/primitives/button';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ChevronsUpDown, Settings, UserRound, X } from 'lucide-react';
 import Image from 'next/image';
 import { type MouseEvent, useCallback, useState } from 'react';
@@ -243,6 +244,7 @@ export default function MenuBrandSwitcher({
               onClick={handleClearButtonClick}
               className={cn(
                 SWITCHER_COMPOSITE_CLEAR_CLASSNAME,
+                hoverRevealClassName({ isOpen }),
                 isOpen && SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME,
               )}
             >
