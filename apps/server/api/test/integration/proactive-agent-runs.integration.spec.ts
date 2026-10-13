@@ -536,6 +536,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       schedules as never,
       {} as never,
     );

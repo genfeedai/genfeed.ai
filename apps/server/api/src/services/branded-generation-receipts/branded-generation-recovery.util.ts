@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
-import { BRANDED_GENERATION_DISPATCH_WINDOW_MS } from '@api/services/branded-generation-receipts/branded-generation-state.util';
 import type {
+  BrandedGenerationActorV1,
   BrandedGenerationDispatchRecoveryV1,
-  BrandedGenerationReceiptV1,
-} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+} from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
+import { BRANDED_GENERATION_DISPATCH_WINDOW_MS } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { z } from 'zod';
 

@@ -34,7 +34,7 @@ export class CronBrandedDispatchRecoveryService {
 
     for (let page = 0; page < BRANDED_DISPATCH_RECOVERY_MAX_PAGES; page += 1) {
       const result = await this.receipts.recoverExpiredDispatchesSystem({
-        excludeIds: skipped,
+        excludeIds: [...skipped],
         limit: BRANDED_DISPATCH_RECOVERY_BATCH_SIZE,
         now,
       });
