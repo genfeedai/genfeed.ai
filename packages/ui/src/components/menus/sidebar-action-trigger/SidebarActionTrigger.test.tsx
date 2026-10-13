@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import SidebarActionTrigger from './SidebarActionTrigger';
 
 describe('SidebarActionTrigger', () => {
-  it('renders a menu-style action with a hover-only shortcut badge', () => {
+  it('keeps the shortcut badge visible without hover', () => {
     render(
       <SidebarActionTrigger
         icon={<Plus className="size-4" />}
@@ -18,7 +18,13 @@ describe('SidebarActionTrigger', () => {
     const button = screen.getByRole('button', { name: 'New Task' });
 
     expect(button).toBeInTheDocument();
-    expect(screen.getByText('⌘⇧N')).toHaveClass('opacity-0');
+    expect(screen.getByText('⌘⇧N')).toHaveClass(
+      'opacity-100',
+      '[@media(hover:hover)]:opacity-0',
+      '[@media(hover:hover)]:group-hover:opacity-100',
+      '[@media(hover:hover)]:group-focus-within:opacity-100',
+    );
+    expect(screen.getByText('⌘⇧N')).not.toHaveClass('opacity-0');
     expect(screen.getByText('New Task')).toHaveClass('min-w-0', 'flex-1');
     expect(button).toHaveClass(
       'h-control-sm',
