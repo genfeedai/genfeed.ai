@@ -23,7 +23,7 @@ FROM node:24-bookworm-slim AS base
 # builder — one fewer install-time network side-effect that could flake the build.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl ffmpeg fontconfig fonts-liberation fonts-noto-cjk \
-    fonts-noto-color-emoji redis-server tesseract-ocr tini unzip \
+    fonts-noto-color-emoji redis-server tesseract-ocr tini unzip yt-dlp \
     libnss3 libdbus-1-3 libatk1.0-0 libgbm1 libasound2 libxrandr2 \
     libxkbcommon0 libxfixes3 libxcomposite1 libxdamage1 \
     libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 && \
@@ -101,7 +101,7 @@ FROM base AS build-toolchain
 # PATH. Without these the install aborts with `node-gyp: command not found` /
 # `install script from "node-pty" exited with 127`. Installed in the builder
 # dependency stages only: the production dependency stage compiles its own
-# runtime-only native graph, so the runtime image stays slim (no python3/g++).
+# runtime-only native graph; the runtime keeps yt-dlp's Python dependency.
 # Mirrors the toolchain install in docker/Dockerfile.server.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ && \
@@ -306,5 +306,6 @@ VOLUME /data
 # 3000 web · 3010 api · 3014 mcp (started by the entrypoint, proxies to the api)
 EXPOSE 3000 3010 3014
 USER appuser
+RUN yt-dlp --version && ffmpeg -version > /dev/null
 
 ENTRYPOINT ["tini", "--", "/entrypoint.sh"]

@@ -80,6 +80,7 @@ describe('YoutubeQueueService', () => {
         mockJobData,
         {
           attempts: 3,
+          jobId: expect.any(String),
           backoff: {
             delay: 2000,
             type: 'exponential',
@@ -102,6 +103,7 @@ describe('YoutubeQueueService', () => {
         dataWithPriority,
         {
           attempts: 3,
+          jobId: expect.any(String),
           backoff: {
             delay: 2000,
             type: 'exponential',
@@ -134,6 +136,7 @@ describe('YoutubeQueueService', () => {
         expect.any(Object),
         expect.objectContaining({
           attempts: 3,
+          jobId: expect.any(String),
         }),
       );
     });
@@ -156,6 +159,7 @@ describe('YoutubeQueueService', () => {
         mockJobData,
         {
           attempts: 3,
+          jobId: expect.any(String),
           backoff: {
             delay: 2000,
             type: 'exponential',
@@ -190,6 +194,7 @@ describe('YoutubeQueueService', () => {
         expect.any(Object),
         expect.objectContaining({
           attempts: 3,
+          jobId: expect.any(String),
           backoff: {
             delay: 2000,
             type: 'exponential',

@@ -98,7 +98,7 @@ describe('VideoQueueService', () => {
     expect(mockQueue.add).toHaveBeenCalledWith(
       JOB_TYPES.ADD_CAPTIONS,
       data,
-      expect.not.objectContaining({ jobId: expect.anything() }),
+      expect.not.objectContaining({ jobId: data.id }),
     );
   });
 
@@ -119,7 +119,7 @@ describe('VideoQueueService', () => {
     expect(mockQueue.add).toHaveBeenCalledWith(
       JOB_TYPES.VIDEO_TO_AUDIO,
       data,
-      expect.not.objectContaining({ jobId: expect.anything() }),
+      expect.not.objectContaining({ jobId: data.id }),
     );
   });
 
@@ -187,7 +187,7 @@ describe('VideoQueueService', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         JOB_TYPES.VIDEO_TO_AUDIO,
         data,
-        expect.not.objectContaining({ jobId: expect.anything() }),
+        expect.not.objectContaining({ jobId: data.id }),
       );
     },
   );
@@ -211,7 +211,7 @@ describe('VideoQueueService', () => {
     expect(mockQueue.add).toHaveBeenCalledWith(
       JOB_TYPES.ADD_CAPTIONS,
       data,
-      expect.not.objectContaining({ jobId: expect.anything() }),
+      expect.not.objectContaining({ jobId: data.id }),
     );
   });
 
@@ -305,7 +305,7 @@ describe('VideoQueueService', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         JOB_TYPES.MERGE_VIDEOS,
         data,
-        expect.not.objectContaining({ jobId: expect.anything() }),
+        expect.not.objectContaining({ jobId: data.id }),
       );
     });
   });

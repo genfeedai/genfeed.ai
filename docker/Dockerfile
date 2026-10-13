@@ -76,12 +76,14 @@ RUN turbo prune @genfeedai/files --docker
 FROM base AS files
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    yt-dlp ffmpeg \
     fontconfig fonts-liberation fonts-noto-cjk fonts-noto-color-emoji \
     libnss3 libdbus-1-3 libatk1.0-0 libgbm1 libasound2 libxrandr2 \
     libxkbcommon0 libxfixes3 libxcomposite1 libxdamage1 \
     libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=files-pruned /app/out/json/ .
+RUN yt-dlp --version && ffmpeg -version > /dev/null
 RUN bun install --frozen-lockfile
 RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
 COPY --from=files-pruned /app/out/full/ .

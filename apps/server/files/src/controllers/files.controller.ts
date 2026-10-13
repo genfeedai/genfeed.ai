@@ -391,7 +391,16 @@ export class FilesController {
         this.youtubeQueueService.getJob(jobId),
       ]);
 
-      const job = videoJob || imageJob || fileJob || youtubeJob;
+      const jobs = [videoJob, imageJob, fileJob, youtubeJob].filter(
+        (job) => job != null,
+      );
+      if (jobs.length > 1) {
+        throw new HttpException(
+          'Job ID is ambiguous across processing queues',
+          HttpStatus.CONFLICT,
+        );
+      }
+      const job = jobs[0];
 
       if (!job) {
         throw new HttpException('Job not found', HttpStatus.NOT_FOUND);

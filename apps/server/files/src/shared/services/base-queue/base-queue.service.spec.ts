@@ -27,6 +27,16 @@ class TestQueueService extends BaseQueueService<TestJobData> {
     return this.addJob(JOB_TYPES.DOWNLOAD_FILE, data, 'download', data.fileId);
   }
 
+  async addWithId(data: TestJobData, jobId: string): Promise<Job<TestJobData>> {
+    return this.addJob(
+      JOB_TYPES.DOWNLOAD_FILE,
+      data,
+      'download',
+      data.fileId,
+      jobId,
+    );
+  }
+
   async addDelayedDownload(
     data: TestJobData,
     delayMs: number,
@@ -65,6 +75,26 @@ describe('BaseQueueService', () => {
   });
 
   describe('addJob', () => {
+    it('assigns distinct opaque IDs instead of queue-local counters', async () => {
+      await service.addDownload({ fileId: 'file-1' });
+      await service.addDownload({ fileId: 'file-1' });
+
+      const calls = vi.mocked(mockQueue.add).mock.calls;
+      const firstId = calls[0]?.[2]?.jobId;
+      const secondId = calls[1]?.[2]?.jobId;
+      expect(firstId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(secondId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(secondId).not.toBe(firstId);
+    });
+
+    it('preserves caller-provided IDs for idempotent jobs', async () => {
+      await service.addWithId({ fileId: 'file-1' }, 'video-stitch-output-1');
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        JOB_TYPES.DOWNLOAD_FILE,
+        expect.any(Object),
+        expect.objectContaining({ jobId: 'video-stitch-output-1' }),
+      );
+    });
     it('should call queue.add with job type and data', async () => {
       await service.addDownload({ fileId: 'file-1' });
 
@@ -120,6 +150,12 @@ describe('BaseQueueService', () => {
   });
 
   describe('addJobWithDelay', () => {
+    it('assigns an opaque ID to delayed jobs too', async () => {
+      await service.addDelayedDownload({ fileId: 'file-1' }, 1000);
+      expect(vi.mocked(mockQueue.add).mock.calls[0]?.[2]?.jobId).toMatch(
+        /^[0-9a-f-]{36}$/,
+      );
+    });
     it('should pass delay to queue.add options', async () => {
       await service.addDelayedDownload({ fileId: 'delayed-1' }, 5000);
 

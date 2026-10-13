@@ -40,6 +40,13 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/contracts/constants',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/constants',
+        ),
+      },
+      {
         find: '@genfeedai/contracts/interfaces',
         replacement: path.resolve(
           serviceDir,
