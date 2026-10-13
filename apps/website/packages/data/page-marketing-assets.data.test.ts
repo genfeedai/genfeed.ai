@@ -44,7 +44,7 @@ describe('page illustration coverage', () => {
 
     for (const asset of assets) {
       expect(asset.src).toMatch(
-        /^https:\/\/cdn\.genfeed\.ai\/assets\/branding\/website\/editorial\/.+-v\d+\.webp$/,
+        /^https:\/\/cdn\.genfeed\.ai\/assets\/site\/(pages|shared)\/.+\.webp$/,
       );
       expect(asset.alt.length).toBeGreaterThan(15);
     }

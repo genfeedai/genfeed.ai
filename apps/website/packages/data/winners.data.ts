@@ -57,9 +57,7 @@ export const winners: Winner[] = [
     platform: 'LinkedIn',
     previewAlt:
       'Generated frame showing the outbid.lol auction grid and leaderboard',
-    previewSrc: cdnAsset(
-      '/assets/branding/website/proof/linkedin-2026-08-23.jpg',
-    ),
+    previewSrc: cdnAsset('/assets/site/proof/linkedin-2026-08-23.jpg'),
     provenance: 'Copy and frame generated in Genfeed.',
     publishedAt: '2026-08-23',
     socialProof: {

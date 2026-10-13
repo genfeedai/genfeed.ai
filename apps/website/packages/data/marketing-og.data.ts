@@ -18,7 +18,7 @@ function socialGrowthCard(
   headline: readonly string[],
 ): MarketingOgDefinition {
   return {
-    artwork: cdnAsset(`/assets/branding/website/editorial/page-${slug}-v2.jpg`),
+    artwork: cdnAsset(`/assets/site/pages/${slug}.jpg`),
     artworkPlacement: 'right',
     headline,
     headlineFontSize:
@@ -63,9 +63,7 @@ function editorialCard(
 ): MarketingOgDefinition {
   const longest = Math.max(...headline.map((line) => line.length));
   return {
-    artwork: cdnAsset(
-      `/assets/cards/marketing/founder-20260930/${id}-artwork.jpg`,
-    ),
+    artwork: cdnAsset(`/assets/og/${id}.jpg`),
     headline,
     headlineFontSize: longest > 16 ? 74 : longest > 13 ? 84 : 96,
     headlineTop: 44,

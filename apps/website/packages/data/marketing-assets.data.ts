@@ -1,7 +1,6 @@
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 
-const asset = (name: string) =>
-  cdnAsset(`/assets/branding/website/editorial/${name}-v1.webp`);
+const asset = (name: string) => cdnAsset(`/assets/site/shared/${name}.webp`);
 
 export const MARKETING_ASSETS = {
   campaign: {

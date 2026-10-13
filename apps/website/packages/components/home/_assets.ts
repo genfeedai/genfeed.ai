@@ -2,7 +2,7 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { HomeOutputAsset } from '@props/website/home.props';
 
 // Homepage marketing media is served from the Genfeed CDN
-// (s3://cdn.genfeed.ai/assets/branding/website/home/**), not committed to the
+// (s3://cdn.genfeed.ai/assets/site/home/**), not committed to the
 // website `public/` folder, keeping the binaries out of the repo and letting the
 // assets be refreshed without a code deploy. URLs are built from the shared
 // cdnAsset() helper so the CDN base is defined in exactly one place.
@@ -11,8 +11,7 @@ import type { HomeOutputAsset } from '@props/website/home.props';
 // same Replicate provider the product uses. Each poster is frame 0 of its own
 // encoded MP4, which is what makes the still-to-playback handoff seamless —
 // regenerate a clip and its poster together, never one without the other.
-const home = (file: string) =>
-  cdnAsset(`/assets/branding/website/home/${file}`);
+const home = (file: string) => cdnAsset(`/assets/site/home/${file}`);
 
 /** The four files every generated clip ships as. */
 const clip = (directory: string, name: string) => ({

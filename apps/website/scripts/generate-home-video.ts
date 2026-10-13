@@ -17,7 +17,7 @@
  *   3. close     — crossfade the tail over the head so playback has no seam
  *   4. encode    — H.264 MP4 (Safari/iOS, `+faststart`) and VP9 WebM (Chrome/FF)
  *   5. poster    — frame 0 of the *encoded MP4*, as WebP + JPEG
- *   6. upload    — s3://cdn.genfeed.ai/assets/branding/website/home/**
+ *   6. upload    — s3://cdn.genfeed.ai/assets/site/home/**
  *
  * Step 5 is why the poster comes from the encoded output rather than the raw
  * download: the browser paints `poster` until the first decoded frame is ready,
@@ -182,7 +182,9 @@ const OUTPUT_WIDTH = {
 } as const;
 
 const CDN_BUCKET = 'cdn.genfeed.ai';
-const CDN_PREFIX = 'assets/branding/website/home';
+const CDN_PREFIX = 'assets/site/home';
+// Raw generations are not served by the site; they stay where they were first backed up.
+const MASTERS_PREFIX = 'assets/branding/website/home/_masters';
 const OUTPUT_DIR = path.resolve(import.meta.dirname, '../.home-video');
 const RAW_DIR = path.join(OUTPUT_DIR, 'raw');
 const BUILD_DIR = path.join(OUTPUT_DIR, 'build');
@@ -448,13 +450,12 @@ function closeLoop(source: string, destination: string): string {
 
 type Artefacts = {
   mp4: string;
-  posterJpg: string;
   posterWebp: string;
   webm: string;
 };
 
 /**
- * Two encodes of the same source plus the poster. WebM/VP9 is roughly a third
+ * Two encodes of the same source plus the poster (WebP only: nothing serves a JPEG poster). WebM/VP9 is roughly a third
  * smaller at the same perceived quality but is not decodable on older Safari, so
  * the MP4 is the guaranteed fallback and is listed second in the `<source>` order.
  *
@@ -469,7 +470,6 @@ type Artefacts = {
 function encode(source: string, name: string, width: number): Artefacts {
   const artefacts: Artefacts = {
     mp4: path.join(BUILD_DIR, `${name}.mp4`),
-    posterJpg: path.join(BUILD_DIR, `${name}-poster.jpg`),
     posterWebp: path.join(BUILD_DIR, `${name}-poster.webp`),
     webm: path.join(BUILD_DIR, `${name}.webm`),
   };
@@ -525,7 +525,6 @@ function encode(source: string, name: string, width: number): Artefacts {
   const frame = path.join(BUILD_DIR, `${name}-frame-0.png`);
   run('ffmpeg', ['-y', '-i', artefacts.mp4, '-frames:v', '1', frame]);
   run('cwebp', ['-quiet', '-q', '82', frame, '-o', artefacts.posterWebp]);
-  run('ffmpeg', ['-y', '-i', frame, '-q:v', '4', artefacts.posterJpg]);
 
   return artefacts;
 }
@@ -570,14 +569,14 @@ function uploadMasters(): void {
     's3',
     'sync',
     RAW_DIR,
-    `s3://${CDN_BUCKET}/${CDN_PREFIX}/_masters/`,
+    `s3://${CDN_BUCKET}/${MASTERS_PREFIX}/`,
     '--content-type',
     'video/mp4',
     '--cache-control',
     'private, no-store',
   ]);
 
-  logger.log(`masters backed up to s3://${CDN_BUCKET}/${CDN_PREFIX}/_masters/`);
+  logger.log(`masters backed up to s3://${CDN_BUCKET}/${MASTERS_PREFIX}/`);
 }
 
 function upload(artefacts: Artefacts, prefix: string): void {
