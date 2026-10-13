@@ -206,8 +206,8 @@ export class PostsGenerationController {
         user.organizationId,
       ),
     );
-    // A branded replay answers from the saved receipt without a provider call.
-    if (!result.brandedReceipt?.isReplayed) {
+    // A replay answers from the saved receipt without a provider call.
+    if (!result.brandedReceipt.isReplayed) {
       finalizeDeferredTextCredits(
         request,
         await resolveTextModelMinimumCredits(this.modelsService, result.model),

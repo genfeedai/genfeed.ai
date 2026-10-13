@@ -371,6 +371,8 @@ export interface ModalPostSimpleFieldsProps {
   isTitleError: boolean;
   hasIngredients: boolean;
   browserTimezone: string;
+  /** Called with the saved draft when a generated draft fills the editor. */
+  onDraftGenerated?: (draft: { platform: Platform; postId: string }) => void;
 }
 
 export interface ModalPostSimpleActionsProps {
@@ -613,9 +615,16 @@ export interface ModalMonitoredAccountProps {
   onClose?: () => void;
 }
 
+export interface PostDraftGeneratedDraft {
+  /** Draft post the receipt is bound to. */
+  postId: string;
+  receiptId: string;
+  receiptState: string;
+}
+
 export interface PostDraftGeneratorProps {
   platform: Platform;
   format?: PostFormat;
   isDisabled?: boolean;
-  onGenerate: (description: string) => void;
+  onGenerate: (description: string, draft: PostDraftGeneratedDraft) => void;
 }

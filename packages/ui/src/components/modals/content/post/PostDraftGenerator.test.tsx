@@ -16,6 +16,9 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: { getInstance: () => ({ error: mocks.error }) },
 }));
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
+}));
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-workspace' }),
 }));
@@ -24,12 +27,25 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+function generated(overrides: Record<string, unknown> = {}) {
+  return {
+    brandedReceipt: {
+      compliance: 'unverified',
+      id: 'receipt-1',
+      isReplayed: false,
+      revision: 4,
+      state: 'needs_review',
+    },
+    description: 'Generated tweet',
+    postId: 'post-1',
+    ...overrides,
+  };
+}
+
 describe('PostDraftGenerator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.generateDraftText.mockResolvedValue({
-      description: 'Generated tweet',
-    });
+    mocks.generateDraftText.mockResolvedValue(generated());
   });
   it('generates editable text for X without any account or conversation', async () => {
     const onGenerate = vi.fn();
@@ -46,14 +62,58 @@ describe('PostDraftGenerator', () => {
     await user.type(screen.getByRole('textbox'), 'Product launch');
     await user.click(screen.getByRole('button', { name: 'Generate draft' }));
     await waitFor(() =>
-      expect(onGenerate).toHaveBeenCalledWith('Generated tweet'),
+      expect(onGenerate).toHaveBeenCalledWith('Generated tweet', {
+        postId: 'post-1',
+        receiptId: 'receipt-1',
+        receiptState: 'needs_review',
+      }),
     );
     expect(mocks.generateDraftText).toHaveBeenCalledWith({
       brandId: 'brand-workspace',
-      prompt: 'Product launch',
-      platform: Platform.TWITTER,
       format: undefined,
+      platform: Platform.TWITTER,
+      prompt: 'Product launch',
+      requestKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
     });
+  });
+  it('links the saved draft to its receipt and says it is provisional', async () => {
+    const user = userEvent.setup();
+    render(
+      <PostDraftGenerator platform={Platform.TWITTER} onGenerate={vi.fn()} />,
+    );
+    await user.type(screen.getByRole('textbox'), 'Product launch');
+    await user.click(screen.getByRole('button', { name: 'Generate draft' }));
+    const link = await screen.findByRole('link', { name: 'View receipt' });
+    expect(link).toHaveAttribute(
+      'href',
+      '/acme/main/settings/agent/receipts?receiptId=receipt-1',
+    );
+    expect(screen.getByText(/provisional style/)).toBeInTheDocument();
+  });
+  it('retries a failed request with the same key and rotates it after success', async () => {
+    mocks.generateDraftText.mockRejectedValueOnce(new Error('down'));
+    const user = userEvent.setup();
+    render(
+      <PostDraftGenerator platform={Platform.TWITTER} onGenerate={vi.fn()} />,
+    );
+    await user.type(screen.getByRole('textbox'), 'Launch');
+    const generate = screen.getByRole('button', { name: 'Generate draft' });
+    await user.click(generate);
+    await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+    await user.click(screen.getByRole('button', { name: 'Generate draft' }));
+    await waitFor(() =>
+      expect(mocks.generateDraftText).toHaveBeenCalledTimes(2),
+    );
+    await screen.findByRole('link', { name: 'View receipt' });
+    await user.click(screen.getByRole('button', { name: 'Generate draft' }));
+    await waitFor(() =>
+      expect(mocks.generateDraftText).toHaveBeenCalledTimes(3),
+    );
+    const keys = mocks.generateDraftText.mock.calls.map(
+      (call) => call[0].requestKey,
+    );
+    expect(keys[0]).toBe(keys[1]);
+    expect(keys[2]).not.toBe(keys[1]);
   });
   it('preserves the editor on a failed generation and allows retry', async () => {
     const onGenerate = vi.fn();

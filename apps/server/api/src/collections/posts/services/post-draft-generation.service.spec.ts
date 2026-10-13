@@ -5,12 +5,10 @@ import { PostDraftGenerationService } from '@api/collections/posts/services/post
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
-import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { BrandedModeResolverService } from '@api/services/branded-text-generation/branded-mode-resolver.service';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
-import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -18,7 +16,6 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test } from '@nestjs/testing';
 import {
@@ -47,15 +44,10 @@ describe('PostDraftGenerationService', () => {
     resolveDraft: vi.fn(),
     resolve: vi.fn(),
   };
-  const mockContextAssemblyService = {
-    assembleContext: vi.fn(),
-    buildSystemPrompt: vi.fn(),
-  };
   const mockAgentChatModelRegistry = { resolveModelKey: vi.fn() };
-  const mockPromptBuilderService = { buildPrompt: vi.fn() };
-  const mockReplicateService = { generateTextCompletionSync: vi.fn() };
   const mockPostsService = { create: vi.fn(), findOne: vi.fn() };
   const mockBrandedText = { generate: vi.fn() };
+  const mockModeResolver = { resolve: vi.fn() };
   const blocked = vi.fn(() => {
     throw new Error('Accountless learning must not access persistence');
   });
@@ -82,26 +74,11 @@ describe('PostDraftGenerationService', () => {
       brand: mockPublishingContext.brand,
       constraints: { ...mockPublishingContext.constraints },
     });
-    mockContextAssemblyService.assembleContext.mockResolvedValue({
-      brandId,
-      brandName: 'Test Brand',
-      voice: { audience: 'founders', tone: 'direct' },
-    });
-    mockContextAssemblyService.buildSystemPrompt.mockImplementation(
-      (base: string) =>
-        base +
-        '\n\n## Brand: Test Brand\n## Brand Voice\n- Tone: direct\n- Target audience: founders',
-    );
     mockAgentChatModelRegistry.resolveModelKey.mockImplementation(
       (_key?: string, fallbackKey?: string) =>
         fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
     );
-    mockPromptBuilderService.buildPrompt.mockResolvedValue({
-      input: { max_tokens: 4096, prompt: 'test prompt' },
-    });
-    mockReplicateService.generateTextCompletionSync.mockResolvedValue(
-      'A new tweet',
-    );
+    mockModeResolver.resolve.mockResolvedValue({ mode: 'approved_brand' });
     resolveLearning = vi.spyOn(decisions, 'resolveForGeneration');
     const context = await Test.createTestingModule({
       providers: [
@@ -111,445 +88,204 @@ describe('PostDraftGenerationService', () => {
           useValue: mockAccountPublishingContextService,
         },
         {
-          provide: AgentContextAssemblyService,
-          useValue: mockContextAssemblyService,
-        },
-        {
           provide: AgentChatModelRegistryService,
           useValue: mockAgentChatModelRegistry,
         },
-        { provide: PromptBuilderService, useValue: mockPromptBuilderService },
-        { provide: ReplicateService, useValue: mockReplicateService },
         { provide: LearningDecisionService, useValue: decisions },
         { provide: PostsService, useValue: mockPostsService },
         { provide: BrandedTextGenerationService, useValue: mockBrandedText },
+        { provide: BrandedModeResolverService, useValue: mockModeResolver },
       ],
     }).compile();
     service = context.get(PostDraftGenerationService);
   });
-  describe('generateDraftText', () => {
-    it('generates a tweet using brand context without resolving an account or saving a post', async () => {
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        'A new tweet',
-      );
+
+  describe('request validation', () => {
+    const dto = {
+      brandId,
+      platform: CredentialPlatform.TWITTER,
+      prompt: 'Launch',
+      requestKey: '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f',
+    };
+
+    it('rejects a blank prompt before resolving a mode or generating', async () => {
       await expect(
-        service.generateDraftText(
-          {
-            brandId,
-            prompt: 'Launch day',
-            platform: CredentialPlatform.TWITTER,
-          },
-          identity,
-        ),
-      ).resolves.toEqual({
-        description: 'A new tweet',
-        model: DEFAULT_MINI_TEXT_MODEL,
-        learningReceipt: expect.objectContaining({
-          mode: 'no_destination',
-          reason: 'no_destination',
-          synthetic: false,
-        }),
-      });
-      expect(
-        mockAccountPublishingContextService.resolveDraft,
-      ).toHaveBeenCalledWith({
-        brandId,
-        organizationId,
-        platform: CredentialPlatform.TWITTER,
-      });
-      expect(
-        mockAccountPublishingContextService.resolve,
-      ).not.toHaveBeenCalled();
-      expect(mockPostsService.create).not.toHaveBeenCalled();
-      expect(mockContextAssemblyService.assembleContext).toHaveBeenCalledWith({
-        brandId,
-        layers: {
-          brandGuidance: true,
-          brandIdentity: true,
-          brandKnowledge: true,
-          brandMemory: true,
-          performancePatterns: true,
-          ragContext: true,
-          recentPosts: true,
-        },
-        organizationId,
-        platform: CredentialPlatform.TWITTER,
-        query: 'Launch day',
-        userId,
-      });
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.objectContaining({
-          brandingMode: 'off',
-          prompt: expect.stringContaining('Launch day'),
-          systemPrompt: expect.stringContaining('Brand Voice'),
-        }),
-        organizationId,
-      );
-      const draftPrompt = mockPromptBuilderService.buildPrompt.mock.calls[0][1]
-        .prompt as string;
-      expect(draftPrompt).not.toContain(brandId);
-      expect(draftPrompt).not.toContain('Brand context:');
-      expect(DEFAULT_MINI_TEXT_MODEL).toBe(
-        MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
-      );
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.any(Object),
-        undefined,
-      );
-    });
-    it('uses the Admin default TEXT model over the seed fallback', async () => {
-      const adminDefaultModel = 'anthropic/claude-sonnet-5';
-      mockAgentChatModelRegistry.resolveModelKey.mockResolvedValueOnce(
-        adminDefaultModel,
-      );
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        'A new tweet',
-      );
-
-      await service.generateDraftText(
-        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
-        identity,
-      );
-
-      expect(mockAgentChatModelRegistry.resolveModelKey).toHaveBeenCalledWith(
-        undefined,
-        DEFAULT_MINI_TEXT_MODEL,
-      );
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        adminDefaultModel,
-        expect.any(Object),
-        organizationId,
-      );
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledWith(adminDefaultModel, expect.any(Object), undefined);
-    });
-    it('settles BYOK once for the resolved Admin default and dispatches every attempt with that key', async () => {
-      const adminDefaultModel = 'anthropic/claude-sonnet-5';
-      mockAgentChatModelRegistry.resolveModelKey.mockResolvedValueOnce(
-        adminDefaultModel,
-      );
-      mockReplicateService.generateTextCompletionSync
-        .mockResolvedValueOnce('x'.repeat(400))
-        .mockResolvedValueOnce('A new tweet');
-      const resolveApiKey = vi.fn().mockResolvedValue('org-openrouter-key');
-
-      await service.generateDraftText(
-        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
-        identity,
-        resolveApiKey,
-      );
-
-      expect(resolveApiKey).toHaveBeenCalledTimes(1);
-      expect(resolveApiKey).toHaveBeenCalledWith(adminDefaultModel);
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledTimes(2);
-      for (const call of mockReplicateService.generateTextCompletionSync.mock
-        .calls) {
-        expect(call).toEqual([
-          adminDefaultModel,
-          expect.any(Object),
-          'org-openrouter-key',
-        ]);
-      }
-    });
-    it('rejects a blank prompt before calling the model', async () => {
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: '  ', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
+        service.generateDraftText({ ...dto, prompt: '  ' }, identity),
       ).rejects.toThrow('Describe');
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
+      expect(mockModeResolver.resolve).not.toHaveBeenCalled();
+      expect(mockBrandedText.generate).not.toHaveBeenCalled();
     });
-    it('propagates inaccessible brand errors before calling the model', async () => {
+
+    it('propagates inaccessible brand errors before any generation', async () => {
       mockAccountPublishingContextService.resolveDraft.mockRejectedValueOnce(
         new Error('Brand not found'),
       );
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
-      ).rejects.toThrow('Brand not found');
-      expect(resolveLearning).not.toHaveBeenCalled();
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
-    });
-    it('rejects empty model output', async () => {
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        ' ',
+      await expect(service.generateDraftText(dto, identity)).rejects.toThrow(
+        'Brand not found',
       );
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
-      ).rejects.toThrow('No draft');
+      expect(resolveLearning).not.toHaveBeenCalled();
+      expect(mockBrandedText.generate).not.toHaveBeenCalled();
     });
-    it('retries an oversized X draft using weighted character limits', async () => {
-      mockReplicateService.generateTextCompletionSync
-        .mockResolvedValueOnce('界'.repeat(200))
-        .mockResolvedValueOnce('A short tweet');
+
+    it('rejects non-publishing platforms', async () => {
       await expect(
         service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
-      ).resolves.toEqual({
-        description: 'A short tweet',
-        model: DEFAULT_MINI_TEXT_MODEL,
-        learningReceipt: expect.objectContaining({
-          mode: 'no_destination',
-          reason: 'no_destination',
-          synthetic: false,
-        }),
-      });
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledTimes(2);
-    });
-    it('rejects non-publishing platforms before calling the model', async () => {
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.RESTREAM },
+          { ...dto, platform: 'not-a-channel' as CredentialPlatform },
           identity,
         ),
       ).rejects.toThrow('supported publishing channel');
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
+      expect(mockBrandedText.generate).not.toHaveBeenCalled();
     });
+
+    it('rejects non-X long form before learning or dispatch', async () => {
+      await expect(
+        service.generateDraftText(
+          {
+            ...dto,
+            format: PostFormat.LONG_FORM,
+            platform: CredentialPlatform.LINKEDIN,
+          },
+          identity,
+        ),
+      ).rejects.toThrow('only supported for X');
+      expect(resolveLearning).not.toHaveBeenCalled();
+      expect(mockBrandedText.generate).not.toHaveBeenCalled();
+    });
+
     it('uses the X long-post limit for long-form drafts', async () => {
-      await service.generateDraftText(
-        {
-          brandId,
-          prompt: 'Launch',
-          platform: CredentialPlatform.TWITTER,
-          format: PostFormat.LONG_FORM,
+      mockBrandedText.generate.mockResolvedValue({
+        hasNewDispatch: true,
+        kind: 'completed',
+        postId: 'post-1',
+        receipt: {
+          artifact: null,
+          compliance: 'unverified',
+          id: 'receipt-1',
+          revision: 1,
+          state: 'needs_review',
         },
-        identity,
-      );
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.objectContaining({
-          prompt: expect.stringContaining('25000'),
-          maxTokens: 12500,
-        }),
-        organizationId,
-      );
-    });
-
-    it('falls back to brand label and voice when assembled context is missing', async () => {
-      mockContextAssemblyService.assembleContext.mockResolvedValueOnce(null);
-      mockAccountPublishingContextService.resolveDraft.mockResolvedValueOnce({
-        brand: {
-          id: brandId,
-          description: 'Publish content. Now.',
-          label: 'Genfeed.ai',
-          voice: 'Short, direct, no fluff.',
-        },
-        constraints: { ...mockPublishingContext.constraints },
+        text: 'Long text',
       });
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        'A new tweet',
-      );
-
       await service.generateDraftText(
-        {
-          brandId,
-          prompt: 'AI content is taking over',
-          platform: CredentialPlatform.TWITTER,
-        },
+        { ...dto, format: PostFormat.LONG_FORM },
         identity,
       );
-
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.objectContaining({
-          systemPrompt: expect.stringContaining('Short, direct, no fluff.'),
-        }),
-        organizationId,
-      );
-      const draftPrompt = mockPromptBuilderService.buildPrompt.mock.calls[0][1]
-        .prompt as string;
-      expect(draftPrompt).not.toContain(brandId);
+      const request = mockBrandedText.generate.mock.calls[0][0];
+      expect(request.input.originalPrompt).toContain('25000');
+      expect(request.acceptText('x'.repeat(20000))).toBe(true);
     });
   });
 
-  it('uses the genuine accountless early return before key and provider without honoring forged destination authority', async () => {
-    const prompt = '  Café 界 🚀\nKeep original whitespace  ';
-    const dto = {
-      brandId,
-      prompt,
-      platform: CredentialPlatform.TWITTER,
-      learningContext: {
-        credentialId: testId('forged-credential'),
-        requestKey: 'forged-request',
-        candidateIndex: 0,
+  it('returns a no-destination learning receipt without honoring forged destination authority', async () => {
+    mockBrandedText.generate.mockResolvedValue({
+      hasNewDispatch: true,
+      kind: 'completed',
+      postId: 'post-1',
+      receipt: {
+        artifact: null,
+        compliance: 'unverified',
+        id: 'receipt-1',
+        revision: 1,
+        state: 'needs_review',
       },
-    };
-    const key = vi.fn().mockResolvedValue('owned-key');
-    const result = await service.generateDraftText(dto, identity, key);
-    expect(resolveLearning).toHaveBeenCalledTimes(1);
-    expect(resolveLearning).toHaveBeenCalledWith({
-      organizationId,
-      brandId,
-      format: 'text',
-      originalPrompt: prompt,
-      harnessEnabled: false,
-      compatible: false,
+      text: 'Text',
     });
-    expect(resolveLearning.mock.invocationCallOrder[0]).toBeLessThan(
-      key.mock.invocationCallOrder[0],
+    const prompt = '  Café 界 🚀\nKeep original whitespace  ';
+    const result = await service.generateDraftText(
+      {
+        brandId,
+        learningContext: {
+          candidateIndex: 0,
+          credentialId: testId('forged-credential'),
+          requestKey: 'forged-request',
+        },
+        platform: CredentialPlatform.TWITTER,
+        prompt,
+        requestKey: '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f',
+      },
+      identity,
     );
-    expect(key.mock.invocationCallOrder[0]).toBeLessThan(
-      mockReplicateService.generateTextCompletionSync.mock
-        .invocationCallOrder[0],
-    );
+    expect(resolveLearning).toHaveBeenCalledWith({
+      brandId,
+      compatible: false,
+      format: 'text',
+      harnessEnabled: false,
+      organizationId,
+      originalPrompt: prompt,
+    });
     expect(blocked).not.toHaveBeenCalled();
     expect(
       learningGenerationReceiptSchema.parse(result.learningReceipt),
     ).toEqual({
+      application: {
+        privatePolicyApplied: false,
+        reasonCodes: ['no_destination'],
+        revalidatedAt: expect.any(String),
+        sharedReleaseApplied: false,
+        status: 'unavailable',
+      },
+      configVersion: 'rl-reward-v1-experimental',
       mode: 'no_destination',
       reason: 'no_destination',
-      configVersion: 'rl-reward-v1-experimental',
       synthetic: false,
-      application: {
-        status: 'unavailable',
-        reasonCodes: ['no_destination'],
-        privatePolicyApplied: false,
-        sharedReleaseApplied: false,
-        revalidatedAt: expect.any(String),
-      },
     });
     expect(JSON.stringify(result.learningReceipt)).not.toContain(prompt);
-    expect(result.learningReceipt).not.toHaveProperty('decisionId');
     expect(result.learningReceipt).not.toHaveProperty('credentialId');
-    await service.generateDraftText(dto, identity, key);
-    expect(blocked).not.toHaveBeenCalled();
-    expect(resolveLearning).toHaveBeenCalledTimes(2);
   });
+
   it.each<LearningResolution>([
     {
+      contribution: {},
       receipt: {
+        configVersion: 'rl-reward-v1-experimental',
         mode: 'no_destination',
         reason: 'no_destination',
-        configVersion: 'rl-reward-v1-experimental',
         synthetic: true,
       },
-      contribution: {},
     },
     {
+      contribution: {},
       receipt: {
-        mode: 'no_destination',
-        reason: 'no_destination',
         configVersion: 'rl-reward-v1-experimental',
-        synthetic: false,
         credentialId: testId('forged'),
-      },
-      contribution: {},
-    },
-    {
-      receipt: {
-        mode: 'no_destination',
-        reason: 'other',
-        configVersion: 'rl-reward-v1-experimental',
-        synthetic: false,
-      },
-      contribution: {},
-    },
-    {
-      receipt: {
         mode: 'no_destination',
         reason: 'no_destination',
-        configVersion: 'rl-reward-v1-experimental',
         synthetic: false,
       },
+    },
+    {
       contribution: { systemDirectives: ['forged learned advice'] },
+      receipt: {
+        configVersion: 'rl-reward-v1-experimental',
+        mode: 'no_destination',
+        reason: 'no_destination',
+        synthetic: false,
+      },
     },
   ])(
-    'refuses contradictory learning availability before credit resolution or provider dispatch %#',
+    'refuses contradictory learning availability before generation %#',
     async (resolution) => {
       resolveLearning.mockResolvedValueOnce(resolution);
-      const key = vi.fn();
       await expect(
         service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
+          {
+            brandId,
+            platform: CredentialPlatform.TWITTER,
+            prompt: 'Launch',
+            requestKey: '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f',
+          },
           identity,
-          key,
         ),
       ).rejects.toThrow('receipt integrity');
-      expect(key).not.toHaveBeenCalled();
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
+      expect(mockBrandedText.generate).not.toHaveBeenCalled();
       expect(blocked).not.toHaveBeenCalled();
     },
   );
-  it('does not dispatch a third attempt when both outputs exceed the existing limit', async () => {
-    mockReplicateService.generateTextCompletionSync.mockResolvedValue(
-      '界'.repeat(200),
-    );
-    await expect(
-      service.generateDraftText(
-        { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-        identity,
-      ),
-    ).rejects.toThrow('exceeds');
-    expect(
-      mockReplicateService.generateTextCompletionSync,
-    ).toHaveBeenCalledTimes(2);
-    expect(resolveLearning).toHaveBeenCalledTimes(1);
-    expect(blocked).not.toHaveBeenCalled();
-  });
-  it('propagates provider failure without a success receipt or an extra attempt', async () => {
-    mockReplicateService.generateTextCompletionSync.mockRejectedValueOnce(
-      new Error('Owned provider failure'),
-    );
-    await expect(
-      service.generateDraftText(
-        { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-        identity,
-      ),
-    ).rejects.toThrow('Owned provider failure');
-    expect(
-      mockReplicateService.generateTextCompletionSync,
-    ).toHaveBeenCalledTimes(1);
-    expect(resolveLearning).toHaveBeenCalledTimes(1);
-    expect(blocked).not.toHaveBeenCalled();
-  });
-  it('rejects non-X long form before learning or dispatch', async () => {
-    await expect(
-      service.generateDraftText(
-        {
-          brandId,
-          prompt: 'Launch',
-          platform: CredentialPlatform.INSTAGRAM,
-          format: PostFormat.LONG_FORM,
-        },
-        identity,
-      ),
-    ).rejects.toThrow('only supported for X');
-    expect(resolveLearning).not.toHaveBeenCalled();
-    expect(
-      mockReplicateService.generateTextCompletionSync,
-    ).not.toHaveBeenCalled();
-  });
 
-  describe('approved-brand drafts', () => {
+  describe('receipt-backed drafts', () => {
     const requestKey = '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f';
     const brandedDto = {
       brandId,
-      brandMode: 'approved_brand' as const,
       platform: CredentialPlatform.TWITTER,
       prompt: '  Launch day  ',
       requestKey,
@@ -571,33 +307,16 @@ describe('PostDraftGenerationService', () => {
       ...overrides,
     });
 
-    it('keeps the legacy path off the branded seam', async () => {
-      await service.generateDraftText(
-        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
-        identity,
-      );
+    it('requires an idempotency key before any generation', async () => {
+      await expect(
+        service.generateDraftText(
+          { ...brandedDto, requestKey: undefined as never },
+          identity,
+        ),
+      ).rejects.toThrow('branded_request_key_required');
       expect(mockBrandedText.generate).not.toHaveBeenCalled();
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalled();
+      expect(mockModeResolver.resolve).not.toHaveBeenCalled();
     });
-
-    it.each([
-      [{ requestKey: undefined }, 'branded_request_key_required'],
-      [{ brandMode: undefined }, 'brand_mode_required'],
-    ])(
-      'rejects an unpaired opt-in %j before any generation',
-      async (patch, message) => {
-        await expect(
-          service.generateDraftText({ ...brandedDto, ...patch }, identity),
-        ).rejects.toThrow(message);
-        expect(mockBrandedText.generate).not.toHaveBeenCalled();
-        expect(
-          mockReplicateService.generateTextCompletionSync,
-        ).not.toHaveBeenCalled();
-        expect(mockPromptBuilderService.buildPrompt).not.toHaveBeenCalled();
-      },
-    );
 
     it('sends the exact branded input and returns the saved draft with its receipt', async () => {
       mockBrandedText.generate.mockResolvedValue(completed());
@@ -652,10 +371,41 @@ describe('PostDraftGenerationService', () => {
       });
       expect(request.privateLearning).toEqual(result.learningReceipt);
       expect(request.resolveApiKey).toBe(resolveApiKey);
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
-      expect(mockContextAssemblyService.assembleContext).not.toHaveBeenCalled();
+      expect(mockModeResolver.resolve).toHaveBeenCalledWith(identity, brandId);
+    });
+
+    it('resolves provisional mode on the server and pins the named draft', async () => {
+      mockModeResolver.resolve.mockResolvedValueOnce({
+        draftRevisionId: 'draft-1',
+        mode: 'provisional_brand',
+      });
+      mockBrandedText.generate.mockResolvedValue(completed());
+      await service.generateDraftText(brandedDto, identity);
+      expect(mockBrandedText.generate.mock.calls[0][0].input).toMatchObject({
+        draftRevisionId: 'draft-1',
+        mode: 'provisional_brand',
+      });
+    });
+
+    it('uses the server-derived surface and links a regeneration to its predecessor', async () => {
+      mockBrandedText.generate.mockResolvedValue(completed());
+      await service.generateDraftText(brandedDto, identity, undefined, {
+        parentRequestId: 'previous-request',
+        surface: 'onboarding',
+      });
+      expect(mockBrandedText.generate.mock.calls[0][0].input).toMatchObject({
+        parentRequestId: 'previous-request',
+        requestKey,
+        surface: 'onboarding',
+      });
+    });
+
+    it('defaults to the api surface with no predecessor', async () => {
+      mockBrandedText.generate.mockResolvedValue(completed());
+      await service.generateDraftText(brandedDto, identity);
+      const input = mockBrandedText.generate.mock.calls[0][0].input;
+      expect(input.surface).toBe('api');
+      expect(input).not.toHaveProperty('parentRequestId');
     });
 
     it('applies the channel limit and saves the exact text as a draft text post', async () => {
@@ -728,7 +478,8 @@ describe('PostDraftGenerationService', () => {
       ['provider_output_empty', 422],
       ['provider_attempt_ref_unavailable', 502],
       ['artifact_bind_failed', 500],
-      ['no_approved_revision', 409],
+      ['no_draft_revision', 409],
+      ['brand_identity_changed', 409],
     ])(
       'maps a stopped %s receipt to HTTP %i with the receipt id',
       async (reasonCode, status) => {

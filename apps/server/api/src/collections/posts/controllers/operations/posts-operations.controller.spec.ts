@@ -588,6 +588,7 @@ Tweet 3: Tech innovation is changing the world.`,
       brandId,
       platform: CredentialPlatform.TWITTER,
       prompt: 'Launch day',
+      requestKey: '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f',
     };
     const deferredRequest = () =>
       ({
@@ -597,18 +598,7 @@ Tweet 3: Tech innovation is changing the world.`,
         creditsConfig: { deferred: boolean; amount: number };
       };
 
-    it('finalizes the deferred charge for a legacy draft', async () => {
-      draftGeneration.generateDraftText.mockResolvedValue({
-        description: 'text',
-        model: 'model-a',
-      });
-      const request = deferredRequest();
-      await generationController.generateDraftText(request, dto, mockUser);
-
-      expect(request.creditsConfig.deferred).toBe(false);
-    });
-
-    it('finalizes the deferred charge for a fresh branded draft', async () => {
+    it('finalizes the deferred charge for a fresh draft', async () => {
       draftGeneration.generateDraftText.mockResolvedValue({
         brandedReceipt: { isReplayed: false },
         description: 'text',
@@ -620,7 +610,7 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(request.creditsConfig.deferred).toBe(false);
     });
 
-    it('leaves a branded replay uncharged', async () => {
+    it('leaves a replay uncharged', async () => {
       draftGeneration.generateDraftText.mockResolvedValue({
         brandedReceipt: { isReplayed: true },
         description: 'text',

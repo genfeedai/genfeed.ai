@@ -6,13 +6,8 @@ import type {
 import type { BrandedGenerationReceiptV1 } from './branded-generation.interface';
 
 export interface PostDraftGenerationInput {
-  /**
-   * Opt in to approved-brand generation with a saved receipt. Requires
-   * `requestKey`; omitting it keeps the legacy draft behaviour unchanged.
-   */
-  brandMode?: 'approved_brand';
-  /** Idempotency key for branded generation; a repeat returns the original. */
-  requestKey?: string;
+  /** Idempotency key (UUID v4); a repeat returns the original draft. */
+  requestKey: string;
   learningContext?: LearningGenerationContext;
   brandId: string;
   prompt: string;
@@ -30,9 +25,9 @@ export interface PostDraftBrandedReceiptSummary {
 }
 
 export interface PostDraftGenerationResult {
-  /** Saved draft the branded receipt is bound to. Branded mode only. */
-  postId?: string;
-  brandedReceipt?: PostDraftBrandedReceiptSummary;
+  /** Saved draft the receipt is bound to. */
+  postId: string;
+  brandedReceipt: PostDraftBrandedReceiptSummary;
   learningReceipt?: LearningGenerationReceipt;
   description: string;
   /** Text model actually used — the resolved Admin default, or the seed fallback. */

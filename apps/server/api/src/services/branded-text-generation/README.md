@@ -5,9 +5,13 @@ generation through the saved receipt (#5786):
 
 create → resolve → dispatch → bind artifact → validate
 
-Its only caller today is `POST /posts/draft-generations` with
-`brandMode: 'approved_brand'` and a UUID `requestKey`. Requests without
-`brandMode` keep the legacy draft behaviour and make no receipt.
+Callers today: `POST /posts/draft-generations` (`PostDraftGenerationService`,
+surface `api`, or `onboarding` for the agent first-content tool), the agent text
+actions (`BrandedTextRunnerService`, surface `agent`) and breakout text output.
+There is no unreceipted draft path: the mode is decided on the server by
+`BrandedModeResolverService` (an approved revision wins; otherwise the brand's
+live DRAFT, created from the Genfeed default style kit when none exists, runs as
+`provisional_brand`). Provisional output always completes as `needs_review`.
 
 ## Guarantees
 
@@ -44,6 +48,5 @@ changed payload is rejected with `request_payload_conflict`.
 
 ## Not wired yet
 
-Onboarding (needs provisional drafts), account and thread generation,
-content-intelligence, the agent text path, Studio media, MCP, workflows,
-schedules, batches and desktop adapters remain open on #5786.
+Account and thread generation, content-intelligence, Studio media prompts, MCP,
+workflows, schedules, batches and desktop adapters remain open on #5786.

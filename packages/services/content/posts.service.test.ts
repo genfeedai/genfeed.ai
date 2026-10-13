@@ -162,6 +162,7 @@ describe('PostsService', () => {
       brandId: 'brand-selected',
       platform: Platform.TWITTER,
       prompt: 'Launch',
+      requestKey: '5b0f6c1e-7d3a-4c1e-9b0a-2f6d8a1c3e4f',
     };
     mockInstance.post.mockResolvedValueOnce({
       data: { description: 'A tweet' },

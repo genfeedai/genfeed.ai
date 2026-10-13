@@ -149,6 +149,12 @@ export default function ModalPost({
   const defaultValuesRef = useRef(defaultValues);
   defaultValuesRef.current = defaultValues;
 
+  // The generated draft already exists as a receipt-bound DRAFT post; submitting
+  // updates it instead of creating a second post.
+  const adoptedDraftRef = useRef<{ platform: string; postId: string } | null>(
+    null,
+  );
+
   const customSubmitHandler = useCallback(
     async (
       service: unknown,
@@ -306,22 +312,43 @@ export default function ModalPost({
         logger.info(`${url} success`);
         return result;
       } else {
-        const url = 'POST /publishing';
-        const result = await postsService.post({
-          brandId: brandId || undefined,
-          credentialId: formData.credentialId || undefined,
-          description: descriptionForSubmit,
-          format: formData.format,
-          ingredients: formData.ingredients || [],
-          label: formData.label?.trim() || '',
-          parentId: formData.parentId || undefined,
-          platform: formData.platform,
-          ...(formData.scheduledDate
-            ? { scheduledDate: formData.scheduledDate }
-            : {}),
-          targetExecutionState: formData.targetExecutionState,
-          visibility: formData.visibility,
-        });
+        const adopted = adoptedDraftRef.current;
+        const canAdoptDraft =
+          adopted !== null &&
+          adopted.platform === formData.platform &&
+          !formData.parentId &&
+          (formData.ingredients ?? []).length === 0;
+        const url = canAdoptDraft
+          ? `PATCH /posts/${adopted.postId}`
+          : 'POST /publishing';
+        const result = canAdoptDraft
+          ? await postsService.patch(adopted.postId, {
+              credentialId: formData.credentialId || undefined,
+              description: descriptionForSubmit,
+              format: formData.format,
+              label: formData.label?.trim() || '',
+              ...(formData.scheduledDate
+                ? { scheduledDate: formData.scheduledDate }
+                : {}),
+              targetExecutionState: formData.targetExecutionState,
+              visibility: formData.visibility,
+            })
+          : await postsService.post({
+              brandId: brandId || undefined,
+              credentialId: formData.credentialId || undefined,
+              description: descriptionForSubmit,
+              format: formData.format,
+              ingredients: formData.ingredients || [],
+              label: formData.label?.trim() || '',
+              parentId: formData.parentId || undefined,
+              platform: formData.platform,
+              ...(formData.scheduledDate
+                ? { scheduledDate: formData.scheduledDate }
+                : {}),
+              targetExecutionState: formData.targetExecutionState,
+              visibility: formData.visibility,
+            });
+        adoptedDraftRef.current = null;
 
         notificationsService.success(
           isThreadReply ? 'Reply added to thread' : 'Post created successfully',
@@ -637,6 +664,9 @@ export default function ModalPost({
           isTitleError={isTitleError}
           hasIngredients={hasIngredients}
           browserTimezone={browserTimezone}
+          onDraftGenerated={(draft) => {
+            adoptedDraftRef.current = draft;
+          }}
         />
 
         <ModalPostSimpleActions

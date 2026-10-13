@@ -41,6 +41,7 @@ export default function ModalPostSimpleFields({
   hasIngredients,
   browserTimezone,
   composer,
+  onDraftGenerated,
 }: ModalPostSimpleFieldsProps) {
   const translate = useTranslations('ui.postDraft');
   const composerTranslate = useTranslations('ui.postComposer');
@@ -127,12 +128,16 @@ export default function ModalPostSimpleFields({
             platform={form.watch('platform') ?? Platform.TWITTER}
             format={form.watch('format')}
             isDisabled={isSubmitting}
-            onGenerate={(description) =>
+            onGenerate={(description, draft) => {
               form.setValue('description', description, {
                 shouldDirty: true,
                 shouldValidate: true,
-              })
-            }
+              });
+              onDraftGenerated?.({
+                platform: form.getValues('platform') ?? Platform.TWITTER,
+                postId: draft.postId,
+              });
+            }}
           />
 
           {selectedPlatform !== Platform.TWITTER && (

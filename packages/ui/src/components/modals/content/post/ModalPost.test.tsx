@@ -20,6 +20,9 @@ const mocks = vi.hoisted(() => ({
   patch: vi.fn(),
   generateDraftText: vi.fn(),
 }));
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
+}));
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-workspace' }),
 }));
@@ -104,6 +107,35 @@ describe('ModalPost', () => {
     );
     expect(isModalOpen(ModalEnum.POST_COMPOSE)).toBe(true);
     closeModal(ModalEnum.POST_COMPOSE);
+  });
+  it('submits a generated draft by updating its saved post instead of creating another', async () => {
+    mocks.generateDraftText.mockResolvedValue({
+      brandedReceipt: {
+        compliance: 'unverified',
+        id: 'receipt-1',
+        isReplayed: false,
+        revision: 4,
+        state: 'needs_review',
+      },
+      description: 'Generated post',
+      postId: 'generated-post',
+    });
+    const user = userEvent.setup();
+    render(<ModalPost credentials={[]} modalId={ModalEnum.POST_COMPOSE} />);
+    await user.type(
+      screen.getByRole('textbox', { name: 'What do you want to post about?' }),
+      'Launch',
+    );
+    await user.click(screen.getByRole('button', { name: 'Generate draft' }));
+    await screen.findByRole('link', { name: 'View receipt' });
+    await user.click(screen.getByRole('button', { name: 'Create Post' }));
+    await waitFor(() =>
+      expect(mocks.patch).toHaveBeenCalledWith(
+        'generated-post',
+        expect.objectContaining({ description: 'Generated post' }),
+      ),
+    );
+    expect(mocks.post).not.toHaveBeenCalled();
   });
   it('saves a manually written X draft without an account', async () => {
     const user = userEvent.setup();
