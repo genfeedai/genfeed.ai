@@ -39,9 +39,10 @@ export default function YouTubePublishingSettings({
     syncedSettings.privacy !== savedPrivacy ||
     syncedSettings.madeForKids !== savedMadeForKids
   ) {
+    if (privacy === syncedSettings.privacy) setPrivacy(savedPrivacy);
+    if (madeForKids === syncedSettings.madeForKids)
+      setMadeForKids(savedMadeForKids);
     setSyncedSettings({ madeForKids: savedMadeForKids, privacy: savedPrivacy });
-    setPrivacy(savedPrivacy);
-    setMadeForKids(savedMadeForKids);
   }
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,8 +72,12 @@ export default function YouTubePublishingSettings({
         },
         visibility: selectedVisibility,
       });
-      await onSaved?.();
       NotificationsService.getInstance().success(translate('saved'));
+      try {
+        await onSaved?.();
+      } catch {
+        NotificationsService.getInstance().warning(translate('refreshFailed'));
+      }
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : translate('saveFailed'),

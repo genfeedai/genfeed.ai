@@ -8,16 +8,21 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-const { updateTarget, ensureFromPost } = vi.hoisted(() => ({
-  updateTarget: vi.fn(),
-  ensureFromPost: vi.fn(),
-}));
+const { updateTarget, ensureFromPost, notifySuccess, notifyWarning } =
+  vi.hoisted(() => ({
+    updateTarget: vi.fn(),
+    notifySuccess: vi.fn(),
+    notifyWarning: vi.fn(),
+    ensureFromPost: vi.fn(),
+  }));
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => () =>
     Promise.resolve({ updateTarget, ensureFromPost }),
 }));
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
-  NotificationsService: { getInstance: () => ({ success: vi.fn() }) },
+  NotificationsService: {
+    getInstance: () => ({ success: notifySuccess, warning: notifyWarning }),
+  },
 }));
 const post = {
   id: 'post-1',
@@ -62,6 +67,85 @@ describe('YouTube publishing settings', () => {
     expect(
       screen.getByRole('checkbox', { name: 'Made for kids' }),
     ).toBeChecked();
+  });
+
+  it('preserves edited privacy while adopting refreshed untouched settings', async () => {
+    const { rerender } = render(<YouTubePublishingSettings post={post} />);
+    fireEvent.click(screen.getByRole('combobox'));
+    fireEvent.click(await screen.findByRole('option', { name: 'Private' }));
+    rerender(
+      <YouTubePublishingSettings
+        post={{
+          ...post,
+          targetSettings: { privacyStatus: 'unlisted', madeForKids: true },
+        }}
+      />,
+    );
+    expect(screen.getByRole('combobox')).toHaveTextContent('Private');
+    expect(
+      screen.getByRole('checkbox', { name: 'Made for kids' }),
+    ).toBeChecked();
+  });
+
+  it('preserves an edited audience checkbox while adopting refreshed privacy', () => {
+    const { rerender } = render(<YouTubePublishingSettings post={post} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Made for kids' }));
+    rerender(
+      <YouTubePublishingSettings
+        post={{
+          ...post,
+          targetSettings: { privacyStatus: 'unlisted', madeForKids: false },
+        }}
+      />,
+    );
+    expect(screen.getByRole('combobox')).toHaveTextContent('Unlisted');
+    expect(
+      screen.getByRole('checkbox', { name: 'Made for kids' }),
+    ).toBeChecked();
+  });
+
+  it('reports saved settings separately when refreshing fails', async () => {
+    const onSaved = vi.fn().mockRejectedValue(new Error('Refresh unavailable'));
+    render(
+      <YouTubePublishingSettings
+        post={{ ...post, targetSettings: { privacyStatus: 'private' } }}
+        onSaved={onSaved}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save YouTube settings' }),
+    );
+    await waitFor(() =>
+      expect(notifyWarning).toHaveBeenCalledWith(
+        'YouTube settings saved, but the view could not refresh. Reload to see the latest settings.',
+      ),
+    );
+    expect(notifySuccess).toHaveBeenCalledWith('YouTube settings saved');
+    expect(updateTarget).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Save YouTube settings' }),
+    ).toBeEnabled();
+  });
+
+  it('reports a failed save and does not refresh or show success', async () => {
+    updateTarget.mockRejectedValueOnce(new Error('Save unavailable'));
+    const onSaved = vi.fn();
+    render(
+      <YouTubePublishingSettings
+        post={{ ...post, targetSettings: { privacyStatus: 'private' } }}
+        onSaved={onSaved}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save YouTube settings' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Save unavailable',
+    );
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(notifyWarning).not.toHaveBeenCalled();
   });
 
   it.each([

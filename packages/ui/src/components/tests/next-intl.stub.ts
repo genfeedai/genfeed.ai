@@ -403,6 +403,8 @@ const UI_TEST_MESSAGES = {
       save: 'Save YouTube settings',
       saving: 'Saving…',
       saved: 'YouTube settings saved',
+      refreshFailed:
+        'YouTube settings saved, but the view could not refresh. Reload to see the latest settings.',
       saveFailed: 'Could not save YouTube settings.',
     },
     tiktokPublishing: {
