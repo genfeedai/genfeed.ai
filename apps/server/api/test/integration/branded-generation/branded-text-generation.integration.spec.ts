@@ -462,12 +462,13 @@ describe('Branded text generation seam (real Postgres)', () => {
       receipts.recoverExpiredDispatchesSystem({ limit: 10 }),
     ).resolves.toEqual({ blocked: [], skipped: [] });
 
+    const longAgo = new Date(Date.now() - 60 * 60 * 1000);
     await sql.query(
-      `UPDATE branded_generation_receipts SET "updatedAt" = now() - interval '1 hour' WHERE id = $1`,
-      [stuck.id],
+      `UPDATE branded_generation_receipts SET "updatedAt" = $2, projection = jsonb_set(projection::jsonb, '{updatedAt}', to_jsonb($3::text)) WHERE id = $1`,
+      [stuck.id, longAgo, longAgo.toISOString()],
     );
     const swept = await receipts.recoverExpiredDispatchesSystem({ limit: 10 });
-    expect(swept.blocked).toEqual([stuck.id]);
+    expect(swept).toEqual({ blocked: [stuck.id], skipped: [] });
     const blocked = await prisma.brandedGenerationReceipt.findFirstOrThrow({
       where: { id: stuck.id },
     });

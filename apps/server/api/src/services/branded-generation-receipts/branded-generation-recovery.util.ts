@@ -25,9 +25,11 @@ const SKIPPABLE_RECOVERY_ERRORS: ReadonlySet<string> = new Set([
  * Blocks each expired receipt. A receipt that changed, was deleted or lost its
  * scope meanwhile is skipped; any other failure stops the sweep.
  */
-export async function blockExpiredDispatches(
-  rows: ReadonlyArray<{ id: string }>,
-  blockOne: (row: { id: string; revision: number }) => Promise<void>,
+export async function blockExpiredDispatches<
+  T extends { id: string; revision: number },
+>(
+  rows: readonly T[],
+  blockOne: (row: T) => Promise<void>,
 ): Promise<BrandedGenerationDispatchRecoveryV1> {
   const result: BrandedGenerationDispatchRecoveryV1 = {
     blocked: [],
@@ -35,7 +37,7 @@ export async function blockExpiredDispatches(
   };
   for (const row of rows) {
     try {
-      await blockOne(row as { id: string; revision: number });
+      await blockOne(row);
       result.blocked.push(row.id);
     } catch (error) {
       if (
