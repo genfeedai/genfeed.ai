@@ -67,11 +67,6 @@ export const HEYGEN_POLL_QUEUE = 'heygen-poll';
 export const REPLICATE_POLL_QUEUE = 'replicate-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 
-// ---------- Onboarding ----------
-/** Drafts the starter post + ad for a brand in the background so the domain
- * loading step never blocks the operator from entering the app. */
-export const ONBOARDING_STARTER_ASSETS_QUEUE = 'onboarding-starter-assets';
-
 // ---------- Media validation ----------
 /** Per-asset media perception (#4879): frames, OCR, transcript and scene
  * description, persisted once per asset hash off the publish request path. */
@@ -99,7 +94,6 @@ export const ALL_QUEUE_NAMES = [
   HEYGEN_POLL_QUEUE,
   REPLICATE_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
-  ONBOARDING_STARTER_ASSETS_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   MEDIA_MODERATION_QUEUE,
   BRAND_VISION_QUEUE,

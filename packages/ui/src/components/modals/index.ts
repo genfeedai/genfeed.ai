@@ -19,8 +19,6 @@ export { default as Modal } from '@ui/modals/modal/Modal';
 export { default as ModalModel } from '@ui/modals/models/ModalModel';
 
 // Onboarding
-export { default as ModalOnboarding } from '@ui/modals/onboarding/ModalOnboarding';
-export { default as OnboardingTrigger } from '@ui/modals/onboarding/OnboardingTrigger';
 
 // Trainings
 export { default as ModalTraining } from '@ui/modals/trainings/ModalTraining';

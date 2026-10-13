@@ -3,10 +3,6 @@
   "files": {
     "apps/app/app/(onboarding)/layout.tsx": 2,
     "apps/app/app/(onboarding)/onboarding/(wizard)/layout.tsx": 3,
-    "apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-error-state.tsx": 4,
-    "apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-hero-card.tsx": 6,
-    "apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-outputs-card.tsx": 4,
-    "apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-workspace-sidebar.tsx": 9,
     "apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-action-bar.tsx": 4,
     "apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx": 7,
     "apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-server-list.tsx": 2,

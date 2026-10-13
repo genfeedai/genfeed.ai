@@ -109,23 +109,6 @@ Authorization: Bearer {{bearerToken}}
 
 
 ########################################
-# AI Preview
-########################################
-
-### Generate AI Preview Image
-# Deducts onboarding credits
-POST {{apiBaseUrl}}/onboarding/generate-preview
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "brandId": "{{testBrandId}}",
-  "contentType": "social_post",
-  "topic": "AI content creation tools"
-}
-
-
-########################################
 # Reference Images
 ########################################
 

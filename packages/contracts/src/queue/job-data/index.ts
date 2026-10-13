@@ -5,7 +5,6 @@ export * from './llm-cost-settlement-job.interface';
 export * from './media-moderation-job.interface';
 export * from './media-perception-job.interface';
 export * from './notification-delivery-job.interface';
-export * from './onboarding-starter-assets-job.interface';
 export * from './replicate-poll-job.interface';
 export * from './turbo-rewrite-job.interface';
 export * from './webhook-client-job.interface';
