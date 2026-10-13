@@ -1,7 +1,7 @@
 import { cn } from '@genfeedai/helpers';
+import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Pencil } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { hoverRevealClassName } from '../components/styles/hover-reveal';
 
 export interface EditableTextProps {
   value?: string;

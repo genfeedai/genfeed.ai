@@ -6,7 +6,7 @@ export default defineConfig({
     alias: [
       {
         find: /^@ui\/styles\/(.*)$/,
-        replacement: path.resolve(__dirname, '../ui/src/components/styles/$1'),
+        replacement: path.resolve(__dirname, '../ui/src/styles/$1'),
       },
       {
         find: /^@genfeedai\/contracts\/constants\/(.*)$/,
