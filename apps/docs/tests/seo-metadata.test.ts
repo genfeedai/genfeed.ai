@@ -127,7 +127,7 @@ describe('docs SEO metadata', () => {
     // h1 is the document heading. SwaggerUI demotes its OpenAPI title so
     // hydration does not add a second h1.
     expect(source).toContain('<SwaggerUI />');
-    expect(source.match(/^# /gm) ?? []).toEqual(['# API Reference']);
+    expect(source.match(/^# .+$/gm) ?? []).toEqual(['# API Reference']);
     expect(swaggerSource).toContain('.info h1.title');
     expect(swaggerSource).toContain("createElement('p')");
   });
