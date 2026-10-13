@@ -183,8 +183,10 @@ const OUTPUT_WIDTH = {
 
 const CDN_BUCKET = 'cdn.genfeed.ai';
 const CDN_PREFIX = 'assets/site/home';
-// Raw generations are not served by the site; they stay where they were first backed up.
-const MASTERS_PREFIX = 'assets/branding/website/home/_masters';
+// Raw generations are never served, so they live in a private bucket (public
+// access blocked, versioning on) rather than on the CDN.
+const MASTERS_BUCKET = 'genfeed-masters';
+const MASTERS_PREFIX = 'home';
 const OUTPUT_DIR = path.resolve(import.meta.dirname, '../.home-video');
 const RAW_DIR = path.join(OUTPUT_DIR, 'raw');
 const BUILD_DIR = path.join(OUTPUT_DIR, 'build');
@@ -558,9 +560,7 @@ const CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=604800';
  * reproduced without paying for it again. Everything else — the montage, the
  * closed loop, both encodes, the posters — is derived from them locally.
  *
- * They sit beside the assets they produce, under a name that says what they
- * are. Nothing links to them, and no `_masters` path is referenced anywhere in
- * the site.
+ * Nothing links to them, so they sit in a private bucket, not on the CDN.
  */
 function uploadMasters(): void {
   logger.log('backing up raw generations');
@@ -569,14 +569,14 @@ function uploadMasters(): void {
     's3',
     'sync',
     RAW_DIR,
-    `s3://${CDN_BUCKET}/${MASTERS_PREFIX}/`,
+    `s3://${MASTERS_BUCKET}/${MASTERS_PREFIX}/`,
     '--content-type',
     'video/mp4',
     '--cache-control',
     'private, no-store',
   ]);
 
-  logger.log(`masters backed up to s3://${CDN_BUCKET}/${MASTERS_PREFIX}/`);
+  logger.log(`masters backed up to s3://${MASTERS_BUCKET}/${MASTERS_PREFIX}/`);
 }
 
 function upload(artefacts: Artefacts, prefix: string): void {
