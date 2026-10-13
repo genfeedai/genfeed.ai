@@ -17,7 +17,7 @@ import {
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
+import { hoverRevealClassName } from '@genfeedai/ui/styles/hover-reveal';
 import type { NodeProps } from '@xyflow/react';
 import { Download, Grid3X3, RefreshCw } from 'lucide-react';
 import Image from 'next/image';

@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 
 import type { ImageGenNodeData, ImageModel } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
+import { hoverRevealClassName } from '@genfeedai/ui/styles/hover-reveal';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Download, ImageIcon } from 'lucide-react';
 import Image from 'next/image';

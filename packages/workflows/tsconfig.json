@@ -19,7 +19,6 @@
     // looks for `<name>.d.props.ts`. These aliases are the same ones
     // `packages/ui` and `apps/app` already declare for those packages.
     "paths": {
-      "@ui/styles/*": ["../ui/src/styles/*"],
       "@genfeedai/props": ["../props/index.ts"],
       "@genfeedai/props/*": ["../props/*"],
       "@genfeedai/services": ["../services/index.ts"],
