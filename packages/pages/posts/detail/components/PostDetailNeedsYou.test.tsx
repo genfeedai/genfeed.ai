@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostDetailNeedsYou from '@pages/posts/detail/components/PostDetailNeedsYou';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -105,6 +105,11 @@ describe('PostDetailNeedsYou', () => {
 
     expect(
       screen.getByRole('heading', { name: 'Needs you' }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('post-needs-you-row-failed')).getByText(
+        'This post failed to publish.',
+      ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Retry publish' }));
     expect(onPublishNow).toHaveBeenCalledTimes(1);

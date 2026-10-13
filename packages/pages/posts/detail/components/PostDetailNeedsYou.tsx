@@ -128,6 +128,7 @@ export default function PostDetailNeedsYou({
       <CollectionList>
         {items.map((item) => (
           <ListRow
+            data-testid={`post-needs-you-row-${item.id}`}
             key={item.id}
             title={item.message}
             trailing={

@@ -138,7 +138,9 @@ test.describe('Core Content Loop', () => {
       authenticatedPage.getByText('failed', { exact: true }).first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByText('This post failed to publish.'),
+      authenticatedPage
+        .getByTestId('post-needs-you-row-failed')
+        .getByText('This post failed to publish.', { exact: true }),
     ).toBeVisible();
     const whenDock = authenticatedPage.getByTestId('post-when-dock');
     await expect(whenDock.getByRole('heading', { name: 'When' })).toBeVisible();
