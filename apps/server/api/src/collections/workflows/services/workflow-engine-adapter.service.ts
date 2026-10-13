@@ -22,7 +22,7 @@ import {
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Bridges NestJS services with the pure workflow-engine package.
@@ -31,7 +31,7 @@ import { Injectable } from '@nestjs/common';
  * Executor registration is delegated to cohesive API-local registrar services.
  */
 @Injectable()
-export class WorkflowEngineAdapterService {
+export class WorkflowEngineAdapterService implements OnApplicationBootstrap {
   private readonly logContext = 'WorkflowEngineAdapterService';
   private readonly engine: WorkflowEngine;
   private readonly converter = new WorkflowEngineConverterService();
@@ -50,8 +50,15 @@ export class WorkflowEngineAdapterService {
 
   registerExecutor(nodeType: string, executor: NodeExecutor): void {
     this.engine.registerExecutor(nodeType, executor);
+  }
+
+  /**
+   * One line once every registrar has run. A line per executor was hundreds of
+   * lines at every boot and buried the lines that matter.
+   */
+  onApplicationBootstrap(): void {
     this.loggerService.debug(
-      `${this.logContext} registered executor for ${nodeType}`,
+      `${this.logContext} registered ${this.engine.getRegisteredActionIds().length} workflow executors`,
     );
   }
 

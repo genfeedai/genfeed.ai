@@ -10,6 +10,12 @@ import {
   pruneStalePortlessSessions,
   shouldPruneBeforePortlessRun,
 } from './prune-stale-portless';
+import {
+  portlessAppPortArgs,
+  readWorkspaceName,
+  resolveStablePort,
+  stablePortSeed,
+} from './stable-port';
 import { runDetachedCommand } from './terminate-child-tree';
 
 const INNER_FLAG = '--portless-inner';
@@ -58,12 +64,19 @@ async function main(): Promise<void> {
 
   if (!isInner) {
     const scriptPath = fileURLToPath(import.meta.url);
+    // Portless picks a new random port on every start. Pin one per worktree and
+    // service so the number in a log survives a restart; if every candidate is
+    // taken, let Portless choose rather than fail to start.
+    const stablePort = await resolveStablePort(
+      stablePortSeed(currentService, readWorkspaceName()),
+    );
     const exitCode = await runDetachedCommand(
       [
         'portless',
         'run',
         '--name',
         `${currentService}.genfeed`,
+        ...portlessAppPortArgs(stablePort),
         process.execPath,
         scriptPath,
         INNER_FLAG,
