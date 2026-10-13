@@ -955,7 +955,6 @@ describe('BrandsController', () => {
           isFleetEnabled: false,
           isHighlighted: false,
           isPromptEnhancementEnabled: null,
-          isSocialHistoryImportEnabled: true,
           label: mockBrand.name,
           musicIngredientId: null,
           primaryColor: '#000000',

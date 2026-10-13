@@ -1061,8 +1061,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
   watermarkPosition        String       @default("bottom-right")
-  /// Deprecated (#5485): no longer read or written; dropped next release (#5495).
-  isSocialHistoryImportEnabled Boolean  @default(true)
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                       String       @id @default(cuid())
