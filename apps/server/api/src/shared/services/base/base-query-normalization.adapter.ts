@@ -170,7 +170,7 @@ export class BaseQueryNormalizationAdapter {
     }
   }
 
-  private toRelationSelection(option: PopulateOption): unknown {
+  public toRelationSelection(option: PopulateOption): unknown {
     const nested = option.populate
       ? {
           [option.populate.path]: this.toRelationSelection(option.populate),

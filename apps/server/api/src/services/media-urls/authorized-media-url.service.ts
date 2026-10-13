@@ -193,11 +193,13 @@ export class AuthorizedMediaUrlService {
           organizationId: source.organizationId,
           isDeleted: false,
           visibility: PostVisibility.PUBLIC,
-          ingredients: {
+          ingredientLinks: {
             some: {
-              id: source.id,
-              organizationId: source.organizationId,
-              isDeleted: false,
+              ingredient: {
+                id: source.id,
+                organizationId: source.organizationId,
+                isDeleted: false,
+              },
             },
           },
         },
@@ -219,8 +221,13 @@ export class AuthorizedMediaUrlService {
             { isPublic: true },
             { scope: 'PUBLIC' },
             {
-              postIngredients: {
-                some: { isDeleted: false, visibility: PostVisibility.PUBLIC },
+              postLinks: {
+                some: {
+                  post: {
+                    isDeleted: false,
+                    visibility: PostVisibility.PUBLIC,
+                  },
+                },
               },
             },
           ],
@@ -244,22 +251,27 @@ export class AuthorizedMediaUrlService {
     for (const [organizationId, ids] of grouped) {
       const posts = await this.prisma.post.findMany({
         select: {
-          ingredients: {
-            where: { id: { in: ids }, organizationId, isDeleted: false },
-            select: { id: true },
+          ingredientLinks: {
+            where: {
+              ingredient: { id: { in: ids }, organizationId, isDeleted: false },
+            },
+            select: { ingredientId: true },
           },
         },
         where: {
           organizationId,
           isDeleted: false,
           visibility: PostVisibility.PUBLIC,
-          ingredients: {
-            some: { id: { in: ids }, organizationId, isDeleted: false },
+          ingredientLinks: {
+            some: {
+              ingredient: { id: { in: ids }, organizationId, isDeleted: false },
+            },
           },
         },
       });
       for (const post of posts)
-        for (const ingredient of post.ingredients) publicIds.add(ingredient.id);
+        for (const link of post.ingredientLinks)
+          publicIds.add(link.ingredientId);
     }
     return discovered.filter((source) => publicIds.has(source.id));
   }

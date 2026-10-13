@@ -12,7 +12,9 @@ import {
   validateResult,
 } from './protocol.mjs';
 import {
+  assertBrandFontObservations,
   assertEvidenceObservations,
+  brandFontInput,
   EVIDENCE_FONT_PATH,
   EVIDENCE_PNG,
   evidenceInput,
@@ -288,6 +290,33 @@ await writeFile(
   resolve(artifacts, 'render-evidence-fonts.json'),
   JSON.stringify(evidenceResult.media[0].evidence, null, 2),
 );
+// A staged brand font: the renderer declares the face, the composition only names
+// the family, and the engine reports the staged asset as the source of the glyphs.
+const brandFontCase = validateInput(
+  await brandFontInput([{ format: 'png', frame: 2 }], 'acceptance-brand-font'),
+);
+const brandFontRun = await isolated(
+  brandFontCase.id,
+  dockerArguments(brandFontCase.id),
+  encodeFrame(brandFontCase),
+);
+const brandFontDecoded = decodeFrame(brandFontRun.bytes);
+assert.equal(
+  brandFontRun.code,
+  0,
+  JSON.stringify(brandFontDecoded.diagnostics),
+);
+const brandFontResult = validateResult(brandFontDecoded, brandFontCase);
+assert.deepEqual(brandFontResult.diagnostics, []);
+assertBrandFontObservations(assert, brandFontResult.media[0].evidence, {
+  frame: 2,
+  fontHash: sha256Prefixed(await readFile(EVIDENCE_FONT_PATH)),
+  platformFamily: 'Zodiak',
+});
+await writeFile(
+  resolve(artifacts, 'render-evidence-brand-font.json'),
+  JSON.stringify(brandFontResult.media[0].evidence, null, 2),
+);
 const attackId = 'acceptance-isolation';
 const attack = `const fs=require('node:fs');const cp=require('node:child_process');const assert=require('node:assert/strict');(async()=>{assert.equal(process.env.VISUAL_CODE_RENDERER_TOKEN,undefined);assert.equal(process.env.VISUAL_CODE_TEST_SECRET,undefined);assert.throws(()=>fs.readFileSync('/tmp/visual-code-host-sentinel'));assert.throws(()=>fs.writeFileSync('/runtime/installed-by-attacker','bad'));let denied=false;try{await fetch('https://example.com',{signal:AbortSignal.timeout(3000)})}catch{denied=true}assert.ok(denied);const installation=cp.spawnSync('npm',['install','--offline','--prefix','/runtime','never-installed-package'],{timeout:5000});assert.notEqual(installation.status,0);process.stdout.write('isolation-denied')} )().catch(()=>process.exit(1));`;
 await writeFile('/tmp/visual-code-host-sentinel', 'host-only', { flag: 'wx' });
@@ -328,6 +357,7 @@ await writeFile(
           (media) => media.evidence.captures.length,
         ),
         webFontReportedFromAsset: true,
+        brandFontReportedFromAsset: true,
         forcedFallbackReported: true,
       },
       networkDenied: true,

@@ -61,8 +61,8 @@ export interface LibraryCharacterOption {
   label: string;
 }
 
-export interface LibraryBrowserToolbarProps {
-  isRecoveryView?: boolean;
+/** Everything the Filters popover and the active-filter chips read and write. */
+export interface LibraryFilterProps {
   categories: IngredientCategory[];
   /** Current place from the URL. Trash selects the Trash status option. */
   place?: LibraryPlace;
@@ -80,28 +80,64 @@ export interface LibraryBrowserToolbarProps {
   /** Characters available to the active brand. Empty hides the filter. */
   characterOptions: LibraryCharacterOption[];
   origins: IngredientOrigin[];
-  sort: string;
   /** Selected tag ids (`?tags=`). */
   tags: string[];
   /** How the selected tags combine (`?tagMatch=`). */
   tagMatch: TagMatchMode;
   /** Tags the active brand can use, with asset counts. Empty hides the filter. */
   tagOptions: ITag[];
+  onCategoriesChange: (categories: IngredientCategory[]) => void;
+  onCharactersChange: (characters: string[]) => void;
+  onOriginsChange: (origins: IngredientOrigin[]) => void;
+  onTagMatchChange: (tagMatch: TagMatchMode) => void;
+  onTagsChange: (tags: string[]) => void;
+  /** Resets every filter in one URL update; sort and view are kept. */
+  onClearAllFilters: () => void;
+}
+
+export interface LibraryBrowserToolbarProps extends LibraryFilterProps {
+  isRecoveryView?: boolean;
+  sort: string;
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
   reviewUnsortedHref?: string;
-  onCategoriesChange: (categories: IngredientCategory[]) => void;
-  onCharactersChange: (characters: string[]) => void;
-  onClearCategories: () => void;
-  onClearCharacters: () => void;
-  onOriginsChange: (origins: IngredientOrigin[]) => void;
-  onClearOrigins: () => void;
-  onClearTags: () => void;
-  onTagMatchChange: (tagMatch: TagMatchMode) => void;
-  onTagsChange: (tags: string[]) => void;
   onSortChange: (sort: string) => void;
   onViewModeChange: (viewMode: LibraryViewMode) => void;
   onRefresh: () => void;
   onUpload: () => void;
+}
+
+export interface LibraryFiltersPopoverProps extends LibraryFilterProps {
+  sort: string;
+  sortOptions: LibraryBrowserSortOption[];
+  onSortChange: (sort: string) => void;
+}
+
+/** One applied filter, shown as a removable chip beside the Filters button. */
+export interface LibraryActiveFilter {
+  id: string;
+  label: string;
+  onRemove: () => void;
+}
+
+export interface LibraryFilterChoice {
+  label: string;
+  value: string;
+}
+
+/** Derived state shared by the Filters popover and the active-filter chips. */
+export interface LibraryFilterModel {
+  activeFilters: LibraryActiveFilter[];
+  originChoices: LibraryFilterChoice[];
+  placeValue: string;
+  statusChoices: LibraryFilterChoice[];
+  statusValue: string;
+  tagChoices: LibraryFilterChoice[];
+  typeChoices: LibraryFilterChoice[];
+  typeValues: string[];
+  onOriginValuesChange: (values: string[]) => void;
+  onPlaceValueChange: (value: string) => void;
+  onStatusValueChange: (value: string) => void;
+  onTypeValuesChange: (values: string[]) => void;
 }

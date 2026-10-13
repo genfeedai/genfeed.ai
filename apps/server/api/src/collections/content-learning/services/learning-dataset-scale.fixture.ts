@@ -54,7 +54,7 @@ const postSelect = {
   ...learningPublicationPostSelect,
   agentContextVersion: true,
   status: true,
-  ingredients: { select: { id: true } },
+  ingredientLinks: { select: { ingredientId: true } },
 } satisfies Prisma.PostSelect;
 type PostRow = Prisma.PostGetPayload<{ select: typeof postSelect }>;
 const savedTables = [
@@ -363,6 +363,9 @@ export class LearningDatasetScaleFixture {
     });
     const destinations = this.codec.canonicalDestinations({
       ...post,
+      ingredients: post.ingredientLinks.map((link) => ({
+        id: link.ingredientId,
+      })),
       credentialId: post.credentialId,
       platform: post.platform,
     });

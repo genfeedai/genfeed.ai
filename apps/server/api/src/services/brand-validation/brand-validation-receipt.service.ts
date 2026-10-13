@@ -1,4 +1,5 @@
 import { BrandRenderEvidenceService } from '@api/services/brand-render-evidence/brand-render-evidence.service';
+import { BrandFactCheckService } from '@api/services/brand-validation/brand-fact-check.service';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
 import { BrandArtifactVisual } from '@api/services/brand-validation/brand-validation-visual.util';
 import { hasPendingBrandVisionChecks } from '@api/services/brand-validation/brand-vision-pending.util';
@@ -33,6 +34,7 @@ export class BrandValidationReceiptService {
     @Optional() private readonly renderEvidence?: BrandRenderEvidenceService,
     @Optional() private readonly visionQueue?: BrandVisionQueueService,
     @Optional() private readonly logger?: LoggerService,
+    @Optional() private readonly factChecker?: BrandFactCheckService,
   ) {}
 
   /**
@@ -128,6 +130,7 @@ export class BrandValidationReceiptService {
     visualAnalysis: BrandVisualAnalysis | undefined,
   ): Promise<BrandedGenerationMutationResultV1> {
     const { receipt, material } = await this.material.acquire(actor, receiptId);
+    const { factChecker } = this;
     let report: BrandArtifactValidationReportV1 | null = null;
     if (receipt.mode !== 'raw') {
       if (!receipt.artifact || !receipt.snapshot)
@@ -145,6 +148,9 @@ export class BrandValidationReceiptService {
             material,
           ),
           visualAnalysis,
+          factCheck: factChecker
+            ? (request) => factChecker.check(actor, request)
+            : undefined,
         },
       );
     }

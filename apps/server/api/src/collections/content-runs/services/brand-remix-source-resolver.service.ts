@@ -24,6 +24,10 @@ import {
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
 import { readImportedSourceEnvelope } from '@api/collections/imported-sources/services/imported-source-state';
+import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
@@ -270,20 +274,21 @@ export class BrandRemixSourceResolverService {
     brandId: string,
     selector: Extract<BrandRemixSourceSelector, { kind: 'owned_post' }>,
   ): Promise<ResolvedSource> {
-    const post = await this.prisma.post.findFirst({
+    const row = await this.prisma.post.findFirst({
       select: {
         createdAt: true,
         description: true,
         id: true,
-        ingredients: {
-          select: { category: true, id: true, status: true },
-          where: scopedWhere(organizationId, { brandId }),
-        },
+        ingredientLinks: orderedPostIngredientLinks(
+          { select: { category: true, id: true, status: true } },
+          scopedWhere(organizationId, { brandId }),
+        ),
         platform: true,
         url: true,
       },
       where: scopedWhere(organizationId, { brandId, id: selector.postId }),
     });
+    const post = row ? flattenPostIngredients(row) : null;
     if (!post || !remixText(post.description)) {
       throw new NotFoundException('Post', selector.postId);
     }

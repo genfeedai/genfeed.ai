@@ -5,8 +5,9 @@ import { HeyGenAvatarPageDto } from '@api/services/integrations/heygen/dto/heyge
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { isAxiosError } from 'axios';
 import { validate } from 'class-validator';
 
 const mockUser = {
@@ -15,6 +16,22 @@ const mockUser = {
   organizationId: testId('org'),
   userId: testId('user'),
 } as unknown as User;
+
+function providerFailure(options: {
+  code?: string;
+  message?: string;
+  status?: number;
+  data?: unknown;
+}): Error {
+  return Object.assign(new Error(options.message ?? 'Request failed'), {
+    code: options.code,
+    isAxiosError: true,
+    response:
+      options.status === undefined
+        ? undefined
+        : { data: options.data ?? {}, status: options.status },
+  });
+}
 
 describe('HeyGenController', () => {
   let controller: HeyGenController;
@@ -29,7 +46,15 @@ describe('HeyGenController', () => {
     error: ReturnType<typeof vi.fn>;
   };
 
+  afterEach(() => {
+    vi.mocked(isAxiosError).mockReturnValue(false);
+  });
+
   beforeEach(async () => {
+    vi.mocked(isAxiosError).mockImplementation(
+      (value: unknown): value is never =>
+        (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
+    );
     heygenService = {
       getConnectionStatus: vi
         .fn()
@@ -99,18 +124,87 @@ describe('HeyGenController', () => {
     expect(heygenService.getVoices).toHaveBeenCalledWith(testId('org'));
   });
 
-  it('should throw HttpException when getVoices fails', async () => {
-    heygenService.getVoices.mockRejectedValue(new Error('API key invalid'));
-    await expect(controller.getVoices(mockUser)).rejects.toThrow(HttpException);
-    try {
-      await controller.getVoices(mockUser);
-    } catch (error) {
-      const httpError = error as HttpException;
-      expect(httpError.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      const response = httpError.getResponse() as Record<string, string>;
-      expect(response.detail).toBe('API key invalid');
-      expect(response.title).toBe('Failed to fetch HeyGen voices');
-    }
+  it('classifies a provider rejection instead of returning an empty catalog', async () => {
+    heygenService.getVoices.mockRejectedValue(
+      providerFailure({ data: { secret: 'provider-payload' }, status: 422 }),
+    );
+    const error = await controller.getVoices(mockUser).catch((e) => e);
+    expect(error).toBeInstanceOf(HttpException);
+    expect(error.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect(error.getResponse()).toMatchObject({
+      code: 'provider_rejected',
+      title: 'Failed to fetch HeyGen voices',
+    });
+    expect(JSON.stringify(error.getResponse())).not.toContain(
+      'provider-payload',
+    );
+  });
+
+  it('reports provider timeouts as a gateway timeout', async () => {
+    heygenService.getVoices.mockRejectedValue(
+      providerFailure({
+        code: 'ECONNABORTED',
+        message: 'timeout of 15000ms exceeded',
+      }),
+    );
+    const error = await controller.getVoices(mockUser).catch((e) => e);
+    expect(error.getStatus()).toBe(HttpStatus.GATEWAY_TIMEOUT);
+    expect(error.getResponse()).toMatchObject({ code: 'provider_timeout' });
+  });
+
+  it('reports invalid or missing provider credentials as actionable', async () => {
+    heygenService.getVoices.mockRejectedValue(providerFailure({ status: 401 }));
+    const error = await controller.getVoices(mockUser).catch((e) => e);
+    expect(error.getStatus()).toBe(HttpStatus.FAILED_DEPENDENCY);
+    expect(error.getResponse()).toMatchObject({ code: 'provider_config' });
+  });
+
+  it('surfaces a not-connected configuration failure as a client error', async () => {
+    heygenService.getVoices.mockRejectedValue(
+      new BadRequestException('Connect HeyGen to load identities.'),
+    );
+    const error = await controller.getVoices(mockUser).catch((e) => e);
+    expect(error.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+    expect(error.getResponse()).toMatchObject({
+      detail: 'Connect HeyGen to load identities.',
+    });
+  });
+
+  it('logs sanitized diagnostics and hides unexpected fault details', async () => {
+    heygenService.getVoices.mockRejectedValue(new Error('sk-secret exploded'));
+    const error = await controller.getVoices(mockUser).catch((e) => e);
+    expect(error.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(JSON.stringify(error.getResponse())).not.toContain('sk-secret');
+    expect(JSON.stringify(loggerService.error.mock.calls)).not.toContain(
+      'sk-secret',
+    );
+    expect(loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed'),
+      undefined,
+      expect.objectContaining({ category: 'provider_unexpected' }),
+    );
+  });
+
+  it('scopes each voice catalog to the caller organization', async () => {
+    const otherOrg = { ...mockUser, organizationId: testId('other-org') };
+    heygenService.getVoices.mockImplementation(async (orgId: string) => [
+      { index: 0, name: orgId, preview: '', voiceId: `voice-${orgId}` },
+    ]);
+
+    const first = await controller.getVoices(mockUser);
+    const second = await controller.getVoices(otherOrg as unknown as User);
+
+    expect(heygenService.getVoices).toHaveBeenNthCalledWith(1, testId('org'));
+    expect(heygenService.getVoices).toHaveBeenNthCalledWith(
+      2,
+      testId('other-org'),
+    );
+    expect(first.data.attributes.voices[0].voiceId).toBe(
+      `voice-${testId('org')}`,
+    );
+    expect(second.data.attributes.voices[0].voiceId).toBe(
+      `voice-${testId('other-org')}`,
+    );
   });
 
   // --- getAvatars ---
@@ -216,7 +310,9 @@ describe('HeyGenController', () => {
     } catch (error) {
       const httpError = error as HttpException;
       const response = httpError.getResponse() as Record<string, string>;
-      expect(response.detail).toBe('Unknown error occurred');
+      expect(response.detail).toBe(
+        'An unexpected error occurred while loading the provider catalog.',
+      );
     }
   });
 });

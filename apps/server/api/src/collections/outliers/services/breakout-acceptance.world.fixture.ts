@@ -5,6 +5,7 @@ import {
   capturePostExposureObservation,
   loadPostExposurePublication,
 } from '@api/collections/outliers/services/post-exposure-observation.util';
+import { createPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import { PublishApprovalsService } from '@api/publish-approvals/publish-approvals.service';
 import type { ServerLogger } from '@api/server.dependencies';
@@ -461,7 +462,12 @@ export async function publishOwnPost(
         ? SOURCE_MEDIA[input.media].postCategory
         : PostCategory.TEXT,
       ...(mediaIds.length > 0
-        ? { ingredients: { connect: mediaIds.map((id) => ({ id })) } }
+        ? {
+            ingredientLinks: createPostIngredientLinks(
+              world.organizationId,
+              mediaIds,
+            ),
+          }
         : {}),
       credentialId: world.credentialId,
       description: input.text,

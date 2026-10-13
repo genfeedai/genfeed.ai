@@ -129,7 +129,8 @@ test.describe('Core Content Loop', () => {
     );
     // The post route renders the artifact editor shell, not the retired
     // read-only detail panel: the failed state is the status badge beside the
-    // title, and scheduling remains editable beneath its canonical heading.
+    // title plus the "Needs you" row, and an existing schedule stays editable
+    // in the inspector's pinned When dock (#6807).
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Failed Publish Draft' }),
     ).toBeVisible();
@@ -137,11 +138,14 @@ test.describe('Core Content Loop', () => {
       authenticatedPage.getByText('failed', { exact: true }).first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Scheduled time' }),
+      authenticatedPage.getByText('This post failed to publish.'),
     ).toBeVisible();
+    const whenDock = authenticatedPage.getByTestId('post-when-dock');
+    await expect(whenDock.getByRole('heading', { name: 'When' })).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Date' }),
+      whenDock.getByRole('tab', { name: 'Schedule', selected: true }),
     ).toBeVisible();
+    await expect(whenDock.getByRole('button', { name: 'Date' })).toBeVisible();
   });
 
   test('review, calendar, and analytics routes render the core loop surfaces', async ({

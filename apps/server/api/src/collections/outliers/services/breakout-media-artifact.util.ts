@@ -3,6 +3,7 @@ import {
   resolveBreakoutMediaFormat,
 } from '@api/collections/outliers/services/breakout-media-format.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
+import { createPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import {
   brandedPostMaterialSelect,
@@ -145,6 +146,12 @@ export async function bindBreakoutMediaPostArtifact(
     },
     select: {
       ...brandedPostMaterialSelect,
+      // The material select orders media by id for a stable identity. The replay proof compares
+      // the stored slide order, so it loads the links by position.
+      ingredientLinks: {
+        ...brandedPostMaterialSelect.ingredientLinks,
+        orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      },
       breakoutOutputId: true,
       quoteTweetId: true,
       targetExecutionState: true,
@@ -261,9 +268,10 @@ export async function bindBreakoutMediaPostArtifact(
     return held('media_incomplete');
   const visualIds = visuals.map((visual) => visual.id);
   if (alreadyBound) {
-    const attached = post.ingredients.map((item) => item.id).sort();
+    // Slide order is part of the binding: the same media in another order is a changed draft.
+    const attached = post.ingredientLinks.map((link) => link.ingredient.id);
     return attached.length === visualIds.length &&
-      [...visualIds].sort().every((id, index) => id === attached[index])
+      visualIds.every((id, index) => id === attached[index])
       ? { status: 'replayed', outputId, postId }
       : held('binding_conflict');
   }
@@ -274,7 +282,7 @@ export async function bindBreakoutMediaPostArtifact(
   )
     return held('review_or_publication_started');
   if (
-    post.ingredients.length > 0 ||
+    post.ingredientLinks.length > 0 ||
     post.children.length > 0 ||
     post.quoteTweetId !== null
   )
@@ -314,7 +322,10 @@ export async function bindBreakoutMediaPostArtifact(
     throw new Error('Breakout media binding changed; roll back transaction');
   await tx.post.update({
     where: scopedWhere(organizationId, { id: postId }),
-    data: { ingredients: { connect: visualIds.map((id) => ({ id })) } },
+    // The visuals' generated order is the slide order.
+    data: {
+      ingredientLinks: createPostIngredientLinks(organizationId, visualIds),
+    },
   });
   // The composed material must read back as exactly this output's format.
   const composed = await tx.post.findFirst({

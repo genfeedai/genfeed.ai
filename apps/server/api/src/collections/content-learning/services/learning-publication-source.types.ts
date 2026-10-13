@@ -61,7 +61,7 @@ export const learningPublicationPostSelect = {
   ...learningPublicationPostScalarSelect,
   _count: {
     select: {
-      ingredients: true,
+      ingredientLinks: true,
       children: { where: { isDeleted: false } },
     },
   },

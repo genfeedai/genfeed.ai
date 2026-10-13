@@ -103,18 +103,22 @@ function fixture(
     category: media === 'video' ? PostCategory.VIDEO : PostCategory.IMAGE,
     format: PostFormat.STANDARD,
     description: CAPTION,
-    ingredients: ids.map((id) => ({
-      id,
-      organizationId: 'org-a',
-      brandId: 'brand-a',
-      isDeleted: false,
-      category:
-        media === 'video' ? IngredientCategory.VIDEO : IngredientCategory.IMAGE,
-      s3Key: `media/${id}`,
-      version: 1,
-      fileSize: 5,
-      mimeType: media === 'video' ? 'video/mp4' : 'image/png',
-      cdnUrl: `https://cdn.test/${id}`,
+    ingredientLinks: ids.map((id) => ({
+      ingredient: {
+        id,
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        isDeleted: false,
+        category:
+          media === 'video'
+            ? IngredientCategory.VIDEO
+            : IngredientCategory.IMAGE,
+        s3Key: `media/${id}`,
+        version: 1,
+        fileSize: 5,
+        mimeType: media === 'video' ? 'video/mp4' : 'image/png',
+        cdnUrl: `https://cdn.test/${id}`,
+      },
     })),
     children: [],
   };
@@ -289,8 +293,14 @@ describe('visual breakout output quality gate', () => {
     const binding = h.visual.evaluate.mock.calls[0]?.[0].binding;
     const swapped = {
       ...h.post,
-      ingredients: [
-        { ...h.post.ingredients[0], s3Key: 'media/other', version: 2 },
+      ingredientLinks: [
+        {
+          ingredient: {
+            ...h.post.ingredientLinks[0]?.ingredient,
+            s3Key: 'media/other',
+            version: 2,
+          },
+        },
       ],
     };
     const layout = describeBrandedPostMaterialLayout(
@@ -386,7 +396,7 @@ describe('visual breakout output quality gate', () => {
 
   it('refuses material that is not exactly the planned visuals', async () => {
     const h = fixture('carousel');
-    h.post.ingredients = h.post.ingredients.slice(0, 2);
+    h.post.ingredientLinks = h.post.ingredientLinks.slice(0, 2);
     await expect(h.service.evaluate(h.request)).rejects.toThrow(
       'breakout_quality_material_changed',
     );

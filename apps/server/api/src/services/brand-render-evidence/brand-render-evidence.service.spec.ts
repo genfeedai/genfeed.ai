@@ -178,6 +178,38 @@ describe('forRender', () => {
       manifest?.fonts.find((font) => font.family === 'Zodiak')?.source.kind,
     ).toBe('unknown');
   });
+
+  it('credits a font to its asset when the brand approved that font file', async () => {
+    const { service } = setup();
+    const manifest = await service
+      .forRender({
+        ...revisionScope,
+        sourceAssetIds: [],
+        brandFontAssetIds: ['zodiak-regular'],
+      })
+      .manifestFor(output(media()));
+    expect(
+      manifest?.fonts.find((font) => font.family === 'Zodiak')?.source,
+    ).toEqual({
+      kind: 'asset',
+      assetId: 'zodiak-regular',
+      contentHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
+  });
+
+  it('does not credit a font to an asset the brand did not approve', async () => {
+    const { service } = setup();
+    const manifest = await service
+      .forRender({
+        ...revisionScope,
+        sourceAssetIds: [],
+        brandFontAssetIds: ['another-brand-font'],
+      })
+      .manifestFor(output(media()));
+    expect(
+      manifest?.fonts.find((font) => font.family === 'Zodiak')?.source.kind,
+    ).toBe('unknown');
+  });
 });
 
 describe('read', () => {

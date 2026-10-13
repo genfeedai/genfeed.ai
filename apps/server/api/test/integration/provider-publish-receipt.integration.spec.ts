@@ -1,3 +1,7 @@
+import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import 'reflect-metadata';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -54,9 +58,9 @@ describe('Provider publish receipts (real Postgres)', () => {
     });
     const post = await prisma.post.findFirstOrThrow({
       where: { id, organizationId, isDeleted: false },
-      include: { ingredients: true },
+      include: { ingredientLinks: orderedPostIngredientLinks() },
     });
-    return post as unknown as PostEntity;
+    return flattenPostIngredients(post) as unknown as PostEntity;
   };
 
   beforeAll(async () => {

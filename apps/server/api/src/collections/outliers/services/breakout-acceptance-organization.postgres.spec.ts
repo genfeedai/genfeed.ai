@@ -3,6 +3,7 @@ import { runQueuedBreakoutExecution } from '@api/collections/outliers/services/b
 import {
   type AcceptanceEnv,
   collectBreakout,
+  type DetectOptions,
   detectBreakout,
 } from '@api/collections/outliers/services/breakout-acceptance.journey.fixture';
 import {
@@ -17,8 +18,11 @@ import {
   recordingLogger,
   seedAcceptanceWorld,
 } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
+import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import type { BrandFactCheckOutcome } from '@api/services/brand-validation/brand-fact-check.types';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
@@ -47,7 +51,7 @@ describe.skipIf(!connectionString)(
   () => {
     const database = openAcceptanceDatabase(connectionString ?? '');
     const { db, prisma } = database;
-    const { logger } = recordingLogger();
+    const { logger, warnings } = recordingLogger();
     const env: AcceptanceEnv = { db, logger, prisma };
 
     afterAll(async () => {
@@ -187,25 +191,152 @@ describe.skipIf(!connectionString)(
       expect(delivery.published).toHaveLength(0);
     });
 
+    /** The verdicts of a draft's factual claims (#6717), pinned for a scenario. */
+    const factCheckOf = (
+      verdicts: Array<'supported' | 'unverified' | 'contradicted'>,
+    ): NonNullable<DetectOptions['factCheck']> => ({
+      check: async (): Promise<BrandFactCheckOutcome> => ({
+        claims: verdicts.map((verdict, index) => ({
+          evidence:
+            verdict === 'unverified'
+              ? []
+              : [
+                  {
+                    evidenceId: 'fact:approved-shipping',
+                    origin: 'brand_os' as const,
+                    quote: 'Shipping takes: two days',
+                    ruleId: 'approved-shipping',
+                  },
+                ],
+          id: `claim-${index + 1}`,
+          origin: 'text' as const,
+          source: 'Ships in two days',
+          text: 'Orders ship in two days',
+          verdict,
+        })),
+        knowledgeVersions: [],
+        models: ['fake-judge'],
+        status: 'checked',
+      }),
+    });
+    /**
+     * A world whose strategy and brand both let the agent publish without a member, so only
+     * the brand receipt can hold a draft back.
+     */
+    const autonomous = async (
+      factCheck: NonNullable<DetectOptions['factCheck']>,
+    ) => {
+      const detected = await detectBreakout(env, {
+        factCheck,
+        world: {
+          config: { ...ONE_OUTPUT.config, autonomyMode: 'AUTO_PUBLISH' },
+          policies: {
+            publishPolicy: { autoPublishEnabled: true, minPostScore: 70 },
+          },
+        },
+      });
+      await db.brand.update({
+        data: { agentConfig: { autoPublish: { enabled: true } } },
+        where: { id: detected.world.brandId },
+      });
+      return detected;
+    };
+    const draftStates = async (organizationId: string) =>
+      (
+        await db.post.findMany({
+          where: scopedWhere(organizationId, {
+            breakoutOutputId: { not: null },
+          }),
+        })
+      ).map((post) => post.targetExecutionState);
+    const receiptStates = async (organizationId: string) =>
+      (
+        await db.brandedGenerationReceipt.findMany({
+          where: scopedWhere(organizationId, {}),
+        })
+      ).map((receipt) => receipt.state);
+
     it('never auto-publishes a response that waits for a brand review, even with auto-publish on', async () => {
       const { harness, jobId, world } = await detectBreakout(env, {
         world: ONE_OUTPUT,
       });
       const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
-      // Factual coverage is still unverified (#6717), so the receipt is never `ready`.
+      // With no fact check wired factual coverage stays unknown, so the receipt is never `ready`.
       expect(run.result).toMatchObject({
         reason: 'brand_review_required',
         status: 'held',
       });
-      const posts = await db.post.findMany({
+      expect(await draftStates(world.organizationId)).toEqual([
+        TargetExecutionState.DRAFT,
+      ]);
+    });
+
+    it('auto-publishes only a draft whose every claim is supported (#6717)', async () => {
+      const { harness, jobId, world } = await autonomous(
+        factCheckOf(['supported', 'supported']),
+      );
+      const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
+      expect(run.result.status).toBe('completed');
+      expect(await receiptStates(world.organizationId)).toContain('ready');
+      const recovery = await readBreakoutOutputRecovery(prisma, {
+        brandId: world.brandId,
+        credentialId: world.credentialId,
+        organizationId: world.organizationId,
+        outputId: must(run.result.outputIds[0], 'the quote output'),
+        platform: Platform.TWITTER,
+        responseId: run.result.responseId,
+      });
+      const post = await db.post.findFirst({
         where: scopedWhere(world.organizationId, {
           breakoutOutputId: { not: null },
         }),
       });
-      expect(posts).toHaveLength(1);
-      expect(posts.map((post) => post.targetExecutionState)).toEqual([
+      const policy = await new AutonomousPublishPolicyService(
+        prisma,
+        {} as never,
+      ).resolveForPost({
+        organizationId: world.organizationId,
+        postId: post?.id ?? '',
+        strategyId: world.strategyId,
+      });
+      expect(
+        await draftStates(world.organizationId),
+        JSON.stringify({
+          policy: policy.result,
+          recovery,
+          review: post?.reviewDecision,
+          warnings,
+        }),
+      ).toEqual([TargetExecutionState.SCHEDULED]);
+    });
+
+    it('holds a draft with an unverified claim for a member review, even with auto-publish on (#6717)', async () => {
+      const { harness, jobId, world } = await autonomous(
+        factCheckOf(['supported', 'unverified']),
+      );
+      const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
+      expect(run.result).toMatchObject({
+        reason: 'brand_review_required',
+        status: 'held',
+      });
+      expect(await receiptStates(world.organizationId)).toContain(
+        'needs_review',
+      );
+      expect(await draftStates(world.organizationId)).toEqual([
         TargetExecutionState.DRAFT,
       ]);
+    });
+
+    it('blocks a draft with a contradicted claim and never publishes it (#6717)', async () => {
+      const { harness, jobId, world } = await autonomous(
+        factCheckOf(['supported', 'contradicted']),
+      );
+      const run = await runQueuedBreakoutExecution(harness, prisma, jobId);
+      expect(run.result.status).toBe('held');
+      expect(await receiptStates(world.organizationId)).toContain('blocked');
+      expect(await draftStates(world.organizationId)).not.toContain(
+        TargetExecutionState.SCHEDULED,
+      );
     });
   },
 );

@@ -90,7 +90,7 @@ export class AgentAnalyticsToolHandler {
     const results = await this.postsService.findAll(
       {
         where: {
-          ingredients: ingredientId,
+          ingredientLinks: { some: { ingredientId } },
           isDeleted: false,
           organizationId: organizationId,
           targetExecutionState: TargetExecutionState.PUBLISHED,
@@ -111,7 +111,7 @@ export class AgentAnalyticsToolHandler {
 
   /**
    * Articles attach to a post through the polymorphic `entityArticleId` scalar
-   * FK, not through the `post_ingredients` m2m relation the ingredient lookup
+   * FK, not through the `post_ingredients` links the ingredient lookup
    * uses — so this needs its own query rather than a shared one.
    */
   private async resolveLatestPublishedPostForArticle(

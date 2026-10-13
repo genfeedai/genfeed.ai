@@ -25,6 +25,7 @@ const STYLE_NAMES = [
   'visibility',
   'transform',
   'background-image',
+  'content',
 ];
 const STYLE = Object.fromEntries(
   STYLE_NAMES.map((name, index) => [name, index]),
@@ -35,6 +36,10 @@ const PLACED_TAGS = new Map([
   ['VIDEO', 'video'],
   ['CANVAS', 'image'],
 ]);
+// Only responses the browser fetched to paint or play something prove a file was
+// used. A composition script can `fetch()` any URL, so Fetch/XHR/Other responses
+// never count as the file a node painted.
+export const PAINTED_RESOURCE_TYPES = new Set(['Image', 'Media', 'Font']);
 
 export function sha256Prefixed(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
@@ -216,6 +221,31 @@ export function analyzeSnapshot(
     return null;
   };
 
+  const currentSources = new Map();
+  const selected = nodes.currentSourceURL;
+  for (const [at, nodeIndex] of (selected?.index ?? []).entries())
+    currentSources.set(nodeIndex, string(selected.value[at]));
+  // The URL a placed node actually painted, or null when the DOM cannot say.
+  // The `src` attribute is not enough: an <img> with a srcset or inside a
+  // <picture> paints the browser's selected candidate, CSS `content` replaces
+  // what an <img> or <video> paints, a <video> without its own `src` plays a
+  // <source> child or shows its poster, and a <canvas> is drawn by script, so
+  // its `src` attribute (which the element ignores) names nothing it painted.
+  const paintedSource = (tag, nodeIndex, layoutIndex) => {
+    if (tag === 'CANVAS') return null;
+    const content = style(layoutIndex, 'content');
+    if (content !== null && content !== 'normal' && content !== 'none')
+      return null;
+    if (tag === 'IMG') {
+      const parentTag = string(nodes.nodeName[nodes.parentIndex[nodeIndex]]);
+      if (attribute(nodeIndex, 'srcset') !== null || parentTag === 'PICTURE')
+        return currentSources.get(nodeIndex) ?? null;
+      return attribute(nodeIndex, 'src');
+    }
+    if (attribute(nodeIndex, 'poster') !== null) return null;
+    return attribute(nodeIndex, 'src');
+  };
+
   const groups = new Map();
   layout.nodeIndex.forEach((nodeIndex, layoutIndex) => {
     if (nodes.nodeType[nodeIndex] !== TEXT_NODE) return;
@@ -291,7 +321,7 @@ export function analyzeSnapshot(
     if (PLACED_TAGS.has(tag))
       sources.push({
         role: PLACED_TAGS.get(tag),
-        raw: attribute(nodeIndex, 'src'),
+        raw: paintedSource(tag, nodeIndex, layoutIndex),
       });
     const background = style(layoutIndex, 'background-image') ?? 'none';
     for (const match of background.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/g))
@@ -399,7 +429,7 @@ export class RenderEvidenceRun {
     const frame = params?.arguments?.[0]?.value;
     if (Number.isInteger(frame)) this.currentFrame = frame;
   }
-  /** A URL Chromium got a successful response for, or served from its cache. */
+  /** A URL Chromium fetched for an image, media or font and got a response for (or served from cache). */
   recordLoaded(href) {
     const key = typeof href === 'string' ? fetchedKey(href) : null;
     if (key !== null && this.loaded.size < 10_000) this.loaded.add(key);
@@ -550,16 +580,25 @@ export function attachRenderEvidence(browser, { assetHashes, width, height }) {
         const requested = new Map();
         client.on('Network.requestWillBeSent', (event) => {
           if (requested.size < 10_000)
-            requested.set(event?.requestId, event?.request?.url);
+            requested.set(event?.requestId, {
+              url: event?.request?.url,
+              type: event?.type,
+            });
         });
         client.on('Network.responseReceived', (event) => {
           const status = event?.response?.status;
-          if (status >= 200 && status < 400)
+          if (
+            status >= 200 &&
+            status < 400 &&
+            PAINTED_RESOURCE_TYPES.has(event?.type)
+          )
             current.recordLoaded(event.response.url);
         });
-        client.on('Network.requestServedFromCache', (event) =>
-          current.recordLoaded(requested.get(event?.requestId)),
-        );
+        client.on('Network.requestServedFromCache', (event) => {
+          const request = requested.get(event?.requestId);
+          if (PAINTED_RESOURCE_TYPES.has(request?.type))
+            current.recordLoaded(request.url);
+        });
         client.on('CSS.fontsUpdated', (event) => {
           if (event?.font) current.recordFontFace(event.font);
         });

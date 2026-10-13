@@ -1,3 +1,4 @@
+import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 
 const INGREDIENT_FIELDS = [
@@ -24,10 +25,10 @@ const selectFields = (fields: readonly string[]) =>
 
 export function agentPostPreviewInclude(organizationId: string) {
   return {
-    ingredients: {
-      where: { organizationId, isDeleted: false },
-      select: selectFields(INGREDIENT_FIELDS),
-    },
+    ingredientLinks: orderedPostIngredientLinks(
+      { select: selectFields(INGREDIENT_FIELDS) },
+      { organizationId, isDeleted: false },
+    ),
     credential: {
       where: { organizationId, isDeleted: false },
       select: selectFields(ACCOUNT_FIELDS),

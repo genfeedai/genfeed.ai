@@ -835,6 +835,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   posts                         Post[]
   postPublishFinalizations      PostPublishFinalization[]
   postProviderPublishReceipts   PostProviderPublishReceipt[]
+  postIngredientLinks           PostIngredient[]
   postGroups                    PostGroup[]
   postingCadences               PostingCadence[]
   slotReservations              SlotReservation[]
@@ -2393,7 +2394,7 @@ model Ingredient {
   brandVoices               Brand[]                    @relation("brand_voice")
   brandMusics               Brand[]                    @relation("brand_music")
   postEntities              Post[]                     @relation("post_entity_ingredient")
-  postIngredients           Post[]                     @relation("post_ingredients")
+  postLinks                 PostIngredient[]           @relation("ingredient_post_links")
   postAnalyticsIngredients  PostAnalytics[]            @relation("post_analytics_ingredients")
   bookmarkExtracted         Bookmark[]                 @relation("bookmark_extracted")
   bookmarkGenerated         Bookmark[]                 @relation("bookmark_generated")
@@ -2917,7 +2918,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   updatedAt                      DateTime           @updatedAt
 
   // Many-to-many
-  ingredients         Ingredient[]         @relation("post_ingredients")
+  ingredientLinks     PostIngredient[]     @relation("post_ingredient_links")
   tags                Tag[]                @relation("post_tags")
   socialConversations SocialConversation[]
   socialMessages      SocialMessage[]
@@ -2960,6 +2961,29 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([organizationId, isDeleted, targetExecutionState, platform, analyticsNextCollectAt, id], map: "posts_analytics_due_idx")
   @@index([organizationId, campaignId, isDeleted, createdAt(sort: Desc)], map: "posts_org_campaign_created_idx")
   @@map("posts")
+}
+
+/// Ordered link between a Post and one of its media ingredients. `position` is
+/// the slide order the user arranged (0-based, contiguous per post); delivery
+/// and every read order by it. Replaces the implicit `_post_ingredients`
+/// many-to-many, which had no order of its own (#6740).
+model PostIngredient {
+  id             String       @id @default(cuid())
+  postId         String
+  post           Post         @relation("post_ingredient_links", fields: [postId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ingredientId   String
+  ingredient     Ingredient   @relation("ingredient_post_links", fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  /// The post's organization; follows the post when its brand changes tenant.
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  position       Int
+  createdAt      DateTime     @default(now())
+
+  @@unique([postId, ingredientId], map: "post_ingredients_post_ingredient_key")
+  @@index([postId, position], map: "post_ingredients_post_position_idx")
+  @@index([ingredientId], map: "post_ingredients_ingredient_idx")
+  @@index([organizationId], map: "post_ingredients_organization_idx")
+  @@map("post_ingredients")
 }
 
 /// Durable, retryable side effects owed after a provider confirms that a post

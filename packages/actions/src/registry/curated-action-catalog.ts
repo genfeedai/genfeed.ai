@@ -18,6 +18,8 @@ export interface CuratedActionCatalogEntry {
  * additions, removals, and surface transitions remain obvious in review.
  */
 export const CURATED_ACTION_CATALOG = [
+  { name: 'add_first_comment', surfaces: ['agent'], toolset: 'content' },
+  { name: 'add_thread_posts', surfaces: ['agent'], toolset: 'content' },
   { name: 'ai_action', surfaces: ['agent'], toolset: 'content' },
   { name: 'analyze_clip_project', surfaces: ['mcp'], toolset: 'clips' },
   {
@@ -164,6 +166,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'engagement',
   },
+  { name: 'draft_thread', surfaces: ['agent'], toolset: 'content' },
   { name: 'draft_x_quote', surfaces: ['agent'], toolset: 'content' },
   { name: 'draft_x_repost', surfaces: ['agent'], toolset: 'content' },
   {

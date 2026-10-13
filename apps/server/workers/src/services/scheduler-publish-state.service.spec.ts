@@ -106,7 +106,7 @@ function publicationPost(overrides: Record<string, unknown> = {}) {
     entityArticleId: null,
     entityIngredientId: null,
     entityModel: null,
-    _count: { ingredients: 0, children: 0 },
+    _count: { ingredientLinks: 0, children: 0 },
     ...overrides,
   };
 }

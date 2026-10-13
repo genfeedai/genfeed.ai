@@ -352,8 +352,15 @@ export function useLibraryBrowser({
     [pushAxes],
   );
 
-  const handleClearCategories = useCallback(() => {
-    pushAxes({ categories: [] });
+  const handleClearAllFilters = useCallback(() => {
+    pushAxes({
+      categories: [],
+      characters: [],
+      origins: [],
+      place: null,
+      status: null,
+      tags: [],
+    });
   }, [pushAxes]);
 
   const handleCharactersChange = useCallback(
@@ -363,10 +370,6 @@ export function useLibraryBrowser({
     [pushAxes],
   );
 
-  const handleClearCharacters = useCallback(() => {
-    pushAxes({ characters: [] });
-  }, [pushAxes]);
-
   const handleOriginsChange = useCallback(
     (nextOrigins: IngredientOrigin[]) => {
       pushAxes({ origins: Array.from(new Set(nextOrigins)) });
@@ -374,20 +377,12 @@ export function useLibraryBrowser({
     [pushAxes],
   );
 
-  const handleClearOrigins = useCallback(() => {
-    pushAxes({ origins: [] });
-  }, [pushAxes]);
-
   const handleTagsChange = useCallback(
     (nextTags: string[]) => {
       pushAxes({ tags: parseTags(nextTags) });
     },
     [pushAxes],
   );
-
-  const handleClearTags = useCallback(() => {
-    pushAxes({ tags: [] });
-  }, [pushAxes]);
 
   const handleTagMatchChange = useCallback(
     (nextTagMatch: TagMatchMode) => {
@@ -576,10 +571,7 @@ export function useLibraryBrowser({
     folderId,
     handleCategoriesChange,
     handleCharactersChange,
-    handleClearCategories,
-    handleClearCharacters,
-    handleClearOrigins,
-    handleClearTags,
+    handleClearAllFilters,
     handleOriginsChange,
     handleRefresh,
     handleSearchChange,

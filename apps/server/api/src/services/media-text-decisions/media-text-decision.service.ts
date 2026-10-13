@@ -199,11 +199,13 @@ export class MediaTextDecisionService {
             some: { descriptionStatus: 'ready', isDeleted: false },
           },
           organizationId: { not: null },
-          postIngredients: {
+          postLinks: {
             some: {
-              isDeleted: false,
-              updatedAt: {
-                gte: new Date(now.getTime() - CAPTION_SWEEP_WINDOW_MS),
+              post: {
+                isDeleted: false,
+                updatedAt: {
+                  gte: new Date(now.getTime() - CAPTION_SWEEP_WINDOW_MS),
+                },
               },
             },
           },
@@ -284,7 +286,7 @@ export class MediaTextDecisionService {
       select: { description: true },
       take: MAX_CAPTIONS_PER_ASSET,
       where: scopedWhere(job.organizationId, {
-        ingredients: { some: { id: job.ingredientId } },
+        ingredientLinks: { some: { ingredientId: job.ingredientId } },
       }),
     });
     const captions = Array.from(

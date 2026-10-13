@@ -26,6 +26,10 @@ import {
   type WorldOptions,
 } from '@api/collections/outliers/services/breakout-acceptance.world.fixture';
 import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import {
+  flattenPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types/contracts';
@@ -118,14 +122,17 @@ describe.skipIf(!connectionString)(
       });
 
     async function postOf(world: AcceptanceWorld, outputId: string) {
-      return must(
-        await db.post.findFirst({
-          include: { ingredients: { orderBy: { groupIndex: 'asc' } } },
-          where: scopedWhere(world.organizationId, {
-            breakoutOutputId: outputId,
+      // The media come back in slide order, the order delivery publishes them in.
+      return flattenPostIngredients(
+        must(
+          await db.post.findFirst({
+            include: { ingredientLinks: orderedPostIngredientLinks() },
+            where: scopedWhere(world.organizationId, {
+              breakoutOutputId: outputId,
+            }),
           }),
-        }),
-        'the output post',
+          'the output post',
+        ),
       );
     }
 
@@ -378,17 +385,13 @@ describe.skipIf(!connectionString)(
       const { result } = await delivery.deliver(post.id);
       expect(result.success).toBe(true);
       const sent = delivery.published[0]?.post;
-      // The set of published ingredients is asserted, not their relation order (the order of their
-      // generated ids); the carousel order is the stored `groupIndex` asserted above.
-      const byId = (ids: string[]) =>
-        [...ids].sort((a, b) => a.localeCompare(b));
+      // Delivery publishes the slides in the stored position order, which is
+      // the order the visuals were generated in.
       const sentIds = (sent?.ingredients ?? []).flatMap((item) => {
         const id = typeof item === 'string' ? item : item.id;
         return id === undefined ? [] : [String(id)];
       });
-      expect(byId(sentIds)).toEqual(
-        byId(post.ingredients.map((item) => item.id)),
-      );
+      expect(sentIds).toEqual(post.ingredients.map((item) => item.id));
     });
 
     it('generates a video follow-up, judges it from its frames and publishes it once the media gate passes', async () => {

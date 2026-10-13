@@ -3,6 +3,10 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { captureAndDetectNativeSourceExposureObservation } from '@api/collections/outliers/services/breakout-collected-signal.util';
 import { prepareNativeCollectedExposure } from '@api/collections/outliers/services/native-source-exposure-observation.util';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import {
+  orderedPostIngredientLinks,
+  replacePostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
@@ -110,7 +114,7 @@ type PrismaWithSourcePosts = Omit<
   }>;
   post: PrismaDelegate<{
     id: string;
-    ingredients?: Array<{ id: string }>;
+    ingredientLinks: Array<{ ingredient: { id: string } }>;
     label?: string | null;
     status?: string | null;
   }>;
@@ -605,7 +609,9 @@ export class SourcePostsService {
   ) {
     const [post, ingredient] = await Promise.all([
       this.db.post.findFirst({
-        include: { ingredients: { select: { id: true } } },
+        include: {
+          ingredientLinks: orderedPostIngredientLinks({ select: { id: true } }),
+        },
         where: scopedWhere(context.organizationId, {
           brandId: context.brandId,
           id: postId,
@@ -632,16 +638,18 @@ export class SourcePostsService {
       });
     }
 
+    // The new image joins the end of the slides already attached.
     const ingredientIds = new Set([
-      ...(post.ingredients ?? []).map((ingredient) => ingredient.id),
+      ...post.ingredientLinks.map((link) => link.ingredient.id),
       ingredientId,
     ]);
     const updated = await this.db.post.update({
       data: {
         category: 'IMAGE',
-        ingredients: {
-          set: Array.from(ingredientIds).map((id) => ({ id })),
-        },
+        ingredientLinks: replacePostIngredientLinks(
+          context.organizationId,
+          Array.from(ingredientIds),
+        ),
       },
       where: scopedWhere(context.organizationId, {
         brandId: context.brandId,

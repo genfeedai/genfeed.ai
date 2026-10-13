@@ -47,6 +47,28 @@ describe('getAgentTypeConfig', () => {
     );
   });
 
+  it('gives the X specialist the thread tools and the other writers the first-comment tool', () => {
+    expect(getAgentTypeConfig(AgentType.X_CONTENT).defaultTools).toEqual(
+      expect.arrayContaining(['draft_thread', 'add_thread_posts']),
+    );
+    expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).toEqual(
+      expect.arrayContaining([
+        'draft_thread',
+        'add_thread_posts',
+        'add_first_comment',
+      ]),
+    );
+    for (const agentType of [
+      AgentType.LINKEDIN_CONTENT,
+      AgentType.SHORT_FORM_WRITER,
+      AgentType.YOUTUBE_SCRIPT,
+    ]) {
+      expect(getAgentTypeConfig(agentType).defaultTools).toContain(
+        'add_first_comment',
+      );
+    }
+  });
+
   it('falls back to GENERAL for unknown agent type', () => {
     const config = getAgentTypeConfig('unknown' as AgentType);
     expect(config).toBe(AGENT_TYPE_CONFIGS[AgentType.GENERAL]);

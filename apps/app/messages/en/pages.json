@@ -2771,18 +2771,18 @@
         "type": "Type"
       },
       "toolbar": {
+        "activeFilterCount": "{count, plural, one {# filter applied} other {# filters applied}}",
         "canvas": "Canvas",
         "character": "Character",
         "characterLimit": "Limit of {count} characters reached",
-        "clearCharacterFilter": "Clear character filter",
-        "clearOriginFilter": "Clear origin filter",
-        "clearTagFilter": "Clear tag filter",
-        "clearTypeFilter": "Clear type filter",
+        "clearAllFilters": "Clear all filters",
         "contactSheet": "Contact sheet",
+        "filters": "Filters",
         "list": "List",
         "matchAll": "Match all",
         "matchAny": "Match any",
         "origin": "Origin",
+        "removeFilter": "Remove {label} filter",
         "searchCharacters": "Search characters",
         "searchTags": "Search tags",
         "showAll": "All assets",
@@ -5585,7 +5585,9 @@
       "palette": "Palette {target} covers {coverage} of the {pixels, number} opaque pixels analyzed (nearest swatch distance {distance}, {frames, plural, one {# frame} other {# frames}} checked).",
       "ocr": "Read in {matched} of {frames, plural, one {# frame} other {# frames}} by {model}.",
       "placement": "{count, plural, one {# region} other {# regions}} matched the approved {query}, best similarity {similarity}, found by {model}.",
-      "font": "{layers, plural, one {# text layer} other {# text layers}} drawn only in approved fonts ({fonts}), reported by {renderer}."
+      "font": "{layers, plural, one {# text layer} other {# text layers}} drawn only in approved fonts ({fonts}), reported by {renderer}.",
+      "fact": "{claims, plural, one {# factual claim} other {# factual claims}} checked against approved brand evidence: {supported} supported, {unverified} unverified, {contradicted} contradicted.",
+      "factNone": "No factual claims were found in the checked text."
     },
     "title": "Generation receipts",
     "open": "Generation receipts",

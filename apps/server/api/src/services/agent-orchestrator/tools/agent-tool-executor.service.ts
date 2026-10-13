@@ -41,6 +41,7 @@ import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
+import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { dispatchRegisteredAgentTool } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
@@ -295,6 +296,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentGenerationSettingsToolHandler)
   private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
+
+  @Inject(AgentThreadToolHandler)
+  private readonly threadHandler!: AgentThreadToolHandler;
 
   @Inject(AgentBrandContextToolHandler)
   private readonly brandContextHandler!: AgentBrandContextToolHandler;
@@ -606,31 +610,11 @@ export class AgentToolExecutorService implements OnModuleInit {
         context = { ...context, proactiveTextDraftOnly: true };
       }
 
-      const result = this.instagramInspirationHandler.handles(toolName)
-        ? await this.instagramInspirationHandler.execute(
-            toolName,
-            parameters,
-            context,
-          )
-        : this.xActionsHandler.handles(toolName)
-          ? await this.xActionsHandler.execute(toolName, parameters, context)
-          : [
-                'request_input',
-                'present_work_object',
-                'ingest_source_media',
-              ].includes(toolName)
-            ? await this.workObjects.execute(toolName, parameters, context)
-            : this.generationSettingsHandler.handles(toolName)
-              ? await this.generationSettingsHandler.execute(
-                  toolName,
-                  parameters,
-                  context,
-                )
-              : await this.dispatchRegisteredTool(
-                  toolName,
-                  parameters,
-                  context,
-                );
+      const result = await this.dispatchToHandler(
+        toolName,
+        parameters,
+        context,
+      );
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,
@@ -664,6 +648,42 @@ export class AgentToolExecutorService implements OnModuleInit {
       );
     }
     return toPlainJson(executionResult);
+  }
+
+  /** Routes a tool to the handler that owns it, else the registered dispatch table. */
+  private async dispatchToHandler(
+    toolName: CuratedActionName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (this.instagramInspirationHandler.handles(toolName)) {
+      return this.instagramInspirationHandler.execute(
+        toolName,
+        parameters,
+        context,
+      );
+    }
+    if (this.xActionsHandler.handles(toolName)) {
+      return this.xActionsHandler.execute(toolName, parameters, context);
+    }
+    if (this.threadHandler.handles(toolName)) {
+      return this.threadHandler.execute(toolName, parameters, context);
+    }
+    if (
+      ['request_input', 'present_work_object', 'ingest_source_media'].includes(
+        toolName,
+      )
+    ) {
+      return this.workObjects.execute(toolName, parameters, context);
+    }
+    if (this.generationSettingsHandler.handles(toolName)) {
+      return this.generationSettingsHandler.execute(
+        toolName,
+        parameters,
+        context,
+      );
+    }
+    return this.dispatchRegisteredTool(toolName, parameters, context);
   }
 
   private async assertToolBrandScope(

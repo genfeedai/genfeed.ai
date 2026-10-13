@@ -176,7 +176,7 @@ describe('AppLayout', () => {
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
     // Chrome plane shared with the topbar. The right border is the page divider.
-    expect(rail).toHaveClass('bg-gray-100', 'border-r', 'border-border');
+    expect(rail).toHaveClass('bg-gray-100', 'after:bg-border');
     expect(rail).toHaveClass('fixed', 'bottom-0');
     expect(rail).toHaveStyle({
       left: 'var(--desktop-rail-width, 0px)',
@@ -318,7 +318,7 @@ describe('AppLayout', () => {
     );
     expect(panel).not.toHaveClass('md:ml-[var(--shell-inset)]');
     expect(panel).toContainElement(sidebar);
-    expect(sidebar).toHaveClass('relative', 'bg-gray-100', 'border-r');
+    expect(sidebar).toHaveClass('relative', 'bg-gray-100', 'after:bg-border');
     expect(sidebar).not.toHaveClass('fixed');
     expect(panel).not.toContainElement(screen.getByTestId('app-topbar-shell'));
     expect(contentShell).toContainElement(

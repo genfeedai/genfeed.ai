@@ -82,7 +82,7 @@ export class PublicPostsController {
     if (ingredient && isEntityId(ingredient)) {
       matchQuery.OR = [
         { entityIngredientId: ingredient },
-        { ingredients: { some: { id: ingredient } } },
+        { ingredientLinks: { some: { ingredientId: ingredient } } },
       ];
     }
 

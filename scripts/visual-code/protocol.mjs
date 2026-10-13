@@ -5,6 +5,19 @@ export const MAX_DIAGNOSTICS = 8192;
 export const DEADLINE_MS = 120_000;
 export const RENDERER_VERSION = '4.0.530';
 const namePattern = /^[a-zA-Z0-9_-]{1,200}$/;
+// Library media and brand fonts are staged side by side; each has its own cap.
+export const MAX_SOURCE_ASSETS = 12;
+export const MAX_BRAND_FONTS = 8;
+export const MAX_STAGED_ASSETS = MAX_SOURCE_ASSETS + MAX_BRAND_FONTS;
+export const FONT_MIME_TYPES = [
+  'font/woff2',
+  'font/woff',
+  'font/ttf',
+  'font/otf',
+];
+// The brand font family becomes a CSS string, so it stays a plain name.
+export const FONT_FAMILY_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} ._-]{0,99}$/u;
+const FONT_STYLES = ['normal', 'italic', 'oblique'];
 export function invariant(value, code) {
   if (!value) throw new Error(code);
 }
@@ -108,12 +121,13 @@ export function validateInput(input) {
   );
   invariant(['preview', 'export'].includes(input.mode), 'invalid_mode');
   invariant(
-    Array.isArray(input.assets) && input.assets.length <= 12,
+    Array.isArray(input.assets) && input.assets.length <= MAX_STAGED_ASSETS,
     'invalid_assets',
   );
   const ids = new Set();
+  let fontCount = 0;
   for (const asset of input.assets) {
-    closed(asset, ['id', 'mime', 'bytes']);
+    closed(asset, ['id', 'mime', 'bytes', 'faces']);
     invariant(
       namePattern.test(asset.id) && !ids.has(asset.id),
       'invalid_asset_id',
@@ -126,14 +140,25 @@ export function validateInput(input) {
         'video/mp4',
         'audio/mpeg',
         'audio/wav',
-        'font/woff2',
+        ...FONT_MIME_TYPES,
       ].includes(asset.mime),
       'invalid_asset_mime',
     );
+    const isFont = FONT_MIME_TYPES.includes(asset.mime);
+    if (isFont) fontCount += 1;
+    if (asset.faces !== undefined) {
+      invariant(isFont, 'invalid_font_faces');
+      validateFontFaces(asset.faces);
+    }
     const bytes = decodeBytes(asset.bytes);
     invariant(bytes.length > 0, 'empty_asset');
     validateSignature(bytes, asset.mime);
   }
+  invariant(
+    fontCount <= MAX_BRAND_FONTS &&
+      input.assets.length - fontCount <= MAX_SOURCE_ASSETS,
+    'invalid_assets',
+  );
   invariant(
     Array.isArray(input.outputs) &&
       input.outputs.length > 0 &&
@@ -162,6 +187,25 @@ export function validateInput(input) {
   );
   return input;
 }
+export function validateFontFaces(faces) {
+  invariant(
+    Array.isArray(faces) && faces.length >= 1 && faces.length <= 8,
+    'invalid_font_faces',
+  );
+  for (const face of faces) {
+    closed(face, ['family', 'weight', 'style']);
+    invariant(
+      typeof face.family === 'string' && FONT_FAMILY_PATTERN.test(face.family),
+      'invalid_font_faces',
+    );
+    invariant(
+      Number.isInteger(face.weight) && face.weight >= 100 && face.weight <= 900,
+      'invalid_font_faces',
+    );
+    invariant(FONT_STYLES.includes(face.style), 'invalid_font_faces');
+  }
+  return faces;
+}
 export function validateSignature(bytes, mime) {
   const signatures = {
     'image/png': () =>
@@ -184,6 +228,14 @@ export function validateSignature(bytes, mime) {
       bytes.toString('ascii', 0, 4) === 'RIFF' &&
       bytes.toString('ascii', 8, 12) === 'WAVE',
     'font/woff2': () => bytes.toString('ascii', 0, 4) === 'wOF2',
+    'font/woff': () => bytes.toString('ascii', 0, 4) === 'wOFF',
+    // A TrueType sfnt starts with version 1.0 or the Apple tag "true".
+    'font/ttf': () =>
+      bytes.length >= 12 &&
+      (bytes.readUInt32BE(0) === 0x00010000 ||
+        bytes.toString('ascii', 0, 4) === 'true'),
+    'font/otf': () =>
+      bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'OTTO',
   };
   invariant(signatures[mime]?.(), 'mime_signature_mismatch');
 }
@@ -360,7 +412,8 @@ export function validateEvidence(evidence) {
     validateEvidenceSource(face.source);
   }
   invariant(
-    Array.isArray(evidence.assets) && evidence.assets.length <= 12,
+    Array.isArray(evidence.assets) &&
+      evidence.assets.length <= MAX_STAGED_ASSETS,
     'invalid_evidence',
   );
   for (const asset of evidence.assets) {

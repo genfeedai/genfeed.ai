@@ -93,6 +93,14 @@ describe('AgentToolExecutorService mutation policy', () => {
     handles: vi.fn(() => false),
     execute: vi.fn(),
   };
+  const threadHandler = {
+    handles: vi.fn((toolName: string) =>
+      ['draft_thread', 'add_thread_posts', 'add_first_comment'].includes(
+        toolName,
+      ),
+    ),
+    execute: vi.fn(),
+  };
 
   let mcpApprovals: {
     attachResult: ReturnType<typeof vi.fn>;
@@ -179,6 +187,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
+      threadHandler,
     });
     service.onModuleInit();
   });
@@ -395,6 +404,107 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(publishHandler.createPost).not.toHaveBeenCalled();
     expect(mcpApprovals.createPending).not.toHaveBeenCalled();
     authorize.mockRestore();
+  });
+
+  it.each([
+    ['add_thread_posts', { postId: 'post-1', posts: ['One', 'Two'] }],
+    ['add_first_comment', { postId: 'post-1', comment: 'Link below' }],
+  ])(
+    'queues %s for approval and saves nothing until it is approved',
+    async (toolName, params) => {
+      const result = await service.executeTool(
+        toolName as never,
+        params,
+        context({ hostSupportsApproval: true, threadId: testId('thread') }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.requiresConfirmation).toBe(true);
+      expect(result.approvalStatus).toBe('pending');
+      expect(mcpApprovals.createPending).toHaveBeenCalledTimes(1);
+      expect(threadHandler.execute).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects add_thread_posts on a host with no approval mechanism', async () => {
+    const result = await service.executeTool(
+      'add_thread_posts',
+      { postId: 'post-1', posts: ['One'] },
+      context({ hostSupportsApproval: false }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(UNSUPPORTED_APPROVAL_ERROR);
+    expect(threadHandler.execute).not.toHaveBeenCalled();
+  });
+
+  it('runs draft_thread without an approval record because it saves nothing', async () => {
+    threadHandler.execute.mockResolvedValue({ success: true, creditsUsed: 0 });
+    const result = await service.executeTool(
+      'draft_thread',
+      { postId: 'post-1', count: 3 },
+      context({ hostSupportsApproval: true, threadId: testId('thread') }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(threadHandler.execute).toHaveBeenCalledWith(
+      'draft_thread',
+      { postId: 'post-1', count: 3 },
+      expect.objectContaining({ organizationId: testId('org') }),
+    );
+    expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+  });
+
+  it('executes add_thread_posts once its exact approval is redeemed', async () => {
+    const params = { postId: 'post-1', posts: ['One', 'Two'] };
+    mcpApprovals.findOwned.mockResolvedValue({
+      id: 'apr-1',
+      arguments: params,
+      isDeleted: false,
+      status: 'APPROVED',
+      userId: testId('user'),
+      toolName: 'add_thread_posts',
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: params,
+        organizationId: testId('org'),
+        userId: testId('user'),
+        toolName: 'add_thread_posts',
+      }),
+    });
+    threadHandler.execute.mockResolvedValue({ success: true, creditsUsed: 0 });
+
+    const result = await service.executeTool(
+      'add_thread_posts',
+      params,
+      context({ approvedApprovalId: 'apr-1' }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(threadHandler.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('replays a stored partial failure instead of saving the same replies again', async () => {
+    mcpApprovals.findActiveByIdempotencyKey.mockResolvedValue({
+      id: 'apr-1',
+      status: 'APPROVED',
+      toolName: 'add_thread_posts',
+      result: {
+        creditsUsed: 0,
+        data: { remainingPosts: ['Two'] },
+        error: 'Saved 1 of 2 replies before a save failed.',
+        success: false,
+      },
+    });
+
+    const result = await service.executeTool(
+      'add_thread_posts',
+      { postId: 'post-1', posts: ['One', 'Two'] },
+      context({ hostSupportsApproval: true }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.data).toEqual({ remainingPosts: ['Two'] });
+    expect(threadHandler.execute).not.toHaveBeenCalled();
   });
 
   it('rejects approval-required tools on a host with no approval mechanism', async () => {

@@ -12,6 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends chromium ffmpeg
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /runtime
 COPY --from=toolchain /runtime /runtime
-COPY scripts/visual-code/runner.mjs scripts/visual-code/render.mjs scripts/visual-code/render-evidence.mjs scripts/visual-code/protocol.mjs ./
+COPY scripts/visual-code/runner.mjs scripts/visual-code/render.mjs scripts/visual-code/render-evidence.mjs scripts/visual-code/brand-fonts.mjs scripts/visual-code/protocol.mjs ./
 USER 65532:65532
 ENTRYPOINT ["node", "/runtime/runner.mjs"]

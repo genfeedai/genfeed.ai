@@ -38,7 +38,7 @@ function fixture(
           label: 'Breakout follow-up',
           promptUsed: null,
           reviewTurboRunId,
-          ingredients,
+          ingredientLinks: ingredients.map((ingredient) => ({ ingredient })),
         }
       : null,
   );

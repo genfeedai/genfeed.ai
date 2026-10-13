@@ -58,7 +58,9 @@ function fixture() {
     parentId: null,
     learningDecisionId: 'decision' as string | null,
     publishedAt: publishedAt as Date | null,
-    ingredients: [] as Array<{ id: string; version: number }>,
+    ingredientLinks: [] as Array<{
+      ingredient: { id: string; version: number };
+    }>,
   };
   const decision = {
     id: 'decision',

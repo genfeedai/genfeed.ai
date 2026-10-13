@@ -381,7 +381,10 @@ describe('PostGroupsService', () => {
         id: 'post-1',
         platform: CredentialPlatform.TIKTOK,
       }),
-      ingredients: [{ id: 'ingredient-1' }, { id: 'ingredient-2' }],
+      ingredientLinks: [
+        { ingredient: { id: 'ingredient-1' } },
+        { ingredient: { id: 'ingredient-2' } },
+      ],
     });
     prisma.postGroup.findFirst.mockResolvedValue(makeGroup({ media }));
     prisma.post.findMany.mockResolvedValue([
@@ -396,7 +399,12 @@ describe('PostGroupsService', () => {
 
     expect(prisma.post.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: { ingredients: { select: { id: true } } },
+        include: {
+          ingredientLinks: {
+            include: { ingredient: { select: { id: true } } },
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          },
+        },
       }),
     );
     expect(prisma.postGroup.create).toHaveBeenCalledWith(

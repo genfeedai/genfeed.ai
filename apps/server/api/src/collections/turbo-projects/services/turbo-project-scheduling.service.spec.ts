@@ -95,7 +95,7 @@ describe('TurboProjectSchedulingService', () => {
     credentialId: null,
     description: 'Stored caption',
     id: 'review-post-1',
-    ingredients: [{ id: 'output-1' }],
+    ingredientLinks: [{ ingredient: { id: 'output-1' } }],
     targetExecutionState: TargetExecutionState.DRAFT,
   };
   /** The review draft for caption/approval reads; nothing else scheduled. */
@@ -257,7 +257,12 @@ describe('TurboProjectSchedulingService', () => {
     it('schedules the media the review draft carries now, on every destination', async () => {
       prisma.post.findMany.mockImplementation(
         postsReading({
-          reviewPosts: [{ ...reviewPost, ingredients: [{ id: 'swapped-1' }] }],
+          reviewPosts: [
+            {
+              ...reviewPost,
+              ingredientLinks: [{ ingredient: { id: 'swapped-1' } }],
+            },
+          ],
         }),
       );
 

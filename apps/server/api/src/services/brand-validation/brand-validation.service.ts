@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import type { BrandFactCheck } from '@api/services/brand-validation/brand-fact-check.types';
 import {
-  decodeBrandTextBytes,
-  hashBrandArtifactBytes,
-} from '@api/services/brand-validation/brand-validation-artifact.util';
+  factualCoverageDiagnostics,
+  factualMessage,
+  resolveBrandFactCoverage,
+} from '@api/services/brand-validation/brand-validation-fact.util';
 import {
   assertBrandValidationMetadata,
   copyBrandValidationMaterial,
@@ -12,12 +14,12 @@ import {
   assertBrandValidationRuleDomain,
   buildBrandValidationChecks,
 } from '@api/services/brand-validation/brand-validation-rules.util';
-import type { BrandVisualAnalysis } from '@api/services/brand-validation/brand-visual-analysis.types';
 import {
-  hashBrandedGenerationArtifactManifestV1,
-  hashBrandedGenerationTextV1,
-  hashBrandIdentitySnapshotV1,
-} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+  invalidBrandValidationInput,
+  verifyBrandValidationInput,
+} from '@api/services/brand-validation/brand-validation-verify.util';
+import type { BrandVisualAnalysis } from '@api/services/brand-validation/brand-visual-analysis.types';
+import { hashBrandIdentitySnapshotV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import {
   brandArtifactValidationReportV1Schema,
   brandGenerationArtifactV1Schema,
@@ -37,10 +39,13 @@ export interface BrandValidationOptions {
   visualAnalysis?: BrandVisualAnalysis;
   /** The outcome of reading and verifying the artifact's render manifest; absent means not read. */
   renderEvidence?: BrandRenderEvidenceVerificationV1;
+  /**
+   * Checks the draft's factual claims against approved brand evidence (#6717).
+   * Absent means no check ran: `system:factual_coverage` stays unknown.
+   */
+  factCheck?: BrandFactCheck;
 }
 
-const factualMessage =
-  'Complete factual coverage is unavailable; review the actual output against approved sources.';
 const mediaMessage =
   'Image and video output has no machine-verified visual evidence; it is held for member review and never marked ready.';
 const actions: Record<string, string> = {
@@ -63,9 +68,7 @@ const actions: Record<string, string> = {
   exact_asset_unavailable:
     'Use a qualified export path with artifact-bound approved asset regions.',
 };
-function invalid(): never {
-  throw new BadRequestException('brand_validation_invalid_input');
-}
+const invalid: () => never = invalidBrandValidationInput;
 function assertInput(value: unknown, keys: readonly string[]): void {
   if (
     !value ||
@@ -189,103 +192,37 @@ export class BrandValidationService {
     } catch {
       invalid();
     }
-    if (
-      material.artifactKind !== artifact.kind ||
-      material.artifactId !== artifact.id ||
-      material.artifactVersion !== artifact.version ||
-      material.parts.length !== artifact.parts.length ||
-      new Set(material.parts.map((part) => part.partId)).size !==
-        material.parts.length
-    )
-      invalid();
-    for (const descriptor of artifact.parts) {
-      const part = material.parts.find(
-        (candidate) => candidate.partId === descriptor.id,
-      );
-      if (!part || part.partVersion !== descriptor.version) invalid();
-    }
-    if (hashBrandIdentitySnapshotV1(snapshot) !== snapshot.contentHash)
-      throw new BadRequestException('brand_validation_snapshot_hash_mismatch');
-    for (const descriptor of artifact.parts) {
-      const part = material.parts.find(
-        (candidate) => candidate.partId === descriptor.id,
-      );
-      if (!part) invalid();
-      if (hashBrandArtifactBytes(part.bytes) !== descriptor.contentHash)
-        throw new BadRequestException(
-          'brand_validation_artifact_hash_mismatch',
-        );
-    }
-    let text: string | null = null;
-    let textHash: string | null = null;
-    if (material.textBytes !== null) {
-      try {
-        text = decodeBrandTextBytes(material.textBytes);
-      } catch (error) {
-        if (error instanceof TypeError || error instanceof RangeError)
-          invalid();
-        throw error;
-      }
-      textHash = hashBrandArtifactBytes(material.textBytes);
-      if (
-        !Buffer.from(text, 'utf8').equals(Buffer.from(material.textBytes)) ||
-        hashBrandedGenerationTextV1(text) !== textHash
-      )
-        throw new BadRequestException(
-          'brand_validation_artifact_hash_mismatch',
-        );
-    }
-    if (artifact.mediaKind === 'text' && text === null) invalid();
-    if (
-      artifact.mediaKind !== 'text' &&
-      !artifact.parts.some((part) =>
-        ['primary', 'image', 'video'].includes(part.role),
-      )
-    )
-      invalid();
-    if (text === null && artifact.parts.length === 0) invalid();
-    if (
-      hashBrandedGenerationArtifactManifestV1({
-        mediaKind: artifact.mediaKind,
-        textHash,
-        parts: artifact.parts,
-      }) !== artifact.contentHash
-    )
-      throw new BadRequestException('brand_validation_artifact_hash_mismatch');
-    const referenceIds = new Set<string>();
-    for (const reference of material.references) {
-      const approved = snapshot.generationRules.assets.find(
-        (asset) => asset.id === reference.assetReferenceId,
-      );
-      if (
-        referenceIds.has(reference.assetReferenceId) ||
-        !approved ||
-        reference.assetId !== approved.assetId ||
-        !approved.contentHash ||
-        hashBrandArtifactBytes(reference.bytes) !== approved.contentHash
-      )
-        throw new BadRequestException('brand_validation_reference_mismatch');
-      referenceIds.add(reference.assetReferenceId);
-    }
-    const checks = await proveBrandMediaChecks(
+    const { text } = verifyBrandValidationInput(snapshot, artifact, material);
+    const isTextComplete =
+      artifact.mediaKind === 'text' &&
+      text !== null &&
+      artifact.parts.length === 0;
+    const read: { frameTexts: readonly string[] | null } = { frameTexts: null };
+    const proven = await proveBrandMediaChecks(
       { snapshot, artifact, material },
       buildBrandValidationChecks(
         snapshot,
         artifact.mediaKind,
         text,
-        artifact.mediaKind === 'text' &&
-          text !== null &&
-          artifact.parts.length === 0,
+        isTextComplete,
       ),
-      options,
-    );
-    const diagnostics: BrandArtifactValidationReportV1['diagnostics'] = [
       {
-        code: 'factual_coverage_unverified',
-        severity: 'warning',
-        message: factualMessage,
+        ...options,
+        onFrameTexts: (frameTexts) => {
+          read.frameTexts = frameTexts;
+        },
       },
-    ];
+    );
+    const checks = await resolveBrandFactCoverage({
+      artifact,
+      checks: proven,
+      factCheck: options.factCheck,
+      frameTexts: read.frameTexts,
+      isTextComplete,
+      snapshot,
+      text,
+    });
+    const diagnostics = factualCoverageDiagnostics(checks);
     if (artifact.mediaKind !== 'text')
       diagnostics.push({
         code: 'artifact_media_unsupported',

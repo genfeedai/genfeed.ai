@@ -33,6 +33,19 @@ type CronPostChild = {
 
 type RepeatPostCreateInput = PostCreateInput & { repeatCount: number };
 
+/** Ids of a loaded post's media, in slide order, whether loaded as ids or rows. */
+function ingredientIdsOf(
+  ingredients: readonly unknown[] | undefined,
+): string[] {
+  return (ingredients ?? []).map((ingredient) =>
+    String(
+      ingredient && typeof ingredient === 'object' && 'id' in ingredient
+        ? (ingredient as { id?: unknown }).id
+        : ingredient,
+    ),
+  );
+}
+
 type ScheduleNextRepeatOptions = {
   rethrowFailures?: boolean;
 };
@@ -243,7 +256,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
       category: (post.category as PostCategory) || PostCategory.VIDEO,
       credentialId: post.credentialId,
       description: post.description,
-      ingredients: post.ingredients || [],
+      ingredients: ingredientIdsOf(post.ingredients),
       isRepeat: true,
       label: post.label,
       maxRepeats: post.maxRepeats,
@@ -346,13 +359,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
     let firstError: unknown;
     for (const [index, child] of children.entries()) {
       try {
-        const ingredientIds = (child.ingredients || [])
-          .map((ingredient: unknown) =>
-            ingredient && typeof ingredient === 'object' && 'id' in ingredient
-              ? (ingredient as { id?: unknown }).id
-              : ingredient,
-          )
-          .map((ingredient) => String(ingredient));
+        const ingredientIds = ingredientIdsOf(child.ingredients);
 
         if (!originalParent.platform) {
           continue;

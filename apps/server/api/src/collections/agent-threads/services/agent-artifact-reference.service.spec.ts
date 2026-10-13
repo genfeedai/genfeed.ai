@@ -220,6 +220,38 @@ describe('AgentArtifactReferenceService', () => {
     },
   );
 
+  it("loads a post's media in the slide order the user arranged", async () => {
+    prisma.post.findFirst.mockResolvedValue({
+      brandId,
+      children: [],
+      id: 'post-1',
+      ingredientLinks: [
+        { ingredient: { id: 'ingredient-b' } },
+        { ingredient: { id: 'ingredient-a' } },
+      ],
+      organizationId: orgId,
+    });
+
+    await service.resolveReference(reference('post'), {
+      brandId,
+      organizationId: orgId,
+    });
+
+    const order = [{ position: 'asc' }, { id: 'asc' }];
+    expect(prisma.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          children: expect.objectContaining({
+            include: {
+              ingredientLinks: expect.objectContaining({ orderBy: order }),
+            },
+          }),
+          ingredientLinks: expect.objectContaining({ orderBy: order }),
+        }),
+      }),
+    );
+  });
+
   it('rejects forged reference scope before returning the canonical record', async () => {
     prisma.post.findFirst.mockResolvedValue({
       brandId,

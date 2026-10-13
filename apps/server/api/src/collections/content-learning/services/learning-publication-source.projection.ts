@@ -329,7 +329,7 @@ export function supportedPost(post: LearningPublicationPostRow): boolean {
     (post.category === PostCategory.TEXT ||
       post.category === PostCategory.POST) &&
     text(post.description, 65536) &&
-    post._count.ingredients === 0 &&
+    post._count.ingredientLinks === 0 &&
     post._count.children === 0 &&
     Array.isArray(post.targetAttachments) &&
     post.targetAttachments.length === 0 &&

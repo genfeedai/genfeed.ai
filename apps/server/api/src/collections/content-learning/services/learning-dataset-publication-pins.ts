@@ -327,7 +327,7 @@ export class LearningDatasetPublicationPins {
         });
   }
 
-  // Prisma `_count` joins aggregate the whole posts/_post_ingredients tables per batch;
+  // Prisma `_count` joins aggregate the whole posts/post_ingredients tables per batch;
   // counting only the batch's ids keeps each read proportional to the batch.
   private async loadPostRows(
     part: string[],
@@ -345,12 +345,12 @@ export class LearningDatasetPublicationPins {
     if (!rows.length) return [];
     const ids = rows.map((row) => row.id);
     const counts = await this.tx.$queryRaw<
-      Array<{ postId: string; ingredients: number; children: number }>
+      Array<{ postId: string; ingredientLinks: number; children: number }>
     >(Prisma.sql`
-      SELECT "postId", SUM(ingredients)::int AS ingredients, SUM(children)::int AS children FROM (
-        SELECT pi."B" AS "postId", 1 AS ingredients, 0 AS children
-        FROM "_post_ingredients" pi JOIN ingredients ing ON ing.id = pi."A"
-        WHERE pi."B" = ANY(${ids}::text[])
+      SELECT "postId", SUM("ingredientLinks")::int AS "ingredientLinks", SUM(children)::int AS children FROM (
+        SELECT pi."postId" AS "postId", 1 AS "ingredientLinks", 0 AS children
+        FROM "post_ingredients" pi JOIN ingredients ing ON ing.id = pi."ingredientId"
+        WHERE pi."postId" = ANY(${ids}::text[])
         UNION ALL
         SELECT "parentId" AS "postId", 0, 1 FROM posts
         WHERE "parentId" = ANY(${ids}::text[]) AND NOT "isDeleted"
@@ -359,7 +359,7 @@ export class LearningDatasetPublicationPins {
     return rows.map((row) => ({
       ...row,
       _count: {
-        ingredients: byPost.get(row.id)?.ingredients ?? 0,
+        ingredientLinks: byPost.get(row.id)?.ingredientLinks ?? 0,
         children: byPost.get(row.id)?.children ?? 0,
       },
     }));

@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import {
+  flattenLoadedPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
+import {
   SERVER_TOKENS,
   type ServerLogger,
   type ServerPrisma,
@@ -42,6 +46,18 @@ import {
   readArtifactString,
 } from './agent-artifact-material.util';
 
+/** The media fields a post artifact's material is built from. */
+const POST_MEDIA = {
+  select: {
+    category: true,
+    cdnUrl: true,
+    fileSize: true,
+    id: true,
+    mimeType: true,
+    s3Key: true,
+    version: true,
+  },
+} as const;
 const MAX_LEGACY_REFERENCE_USES = 20;
 const MAX_LEGACY_REFERENCE_CANDIDATES = 20;
 
@@ -556,43 +572,21 @@ export class AgentArtifactReferenceService {
     organizationId: string,
     prisma: AgentArtifactReferenceTransaction,
   ): Promise<CanonicalRecordState> {
-    const result = await prisma.post.findFirst({
+    const loaded = await prisma.post.findFirst({
       include: {
         children: {
-          include: {
-            ingredients: {
-              select: {
-                category: true,
-                cdnUrl: true,
-                fileSize: true,
-                id: true,
-                mimeType: true,
-                s3Key: true,
-                version: true,
-              },
-            },
-          },
+          include: { ingredientLinks: orderedPostIngredientLinks(POST_MEDIA) },
           where: { isDeleted: false },
         },
-        ingredients: {
-          select: {
-            category: true,
-            cdnUrl: true,
-            fileSize: true,
-            id: true,
-            mimeType: true,
-            s3Key: true,
-            version: true,
-          },
-        },
+        ingredientLinks: orderedPostIngredientLinks(POST_MEDIA),
       },
       where: scopedWhere(organizationId, { id: recordId }),
     });
-    if (!result) {
+    if (!loaded) {
       throw artifactNotFound('Post', recordId);
     }
 
-    const record = readArtifactRecord(result);
+    const record = readArtifactRecord(flattenLoadedPostIngredients(loaded));
     const children = Array.isArray(record.children)
       ? record.children
           .map((child) => readArtifactRecord(child))

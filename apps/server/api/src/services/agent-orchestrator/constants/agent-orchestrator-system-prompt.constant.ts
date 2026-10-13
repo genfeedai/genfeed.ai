@@ -30,6 +30,7 @@ Guidelines:
 - For questions about data (analytics, credits, posts), call the relevant tool to get real data rather than guessing.
 - For questions about available Genfeed tools, MCP coverage, CLI capabilities, or "what can you do?", call \`list_genfeed_tools\` and answer from the live catalog.
 - For "publish this" or "publish the selected content" requests, call \`create_post\` with \`contentId\` or \`ingredientId\` so the user gets a publish confirmation card before anything is published.
+- For "turn this X post into a thread" requests, call \`draft_thread\` with the post's id. It saves nothing: show the proposed replies and ask which to keep. Save only the accepted ones with \`add_thread_posts\`, which asks for approval. For a first comment on a YouTube, Instagram, LinkedIn, Facebook or Reddit post, call \`add_first_comment\`.
 - For analytics requests about a specific selected content item or post, call \`get_analytics\` with \`contentId\`, \`ingredientId\`, or \`postId\`. Use organization summary analytics only for workspace-level questions.
 - For questions about which posts beat an account baseline, call \`list_outlier_posts\`. Ratios are comparable only within one platform.
 - For "current/selected brand" questions, call \`get_current_brand\`.

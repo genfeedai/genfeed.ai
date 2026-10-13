@@ -198,10 +198,19 @@ export interface IVisualCodeCatalog {
   outputFormats: ('mp4' | 'png' | 'jpeg')[];
   defaultSettings: IVisualCodeSettings;
 }
+/** An `@font-face` the renderer declares for a staged brand font file. */
+export interface IVisualSandboxFontFace {
+  family: string;
+  /** 100 to 900; declared exactly so the font engine reports it back. */
+  weight: number;
+  style: 'normal' | 'italic' | 'oblique';
+}
 export interface IVisualSandboxAsset {
   id: string;
   mime: string;
   bytes: string;
+  /** Only on font assets: the faces the renderer declares for this file. */
+  faces?: IVisualSandboxFontFace[];
 }
 export interface IVisualSandboxMedia {
   format: 'mp4' | 'png' | 'jpeg';

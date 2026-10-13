@@ -14,6 +14,7 @@ import {
   type ApprovedBrandRules,
   buildExecutionHarness,
   type ExecutionHarness,
+  type ExecutionHarnessOptions,
   seedApprovedBrandIdentity,
 } from '@api/collections/outliers/services/breakout-acceptance.execution.fixture';
 import {
@@ -53,6 +54,8 @@ export type DetectOptions = {
   /** Rules the approved brand identity carries (none by default). */
   brandRules?: Partial<ApprovedBrandRules>;
   candidate?: CandidateOptions;
+  /** A fake brand fact check (#6717); none leaves factual coverage unknown. */
+  factCheck?: ExecutionHarnessOptions['factCheck'];
   /** The latest, breakout measurement (default tenfold-plus). */
   impressions?: number;
   world?: WorldOptions;
@@ -91,7 +94,9 @@ export async function collectBreakout(
   const world = await seedAcceptanceWorld(db, options.world);
   await seedApprovedBrandIdentity(db, world, options.brandRules);
   const candidate = await seedBreakoutCandidate(db, world, options.candidate);
-  const harness = buildExecutionHarness(db, prisma, logger, world);
+  const harness = buildExecutionHarness(db, prisma, logger, world, {
+    factCheck: options.factCheck,
+  });
   harness.tweets.set(candidate.target.externalId, {
     impressions: options.impressions ?? 1500,
   });

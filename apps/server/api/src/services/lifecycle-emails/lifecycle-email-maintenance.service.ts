@@ -433,14 +433,17 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         OR: [
           { entityIngredientId: { in: ingredientIds } },
           { entityArticleId: { in: articleIds } },
-          { ingredients: { some: ownedIngredients } },
+          { ingredientLinks: { some: { ingredient: ownedIngredients } } },
         ],
       }),
       select: {
         id: true,
         entityIngredientId: true,
         entityArticleId: true,
-        ingredients: { where: ownedIngredients, select: { id: true } },
+        ingredientLinks: {
+          select: { ingredientId: true },
+          where: { ingredient: ownedIngredients },
+        },
       },
     });
     const publishedIds = new Set<string>();
@@ -452,8 +455,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         publishedIds.add(`ingredient:${post.entityIngredientId}`);
       if (post.entityArticleId && articleIds.includes(post.entityArticleId))
         publishedIds.add(`article:${post.entityArticleId}`);
-      for (const item of post.ingredients)
-        publishedIds.add(`ingredient:${item.id}`);
+      for (const link of post.ingredientLinks)
+        publishedIds.add(`ingredient:${link.ingredientId}`);
     }
     return { published, publishedIds };
   }

@@ -875,7 +875,7 @@ function sourcePublication(index: number, cell: LearningCellDescriptor) {
     publishedAt: published,
     publishApprovalId: `approval-${index}`,
     reviewVersionPinId: `pin-${index}`,
-    _count: { ingredients: 0, children: 0 },
+    _count: { ingredientLinks: 0, children: 0 },
     learningDecisionId: null,
     updatedAt: cutoff,
   };

@@ -699,7 +699,7 @@ describe('SourcePostsService', () => {
   it('attaches an image ingredient to a scoped post draft', async () => {
     post.findFirst.mockResolvedValue({
       id: 'post-1',
-      ingredients: [{ id: 'existing-ingredient' }],
+      ingredientLinks: [{ ingredient: { id: 'existing-ingredient' } }],
     });
     ingredient.findFirst.mockResolvedValue({ id: 'new-ingredient' });
     post.update.mockResolvedValue({ id: 'post-1' });
@@ -729,9 +729,24 @@ describe('SourcePostsService', () => {
     });
     expect(post.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        ingredients: {
-          set: [{ id: 'existing-ingredient' }, { id: 'new-ingredient' }],
-        },
+        // The new image joins the end of the slides already attached.
+        ingredientLinks: expect.objectContaining({
+          createMany: {
+            data: [
+              {
+                ingredientId: 'existing-ingredient',
+                organizationId: 'org-1',
+                position: 0,
+              },
+              {
+                ingredientId: 'new-ingredient',
+                organizationId: 'org-1',
+                position: 1,
+              },
+            ],
+            skipDuplicates: true,
+          },
+        }),
       }),
       where: {
         brandId: 'brand-1',
@@ -743,7 +758,7 @@ describe('SourcePostsService', () => {
   });
 
   it('rejects an image ingredient outside the scoped brand', async () => {
-    post.findFirst.mockResolvedValue({ id: 'post-1', ingredients: [] });
+    post.findFirst.mockResolvedValue({ id: 'post-1', ingredientLinks: [] });
     ingredient.findFirst.mockResolvedValue(null);
 
     await expect(

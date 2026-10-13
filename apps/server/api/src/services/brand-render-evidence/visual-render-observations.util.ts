@@ -93,7 +93,7 @@ export const visualRenderObservationsSchema = z.strictObject({
       }),
     )
     .max(64),
-  assets: z.array(z.strictObject({ id: assetId, contentHash: hash })).max(12),
+  assets: z.array(z.strictObject({ id: assetId, contentHash: hash })).max(20),
   diagnostics: z.array(z.string().regex(/^[a-z][a-z0-9_]{0,95}$/)).max(32),
 });
 

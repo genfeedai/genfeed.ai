@@ -166,4 +166,8 @@ export const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'publish finalization',
     plural: 'publish finalizations',
   },
+  postIngredient: {
+    singular: 'post media link',
+    plural: 'post media links',
+  },
 };

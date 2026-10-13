@@ -17,6 +17,11 @@ import {
 import { listPostContentMentions } from '@api/collections/posts/services/post-content-mentions.read';
 import { normalizePostDocument } from '@api/collections/posts/services/post-document-projection.util';
 import {
+  createPostIngredientLinks,
+  flattenLoadedPostIngredients,
+  orderedPostIngredientLinks,
+} from '@api/collections/posts/services/post-ingredient-links.util';
+import {
   createPostChildWithLearning,
   type PostLearningMutationContext,
   patchPostWithLearning,
@@ -165,11 +170,13 @@ export class PostsService extends BaseService<
 
     const prismaWriteData: Record<string, unknown> = {
       ...pickDefinedFields(dtoRecord, POST_SCALAR_FIELDS),
-      ...(ingredients !== undefined && {
-        ingredients: {
-          connect: ingredients.map((id) => ({ id })),
-        },
-      }),
+      ...(ingredients !== undefined &&
+        ingredients.length > 0 && {
+          ingredientLinks: createPostIngredientLinks(
+            this.requireOrganizationId(dto),
+            ingredients,
+          ),
+        }),
       ...(tags !== undefined && {
         tags: { connect: tags.map((id) => ({ id })) },
       }),
@@ -445,6 +452,13 @@ export class PostsService extends BaseService<
     ]);
   }
 
+  private requireOrganizationId(dto: PostCreateInput): string {
+    if (!dto.organizationId) {
+      throw new BadRequestException('Post media requires an organization id.');
+    }
+    return dto.organizationId;
+  }
+
   private async assertCampaignMembership(dto: PostCreateInput): Promise<void> {
     if (!dto.campaignId) {
       return;
@@ -470,7 +484,51 @@ export class PostsService extends BaseService<
   }
 
   protected override normalizeDocument(document: unknown): PostDocument {
-    return normalizePostDocument(document);
+    return normalizePostDocument(flattenLoadedPostIngredients(document));
+  }
+
+  /**
+   * `ingredients` is the API name for a post's media; storage is the ordered
+   * `ingredientLinks` relation, so populating it loads the links in slide
+   * order and `normalizeDocument` flattens them back to the media array.
+   */
+  protected override populateToInclude(
+    populate: PopulateInput,
+  ): Record<string, unknown> | undefined {
+    if (populate === 'none') {
+      return super.populateToInclude(populate);
+    }
+    const isIngredients = (option: string | PopulateOption): boolean =>
+      (typeof option === 'string' ? option : option.path) === 'ingredients';
+    const ingredientsOption = populate.find(isIngredients);
+    const include = super.populateToInclude(
+      populate.filter((option) => !isIngredients(option)),
+    );
+    if (!ingredientsOption) {
+      return include;
+    }
+    return {
+      ...include,
+      ingredientLinks: this.ingredientLinksArgs(ingredientsOption),
+    };
+  }
+
+  private ingredientLinksArgs(option: string | PopulateOption) {
+    const selection = this.toRelationSelection(
+      typeof option === 'string' ? { path: 'ingredients' } : option,
+    );
+    if (selection === true) {
+      return orderedPostIngredientLinks();
+    }
+    const { where, ...ingredientArgs } = selection as {
+      where?: Prisma.IngredientWhereInput;
+    } & Prisma.IngredientDefaultArgs;
+    return {
+      ...(where ? { where: { ingredient: where } } : {}),
+      ...orderedPostIngredientLinks(
+        Object.keys(ingredientArgs).length > 0 ? ingredientArgs : true,
+      ),
+    };
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   report,
   text,
 } from '@api/collections/outliers/services/breakout-receipt.fixture';
+import { createPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import type { BrandedPostMaterialRecord } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import {
   IngredientCategory,
@@ -65,10 +66,16 @@ function ingredient(
     cdnUrl: `https://cdn.test/${id}` as string | null,
   };
 }
+/** A post as the loader reads it: media sit in ordered links, not a flat list. */
+type LoadedMaterial = Omit<BrandedPostMaterialRecord, 'ingredients'> & {
+  ingredientLinks: Array<{
+    ingredient: BrandedPostMaterialRecord['ingredients'][number];
+  }>;
+};
 function material(
   ingredientIds: string[],
-  overrides: Partial<BrandedPostMaterialRecord> = {},
-): BrandedPostMaterialRecord {
+  overrides: Partial<LoadedMaterial> = {},
+): LoadedMaterial {
   return {
     id: input.postId,
     organizationId: 'org-a',
@@ -83,17 +90,19 @@ function material(
     category: PostCategory.IMAGE,
     format: PostFormat.STANDARD,
     description: text,
-    ingredients: ingredientIds.map((id) => ({
-      id,
-      organizationId: 'org-a',
-      brandId: 'brand-a',
-      isDeleted: false,
-      category: IngredientCategory.IMAGE,
-      s3Key: `media/${id}`,
-      version: 1,
-      fileSize: 5,
-      mimeType: 'image/png',
-      cdnUrl: `https://cdn.test/${id}`,
+    ingredientLinks: ingredientIds.map((id) => ({
+      ingredient: {
+        id,
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        isDeleted: false,
+        category: IngredientCategory.IMAGE,
+        s3Key: `media/${id}`,
+        version: 1,
+        fileSize: 5,
+        mimeType: 'image/png',
+        cdnUrl: `https://cdn.test/${id}`,
+      },
     })),
     children: [],
     ...overrides,
@@ -225,7 +234,9 @@ describe('composing a visual output', () => {
     });
     expect(h.update).toHaveBeenCalledWith({
       where: expect.objectContaining({ id: 'post-output-a' }),
-      data: { ingredients: { connect: [{ id: 'asset-1' }] } },
+      data: {
+        ingredientLinks: createPostIngredientLinks('org-a', ['asset-1']),
+      },
     });
   });
 
@@ -248,17 +259,57 @@ describe('composing a visual output', () => {
   it('replays an already composed output without writing', async () => {
     const h = fixture('image');
     h.state.post.breakoutOutputId = 'output-a';
-    h.state.post.ingredients = material(h.ids).ingredients;
+    h.state.post.ingredientLinks = material(h.ids).ingredientLinks;
     h.state.bound = { id: 'post-output-a' };
     expect(await run(h)).toMatchObject({ status: 'replayed' });
     expect(h.updateMany).not.toHaveBeenCalled();
     expect(h.update).not.toHaveBeenCalled();
   });
 
+  it('replays a carousel only when its slides are still in the generated order', async () => {
+    const h = fixture('carousel');
+    h.state.post.breakoutOutputId = 'output-a';
+    h.state.bound = { id: 'post-output-a' };
+    h.state.post.ingredientLinks = material(h.ids).ingredientLinks;
+    expect(await run(h)).toMatchObject({ status: 'replayed' });
+  });
+
+  it('holds a replay whose slides were reordered after binding', async () => {
+    const h = fixture('carousel');
+    h.state.post.breakoutOutputId = 'output-a';
+    h.state.bound = { id: 'post-output-a' };
+    // The same media, rearranged through the post patch path.
+    h.state.post.ingredientLinks = material(
+      [...h.ids].reverse(),
+    ).ingredientLinks;
+    expect(await run(h)).toEqual({
+      status: 'held',
+      reason: 'binding_conflict',
+    });
+    expect(h.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('loads the replay links in stored slide order', async () => {
+    const h = fixture('carousel');
+    h.state.post.breakoutOutputId = 'output-a';
+    h.state.bound = { id: 'post-output-a' };
+    h.state.post.ingredientLinks = material(h.ids).ingredientLinks;
+    await run(h);
+    const loadingPost = h.tx.post.findFirst as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    const select = loadingPost.mock.calls
+      .map(([args]) => (args as Prisma.PostFindFirstArgs).select)
+      .find((candidate) => candidate && 'breakoutOutputId' in candidate);
+    expect(select?.ingredientLinks).toMatchObject({
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+    });
+  });
+
   it('holds a replay whose attached visuals are not the output’s own', async () => {
     const h = fixture('image');
     h.state.post.breakoutOutputId = 'output-a';
-    h.state.post.ingredients = material(['other-asset']).ingredients;
+    h.state.post.ingredientLinks = material(['other-asset']).ingredientLinks;
     h.state.bound = { id: 'post-output-a' };
     expect(await run(h)).toEqual({
       status: 'held',
@@ -355,7 +406,7 @@ describe('composing a visual output', () => {
     [
       'a draft that already carries media',
       (h: ReturnType<typeof fixture>) => {
-        h.state.post.ingredients = material(['stray']).ingredients;
+        h.state.post.ingredientLinks = material(['stray']).ingredientLinks;
       },
       'artifact_changed',
     ],
@@ -412,7 +463,7 @@ describe('composing a visual output', () => {
   it('throws when the composed material does not read back as the output’s format', async () => {
     const h = fixture('image');
     h.state.composed = material(h.ids, { category: PostCategory.TEXT });
-    h.state.composed.ingredients = [];
+    h.state.composed.ingredientLinks = [];
     h.state.composed.description = text;
     await expect(run(h)).rejects.toThrow();
   });

@@ -46,5 +46,16 @@ export function summarizeBrandProof(
         layers: proof.textLayers,
         renderer: proof.renderer.id,
       });
+    case 'fact': {
+      if (proof.claims.length === 0) return t('proof.factNone');
+      const count = (verdict: string) =>
+        proof.claims.filter((claim) => claim.verdict === verdict).length;
+      return t('proof.fact', {
+        claims: proof.claims.length,
+        contradicted: count('contradicted'),
+        supported: count('supported'),
+        unverified: count('unverified'),
+      });
+    }
   }
 }

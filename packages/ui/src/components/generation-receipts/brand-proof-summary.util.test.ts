@@ -1,4 +1,7 @@
-import type { BrandArtifactProofV1 } from '@genfeedai/contracts/api-types/contracts';
+import type {
+  BrandArtifactProofV1,
+  BrandFactClaimV1,
+} from '@genfeedai/contracts/api-types/contracts';
 import { describe, expect, it } from 'vitest';
 import { summarizeBrandProof } from './brand-proof-summary.util';
 
@@ -120,5 +123,57 @@ describe('summarizeBrandProof', () => {
     expect(summarizeBrandProof(proof, t)).toBe(
       'proof.font|fonts=Brand Display, Inter,layers=3,renderer=visual-code',
     );
+  });
+  describe('fact check', () => {
+    const claim = (
+      verdict: 'supported' | 'unverified' | 'contradicted',
+      index: number,
+    ): BrandFactClaimV1 => ({
+      evidence:
+        verdict === 'unverified'
+          ? []
+          : [
+              {
+                evidenceId: `fact:rule-${index}`,
+                origin: 'brand_os',
+                quote: 'Ships in two days',
+                ruleId: `rule-${index}`,
+              },
+            ],
+      id: `claim-${index}`,
+      origin: 'text',
+      source: 'ships in two days',
+      text: 'The brand ships in two days',
+      verdict,
+    });
+    const proofOf = (claims: BrandFactClaimV1[]): BrandArtifactProofV1 => ({
+      algorithm: 'fact-check-v1',
+      artifactHash: hash,
+      claims,
+      claimsHash: hash,
+      isTextComplete: true,
+      kind: 'fact',
+      knowledgeVersions: [],
+      mediaKind: 'text',
+      models: ['judge'],
+      snapshotHash: hash,
+      textHash: hash,
+    });
+    it('counts the claims by verdict', () => {
+      expect(
+        summarizeBrandProof(
+          proofOf([
+            claim('supported', 1),
+            claim('supported', 2),
+            claim('unverified', 3),
+            claim('contradicted', 4),
+          ]),
+          t,
+        ),
+      ).toBe('proof.fact|claims=4,contradicted=1,supported=2,unverified=1');
+    });
+    it('states plainly that no factual claims were found', () => {
+      expect(summarizeBrandProof(proofOf([]), t)).toBe('proof.factNone|');
+    });
   });
 });

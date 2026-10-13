@@ -49,10 +49,12 @@ export const learningArtifactPostSelect = {
   parentId: true,
   learningDecisionId: true,
   publishApprovalId: true,
-  ingredients: {
-    where: { isDeleted: false },
-    select: { id: true, version: true },
-    orderBy: { id: 'asc' },
+  // Hashed sorted by id: the artifact identity is the set of media versions,
+  // not their slide order.
+  ingredientLinks: {
+    where: { ingredient: { isDeleted: false } },
+    select: { ingredient: { select: { id: true, version: true } } },
+    orderBy: { ingredientId: 'asc' },
   },
 } satisfies Prisma.PostSelect;
 export type LearningArtifactPostRow = Prisma.PostGetPayload<{
@@ -95,10 +97,12 @@ export function learningPostArtifactHashV1(
   if (!post.credentialId || !validLearningDescriptor(descriptor)) return null;
   return learningArtifactHashV1({
     text: post.description,
-    ingredients: post.ingredients.map(({ id, version }) => ({
-      id,
-      version: String(version),
-    })),
+    ingredients: post.ingredientLinks.map(
+      ({ ingredient: { id, version } }) => ({
+        id,
+        version: String(version),
+      }),
+    ),
     credentialId: post.credentialId,
     format: descriptor.format,
     objective: descriptor.objective,

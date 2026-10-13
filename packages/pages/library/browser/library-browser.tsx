@@ -21,6 +21,7 @@ import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Library } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
+import LibraryActiveFilters from './library-active-filters';
 import {
   LIBRARY_PLACE_COPY,
   LIBRARY_SHELF_DESCRIPTIONS,
@@ -56,10 +57,7 @@ export default function LibraryBrowser({
     contextValue,
     handleCategoriesChange,
     handleCharactersChange,
-    handleClearCategories,
-    handleClearCharacters,
-    handleClearOrigins,
-    handleClearTags,
+    handleClearAllFilters,
     handleOriginsChange,
     handlePlaceChange,
     handleRefresh,
@@ -197,10 +195,7 @@ export default function LibraryBrowser({
                 characters={characters}
                 onCategoriesChange={handleCategoriesChange}
                 onCharactersChange={handleCharactersChange}
-                onClearCategories={handleClearCategories}
-                onClearCharacters={handleClearCharacters}
-                onClearOrigins={handleClearOrigins}
-                onClearTags={handleClearTags}
+                onClearAllFilters={handleClearAllFilters}
                 onOriginsChange={handleOriginsChange}
                 onPlaceChange={handlePlaceChange}
                 onStatusChange={handleStatusChange}
@@ -243,11 +238,34 @@ export default function LibraryBrowser({
             />
           }
           topbarFooter={
-            <div
-              className="empty:hidden"
-              data-testid="library-selection-slot"
-              ref={setSelectionSlot}
-            />
+            <>
+              <LibraryActiveFilters
+                categories={categories}
+                characterOptions={characterOptions}
+                characters={characters}
+                onCategoriesChange={handleCategoriesChange}
+                onCharactersChange={handleCharactersChange}
+                onClearAllFilters={handleClearAllFilters}
+                onOriginsChange={handleOriginsChange}
+                onPlaceChange={handlePlaceChange}
+                onStatusChange={handleStatusChange}
+                onTagMatchChange={handleTagMatchChange}
+                onTagsChange={handleTagsChange}
+                origins={origins}
+                place={place}
+                shelf={shelf}
+                shelfCounts={summary?.byShelf}
+                tagMatch={tagMatch}
+                tagOptions={tagOptions}
+                tags={tags}
+                trashedCount={summary?.trashedCount}
+              />
+              <div
+                className="empty:hidden"
+                data-testid="library-selection-slot"
+                ref={setSelectionSlot}
+              />
+            </>
           }
         >
           {children}

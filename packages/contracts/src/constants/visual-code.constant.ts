@@ -7,6 +7,7 @@ export const VISUAL_CODE_LIMITS = Object.freeze({
   sourceBytes: 256 * 1024,
   propsBytes: 16 * 1024,
   sourceAssets: 12,
+  brandFonts: 8,
   outputs: 8,
   minDimension: 256,
   maxDimension: 1920,
@@ -21,6 +22,13 @@ export const VISUAL_CODE_LIMITS = Object.freeze({
   authorTokens: 16_000,
   inspectionTokens: 1024,
 });
+/** Font files the renderer accepts as staged assets, by MIME type. */
+export const VISUAL_CODE_FONT_MIME_TYPES = [
+  'font/woff2',
+  'font/woff',
+  'font/ttf',
+  'font/otf',
+] as const;
 export const VISUAL_CODE_DEFAULT_SETTINGS = Object.freeze({
   width: 1080,
   height: 1920,
