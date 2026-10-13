@@ -69,10 +69,26 @@ for (const viewport of [
     await expect
       .poll(() => new URL(page.url()).searchParams.get('search'))
       .toBeNull();
-    await canvas.getByRole('button', { name: 'Type', exact: true }).click();
-    await expect(
-      page.getByRole('option', { name: 'Image', exact: true }),
-    ).toBeVisible();
+    // #6818: type is a Filters choice, not a toolbar menu named Type.
+    await canvas.getByRole('button', { name: 'Filters', exact: true }).click();
+    const image = page
+      .getByRole('group', { name: 'Type', exact: true })
+      .getByRole('button', { name: 'Image', exact: true });
+    await image.scrollIntoViewIfNeeded();
+    await expect(image).toBeVisible();
+    await expect
+      .poll(() =>
+        image.evaluate((element) => {
+          const bounds = element.getBoundingClientRect();
+          return element.contains(
+            document.elementFromPoint(
+              bounds.x + bounds.width / 2,
+              bounds.y + bounds.height / 2,
+            ),
+          );
+        }),
+      )
+      .toBe(true);
     await page.keyboard.press('Escape');
     await expectNoErrorOverlay(page);
   });

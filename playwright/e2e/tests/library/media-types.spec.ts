@@ -93,12 +93,14 @@ test.describe('Library Media Types', () => {
       await expect
         .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.MUSIC));
-      // Music and audio share the library's single "Audio" type filter.
+      // Music and audio share one Audio type. #6818 keeps that choice, pressed,
+      // inside Filters instead of a toolbar chip.
+      await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
       await expect(
         authenticatedPage
-          .getByRole('button', { name: 'Audio', exact: true })
-          .first(),
-      ).toBeVisible();
+          .getByRole('group', { name: 'Type', exact: true })
+          .getByRole('button', { name: 'Audio', exact: true }),
+      ).toHaveAttribute('aria-pressed', 'true');
     });
 
     test('should show music tracks or empty state', async ({

@@ -48,13 +48,17 @@ test('library list navigation preserves resolved tenant parameters', async ({
     'brand-1',
     APP_ROUTES.LIBRARY.ASSETS,
   );
-  // #5502: Recent is the asset browser toolbar's Show filter, not a nav link.
-  const show = authenticatedPage.getByRole('combobox', { name: 'Show' });
-  await expect(show).toBeVisible();
+  // #5502: Recent is the asset browser's Show filter, not a nav link.
+  // #6818 moved that filter into the Filters popover.
+  const filters = authenticatedPage.getByRole('button', { name: /^Filters/ });
+  await expect(filters).toBeVisible();
   await expectResolvedLinks(authenticatedPage);
   await test.step('navigate to the recent list', async () => {
-    await show.click();
-    await authenticatedPage.getByRole('option', { name: 'Recent' }).click();
+    await filters.click();
+    const recent = authenticatedPage
+      .getByRole('group', { name: 'Show', exact: true })
+      .getByRole('radio', { name: 'Recent', exact: true });
+    await recent.click();
     // Place presets preserve the Images type preset's category filters.
     await authenticatedPage.waitForURL(
       (url) =>
@@ -69,7 +73,13 @@ test('library list navigation preserves resolved tenant parameters', async ({
       'IMAGE',
       'IMAGE_EDIT',
     ]);
-    await expect(show).toContainText('Recent');
+    await expect(recent).toBeChecked();
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Remove Recent filter',
+        exact: true,
+      }),
+    ).toBeVisible();
   });
   await expectResolvedLinks(authenticatedPage);
   expect(placeholderRequests).toEqual([]);

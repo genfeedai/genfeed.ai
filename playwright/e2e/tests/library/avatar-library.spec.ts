@@ -84,10 +84,13 @@ test.describe('Avatar Library', () => {
       authenticatedPage.locator('tr', { hasText: 'Avatar Action Video' }),
     ).toBeVisible({ timeout: 30000 });
 
-    // Status options read /ingredients/summary (ILibrarySummary).
-    await authenticatedPage.getByRole('combobox', { name: 'Status' }).click();
+    // Status reads /ingredients/summary (ILibrarySummary). #6818 moved it
+    // into the Filters popover as a radio group, off the toolbar combobox.
+    await authenticatedPage.getByRole('button', { name: /^Filters/ }).click();
     await expect(
-      authenticatedPage.getByRole('option', { name: 'Needs review (2)' }),
+      authenticatedPage
+        .getByRole('group', { name: 'Status', exact: true })
+        .getByRole('radio', { name: 'Needs review (2)', exact: true }),
     ).toBeVisible();
   });
 

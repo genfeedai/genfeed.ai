@@ -70,11 +70,18 @@ test.describe('Library', () => {
     await expect(rail.getByText('Shelves')).toHaveCount(0);
     await expect(rail.getByRole('link', { name: 'Trash' })).toHaveCount(0);
     await expect(rail.getByRole('link', { name: 'Unsorted' })).toHaveCount(0);
+    // #6818: Status and Show stay on the assets page, inside Filters.
+    const filters = authenticatedPage.getByRole('button', {
+      name: 'Filters',
+      exact: true,
+    });
+    await expect(filters).toBeVisible();
+    await filters.click();
     await expect(
-      authenticatedPage.getByRole('combobox', { name: 'Status' }),
+      authenticatedPage.getByRole('group', { name: 'Status', exact: true }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('combobox', { name: 'Show' }),
+      authenticatedPage.getByRole('group', { name: 'Show', exact: true }),
     ).toBeVisible();
   });
 

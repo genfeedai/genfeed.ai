@@ -122,12 +122,18 @@ test.describe('Content Library', () => {
         .poll(() => new URL(authenticatedPage.url()).pathname)
         .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
 
-      // #5502: Recent and Starred are the asset browser toolbar's Show filter
-      // (the captions list has no such control).
-      const show = authenticatedPage.getByRole('combobox', { name: 'Show' });
+      // #5502: Recent and Starred are the asset browser's Show filter
+      // (the captions list has no such control). #6818 nests Show in Filters.
+      const filters = authenticatedPage.getByRole('button', {
+        name: /^Filters/,
+      });
+      await filters.click();
+      const show = authenticatedPage.getByRole('group', {
+        name: 'Show',
+        exact: true,
+      });
       for (const place of ['Recent', 'Starred'] as const) {
-        await show.click();
-        await authenticatedPage.getByRole('option', { name: place }).click();
+        await show.getByRole('radio', { name: place, exact: true }).click();
         await expect
           .poll(() =>
             new URL(authenticatedPage.url()).searchParams.get('place'),
